@@ -71,6 +71,28 @@ public class RouterProbe {
         System.out.println("===ROUTERPROBE_BEGIN===");
         System.out.print(sb);
         System.out.println("===ROUTERPROBE_END===");
+
+        // density 纯采样计时：模拟 16 chunk 的 density 网格（4x4x8 = 12288 点）
+        long t0 = System.nanoTime();
+        double acc = 0;
+        int n = 0;
+        for (int c = 0; c < 16; c++) {
+            int cx0 = 200 + c % 4, cz0 = 200 + c / 4;
+            for (int y = 0; y < 48; y++) {
+                for (int z = 0; z < 4; z++) {
+                    for (int x = 0; x < 4; x++) {
+                        pos.x = cx0 * 16 + x * 4;
+                        pos.z = cz0 * 16 + z * 4;
+                        pos.y = -64 + y * 8;
+                        acc += router.finalDensity().sample(pos);
+                        n++;
+                    }
+                }
+            }
+        }
+        long t1 = System.nanoTime();
+        System.out.println("===DENSITY_TIMING " + n + " points " + String.format(Locale.ROOT, "%.2f", (t1 - t0) / 1e6)
+                + " ms, acc=" + acc + "===");
         server.stop(false);
     }
 

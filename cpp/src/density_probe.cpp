@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <cstring>
+#include <chrono>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -141,7 +142,8 @@ int main(int argc, char** argv) {
     DF tree = builder.buildNode(*finalDensity);
     std::printf("final_density tree built\n");
 
-    // 3. 读取 vanilla density 文件逐点对比
+    // 3. 读取 vanilla density 文件逐点对比（同时计时）
+    auto t0 = std::chrono::steady_clock::now();
     FILE* f = fopen(densityPath.c_str(), "rb");
     if (!f) { std::perror("open density"); return 1; }
     uint32_t magic; uint64_t vseed; int32_t size, xzI, yI;
@@ -204,6 +206,10 @@ int main(int argc, char** argv) {
         }
     }
     std::fclose(f);
+    auto t1 = std::chrono::steady_clock::now();
+    double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+    std::printf("C++ density eval: %lld points in %.2f ms (%.2f ns/point, 16 chunks => %.2f ms/chunk)\n",
+                total, ms, ms * 1e6 / total, ms / 16);
     std::printf("match=%lld/%lld (%.4f%%) maxErr=%.9g (vanilla=%.6f cpp=%.6f) avgErr=%.9g\n",
                 match, total, 100.0 * match / total, maxErr, worstVal[0], worstVal[1], sumErr / total);
     std::printf("--- by Y layer ---\n");
