@@ -1,0 +1,95 @@
+package wg.bench;
+
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.world.ServerChunkManager;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.gen.noise.NoiseConfig;
+import net.minecraft.world.gen.noise.NoiseRouter;
+
+import java.util.Locale;
+
+/**
+ * Router 分量探针：输出 noiseRouter 各分量在指定采样点的值，供 C++ 逐分量对比。
+ * 用法：-Dprobe.count=<int>（采样点固定网格）
+ */
+public class RouterProbe {
+    public static void run(MinecraftServer server) {
+        int count = Integer.parseInt(System.getProperty("probe.count", "16"));
+        ServerWorld world = server.getOverworld();
+        ServerChunkManager cm = world.getChunkManager();
+        NoiseConfig noiseConfig = cm.getNoiseConfig();
+        NoiseRouter router = noiseConfig.getNoiseRouter();
+        long seed = world.getSeed();
+
+        // 采样点：chunk (200,200) 起，16 点固定网格（y 覆盖 -64..320）
+        double[] xs = new double[count], ys = new double[count], zs = new double[count];
+        for (int i = 0; i < count; i++) {
+            xs[i] = 200 * 16.0 + (i % 4) * 4;
+            zs[i] = 200 * 16.0 + (i / 4) * 4;
+            ys[i] = -64 + (i * 13) % 384;
+        }
+
+        String[] names = {
+                "barrier", "temperature", "vegetation", "continents", "erosion", "depth",
+                "ridges", "initial_density", "final_density", "vein_toggle", "vein_ridged", "vein_gap"
+        };
+        net.minecraft.world.gen.densityfunction.DensityFunction[] fns = {
+                router.barrierNoise(), router.temperature(), router.vegetation(), router.continents(),
+                router.erosion(), router.depth(), router.ridges(), router.initialDensityWithoutJaggedness(),
+                router.finalDensity(), router.veinToggle(), router.veinRidged(), router.veinGap()
+        };
+        // 用 server 的 ChunkNoiseSampler 派生 NoisePos？直接构造最小 NoisePos
+        SimplePos pos = new SimplePos();
+
+        // base_3d_noise：直接构造 InterpolatedNoiseSampler（参数来自 base_3d_noise.json）
+        java.lang.reflect.Field rdField2;
+        net.minecraft.util.math.random.RandomSplitter rd2;
+        try {
+            rdField2 = NoiseConfig.class.getDeclaredField("randomDeriver");
+            rdField2.setAccessible(true);
+            rd2 = (net.minecraft.util.math.random.RandomSplitter) rdField2.get(noiseConfig);
+        } catch (Exception ex) {
+            throw new RuntimeException("cannot get randomDeriver", ex);
+        }
+        var b3d = new net.minecraft.util.math.noise.InterpolatedNoiseSampler(
+                rd2.split(new net.minecraft.util.Identifier("terrain")),
+                0.25, 0.125, 80.0, 160.0, 8.0);
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("#seed ").append(seed).append('\n');
+        for (int i = 0; i < count; i++) {
+            pos.x = (int) xs[i];
+            pos.y = (int) ys[i];
+            pos.z = (int) zs[i];
+            sb.append(String.format(Locale.ROOT, "P %d %d %d", pos.x, pos.y, pos.z)).append('\n');
+            for (int f = 0; f < names.length; f++) {
+                double v = fns[f].sample(pos);
+                sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
+            }
+            sb.append(String.format(Locale.ROOT, "base_3d_noise %.17g%n", b3d.sample(pos)));
+        }
+        System.out.println("===ROUTERPROBE_BEGIN===");
+        System.out.print(sb);
+        System.out.println("===ROUTERPROBE_END===");
+        server.stop(false);
+    }
+
+    /** 最小 NoisePos（与 WorldGenBench.SimpleNoisePos 相同） */
+    static final class SimplePos implements net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos {
+        int x, y, z;
+
+        @Override
+        public int blockX() { return x; }
+
+        @Override
+        public int blockY() { return y; }
+
+        @Override
+        public int blockZ() { return z; }
+
+        @Override
+        public net.minecraft.world.gen.chunk.Blender getBlender() {
+            return net.minecraft.world.gen.chunk.Blender.getNoBlending();
+        }
+    }
+}

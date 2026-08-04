@@ -97,7 +97,9 @@ public class WorldGenBench {
                     System.out.println("[WorldGenBench] chunk (" + wx + "," + wz + ") FULL in " + ms + " ms");
 
                     // 导出 finalDensity 采样：直接用最小 NoisePos 逐点采样
-                    DensityFunction finalDensity = settings.noiseRouter().finalDensity();
+                    // 注意：必须用 noiseConfig.getNoiseRouter()（已注入 sampler），
+                    // settings.noiseRouter() 的 noise 节点是 null（会返回 0）
+                    DensityFunction finalDensity = noiseConfig.getNoiseRouter().finalDensity();
                     int minY = settings.generationShapeConfig().minimumY();
                     int height = settings.generationShapeConfig().height();
                     int sx = (int) Math.ceil(16.0 / DENSITY_XZ_INTERVAL);

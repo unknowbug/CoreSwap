@@ -115,6 +115,7 @@ public:
     std::vector<double> amplitudes;
     double persistence;
     double lacunarity;
+    double maxValue = 0;
 
     static double maintainPrecision(double v) {
         return v - (double)lfloor(v / 3.3554432E7 + 0.5) * 3.3554432E7;
@@ -135,7 +136,70 @@ public:
         }
         lacunarity = std::pow(2.0, -j);
         persistence = std::pow(2.0, (double)i - 1.0) / (std::pow(2.0, (double)i) - 1.0);
+        maxValue = getTotalAmplitude(2.0);
     }
+
+    // legacy 构造（createLegacy：直接消费 random，非 splitter 派生；用于 old_blended_noise）
+    OctavePerlinNoiseSampler(XoroshiroRandom& random, bool legacy, int32_t firstOctave_, const std::vector<double>& amplitudes_)
+        : firstOctave(firstOctave_), amplitudes(amplitudes_) {
+        (void)legacy;
+        size_t i = amplitudes.size();
+        int32_t j = -firstOctave;
+        octaveSamplers.resize(i);
+        // Java: 无论如何都 new PerlinNoiseSampler(random)（消费 random），可能丢弃
+        auto firstPN = std::make_unique<PerlinNoiseSampler>(random);
+        if (j >= 0 && j < (int32_t)i) {
+            double d = amplitudes[j];
+            if (d != 0.0) {
+                octaveSamplers[j] = std::move(firstPN);
+            }
+        }
+        for (int32_t kx = j - 1; kx >= 0; kx--) {
+            if (kx < (int32_t)i) {
+                double e = amplitudes[kx];
+                if (e != 0.0) {
+                    octaveSamplers[kx] = std::make_unique<PerlinNoiseSampler>(random);
+                } else {
+                    random.skip(262);
+                }
+            } else {
+                random.skip(262);
+            }
+        }
+        lacunarity = std::pow(2.0, -j);
+        persistence = std::pow(2.0, (double)i - 1.0) / (std::pow(2.0, (double)i) - 1.0);
+        maxValue = getTotalAmplitude(2.0);
+    }
+
+    // 便捷：IntStream.rangeClosed(a, b) 全 1 振幅
+    static std::vector<double> rangeClosedAmplitudes(int32_t from, int32_t to) {
+        int32_t n = to - from + 1;
+        return std::vector<double>(n, 1.0);
+    }
+
+    const PerlinNoiseSampler* getOctave(int32_t octave) const {
+        int32_t idx = (int32_t)octaveSamplers.size() - 1 - octave;
+        return (idx >= 0 && idx < (int32_t)octaveSamplers.size()) ? octaveSamplers[idx].get() : nullptr;
+    }
+
+    double method_40556(double d) const {
+        return getTotalAmplitude(d + 2.0);
+    }
+
+    double getMaxValue() const { return maxValue; }
+
+private:
+    double getTotalAmplitude(double scale) const {
+        double d = 0.0;
+        double e = persistence;
+        for (size_t i = 0; i < octaveSamplers.size(); i++) {
+            if (octaveSamplers[i]) d += amplitudes[i] * scale * e;
+            e /= 2.0;
+        }
+        return d;
+    }
+
+public:
 
     double sample(double x, double y, double z) const {
         double d = 0.0;
@@ -167,6 +231,7 @@ public:
     double amplitude;
     OctavePerlinNoiseSampler firstSampler;
     OctavePerlinNoiseSampler secondSampler;
+    double maxValue;
 
     DoublePerlinNoiseSampler(XoroshiroRandom& random, const NoiseParameters& params)
         : firstSampler(random, params.firstOctave, params.amplitudes),
@@ -179,7 +244,10 @@ public:
             }
         }
         amplitude = 0.16666666666666666 / createAmplitude(k - j);
+        maxValue = (firstSampler.getMaxValue() + secondSampler.getMaxValue()) * amplitude;
     }
+
+    double getMaxValue() const { return maxValue; }
 
     static double createAmplitude(int32_t octaves) {
         return 0.1 * (1.0 + 1.0 / (octaves + 1));

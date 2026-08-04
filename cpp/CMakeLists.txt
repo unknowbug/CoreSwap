@@ -25,3 +25,13 @@ set_target_properties(worldgen_jni PROPERTIES PREFIX "" OUTPUT_NAME "worldgen")
 add_executable(noise_probe src/noise_probe.cpp)
 target_include_directories(noise_probe PRIVATE include src)
 target_link_libraries(noise_probe PRIVATE worldgen_core)
+
+# 3c 密度场探针（验证用）
+add_executable(density_probe src/density_probe.cpp)
+target_include_directories(density_probe PRIVATE include src)
+target_link_libraries(density_probe PRIVATE worldgen_core)
+
+# 3c router 分量探针（验证用）
+add_executable(router_probe src/router_probe.cpp)
+target_include_directories(router_probe PRIVATE include src)
+target_link_libraries(router_probe PRIVATE worldgen_core)

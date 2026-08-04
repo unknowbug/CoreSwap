@@ -12,6 +12,8 @@ public class BenchMod implements DedicatedServerModInitializer {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (System.getProperty("probe.count") != null) {
                 NoiseProbe.run(server);
+            } else if (System.getProperty("router.probe") != null) {
+                RouterProbe.run(server);
             } else {
                 WorldGenBench.run(server);
             }

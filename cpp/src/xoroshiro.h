@@ -60,15 +60,16 @@ public:
     class Splitter {
     public:
         uint64_t seedLo, seedHi;
+        Splitter() : seedLo(0), seedHi(0) {}
         Splitter(uint64_t lo, uint64_t hi) : seedLo(lo), seedHi(hi) {}
 
-        XoroshiroRandom split(int32_t x, int32_t y, int32_t z) {
+        XoroshiroRandom split(int32_t x, int32_t y, int32_t z) const {
             int64_t l = hashXYZ(x, y, z);
             uint64_t m = (uint64_t)l ^ seedLo;
             return XoroshiroRandom(m, seedHi);
         }
 
-        XoroshiroRandom split(const std::string& seed) {
+        XoroshiroRandom split(const std::string& seed) const {
             XoroshiroSeed s = createXoroshiroSeed(seed);
             return XoroshiroRandom(s.split(seedLo, seedHi));
         }

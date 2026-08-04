@@ -46,6 +46,10 @@ loom {
             if (project.findProperty('probeCount') != null) {
                 vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
             }
+            // router 分量探针：gradle runServer -ProuterProbe=true
+            if (project.findProperty('routerProbe') != null) {
+                vmArg "-Drouter.probe=true"
+            }
         }
     }
 }

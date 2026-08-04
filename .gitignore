@@ -14,8 +14,7 @@ cpp/build/
 *.a
 
 # Bench data (generated)
-data/*.bin
-data/*.json
+data/
 bench/report.md.tmp
 
 # IDE
