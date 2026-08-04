@@ -12,11 +12,16 @@ find_path(JNI_INCLUDE_DIR jni.h PATHS "$ENV{JAVA_HOME}/include" NO_DEFAULT_PATH 
 find_path(JNI_MD_INCLUDE_DIR jni_md.h PATHS "$ENV{JAVA_HOME}/include/win32" NO_DEFAULT_PATH REQUIRED)
 
 # worldgen 核心静态库（Phase 3 填实现）
-add_library(worldgen_core STATIC src/worldgen.cpp include/worldgen.h)
-target_include_directories(worldgen_core PUBLIC include)
+add_library(worldgen_core STATIC src/worldgen.cpp src/md5.cpp include/worldgen.h src/md5.h src/random.h src/xoroshiro.h src/noise.h)
+target_include_directories(worldgen_core PUBLIC include src)
 
 # JNI 桥动态库
 add_library(worldgen_jni SHARED src/jni_bridge.cpp)
-target_include_directories(worldgen_jni PRIVATE include ${JNI_INCLUDE_DIR} ${JNI_MD_INCLUDE_DIR})
+target_include_directories(worldgen_jni PRIVATE include src ${JNI_INCLUDE_DIR} ${JNI_MD_INCLUDE_DIR})
 target_link_libraries(worldgen_jni PRIVATE worldgen_core)
 set_target_properties(worldgen_jni PROPERTIES PREFIX "" OUTPUT_NAME "worldgen")
+
+# 3a 噪声探针（验证用）
+add_executable(noise_probe src/noise_probe.cpp)
+target_include_directories(noise_probe PRIVATE include src)
+target_link_libraries(noise_probe PRIVATE worldgen_core)

@@ -42,6 +42,10 @@ loom {
             vmArg "-Dbench.originX=${benchOriginX}"
             vmArg "-Dbench.originZ=${benchOriginZ}"
             vmArg "-Dbench.out=${benchOut}"
+            // 探针模式：gradle runServer -PprobeCount=<int>
+            if (project.findProperty('probeCount') != null) {
+                vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
+            }
         }
     }
 }

@@ -9,6 +9,12 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 public class BenchMod implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
-        ServerLifecycleEvents.SERVER_STARTED.register(WorldGenBench::run);
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (System.getProperty("probe.count") != null) {
+                NoiseProbe.run(server);
+            } else {
+                WorldGenBench.run(server);
+            }
+        });
     }
 }
