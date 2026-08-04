@@ -4,6 +4,12 @@ project(worldgen CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# MinGW 静态链接运行时：exe/dll 自包含，用户无需安装 MinGW
+if(MINGW)
+    add_compile_options(-static)
+    add_link_options(-static)
+endif()
+
 if(NOT DEFINED ENV{JAVA_HOME})
     message(FATAL_ERROR "JAVA_HOME 未设置，需要指向 JDK 安装目录")
 endif()

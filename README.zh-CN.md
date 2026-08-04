@@ -48,6 +48,22 @@ CoreSwap/
 3. **方块层**：density → 方块状态（surface rules + 区块填充）
 4. **实体 AI / 寻路**：第二个要 C++ 化的核心（社区已有 JNI 加速寻路先例）
 
+## 预编译版本
+
+不用装编译器 / JDK，Windows x64 下载即用：
+
+[**下载 CoreSwap-1.20.1-poc.zip**](https://github.com/unknowbug/CoreSwap/releases)（1.6 MB）
+
+包含 `density_probe.exe` / `noise_probe.exe` / `router_probe.exe` / `worldgen.dll` +
+vanilla 参照密度数据 + worldgen JSON 数据。快速验证：
+
+```
+density_probe.exe -8248318472910187742 vanilla_reference.density worldgen-data
+# 期望输出：match=12288/12288 (100.0000%) maxErr=0
+```
+
+静态链接 MinGW 运行时——exe 完全自包含，无需额外安装。
+
 ## 使用说明
 
 ### 前置条件

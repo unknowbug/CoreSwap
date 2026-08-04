@@ -47,6 +47,22 @@ Adding a new MC version = adding a directory.
 3. **Block layer**: density → block states (surface rules + chunk fill)
 4. **Entity AI / pathfinding**: second core to C++-ify (community precedent: JNI-accelerated pathfinding)
 
+## Prebuilt Binaries
+
+No compiler or JDK needed — download and run on Windows x64:
+
+[**Download CoreSwap-1.20.1-poc.zip**](https://github.com/unknowbug/CoreSwap/releases) (1.6 MB)
+
+Includes `density_probe.exe` / `noise_probe.exe` / `router_probe.exe` / `worldgen.dll` +
+vanilla reference density + worldgen JSON data. Quick verify:
+
+```
+density_probe.exe -8248318472910187742 vanilla_reference.density worldgen-data
+# expect: match=12288/12288 (100.0000%) maxErr=0
+```
+
+Built with statically-linked MinGW runtime — the binaries are self-contained.
+
 ## Getting Started
 
 ### Prerequisites
