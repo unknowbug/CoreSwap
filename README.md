@@ -2,50 +2,126 @@
 
 > **We took the 'Java' out of Minecraft Java Edition. Same mods. Same worlds. Different FPS.**
 
-把 Minecraft Java 版的性能核心（区块生成、实体 AI/寻路）用 C++ 重写，**保留完整的 Java MOD 生态**。
-同一个 seed、同一个世界、同一个 MOD —— 底下换成了 C++。
+[中文版 / Chinese](./README.zh-CN.md)
 
-**Why:** Java 版性能被诟病二十年。现有方案都有致命缺陷：Paper 等优化插件还是 Java（治标不治本）；
-全 C++ 重写（Cuberite）性能好但 MOD 生态全灭；换基岩版生态全丢。CoreSwap 走的是没人走过的中间路线：
-**C++ 性能核心 + Java MOD 层（JNI 桥）**——API 层保持 Java 不变，C++ 化全在 API 下面自由进行。
+Rewrite Minecraft Java Edition's performance-critical cores — **world generation** and **entity AI / pathfinding** — in C++, while keeping the **full Java mod ecosystem** intact. Same seed. Same world. Same mods. The C++ goes underneath.
 
-## 版本管理
+**Why:** Java Edition's performance has been a meme for two decades. Every existing fix has a fatal flaw:
 
-仓库按 **Minecraft Java 版版本号**组织目录，每个版本独立维护：
+| Approach | Flaw |
+|---|---|
+| Paper & optimization plugins | Still Java — treats symptoms, not causes |
+| Cuberite (full C++ rewrite) | Fast, but the mod ecosystem dies |
+| Switch to Bedrock | Ecosystem gone, version drift forever |
+
+CoreSwap walks the path nobody has walked: **C++ performance core + Java mod layer (JNI bridge)** — the mod API stays Java and untouched; everything below it is free to become C++.
+
+## Versioning
+
+The repo is organized by **Minecraft Java version number**. Each version lives in its own directory:
 
 ```
 CoreSwap/
 ├── README.md
 └── versions/
-    ├── 1.20.1/          # ← 当前版本（冻结的现代版，官方 Vulkan 迁移不涉及）
-    │   ├── cpp/         # C++ 核心（噪声 + 密度场 + JSON 装配）
-    │   ├── java/        # Fabric Loom dev env（vanilla 基准 + 探针）
-    │   ├── bench/       # 对比脚本 + POC 报告
-    │   └── build.ps1    # 构建脚本
-    └── <未来版本>/       # 加新版本 = 加目录
+    ├── 1.20.1/          # ← current (frozen modern version, untouched by Mojang's Vulkan migration)
+    │   ├── cpp/         # C++ core (noise + density field + JSON assembly)
+    │   ├── java/        # Fabric Loom dev env (vanilla baseline + probes)
+    │   ├── bench/       # comparison scripts + POC report
+    │   └── build.ps1    # build script
+    └── <future versions>/
 ```
 
-版本选择依据：渲染架构稳定（1.18 重构后）、MOD 生态最活跃的冻结期、官方不动的目标。
+Adding a new MC version = adding a directory.
 
-## 当前状态（1.20.1）
+## Current Status (1.20.1)
 
-- ✅ **密度场与 vanilla 100% 逐位一致**（12288/12288 点，maxErr=0，IEEE double 精确）
-- ✅ **性能 2.43×**（C++ 4.42ms/chunk vs Java 10.75ms/chunk，-O2 基线未优化）
-- 📄 详见 [`versions/1.20.1/bench/report.md`](versions/1.20.1/bench/report.md)
+- ✅ **Density field 100% bit-identical to vanilla** (12288/12288 sample points, maxErr=0, exact IEEE double)
+- ✅ **2.43× speedup** (C++ 4.42 ms/chunk vs Java 10.75 ms/chunk, -O2 baseline, no memory optimizations yet)
+- 📄 Details: [`versions/1.20.1/bench/report.md`](versions/1.20.1/bench/report.md)
 
-## 路线图
+## Roadmap
 
-1. **代码优化**：紧凑数组 + 索引 + 缓存友好布局（预计 2-5× 提升）
-2. **JNI 桥**：`generateRegion` 大块数据一次交换
-3. **方块层**：density → 方块状态（surface rules + 区块填充）
-4. **实体 AI / 寻路**：第二刀，C++ 化（社区已有 JNI 加速寻路先例）
+1. **Memory optimization**: compact arrays + indexing + cache-friendly layouts (projected 2-5× more)
+2. **JNI bridge**: `generateRegion` — bulk data exchange, one call
+3. **Block layer**: density → block states (surface rules + chunk fill)
+4. **Entity AI / pathfinding**: second core to C++-ify (community precedent: JNI-accelerated pathfinding)
 
-## 构建
+## Getting Started
+
+### Prerequisites
+
+- **Windows** (currently the target platform)
+- **CMake**
+- Toolchains (portable zips, not committed to the repo) under a `tools/` dir at the repo root:
+
+```
+tools/
+├── mingw/mingw64/bin/        # MinGW-w64 (gcc 16.x) — needed for the C++ core + JNI DLL
+└── jdk17/jdk-17.0.20+8/      # Temurin JDK 17 — Loom 1.20.1 toolchain (JDK 24 is too new)
+```
+
+### Build
 
 ```powershell
-# 工具链（MinGW + JDK17，免安装包，不入库）放到仓库根 tools/ 下
 powershell -File versions\1.20.1\build.ps1
 ```
+
+Builds the C++ core + `worldgen.dll` (JNI), compiles the Java JNI test, and runs it (expect a `seed=... => <hash>` line).
+
+### Verify the C++ core against vanilla
+
+1. **Extract vanilla worldgen data** (needed by `density_probe`):
+
+```powershell
+# from the 1.20.1 minecraft jar (client or server)
+jar xf minecraft-1.20.1.jar data/minecraft/worldgen
+# put the resulting data/ under e.g. versions\1.20.1\data\worldgen
+```
+
+2. **Generate the vanilla density reference** (starts a dedicated server via Loom, generates chunks, exports density samples):
+
+```powershell
+cd versions\1.20.1\java
+# JAVA_HOME must point to JDK 17
+gradle runServer -PbenchSeed=-8248318472910187742 -PbenchSize=4 -PbenchOriginX=200 -PbenchOriginZ=200
+# → writes data/vanilla_<seed>_<size>.density + .json (big-endian doubles, see bench/report.md for format)
+```
+
+3. **Compare C++ against it**:
+
+```powershell
+cd versions\1.20.1
+cpp\build\density_probe.exe -8248318472910187742 data\vanilla_-8248318472910187742_4.density data\worldgen
+# expect: match=12288/12288 (100.0000%) maxErr=0
+```
+
+4. **Noise primitive probe** (C++ side, 54 noise keys × N points):
+
+```powershell
+cpp\build\noise_probe.exe <seed> <count>
+# compare with: gradle runServer -PprobeCount=<count>  (outputs the Java reference)
+```
+
+### Probes (Java side, via Loom)
+
+| Mode | Command | Output |
+|---|---|---|
+| Noise reference | `gradle runServer -PprobeCount=64` | 54 noise keys × 64 points |
+| Router components | `gradle runServer -ProuterProbe=true` | all router components + density timing |
+| Chunk baseline | `gradle runServer -PbenchSeed=<s> -PbenchSize=<n> -PbenchOriginX=<x> -PbenchOriginZ=<z>` | chunk gen timing + density file |
+
+The Java probes need `eula.txt` (`eula=true`) in `versions/1.20.1/java/run/`.
+
+## How It Works
+
+The C++ core reconstructs the density field exactly as vanilla does:
+
+- **Noise primitives**: Xoroshiro128PlusPlus RNG, MD5-based seed derivation, Perlin / octave / double-perlin samplers — bit-identical to Mojang's implementation
+- **Density function tree**: assembled at runtime from vanilla's `worldgen` JSON (`noise_settings/overworld.json` + `density_function/overworld/*.json`), mirroring `NoiseConfig`'s visitor semantics
+- **InterpolatedNoiseSampler** (`old_blended_noise`): the terrain backbone, reproduced exactly
+
+No tolerance was needed: the C++ density field matches vanilla to the exact IEEE double.
 
 ## License
 
