@@ -1,0 +1,30 @@
+# Java / Gradle
+java/.gradle/
+java/build/
+java/run/
+*.log
+
+# C++
+cpp/build/
+*.o
+*.obj
+*.dll
+*.exe
+*.lib
+*.a
+
+# Bench data (generated)
+data/*.bin
+data/*.json
+bench/report.md.tmp
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Local toolchains (MinGW / JDK17 免安装包，不入库)
+tools/
+
+# Java 编译产物
+java/jnitest/out/
