@@ -1,9 +1,10 @@
-# 构建脚本：编译 C++ 核心 + JNI DLL + Java JNI 测试
-# 用法: powershell -File build.ps1
+# 构建脚本（1.20.1）：编译 C++ 核心 + JNI DLL + Java JNI 测试
+# 用法: powershell -File versions\1.20.1\build.ps1
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$env:JAVA_HOME = "$root\tools\jdk17\jdk-17.0.20+8"
-$env:Path = "$root\tools\mingw\mingw64\bin;$env:JAVA_HOME\bin;" + $env:Path
+$repoRoot = Split-Path -Parent (Split-Path -Parent $root)
+$env:JAVA_HOME = "$repoRoot\tools\jdk17\jdk-17.0.20+8"
+$env:Path = "$repoRoot\tools\mingw\mingw64\bin;$env:JAVA_HOME\bin;" + $env:Path
 
 Write-Host "== CMake configure =="
 cmake -S "$root\cpp" -B "$root\cpp\build" -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release

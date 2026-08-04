@@ -1,11 +1,11 @@
-# Java / Gradle
-java/.gradle/
-java/build/
-java/run/
+# 构建产物（任意层级，各版本通用）
+build/
+out/
+run/
+.gradle/
 *.log
 
 # C++
-cpp/build/
 *.o
 *.obj
 *.dll
@@ -13,17 +13,11 @@ cpp/build/
 *.lib
 *.a
 
-# Bench data (generated)
+# 生成数据 + 本地工具链（不入库）
 data/
-bench/report.md.tmp
+tools/
 
 # IDE
 .vscode/
 .idea/
 *.iml
-
-# Local toolchains (MinGW / JDK17 免安装包，不入库)
-tools/
-
-# Java 编译产物
-java/jnitest/out/
