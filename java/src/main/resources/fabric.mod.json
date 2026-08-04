@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "worldgen-bench",
+  "version": "${version}",
+  "name": "WorldGen Bench",
+  "description": "MC Java 版区块生成 C++ 化 POC - vanilla 基准 harness",
+  "authors": ["unknowbug"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "server": ["wg.bench.BenchMod"]
+  }
+}
