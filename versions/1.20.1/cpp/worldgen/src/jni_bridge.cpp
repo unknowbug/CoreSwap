@@ -69,15 +69,23 @@ Java_wg_CppWorldgen_fillBlocks(JNIEnv* env, jclass /*cls*/, jlong handle,
     if (count <= 0 || env->GetArrayLength(chunkZs) != count || env->GetArrayLength(outs) != count) return 0;
     int* cxs = env->GetIntArrayElements(chunkXs, nullptr);
     int* czs = env->GetIntArrayElements(chunkZs, nullptr);
+    // 安全模式：C++ 内部线程池写「本地 buffer」，主线程再拷回 Java 数组。
+    // 直接让 C++ 线程写 GetIntArrayElements 指针在部分 JVM 上不安全（pin 语义 + 跨线程写）。
+    constexpr jsize BLOCK_COUNT = 16 * 16 * 384;
+    std::vector<std::vector<int32_t>> local((size_t)count, std::vector<int32_t>(BLOCK_COUNT));
     std::vector<int32_t*> bufs((size_t)count);
-    std::vector<jintArray> arrs((size_t)count);
-    for (int i = 0; i < count; i++) {
-        arrs[(size_t)i] = (jintArray)env->GetObjectArrayElement(outs, i);
-        if (!arrs[(size_t)i]) { env->ReleaseIntArrayElements(chunkXs, cxs, 0); env->ReleaseIntArrayElements(chunkZs, czs, 0); return 0; }
-        bufs[(size_t)i] = env->GetIntArrayElements(arrs[(size_t)i], nullptr);
-    }
+    for (int i = 0; i < count; i++) bufs[(size_t)i] = local[(size_t)i].data();
     int r = wg_fill_blocks_multi(reinterpret_cast<void*>(handle), cxs, czs, bufs.data(), (int)count, (int)threads);
-    for (int i = 0; i < count; i++) env->ReleaseIntArrayElements(arrs[(size_t)i], bufs[(size_t)i], 0);
+    // 主线程拷回（r 表示成功生成的 chunk 数）
+    for (int i = 0; i < r && i < count; i++) {
+        jintArray arr = (jintArray)env->GetObjectArrayElement(outs, i);
+        if (!arr) continue;
+        jint* dst = env->GetIntArrayElements(arr, nullptr);
+        if (dst) {
+            std::memcpy(dst, local[(size_t)i].data(), BLOCK_COUNT * sizeof(int32_t));
+            env->ReleaseIntArrayElements(arr, dst, 0);
+        }
+    }
     env->ReleaseIntArrayElements(chunkXs, cxs, 0);
     env->ReleaseIntArrayElements(chunkZs, czs, 0);
     return r;

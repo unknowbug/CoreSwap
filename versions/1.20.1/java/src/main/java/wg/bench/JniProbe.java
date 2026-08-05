@@ -44,7 +44,7 @@ public class JniProbe {
             czs[i] = originZ / 16 + i / size;
         }
         int[][] outs = new int[n][16 * 16 * HEIGHT];
-        int threads = Integer.parseInt(System.getProperty("bench.threads", "1")); // JNI 验证先用单线程排除多线程因素
+        int threads = Integer.parseInt(System.getProperty("bench.threads", "0")); // 0 = C++ 自适应（min(CPU核数, 任务数)）
         long t0 = System.nanoTime();
         int count = CppWorldgen.fillBlocks(h, cxs, czs, outs, threads);
         long t1 = System.nanoTime();

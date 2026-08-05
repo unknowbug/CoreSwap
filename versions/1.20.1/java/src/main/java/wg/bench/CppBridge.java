@@ -96,7 +96,8 @@ public final class CppBridge {
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         long t0 = System.nanoTime();
         int[] buf = BUF.get();  // 复用（98304 ints/393KB，每 chunk 分配是 GC 压力）
-        int n = CppWorldgen.fillBlocks(handle, new int[]{cx}, new int[]{cz}, new int[][]{buf}, 1);
+        // threads=0：C++ 侧自适应（min(CPU 核心数, 任务数)）——不要写死线程数
+        int n = CppWorldgen.fillBlocks(handle, new int[]{cx}, new int[]{cz}, new int[][]{buf}, 0);
         long t1 = System.nanoTime();
         if (n != 1) {
             System.out.println("[CppBridge] fillBlocks failed for chunk(" + cx + "," + cz + ")");
@@ -107,9 +108,9 @@ public final class CppBridge {
         java.util.Arrays.fill(stateById, Blocks.AIR.getDefaultState());
         BlockState air = Blocks.AIR.getDefaultState();
         // 直写 PalettedContainer（跳过 chunk.setBlockState 的 heightmap/blockEntity 开销）
-        // 注意：Chunk.getSection(int) 参数是 section 的世界 Y 坐标（-4..19），不是 0-based index
+        // Chunk.getSection(int) 参数是 0-based section index（0..23 = 世界 y -64..319）
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
-        for (int secY = -4; secY < 20; secY++) sections[secY + 4] = chunk.getSection(secY);
+        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
         for (int by = 0; by < 384; by++) {
             net.minecraft.world.chunk.PalettedContainer<BlockState> container =
                     sections[by >> 4].getBlockStateContainer();

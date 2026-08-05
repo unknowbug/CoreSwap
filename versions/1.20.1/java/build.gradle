@@ -29,51 +29,33 @@ processResources {
 
 loom {
     runs {
-        server {
-            programArgs '--nogui'
-            // bench 参数：gradle runServer -PbenchSeed=<long> -PbenchSize=<int>
+        // 公共 bench/替换参数：server 与 client 共用
+        def benchVmArgs = { run ->
             def benchSeed = project.findProperty('benchSeed') ?: '-8248318472910187742'
             def benchSize = project.findProperty('benchSize') ?: '8'
             def benchOriginX = project.findProperty('benchOriginX') ?: '200'
             def benchOriginZ = project.findProperty('benchOriginZ') ?: '200'
             def benchOut = project.findProperty('benchOut') ?: 'E:/python/MC/data'
-            vmArg "-Dbench.seed=${benchSeed}"
-            vmArg "-Dbench.size=${benchSize}"
-            vmArg "-Dbench.originX=${benchOriginX}"
-            vmArg "-Dbench.originZ=${benchOriginZ}"
-            vmArg "-Dbench.out=${benchOut}"
-            // 探针模式：gradle runServer -PprobeCount=<int>
-            if (project.findProperty('probeCount') != null) {
-                vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
-            }
-            // router 分量探针：gradle runServer -ProuterProbe=true
-            if (project.findProperty('routerProbe') != null) {
-                vmArg "-Drouter.probe=true"
-            }
-            // ore 矿脉探针：gradle runServer -PoreProbe=true
-            if (project.findProperty('oreProbe') != null) {
-                vmArg "-Dore.probe=true"
-            }
-            // 方块导出探针：gradle runServer -PblockProbe=true
-            if (project.findProperty('blockProbe') != null) {
-                vmArg "-Dblock.probe=true"
-            }
-            // biome 参数表导出：gradle runServer -PbiomeProbe=true
-            if (project.findProperty('biomeProbe') != null) {
-                vmArg "-Dbiome.probe=true"
-            }
-            // JNI 桥验证：gradle runServer -PjniProbe=true
-            if (project.findProperty('jniProbe') != null) {
-                vmArg "-Djni.probe=true"
-            }
-            // CoreSwap 替换模式：gradle runServer -PcppReplace=true（C++ 生成区块）
-            if (project.findProperty('cppReplace') != null) {
-                vmArg "-Dcpp.replace=1"
-            }
-            // 读回已生成 world 对比 vanilla：gradle runServer -PreadWorldProbe=true
-            if (project.findProperty('readWorldProbe') != null) {
-                vmArg "-DreadWorld.probe=true"
-            }
+            run.vmArg "-Dbench.seed=${benchSeed}"
+            run.vmArg "-Dbench.size=${benchSize}"
+            run.vmArg "-Dbench.originX=${benchOriginX}"
+            run.vmArg "-Dbench.originZ=${benchOriginZ}"
+            run.vmArg "-Dbench.out=${benchOut}"
+            if (project.findProperty('probeCount') != null) run.vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
+            if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
+            if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
+            if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
+            if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
+            if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
+            if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
+            if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
+        }
+        server {
+            programArgs '--nogui'
+            benchVmArgs(delegate)
+        }
+        client {
+            benchVmArgs(delegate)
         }
     }
 }
