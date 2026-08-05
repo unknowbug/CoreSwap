@@ -1,0 +1,2 @@
+E:\PYTHON\MC\tools\mingw\mingw64\bin\ar.exe qc ..\bin\libworldgen_core.a CMakeFiles/worldgen_core.dir/src/worldgen.cpp.obj CMakeFiles/worldgen_core.dir/src/md5.cpp.obj CMakeFiles/worldgen_core.dir/src/worldgen_api.cpp.obj
+E:\PYTHON\MC\tools\mingw\mingw64\bin\ranlib.exe ..\bin\libworldgen_core.a

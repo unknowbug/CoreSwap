@@ -121,6 +121,9 @@ public:
         return v - (double)lfloor(v / 3.3554432E7 + 0.5) * 3.3554432E7;
     }
 
+    // 默认构造（std::map operator[] 用；调用前必须赋值）
+    OctavePerlinNoiseSampler() : firstOctave(0) {}
+
     OctavePerlinNoiseSampler(XoroshiroRandom& random, int32_t firstOctave, const std::vector<double>& amplitudes)
         : firstOctave(firstOctave), amplitudes(amplitudes) {
         size_t i = amplitudes.size();
@@ -232,6 +235,9 @@ public:
     OctavePerlinNoiseSampler firstSampler;
     OctavePerlinNoiseSampler secondSampler;
     double maxValue;
+
+    // 默认构造（std::map operator[] 用；调用前必须赋值）
+    DoublePerlinNoiseSampler() : amplitude(1.0), maxValue(1.0) {}
 
     DoublePerlinNoiseSampler(XoroshiroRandom& random, const NoiseParameters& params)
         : firstSampler(random, params.firstOctave, params.amplitudes),

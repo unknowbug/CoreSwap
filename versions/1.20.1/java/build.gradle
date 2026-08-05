@@ -50,6 +50,14 @@ loom {
             if (project.findProperty('routerProbe') != null) {
                 vmArg "-Drouter.probe=true"
             }
+            // 方块导出探针：gradle runServer -PblockProbe=true
+            if (project.findProperty('blockProbe') != null) {
+                vmArg "-Dblock.probe=true"
+            }
+            // biome 参数表导出：gradle runServer -PbiomeProbe=true
+            if (project.findProperty('biomeProbe') != null) {
+                vmArg "-Dbiome.probe=true"
+            }
         }
     }
 }

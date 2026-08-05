@@ -46,6 +46,8 @@ public:
 
     double nextDouble() { return (double)(impl.next() >> 11) * 1.1102230246251565E-16; }
     float nextFloat() { return (float)(impl.next() >> 40) * 5.9604645E-8F; }
+    bool nextBoolean() { return (impl.next() & 1ULL) != 0; }
+    int32_t nextBetween(int32_t min, int32_t max) { return nextInt(max - min + 1) + min; }
 
     void skip(int64_t count) {
         for (int64_t i = 0; i < count; i++) impl.next();

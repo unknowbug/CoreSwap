@@ -29,6 +29,11 @@ int wg_min_y(void* handle);
 int wg_height(void* handle);
 int wg_density_points_per_chunk(void* handle);
 
+// 完整区块生成：density → aquifer → surface rules
+// out: int32_t[16*16*384]（vanilla block raw id）
+// 返回写入的方块数（16*16*384），失败返回 0
+int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out);
+
 #ifdef __cplusplus
 }
 #endif

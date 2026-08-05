@@ -10,7 +10,11 @@ public class BenchMod implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            if (System.getProperty("probe.count") != null) {
+            if (System.getProperty("biome.probe") != null) {
+                BiomeParamProbe.run(server);
+            } else if (System.getProperty("block.probe") != null) {
+                BlockProbe.run(server);
+            } else if (System.getProperty("probe.count") != null) {
                 NoiseProbe.run(server);
             } else if (System.getProperty("router.probe") != null) {
                 RouterProbe.run(server);

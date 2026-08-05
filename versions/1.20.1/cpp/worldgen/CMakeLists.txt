@@ -46,3 +46,8 @@ target_link_libraries(density_probe PRIVATE worldgen_core)
 add_executable(router_probe src/router_probe.cpp)
 target_include_directories(router_probe PRIVATE include src)
 target_link_libraries(router_probe PRIVATE worldgen_core)
+
+# 方块层探针（验证用）
+add_executable(block_probe src/block_probe.cpp)
+target_include_directories(block_probe PRIVATE include src)
+target_link_libraries(block_probe PRIVATE worldgen_core)
