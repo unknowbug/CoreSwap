@@ -126,6 +126,17 @@ public final class CppBridge {
                 if (e.getMethodName().contains("writeChunk") || e.getMethodName().contains("fillChunk")) break;
             }
         }
+        // 写入后读回验证：确认直写 PalettedContainer 真的生效（读 bedrock 位置）
+        try {
+            BlockState v = chunk.getBlockState(new net.minecraft.util.math.BlockPos(cx * 16, -64, cz * 16));
+            if (v.isAir()) {
+                System.out.println("[CppBridge] DIAG readback-AIR chunk(" + cx + "," + cz + ") at y=-64");
+            } else if (DEBUG) {
+                System.out.println("[CppBridge] readback-ok chunk(" + cx + "," + cz + ") = " + v);
+            }
+        } catch (Throwable t) {
+            System.out.println("[CppBridge] DIAG readback threw chunk(" + cx + "," + cz + "): " + t);
+        }
         long t2 = System.nanoTime();
         if (DEBUG) System.out.printf("[CppBridge] chunk(%d,%d): C++=%dms write=%dms%n",
                 cx, cz, (t1 - t0) / 1_000_000, (t2 - t1) / 1_000_000);
