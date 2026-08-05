@@ -65,3 +65,34 @@ C++ 核心可**逐位复刻** vanilla 世界生成（比"自创算法"更强的�
 2. **JNI 桥**：worldgen.dll 导出 `generateRegion`（大块数据一次交换）
 3. **方块层**：density → 方块状态（surface rules + 区块填充）
 4. **性能对比**：完整 chunk 生成端到端对比（含方块填充）
+
+## 2026-08-05 续：方块层首跑（JNI 桥 + density→aquifer→surface rules）
+
+### 里程碑
+- **JNI 桥**：worldgen.dll 导出 wg_create/wg_fill_density/wg_fill_blocks（大块数据一次交换），Java CppWorldgen 验证 density 12288/12288 逐位一致（4.49ms/chunk，JNI 开销可忽略）
+- **方块层首跑**：C++ 完整区块管线（density 网格 halo + 三线性插值 → AquiferSampler → SurfaceBuilder + VanillaSurfaceRules 翻译 + MultiNoiseBiomeSource 六维查找）
+- **对比基准**：BlockProbe 导出 vanilla SURFACE 状态 chunk（NOISE+SURFACE，不含 structures/carvers/features）
+
+### 结果（seed -8248318472910187742, origin (3200,3208), 4×4 chunks）
+| 指标 | 数值 |
+|---|---|
+| 全方块一致 | 1415757/1572864 = **90.01%** |
+| 非空气方块一致 | 373771/494029 = **75.66%** |
+| 生成耗时 | 60~1450 ms/chunk（含 biome 采样，需优化） |
+
+### 差异归因（vanilla 非空气构成）
+- deepslate 208k / stone 125k / water 59k —— 主体一致
+- **tuff/andesite/diorite/granite/copper/coal/iron ≈ 68k —— vanilla OreVeinSampler 生成，C++ 未实现（最大差异源）**
+- 其余 ~50k：aquifer 含水层细节 + surface 规则细节 + beardifier（结构边缘）
+
+### 关键修复记录
+1. **unpackY 符号扩展 bug**（aquifer blob 点坐标）：pack 负数 y 用 & 0xFFF 包装，unpack 需 12 位符号扩展（Java BlockPos.unpackLongY = l << 16 >> 52）——修复前随机崩溃（waterLevels 越界读/写）
+2. **externalLoader 悬垂引用**（wg_create 局部变量捕获 → handle 成员）
+3. buildSurface 越界（heightmap+1 > 世界高度 → AIR）
+4. TerracottaBandsRule 需 getTerracottaBlock(x,y,z)（bands 按 y 索引）
+
+### 待办（按收益排序）
+1. **OreVeinSampler**（vein_toggle/vein_ridged/vein_gap 噪声已有，补方块逻辑）——预计可消 ~68k 差异
+2. beardifier（结构边缘密度）或对比时排除结构区域
+3. aquifer/surface 细节调试（红陶带/steep/含水层边界）
+4. 性能优化（biome 采样缓存 + surface 条件缓存）
