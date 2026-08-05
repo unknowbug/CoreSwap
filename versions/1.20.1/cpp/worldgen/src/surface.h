@@ -161,7 +161,7 @@ public:
     mutable double secondaryCache = 0;
 
     double getSecondaryDepth() const {
-        int64_t key = ((int64_t)(uint32_t)blockX << 32) ^ (uint32_t)blockZ;
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)blockX << 32)) ^ (uint32_t)blockZ;
         if (key != secondaryCacheKey) {
             secondaryCacheKey = key;
             secondaryCache = surfaceSecondaryNoise->sample(blockX, 0.0, blockZ);
@@ -216,7 +216,7 @@ inline bool NoiseThresholdCond::test(const SurfaceContext& ctx) const {
     auto& slots = tlSlots();
     if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
     Slot& slot = slots[cacheId];
-    int64_t key = ((int64_t)(uint32_t)ctx.blockX << 32) ^ (uint32_t)ctx.blockZ;
+    int64_t key = ((int64_t)((uint64_t)(uint32_t)ctx.blockX << 32)) ^ (uint32_t)ctx.blockZ;
     if (slot.key != key) {
         slot.key = key;
         slot.val = it->second.sample(ctx.blockX, 0.0, ctx.blockZ);
@@ -336,7 +336,7 @@ public:
         // thread_local 列缓存（无损：纯函数，同列同值；多线程安全——每线程独立）
         struct Cache { int64_t key = INT64_MIN; int val = 0; };
         static thread_local Cache cache;
-        int64_t key = ((int64_t)(uint32_t)blockX << 32) ^ (uint32_t)blockZ;
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)blockX << 32)) ^ (uint32_t)blockZ;
         if (cache.key != key) {
             cache.key = key;
             double d = getNoise("minecraft:surface").sample(blockX, 0.0, blockZ);
@@ -353,7 +353,7 @@ public:
         // thread_local 列缓存（无损：clay_bands_offset 是 2D 噪声，同列同值）
         struct Cache { int64_t key = INT64_MIN; double noise = 0; };
         static thread_local Cache cache;
-        int64_t key = ((int64_t)(uint32_t)x << 32) ^ (uint32_t)z;
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)x << 32)) ^ (uint32_t)z;
         if (cache.key != key) {
             cache.key = key;
             cache.noise = getNoise("minecraft:clay_bands_offset").sample(x, 0.0, z) * 4.0;
@@ -390,7 +390,14 @@ private:
     const BlockRegistry* blocks;
     std::vector<int> terracottaBands;
 
-    DoublePerlinNoiseSampler& getNoise(const std::string& key) { return (*samplers)[key]; }
+    DoublePerlinNoiseSampler& getNoise(const std::string& key) {
+        auto it = samplers->find(key);
+        if (it == samplers->end()) {
+            std::fprintf(stderr, "[NOISE-MISS] missing noise sampler: %s\n", key.c_str());
+            std::abort();
+        }
+        return it->second;
+    }
 
     friend class TerracottaBandsRule;
 };
@@ -602,6 +609,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          const std::vector<int>& surfaceHeights4,
                                          const std::function<std::string(int, int, int)>& biomeAt,
                                          const std::function<double(const std::string&)>& biomeTemp) {
+
     SurfaceContext ctx;
     ctx.noiseSamplers = samplers;
     ctx.splitter = splitter;
@@ -619,7 +627,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
     // biome 缓存：按 4×4×4 块粒度（biome coords），packed key
     std::map<int64_t, std::pair<std::string, double>> biomeCache;
     auto biomeAtCached = [&](int bx, int by, int bz) -> std::pair<std::string, double> {
-        int64_t key = ((int64_t)(uint32_t)(bx >> 2) << 40) | ((int64_t)(uint32_t)(by >> 2) << 20) | (uint32_t)(bz >> 2);
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)(bx >> 2) << 40)) | ((int64_t)((uint64_t)(uint32_t)(by >> 2) << 20)) | (uint32_t)(bz >> 2);
         auto it = biomeCache.find(key);
         if (it != biomeCache.end()) return it->second;
         std::string id = biomeAt(bx, by, bz);
@@ -630,6 +638,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
     };
 
     for (int k = 0; k < 16; k++) {
+        
         for (int l = 0; l < 16; l++) {
             int m = chunkStartX + k, n = chunkStartZ + l; // 世界坐标
             int p = heightmap[k * 16 + l] + 1; // WORLD_SURFACE_WG + 1（chunk 内 y）
@@ -677,11 +686,14 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                     q++;
                     int vx = wy - s + 1;
                     auto b = biomeAtCached(m, wy, n);
+                    
                     ctx.initVertical(q, vx, r, m, wy, n, b.first);
                     ctx.biomeTemp = b.second;
                     if (state == defaultBlock) {
+                        
                         int newState = rule->apply(ctx);
                         if (newState >= 0) col.at(k, wy, l) = newState;
+                        
                     }
                 }
             }
@@ -693,3 +705,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
 std::atomic<int> NoiseThresholdCond::nextId{0};
 
 } // namespace wg
+
+
+
+

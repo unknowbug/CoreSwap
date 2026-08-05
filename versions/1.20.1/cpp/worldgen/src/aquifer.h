@@ -184,7 +184,11 @@ private:
     }
 
     static int64_t pack(int x, int y, int z) {
-        return ((int64_t)(uint32_t)x << 38) | ((int64_t)(uint32_t)(y & 0xFFF) << 26) | ((int64_t)(uint32_t)z & 0x3FFFFFF);
+        // 无符号左移（有符号 << 溢出是 UB，-O2 下负坐标触发堆损坏；无符号 = Java 截断语义）
+        uint64_t l = ((uint64_t)(uint32_t)x & 0x3FFFFFFULL) << 38
+                   | ((uint64_t)(uint32_t)(y & 0xFFF) << 26)
+                   | ((uint64_t)(uint32_t)z & 0x3FFFFFFULL);
+        return (int64_t)l;
     }
     static int unpackX(int64_t l) { return (int)(l >> 38); }
     static int unpackY(int64_t l) {
@@ -193,7 +197,12 @@ private:
         if (y12 & 0x800) y12 |= ~0xFFFLL;
         return (int)y12;
     }
-    static int unpackZ(int64_t l) { return (int)(l & 0x3FFFFFF); }
+    static int unpackZ(int64_t l) {
+        // Java BlockPos.unpackLongZ：l << 38 >> 38（26 位符号扩展）
+        int64_t z26 = l & 0x3FFFFFF;
+        if (z26 & 0x2000000) z26 |= ~0x3FFFFFFLL;
+        return (int)z26;
+    }
 
     int64_t getBlockPos(int x, int y, int z) {
         int aa = index(x, y, z);

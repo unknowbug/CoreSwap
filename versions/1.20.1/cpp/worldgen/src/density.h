@@ -6,6 +6,8 @@
 #include <functional>
 #include <algorithm>
 #include <atomic>
+#include <cstdlib>
+#include <mutex>
 #include "noise.h"
 
 // 剖析计数（WG_PROFILE=1 启用；C++17 inline 变量：多 TU 单一实体）
@@ -188,11 +190,12 @@ public:
     ShiftDF(std::shared_ptr<DoublePerlinNoiseSampler> n, Mode m) : noise(std::move(n)), mode(m) {}
     double sample(const NoisePos& pos) const override {
         if (!noise) return 0.0;
-        double x, y, z;
+        double x = pos.x, y = pos.y, z = pos.z;
         switch (mode) {
-            case Mode::SHIFT: x = pos.x; y = pos.y; z = pos.z; break;
-            case Mode::SHIFT_A: x = pos.x; y = 0.0; z = pos.z; break;
+            case Mode::SHIFT: break;
+            case Mode::SHIFT_A: y = 0.0; break;
             case Mode::SHIFT_B: x = pos.z; y = pos.x; z = 0.0; break;
+            default: break;  // 防御：非法 mode 按 SHIFT 处理（避免未初始化读取）
         }
         return noise->sample(x * 0.25, y * 0.25, z * 0.25) * 4.0;
     }
@@ -369,15 +372,18 @@ public:
     static constexpr int CELL_X = 4, CELL_Y = 8, CELL_Z = 4;
     static constexpr int MIN_Y = -64, HEIGHT = 384;
 
-    explicit InterpolatedDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
+    explicit InterpolatedDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {
+        updateInstanceCount();
+    }
 
     double sample(const NoisePos& pos) const override {
         int chunkX = floorDivP(pos.x, 16);
         int chunkZ = floorDivP(pos.z, 16);
-        int64_t key = ((int64_t)(uint32_t)chunkX << 32) ^ (uint32_t)chunkZ;
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)chunkX << 32)) ^ (uint32_t)chunkZ;
         // 多线程：per-instance thread_local 缓存（每线程独立 vector，按实例 id 索引，O(1)）
+        // 一次性扩到实例总数（构造后固定）：递归 buildGrid 中不会 resize，外层 slot 引用不悬垂
         auto& slots = tlSlots();
-        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        if (slots.size() < (size_t)instanceCount.load()) slots.resize(instanceCount.load());
         Slot& slot = slots[cacheId];
         if (slot.key != key) {
             slot.key = key;
@@ -424,9 +430,15 @@ private:
     };
     int cacheId;
     static std::atomic<int> nextId;
+    static std::atomic<int> instanceCount;  // 构造后固定（wg_create 单线程构建）
     static std::vector<Slot>& tlSlots() {
         static thread_local std::vector<Slot> slots;
         return slots;
+    }
+    static void updateInstanceCount() {
+        int n = nextId.load(std::memory_order_relaxed) + 1;
+        int cur = instanceCount.load(std::memory_order_relaxed);
+        while (n > cur && !instanceCount.compare_exchange_weak(cur, n)) {}
     }
 
     static int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
@@ -485,13 +497,15 @@ public:
 class Cache2DDF : public DensityFunction {
 public:
     DF arg;
-    explicit Cache2DDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
+    explicit Cache2DDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {
+        updateInstanceCount();
+    }
 
     double sample(const NoisePos& pos) const override {
         auto& slots = tlSlots();
-        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        if (slots.size() < (size_t)instanceCount.load()) slots.resize(instanceCount.load());
         Slot& slot = slots[cacheId];
-        int64_t key = ((int64_t)(uint32_t)(pos.x >> 4) << 32) ^ (uint32_t)(pos.z >> 4);
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)(pos.x >> 4) << 32)) ^ (uint32_t)(pos.z >> 4);
         if (slot.key != key) {
             slot.key = key;
             slot.value = arg->sample(pos);
@@ -505,9 +519,15 @@ private:
     struct Slot { int64_t key = INT64_MIN; double value = 0.0; };
     int cacheId;
     static std::atomic<int> nextId;
+    static std::atomic<int> instanceCount;  // 构造后固定（wg_create 单线程构建）
     static std::vector<Slot>& tlSlots() {
         static thread_local std::vector<Slot> slots;
         return slots;
+    }
+    static void updateInstanceCount() {
+        int n = nextId.load(std::memory_order_relaxed) + 1;
+        int cur = instanceCount.load(std::memory_order_relaxed);
+        while (n > cur && !instanceCount.compare_exchange_weak(cur, n)) {}
     }
 };
 
@@ -518,13 +538,15 @@ private:
 class FlatCacheDF : public DensityFunction {
 public:
     DF arg;
-    explicit FlatCacheDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
+    explicit FlatCacheDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {
+        updateInstanceCount();
+    }
 
     double sample(const NoisePos& pos) const override {
         auto& slots = tlSlots();
-        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        if (slots.size() < (size_t)instanceCount.load()) slots.resize(instanceCount.load());
         Slot& slot = slots[cacheId];
-        int64_t key = ((int64_t)(uint32_t)(pos.x >> 4) << 32) ^ (uint32_t)(pos.z >> 4);
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)(pos.x >> 4) << 32)) ^ (uint32_t)(pos.z >> 4);
         if (slot.key != key) {
             // Java 语义：FlatCache 实例绑定生成 chunk，网格覆盖 [cx*16, cx*16+16]；
             // 边界点（x=cx*16+16，即下一 chunk 首列）命中现有网格 k=4，不重建（防嵌套递归）。
@@ -554,9 +576,15 @@ private:
     };
     int cacheId;
     static std::atomic<int> nextId;
+    static std::atomic<int> instanceCount;  // 构造后固定（wg_create 单线程构建）
     static std::vector<Slot>& tlSlots() {
         static thread_local std::vector<Slot> slots;
         return slots;
+    }
+    static void updateInstanceCount() {
+        int n = nextId.load(std::memory_order_relaxed) + 1;
+        int cur = instanceCount.load(std::memory_order_relaxed);
+        while (n > cur && !instanceCount.compare_exchange_weak(cur, n)) {}
     }
 
     void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
@@ -644,7 +672,12 @@ private:
 
 // InterpolatedDF：实例 id 分配（per-instance thread_local 缓存索引）
 std::atomic<int> InterpolatedDF::nextId{0};
+std::atomic<int> InterpolatedDF::instanceCount{0};
 std::atomic<int> Cache2DDF::nextId{0};
+std::atomic<int> Cache2DDF::instanceCount{0};
 std::atomic<int> FlatCacheDF::nextId{0};
+std::atomic<int> FlatCacheDF::instanceCount{0};
 
 } // namespace wg
+
+

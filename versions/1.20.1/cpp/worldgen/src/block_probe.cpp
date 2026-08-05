@@ -23,6 +23,7 @@ static int64_t be64(int64_t v) {
 }
 
 int main(int argc, char** argv) {
+    try {
     if (argc < 4) {
         std::fprintf(stderr, "usage: block_probe <seed> <worldgen dir> <vanilla.blocks> [-threads N]\n"
                              "  -threads N: 并行线程数；省略时按 min(CPU 线程数, chunk 数) 自适应\n");
@@ -45,7 +46,7 @@ int main(int argc, char** argv) {
     if (!f) { std::fprintf(stderr, "cannot open %s\n", blocksPath.c_str()); return 1; }
     int32_t magic, vseedHi = 0, vseedLo = 0;
     int32_t size, originX, originZ, minY, height;
-    uint8_t buf[8];
+    uint8_t buf[256];  // biome 段字符串 blen < 128，必须 ≥ 128（曾用 8 导致栈越界写）
     auto rd32 = [&]() { std::fread(buf, 1, 4, f); int32_t v; std::memcpy(&v, buf, 4); return be32(v); };
     auto rd64 = [&]() { std::fread(buf, 1, 8, f); int64_t v; std::memcpy(&v, buf, 8); return be64(v); };
     magic = rd32();
@@ -119,4 +120,11 @@ int main(int argc, char** argv) {
     wg_profile_dump();
     wg_destroy(h);
     return 0;
+    } catch (const std::exception& e) {
+        std::fprintf(stderr, "[EXC] %s\n", e.what());
+        return 2;
+    } catch (...) {
+        std::fprintf(stderr, "[EXC] unknown\n");
+        return 2;
+    }
 }

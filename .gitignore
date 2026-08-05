@@ -1,5 +1,6 @@
 # 构建产物（任意层级，各版本通用）
 build/
+build-msvc/
 out/
 run/
 .gradle/
@@ -21,3 +22,4 @@ tools/
 .vscode/
 .idea/
 *.iml
+

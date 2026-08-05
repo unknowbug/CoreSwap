@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -179,7 +180,7 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
         auto h = std::make_unique<WorldgenHandle>();
         auto noiseParams = buildNoiseParams();
         h->builder = std::make_unique<DensityBuilder>((uint64_t)seed, noiseParams);
-        h->wgDir = worldgenDir;
+            h->wgDir = worldgenDir;
 
         std::string wgDir = worldgenDir;
         std::string dfDir = wgDir + "/data/minecraft/worldgen/density_function/overworld/";
@@ -215,7 +216,7 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
         const JsonValue* router = settings.get("noise_router");
         const JsonValue* finalDensity = router->get("final_density");
         h->finalDensity = h->builder->buildNode(*finalDensity);
-
+    
         // ---- 方块层装配 ----
         // router 分量
         struct Comp { const char* name; const char* jsonKey; };
@@ -238,7 +239,7 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
             std::fprintf(stderr, "wg_create: cannot load %s\n", blocksPath.c_str());
             return nullptr;
         }
-
+    
         // noise sampler 表（surface rules / surface builder）
         fillNoiseSamplers(*h, noiseParams, h->builder->randomDeriverPublic(), {
             "surface", "surface_secondary", "calcite", "gravel", "powder_snow",
@@ -253,7 +254,7 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
             std::fprintf(stderr, "wg_create: cannot load %s\n", biomeParamsPath.c_str());
             return nullptr;
         }
-
+    
         // surface builder（主世界 seaLevel=63）
         std::string biomeDirForBuilder = wgDir + "/data/minecraft/worldgen/biome/";
         h->surfaceBuilder = std::make_unique<SurfaceBuilder>(
@@ -441,3 +442,8 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
 }
 
 } // extern "C"
+
+
+
+
+

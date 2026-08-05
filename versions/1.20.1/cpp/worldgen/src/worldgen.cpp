@@ -1,5 +1,7 @@
 #include "worldgen.h"
 
+#include <cstdint>
+
 namespace wg {
 
 std::int64_t probe(std::int64_t seed, std::int32_t x, std::int32_t z) {

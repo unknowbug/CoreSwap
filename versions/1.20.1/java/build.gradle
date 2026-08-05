@@ -49,6 +49,7 @@ loom {
             if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
+            if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
             if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
         }
         server {
