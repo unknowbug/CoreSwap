@@ -89,3 +89,50 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - **线程数默认**：不要用单台机器的 hardware_concurrency 写死；API 默认自适应 + 调用方 `-threads` 可配。
 - **验证多线程一致性**：block_probe 并行 vs got_export 串行，TOTAL 必须同为 100.0000%；
   任何差异说明有隐藏竞态（检查 mutable 缓存/懒构建）。
+
+## Java 侧写入路径（CppBridge.fillChunk / writeChunk）的坑（2026-08-06 实测定稿）
+
+> 现象：客户端地形只在 spawn 预生成区域（27×27 chunk ≈ 432×432 格）存在，之外全 air、
+> 结构（村庄/冰山）悬浮。C++ 输出正常（buf 非空 27%、buf0=31=bedrock）、fillChunk 无异常。
+> 根因是 **Java 写入层** 的连环 bug，与 C++ 无关。
+
+### 坑 1：stateById 缓存不能预填 AIR
+
+- writeChunk 用 `stateById[id]` 缓存 BlockState，`if (st == null)` 才查 `Registries.BLOCK.get(id)`
+- 曾用 `Arrays.fill(stateById, AIR)` 做防御 → `st` 永远非 null → 从不查 registry → **所有方块写成 air**
+- 教训：缓存数组必须 null 初始化（null = 未查过），不能填「默认值」占位（`st == null` 是哨兵）
+
+### 坑 2：直写 PalettedContainer.set 不更新 nonEmptyBlockCount（核心根因）
+
+- 性能优化曾直接 `container.set(x, sy, z, st)`（跳过 setBlockState 的 heightmap/blockEntity 开销）
+- 字节码证据：`ChunkSection.isEmpty()` = `this.nonEmptyBlockCount == 0`（Field e:S）
+- `PalettedContainer.set` 只改数据**不改 section 计数** → `isEmpty()` 永远 true
+- `ProtoChunk.getBlockState` 反编译：`if (isOutOfHeightLimit(y)) return VOID_AIR; sec = getSection(e(y)); if (sec.isEmpty()) return AIR; ...`
+- → **所有读路径（getBlockState/渲染/保存）返回空气**，FEATURES 结构照常生成 → 悬浮村庄/冰山
+- **修复**：用 `ChunkSection.setBlockState(x, y, z, state)`（yarn 名，不是 `set`）——内部 = container.set + 计数更新，开销极小
+- 不要反射改计数（运行时字段是混淆名，且 setBlockState 更干净）
+
+### 坑 3：getSection(int) 语义用越界实测确认
+
+- 1.20.1 `Chunk.getSection(int)` 是 **0-based 数组索引**（0..23 = y -64..319）
+- 曾误判为「世界 y>>4 坐标」（-4..19）改 `getSection(secIdx - 4)` → 全部 AIOOBE（`Index -4 out of bounds for length 24`）→ 回退
+- 教训：索引语义用「越界异常」实测，不要靠推理/文档猜
+
+### 坑 4：readback 验证的陷阱
+
+- `chunk.getBlockState(y=-64)` 可能因 minY 边界特判返回 air（误报）
+- 坑 2 存在时：即使 container 有数据，`chunk.getBlockState` 也会因 `section.isEmpty()` 返回 air
+- 可靠验证：`chunk.getSection(0).getBlockState(0, 0, 0)`（section 层）或生成完成后 `getChunk(x,z).getBlockState(...)`（WorldChunk 层）
+
+### 坑 5：view-distance 复现法
+
+- 客户端 `options.txt` renderDistance=32/simulationDistance=32 → 服务端 `server.properties` 也要 32 才能复现
+- view-distance=10 时行为不同（曾误判「10 生效 32 不生效」，实际是日志输出截断误读）
+- 修复后与 view-distance 无关；实测 64 无崩溃、无写入异常（threw=0、2699 chunk 正常），仅 spawn 预生成性能变慢（16384 chunk 需数分钟，原版同样）
+
+### 反编译工具链（定位这类问题的关键）
+
+- `javap -c -p -cp C:\Users\NDark\.gradle\caches\fabric-loom\1.20.1\minecraft-merged.jar <类>`（loom jar 是 mojang 混淆名）
+- 混淆名对照：Chunk=`ddx`、ProtoChunk=`des`、ChunkSection=`dej`、PalettedContainer=`deq`
+- yarn 1.20.1 文档：https://maven.fabricmc.net/docs/yarn-1.20.1-rc1+build.1/
+- 看「字段/方法/是否更新计数」类逻辑，读字节码比读源码快

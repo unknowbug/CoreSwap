@@ -1,13 +1,20 @@
-# CoreSwap 会话交接（2026-08-05 晚）
+# CoreSwap 会话交接（2026-08-06 晚）
 
 > 本文件是给下一个会话的现场快照。接班 AI 先读本文件 + `git status`，再开始干活。
+
+## 〇、最新里程碑（2026-08-06）
+
+- **客户端实机可玩**：修复了「地形全空气」连环 bug（stateById 预填 AIR + 直写 container.set 不更新 nonEmptyBlockCount → isEmpty 误判全空气；commit dbbfd47/28aa90c），玩家走出几千格都有地形，结构不再悬浮。根因与验证方法详见 `docs/07`「Java 侧写入路径的坑」。
+- **C++ 一律 MSVC**（用户严禁 MinGW/gcc）：`build-msvc/bin/worldgen.dll`，配置见 `configure_msvc.bat`。
+- **JDK17 固定**（`gradle.properties` org.gradle.java.home），runClient/runServer 均用 JDK17（JDK24 会崩）。
+- 下一步候选：FEATURES 阶段替换（矿物/湖泊 C++ 化）、批量 fillBlocks（多 chunk 一次 JNI 调用）、1.17.x 迁移（先读 docs/08）。
 
 ## 一、项目与环境
 
 - **项目**：CoreSwap —— Minecraft 1.20.1 worldgen C++ 复刻（JNI 桥 + 方块层），目标与 Java 逐位一致。
 - **仓库**：https://github.com/unknowbug/CoreSwap（PUBLIC，master，gh 账号 unknowbug，git author 严禁改）。
 - **代码**：`versions/1.20.1/cpp/`（worldgen 模块 + ai 占位）；Java 侧 `versions/1.20.1/java/`。
-- **环境**：Windows；MinGW gcc 16.1.0（`E:\PYTHON\MC\tools\mingw\mingw64\bin\c++.exe`）；JDK 17（`E:\python\MC\tools\jdk17\jdk-17.0.20+8`）；CMake 4.4.1。
+- **环境**：Windows；**C++ 必须 MSVC**（VS 2026 Community `D:\Program Files\Microsoft Visual Studio\18\Community`，vcvars64 + Ninja，禁用 MinGW/gcc——用户铁律）；JDK 17（`E:\python\MC\tools\jdk17\jdk-17.0.20+8`）；CMake 4.4.1。
 - **数据根**：`E:\python\MC\data\`（blocks.json、biome_params.json、vanilla_*.blocks、got.bin、diag_*.py）。
 - **测试常量**：seed `-8248318472910187742`；区块 x=3200–3203, z=3208–3211（4×4=16 chunks）；`minY=-64, height=384, seaLevel=63`。
 - **对比基准**：`ChunkStatus.SURFACE`（= NOISE+SURFACE，含矿脉 OreVein，不含 features）。

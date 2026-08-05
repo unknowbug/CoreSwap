@@ -22,5 +22,6 @@
 ## 状态（2026-08-06）
 
 - **方块层 100% 逐位对齐**（TOTAL 100.0000% / nonAir 100.0000%，seed -8248318472910187742，4×4 chunks 3200..3263）
+- **客户端实机可玩**：地形全空气 bug 已修复（stateById 预填 AIR + 直写 container.set 不更新 nonEmptyBlockCount → 全读空气；详见 [07 篇「Java 侧写入路径的坑」](07-block-pipeline.md)）；实测 view-distance 64 无崩溃，视距加大只影响预生成性能
 - 性能：16 chunks 并行 110ms（自适应线程数），串行 ~1056ms
 - GitHub: unknowbug/CoreSwap；提交纪律：author=unknowbug，中文提交信息
