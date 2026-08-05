@@ -19,6 +19,6 @@ javac -d "$root\java\jnitest\out" "$root\java\jnitest\wg\WorldGen.java"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "== run JNI test =="
-java "-Djava.library.path=$root\cpp\build" -cp "$root\java\jnitest\out" wg.WorldGen 123456789 42 -17
+java "-Djava.library.path=$root\cpp\build\bin" -cp "$root\java\jnitest\out" wg.WorldGen 123456789 42 -17
 
 Write-Host "BUILD OK"
