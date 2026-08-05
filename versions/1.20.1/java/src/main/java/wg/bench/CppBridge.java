@@ -129,8 +129,11 @@ public final class CppBridge {
         // 写入后读回验证：确认直写 PalettedContainer 真的生效（读 bedrock 位置）
         try {
             BlockState v = chunk.getBlockState(new net.minecraft.util.math.BlockPos(cx * 16, -64, cz * 16));
-            if (v.isAir()) {
-                System.out.println("[CppBridge] DIAG readback-AIR chunk(" + cx + "," + cz + ") at y=-64");
+            // container 层读回（区分「写入没生效」vs「chunk 读的对象不同」）
+            BlockState c0 = chunk.getSection(0).getBlockStateContainer().get(0, 0, 0);
+            if (v.isAir() || c0.isAir()) {
+                System.out.println("[CppBridge] DIAG readback chunk(" + cx + "," + cz + ") chunk=" + v + " container=" + c0
+                        + " sec0=" + System.identityHashCode(chunk.getSection(0)));
             } else if (DEBUG) {
                 System.out.println("[CppBridge] readback-ok chunk(" + cx + "," + cz + ") = " + v);
             }
@@ -150,9 +153,8 @@ public final class CppBridge {
         java.util.Arrays.fill(stateById, Blocks.AIR.getDefaultState());
         BlockState air = Blocks.AIR.getDefaultState();
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
-        // 注意：1.20.1 Chunk.getSection(int) 参数是「世界 y >> 4 坐标」（-4..19），不是 0-based 索引！
-        // y=-64 >> 4 = -4（section 0），y=319 >> 4 = 19（section 23）。传 0..23 会整体错位 4 格（之前 readback 全 AIR 的根因）
-        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx - 4);
+        // 1.20.1 Chunk.getSection(int) 是 0-based 索引（0..23 = y -64..319）——已验证（getSection(-4) 越界）
+        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
         for (int by = 0; by < 384; by++) {
             net.minecraft.world.chunk.PalettedContainer<BlockState> container =
                     sections[by >> 4].getBlockStateContainer();
