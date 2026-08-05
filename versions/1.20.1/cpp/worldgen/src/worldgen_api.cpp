@@ -356,6 +356,46 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
         }
     }
     if (profiling) tA = nowMs();
+    // WG_SURFDUMP 诊断：dump 指定列的表面高度估计与 initialDensity/finalDensity 剖面
+    if (getenv("WG_SURFDUMP")) {
+        const char* sx = getenv("WG_SURFDUMP_X");
+        const char* sz = getenv("WG_SURFDUMP_Z");
+        if (sx && sz) {
+            int bx = atoi(sx), bz = atoi(sz);
+            if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
+                NoisePos p;
+                for (int y = -64; y <= 63; y += 4) {
+                    p.x = bx; p.y = y; p.z = bz;
+                    std::fprintf(stderr, "[SURF] (%d,%d,%d) initialDensity=%.6f finalDensity=%.6f\n", bx, y, bz,
+                                 R["initial_density"]->sample(p), h->finalDensity->sample(p));
+                }
+                std::fprintf(stderr, "[SURF] estimateSurfaceHeight(%d,%d)=%d\n", bx, bz,
+                             aquifer.estimateSurfaceHeight(bx, bz));
+                // 分量 dump（y=31 深水处）
+                p.y = 31;
+                const char* comps[] = {"base_3d_noise", "factor", "depth", "jaggedness", "continents", "erosion"};
+                for (const char* c : comps) {
+                    DF df = h->builder->getFunction("minecraft:overworld/" + std::string(c));
+                    if (df) std::fprintf(stderr, "[SURF] %s(y=31)=%.6f\n", c, df->sample(p));
+                    else std::fprintf(stderr, "[SURF] %s(y=31)=<missing>\n", c);
+                }
+            }
+        } else if (getenv("WG_SURFDUMP_SCAN")) {
+            // 全列扫描 y=31：找出 finalDensity 偏正（>0.01）的列（vanilla 深水列应 ≤0）
+            NoisePos p;
+            p.y = 31;
+            for (int bz = 0; bz < 16; bz++) {
+                for (int bx = 0; bx < 16; bx++) {
+                    p.x = chunkX * 16 + bx;
+                    p.z = chunkZ * 16 + bz;
+                    double fd = h->finalDensity->sample(p);
+                    if (fd > 0.01) {
+                        std::fprintf(stderr, "[SURF+] (%d,%d) fd=%.3f\n", p.x, p.z, fd);
+                    }
+                }
+            }
+        }
+    }
     // 3b. aquifer + oreVein（ChainedBlockSource：aquifer null → oreVein）
     for (int by = 0; by < HEIGHT; by++) {
         int wy = MIN_Y + by;

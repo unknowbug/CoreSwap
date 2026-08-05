@@ -32,6 +32,10 @@ public abstract class NoiseChunkGeneratorMixin {
                                  NoiseConfig noiseConfig, StructureAccessor structureAccessor,
                                  Chunk chunk,
                                  CallbackInfoReturnable<java.util.concurrent.CompletableFuture<Chunk>> cir) {
+        // 分量对照探针（-Dcomp.probe=true -Dcomp.x=... -Dcomp.z=... [-Dcomp.y=31]）
+        if (System.getProperty("comp.probe") != null && !CppBridge.didCompProbe()) {
+            CppBridge.compProbe(noiseConfig);
+        }
         if (CppBridge.enabled) {
             System.out.println("[Mixin] populateNoise intercepted chunk(" + chunk.getPos().x + "," + chunk.getPos().z + ")");
             CppBridge.fillChunk(chunk);

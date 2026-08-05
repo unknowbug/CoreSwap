@@ -293,6 +293,12 @@ public:
     // 暴露 randomDeriver（供探针复刻 NoiseConfig 派生链）
     const XoroshiroRandom::Splitter& randomDeriverPublic() const { return randomDeriver; }
 
+    // 诊断：取已注册的 density function（registry 条目，可能为 LazyRef）
+    DF getFunction(const std::string& key) const {
+        auto it = registry.find(key);
+        return it == registry.end() ? nullptr : it->second;
+    }
+
 private:
     std::shared_ptr<DoublePerlinNoiseSampler> getNoiseSamplerFromObj(const JsonValue& obj) {
         const JsonValue* n = obj.get("noise");

@@ -50,6 +50,12 @@ loom {
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
+if (project.findProperty('compProbe') != null) {
+    run.vmArg "-Dcomp.probe=true"
+    if (project.findProperty('compX') != null) run.vmArg "-Dcomp.x=${project.findProperty('compX')}"
+    if (project.findProperty('compZ') != null) run.vmArg "-Dcomp.z=${project.findProperty('compZ')}"
+    if (project.findProperty('compY') != null) run.vmArg "-Dcomp.y=${project.findProperty('compY')}"
+}
             if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
         }
         server {
