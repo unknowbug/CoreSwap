@@ -20,7 +20,6 @@ import java.nio.file.Path;
 public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
-    private static volatile int lastWriteSec0 = -1;  // 诊断：最近一次写入的 section0 identity
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
     private static final ThreadLocal<int[]> BUF = ThreadLocal.withInitial(() -> new int[16 * 16 * 384]);
 
@@ -127,18 +126,6 @@ public final class CppBridge {
                 if (e.getMethodName().contains("writeChunk") || e.getMethodName().contains("fillChunk")) break;
             }
         }
-        // 写入后读回验证：确认直写 PalettedContainer 真的生效（读 bedrock 位置）
-        try {
-            BlockState v = chunk.getBlockState(new net.minecraft.util.math.BlockPos(cx * 16, -64, cz * 16));
-            // container 层读回（区分「写入没生效」vs「chunk 读的对象不同」）
-            BlockState c0 = chunk.getSection(0).getBlockStateContainer().get(0, 0, 0);
-            // 诊断：chunk 类型 + 写入/读回是否同一 section（identity 相同 = set 没生效；不同 = section 对象被换）
-            System.out.println("[CppBridge] DIAG chunk=" + chunk.getClass().getSimpleName()
-                    + " wSec0=" + lastWriteSec0 + " rSec0=" + System.identityHashCode(chunk.getSection(0))
-                    + " chunkv=" + v + " containerv=" + c0);
-        } catch (Throwable t) {
-            System.out.println("[CppBridge] DIAG readback threw chunk(" + cx + "," + cz + "): " + t);
-        }
         long t2 = System.nanoTime();
         if (DEBUG) System.out.printf("[CppBridge] chunk(%d,%d): C++=%dms write=%dms%n",
                 cx, cz, (t1 - t0) / 1_000_000, (t2 - t1) / 1_000_000);
@@ -148,16 +135,14 @@ public final class CppBridge {
     // Chunk.getSection(int) 参数是 0-based section index（0..23 = 世界 y -64..319）
     // 抽出独立方法便于 try-catch：写入异常 = chunk 保持空气 → 后续结构悬浮半空
     private static void writeChunk(Chunk chunk, int cx, int cz, int[] buf) {
-        BlockState[] stateById = new BlockState[4096];  // 防御：防 C++ 垃圾 id 越界（原 1024）
-        java.util.Arrays.fill(stateById, Blocks.AIR.getDefaultState());
+        BlockState[] stateById = new BlockState[4096];  // null = 未查过 registry（不能填 AIR：st==null 判断会永远 false 导致全写空气——历史根因）
         BlockState air = Blocks.AIR.getDefaultState();
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
         // 1.20.1 Chunk.getSection(int) 是 0-based 索引（0..23 = y -64..319）——已验证（getSection(-4) 越界）
         for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
         lastWriteSec0 = System.identityHashCode(sections[0]);
         for (int by = 0; by < 384; by++) {
-            net.minecraft.world.chunk.PalettedContainer<BlockState> container =
-                    sections[by >> 4].getBlockStateContainer();
+            net.minecraft.world.chunk.ChunkSection sec = sections[by >> 4];
             int sy = by & 15;
             for (int z = 0; z < 16; z++) {
                 int base = by * 256 + z * 16;
@@ -170,7 +155,9 @@ public final class CppBridge {
                         st = id == 0 ? air : Registries.BLOCK.get(id).getDefaultState();
                         stateById[id] = st;
                     }
-                    container.set(x, sy, z, st);
+                    // 必须用 ChunkSection.setBlockState（内部=container.set + nonEmptyBlockCount 更新）：
+                    // 直写 container.set 不更新计数 → isEmpty() 误判 true → 全部读成空气（历史根因）
+                    sec.setBlockState(x, sy, z, st);
                 }
             }
         }
