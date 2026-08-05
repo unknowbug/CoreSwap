@@ -30,8 +30,6 @@ public:
         NoisePos pos;
         pos.x = blockX; pos.y = blockY; pos.z = blockZ;
         double d = veinToggle->sample(pos);
-        static int vc = 0;
-        if (vc < 5 && blockY >= -60 && blockY <= 51) { std::fprintf(stderr, "[ov] bX=%d bY=%d bZ=%d toggle=%.4f\n", blockX, blockY, blockZ, d); vc++; }
         const VeinType& t = (d > 0.0) ? copper : iron;
         double e = std::abs(d);
         int j = t.maxY - blockY;

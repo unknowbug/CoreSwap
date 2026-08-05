@@ -52,35 +52,30 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 - 99.72%（hashXYZ 后）→ 99.93%（ceiling 修复后）→ 99.78%（getFluidBlockState 后，bash-46）
 - **但后续 block_probe 复跑出 97.73% —— 见"未解之谜"**
 
-## 四、未解之谜（第一优先级）
+## 四、未解之谜（2026-08-06 已全部解开）
 
-### 谜 A：99.78%（bash-46）vs 97.73%（bash-64 之后）——代码 diff 干净却结果不同
+### 谜 A+B 真相：16:09 的 vanilla 文件被旧 world 缓存污染（假矿脉差异）
 
-- 时间线：bash-46 ≈ 15:05 跑出 99.78%；bash-64/70/71 ≈ 16:0x 跑出 97.73%（稳定复现）。
-- 期间代码：git diff 相对 HEAD 只有上述 4 项修复（+ ore_vein.h 调试打印 + BlockProbe 诊断代码，均不影响逻辑）。
-- vanilla 文件：seed 从未变（有符号 -8248318472910187742）。文件在 14:58（bash-33）和 16:09（bash-69）被重新导出过，内容是否一致**未验证**。
-- 97.73% 的差异构成（diag_full.py）：**vanilla 有大量矿脉**（granite 4636 / tuff 3668 / diorite 4042 / andesite 4609 / copper_ore 306，集中在 chunk x=200/201），**C++ 无任何矿脉**；另有 air→deepslate 2938、air→water 2688。
-- **假设 1**：14:58 导出的 vanilla 无矿脉（旧 world？）→ bash-46 的 99.78% 是"无矿脉可比"的假象，97.73% 才是真实水平。
-- **假设 2**：bash-46 期间代码另有差异。
-- **建议第一步**：用当前 vanilla（16:09，含矿脉）确认 97.73% 是当前真实基线；然后集中修 OreVein（见下）。
+- **根因**：BlockProbe 导出用 `world.getChunk(wx, wz, ChunkStatus.SURFACE, true)`。若 run/world 的 region 文件里有旧 chunk（14:58 前或早期 world 生成的），**直接复用缓存，不重新生成**。
+- 时间线还原：14:58 导出（99.78%）时 world 是干净重建的（无矿脉）；16:09 导出时 region 里有旧 chunk（含矿脉，可能是旧 world 产物）→ 复用 → vanilla 文件含假矿脉 → block_probe 对比出 97.73% 假差异。
+- **验证**：删掉 `run/world/region/r.5.5/5.6/6.5/6.6.mca` 后重新导出 vanilla，(3211,4,3204) 从 andesite 变 deepslate，矿脉消失；block_probe 回到 **99.7782%**。
+- **C++ 的 OreVein 一直正确**：VeinDiag 实测 Java 真实 veinToggle 插值 (3211,4,3204)=0.162342，与 C++ 完全一致；Java 在该点也 block=null（不生成矿脉）。
+- **教训**：重新导出 vanilla 参照前必须删 region 文件（或删 world），否则 getChunk 复用旧缓存。
+- **修复了假参照后无需修 OreVein**（矿脉差异是假象）。
 
-### 谜 B：OreVein（矿脉）C++ 零输出
+### 谜 C 状态：待重验
 
-- `ore_vein.h` apply 逻辑对照 Java 正确；`fillFromNoise` 中 `if (block<0) block = oreVein.apply(...)` 已接。
-- veinToggle 采样验证：y=-64 时 0.0（正常，矿脉范围 y∈[-60,51] 外）；**y=-60 时 -0.1572（非 0，组件工作正常）**。
-- 但 y=-60 是边缘（e=0.1572, f=-0.2, e+f<0.4 → 返回 -1 正常）。**矿脉深度中部（如 y=-30）的 toggle 值、veinRidged/veinGap/random 判断链**尚未验证。
-- ore_vein.h 里残留 `[ov]` 调试打印（前 5 次 y∈[-60,51] 采样）——接班后先看输出再决定删/留。
-- Java 参照：`OreVeinSampler.java`（data/mcsrc），veinToggle/veinRidged/veinGap = router 分量。
+- 谜 A/B 解开后剩余差异 ~0.22%（见第五节 diag 结果），含水层残余需基于干净参照重验。
 
-### 谜 C：含水层残余矛盾（次要，待矿脉修完再回头）
+## 五、本次会话新增工具与待清理
 
-- 当时调试（位置 3215,-26,3200 等）：r/s/t blob 的 floodedness/erosion/depth 与 Java **逐位一致**（CppCmpS 验证），但 C++ 液面全 INT_MAX → e=0 → 返回 WATER，vanilla 却是 air。
-- 该结论基于当时（可能无矿脉）的对比；**矿脉修好后需重验**（可能 vanilla 差异源其实主要是矿脉而非含水层）。
-
-## 五、待清理
-
-- `ore_vein.h`：`[ov]` 调试打印。
-- `BlockProbe.java`：`[VgDiag]`、`[CppCmp]/[CppCmpS]`、`[AqApply]`（反射失败分支）、`worldSeed` 打印——这些是诊断代码，可删或保留（保留则跑一次 runServer 慢 ~40s）。
+- **新增探针**（保留，验证用）：
+  - `cpp/worldgen/src/ore_probe.cpp`（C++ 矿脉采样探针，已注册 CMake）
+  - `java/src/main/java/wg/bench/OreProbe.java`（Java 插值复刻探针，`-PoreProbe=true` 触发）
+  - `data/locate_ore.py`（vanilla 矿脉定位）、`data/ore_probe.txt`（采样输出）
+- **BlockProbe.java 新增 VeinDiag**：driveCnsTo() 驱动真实 ChunkNoiseSampler 插值循环到目标块，打印真实 blockState/veinToggle/角点——保留（调试含水层仍有用），但每轮 runServer 慢。
+- **待清理**：`ore_vein.h` 的 `[ov]` 调试打印；BlockProbe.java 的 `[VgDiag]`/`[CppCmp]`/`[CppCmpS]` 旧诊断。
+- **vanilla 参照**：`data/vanilla_*-8248318472910187742_4_3200_3208.blocks` 已更新为干净导出（99.7782% 基线）；`data/vanilla_1609_backup.blocks` 是污染版备份（含假矿脉，可删）。
 
 ## 六、纪律（上一个会话的教训，务必遵守）
 
