@@ -13,8 +13,9 @@ public class BenchMod implements ModInitializer {
     public void onInitialize() {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> wg.bench.CppBridge.destroy());
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            // CoreSwap 替换模式：-Dcpp.replace=1
-            if (System.getProperty("cpp.replace") != null) {
+            // CoreSwap 替换模式：-Dcpp.replace=1（正常游玩，不跑探针）
+            boolean replace = System.getProperty("cpp.replace") != null;
+            if (replace) {
                 wg.bench.CppBridge.init(server.getOverworld().getSeed());
             }
             if (System.getProperty("biome.probe") != null) {
@@ -31,6 +32,9 @@ public class BenchMod implements ModInitializer {
                 JniProbe.run(server);
             } else if (System.getProperty("readWorld.probe") != null) {
                 ReadWorldProbe.run(server);
+            } else if (replace) {
+                // CoreSwap 替换模式：正常游玩（服务器保持运行，不自动关服）
+                System.out.println("[BenchMod] CoreSwap replace mode: C++ worldgen active");
             } else {
                 WorldGenBench.run(server);
             }
