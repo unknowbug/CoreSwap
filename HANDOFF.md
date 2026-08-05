@@ -54,6 +54,12 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 
 ## 四、未解之谜（2026-08-06 已全部解开）
 
+### 技术知识库（docs/，2026-08-06 建立）
+
+**面向版本迭代（1.17.x 等）**：`docs/` 下 8 篇——架构映射 / 随机派生 / 密度函数 / 含水层 / 矿脉 /
+表面规则 / 块级流水线 / **版本迁移方法论**。每篇固定结构：功能目的 → 1.20.1 工作机制（含代码位置）
+→ **版本敏感点（`[ ]` 检查清单）** → 已验证的坑。迁移时先读 `docs/08-version-migration.md`。
+
 ### 谜 A+B 真相：16:09 的 vanilla 文件被旧 world 缓存污染（假矿脉差异）
 
 - **根因**：BlockProbe 导出用 `world.getChunk(wx, wz, ChunkStatus.SURFACE, true)`。若 run/world 的 region 文件里有旧 chunk（14:58 前或早期 world 生成的），**直接复用缓存，不重新生成**。

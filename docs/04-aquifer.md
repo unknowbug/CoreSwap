@@ -1,0 +1,94 @@
+# 4. 含水层（aquifer.h）
+
+## 功能目的
+
+决定 density < 0 区域（地下负密度区）的流体/空洞布局：水袋、熔岩袋、空洞。
+MC 用「blob 影响场」生成不规则含水层——不是简单的液面填充。
+
+## 1.20.1 工作机制
+
+### blob 网格与候选
+
+```
+每个块：l = floorDiv(blockX-5, 16)，m = floorDiv(blockY+1, 12)，n = floorDiv(blockZ-5, 16)
+候选 blob：3×3×2 = 18 个（u∈{0,1}, v∈{-1,0,1}, w∈{0,1} 偏移）
+取最近的 3 个（o<p<q）→ r/s/t
+```
+
+blob 间距：**x/z 16、y 12、offset -5/+1**——版本敏感。
+
+### blob 位置派生（getBlockPos，lazy）
+
+```cpp
+// 每个候选位置 (x,y,z)：确定性随机
+XoroshiroRandom rnd = splitter.split(x, y, z);       // hashXYZ 派生
+double dd = initialDensity.sample(x*4, y*12, z*4);   // 初始密度
+if (dd < 0.39) { … }                                 // 决定 blob 存在/是否 barrier
+int r = rnd.nextInt(3);                              // 半径抖动
+pos = pack(x*4 + rnd.nextInt(4), y*12 + rnd.nextInt(8), z*4 + rnd.nextInt(4));
+```
+
+- **lazy 缓存**：`blockPositions[index]` 数组（INT64_MAX 标记未算），每 chunk 实例一次。
+- barrier：blob 间 barrier 噪声（`minecraft:aquifer_barrier`）决定水袋是否连通。
+
+### apply 决策链
+
+```
+density > 0                       → -1（石头，交给 oreVein/默认）
+fluidBlock：y < -54 lava；否则 water（fluidY=63）   # 主世界
+  y < -54 → 直接返回 lava
+18 候选 → 最近 3 blob（o/p/q）→ r/s/t
+d = maxDistance(o, p)             # 到最近两个 blob 的密度距离
+fl2 = getFluidLevel(r)            # 最近 blob 的液面
+d <= 0 → fl2.getBlockState(blockY)
+否则用 e/f/g（blob 液面/密度修正）判断 water / -1
+```
+
+### FluidLevel.getBlockState
+
+```cpp
+return blockY >= y ? AIR : block;   // y=液面，block=流体方块
+```
+
+### ⚠️ 无效液面常量 = -32512（曾经 99.78%→99.96% 的关键修复）
+
+```cpp
+// Java: DimensionType.field_35479 = -32512（yarn: INVALID_AQUIFER_LEVEL）
+return -32512;   // 不是 INT32_MAX！
+```
+
+`getFluidLevel` 找不到液面时返回 `FluidLevel(-32512, …)`。`blockY >= -32512` **恒真 → AIR**。
+若误用 INT32_MAX，`blockY >= INT32_MAX` 恒假 → **深地全返回 water**（air→water 2691 块假差异）。
+
+### estimateSurfaceHeight（getFluidLevel 的 13 邻居扫描用）
+
+```cpp
+// initialDensityWithoutJaggedness > 0.390625 的最高 8 格点
+for (y = 320; y >= -64; y -= 8)
+    if (initialDensity.sample(x, y, z) > 0.390625) return y;
+// 4 格对齐：(x>>2)<<2（BiomeCoords.toBlock(fromBlock)）
+// 列缓存：per-chunk map（Java: ChunkNoiseSampler.surfaceHeightEstimateCache）
+```
+
+**性能关键**：无缓存时每块 13 邻居 × 最多 49 次采样 ≈ 3200 万次/chunk（aquifer 占 88% 耗时）；
+缓存后每 chunk ~240 列各 1 次（~2700 倍降幅）。列缓存 key = `((x>>2)<<2, (z>>2)<<2)` 打包。
+
+### getFluidBlockState（HANDOFF 修复 4）
+
+直接用 `defaultFluidLevel.block`（Java 用 defaultFluidLevel.state 不经 getBlockState 判断）。
+
+## 版本敏感点
+
+- [ ] **blob 间距常量**：x/z 16、y 12、offset (blockX-5, blockY+1, blockZ-5)——1.17 可能不同，diff AquiferSampler.Impl 构造。
+- [ ] **无效液面常量** `field_35479`（1.20.1 = -32512）——新版本反射/查 DimensionType 确认。
+- [ ] **estimateSurfaceHeight 阈值 0.390625** 与步长 8、BiomeCoords 4 格对齐。
+- [ ] **fluidLevelSampler**：`y < -54 lava else water`（主世界）；新版可能随维度类型变化。
+- [ ] barrier 噪声接入方式（1.18 前 aquifer 更简单，1.19+ 有 floodedness 参数重构）。
+- [ ] `getFluidLevel` 的 13 邻居偏移模式（surface 扫描范围）。
+
+## 已验证的坑
+
+- **INT32_MAX 陷阱**：任何「无效值」常量都必须从 Java 确认实际值（-32512），不能想当然用 INT32_MAX/INT64_MAX。
+- estimateSurfaceHeight 的 4 格对齐：`(x>>2)<<2` 是 BiomeCoords 语义，漏了会整列错位。
+- blob 的 `initialDensity.sample(x*4, y*12, z*4)`：参数是 blob 网格坐标×间距，不是块坐标。
+- **验证方法**：C++ `[aq]` 调试打印 r/s/t 位置与 fl2.y 对照 Java；VeinDiag 驱动真实 ChunkNoiseSampler（08 篇）。
