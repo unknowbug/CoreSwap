@@ -105,7 +105,7 @@ public:
 private:
     std::vector<BiomeEntry> entries;
 
-    // 解析单个参数值（number 或 {min,max}）
+    // 解析单个参数值（number、{min,max} 或 [min,max]）
     static void parseRange(const JsonValue* v, long& min, long& max) {
         if (!v) { min = max = 0; return; }
         if (v->isNumber()) {
@@ -113,6 +113,9 @@ private:
         } else if (v->isObject()) {
             min = noiseToLong((float)v->num("min", 0.0));
             max = noiseToLong((float)v->num("max", 0.0));
+        } else if (v->isArray() && v->arr.size() >= 2) {
+            min = noiseToLong((float)v->arr[0].num());
+            max = noiseToLong((float)v->arr[1].num());
         } else {
             min = max = 0;
         }

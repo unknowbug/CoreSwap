@@ -350,6 +350,85 @@ public:
     double maxValue() const override { return maxVal; }
 };
 
+// ===== InterpolatedDF（minecraft:interpolated）：NoiseChunk cell 插值（4×4×8）=====
+// vanilla 语义：fillFromNoise 对该函数做 cell 角点采样 + 三线性插值（高频噪声防 alias）
+// 实现：lazy 按 chunk 缓存网格（单线程 POC；构建成本 5×49×5 点采样）
+class InterpolatedDF : public DensityFunction {
+public:
+    DF arg;
+    static constexpr int CELL_X = 4, CELL_Y = 8, CELL_Z = 4;
+    static constexpr int MIN_Y = -64, HEIGHT = 384;
+
+    explicit InterpolatedDF(DF a) : arg(std::move(a)) {}
+
+    double sample(const NoisePos& pos) const override {
+        int chunkX = floorDivP(pos.x, 16);
+        int chunkZ = floorDivP(pos.z, 16);
+        int64_t key = ((int64_t)(uint32_t)chunkX << 32) ^ (uint32_t)chunkZ;
+        if (key != cachedKey) {
+            buildGrid(chunkX, chunkZ);
+            cachedKey = key;
+        }
+        constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
+        int gx = pos.x - chunkX * 16;         // 0..15
+        int gy = pos.y - MIN_Y;               // 0..383
+        int gz = pos.z - chunkZ * 16;
+        int cx = gx / CELL_X, cy = gy / CELL_Y, cz = gz / CELL_Z;
+        // 越界保护：chunk 外坐标（如 aquifer 边界扫描 / 世界顶 y=320）→ clamp
+        // 注意需保证 cx+dx ≤ GX-1（三线性插值访问 +1）
+        if (cx < 0 || cy < 0 || cz < 0 || cx >= GX || cy >= GY || cz >= GZ ||
+            cx >= GX - 1 || cy >= GY - 1 || cz >= GZ - 1) {
+            static bool warned = false;
+            if (!warned) {
+                std::fprintf(stderr, "[InterpolatedDF] OOB pos=(%d,%d,%d) chunk=(%d,%d) g=(%d,%d,%d) cell=(%d,%d,%d)\n",
+                             pos.x, pos.y, pos.z, chunkX, chunkZ, gx, gy, gz, cx, cy, cz);
+                warned = true;
+            }
+            cx = cx < 0 ? 0 : (cx > GX - 2 ? GX - 2 : cx);
+            cy = cy < 0 ? 0 : (cy > GY - 2 ? GY - 2 : cy);
+            cz = cz < 0 ? 0 : (cz > GZ - 2 ? GZ - 2 : cz);
+        }
+        double fx = (gx % CELL_X) / (double)CELL_X;
+        double fy = (gy % CELL_Y) / (double)CELL_Y;
+        double fz = (gz % CELL_Z) / (double)CELL_Z;
+        auto g = [&](int dx, int dy, int dz) {
+            return grid[((size_t)(cy + dy) * GZ + (cz + dz)) * GX + (cx + dx)];
+        };
+        double d000 = g(0, 0, 0), d100 = g(1, 0, 0), d010 = g(0, 1, 0), d110 = g(1, 1, 0);
+        double d001 = g(0, 0, 1), d101 = g(1, 0, 1), d011 = g(0, 1, 1), d111 = g(1, 1, 1);
+        double d00 = d000 + (d100 - d000) * fx;
+        double d10 = d010 + (d110 - d010) * fx;
+        double d01 = d001 + (d101 - d001) * fx;
+        double d11 = d011 + (d111 - d011) * fx;
+        double d0 = d00 + (d10 - d00) * fy;
+        double d1 = d01 + (d11 - d01) * fy;
+        return d0 + (d1 - d0) * fz;
+    }
+
+    double minValue() const override { return arg->minValue(); }
+    double maxValue() const override { return arg->maxValue(); }
+
+private:
+    mutable int64_t cachedKey = INT64_MIN;
+    mutable std::vector<double> grid;
+
+    static int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
+
+    void buildGrid(int chunkX, int chunkZ) const {
+        constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
+        grid.assign((size_t)GX * GY * GZ, 0.0);
+        NoisePos p;
+        for (int gy = 0; gy < GY; gy++)
+            for (int gz = 0; gz < GZ; gz++)
+                for (int gx = 0; gx < GX; gx++) {
+                    p.x = chunkX * 16 + gx * CELL_X;
+                    p.y = MIN_Y + gy * CELL_Y;
+                    p.z = chunkZ * 16 + gz * CELL_Z;
+                    grid[((size_t)gy * GZ + gz) * GX + gx] = arg->sample(p);
+                }
+    }
+};
+
 // ===== Blend（新世界 NoBlending）=====
 class BlendAlpha : public DensityFunction {
 public:
@@ -426,10 +505,11 @@ public:
     }
 
     double sampleOutsideRange(double f, const NoisePos& pos, size_t i) const {
-        float d = derivatives[i];
-        if (d == 0.0F) return subSplines[i] ? subSplines[i]->sample(pos) : fixedValue;
-        double base = subSplines[i] ? subSplines[i]->sample(pos) : (double)fixedValue;
-        return base + d * (f - locations[i]);
+        // Java: index==0 → subSplines.get(0)；否则 → subSplines.get(size-1)（i=n-1 时越界，需换算）
+        size_t idx = (i == 0) ? 0 : (subSplines.size() - 1);
+        float d = derivatives[idx];
+        double base = subSplines[idx] ? subSplines[idx]->sample(pos) : (double)fixedValue;
+        return base + d * (f - locations[idx]);
     }
 
     double minValue() const override { return isLeaf ? fixedValue : computeMin(); }

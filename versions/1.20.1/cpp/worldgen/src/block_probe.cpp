@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <chrono>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -63,6 +64,12 @@ int main(int argc, char** argv) {
             std::fread(buf, 1, 2, f);
             uint16_t v = (uint16_t)((buf[0] << 8) | buf[1]);
             vanilla[i] = (int32_t)v;
+        }
+        // 跳过 biome 段（BlockProbe 新版格式：256 项 UTF 字符串）
+        for (int i = 0; i < 256; i++) {
+            if (std::fread(buf, 1, 2, f) != 2) break;
+            int blen = ((int)buf[0] << 8) | buf[1];
+            if (blen > 0 && blen < 128) std::fread(buf, 1, blen, f);
         }
         std::vector<int32_t> got(BPC);
         auto t0 = std::chrono::steady_clock::now();

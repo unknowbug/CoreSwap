@@ -18,6 +18,10 @@ struct FluidLevel {
     int block = BlockRegistry::AIR;
     FluidLevel() = default;
     FluidLevel(int y_, int b_) : y(y_), block(b_) {}
+    // Java FluidLevel.getBlockState：y >= 液面 → AIR
+    int getBlockState(int blockY, int airId) const {
+        return blockY >= y ? airId : block;
+    }
 };
 
 class Aquifer {
@@ -58,9 +62,9 @@ public:
         // fluidLevelSampler 默认（主世界）：y < -54 lava；y < 63 water；否则 air
         int fluidBlock = -1;
         int fluidY = -1;
+        // NoiseChunkGenerator.createFluidLevelSampler：y < min(-54, 63) → LAVA，否则 WATER（不返回 AIR）
         if (blockY < -54) { fluidBlock = blocks->id("minecraft:lava"); fluidY = -54; }
-        else if (blockY < 63) { fluidBlock = blocks->id("minecraft:water"); fluidY = 63; }
-        else { fluidBlock = blocks->id("minecraft:air"); fluidY = 63; }
+        else { fluidBlock = blocks->id("minecraft:water"); fluidY = 63; }
         if (fluidBlock == blocks->id("minecraft:lava")) return fluidBlock;
 
         int l = floorDiv(blockX - 5, 16);
@@ -87,9 +91,11 @@ public:
 
         FluidLevel fl2 = getWaterLevelAt(r);
         double d = maxDistance(o, p);
-        int bs = fl2.block;
+        int airId = blocks->id("minecraft:air");
+        int bs = fl2.getBlockState(blockY, airId);
         if (d <= 0.0) return bs;
-        if (bs == blocks->id("minecraft:water") && getFluidLevel(blockX, blockY - 1, blockZ).block == blocks->id("minecraft:lava")) {
+        if (bs == blocks->id("minecraft:water") &&
+            getFluidLevel(blockX, blockY - 1, blockZ).getBlockState(blockY - 1, airId) == blocks->id("minecraft:lava")) {
             return bs;
         }
 
@@ -179,8 +185,9 @@ private:
 
     double calculateDensity(int blockX, int blockY, int blockZ, MutableDouble& md,
                             const FluidLevel& fl, const FluidLevel& fl2) {
-        int bs = fl.block;
-        int bs2 = fl2.block;
+        int airId = blocks->id("minecraft:air");
+        int bs = fl.getBlockState(blockY, airId);   // Java: fluidLevel.getBlockState(blockY)
+        int bs2 = fl2.getBlockState(blockY, airId);
         bool lavaWater = (bs == blocks->id("minecraft:lava") && bs2 == blocks->id("minecraft:water"))
                       || (bs == blocks->id("minecraft:water") && bs2 == blocks->id("minecraft:lava"));
         if (!lavaWater) {
@@ -249,7 +256,8 @@ private:
             bool bl3 = j > o;
             if (bl3 || bl2) {
                 FluidLevel fl2 = defaultFluidLevel(o);
-                if (fl2.block != blocks->id("minecraft:air")) {
+                int airId = blocks->id("minecraft:air");
+                if (fl2.getBlockState(o, airId) != airId) { // Java: !fluidLevel2.getBlockState(o).isAir()
                     if (bl2) bl = true;
                     if (bl3) return fl2;
                 }
@@ -260,11 +268,11 @@ private:
         return FluidLevel(p, getFluidBlockState(blockX, blockY, blockZ, defaultFL, p));
     }
 
-    // 默认 fluidLevelSampler：y<-54 lava，y<63 water，否则 air
+    // 默认 fluidLevelSampler（NoiseChunkGenerator.createFluidLevelSampler）：
+    // y < min(-54, seaLevel) → LAVA；否则 WATER（永不返回 AIR）
     FluidLevel defaultFluidLevel(int blockY) {
         if (blockY < -54) return FluidLevel(-54, blocks->id("minecraft:lava"));
-        if (blockY < 63) return FluidLevel(63, blocks->id("minecraft:water"));
-        return FluidLevel(63, blocks->id("minecraft:air"));
+        return FluidLevel(63, blocks->id("minecraft:water"));
     }
 
     int getFluidBlockY(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL,
@@ -307,7 +315,8 @@ private:
     }
 
     int getFluidBlockState(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL, int fluidLevel) {
-        int state = defaultFL.block;
+        int airId = blocks->id("minecraft:air");
+        int state = defaultFL.getBlockState(fluidLevel, airId); // Java: defaultFluidLevel.getBlockState(fluidLevel)
         if (fluidLevel <= -10 && fluidLevel != INT32_MAX && state != blocks->id("minecraft:lava")) {
             int k = floorDiv(blockX, 64);
             int l = floorDiv(blockY, 40);

@@ -132,6 +132,18 @@ public:
     std::map<std::string, DoublePerlinNoiseSampler>* noiseSamplers = nullptr;
     const XoroshiroRandom::Splitter* splitter = nullptr;
     std::function<int(int, int, int)> terracottaBandsGetter; // (x,y,z) → 红陶带方块
+    // 按名字派生的 splitter 缓存（对应 NoiseConfig.getOrCreateRandomDeriver）
+    mutable std::map<std::string, XoroshiroRandom::Splitter> derivedSplitters;
+
+    // NoiseConfig.getOrCreateRandomDeriver(id) = randomDeriver.split(id).nextSplitter()
+    XoroshiroRandom::Splitter splitterFor(const std::string& name) const {
+        auto it = derivedSplitters.find(name);
+        if (it != derivedSplitters.end()) return it->second;
+        XoroshiroRandom r = splitter->split(name);
+        auto s = r.nextSplitter();
+        derivedSplitters.emplace(name, s);
+        return s;
+    }
     const std::vector<int>* columnHeightmap = nullptr; // [256] WORLD_SURFACE_WG
     const std::vector<int>* surfaceHeights4 = nullptr; // chunk 4 角 estimateSurfaceHeight
     const DoublePerlinNoiseSampler* surfaceSecondaryNoise = nullptr;
@@ -213,7 +225,9 @@ inline bool VerticalGradientCond::test(const SurfaceContext& ctx) const {
     if (y <= trueY) return true;
     if (y >= falseY) return false;
     double d = lerpClamp((double)y, (double)trueY, (double)falseY, 1.0, 0.0);
-    XoroshiroRandom r = ctx.splitter->split(ctx.blockX, y, ctx.blockZ);
+    // NoiseConfig.getOrCreateRandomDeriver(name).split(x, y, z)
+    XoroshiroRandom::Splitter s = ctx.splitterFor(name);
+    XoroshiroRandom r = s.split(ctx.blockX, y, ctx.blockZ);
     return r.nextFloat() < d;
 }
 inline int TerracottaBandsRule::apply(const SurfaceContext& ctx) const {

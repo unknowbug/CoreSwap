@@ -7,6 +7,7 @@ import net.minecraft.server.world.ServerChunkManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
@@ -57,6 +58,7 @@ public class BlockProbe {
 
         System.out.println("[BlockProbe] seed=" + seed + " size=" + size + " origin=(" + originX + "," + originZ + ")");
 
+
         // 预热
         for (int i = 0; i < 2; i++) {
             world.getChunk(i, 0, ChunkStatus.FULL, true);
@@ -92,6 +94,14 @@ public class BlockProbe {
                                 Block block = chunk.getBlockState(pos.set(x, y, z)).getBlock();
                                 out.writeShort(Registries.BLOCK.getRawId(block));
                             }
+                        }
+                    }
+                    // biome 采样（每列 y=100，用于验证 C++ biome 查找）
+                    for (int z = 0; z < 16; z++) {
+                        for (int x = 0; x < 16; x++) {
+                            net.minecraft.registry.entry.RegistryEntry<Biome> biome =
+                                    world.getBiome(pos.set(chunkPos.getStartX() + x, 100, chunkPos.getStartZ() + z));
+                            out.writeUTF(biome.getKey().map(k -> k.getValue().toString()).orElse("?"));
                         }
                     }
                 }

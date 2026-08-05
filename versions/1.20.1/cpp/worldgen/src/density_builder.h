@@ -136,8 +136,12 @@ public:
         if (type == "minecraft:blend_offset") return std::make_shared<BlendOffset>();
         if (type == "minecraft:blend_density") return std::make_shared<BlendDensityDF>(arg("argument"));
         if (type == "minecraft:flat_cache" || type == "minecraft:cache_2d" || type == "minecraft:cache_once" ||
-            type == "minecraft:cache_all_in_cell" || type == "minecraft:interpolated") {
+            type == "minecraft:cache_all_in_cell") {
             return std::make_shared<WrappingDF>(arg("argument"));
+        }
+        if (type == "minecraft:interpolated") {
+            // NoiseChunk cell 插值（4×4×8）：高频噪声防 alias，块级采样时三线性插值
+            return std::make_shared<InterpolatedDF>(arg("argument"));
         }
         if (type == "minecraft:old_blended_noise") {
             // InterpolatedNoiseSampler：random = randomDeriver.split(Identifier("terrain"))

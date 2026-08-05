@@ -14,19 +14,19 @@ import java.util.Locale;
  */
 public class RouterProbe {
     public static void run(MinecraftServer server) {
-        int count = Integer.parseInt(System.getProperty("probe.count", "16"));
+        int count = 16; // 临时固定（probe.count 读取异常）
         ServerWorld world = server.getOverworld();
         ServerChunkManager cm = world.getChunkManager();
         NoiseConfig noiseConfig = cm.getNoiseConfig();
         NoiseRouter router = noiseConfig.getNoiseRouter();
         long seed = world.getSeed();
 
-        // 采样点：chunk (200,200) 起，16 点固定网格（y 覆盖 -64..320）
+        // 采样点：chunk (200,200) 起，16 点固定网格（i=10 → (3200, 100, 3208)）
         double[] xs = new double[count], ys = new double[count], zs = new double[count];
         for (int i = 0; i < count; i++) {
             xs[i] = 200 * 16.0 + (i % 4) * 4;
             zs[i] = 200 * 16.0 + (i / 4) * 4;
-            ys[i] = -64 + (i * 13) % 384;
+            ys[i] = -64 + (i * 16 + 4) % 384;
         }
 
         String[] names = {
@@ -67,6 +67,21 @@ public class RouterProbe {
                 sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
             }
             sb.append(String.format(Locale.ROOT, "base_3d_noise %.17g%n", b3d.sample(pos)));
+            // biome 采样（该点 6 维；采样位置 = floor(block/4)*4）
+            {
+                SimplePos bp = new SimplePos();
+                bp.x = (pos.x >> 2) << 2;
+                bp.y = (pos.y >> 2) << 2;
+                bp.z = (pos.z >> 2) << 2;
+                float t = (float) router.temperature().sample(bp);
+                float hum = (float) router.vegetation().sample(bp);
+                float cont = (float) router.continents().sample(bp);
+                float ero = (float) router.erosion().sample(bp);
+                float dep = (float) router.depth().sample(bp);
+                float w = (float) router.ridges().sample(bp);
+                sb.append(String.format(Locale.ROOT, "B %d %d %d %.6f %.6f %.6f %.6f %.6f %.6f%n",
+                        bp.blockX(), bp.blockY(), bp.blockZ(), t, hum, cont, ero, dep, w));
+            }
         }
         System.out.println("===ROUTERPROBE_BEGIN===");
         System.out.print(sb);

@@ -17,6 +17,7 @@
 #include "biome.h"
 #include "surface.h"
 #include "aquifer.h"
+#include "ore_vein.h"
 
 using namespace wg;
 
@@ -193,6 +194,7 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
             {"continents", "continents"}, {"erosion", "erosion"},
             {"depth", "depth"}, {"ridges", "ridges"},
             {"initial_density", "initial_density_without_jaggedness"},
+            {"vein_toggle", "vein_toggle"}, {"vein_ridged", "vein_ridged"}, {"vein_gap", "vein_gap"},
         }) {
             const JsonValue* v = router->get(c.jsonKey);
             if (v) h->router[c.name] = h->builder->buildNode(*v);
@@ -288,16 +290,22 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
                 grid[((size_t)gy * GZ + gz) * GX + gx] = h->finalDensity->sample(pos);
             }
 
-    // 2. aquifer（per chunk）
+    // 2. aquifer（per chunk）——randomDeriver 需按名字派生（NoiseConfig: split("aquifer").nextSplitter()）
     auto& R = h->router;
     for (const char* k : {"barrier", "fluid_level_floodedness", "fluid_level_spread",
                           "lava", "erosion", "depth", "initial_density",
-                          "temperature", "vegetation", "continents", "ridges"}) {
+                          "temperature", "vegetation", "continents", "ridges",
+                          "vein_toggle", "vein_ridged", "vein_gap"}) {
         if (!R.count(k)) { std::fprintf(stderr, "wg_fill_blocks: missing router component %s\n", k); return 0; }
     }
+    XoroshiroRandom aquiferRnd = h->builder->randomDeriverPublic().split("minecraft:aquifer");
     Aquifer aquifer(R["barrier"], R["fluid_level_floodedness"], R["fluid_level_spread"],
                     R["lava"], R["erosion"], R["depth"], R["initial_density"],
-                    h->builder->randomDeriverPublic(), &h->blocks, chunkX * 16, chunkZ * 16, MIN_Y, HEIGHT);
+                    aquiferRnd.nextSplitter(), &h->blocks, chunkX * 16, chunkZ * 16, MIN_Y, HEIGHT);
+    // ore veins（NoiseConfig: split("ore").nextSplitter()）
+    XoroshiroRandom oreRnd = h->builder->randomDeriverPublic().split("minecraft:ore");
+    OreVeinSampler oreVein(R["vein_toggle"], R["vein_ridged"], R["vein_gap"],
+                           oreRnd.nextSplitter(), &h->blocks);
 
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
     BlockColumn col;
@@ -325,6 +333,7 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
                 double d1 = d01 + (d11 - d01) * fy;
                 double density = d0 + (d1 - d0) * fz;
                 int block = aquifer.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, density);
+                if (block < 0) block = oreVein.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz); // ChainedBlockSource：aquifer null → oreVein
                 if (block < 0) block = stone;
                 col.at(bx, wy, bz) = block;
                 if (block != air && wy > heightmap[bz * 16 + bx]) heightmap[bz * 16 + bx] = wy;
@@ -335,7 +344,11 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
     // 4. buildSurface
     auto biomeAt = [&](int x, int y, int z) -> std::string {
         NoisePos p;
-        p.x = x; p.y = y; p.z = z;
+        // Java MultiNoiseBiomeSource.getBiome：sampler.sample(x >> 2, y >> 2, z >> 2)，
+        // 内部 ×4 回 block → 采样位置 = floor(block/4)*4
+        p.x = (x >> 2) << 2;
+        p.y = (y >> 2) << 2;
+        p.z = (z >> 2) << 2;
         float t = (float)R["temperature"]->sample(p);
         float hum = (float)R["vegetation"]->sample(p);
         float cont = (float)R["continents"]->sample(p);

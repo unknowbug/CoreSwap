@@ -51,3 +51,8 @@ target_link_libraries(router_probe PRIVATE worldgen_core)
 add_executable(block_probe src/block_probe.cpp)
 target_include_directories(block_probe PRIVATE include src)
 target_link_libraries(block_probe PRIVATE worldgen_core)
+
+# got 导出（差异分析用）
+add_executable(got_export src/got_export.cpp)
+target_include_directories(got_export PRIVATE include src)
+target_link_libraries(got_export PRIVATE worldgen_core)

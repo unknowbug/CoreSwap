@@ -8,11 +8,13 @@
 
 namespace wg {
 
-// MathHelper.hashCode(x, y, z)
+// MathHelper.hashCode(x, y, z)——3 参数 LCG 混合（1.20.1）
+// 用于 RandomSplitter.split(x, y, z) 派生（aquifer/oreVein/surface/verticalGradient）
 inline int64_t hashXYZ(int32_t x, int32_t y, int32_t z) {
-    int64_t l = (int64_t)x * 3129871 ^ (int64_t)z * 116129781LL ^ y;
-    l = l * l * 42317861LL + l * 11LL;
-    return l >> 16;
+    int32_t i = 1664525 * x + 1013904223;
+    int32_t j = 1664525 * (y ^ -559038737) + 1013904223;
+    int32_t k = 1664525 * (z ^ 984120213) + 1013904223;
+    return (int64_t)(int32_t)(i ^ j ^ k); // int 溢出 → 符号扩展为 long
 }
 
 // Xoroshiro128PlusPlusRandom + Splitter（MC 1.20.1 移植）
