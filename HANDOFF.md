@@ -5,9 +5,11 @@
 ## 〇、最新里程碑（2026-08-06）
 
 - **客户端实机可玩**：修复了「地形全空气」连环 bug（stateById 预填 AIR + 直写 container.set 不更新 nonEmptyBlockCount → isEmpty 误判全空气；commit dbbfd47/28aa90c），玩家走出几千格都有地形，结构不再悬浮。根因与验证方法详见 `docs/07`「Java 侧写入路径的坑」。
+- **批量 fillBlocks**（919b559）：fillChunk 攒批（BATCH=16/2ms 超时），一次 JNI 并行生成 16 chunk，探索顺滑。
 - **C++ 一律 MSVC**（用户严禁 MinGW/gcc）：`build-msvc/bin/worldgen.dll`，配置见 `configure_msvc.bat`。
 - **JDK17 固定**（`gradle.properties` org.gradle.java.home），runClient/runServer 均用 JDK17（JDK24 会崩）。
-- 下一步候选：FEATURES 阶段替换（矿物/湖泊 C++ 化）、批量 fillBlocks（多 chunk 一次 JNI 调用）、1.17.x 迁移（先读 docs/08）。
+- **大项目目标（务必记住，勿漏）**：CoreSwap = 「把 Java 版性能核心 C++ 化、保留 MOD 生态」。区块生成是第一刀（已可玩）；**AI 层（实体 Brain / GoalSelector / Pathfinding 寻路的 C++ 化）是规划中的后续刀**（`versions/1.20.1/cpp/ai` 空占位目录）。AI 层一致性标准 = 行为级一致（非逐位，AI 是随机决策）。
+- **待排期**：FEATURES 阶段 C++ 化（矿物团/装饰）、LIGHT 光照 C++ 化、打包发布、1.17.x 迁移（docs/08）。
 
 ## 一、项目与环境
 
