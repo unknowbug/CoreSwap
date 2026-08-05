@@ -9,5 +9,8 @@
   "environment": "*",
   "entrypoints": {
     "server": ["wg.bench.BenchMod"]
-  }
+  },
+  "mixins": [
+    "worldgen-bench.mixins.json"
+  ]
 }

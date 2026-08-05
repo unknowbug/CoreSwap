@@ -66,6 +66,14 @@ loom {
             if (project.findProperty('jniProbe') != null) {
                 vmArg "-Djni.probe=true"
             }
+            // CoreSwap 替换模式：gradle runServer -PcppReplace=true（C++ 生成区块）
+            if (project.findProperty('cppReplace') != null) {
+                vmArg "-Dcpp.replace=1"
+            }
+            // 读回已生成 world 对比 vanilla：gradle runServer -PreadWorldProbe=true
+            if (project.findProperty('readWorldProbe') != null) {
+                vmArg "-DreadWorld.probe=true"
+            }
         }
     }
 }

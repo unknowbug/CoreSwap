@@ -9,7 +9,12 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 public class BenchMod implements DedicatedServerModInitializer {
     @Override
     public void onInitializeServer() {
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> wg.bench.CppBridge.destroy());
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            // CoreSwap 替换模式：-Dcpp.replace=1
+            if (System.getProperty("cpp.replace") != null) {
+                wg.bench.CppBridge.init(server.getOverworld().getSeed());
+            }
             if (System.getProperty("biome.probe") != null) {
                 BiomeParamProbe.run(server);
             } else if (System.getProperty("block.probe") != null) {
@@ -22,6 +27,8 @@ public class BenchMod implements DedicatedServerModInitializer {
                 OreProbe.run(server);
             } else if (System.getProperty("jni.probe") != null) {
                 JniProbe.run(server);
+            } else if (System.getProperty("readWorld.probe") != null) {
+                ReadWorldProbe.run(server);
             } else {
                 WorldGenBench.run(server);
             }
