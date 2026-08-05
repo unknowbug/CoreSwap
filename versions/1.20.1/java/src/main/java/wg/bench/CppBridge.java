@@ -17,8 +17,8 @@ import java.nio.file.Path;
  * 启用：-Dcpp.replace=1（由 BenchMod 在 server started 时 init）。
  */
 public final class CppBridge {
-    private static long handle;
-    public static boolean enabled;
+    private static volatile long handle;
+    public static volatile boolean enabled;
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
     private static final ThreadLocal<int[]> BUF = ThreadLocal.withInitial(() -> new int[16 * 16 * 384]);
 
@@ -92,12 +92,13 @@ public final class CppBridge {
      * 高度图用 populateHeightmaps 一次批量重算——98304 次 setBlockState → 直写。
      */
     public static void fillChunk(Chunk chunk) {
-        if (!enabled) return;
+        long h = handle;  // 本地快照：destroy 后置 0，拦截后续调用（不 use-after-free）
+        if (!enabled || h == 0) return;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         long t0 = System.nanoTime();
         int[] buf = BUF.get();  // 复用（98304 ints/393KB，每 chunk 分配是 GC 压力）
         // threads=0：C++ 侧自适应（min(CPU 核心数, 任务数)）——不要写死线程数
-        int n = CppWorldgen.fillBlocks(handle, new int[]{cx}, new int[]{cz}, new int[][]{buf}, 0);
+        int n = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz}, new int[][]{buf}, 0);
         long t1 = System.nanoTime();
         if (n != 1) {
             System.out.println("[CppBridge] fillBlocks failed for chunk(" + cx + "," + cz + ")");
@@ -143,8 +144,17 @@ public final class CppBridge {
     }
 
     public static void destroy() {
-        if (handle != 0) CppWorldgen.destroy(handle);
-        handle = 0;
+        // 只标记禁用并摘除句柄；真实释放由 shutdown hook 完成
+        // （防止「保存并退出」时异步 chunk 生成还在 fillBlocks 里用已释放句柄 → use-after-free）
         enabled = false;
+        handle = 0;
+    }
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            long h = handle;
+            handle = 0;
+            if (h != 0) CppWorldgen.destroy(h);
+        }, "coreswap-destroy"));
     }
 }
