@@ -1,0 +1,34 @@
+// worldgen_api.h — CoreSwap worldgen 纯 C 接口（JNI 无关，便于任何语言桥接）
+#pragma once
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// 创建 worldgen 句柄：一次 seed 初始化（构建全部 noise samplers + density 树）
+// worldgenDir: vanilla worldgen JSON 数据目录（含 data/minecraft/worldgen/...）
+// 失败返回 NULL
+void* wg_create(int64_t seed, const char* worldgenDir);
+
+// 释放句柄
+void wg_destroy(void* handle);
+
+// 密度场批量求值：region = size×size chunks（minChunkX..minChunkX+size-1）
+// out: 调用方分配，至少 size*size*pointsPerChunk 个 double
+// 布局：chunk-major（cz 外循环 → cx 内循环），chunk 内 y→z→x
+// 密度网格：每 chunk sx×sy×sz = (16/xzInterval)×(height/yInterval)×(16/xzInterval)
+// 返回每个 chunk 的点数（pointsPerChunk），失败返回 0
+int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size,
+                    double* out);
+
+// 密度网格参数（与 density 文件 header 一致）
+int wg_density_xz_interval(void* handle);
+int wg_density_y_interval(void* handle);
+int wg_min_y(void* handle);
+int wg_height(void* handle);
+int wg_density_points_per_chunk(void* handle);
+
+#ifdef __cplusplus
+}
+#endif
