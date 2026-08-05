@@ -25,7 +25,7 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 - ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
 - ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
 - 📦 Download: [CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.0)
-- 🗺️ Version plan: 1.20.x series first + next major; 1.18/1.19 on demand; 1.17- not planned (worldgen architecture too different)
+- 🗺️ Version plan: **full coverage on the roadmap** — 1.20.x ships first, then 1.18/1.19 and 1.17- progressively (worldgen architecture differs per version, docs/08 covers the migration flow)
 - 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
 
 📄 Tech knowledge base: [`docs/`](docs/README.md) (8 articles, in Chinese — architecture / random / density / aquifer / ore veins / surface / pipeline / version migration)
@@ -57,7 +57,7 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 ### Notes
 
 - **Server**: works on dedicated Fabric servers too — put the same jar in the server's `mods/` folder
-- **Not** planned for 1.17 and earlier (worldgen architecture differs too much); 1.18/1.19 on demand
+- **Full version coverage planned** — 1.20.x first, then 1.18/1.19 and 1.17- progressively
 - **FEATURES stage** (ores / decoration) is still vanilla — **NOISE+SURFACE** is bit-identical to vanilla
 - If you don't see the log lines above: check the jar is in `mods/`, MC is 1.20.1, Fabric Loader is 0.15.x, and Java is 17
 
