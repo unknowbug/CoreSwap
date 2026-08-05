@@ -16,17 +16,19 @@ Rewrite Minecraft Java Edition's performance-critical cores — **world generati
 
 CoreSwap walks the path nobody has walked: **C++ performance core + Java mod layer (JNI bridge)** — the mod API stays Java and untouched; everything below it is free to become C++.
 
-## Status (as of 2026-08-05)
+## Status (as of 2026-08-06)
 
-**POC milestone — density field 100% + block layer first run.** Not yet a usable product.
+**v1.0.0 released — installable Fabric mod for MC 1.20.1.**
 
-- ✅ C++ density field is **100% bit-identical to vanilla** (12288/12288 sample points, maxErr=0, exact IEEE double)
-- ✅ **2.43× speedup** on density evaluation (C++ 4.42 ms/chunk vs Java 10.75 ms/chunk, -O2 baseline)
-- ✅ **JNI bridge** (`worldgen.dll`): `wg_create` / `wg_fill_density` / `wg_fill_blocks` — big-block data exchange, verified 100% identical over JNI
-- ✅ **Block layer** (density → aquifer → surface rules → ore veins): **98.71% all-block / 96.07% non-air match** vs vanilla SURFACE state (fixed seed, 4×4 chunk region x=3200..3223, z=3208..3231)
-- ⚠️ Current release (`1.20.1-poc`) contains **verification tools only** (probes + `worldgen.dll` JNI stub) — there is no installable mod / server plugin yet
+- ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **100% bit-identical to vanilla** — same seed, same terrain, block-for-block
+- ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
+- ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
+- ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
+- 📦 Download: [CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.0)
+- 🗺️ Version plan: 1.20.x series first + next major; 1.18/1.19 on demand; 1.17- not planned (worldgen architecture too different)
+- 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
 
-📄 POC details: [`versions/1.20.1/bench/report.md`](versions/1.20.1/bench/report.md)
+📄 Tech knowledge base: [`docs/`](docs/README.md) (8 articles, in Chinese — architecture / random / density / aquifer / ore veins / surface / pipeline / version migration)
 
 ## Versioning
 

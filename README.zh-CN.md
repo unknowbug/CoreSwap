@@ -17,15 +17,19 @@
 
 CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD 层（JNI 桥）**——MOD API 保持 Java 不变，API 之下一律 C++。
 
-## 当前状态（2026-08-05）
+## 当前状态（2026-08-06）
 
-**POC 里程碑——密度场验证完成。尚未形成可用产品。**
+**v1.0.0 已发布——可安装的 Fabric mod（MC 1.20.1）。**
 
-- ✅ C++ 密度场与 vanilla **100% 逐位一致**（12288/12288 采样点，maxErr=0，IEEE double 精确，零容差）
-- ✅ 密度求值 **性能 2.43×**（C++ 4.42ms/chunk vs Java 10.75ms/chunk，-O2 基线）
-- ⚠️ 当前 Release（`1.20.1-poc`）**只含验证工具**（探针 + `worldgen.dll` JNI 桩）——**还没有可安装的 mod / 服务端插件**
+- ✅ NOISE+SURFACE 阶段（密度函数 / 含水层 / 矿脉 / 表面规则）与 vanilla **100% 逐位一致**——同种子同地形，逐块不差
+- ✅ **世界生成 10-20× 提速**：批量并行生成（~3ms/chunk vs vanilla ~60ms），自适应 `min(核数, 任务数)`
+- ✅ 纯算法优化全部无损（FlatCache / Cache2D / spline 缓存）——不靠近似
+- ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——实测 RTX 4060 笔记本 + BSL 光影 + 最大渲染距离全程不卡
+- 📦 下载：[CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.0)
+- 🗺️ 版本计划：优先 1.20.x 全系列 + 次新大版本；1.18/1.19 视需求；1.17- 不计划（世界生成架构差异过大）
+- 🔭 路线：光照（LIGHT）、实体 AI（Brain / Goal / 寻路）C++ 化
 
-📄 POC 详情见 [`versions/1.20.1/bench/report.md`](versions/1.20.1/bench/report.md)
+📄 技术知识库：[`docs/`](docs/README.md)（8 篇：架构 / 随机 / 密度 / 含水层 / 矿脉 / 表面 / 流水线 / 版本迁移）
 
 ## 版本管理
 
