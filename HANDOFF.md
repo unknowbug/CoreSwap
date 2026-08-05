@@ -52,7 +52,16 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 - 99.72%（hashXYZ 后）→ 99.93%（ceiling 修复后）→ 99.78%（getFluidBlockState 后，bash-46）
 - **但后续 block_probe 复跑出 97.73% —— 见"未解之谜"**
 
-## 四、未解之谜（2026-08-06 已全部解开）
+### 里程碑：JNI 桥 + mod 替换接入（2026-08-06，提交 03732db）
+
+**CoreSwap 替换 mod 跑通**：`gradle runServer -PcppReplace=true` → 世界 NOISE+SURFACE 阶段由 C++ 生成。
+
+- **JNI 桥**：`Java_wg_CppWorldgen_fillBlocks`（wg_fill_blocks_multi 包装）；Java 侧 `wg/CppWorldgen.java`；JniProbe 验证 Java→JNI→C++ 往返 100.0000%（对比 vanilla 参照 + got.bin 交叉验证）
+- **mixin**：NoiseChunkGeneratorMixin 拦截 `populateNoise`（HEAD，C++ 整块填充 + completedFuture）与 `buildSurface`（跳过）；`-Dcpp.replace=1` 启用
+- **验证闭环**：服务器启动 Done 无崩溃，spawn 区 region 落盘；ReadWorldProbe 读回对比——**NOISE+SURFACE 层与 vanilla 逐位一致**（FULL 差异仅 FEATURES 阶段矿物/熔岩湖，由原版 Java 继续处理，预期行为）
+- **坑**：mixin 注入目标是公共 `populateNoise(Executor, Blender, NoiseConfig, StructureAccessor, Chunk)`（返回 CompletableFuture）不是私有版；参照文件每 chunk 末尾 256 个 biome writeUTF 需跳过；DataOutputStream 是 big-endian
+- **下一步候选**：写入性能优化（98304 次 setBlockState 慢）、worldgenDir 打包进 mod（当前绝对路径）、FEATURES 阶段替换（矿物也 C++ 化）、玩家实跑测试
+
 
 ### 技术知识库（docs/，2026-08-06 建立）
 
