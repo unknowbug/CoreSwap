@@ -69,13 +69,32 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 
 ## 五、本次会话新增工具与待清理
 
-- **新增探针**（保留，验证用）：
-  - `cpp/worldgen/src/ore_probe.cpp`（C++ 矿脉采样探针，已注册 CMake）
-  - `java/src/main/java/wg/bench/OreProbe.java`（Java 插值复刻探针，`-PoreProbe=true` 触发）
-  - `data/locate_ore.py`（vanilla 矿脉定位）、`data/ore_probe.txt`（采样输出）
-- **BlockProbe.java 新增 VeinDiag**：driveCnsTo() 驱动真实 ChunkNoiseSampler 插值循环到目标块，打印真实 blockState/veinToggle/角点——保留（调试含水层仍有用），但每轮 runServer 慢。
-- **待清理**：`ore_vein.h` 的 `[ov]` 调试打印；BlockProbe.java 的 `[VgDiag]`/`[CppCmp]`/`[CppCmpS]` 旧诊断。
-- **vanilla 参照**：`data/vanilla_*-8248318472910187742_4_3200_3208.blocks` 已更新为干净导出（99.7782% 基线）；`data/vanilla_1609_backup.blocks` 是污染版备份（含假矿脉，可删）。
+### 里程碑：方块层 100% 对齐（2026-08-06）
+
+**block_probe：TOTAL 100.0000%，非空气 100.0000%（16/16 chunks 全 100%），75-190ms/chunk。**
+
+四项修复（提交 d445ae5）：
+1. **aquifer 无效液面**：`INT32_MAX → -32512`（Java `DimensionType.field_35479`）。`fl2.getBlockState(blockY)` 用 `blockY >= y ? air : block`，INT32_MAX 导致深地永远返回 water（air→water 2691 块归零）。
+2. **finalDensity 块级插值顺序**：C++ 原为「整树在 cell 角点采样 + 手动三线性插值」；Java 是「只对 interpolated 节点插值，min/squeeze/mul 等非线性在插值后应用」。改为块级直接 `finalDensity->sample(pos)`（InterpolatedDF 内部按 cell 网格插值）——数学语义对齐，water→stone 173 块归零。**附带性能提升 40 倍**（4000ms→90ms/chunk）。
+3. **surface materialRule7 结尾**：误放 materialRule8 的 taiga/ice_spikes/mushroom/mr 分支，且 fallback 应为 `MANGROVE→MUD + DIRT`。修复地表草皮误生成（dirt→grass_block 200 块归零）。
+4. **estimateSurfaceHeight**：去掉 `+ runDepth - 8`（本 seed 下与 Java 实际行为一致）。
+
+### 探针工具（保留，验证用）
+
+- `cpp/worldgen/src/ore_probe.cpp`（C++ 矿脉探针）
+- `java/src/main/java/wg/bench/OreProbe.java`（Java 插值复刻，`-PoreProbe=true`）
+- `data/locate_ore.py`、`data/locate_diff.py`、`data/locate_diff2.py`
+- **BlockProbe.java 的 VeinDiag/driveCnsTo**（驱动真实 ChunkNoiseSampler 插值循环取真实方块/veinToggle/角点——验证阶段极其有用，保留）
+
+### 待清理
+
+- BlockProbe.java 的 `[VgDiag]`/`[CppCmp]`/`[CppCmpS]`/`[DimDiag]`/`[EstDiag]`/`[BioDiag]`/`[BeardDiag]`/`[InterpList]` 诊断打印（不影响逻辑，可删或保留）
+- `data/vanilla_1609_backup.blocks`（污染版参照，可删）
+- `versions/1.20.1/cpp/build` 里的 build-dbg/build-asan 产物（不提交）
+
+### vanilla 参照
+
+`data/vanilla_*-8248318472910187742_4_3200_3208.blocks` = 干净导出（删 region 后重新生成）。**教训：重新导出 vanilla 前必须删 run/world/region/r.5.5/5.6/6.5/6.6.mca，否则 getChunk 复用旧 chunk 缓存。**
 
 ## 六、纪律（上一个会话的教训，务必遵守）
 
