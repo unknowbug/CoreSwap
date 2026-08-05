@@ -69,9 +69,20 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 
 ## 五、本次会话新增工具与待清理
 
-### 里程碑：方块层 100% 对齐（2026-08-06）
+### 里程碑：方块层 100% 对齐（2026-08-06）**block_probe：TOTAL 100.0000%，非空气 100.0000%（16/16 chunks 全 100%），75-190ms/chunk。**
 
-**block_probe：TOTAL 100.0000%，非空气 100.0000%（16/16 chunks 全 100%），75-190ms/chunk。**
+### 性能优化：多线程并行 + aquifer 列缓存（2026-08-06，提交 66e05f5）
+
+**16 chunks：串行 1056ms → 并行 109.8ms（24 线程，~9.6× 加速），100% 保持。**
+
+- 热点量化：density 采样 ~12ms/chunk（12%），**aquifer+oreVein 59-562ms/chunk（88%）**。
+- **aquifer 根因**：`estimateSurfaceHeight` 无缓存——每块 13 个邻居列 × 最多 49 次 initialDensity 采样 ≈ 3200 万次/chunk。加 **per-chunk 列缓存**（Java `surfaceHeightEstimateCache` 同款，key=(x>>2,z>>2) 对齐列）→ 每 chunk ~240 列各 1 次（~2700 倍降幅）。
+- **多线程**：`wg_fill_blocks_multi`（chunk 级 std::thread 池，确定性结果与串行逐位一致）。线程安全前提：
+  - `InterpolatedDF` 缓存 → per-instance `thread_local`（O(1) ID 索引 vector，非 std::map）
+  - `overworldRule` 预构建到 `wg_create`（消除懒构建竞态）
+  - aquifer/SurfaceContext/oreVein 均 per-chunk 局部对象；`split()`/`split(name)` 是 const 纯函数 ✓
+- 串行 API `wg_fill_blocks` 保留（JNI 用）；block_probe 改用并行入口。
+- **注意**：单线程内「base_3d_noise 网格插值」类优化会引入浮点误差破坏 100%——多线程是唯一无损的大优化。
 
 四项修复（提交 d445ae5）：
 1. **aquifer 无效液面**：`INT32_MAX → -32512`（Java `DimensionType.field_35479`）。`fl2.getBlockState(blockY)` 用 `blockY >= y ? air : block`，INT32_MAX 导致深地永远返回 water（air→water 2691 块归零）。
