@@ -301,7 +301,7 @@ private:
         } else if (d > 0.0) {
             return getNoiseBasedFluidLevel(blockX, blockY, blockZ, surfaceHeightEstimate);
         }
-        return INT32_MAX; // DimensionType.field_35479（无效层）
+        return -32512; // Java DimensionType.field_35479（无效层；非 INT32_MAX！blockY >= -32512 → AIR）
     }
 
     int getNoiseBasedFluidLevel(int blockX, int blockY, int blockZ, int surfaceHeightEstimate) {

@@ -274,21 +274,13 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
     if (!h || !out) return 0;
 
     constexpr int XZ = XZ_INTERVAL, Y = Y_INTERVAL;
-    constexpr int GX = 16 / XZ + 1, GY = HEIGHT / Y + 1, GZ = 16 / XZ + 1; // 5×49×5 halo 网格
     const int air = h->blocks.id("minecraft:air");
     const int stone = h->blocks.id("minecraft:stone");
 
-    // 1. density 网格（含 halo 角点）
-    std::vector<double> grid((size_t)GX * GY * GZ);
-    NoisePos pos;
-    for (int gy = 0; gy < GY; gy++)
-        for (int gz = 0; gz < GZ; gz++)
-            for (int gx = 0; gx < GX; gx++) {
-                pos.x = chunkX * 16 + gx * XZ;
-                pos.y = MIN_Y + gy * Y;
-                pos.z = chunkZ * 16 + gz * XZ;
-                grid[((size_t)gy * GZ + gz) * GX + gx] = h->finalDensity->sample(pos);
-            }
+    // 1. density：块级直接采样 finalDensity（InterpolatedDF 内部按 cell 网格插值，
+    //    与 Java CellCache(add(DensityInterpolator(finalDensity), Beardifier)) 语义一致——
+    //    只对 interpolated 节点插值，min/squeeze/mul 等非线性在插值后应用）
+    NoisePos fpos;
 
     // 2. aquifer（per chunk）——randomDeriver 需按名字派生（NoiseConfig: split("aquifer").nextSplitter()）
     auto& R = h->router;
@@ -312,26 +304,12 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
     std::vector<int> heightmap(256, MIN_Y - 1);
     for (int by = 0; by < HEIGHT; by++) {
         int wy = MIN_Y + by;
-        int cgy = by / Y;
-        double fy = (by % Y) / (double)Y;
         for (int bz = 0; bz < 16; bz++) {
-            int cgz = bz / XZ;
-            double fz = (bz % XZ) / (double)XZ;
             for (int bx = 0; bx < 16; bx++) {
-                int cgx = bx / XZ;
-                double fx = (bx % XZ) / (double)XZ;
-                auto g = [&](int dx, int dy, int dz) {
-                    return grid[((size_t)(cgy + dy) * GZ + (cgz + dz)) * GX + (cgx + dx)];
-                };
-                double d000 = g(0, 0, 0), d100 = g(1, 0, 0), d010 = g(0, 1, 0), d110 = g(1, 1, 0);
-                double d001 = g(0, 0, 1), d101 = g(1, 0, 1), d011 = g(0, 1, 1), d111 = g(1, 1, 1);
-                double d00 = d000 + (d100 - d000) * fx;
-                double d10 = d010 + (d110 - d010) * fx;
-                double d01 = d001 + (d101 - d001) * fx;
-                double d11 = d011 + (d111 - d011) * fx;
-                double d0 = d00 + (d10 - d00) * fy;
-                double d1 = d01 + (d11 - d01) * fy;
-                double density = d0 + (d1 - d0) * fz;
+                fpos.x = chunkX * 16 + bx;
+                fpos.y = wy;
+                fpos.z = chunkZ * 16 + bz;
+                double density = h->finalDensity->sample(fpos);
                 int block = aquifer.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, density);
                 if (block < 0) block = oreVein.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz); // ChainedBlockSource：aquifer null → oreVein
                 if (block < 0) block = stone;

@@ -164,7 +164,7 @@ public:
         double fz = (blockZ & 15) / 16.0;
         double v = lerp2(fx, fz, (*surfaceHeights4)[0], (*surfaceHeights4)[1],
                          (*surfaceHeights4)[2], (*surfaceHeights4)[3]);
-        return (int)std::floor(v) + runDepth - 8;
+        return (int)std::floor(v); // Java: floor(lerp2(4角))，无 runDepth 偏移
     }
 
     void initVertical(int stoneDepthAbove, int stoneDepthBelow, int fluidHeight,
@@ -426,15 +426,9 @@ inline RuleP SurfaceBuilder::buildOverworldRule() {
                 condition(noiseThresholdNoMax("minecraft:surface", -1.0), B("dirt")),
                 mr3,
             })),
-        condition(biomeCond({"minecraft:old_growth_pine_taiga", "minecraft:old_growth_spruce_taiga"}),
-            sequence({
-                condition(noiseThresholdNoMax("minecraft:surface", 1.75), B("coarse_dirt")),
-                condition(noiseThresholdNoMax("minecraft:surface", -0.95), B("podzol")),
-            })),
-        condition(biomeCond({"minecraft:ice_spikes"}), condition(mc9, B("snow_block"))),
+        // Java materialRule7 结尾（122-123）：MANGROVE_SWAMP→MUD + DIRT fallback
         condition(biomeCond({"minecraft:mangrove_swamp"}), B("mud")),
-        condition(biomeCond({"minecraft:mushroom_fields"}), B("mycelium")),
-        mr,
+        B("dirt"),
     });
 
     CondP mc16 = noiseThreshold("minecraft:surface", -0.909, -0.5454);
