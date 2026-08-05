@@ -1,14 +1,16 @@
 package wg.bench;
 
-import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 /**
- * Fabric mod 入口：server 启动完成后跑 WorldGenBench，然后关服。
+ * Fabric mod 入口（main：单机 integrated server 与服务端都会加载）。
+ * - 替换模式（-Dcpp.replace=1）：C++ 生成 NOISE/SURFACE 阶段
+ * - 探针模式（-PxxxProbe=true）：bench 工具
  */
-public class BenchMod implements DedicatedServerModInitializer {
+public class BenchMod implements ModInitializer {
     @Override
-    public void onInitializeServer() {
+    public void onInitialize() {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> wg.bench.CppBridge.destroy());
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             // CoreSwap 替换模式：-Dcpp.replace=1

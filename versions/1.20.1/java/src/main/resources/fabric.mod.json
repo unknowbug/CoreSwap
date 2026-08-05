@@ -8,7 +8,7 @@
   "license": "MIT",
   "environment": "*",
   "entrypoints": {
-    "server": ["wg.bench.BenchMod"]
+    "main": ["wg.bench.BenchMod"]
   },
   "mixins": [
     "worldgen-bench.mixins.json"

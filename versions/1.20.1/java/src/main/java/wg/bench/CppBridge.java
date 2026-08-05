@@ -8,6 +8,10 @@ import net.minecraft.world.Heightmap;
 import net.minecraft.world.chunk.Chunk;
 import wg.CppWorldgen;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 /**
  * CoreSwap worldgen 全局桥：持有 C++ 句柄，把 C++ 生成的整块写入 Chunk。
  * 启用：-Dcpp.replace=1（由 BenchMod 在 server started 时 init）。
@@ -21,10 +25,65 @@ public final class CppBridge {
     private CppBridge() {}
 
     public static void init(long seed) {
-        String dir = System.getProperty("cpp.worldgen.dir", "E:/python/MC/data/worldgen");
+        String dir = System.getProperty("cpp.worldgen.dir");
+        if (dir == null) dir = extractWorldgenDir();
         handle = CppWorldgen.init(seed, dir);
         enabled = handle != 0;
         System.out.println("[CppBridge] init seed=" + seed + " worldgenDir=" + dir + " enabled=" + enabled);
+    }
+
+    /**
+     * 从 mod 内 worldgen-data/ 解压 C++ 所需 JSON 数据到临时目录（幂等：已存在即复用）。
+     * 目标布局（对齐 C++ wg_create 的路径约定）：
+     *   <tmp>/coreswap-data/worldgen/data/minecraft/worldgen/...  （JSON 数据）
+     *   <tmp>/coreswap-data/blocks.json / biome_params.json      （wgDir/../ 查找）
+     */
+    private static String extractWorldgenDir() {
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        Path target = Path.of(tmpDir, "coreswap-data");
+        Path wgDir = target.resolve("worldgen");
+        try {
+            Path marker = wgDir.resolve("data/minecraft/worldgen/noise_settings/overworld.json");
+            if (!Files.exists(marker)) {
+                // 幂等失败时残留旧结构 → 先清再解压
+                if (Files.exists(target)) deleteRecursively(target);
+                Files.createDirectories(wgDir);
+                var container = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("worldgen-bench").get();
+                for (Path root : container.getRootPaths()) {
+                    Path src = root.resolve("worldgen-data");
+                    if (!Files.isDirectory(src)) continue;
+                    try (var stream = Files.walk(src)) {
+                        stream.filter(p -> Files.isRegularFile(p)).forEach(p -> {
+                            Path rel = src.relativize(p);  // data/... 或 blocks.json / biome_params.json
+                            Path dst = rel.startsWith("data") ? wgDir.resolve(rel.toString()) : target.resolve(rel.toString());
+                            try {
+                                Files.createDirectories(dst.getParent());
+                                Files.copy(p, dst, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+                    }
+                }
+                if (!Files.exists(marker)) {
+                    throw new IllegalStateException("worldgen-data not found in mod resources");
+                }
+            }
+            return wgDir.toString();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("failed to extract worldgen-data", e);
+        }
+    }
+
+    private static void deleteRecursively(Path path) throws IOException {
+        if (!Files.exists(path)) return;
+        try (var stream = Files.walk(path)) {
+            stream.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+            });
+        }
     }
 
     /**
