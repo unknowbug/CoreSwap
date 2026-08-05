@@ -18,10 +18,12 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 ## Status (as of 2026-08-05)
 
-**POC milestone — density field verification complete.** Not yet a usable product.
+**POC milestone — density field 100% + block layer first run.** Not yet a usable product.
 
 - ✅ C++ density field is **100% bit-identical to vanilla** (12288/12288 sample points, maxErr=0, exact IEEE double)
 - ✅ **2.43× speedup** on density evaluation (C++ 4.42 ms/chunk vs Java 10.75 ms/chunk, -O2 baseline)
+- ✅ **JNI bridge** (`worldgen.dll`): `wg_create` / `wg_fill_density` / `wg_fill_blocks` — big-block data exchange, verified 100% identical over JNI
+- 🟡 **Block layer first run** (density → aquifer → surface rules): **90.01% all-block / 75.66% non-air match** vs vanilla SURFACE state (main gap = ore veins, ~68k blocks, not yet implemented)
 - ⚠️ Current release (`1.20.1-poc`) contains **verification tools only** (probes + `worldgen.dll` JNI stub) — there is no installable mod / server plugin yet
 
 📄 POC details: [`versions/1.20.1/bench/report.md`](versions/1.20.1/bench/report.md)
