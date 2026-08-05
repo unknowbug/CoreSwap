@@ -150,7 +150,9 @@ public final class CppBridge {
         java.util.Arrays.fill(stateById, Blocks.AIR.getDefaultState());
         BlockState air = Blocks.AIR.getDefaultState();
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
-        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
+        // 注意：1.20.1 Chunk.getSection(int) 参数是「世界 y >> 4 坐标」（-4..19），不是 0-based 索引！
+        // y=-64 >> 4 = -4（section 0），y=319 >> 4 = 19（section 23）。传 0..23 会整体错位 4 格（之前 readback 全 AIR 的根因）
+        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx - 4);
         for (int by = 0; by < 384; by++) {
             net.minecraft.world.chunk.PalettedContainer<BlockState> container =
                     sections[by >> 4].getBlockStateContainer();
