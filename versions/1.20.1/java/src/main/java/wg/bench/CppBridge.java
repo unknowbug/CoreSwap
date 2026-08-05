@@ -140,7 +140,6 @@ public final class CppBridge {
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
         // 1.20.1 Chunk.getSection(int) 是 0-based 索引（0..23 = y -64..319）——已验证（getSection(-4) 越界）
         for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
-        lastWriteSec0 = System.identityHashCode(sections[0]);
         for (int by = 0; by < 384; by++) {
             net.minecraft.world.chunk.ChunkSection sec = sections[by >> 4];
             int sy = by & 15;
