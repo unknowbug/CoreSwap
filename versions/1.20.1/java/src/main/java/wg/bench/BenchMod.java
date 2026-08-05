@@ -17,6 +17,28 @@ public class BenchMod implements ModInitializer {
             boolean replace = System.getProperty("cpp.replace") != null;
             if (replace) {
                 wg.bench.CppBridge.init(server.getOverworld().getSeed());
+                // 自测：PalettedContainer.set 直写是否生效（复用 writeChunk 的写法）
+                try {
+                    var world = server.getOverworld();
+                    var chunk = world.getChunk(0, 0);
+                    var pc0 = chunk.getSection(0).getBlockStateContainer();
+                    net.minecraft.block.BlockState orig = pc0.get(0, 0, 0);
+                    pc0.set(0, 0, 0, net.minecraft.block.Blocks.STONE.getDefaultState());
+                    net.minecraft.block.BlockState g0 = pc0.get(0, 0, 0);
+                    net.minecraft.block.BlockState viaChunk =
+                            chunk.getBlockState(new net.minecraft.util.math.BlockPos(0, -64, 0));
+                    System.out.println("[TEST-WRITE] section0(0,0,0): 原=" + orig
+                            + " set=stone 读回=" + g0 + " chunk读=" + viaChunk);
+                    // 模拟 writeChunk 的完整写法（24 sections 都 set 一个标记方块）
+                    for (int secIdx = 0; secIdx < 24; secIdx++) {
+                        chunk.getSection(secIdx).getBlockStateContainer().set(1, 1, 1,
+                                net.minecraft.block.Blocks.DIAMOND_BLOCK.getDefaultState());
+                    }
+                    net.minecraft.block.BlockState g1 = chunk.getSection(0).getBlockStateContainer().get(1, 1, 1);
+                    System.out.println("[TEST-WRITE] 24-sections set(1,1,1,diamond) 读回 section0=" + g1);
+                } catch (Throwable t) {
+                    System.out.println("[TEST-WRITE] error: " + t);
+                }
             }
             if (System.getProperty("biome.probe") != null) {
                 BiomeParamProbe.run(server);

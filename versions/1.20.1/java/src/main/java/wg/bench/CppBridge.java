@@ -20,6 +20,7 @@ import java.nio.file.Path;
 public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
+    private static volatile int lastWriteSec0 = -1;  // 诊断：最近一次写入的 section0 identity
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
     private static final ThreadLocal<int[]> BUF = ThreadLocal.withInitial(() -> new int[16 * 16 * 384]);
 
@@ -131,12 +132,10 @@ public final class CppBridge {
             BlockState v = chunk.getBlockState(new net.minecraft.util.math.BlockPos(cx * 16, -64, cz * 16));
             // container 层读回（区分「写入没生效」vs「chunk 读的对象不同」）
             BlockState c0 = chunk.getSection(0).getBlockStateContainer().get(0, 0, 0);
-            if (v.isAir() || c0.isAir()) {
-                System.out.println("[CppBridge] DIAG readback chunk(" + cx + "," + cz + ") chunk=" + v + " container=" + c0
-                        + " sec0=" + System.identityHashCode(chunk.getSection(0)));
-            } else if (DEBUG) {
-                System.out.println("[CppBridge] readback-ok chunk(" + cx + "," + cz + ") = " + v);
-            }
+            // 诊断：chunk 类型 + 写入/读回是否同一 section（identity 相同 = set 没生效；不同 = section 对象被换）
+            System.out.println("[CppBridge] DIAG chunk=" + chunk.getClass().getSimpleName()
+                    + " wSec0=" + lastWriteSec0 + " rSec0=" + System.identityHashCode(chunk.getSection(0))
+                    + " chunkv=" + v + " containerv=" + c0);
         } catch (Throwable t) {
             System.out.println("[CppBridge] DIAG readback threw chunk(" + cx + "," + cz + "): " + t);
         }
@@ -155,6 +154,7 @@ public final class CppBridge {
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
         // 1.20.1 Chunk.getSection(int) 是 0-based 索引（0..23 = y -64..319）——已验证（getSection(-4) 越界）
         for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
+        lastWriteSec0 = System.identityHashCode(sections[0]);
         for (int by = 0; by < 384; by++) {
             net.minecraft.world.chunk.PalettedContainer<BlockState> container =
                     sections[by >> 4].getBlockStateContainer();
