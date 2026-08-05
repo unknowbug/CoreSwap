@@ -21,7 +21,6 @@ public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
-    private static final ThreadLocal<int[]> BUF = ThreadLocal.withInitial(() -> new int[16 * 16 * 384]);
 
     private CppBridge() {}
 
@@ -96,40 +95,79 @@ public final class CppBridge {
         long h = handle;  // 本地快照：destroy 后置 0，拦截后续调用（不 use-after-free）
         if (!enabled || h == 0) return;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
-        long t0 = System.nanoTime();
-        int[] buf = BUF.get();  // 复用（98304 ints/393KB，每 chunk 分配是 GC 压力）
-        // threads=0：C++ 侧自适应（min(CPU 核心数, 任务数)）——不要写死线程数
-        int n;
-        try {
-            n = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz}, new int[][]{buf}, 0);
-        } catch (Throwable t) {
-            System.out.println("[CppBridge] DIAG fillBlocks threw for chunk(" + cx + "," + cz + "): " + t);
-            return;
-        }
-        long t1 = System.nanoTime();
-        if (n != 1) {
-            System.out.println("[CppBridge] fillBlocks failed for chunk(" + cx + "," + cz + ")");
-            return;
-        }
-        // 诊断：C++ 输出是否全 air（区分「C++ 输出 0」与「写入丢失」）
-        int nz = 0;
-        for (int i = 0; i < buf.length; i++) if (buf[i] != 0) nz++;
-        if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
-        else if (nz < 1000) System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
-        try {
-            writeChunk(chunk, cx, cz, buf);
-        } catch (Throwable t) {
-            // 写入异常 = chunk 保持空气 → 后续结构（井/冰山）悬浮半空。必须暴露出来。
-            System.out.println("[CppBridge] DIAG write threw chunk(" + cx + "," + cz + "): " + t);
-            for (StackTraceElement e : t.getStackTrace()) {
-                System.out.println("    at " + e);
-                if (e.getMethodName().contains("writeChunk") || e.getMethodName().contains("fillChunk")) break;
+        boolean drain;
+        synchronized (BATCH_LOCK) {
+            PENDING.addLast(new Object[]{chunk, cx, cz});
+            if (PENDING.size() >= BATCH) {
+                drain = true;  // 攒满一批 → 本线程处理
+            } else {
+                // 没攒满：短暂等待其他线程攒批（wait 释放锁，其他 Worker 可继续入队）
+                try {
+                    BATCH_LOCK.wait(BATCH_TIMEOUT_MS);
+                } catch (InterruptedException ignored) {
+                }
+                // 超时后：若队列仍非空（可能被其他线程处理空）则本线程处理
+                drain = !PENDING.isEmpty();
             }
         }
-        long t2 = System.nanoTime();
-        if (DEBUG) System.out.printf("[CppBridge] chunk(%d,%d): C++=%dms write=%dms%n",
-                cx, cz, (t1 - t0) / 1_000_000, (t2 - t1) / 1_000_000);
+        if (drain) drainBatch(h);
     }
+
+    private static void drainBatch(long h) {
+        // 锁内处理：fillBlocks + writeChunk 都用 BATCH_BUFS（复用池），必须互斥
+        synchronized (BATCH_LOCK) {
+            int n = PENDING.size();
+            if (n == 0) return;
+            Object[][] batch = PENDING.toArray(new Object[0][]);
+            PENDING.clear();
+            int[] cxs = new int[n];
+            int[] czs = new int[n];
+            for (int i = 0; i < n; i++) {
+                cxs[i] = (Integer) batch[i][1];
+                czs[i] = (Integer) batch[i][2];
+            }
+            long t0 = System.nanoTime();
+            int got;
+            try {
+                // 批量 fillBlocks：threads=0 → C++ 自适应 min(核数, n)；批量摊薄 JNI 边界 + 并行生成
+                // 注意：JNI 校验 outs.length == count，BATCH_BUFS 固定 16 → 必须 copyOf 到 n（引用数组，开销可忽略）
+                got = CppWorldgen.fillBlocks(h, cxs, czs, java.util.Arrays.copyOf(BATCH_BUFS, n), 0);
+            } catch (Throwable t) {
+                System.out.println("[CppBridge] DIAG batch fillBlocks threw n=" + n + ": " + t);
+                return;
+            }
+            long t1 = System.nanoTime();
+            if (got != n) {
+                System.out.println("[CppBridge] DIAG batch fillBlocks got=" + got + " want=" + n);
+                got = Math.min(got, n);
+            }
+            for (int i = 0; i < got; i++) {
+                int[] buf = BATCH_BUFS[i];
+                Chunk c = (Chunk) batch[i][0];
+                // 诊断：C++ 输出是否全 air（区分「C++ 输出 0」与「写入丢失」）
+                int nz = 0;
+                for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
+                if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cxs[i] + "," + czs[i] + ")");
+                else if (nz < 1000)
+                    System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cxs[i] + "," + czs[i] + ") nz=" + nz);
+                try {
+                    writeChunk(c, cxs[i], czs[i], buf);
+                } catch (Throwable t) {
+                    System.out.println("[CppBridge] DIAG write threw chunk(" + cxs[i] + "," + czs[i] + "): " + t);
+                }
+            }
+            long t2 = System.nanoTime();
+            if (DEBUG) System.out.printf("[CppBridge] batch n=%d: C++=%dms write=%dms%n",
+                    n, (t1 - t0) / 1_000_000, (t2 - t1) / 1_000_000);
+        }
+    }
+
+    // 批量攒批参数：攒满 BATCH 或超时 BATCH_TIMEOUT_MS 即处理（锁内串行 drain，buf 池安全复用）
+    private static final int BATCH = 16;
+    private static final long BATCH_TIMEOUT_MS = 2;
+    private static final Object BATCH_LOCK = new Object();
+    private static final java.util.ArrayDeque<Object[]> PENDING = new java.util.ArrayDeque<>();
+    private static final int[][] BATCH_BUFS = new int[BATCH][16 * 16 * 384];
 
     // 直写 PalettedContainer（跳过 chunk.setBlockState 的 heightmap/blockEntity 开销）
     // Chunk.getSection(int) 参数是 0-based section index（0..23 = 世界 y -64..319）
