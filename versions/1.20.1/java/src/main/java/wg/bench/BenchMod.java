@@ -20,6 +20,8 @@ public class BenchMod implements DedicatedServerModInitializer {
                 RouterProbe.run(server);
             } else if (System.getProperty("ore.probe") != null) {
                 OreProbe.run(server);
+            } else if (System.getProperty("jni.probe") != null) {
+                JniProbe.run(server);
             } else {
                 WorldGenBench.run(server);
             }

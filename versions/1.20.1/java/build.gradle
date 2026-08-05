@@ -62,6 +62,10 @@ loom {
             if (project.findProperty('biomeProbe') != null) {
                 vmArg "-Dbiome.probe=true"
             }
+            // JNI 桥验证：gradle runServer -PjniProbe=true
+            if (project.findProperty('jniProbe') != null) {
+                vmArg "-Djni.probe=true"
+            }
         }
     }
 }
