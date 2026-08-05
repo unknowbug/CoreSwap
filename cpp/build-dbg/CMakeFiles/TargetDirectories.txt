@@ -6,5 +6,6 @@ E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/noise_probe.dir
 E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/density_probe.dir
 E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/router_probe.dir
 E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/block_probe.dir
+E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/got_export.dir
 E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/edit_cache.dir
 E:/PYTHON/MC/cpp/build-dbg/worldgen/CMakeFiles/rebuild_cache.dir

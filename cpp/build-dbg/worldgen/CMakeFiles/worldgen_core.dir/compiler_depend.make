@@ -394,6 +394,7 @@ worldgen/CMakeFiles/worldgen_core.dir/src/worldgen_api.cpp.obj: E:/PYTHON/MC/ver
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/json.h \
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/md5.h \
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/noise.h \
+  E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/ore_vein.h \
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/random.h \
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/surface.h \
   E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/xoroshiro.h
@@ -402,6 +403,8 @@ worldgen/CMakeFiles/worldgen_core.dir/src/worldgen_api.cpp.obj: E:/PYTHON/MC/ver
 E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/surface.h:
 
 E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/random.h:
+
+E:/PYTHON/MC/versions/1.20.1/cpp/worldgen/src/ore_vein.h:
 
 E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/allocated_ptr.h:
 

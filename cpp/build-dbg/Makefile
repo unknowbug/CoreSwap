@@ -193,6 +193,19 @@ block_probe/fast:
 	$(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\block_probe.dir\build.make worldgen/CMakeFiles/block_probe.dir/build
 .PHONY : block_probe/fast
 
+#=============================================================================
+# Target rules for targets named got_export
+
+# Build rule for target.
+got_export: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 got_export
+.PHONY : got_export
+
+# fast build rule for target.
+got_export/fast:
+	$(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\got_export.dir\build.make worldgen/CMakeFiles/got_export.dir/build
+.PHONY : got_export/fast
+
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -203,6 +216,7 @@ help:
 	@echo ... rebuild_cache
 	@echo ... block_probe
 	@echo ... density_probe
+	@echo ... got_export
 	@echo ... noise_probe
 	@echo ... router_probe
 	@echo ... worldgen_core

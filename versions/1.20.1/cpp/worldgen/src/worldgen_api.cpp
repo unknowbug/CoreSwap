@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <thread>
+#include <atomic>
 
 #include "json.h"
 #include "density.h"
@@ -226,6 +228,8 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
         std::string biomeDirForBuilder = wgDir + "/data/minecraft/worldgen/biome/";
         h->surfaceBuilder = std::make_unique<SurfaceBuilder>(
             &h->noiseSamplers, &h->builder->randomDeriverPublic(), 63, &h->blocks, biomeDirForBuilder);
+        // 规则树预构建（多线程安全：fillOneChunk 只读 overworldRule）
+        h->overworldRule = h->surfaceBuilder->buildOverworldRule();
         return h.release();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "wg_create: %s\n", e.what());
@@ -269,7 +273,9 @@ int wg_density_points_per_chunk(void*) { return POINTS_PER_CHUNK; }
 
 // ---- 方块层：完整区块生成（density → aquifer → surface rules）----
 // out: int32_t[16*16*384]（BlockId，vanilla raw id）
-int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
+// 单个 chunk 的生成逻辑（线程安全：InterpolatedDF 缓存 thread_local、
+// SurfaceContext/aquifer/oreVein 均为 per-chunk 局部对象、split() 纯函数）
+static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out) return 0;
 
@@ -344,12 +350,39 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
     sh4[1] = aquifer.estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16);
     sh4[2] = aquifer.estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16);
     sh4[3] = aquifer.estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16);
-    if (!h->overworldRule) h->overworldRule = h->surfaceBuilder->buildOverworldRule();
     h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp);
 
     // 5. 输出
     std::memcpy(out, col.data().data(), BLOCK_COUNT * sizeof(int32_t));
     return BLOCK_COUNT;
+}
+
+// 单 chunk（串行兼容入口）
+int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
+    return fillOneChunk(handle, chunkX, chunkZ, out);
+}
+
+// 多 chunk 并行：chunkXs/chunkZs/outs 为 count 个 chunk 的坐标与输出缓冲。
+// 每个 chunk 独立生成（确定性随机派生 + thread_local 缓存），结果与串行逐位一致。
+int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
+                         int32_t* const* outs, int count, int threads) {
+    if (count <= 0) return 0;
+    if (threads <= 0) threads = (int)std::thread::hardware_concurrency();
+    if (threads > count) threads = count;
+    std::vector<std::thread> pool;
+    std::atomic<int> next{0};
+    pool.reserve(threads);
+    for (int t = 0; t < threads; t++) {
+        pool.emplace_back([&]() {
+            for (;;) {
+                int i = next.fetch_add(1);
+                if (i >= count) break;
+                fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
+            }
+        });
+    }
+    for (auto& th : pool) th.join();
+    return count;
 }
 
 } // extern "C"

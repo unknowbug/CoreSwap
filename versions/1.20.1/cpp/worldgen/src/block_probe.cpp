@@ -7,6 +7,7 @@
 #include <chrono>
 #include <map>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "worldgen_api.h"
@@ -55,6 +56,7 @@ int main(int argc, char** argv) {
     const int BPC = 16 * 16 * 384;
     int64_t total = 0, match = 0, matchNonAir = 0, totalNonAir = 0;
     std::vector<int> chunkX, chunkZ;
+    std::vector<std::vector<int32_t>> vanillaAll, gotAll;
     for (int c = 0; c < size * size; c++) {
         int cx = rd32(), cz = rd32();
         chunkX.push_back(cx);
@@ -71,12 +73,25 @@ int main(int argc, char** argv) {
             int blen = ((int)buf[0] << 8) | buf[1];
             if (blen > 0 && blen < 128) std::fread(buf, 1, blen, f);
         }
-        std::vector<int32_t> got(BPC);
-        auto t0 = std::chrono::steady_clock::now();
-        wg_fill_blocks(h, cx, cz, got.data());
-        auto t1 = std::chrono::steady_clock::now();
-        double ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+        vanillaAll.push_back(std::move(vanilla));
+        gotAll.emplace_back(BPC);
+    }
+    std::fclose(f);
 
+    // 并行生成全部 chunk（线程数=硬件并发；结果与串行逐位一致）
+    std::vector<int32_t*> outs;
+    for (auto& g : gotAll) outs.push_back(g.data());
+    int nthreads = (int)std::thread::hardware_concurrency();
+    auto tp0 = std::chrono::steady_clock::now();
+    wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), nthreads);
+    auto tp1 = std::chrono::steady_clock::now();
+    double wall = std::chrono::duration<double, std::milli>(tp1 - tp0).count();
+    std::printf("parallel: %d chunks, %d threads, wall=%.1fms (%.2fms/chunk)\n",
+                (int)gotAll.size(), nthreads, wall, wall / gotAll.size());
+
+    for (int c = 0; c < (int)gotAll.size(); c++) {
+        const auto& vanilla = vanillaAll[c];
+        const auto& got = gotAll[c];
         int64_t cm = 0, cna = 0, tna = 0;
         for (int i = 0; i < BPC; i++) {
             total++;
@@ -87,11 +102,10 @@ int main(int argc, char** argv) {
                 if (!airV) { matchNonAir++; cna++; }
             }
         }
-        std::printf("chunk (%d,%d): match=%lld/%d (%.2f%%) nonAir=%lld/%lld (%.2f%%) %.2f ms\n",
-                    cx, cz, cm, BPC, 100.0 * cm / BPC, cna, tna,
-                    tna ? 100.0 * cna / tna : 100.0, ms);
+        std::printf("chunk (%d,%d): match=%lld/%d (%.2f%%) nonAir=%lld/%lld (%.2f%%)\n",
+                    chunkX[c], chunkZ[c], cm, BPC, 100.0 * cm / BPC, cna, tna,
+                    tna ? 100.0 * cna / tna : 100.0);
     }
-    std::fclose(f);
     std::printf("TOTAL: match=%lld/%lld (%.4f%%) nonAir match=%lld/%lld (%.4f%%)\n",
                 match, total, 100.0 * match / total, matchNonAir, totalNonAir,
                 totalNonAir ? 100.0 * matchNonAir / totalNonAir : 0);

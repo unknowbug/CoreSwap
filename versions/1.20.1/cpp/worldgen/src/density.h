@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <algorithm>
+#include <atomic>
 #include "noise.h"
 
 namespace wg {
@@ -359,15 +360,19 @@ public:
     static constexpr int CELL_X = 4, CELL_Y = 8, CELL_Z = 4;
     static constexpr int MIN_Y = -64, HEIGHT = 384;
 
-    explicit InterpolatedDF(DF a) : arg(std::move(a)) {}
+    explicit InterpolatedDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
 
     double sample(const NoisePos& pos) const override {
         int chunkX = floorDivP(pos.x, 16);
         int chunkZ = floorDivP(pos.z, 16);
         int64_t key = ((int64_t)(uint32_t)chunkX << 32) ^ (uint32_t)chunkZ;
-        if (key != cachedKey) {
-            buildGrid(chunkX, chunkZ);
-            cachedKey = key;
+        // 多线程：per-instance thread_local 缓存（每线程独立 vector，按实例 id 索引，O(1)）
+        auto& slots = tlSlots();
+        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        Slot& slot = slots[cacheId];
+        if (slot.key != key) {
+            slot.key = key;
+            buildGrid(chunkX, chunkZ, slot.grid);
         }
         constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         int gx = pos.x - chunkX * 16;         // 0..15
@@ -385,7 +390,7 @@ public:
         double fy = (gy % CELL_Y) / (double)CELL_Y;
         double fz = (gz % CELL_Z) / (double)CELL_Z;
         auto g = [&](int dx, int dy, int dz) {
-            return grid[((size_t)(cy + dy) * GZ + (cz + dz)) * GX + (cx + dx)];
+            return slot.grid[((size_t)(cy + dy) * GZ + (cz + dz)) * GX + (cx + dx)];
         };
         double d000 = g(0, 0, 0), d100 = g(1, 0, 0), d010 = g(0, 1, 0), d110 = g(1, 1, 0);
         double d001 = g(0, 0, 1), d101 = g(1, 0, 1), d011 = g(0, 1, 1), d111 = g(1, 1, 1);
@@ -402,12 +407,21 @@ public:
     double maxValue() const override { return arg->maxValue(); }
 
 private:
-    mutable int64_t cachedKey = INT64_MIN;
-    mutable std::vector<double> grid;
+    // 多线程：per-instance thread_local 网格缓存（每线程 vector，按 cacheId 索引）
+    struct Slot {
+        int64_t key = INT64_MIN;
+        std::vector<double> grid;
+    };
+    int cacheId;
+    static std::atomic<int> nextId;
+    static std::vector<Slot>& tlSlots() {
+        static thread_local std::vector<Slot> slots;
+        return slots;
+    }
 
     static int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
 
-    void buildGrid(int chunkX, int chunkZ) const {
+    void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
         constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         grid.assign((size_t)GX * GY * GZ, 0.0);
         NoisePos p;
@@ -520,5 +534,8 @@ private:
         return mx;
     }
 };
+
+// InterpolatedDF：实例 id 分配（per-instance thread_local 缓存索引）
+std::atomic<int> InterpolatedDF::nextId{0};
 
 } // namespace wg

@@ -3,6 +3,7 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -119,16 +120,22 @@ public:
     }
 
     // estimateSurfaceHeight（ChunkNoiseSampler）：initialDensityWithoutJaggedness > 0.390625
+    // per-chunk 列缓存（Java: surfaceHeightEstimateCache HashMap<ColumnPos, Integer>）
     int estimateSurfaceHeight(int blockX, int blockZ) {
         // Java: BiomeCoords.toBlock(BiomeCoords.fromBlock(blockX))——floor(blockX/4)*4 对齐
         blockX = (blockX >> 2) << 2;
         blockZ = (blockZ >> 2) << 2;
+        int64_t key = ((int64_t)(uint32_t)blockX << 32) ^ (uint32_t)blockZ;
+        auto it = surfaceCache.find(key);
+        if (it != surfaceCache.end()) return it->second;
         NoisePos pos;
+        int val = INT32_MAX;
         for (int l = minY + height; l >= minY; l -= 8) { // verticalCellBlockCount=8
             pos.x = blockX; pos.y = l; pos.z = blockZ;
-            if (initialDensity->sample(pos) > 0.390625) return l;
+            if (initialDensity->sample(pos) > 0.390625) { val = l; break; }
         }
-        return INT32_MAX;
+        surfaceCache[key] = val;
+        return val;
     }
 
 private:
@@ -141,6 +148,8 @@ private:
     int startX, startY, startZ, sizeX, sizeY, sizeZ;
     std::vector<int64_t> blockPositions;
     std::vector<FluidLevel> waterLevels;
+    // estimateSurfaceHeight 列缓存（per-chunk；Java surfaceHeightEstimateCache）
+    std::map<int64_t, int> surfaceCache;
 
     // MutableDouble（barrier 噪声缓存 per apply 调用）
     struct MutableDouble {

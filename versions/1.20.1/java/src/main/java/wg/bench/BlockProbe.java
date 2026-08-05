@@ -43,6 +43,7 @@ public class BlockProbe {
         java.lang.reflect.Method mSwap = cls.getMethod("swapBuffers");
         java.lang.reflect.Method mSample = cls.getDeclaredMethod("sampleBlockState");
         mSample.setAccessible(true);
+        java.lang.reflect.Method mStop = cls.getMethod("stopInterpolation");
 
         int ox = 3200, oz = 3200;   // chunk(200,200) 起点
         int cellX = (bx - ox) / 4;
@@ -55,6 +56,7 @@ public class BlockProbe {
         fInterps.setAccessible(true);
         java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
         Object vtInterp = null;
+        Object fdInterp = interps.isEmpty() ? null : interps.get(0);   // finalDensity 的 DensityInterpolator（BlendDensity）
         for (Object it : interps) {
             try {
                 java.lang.reflect.Field fDel = it.getClass().getDeclaredField("delegate");
@@ -164,6 +166,25 @@ public class BlockProbe {
                                     System.out.println(String.format(java.util.Locale.ROOT,
                                             "[VeinDiag] (%d,%d,%d) block=%s veinToggle=%.6f %s",
                                             bx, by, bz, bs, vtVal, corners));
+                                    // 反射采样 beardifying（StructureWeightSampler）与 finalDensity
+                                    try {
+                                        java.lang.reflect.Field fBeard = cls.getDeclaredField("beardifying");
+                                        fBeard.setAccessible(true);
+                                        Object beard = fBeard.get(cns);
+                                        var npb = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(bx, by, bz);
+                                        double bv = (double) net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class).invoke(beard, npb);
+                                        double fdv = nc.getNoiseRouter().finalDensity().sample(npb);
+                                        double fdInterpV = fdInterp != null
+                                                ? (double) fdInterp.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class)
+                                                        .invoke(fdInterp, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns)
+                                                : Double.NaN;
+                                        System.out.println(String.format(java.util.Locale.ROOT,
+                                                "[BeardDiag] (%d,%d,%d) beard=%.6f finalDensity(raw)=%.6f finalDensityInterp=%.6f",
+                                                bx, by, bz, bv, fdv, fdInterpV));
+                                    } catch (Exception e7) {
+                                        System.out.println("[BeardDiag] failed: " + e7);
+                                    }
+                                    mStop.invoke(cns);
                                     break outer;
                                 }
                             }
@@ -256,6 +277,14 @@ public class BlockProbe {
 
         System.out.println("[BlockProbe] seed=" + seed + " size=" + size + " origin=(" + originX + "," + originZ + ")");
         System.out.println("[BlockProbe] worldSeed=" + world.getSeed());
+        // 诊断：DimensionType.field_35479（Aquifer 无效液面常量，C++ 用 INT32_MAX 对应）
+        try {
+            java.lang.reflect.Field f35479 = net.minecraft.world.dimension.DimensionType.class.getDeclaredField("field_35479");
+            f35479.setAccessible(true);
+            System.out.println("[DimDiag] field_35479=" + f35479.getInt(null));
+        } catch (Exception e) {
+            System.out.println("[DimDiag] failed: " + e);
+        }
 
         // 诊断：verticalGradient deepslate 的 random 值（对照 C++）
         try {
@@ -308,6 +337,30 @@ public class BlockProbe {
                     // 先生成到 NOISE（ChunkNoiseSampler 存活期），驱动插值诊断，再补 SURFACE
                     Chunk chunk = world.getChunk(wx, wz, ChunkStatus.NOISE, true);
                     if (wx == 200 && wz == 200) {
+                        // EstDiag
+                        try {
+                            java.lang.reflect.Field fCnsDiag = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCnsDiag.setAccessible(true);
+                            Object cnsD = fCnsDiag.get(chunk);
+                            java.lang.reflect.Method mBiome = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("getBiome", int.class, int.class, int.class);
+                            Object bio = mBiome.invoke(cnsD, 3200, 59, 3211);
+                            System.out.println("[BioDiag] biome@(3200,59,3211)=" + bio);
+                            bio = mBiome.invoke(cnsD, 3214, 31, 3212);
+                            System.out.println("[BioDiag] biome@(3214,31,3212)=" + bio);
+                            java.lang.reflect.Method mEst = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
+                            System.out.println("[EstDiag] (200,200) estimateSurfaceHeight=" + mEst.invoke(cnsD, 3200, 3211));
+                            java.lang.reflect.Field fIni = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
+                            fIni.setAccessible(true);
+                            Object ini = fIni.get(cnsD);
+                            var npX = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3200, 3200 >> 4 * 0 + 0, 3211);
+                            for (int yy : new int[]{64, 56, 48, 40, 32, 24}) {
+                                npX = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3200, yy, 3211);
+                                double iv = (double) net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class).invoke(ini, npX);
+                                System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag] initialDensity(3200,%d,3211)=%.6f", yy, iv));
+                            }
+                        } catch (Exception e9) {
+                            System.out.println("[EstDiag] failed: " + e9);
+                        }
                         try {
                             java.lang.reflect.Field fCns = Chunk.class.getDeclaredField("chunkNoiseSampler");
                             fCns.setAccessible(true);
@@ -316,11 +369,19 @@ public class BlockProbe {
                                 driveCnsTo(cns, 3211, 4, 3204, chunkManager.getNoiseConfig());
                                 driveCnsTo(cns, 3211, 40, 3204, chunkManager.getNoiseConfig());
                                 driveCnsTo(cns, 3211, -30, 3204, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3215, -26, 3200, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3220, -32, 3200, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3214, 31, 3212, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3201, 56, 3202, chunkManager.getNoiseConfig());
                             } else {
                                 System.out.println("[VeinDiag] chunkNoiseSampler null after NOISE");
                             }
                         } catch (Exception e2) {
-                            System.out.println("[VeinDiag] failed: " + e2);
+                            if (e2.getCause() != null) {
+                                e2.getCause().printStackTrace(System.err);
+                            } else {
+                                System.out.println("[VeinDiag] failed: " + e2);
+                            }
                         }
                     }
                     chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);

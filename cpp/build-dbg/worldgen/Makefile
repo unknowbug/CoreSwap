@@ -199,6 +199,20 @@ block_probe/fast:
 	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\block_probe.dir\build.make worldgen/CMakeFiles/block_probe.dir/build
 .PHONY : block_probe/fast
 
+# Convenience name for target.
+worldgen/CMakeFiles/got_export.dir/rule:
+	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 worldgen/CMakeFiles/got_export.dir/rule
+.PHONY : worldgen/CMakeFiles/got_export.dir/rule
+
+# Convenience name for target.
+got_export: worldgen/CMakeFiles/got_export.dir/rule
+.PHONY : got_export
+
+# fast build rule for target.
+got_export/fast:
+	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\got_export.dir\build.make worldgen/CMakeFiles/got_export.dir/build
+.PHONY : got_export/fast
+
 src/block_probe.obj: src/block_probe.cpp.obj
 .PHONY : src/block_probe.obj
 
@@ -246,6 +260,30 @@ src/density_probe.s: src/density_probe.cpp.s
 src/density_probe.cpp.s:
 	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\density_probe.dir\build.make worldgen/CMakeFiles/density_probe.dir/src/density_probe.cpp.s
 .PHONY : src/density_probe.cpp.s
+
+src/got_export.obj: src/got_export.cpp.obj
+.PHONY : src/got_export.obj
+
+# target to build an object file
+src/got_export.cpp.obj:
+	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\got_export.dir\build.make worldgen/CMakeFiles/got_export.dir/src/got_export.cpp.obj
+.PHONY : src/got_export.cpp.obj
+
+src/got_export.i: src/got_export.cpp.i
+.PHONY : src/got_export.i
+
+# target to preprocess a source file
+src/got_export.cpp.i:
+	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\got_export.dir\build.make worldgen/CMakeFiles/got_export.dir/src/got_export.cpp.i
+.PHONY : src/got_export.cpp.i
+
+src/got_export.s: src/got_export.cpp.s
+.PHONY : src/got_export.s
+
+# target to generate assembly for a file
+src/got_export.cpp.s:
+	cd /d E:\PYTHON\MC\cpp\build-dbg && $(MAKE) $(MAKESILENT) -f worldgen\CMakeFiles\got_export.dir\build.make worldgen/CMakeFiles/got_export.dir/src/got_export.cpp.s
+.PHONY : src/got_export.cpp.s
 
 src/jni_bridge.obj: src/jni_bridge.cpp.obj
 .PHONY : src/jni_bridge.obj
@@ -401,6 +439,7 @@ help:
 	@echo ... rebuild_cache
 	@echo ... block_probe
 	@echo ... density_probe
+	@echo ... got_export
 	@echo ... noise_probe
 	@echo ... router_probe
 	@echo ... worldgen_core
@@ -411,6 +450,9 @@ help:
 	@echo ... src/density_probe.obj
 	@echo ... src/density_probe.i
 	@echo ... src/density_probe.s
+	@echo ... src/got_export.obj
+	@echo ... src/got_export.i
+	@echo ... src/got_export.s
 	@echo ... src/jni_bridge.obj
 	@echo ... src/jni_bridge.i
 	@echo ... src/jni_bridge.s

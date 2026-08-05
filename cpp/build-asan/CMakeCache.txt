@@ -28,7 +28,7 @@ CMAKE_BUILD_TYPE:STRING=Debug
 CMAKE_COLOR_MAKEFILE:BOOL=ON
 
 //CXX compiler
-CMAKE_CXX_COMPILER:STRING=E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe
+CMAKE_CXX_COMPILER:FILEPATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe
 
 //A wrapper around 'ar' adding the appropriate '--plugin' option
 // for the GCC compiler
@@ -39,7 +39,7 @@ CMAKE_CXX_COMPILER_AR:FILEPATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/gcc-ar.exe
 CMAKE_CXX_COMPILER_RANLIB:FILEPATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/gcc-ranlib.exe
 
 //Flags used by the CXX compiler during all build types.
-CMAKE_CXX_FLAGS:STRING=-fsanitize=address -g
+CMAKE_CXX_FLAGS:STRING=-fsanitize=address -fno-omit-frame-pointer
 
 //Flags used by the CXX compiler during DEBUG builds.
 CMAKE_CXX_FLAGS_DEBUG:STRING=-g
@@ -60,7 +60,7 @@ CMAKE_CXX_STANDARD_LIBRARIES:STRING=-lkernel32 -luser32 -lgdi32 -lwinspool -lshe
 CMAKE_DLLTOOL:FILEPATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/dlltool.exe
 
 //Flags used by the linker during all build types.
-CMAKE_EXE_LINKER_FLAGS:STRING=
+CMAKE_EXE_LINKER_FLAGS:STRING=-fsanitize=address
 
 //Flags used by the linker during DEBUG builds.
 CMAKE_EXE_LINKER_FLAGS_DEBUG:STRING=

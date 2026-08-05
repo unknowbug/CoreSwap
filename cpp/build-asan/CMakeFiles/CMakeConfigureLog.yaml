@@ -331,7 +331,7 @@ events:
     message: |
       Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
       Compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe 
-      Build flags: -fsanitize=address;-g
+      Build flags: -fsanitize=address;-fno-omit-frame-pointer
       Id flags:  
       
       The output was:
@@ -423,7 +423,7 @@ events:
     message: |
       Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
       Compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe 
-      Build flags: -fsanitize=address;-g
+      Build flags: -fsanitize=address;-fno-omit-frame-pointer
       Id flags: -c 
       
       The output was:
@@ -3039,25 +3039,25 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-jtp6zb"
-      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-jtp6zb"
+      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-ng4jyq"
+      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-ng4jyq"
     cmakeVariables:
-      CMAKE_CXX_FLAGS: "-fsanitize=address -g"
+      CMAKE_CXX_FLAGS: "-fsanitize=address -fno-omit-frame-pointer"
       CMAKE_CXX_FLAGS_DEBUG: "-g"
       CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
       CMAKE_CXX_STDLIB_MODULES_JSON: ""
-      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: "-fsanitize=address"
     buildResult:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: false
       stdout: |
-        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-jtp6zb'
+        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-ng4jyq'
         
-        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_7f214/fast
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_7f214.dir\\build.make CMakeFiles/cmTC_7f214.dir/build
-        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-jtp6zb'
-        Building CXX object CMakeFiles/cmTC_7f214.dir/CMakeCXXCompilerABI.cpp.obj
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -g    -v -o CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.obj -c E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp
+        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_31529/fast
+        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_31529.dir\\build.make CMakeFiles/cmTC_31529.dir/build
+        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-ng4jyq'
+        Building CXX object CMakeFiles/cmTC_31529.dir/CMakeCXXCompilerABI.cpp.obj
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -fno-omit-frame-pointer    -v -o CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.obj -c E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp
         Using built-in specs.
         COLLECT_GCC=E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe
         OFFLOAD_TARGET_NAMES=nvptx-none
@@ -3066,8 +3066,8 @@ events:
         Thread model: posix
         Supported LTO compression algorithms: zlib zstd
         gcc version 16.1.0 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) 
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_7f214.dir\\'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/cc1plus.exe -quiet -v -iprefix E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/ -D_REENTRANT E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles\\cmTC_7f214.dir\\ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -g -version -fsanitize=address -o C:\\Users\\NDark\\AppData\\Local\\Temp\\ccoW9vzm.s
+        COLLECT_GCC_OPTIONS='-fsanitize=address' '-fno-omit-frame-pointer' '-v' '-o' 'CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_31529.dir\\'
+         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/cc1plus.exe -quiet -v -iprefix E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/ -D_REENTRANT E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles\\cmTC_31529.dir\\ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -fsanitize=address -fno-omit-frame-pointer -o C:\\Users\\NDark\\AppData\\Local\\Temp\\cc5rTx3M.s
         GNU C++20 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) version 16.1.0 (x86_64-w64-mingw32)
         	compiled by GNU C version 16.1.0, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.4.1, isl version isl-0.28-GMP
         
@@ -3092,14 +3092,14 @@ events:
          E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/include
         End of search list.
         Compiler executable checksum: 4f4866882966e468ea12bd3de4ffe7bb
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_7f214.dir\\'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/as.exe -v --gdwarf-5 -o CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.obj C:\\Users\\NDark\\AppData\\Local\\Temp\\ccoW9vzm.s
+        COLLECT_GCC_OPTIONS='-fsanitize=address' '-fno-omit-frame-pointer' '-v' '-o' 'CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_31529.dir\\'
+         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/as.exe -v -o CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.obj C:\\Users\\NDark\\AppData\\Local\\Temp\\cc5rTx3M.s
         GNU assembler version 2.47 (x86_64-w64-mingw32) using BFD version (Binutils for MinGW-W64 x86_64, built by Brecht Sanders, r4) 2.47.20260726
         COMPILER_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/
         LIBRARY_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_7f214.dir\\CMakeCXXCompilerABI.cpp.'
-        Linking CXX executable cmTC_7f214.exe
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_7f214.dir\\link.txt --verbose=1
+        COLLECT_GCC_OPTIONS='-fsanitize=address' '-fno-omit-frame-pointer' '-v' '-o' 'CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_31529.dir\\CMakeCXXCompilerABI.cpp.'
+        Linking CXX executable cmTC_31529.exe
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_31529.dir\\link.txt --verbose=1
         Using built-in specs.
         COLLECT_GCC=E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe
         COLLECT_LTO_WRAPPER=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe
@@ -3111,19 +3111,19 @@ events:
         gcc version 16.1.0 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) 
         COMPILER_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/
         LIBRARY_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'cmTC_7f214.exe' '-foffload-options=-l_GCC_stdc++' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_7f214.'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/collect2.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\cc03d1PS.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_7f214.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_7f214.dir/objects.a --no-whole-archive --out-implib libcmTC_7f214.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
+        COLLECT_GCC_OPTIONS='-fsanitize=address' '-fno-omit-frame-pointer' '-fsanitize=address' '-v' '-o' 'cmTC_31529.exe' '-foffload-options=-l_GCC_stdc++' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_31529.'
+         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/collect2.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\cctszFag.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_31529.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_31529.dir/objects.a --no-whole-archive --out-implib libcmTC_31529.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
         collect2 version 16.1.0
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\cc03d1PS.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_7f214.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_7f214.dir/objects.a --no-whole-archive --out-implib libcmTC_7f214.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
+        E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\cctszFag.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_31529.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_31529.dir/objects.a --no-whole-archive --out-implib libcmTC_31529.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
         GNU ld (Binutils for MinGW-W64 x86_64, built by Brecht Sanders, r4) 2.47.20260726
         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lasan: No such file or directory
         collect2.exe: error: ld returned 1 exit status
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_7f214.dir/objects.a
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_7f214.dir/objects.a @CMakeFiles\\cmTC_7f214.dir\\objects1.rsp
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -g   -v -Wl,-v -Wl,--whole-archive CMakeFiles\\cmTC_7f214.dir/objects.a -Wl,--no-whole-archive -o cmTC_7f214.exe -Wl,--out-implib,libcmTC_7f214.dll.a -Wl,--major-image-version,0,--minor-image-version,0
-        mingw32-make[1]: *** [CMakeFiles\\cmTC_7f214.dir\\build.make:102: cmTC_7f214.exe] Error 1
-        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-jtp6zb'
-        mingw32-make: *** [Makefile:133: cmTC_7f214/fast] Error 2
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_31529.dir/objects.a
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_31529.dir/objects.a @CMakeFiles\\cmTC_31529.dir\\objects1.rsp
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -fno-omit-frame-pointer  -fsanitize=address -v -Wl,-v -Wl,--whole-archive CMakeFiles\\cmTC_31529.dir/objects.a -Wl,--no-whole-archive -o cmTC_31529.exe -Wl,--out-implib,libcmTC_31529.dll.a -Wl,--major-image-version,0,--minor-image-version,0
+        mingw32-make[1]: *** [CMakeFiles\\cmTC_31529.dir\\build.make:102: cmTC_31529.exe] Error 1
+        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-ng4jyq'
+        mingw32-make: *** [Makefile:133: cmTC_31529/fast] Error 2
         
       exitCode: 2
   -
@@ -3134,363 +3134,35 @@ events:
     checks:
       - "Check for working CXX compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe"
     directories:
-      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fgkj4b"
-      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fgkj4b"
+      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-uy36mm"
+      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-uy36mm"
     cmakeVariables:
-      CMAKE_CXX_FLAGS: "-fsanitize=address -g"
+      CMAKE_CXX_FLAGS: "-fsanitize=address -fno-omit-frame-pointer"
       CMAKE_CXX_FLAGS_DEBUG: "-g"
       CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
       CMAKE_CXX_STDLIB_MODULES_JSON: ""
-      CMAKE_EXE_LINKER_FLAGS: ""
+      CMAKE_EXE_LINKER_FLAGS: "-fsanitize=address"
     buildResult:
       variable: "CMAKE_CXX_COMPILER_WORKS"
       cached: false
       stdout: |
-        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fgkj4b'
+        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-uy36mm'
         
-        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_074e8/fast
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_074e8.dir\\build.make CMakeFiles/cmTC_074e8.dir/build
-        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fgkj4b'
-        Building CXX object CMakeFiles/cmTC_074e8.dir/testCXXCompiler.cxx.obj
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -g  -o CMakeFiles\\cmTC_074e8.dir\\testCXXCompiler.cxx.obj -c E:\\PYTHON\\MC\\cpp\\build-asan\\CMakeFiles\\CMakeScratch\\TryCompile-fgkj4b\\testCXXCompiler.cxx
-        Linking CXX executable cmTC_074e8.exe
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_074e8.dir\\link.txt --verbose=1
+        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_d182c/fast
+        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_d182c.dir\\build.make CMakeFiles/cmTC_d182c.dir/build
+        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-uy36mm'
+        Building CXX object CMakeFiles/cmTC_d182c.dir/testCXXCompiler.cxx.obj
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -fno-omit-frame-pointer  -o CMakeFiles\\cmTC_d182c.dir\\testCXXCompiler.cxx.obj -c E:\\PYTHON\\MC\\cpp\\build-asan\\CMakeFiles\\CMakeScratch\\TryCompile-uy36mm\\testCXXCompiler.cxx
+        Linking CXX executable cmTC_d182c.exe
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_d182c.dir\\link.txt --verbose=1
         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lasan: No such file or directory
         collect2.exe: error: ld returned 1 exit status
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_074e8.dir/objects.a
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_074e8.dir/objects.a @CMakeFiles\\cmTC_074e8.dir\\objects1.rsp
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -g  -Wl,--whole-archive CMakeFiles\\cmTC_074e8.dir/objects.a -Wl,--no-whole-archive -o cmTC_074e8.exe -Wl,--out-implib,libcmTC_074e8.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_074e8.dir\\linkLibs.rsp
-        mingw32-make[1]: *** [CMakeFiles\\cmTC_074e8.dir\\build.make:103: cmTC_074e8.exe] Error 1
-        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fgkj4b'
-        mingw32-make: *** [Makefile:133: cmTC_074e8/fast] Error 2
-        
-      exitCode: 2
-...
-
----
-events:
-  -
-    kind: "find-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:501 (find_file)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:538 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
-      - "CMakeLists.txt:2 (project)"
-    mode: "file"
-    variable: "src_in"
-    description: "Path to a file."
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "CMakeCXXCompilerId.cpp.in"
-    candidate_directories:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/"
-    found: "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeCXXCompilerId.cpp.in"
-    search_context:
-      ENV{PATH}:
-        - "E:\\python\\MC\\tools\\mingw\\mingw64\\bin"
-        - "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe"
-        - "D:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.2\\bin\\x64"
-        - "D:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.2\\bin"
-        - "D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\"
-        - "C:\\WINDOWS\\system32"
-        - "C:\\WINDOWS"
-        - "C:\\WINDOWS\\System32\\Wbem"
-        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
-        - "C:\\WINDOWS\\System32\\OpenSSH\\"
-        - "C:\\Program Files\\dotnet\\"
-        - "D:\\Program Files (x86)\\NetSarang\\Xshell 8\\"
-        - "C:\\ProgramData\\chocolatey\\bin"
-        - "D:\\Program Files (x86)\\NetSarang\\Xftp 8\\"
-        - "C:\\Program Files\\Calibre2\\"
-        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA app\\NvDLISR"
-        - "D:\\Program Files\\Go\\bin"
-        - "D:\\Program Files\\Java\\jdk-24.0.1\\bin"
-        - "C:\\Users\\NDark\\.cherrystudio\\bin"
-        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
-        - "C:\\Program Files\\Git\\cmd"
-        - "D:\\Program Files\\nodejs\\node_modules\\npm"
-        - "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0\\"
-        - "D:\\Program Files\\nodejs\\"
-        - "D:\\Program Files\\"
-        - "D:\\Program Files (x86)\\"
-        - "D:\\npm_packages\\"
-        - "D:\\npm_packages\\node_modules\\.bin"
-        - "D:\\Program Files\\ffmpeg\\bin"
-        - "C:\\Program Files\\GitHub CLI\\"
-        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
-        - "D:\\Program Files\\CMake\\bin"
-        - "C:\\Users\\NDark\\AppData\\Local\\hermes\\bin"
-        - "C:\\Users\\NDark\\.local\\bin"
-        - "D:\\Program Files\\Python\\Python312\\Scripts\\"
-        - "D:\\Program Files\\Python\\Python312\\"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WindowsApps"
-        - "D:\\Program Files\\Microsoft VS Code\\bin"
-        - "C:\\Users\\NDark\\.dotnet\\tools"
-        - "C:\\Users\\NDark\\AppData\\Local\\Programs\\Ollama"
-        - "C:\\Users\\NDark\\go\\bin"
-        - "D:\\gradle\\gradle-8.13\\bin"
-        - "C:\\Users\\NDark\\.lmstudio\\bin"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WindowsApps"
-        - "C:\\Users\\NDark\\AppData\\Roaming\\npm"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WinGet\\Packages\\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\\ripgrep-15.2.0-x86_64-pc-windows-msvc"
-      CMAKE_INSTALL_PREFIX: "C:/Program Files (x86)/core_swap"
-  -
-    kind: "message-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
-      - "CMakeLists.txt:2 (project)"
-    message: |
-      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
-      Compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe 
-      Build flags: -fsanitize=address;-g
-      Id flags:  
-      
-      The output was:
-      1
-      E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lasan: No such file or directory
-      collect2.exe: error: ld returned 1 exit status
-      
-      
-  -
-    kind: "find-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:501 (find_file)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:538 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
-      - "CMakeLists.txt:2 (project)"
-    mode: "file"
-    variable: "src_in"
-    description: "Path to a file."
-    settings:
-      SearchFramework: "NEVER"
-      SearchAppBundle: "NEVER"
-      CMAKE_FIND_USE_CMAKE_PATH: true
-      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
-      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
-      CMAKE_FIND_USE_INSTALL_PREFIX: true
-    names:
-      - "CMakeCXXCompilerId.cpp.in"
-    candidate_directories:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/"
-    found: "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeCXXCompilerId.cpp.in"
-    search_context:
-      ENV{PATH}:
-        - "E:\\python\\MC\\tools\\mingw\\mingw64\\bin"
-        - "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.4.0_x64__8wekyb3d8bbwe"
-        - "D:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.2\\bin\\x64"
-        - "D:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v13.2\\bin"
-        - "D:\\Program Files (x86)\\VMware\\VMware Workstation\\bin\\"
-        - "C:\\WINDOWS\\system32"
-        - "C:\\WINDOWS"
-        - "C:\\WINDOWS\\System32\\Wbem"
-        - "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\"
-        - "C:\\WINDOWS\\System32\\OpenSSH\\"
-        - "C:\\Program Files\\dotnet\\"
-        - "D:\\Program Files (x86)\\NetSarang\\Xshell 8\\"
-        - "C:\\ProgramData\\chocolatey\\bin"
-        - "D:\\Program Files (x86)\\NetSarang\\Xftp 8\\"
-        - "C:\\Program Files\\Calibre2\\"
-        - "C:\\Program Files\\NVIDIA Corporation\\NVIDIA app\\NvDLISR"
-        - "D:\\Program Files\\Go\\bin"
-        - "D:\\Program Files\\Java\\jdk-24.0.1\\bin"
-        - "C:\\Users\\NDark\\.cherrystudio\\bin"
-        - "C:\\Program Files (x86)\\NVIDIA Corporation\\PhysX\\Common"
-        - "C:\\Program Files\\Git\\cmd"
-        - "D:\\Program Files\\nodejs\\node_modules\\npm"
-        - "C:\\Program Files\\NVIDIA Corporation\\Nsight Compute 2026.1.0\\"
-        - "D:\\Program Files\\nodejs\\"
-        - "D:\\Program Files\\"
-        - "D:\\Program Files (x86)\\"
-        - "D:\\npm_packages\\"
-        - "D:\\npm_packages\\node_modules\\.bin"
-        - "D:\\Program Files\\ffmpeg\\bin"
-        - "C:\\Program Files\\GitHub CLI\\"
-        - "C:\\Program Files (x86)\\Windows Kits\\10\\Windows Performance Toolkit\\"
-        - "D:\\Program Files\\CMake\\bin"
-        - "C:\\Users\\NDark\\AppData\\Local\\hermes\\bin"
-        - "C:\\Users\\NDark\\.local\\bin"
-        - "D:\\Program Files\\Python\\Python312\\Scripts\\"
-        - "D:\\Program Files\\Python\\Python312\\"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WindowsApps"
-        - "D:\\Program Files\\Microsoft VS Code\\bin"
-        - "C:\\Users\\NDark\\.dotnet\\tools"
-        - "C:\\Users\\NDark\\AppData\\Local\\Programs\\Ollama"
-        - "C:\\Users\\NDark\\go\\bin"
-        - "D:\\gradle\\gradle-8.13\\bin"
-        - "C:\\Users\\NDark\\.lmstudio\\bin"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WindowsApps"
-        - "C:\\Users\\NDark\\AppData\\Roaming\\npm"
-        - "C:\\Users\\NDark\\AppData\\Local\\Microsoft\\WinGet\\Packages\\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\\ripgrep-15.2.0-x86_64-pc-windows-msvc"
-      CMAKE_INSTALL_PREFIX: "C:/Program Files (x86)/core_swap"
-  -
-    kind: "message-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
-      - "CMakeLists.txt:2 (project)"
-    message: |
-      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
-      Compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe 
-      Build flags: -fsanitize=address;-g
-      Id flags: -c 
-      
-      The output was:
-      0
-      
-      
-      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
-      
-      The CXX compiler identification is GNU, found in:
-        E:/PYTHON/MC/cpp/build-asan/CMakeFiles/4.4.1/CompilerIdCXX/CMakeCXXCompilerId.o
-      
-  -
-    kind: "try_compile-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeDetermineCompilerABI.cmake:123 (try_compile)"
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
-      - "CMakeLists.txt:2 (project)"
-    checks:
-      - "Detecting CXX compiler ABI info"
-    directories:
-      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fs6ijh"
-      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fs6ijh"
-    cmakeVariables:
-      CMAKE_CXX_FLAGS: "-fsanitize=address -g"
-      CMAKE_CXX_FLAGS_DEBUG: "-g"
-      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
-      CMAKE_CXX_STDLIB_MODULES_JSON: ""
-      CMAKE_EXE_LINKER_FLAGS: ""
-    buildResult:
-      variable: "CMAKE_CXX_ABI_COMPILED"
-      cached: false
-      stdout: |
-        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fs6ijh'
-        
-        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_14eda/fast
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_14eda.dir\\build.make CMakeFiles/cmTC_14eda.dir/build
-        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fs6ijh'
-        Building CXX object CMakeFiles/cmTC_14eda.dir/CMakeCXXCompilerABI.cpp.obj
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -g    -v -o CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.obj -c E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp
-        Using built-in specs.
-        COLLECT_GCC=E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe
-        OFFLOAD_TARGET_NAMES=nvptx-none
-        Target: x86_64-w64-mingw32
-        Configured with: ../configure --prefix=/c/Prog/winlibs_staging_msvcrt/home64/inst_gcc-16.1.0/share/gcc --build=x86_64-w64-mingw32 --host=x86_64-w64-mingw32 --enable-offload-targets=nvptx-none --with-pkgversion='MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4' --with-tune=generic --enable-checking=release --enable-threads=posix --disable-sjlj-exceptions --disable-libunwind-exceptions --disable-serial-configure --disable-bootstrap --enable-host-shared --enable-plugin --disable-default-ssp --disable-rpath --disable-libstdcxx-debug --disable-version-specific-runtime-libs --disable-symvers --enable-languages=c,c++,fortran,lto,objc,obj-c++ --disable-gold --disable-nls --disable-stage1-checking --disable-win32-registry --disable-multilib --enable-ld --enable-libquadmath --enable-libada --enable-libssp --enable-libstdcxx --enable-lto --enable-fully-dynamic-string --enable-libgomp --enable-graphite --enable-mingw-wildcard --enable-libstdcxx-time --enable-libstdcxx-pch --with-mpc=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-mpfr=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-gmp=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-isl=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --disable-libstdcxx-backtrace --enable-install-libiberty --enable-__cxa_atexit --without-included-gettext --with-diagnostics-color=auto --enable-clocale=generic --enable-libgdiagnostics --with-libiconv --with-system-zlib --with-build-sysroot=/c/Prog/winlibs_staging_msvcrt/home64/gcc-16.1.0/build_mingw/mingw-w64 CFLAGS='-I/c/Prog/winlibs_staging_msvcrt/custombuilt64/include/libdl-win32   -march=nocona -msahf -mtune=generic -O2 -Wno-error=format' CXXFLAGS='-Wno-int-conversion  -march=nocona -msahf -mtune=generic -O2' LDFLAGS='-pthread -Wl,--no-insert-timestamp -Wl,--dynamicbase -Wl,--high-entropy-va -Wl,--nxcompat -Wl,--tsaware' LD=/c/Prog/winlibs_staging_msvcrt/custombuilt64/share/binutils/bin/ld.exe
-        Thread model: posix
-        Supported LTO compression algorithms: zlib zstd
-        gcc version 16.1.0 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) 
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_14eda.dir\\'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/cc1plus.exe -quiet -v -iprefix E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/ -D_REENTRANT E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\share\\cmake-4.4\\Modules\\CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles\\cmTC_14eda.dir\\ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -g -version -fsanitize=address -o C:\\Users\\NDark\\AppData\\Local\\Temp\\ccCA9aAF.s
-        GNU C++20 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) version 16.1.0 (x86_64-w64-mingw32)
-        	compiled by GNU C version 16.1.0, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.4.1, isl version isl-0.28-GMP
-        
-        GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0"
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0/x86_64-w64-mingw32"
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0/backward"
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/include"
-        ignoring nonexistent directory "C:/Prog/winlibs_staging_msvcrt/home64/inst_gcc-16.1.0/share/gcc/include"
-        ignoring nonexistent directory "/c/Prog/winlibs_staging_msvcrt/home64/inst_gcc-16.1.0/share/gcc/include"
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/include-fixed"
-        ignoring duplicate directory "E:/PYTHON/MC/tools/mingw/mingw64/lib/gcc/../../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/include"
-        ignoring nonexistent directory "/mingw/include"
-        #include "..." search starts here:
-        #include <...> search starts here:
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0/x86_64-w64-mingw32
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include/c++/16.1.0/backward
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/include
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../include
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/include-fixed
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/include
-        End of search list.
-        Compiler executable checksum: 4f4866882966e468ea12bd3de4ffe7bb
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_14eda.dir\\'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/as.exe -v --gdwarf-5 -o CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.obj C:\\Users\\NDark\\AppData\\Local\\Temp\\ccCA9aAF.s
-        GNU assembler version 2.47 (x86_64-w64-mingw32) using BFD version (Binutils for MinGW-W64 x86_64, built by Brecht Sanders, r4) 2.47.20260726
-        COMPILER_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/
-        LIBRARY_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.obj' '-c' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles\\cmTC_14eda.dir\\CMakeCXXCompilerABI.cpp.'
-        Linking CXX executable cmTC_14eda.exe
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_14eda.dir\\link.txt --verbose=1
-        Using built-in specs.
-        COLLECT_GCC=E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe
-        COLLECT_LTO_WRAPPER=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe
-        OFFLOAD_TARGET_NAMES=nvptx-none
-        Target: x86_64-w64-mingw32
-        Configured with: ../configure --prefix=/c/Prog/winlibs_staging_msvcrt/home64/inst_gcc-16.1.0/share/gcc --build=x86_64-w64-mingw32 --host=x86_64-w64-mingw32 --enable-offload-targets=nvptx-none --with-pkgversion='MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4' --with-tune=generic --enable-checking=release --enable-threads=posix --disable-sjlj-exceptions --disable-libunwind-exceptions --disable-serial-configure --disable-bootstrap --enable-host-shared --enable-plugin --disable-default-ssp --disable-rpath --disable-libstdcxx-debug --disable-version-specific-runtime-libs --disable-symvers --enable-languages=c,c++,fortran,lto,objc,obj-c++ --disable-gold --disable-nls --disable-stage1-checking --disable-win32-registry --disable-multilib --enable-ld --enable-libquadmath --enable-libada --enable-libssp --enable-libstdcxx --enable-lto --enable-fully-dynamic-string --enable-libgomp --enable-graphite --enable-mingw-wildcard --enable-libstdcxx-time --enable-libstdcxx-pch --with-mpc=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-mpfr=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-gmp=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --with-isl=/c/Prog/winlibs_staging_msvcrt/custombuilt64 --disable-libstdcxx-backtrace --enable-install-libiberty --enable-__cxa_atexit --without-included-gettext --with-diagnostics-color=auto --enable-clocale=generic --enable-libgdiagnostics --with-libiconv --with-system-zlib --with-build-sysroot=/c/Prog/winlibs_staging_msvcrt/home64/gcc-16.1.0/build_mingw/mingw-w64 CFLAGS='-I/c/Prog/winlibs_staging_msvcrt/custombuilt64/include/libdl-win32   -march=nocona -msahf -mtune=generic -O2 -Wno-error=format' CXXFLAGS='-Wno-int-conversion  -march=nocona -msahf -mtune=generic -O2' LDFLAGS='-pthread -Wl,--no-insert-timestamp -Wl,--dynamicbase -Wl,--high-entropy-va -Wl,--nxcompat -Wl,--tsaware' LD=/c/Prog/winlibs_staging_msvcrt/custombuilt64/share/binutils/bin/ld.exe
-        Thread model: posix
-        Supported LTO compression algorithms: zlib zstd
-        gcc version 16.1.0 (MinGW-W64 x86_64-msvcrt-posix-seh, built by Brecht Sanders, r4) 
-        COMPILER_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/
-        LIBRARY_PATH=E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/;E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../
-        COLLECT_GCC_OPTIONS='-fsanitize=address' '-g' '-v' '-o' 'cmTC_14eda.exe' '-foffload-options=-l_GCC_stdc++' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_14eda.'
-         E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/collect2.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\ccgzCgta.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_14eda.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_14eda.dir/objects.a --no-whole-archive --out-implib libcmTC_14eda.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
-        collect2 version 16.1.0
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe -plugin E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/liblto_plugin.dll -plugin-opt=E:/PYTHON/MC/tools/mingw/mingw64/bin/../libexec/gcc/x86_64-w64-mingw32/16.1.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\\Users\\NDark\\AppData\\Local\\Temp\\ccgzCgta.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-lkernel32 -m i386pep -Bdynamic -o cmTC_14eda.exe E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/crt2.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtbegin.o -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0 -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib -LE:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../.. -v --whole-archive CMakeFiles\\cmTC_14eda.dir/objects.a --no-whole-archive --out-implib libcmTC_14eda.dll.a --major-image-version 0 --minor-image-version 0 -lstdc++ -lasan -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 -lpthread -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc_s -lgcc -lmingwex -lmsvcrt -lkernel32 E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/lib/../lib/default-manifest.o E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/crtend.o
-        GNU ld (Binutils for MinGW-W64 x86_64, built by Brecht Sanders, r4) 2.47.20260726
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lasan: No such file or directory
-        collect2.exe: error: ld returned 1 exit status
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_14eda.dir/objects.a
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_14eda.dir/objects.a @CMakeFiles\\cmTC_14eda.dir\\objects1.rsp
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -g   -v -Wl,-v -Wl,--whole-archive CMakeFiles\\cmTC_14eda.dir/objects.a -Wl,--no-whole-archive -o cmTC_14eda.exe -Wl,--out-implib,libcmTC_14eda.dll.a -Wl,--major-image-version,0,--minor-image-version,0
-        mingw32-make[1]: *** [CMakeFiles\\cmTC_14eda.dir\\build.make:102: cmTC_14eda.exe] Error 1
-        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-fs6ijh'
-        mingw32-make: *** [Makefile:133: cmTC_14eda/fast] Error 2
-        
-      exitCode: 2
-  -
-    kind: "try_compile-v1"
-    backtrace:
-      - "E:/PYTHON/MC/tools/mingw/mingw64/share/cmake-4.4/Modules/CMakeTestCXXCompiler.cmake:56 (try_compile)"
-      - "CMakeLists.txt:2 (project)"
-    checks:
-      - "Check for working CXX compiler: E:/PYTHON/MC/tools/mingw/mingw64/bin/c++.exe"
-    directories:
-      source: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-9325wx"
-      binary: "E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-9325wx"
-    cmakeVariables:
-      CMAKE_CXX_FLAGS: "-fsanitize=address -g"
-      CMAKE_CXX_FLAGS_DEBUG: "-g"
-      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
-      CMAKE_CXX_STDLIB_MODULES_JSON: ""
-      CMAKE_EXE_LINKER_FLAGS: ""
-    buildResult:
-      variable: "CMAKE_CXX_COMPILER_WORKS"
-      cached: false
-      stdout: |
-        Change Dir: 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-9325wx'
-        
-        Run Build Command(s): E:/PYTHON/MC/tools/mingw/mingw64/bin/cmake.exe -E env VERBOSE=1 E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe -f Makefile cmTC_af089/fast
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/mingw32-make.exe  -f CMakeFiles\\cmTC_af089.dir\\build.make CMakeFiles/cmTC_af089.dir/build
-        mingw32-make[1]: Entering directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-9325wx'
-        Building CXX object CMakeFiles/cmTC_af089.dir/testCXXCompiler.cxx.obj
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe   -fsanitize=address -g  -o CMakeFiles\\cmTC_af089.dir\\testCXXCompiler.cxx.obj -c E:\\PYTHON\\MC\\cpp\\build-asan\\CMakeFiles\\CMakeScratch\\TryCompile-9325wx\\testCXXCompiler.cxx
-        Linking CXX executable cmTC_af089.exe
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E cmake_link_script CMakeFiles\\cmTC_af089.dir\\link.txt --verbose=1
-        E:/PYTHON/MC/tools/mingw/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot find -lasan: No such file or directory
-        collect2.exe: error: ld returned 1 exit status
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_af089.dir/objects.a
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_af089.dir/objects.a @CMakeFiles\\cmTC_af089.dir\\objects1.rsp
-        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -g  -Wl,--whole-archive CMakeFiles\\cmTC_af089.dir/objects.a -Wl,--no-whole-archive -o cmTC_af089.exe -Wl,--out-implib,libcmTC_af089.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_af089.dir\\linkLibs.rsp
-        mingw32-make[1]: *** [CMakeFiles\\cmTC_af089.dir\\build.make:103: cmTC_af089.exe] Error 1
-        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-9325wx'
-        mingw32-make: *** [Makefile:133: cmTC_af089/fast] Error 2
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\cmake.exe -E rm -f CMakeFiles\\cmTC_d182c.dir/objects.a
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\ar.exe qc CMakeFiles\\cmTC_d182c.dir/objects.a @CMakeFiles\\cmTC_d182c.dir\\objects1.rsp
+        E:\\PYTHON\\MC\\tools\\mingw\\mingw64\\bin\\c++.exe -fsanitize=address -fno-omit-frame-pointer  -fsanitize=address  -Wl,--whole-archive CMakeFiles\\cmTC_d182c.dir/objects.a -Wl,--no-whole-archive -o cmTC_d182c.exe -Wl,--out-implib,libcmTC_d182c.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\\cmTC_d182c.dir\\linkLibs.rsp
+        mingw32-make[1]: *** [CMakeFiles\\cmTC_d182c.dir\\build.make:103: cmTC_d182c.exe] Error 1
+        mingw32-make[1]: Leaving directory 'E:/PYTHON/MC/cpp/build-asan/CMakeFiles/CMakeScratch/TryCompile-uy36mm'
+        mingw32-make: *** [Makefile:133: cmTC_d182c/fast] Error 2
         
       exitCode: 2
 ...

@@ -34,6 +34,11 @@ int wg_density_points_per_chunk(void* handle);
 // 返回写入的方块数（16*16*384），失败返回 0
 int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out);
 
+// 多 chunk 并行生成（结果与串行逐位一致）：count 个 (chunkX, chunkZ, out) 三元组。
+// threads<=0 时用 hardware_concurrency；返回 count。
+int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
+                         int32_t* const* outs, int count, int threads);
+
 #ifdef __cplusplus
 }
 #endif

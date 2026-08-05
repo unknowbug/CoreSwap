@@ -1,5 +1,5 @@
-worldgen/CMakeFiles/block_probe.dir/src/block_probe.cpp.obj: \
- E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\block_probe.cpp \
+worldgen/CMakeFiles/got_export.dir/src/got_export.cpp.obj: \
+ E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\got_export.cpp \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/cstdio \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/x86_64-w64-mingw32/bits/c++config.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/x86_64-w64-mingw32/bits/os_defines.h \
@@ -25,70 +25,10 @@ worldgen/CMakeFiles/block_probe.dir/src/block_probe.cpp.obj: \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/version.h \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/string.h \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/sec_api/string_s.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/chrono \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/chrono.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ratio \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/type_traits \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/limits \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ctime \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/time.h \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/sys/timeb.h \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/sec_api/sys/timeb_s.h \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/_timeval.h \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/pthread_time.h \
- E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/pthread_compat.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/parse_numbers.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/numeric_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/cpp_type_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/type_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/map \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/requires_hosted.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_tree.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_algobase.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_pair.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/move.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/utility.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator_base_types.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator_base_funcs.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/concept_check.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/debug/assertions.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/ptr_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/debug/debug.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/predefined_ops.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_function.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/backward/binders.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bit \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/concepts \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/allocator.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/x86_64-w64-mingw32/bits/c++allocator.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_allocator.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/new \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/exception.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_except.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/exception_defines.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_throw.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/memoryfwd.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/alloc_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/alloc_traits.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_construct.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/aligned_buffer.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/node_handle.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_map.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stdexcept_throw.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stdexcept_throwfwd.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/initializer_list \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/tuple \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/uses_allocator.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/invoke.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_multimap.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/range_access.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/erase_if.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/memory_resource.h \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/cstddef \
- E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/uses_allocator_args.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/string \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/requires_hosted.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stringfwd.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/memoryfwd.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/char_traits.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/postypes.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/cwchar \
@@ -99,6 +39,17 @@ worldgen/CMakeFiles/block_probe.dir/src/block_probe.cpp.obj: \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/corecrt_wctype.h \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/_mingw_stat64.h \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/sec_api/wchar_s.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/type_traits \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/allocator.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/x86_64-w64-mingw32/bits/c++allocator.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_allocator.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/new \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/exception.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_except.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/exception_defines.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/new_throw.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/move.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/cpp_type_traits.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/localefwd.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/x86_64-w64-mingw32/bits/c++locale.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/clocale \
@@ -108,7 +59,32 @@ worldgen/CMakeFiles/block_probe.dir/src/block_probe.cpp.obj: \
  E:/PYTHON/MC/tools/mingw/mingw64/x86_64-w64-mingw32/include/ctype.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/ostream_insert.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/cxxabi_forced.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator_base_funcs.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/concept_check.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/debug/assertions.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator_base_types.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_iterator.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/type_traits.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/ptr_traits.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_function.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/backward/binders.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/numeric_traits.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stdexcept_throw.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stdexcept_throwfwd.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_algobase.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_pair.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/utility.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/debug/debug.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/predefined_ops.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bit \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/concepts \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/range_access.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/initializer_list \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/erase_if.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/basic_string.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/ext/alloc_traits.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/alloc_traits.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_construct.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/string_view \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/functional_hash.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/hash_bytes.h \
@@ -128,6 +104,12 @@ worldgen/CMakeFiles/block_probe.dir/src/block_probe.cpp.obj: \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/cerrno \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/charconv.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/basic_string.tcc \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/memory_resource.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/cstddef \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/uses_allocator.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/uses_allocator_args.h \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/tuple \
+ E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/invoke.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/vector \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_uninitialized.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_vector.h \

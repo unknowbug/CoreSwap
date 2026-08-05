@@ -256,4 +256,5 @@ worldgen/CMakeFiles/worldgen_core.dir/src/worldgen_api.cpp.obj: \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/set \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_set.h \
  E:/PYTHON/MC/tools/mingw/mingw64/include/c++/16.1.0/bits/stl_multiset.h \
- E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\aquifer.h
+ E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\aquifer.h \
+ E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\ore_vein.h
