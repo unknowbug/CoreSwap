@@ -31,6 +31,37 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 
 📄 技术知识库：[`docs/`](docs/README.md)（8 篇：架构 / 随机 / 密度 / 含水层 / 矿脉 / 表面 / 流水线 / 版本迁移）
 
+## 安装教程
+
+### 前置要求
+
+- **Minecraft 1.20.1**（Java 版）
+- **Fabric Loader 0.15.x**——还没装 Fabric 的话，用 [Fabric 安装器](https://fabricmc.net/use/)（选 MC 1.20.1，点 Install）
+- **Java 17**——Fabric Loader 0.15 要求 Java 17+
+
+### 安装步骤
+
+1. **下载** `coreswap-1.20.1-1.0.0.jar`（[Releases 页面](https://github.com/unknowbug/CoreSwap/releases)）
+2. **装 Fabric**（已装可跳过）：运行 Fabric 安装器，选择 **1.20.1**，安装。启动器里会出现 `fabric-loader-…` 版本
+3. **打开 mods 文件夹**：启动器里 Fabric 版本点 **Open Mods Folder**，或手动打开：
+   - Windows：`%appdata%\.minecraft\mods`
+   - macOS：`~/Library/Application Support/minecraft/mods`
+   - Linux：`~/.minecraft/mods`
+4. **把 `coreswap-1.20.1-1.0.0.jar` 拖进 `mods/`**——完成
+5. **（推荐）加装 Sodium + Iris**（[Modrinth](https://modrinth.com/) 下载 1.20.1 版：Sodium 0.5.x、Iris 1.7.x，同样拖进 `mods/`）——**Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载），互补不冲突**。想开光影再在 `选项 → 视频设置 → 光影包` 里选一个（如 BSL、Complementary）
+6. **启动 Fabric 版本**。验证是否生效（看 `logs/latest.log`）：
+   ```
+   [BenchMod] CoreSwap replace mode: C++ worldgen active
+   [Mixin] populateNoise intercepted chunk(...)
+   ```
+
+### 注意事项
+
+- **服务器**：Fabric 服务端也能用——同一个 jar 放进服务器的 `mods/` 文件夹即可
+- **1.17 及更早不计划支持**（世界生成架构差异过大）；1.18/1.19 视需求跟进
+- **FEATURES 层**（矿物/装饰）仍由原版生成——**NOISE+SURFACE 与 vanilla 逐位一致**
+- 看不到上面的日志：检查 jar 是否在 `mods/`、MC 是否 1.20.1、Fabric Loader 是否 0.15.x、Java 是否 17
+
 ## 版本管理
 
 仓库按 **Minecraft Java 版本号** 组织，每个版本独立目录：

@@ -30,6 +30,37 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 📄 Tech knowledge base: [`docs/`](docs/README.md) (8 articles, in Chinese — architecture / random / density / aquifer / ore veins / surface / pipeline / version migration)
 
+## Installation
+
+### Requirements
+
+- **Minecraft 1.20.1** (Java Edition)
+- **Fabric Loader 0.15.x** — if you don't have Fabric yet, install it with the [Fabric installer](https://fabricmc.net/use/) (select MC 1.20.1, click Install)
+- **Java 17** — Fabric Loader 0.15 requires Java 17+
+
+### Steps
+
+1. **Download** `coreswap-1.20.1-1.0.0.jar` from [Releases](https://github.com/unknowbug/CoreSwap/releases)
+2. **Install Fabric** (skip if already installed): run the Fabric installer, pick Minecraft **1.20.1**, Install. It creates a "fabric-loader-…" profile in the launcher
+3. **Open the mods folder**: in the Fabric launcher profile click **Open Mods Folder**, or navigate manually to:
+   - Windows: `%appdata%\.minecraft\mods`
+   - macOS: `~/Library/Application Support/minecraft/mods`
+   - Linux: `~/.minecraft/mods`
+4. **Drop `coreswap-1.20.1-1.0.0.jar` into `mods/`** — done
+5. **(Recommended) Add Sodium + Iris** (from [Modrinth](https://modrinth.com/)) — Sodium 0.5.x and Iris 1.7.x for 1.20.1, drop into `mods/` too. **Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — they complement each other, no conflict.** Add a shaderpack (e.g. BSL, Complementary) via `Options → Video Settings → Shader Packs` if you want shaders
+6. **Launch** the Fabric profile. Verify it's active in `logs/latest.log`:
+   ```
+   [BenchMod] CoreSwap replace mode: C++ worldgen active
+   [Mixin] populateNoise intercepted chunk(...)
+   ```
+
+### Notes
+
+- **Server**: works on dedicated Fabric servers too — put the same jar in the server's `mods/` folder
+- **Not** planned for 1.17 and earlier (worldgen architecture differs too much); 1.18/1.19 on demand
+- **FEATURES stage** (ores / decoration) is still vanilla — **NOISE+SURFACE** is bit-identical to vanilla
+- If you don't see the log lines above: check the jar is in `mods/`, MC is 1.20.1, Fabric Loader is 0.15.x, and Java is 17
+
 ## Versioning
 
 The repo is organized by **Minecraft Java version number**. Each version lives in its own directory:
