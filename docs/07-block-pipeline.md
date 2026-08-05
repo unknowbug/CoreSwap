@@ -34,22 +34,41 @@ fillOneChunk(cx, cz)（每 chunk）：
 | 初始串行 | ~1800ms | aquifer 无缓存 |
 | + aquifer 列缓存 | 1056ms | estimateSurfaceHeight ~2700 倍降幅 |
 | + 多线程并行（自适应线程） | **110ms** | ~9.6×；100% 保持 |
+| + 纯算法优化（无损）串行 | **450ms（28.1ms/chunk）** | 见下 |
+| + 纯算法优化（无损）并行 | **49.4ms（3.1ms/chunk）** | 110→49.4ms（-55%） |
 
-### 热点分布（优化前）
+### 纯算法优化链（全部无损、100% 保持，2026-08-06 第二批）
 
-- **density 采样 ~12ms/chunk（12%）**：base_3d_noise 逐块 24 次 Perlin。
-- **aquifer+oreVein 59-562ms/chunk（88%）**：根因是 `estimateSurfaceHeight` 无缓存
-  （每块 13 邻居 × 最多 49 次 initialDensity 采样 ≈ 3200 万次/chunk）。
+**方法**：WG_PROFILE 剖析（阶段计时 + 计数器）→ 数据定位冗余 → 逐项修复。
 
-### 优化手段（全部无损，结果逐位一致）
+1. **FlatCacheDF + Cache2DDF（最大结构性冗余！）**：Java ChunkNoiseSampler 对
+   `minecraft:flat_cache`/`minecraft:cache_2d` 有真正缓存（FlatCache 5×5 网格预计算、Cache2D 列缓存），
+   而 C++ 此前仅"语义委托"（每块重算）——**spline 采样 34900 → 6250 次/chunk**（大陆样条
+   continents/erosion/ridges/factor/jaggedness/offset 每块重算是 Java 官方算法里已被缓存的冗余）。
+   - FlatCache：per-instance thread_local 5×5 网格（Java: horizontalBiomeEnd+1=5，间距 4 块，y=0）；
+     **边界点（x=cx*16+16）命中本 chunk 网格 k=4，不重建**（否则嵌套采样递归重建相邻 chunk 网格）。
+   - Cache2D：per-instance thread_local 单列缓存（Java: lastSamplingColumnPos）。
+2. **aquifer blocks->id() 预取（隐藏最大单点收益）**：apply 每块 4-7 次 `blocks->id("air"/"water"/"lava")`
+   **std::map 字符串查找**（40-70 万次/chunk）——构造时预取三常量 → **aquifer 25ms→8.9ms（-64%）**。
+3. **aquifer 列缓存 std::map → flat 数组**：estimateSurfaceHeight 13 邻居查询每块 13 次 map 查找
+   → 32×32 数组（覆盖 ±48 格邻居范围）O(1)。
+4. **oreVein y 范围预检查**：y∈[-60,50] 外提前返回（Java 采样 veinToggle 后同样返回 -1，结果一致）。
+5. **surface 噪声列缓存**：NoiseThreshold（per-instance thread_local 单槽）/sampleRunDepth/getTerracottaBlock
+   ——buildSurface 逐列处理，同列 2D 噪声采样位置相同 → 每列 1 次。
 
-1. **aquifer 列缓存**：`estimateSurfaceHeight` per-chunk `map<列key, 高度>`，key = `((x>>2)<<2, (z>>2)<<2)`（Java surfaceHeightEstimateCache 同款）。
-2. **chunk 级多线程**：`wg_fill_blocks_multi`，std::thread 池 + 原子任务索引；`threads<=0` 自适应 `min(hw, count)`，clamp 不超过任务数。
-3. **线程安全**（多线程前提）：
-   - `InterpolatedDF` 缓存 → per-instance `thread_local`（O(1) ID 索引 vector，非 std::map）
-   - `overworldRule` 预构建到 wg_create（消除懒构建竞态）
-   - aquifer/SurfaceContext/oreVein 均 per-chunk 局部对象 ✅
-   - `split()`/`split(name)` const 纯函数 ✅；`nextSplitter()` 有状态 → 每线程独立派生
+**陷阱**：surface 噪声缓存放 SurfaceContext 的 std::map 反而变慢（每块字符串查找）；
+正确做法 = cond 实例的 thread_local 单槽（O(1)）+ 多线程安全。
+
+### 当前热点（串行 28.1ms/chunk，WG_PROFILE 数据）
+
+| 阶段 | 耗时 | 构成 |
+|---|---|---|
+| density | 8.5-11.7ms | base_3d_noise 122 次/chunk（插值网格角点）、spline 6250 次（FlatCache 构建）、98k 块树遍历 |
+| aquifer+oreVein | 6.5-8.9ms | 72% 块走 18 候选遍历（Java 同构，无法无损减少） |
+| sh4+surface | 9-10.7ms | 98k 块规则遍历（Java 同构）+ 每块 VerticalGradient 随机 |
+
+**结构上无法再无损压缩的**（Java 同构）：aquifer 18 候选遍历、surface 规则遍历、
+VerticalGradient 每块 split(x,y,z)（依赖 y）。
 
 ### ⚠️ 为什么不做「base_3d_noise 网格插值」优化
 
