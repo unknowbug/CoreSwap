@@ -60,7 +60,7 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 - **mixin**：NoiseChunkGeneratorMixin 拦截 `populateNoise`（HEAD，C++ 整块填充 + completedFuture）与 `buildSurface`（跳过）；`-Dcpp.replace=1` 启用
 - **验证闭环**：服务器启动 Done 无崩溃，spawn 区 region 落盘；ReadWorldProbe 读回对比——**NOISE+SURFACE 层与 vanilla 逐位一致**（FULL 差异仅 FEATURES 阶段矿物/熔岩湖，由原版 Java 继续处理，预期行为）
 - **坑**：mixin 注入目标是公共 `populateNoise(Executor, Blender, NoiseConfig, StructureAccessor, Chunk)`（返回 CompletableFuture）不是私有版；参照文件每 chunk 末尾 256 个 biome writeUTF 需跳过；DataOutputStream 是 big-endian
-- **下一步候选**：写入性能优化（98304 次 setBlockState 慢）、worldgenDir 打包进 mod（当前绝对路径）、FEATURES 阶段替换（矿物也 C++ 化）、玩家实跑测试
+- **下一步候选**：FEATURES 阶段替换（矿物也 C++ 化）、攒批并行（C++ 16 线程用于批量 chunk）、玩家实跑测试（runClient 已确认能启动到主菜单，进世界需手动）
 
 
 ### 技术知识库（docs/，2026-08-06 建立）
