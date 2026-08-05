@@ -367,7 +367,11 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
     if (count <= 0) return 0;
-    if (threads <= 0) threads = (int)std::thread::hardware_concurrency();
+    if (threads <= 0) {
+        // 默认自适应：min(CPU 逻辑线程数, 任务数)；探测失败兜底 1，避免过度订阅
+        threads = (int)std::thread::hardware_concurrency();
+        if (threads <= 0) threads = 1;
+    }
     if (threads > count) threads = count;
     std::vector<std::thread> pool;
     std::atomic<int> next{0};

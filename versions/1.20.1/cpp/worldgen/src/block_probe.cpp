@@ -24,12 +24,17 @@ static int64_t be64(int64_t v) {
 
 int main(int argc, char** argv) {
     if (argc < 4) {
-        std::fprintf(stderr, "usage: block_probe <seed> <worldgen dir> <vanilla.blocks>\n");
+        std::fprintf(stderr, "usage: block_probe <seed> <worldgen dir> <vanilla.blocks> [-threads N]\n"
+                             "  -threads N: 并行线程数；省略时按 min(CPU 线程数, chunk 数) 自适应\n");
         return 1;
     }
     int64_t seed = (int64_t)std::strtoull(argv[1], nullptr, 10);
     std::string wgDir = argv[2];
     std::string blocksPath = argv[3];
+    int threadsArg = 0;
+    for (int a = 4; a + 1 < argc; a++) {
+        if (std::string(argv[a]) == "-threads") threadsArg = std::atoi(argv[a + 1]);
+    }
     setvbuf(stdout, nullptr, _IONBF, 0); // 无缓冲，崩溃时保留输出定位
 
     void* h = wg_create(seed, wgDir.c_str());
@@ -78,16 +83,18 @@ int main(int argc, char** argv) {
     }
     std::fclose(f);
 
-    // 并行生成全部 chunk（线程数=硬件并发；结果与串行逐位一致）
+    // 并行生成全部 chunk（线程数：-threads N 或 0=自适应 min(CPU, chunk 数)；结果与串行逐位一致）
     std::vector<int32_t*> outs;
     for (auto& g : gotAll) outs.push_back(g.data());
-    int nthreads = (int)std::thread::hardware_concurrency();
     auto tp0 = std::chrono::steady_clock::now();
-    wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), nthreads);
+    wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), threadsArg);
     auto tp1 = std::chrono::steady_clock::now();
     double wall = std::chrono::duration<double, std::milli>(tp1 - tp0).count();
-    std::printf("parallel: %d chunks, %d threads, wall=%.1fms (%.2fms/chunk)\n",
-                (int)gotAll.size(), nthreads, wall, wall / gotAll.size());
+    int hwc = (int)std::thread::hardware_concurrency();
+    int used = threadsArg > 0 ? threadsArg : std::min(hwc > 0 ? hwc : 1, (int)gotAll.size());
+    if (used > (int)gotAll.size()) used = (int)gotAll.size(); // 库内同样 clamp：线程数不超过任务数
+    std::printf("parallel: %d chunks, %d threads (arg=%d hw=%d), wall=%.1fms (%.2fms/chunk)\n",
+                (int)gotAll.size(), used, threadsArg, hwc, wall, wall / gotAll.size());
 
     for (int c = 0; c < (int)gotAll.size(); c++) {
         const auto& vanilla = vanillaAll[c];
