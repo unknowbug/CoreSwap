@@ -27,6 +27,10 @@ public:
 
     // 返回矿脉方块 BlockId；不适用返回 -1
     int apply(int blockX, int blockY, int blockZ) {
+        if (wg_profEnabled) wg_profAquiferDeep.fetch_add(1, std::memory_order_relaxed);  // [PROF] oreVein 调用次数
+        // 无损预检查：y 范围外（copper[0,50] ∪ iron[-60,-8]）Java 采样 veinToggle 后同样返回 -1，
+        // 提前返回省去 veinToggle/veinRidged/veinGap 的插值采样（结果逐位一致）
+        if (blockY < -60 || blockY > 50) return -1;
         NoisePos pos;
         pos.x = blockX; pos.y = blockY; pos.z = blockZ;
         double d = veinToggle->sample(pos);

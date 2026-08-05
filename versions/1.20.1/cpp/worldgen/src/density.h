@@ -8,6 +8,14 @@
 #include <atomic>
 #include "noise.h"
 
+// 剖析计数（WG_PROFILE=1 启用；C++17 inline 变量：多 TU 单一实体）
+inline bool wg_profEnabled = false;
+inline std::atomic<int64_t> wg_profNoiseDF{0};
+inline std::atomic<int64_t> wg_profSpline{0};
+inline std::atomic<int64_t> wg_profAquiferDeep{0};
+inline std::atomic<int64_t> wg_profBiomeAt{0};
+inline std::atomic<int64_t> wg_profInterpGrid{0};
+
 namespace wg {
 
 // ===== NoisePos =====
@@ -303,6 +311,7 @@ public:
     }
 
     double sample(const NoisePos& pos) const override {
+        if (wg_profEnabled) wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);
         double d = pos.x * scaledXzScale;
         double e = pos.y * scaledYScale;
         double f = pos.z * scaledXzScale;
@@ -373,6 +382,7 @@ public:
         if (slot.key != key) {
             slot.key = key;
             buildGrid(chunkX, chunkZ, slot.grid);
+            if (wg_profEnabled) wg_profInterpGrid.fetch_add(1, std::memory_order_relaxed);
         }
         constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         int gx = pos.x - chunkX * 16;         // 0..15
@@ -468,6 +478,102 @@ public:
     double maxValue() const override { return wrapped->maxValue(); }
 };
 
+// ===== Cache2DDF（minecraft:cache_2d）：列缓存 =====
+// Java ChunkNoiseSampler.Cache2D：同一 (x>>4, z>>4) 列复用首次采样值（列首 pos）。
+// cache_2d 仅用于 2D 函数（不依赖 y）→ 列内任意 pos 采样值相同 → 完全无损。
+// 块循环 y→z→x 顺序下同列连续 384 次采样，命中率 100%（spline 每列只算一次）。
+class Cache2DDF : public DensityFunction {
+public:
+    DF arg;
+    explicit Cache2DDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
+
+    double sample(const NoisePos& pos) const override {
+        auto& slots = tlSlots();
+        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        Slot& slot = slots[cacheId];
+        int64_t key = ((int64_t)(uint32_t)(pos.x >> 4) << 32) ^ (uint32_t)(pos.z >> 4);
+        if (slot.key != key) {
+            slot.key = key;
+            slot.value = arg->sample(pos);
+        }
+        return slot.value;
+    }
+    double minValue() const override { return arg->minValue(); }
+    double maxValue() const override { return arg->maxValue(); }
+
+private:
+    struct Slot { int64_t key = INT64_MIN; double value = 0.0; };
+    int cacheId;
+    static std::atomic<int> nextId;
+    static std::vector<Slot>& tlSlots() {
+        static thread_local std::vector<Slot> slots;
+        return slots;
+    }
+};
+
+// ===== FlatCacheDF（minecraft:flat_cache）：chunk 级 5×5 网格缓存 =====
+// Java ChunkNoiseSampler.FlatCache：按 biome 坐标网格（horizontalBiomeEnd+1 = 5，间距 4 块）
+// 预计算 delegate.sample(blockX, 0, blockZ)（y=0），块级查表；网格外回退直接采样。
+// 用于 2D 大陆样条（continents/erosion/ridges/factor/jaggedness/offset）→ 完全无损。
+class FlatCacheDF : public DensityFunction {
+public:
+    DF arg;
+    explicit FlatCacheDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {}
+
+    double sample(const NoisePos& pos) const override {
+        auto& slots = tlSlots();
+        if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+        Slot& slot = slots[cacheId];
+        int64_t key = ((int64_t)(uint32_t)(pos.x >> 4) << 32) ^ (uint32_t)(pos.z >> 4);
+        if (slot.key != key) {
+            // Java 语义：FlatCache 实例绑定生成 chunk，网格覆盖 [cx*16, cx*16+16]；
+            // 边界点（x=cx*16+16，即下一 chunk 首列）命中现有网格 k=4，不重建（防嵌套递归）。
+            int kc = (pos.x >> 2) - slot.cx * 4;
+            int lc = (pos.z >> 2) - slot.cz * 4;
+            if (slot.key == INT64_MIN || kc < 0 || lc < 0 || kc >= GRID || lc >= GRID) {
+                slot.key = key;
+                slot.cx = pos.x >> 4;
+                slot.cz = pos.z >> 4;
+                buildGrid(slot.cx, slot.cz, slot.grid);
+            }
+        }
+        int k = (pos.x >> 2) - slot.cx * 4;  // 用网格的 chunk（Java: startBiomeX），非 pos 的 chunk
+        int l = (pos.z >> 2) - slot.cz * 4;
+        if (k >= 0 && l >= 0 && k < GRID && l < GRID) return slot.grid[(size_t)l * GRID + k];
+        return arg->sample(pos);
+    }
+    double minValue() const override { return arg->minValue(); }
+    double maxValue() const override { return arg->maxValue(); }
+
+private:
+    static constexpr int GRID = 5;  // horizontalBiomeEnd + 1 = 4 + 1
+    struct Slot {
+        int64_t key = INT64_MIN;
+        int cx = 0, cz = 0;
+        std::vector<double> grid;
+    };
+    int cacheId;
+    static std::atomic<int> nextId;
+    static std::vector<Slot>& tlSlots() {
+        static thread_local std::vector<Slot> slots;
+        return slots;
+    }
+
+    void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
+        if (wg_profEnabled) wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);  // [PROF] FlatCache 构建次数
+        grid.assign((size_t)GRID * GRID, 0.0);
+        NoisePos p;
+        p.y = 0;  // Java: UnblendedNoisePos(blockX, 0, blockZ)
+        for (int i = 0; i < GRID; i++) {
+            p.x = (chunkX * 4 + i) * 4;
+            for (int j = 0; j < GRID; j++) {
+                p.z = (chunkZ * 4 + j) * 4;
+                grid[(size_t)j * GRID + i] = arg->sample(p);
+            }
+        }
+    }
+};
+
 // ===== Spline（1.20.1 Hermite 插值）=====
 class SplineDF : public DensityFunction {
 public:
@@ -483,6 +589,7 @@ public:
     SplineDF() : isLeaf(true), fixedValue(0) {}
 
     double sample(const NoisePos& pos) const override {
+        if (wg_profEnabled) wg_profSpline.fetch_add(1, std::memory_order_relaxed);
         if (isLeaf) return fixedValue;
         double f = locationFunction->sample(pos);
         return apply(f, pos);
@@ -537,5 +644,7 @@ private:
 
 // InterpolatedDF：实例 id 分配（per-instance thread_local 缓存索引）
 std::atomic<int> InterpolatedDF::nextId{0};
+std::atomic<int> Cache2DDF::nextId{0};
+std::atomic<int> FlatCacheDF::nextId{0};
 
 } // namespace wg

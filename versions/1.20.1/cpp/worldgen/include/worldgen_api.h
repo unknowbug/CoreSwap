@@ -40,6 +40,9 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out);
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads);
 
+// 剖析统计输出（WG_PROFILE=1 时启用，运行结束后调用打印到 stderr；无 Profile 时为空操作）
+void wg_profile_dump(void);
+
 #ifdef __cplusplus
 }
 #endif

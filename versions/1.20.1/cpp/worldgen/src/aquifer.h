@@ -54,19 +54,28 @@ public:
         int m = sizeX * sizeY * sizeZ;
         blockPositions.assign(m, INT64_MAX);
         waterLevels.assign(m, FluidLevel());
+        // 列缓存 flat 数组（INT32_MIN = 未算）
+        surfaceCacheArr.assign((size_t)CACHE_DIM * CACHE_DIM, INT32_MIN);
+        cacheCx = floorDiv(chunkStartX, 16);
+        cacheCz = floorDiv(chunkStartZ, 16);
+        // 常用方块 id 预取（apply 每块多次 blocks->id() 字符串查找是 aquifer 阶段瓶颈）
+        airId = blocks->id("minecraft:air");
+        waterId = blocks->id("minecraft:water");
+        lavaId = blocks->id("minecraft:lava");
     }
 
     // apply：density > 0 → -1（石头/null）；否则流体决策
     // 返回 BlockId；-1 表示 null（保持默认方块）
     int apply(int blockX, int blockY, int blockZ, double density) {
         if (density > 0.0) return -1;
+        if (wg_profEnabled) wg_profAquiferDeep.fetch_add(1, std::memory_order_relaxed);
         // fluidLevelSampler 默认（主世界）：y < -54 lava；y < 63 water；否则 air
         int fluidBlock = -1;
         int fluidY = -1;
         // NoiseChunkGenerator.createFluidLevelSampler：y < min(-54, 63) → LAVA，否则 WATER（不返回 AIR）
-        if (blockY < -54) { fluidBlock = blocks->id("minecraft:lava"); fluidY = -54; }
-        else { fluidBlock = blocks->id("minecraft:water"); fluidY = 63; }
-        if (fluidBlock == blocks->id("minecraft:lava")) return fluidBlock;
+        if (blockY < -54) { fluidBlock = lavaId; fluidY = -54; }
+        else { fluidBlock = waterId; fluidY = 63; }
+        if (fluidBlock == lavaId) return fluidBlock;
 
         int l = floorDiv(blockX - 5, 16);
         int m = floorDiv(blockY + 1, 12);
@@ -92,11 +101,10 @@ public:
 
         FluidLevel fl2 = getWaterLevelAt(r);
         double d = maxDistance(o, p);
-        int airId = blocks->id("minecraft:air");
         int bs = fl2.getBlockState(blockY, airId);
         if (d <= 0.0) return bs;
-        if (bs == blocks->id("minecraft:water") &&
-            getFluidLevel(blockX, blockY - 1, blockZ).getBlockState(blockY - 1, airId) == blocks->id("minecraft:lava")) {
+        if (bs == waterId &&
+            getFluidLevel(blockX, blockY - 1, blockZ).getBlockState(blockY - 1, airId) == lavaId) {
             return bs;
         }
 
@@ -121,20 +129,25 @@ public:
 
     // estimateSurfaceHeight（ChunkNoiseSampler）：initialDensityWithoutJaggedness > 0.390625
     // per-chunk 列缓存（Java: surfaceHeightEstimateCache HashMap<ColumnPos, Integer>）
+    // 实现：flat 数组（原 std::map 红黑树查找是 aquifer 阶段瓶颈——每块 13 次邻居查询）
     int estimateSurfaceHeight(int blockX, int blockZ) {
         // Java: BiomeCoords.toBlock(BiomeCoords.fromBlock(blockX))——floor(blockX/4)*4 对齐
         blockX = (blockX >> 2) << 2;
         blockZ = (blockZ >> 2) << 2;
-        int64_t key = ((int64_t)(uint32_t)blockX << 32) ^ (uint32_t)blockZ;
-        auto it = surfaceCache.find(key);
-        if (it != surfaceCache.end()) return it->second;
+        int ix = (blockX >> 2) - cacheCx * 4 + CACHE_OFF_X;  // 13 邻居 ±48 格 → 0..20
+        int iz = (blockZ >> 2) - cacheCz * 4 + CACHE_OFF_Z;  // ±16..+32 格 → 0..12
+        if (ix >= 0 && ix < CACHE_DIM && iz >= 0 && iz < CACHE_DIM) {
+            int32_t cached = surfaceCacheArr[ix * CACHE_DIM + iz];
+            if (cached != INT32_MIN) return cached;
+        }
         NoisePos pos;
         int val = INT32_MAX;
         for (int l = minY + height; l >= minY; l -= 8) { // verticalCellBlockCount=8
             pos.x = blockX; pos.y = l; pos.z = blockZ;
             if (initialDensity->sample(pos) > 0.390625) { val = l; break; }
         }
-        surfaceCache[key] = val;
+        if (ix >= 0 && ix < CACHE_DIM && iz >= 0 && iz < CACHE_DIM)
+            surfaceCacheArr[ix * CACHE_DIM + iz] = val;
         return val;
     }
 
@@ -146,10 +159,14 @@ private:
     const BlockRegistry* blocks;
     int minY, height;
     int startX, startY, startZ, sizeX, sizeY, sizeZ;
+    int airId, waterId, lavaId;  // 预取（避免 apply 每块字符串查找）
     std::vector<int64_t> blockPositions;
     std::vector<FluidLevel> waterLevels;
     // estimateSurfaceHeight 列缓存（per-chunk；Java surfaceHeightEstimateCache）
-    std::map<int64_t, int> surfaceCache;
+    // flat 数组：列坐标 (x>>2, z>>2) 相对 chunk 基准偏移，覆盖 13 邻居 ±48 格范围
+    static constexpr int CACHE_DIM = 32, CACHE_OFF_X = 12, CACHE_OFF_Z = 4;
+    std::vector<int32_t> surfaceCacheArr;  // INT32_MIN = 未算
+    int cacheCx = 0, cacheCz = 0;
 
     // MutableDouble（barrier 噪声缓存 per apply 调用）
     struct MutableDouble {
@@ -197,11 +214,10 @@ private:
 
     double calculateDensity(int blockX, int blockY, int blockZ, MutableDouble& md,
                             const FluidLevel& fl, const FluidLevel& fl2) {
-        int airId = blocks->id("minecraft:air");
         int bs = fl.getBlockState(blockY, airId);   // Java: fluidLevel.getBlockState(blockY)
         int bs2 = fl2.getBlockState(blockY, airId);
-        bool lavaWater = (bs == blocks->id("minecraft:lava") && bs2 == blocks->id("minecraft:water"))
-                      || (bs == blocks->id("minecraft:water") && bs2 == blocks->id("minecraft:lava"));
+        bool lavaWater = (bs == lavaId && bs2 == waterId)
+                      || (bs == waterId && bs2 == lavaId);
         if (!lavaWater) {
             int j = std::abs(fl.y - fl2.y);
             if (j == 0) return 0.0;
@@ -268,7 +284,6 @@ private:
             bool bl3 = j > o;
             if (bl3 || bl2) {
                 FluidLevel fl2 = defaultFluidLevel(o);
-                int airId = blocks->id("minecraft:air");
                 if (fl2.getBlockState(o, airId) != airId) { // Java: !fluidLevel2.getBlockState(o).isAir()
                     if (bl2) bl = true;
                     if (bl3) return fl2;
@@ -283,8 +298,8 @@ private:
     // 默认 fluidLevelSampler（NoiseChunkGenerator.createFluidLevelSampler）：
     // y < min(-54, seaLevel) → LAVA；否则 WATER（永不返回 AIR）
     FluidLevel defaultFluidLevel(int blockY) {
-        if (blockY < -54) return FluidLevel(-54, blocks->id("minecraft:lava"));
-        return FluidLevel(63, blocks->id("minecraft:water"));
+        if (blockY < -54) return FluidLevel(-54, lavaId);
+        return FluidLevel(63, waterId);
     }
 
     int getFluidBlockY(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL,
@@ -327,16 +342,15 @@ private:
     }
 
     int getFluidBlockState(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL, int fluidLevel) {
-        int airId = blocks->id("minecraft:air");
         int state = defaultFL.block; // Java: BlockState blockState = defaultFluidLevel.state（不经 getBlockState！）
-        if (fluidLevel <= -10 && fluidLevel != INT32_MAX && state != blocks->id("minecraft:lava")) {
+        if (fluidLevel <= -10 && fluidLevel != INT32_MAX && state != lavaId) {
             int k = floorDiv(blockX, 64);
             int l = floorDiv(blockY, 40);
             int m = floorDiv(blockZ, 64);
             NoisePos pos;
             pos.x = k; pos.y = l; pos.z = m;
             double d = fluidType->sample(pos);
-            if (std::abs(d) > 0.3) state = blocks->id("minecraft:lava");
+            if (std::abs(d) > 0.3) state = lavaId;
         }
         return state;
     }

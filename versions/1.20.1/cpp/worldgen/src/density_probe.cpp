@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <atomic>
 #include "json.h"
 #include "density.h"
 #include "density_builder.h"

@@ -116,6 +116,7 @@ int main(int argc, char** argv) {
     std::printf("TOTAL: match=%lld/%lld (%.4f%%) nonAir match=%lld/%lld (%.4f%%)\n",
                 match, total, 100.0 * match / total, matchNonAir, totalNonAir,
                 totalNonAir ? 100.0 * matchNonAir / totalNonAir : 0);
+    wg_profile_dump();
     wg_destroy(h);
     return 0;
 }

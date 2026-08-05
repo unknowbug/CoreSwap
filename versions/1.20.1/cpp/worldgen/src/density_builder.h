@@ -135,8 +135,15 @@ public:
         if (type == "minecraft:blend_alpha") return std::make_shared<BlendAlpha>();
         if (type == "minecraft:blend_offset") return std::make_shared<BlendOffset>();
         if (type == "minecraft:blend_density") return std::make_shared<BlendDensityDF>(arg("argument"));
-        if (type == "minecraft:flat_cache" || type == "minecraft:cache_2d" || type == "minecraft:cache_once" ||
-            type == "minecraft:cache_all_in_cell") {
+        if (type == "minecraft:flat_cache") {
+            return std::make_shared<FlatCacheDF>(arg("argument"));
+        }
+        if (type == "minecraft:cache_2d") {
+            return std::make_shared<Cache2DDF>(arg("argument"));
+        }
+        if (type == "minecraft:cache_once" || type == "minecraft:cache_all_in_cell") {
+            // Java 语义：ChunkNoiseSampler.CacheOnce/CellCache——缓存不改变采样值
+            //（同一 pos 同值），块级逐块采样等价 → 纯委托即可（无损）
             return std::make_shared<WrappingDF>(arg("argument"));
         }
         if (type == "minecraft:interpolated") {

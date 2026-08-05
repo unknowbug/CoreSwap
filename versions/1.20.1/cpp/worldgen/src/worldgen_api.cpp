@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -12,6 +13,23 @@
 #include <thread>
 #include <atomic>
 
+#ifdef _WIN32
+#include <windows.h>
+// 阶段计时（WG_PROFILE=1 时启用；QPC 高精度）
+static double nowMs() {
+    LARGE_INTEGER f, c;
+    QueryPerformanceCounter(&c);
+    QueryPerformanceFrequency(&f);
+    return 1000.0 * (double)c.QuadPart / (double)f.QuadPart;
+}
+#else
+#include <chrono>
+static double nowMs() {
+    using namespace std::chrono;
+    return duration<double, milli>(steady_clock::now().time_since_epoch()).count();
+}
+#endif
+
 #include "json.h"
 #include "density.h"
 #include "density_builder.h"
@@ -20,6 +38,17 @@
 #include "surface.h"
 #include "aquifer.h"
 #include "ore_vein.h"
+
+// ---- 剖析计数（WG_PROFILE=1 启用；变量为 inline 定义于 density.h）----
+static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; }
+void wg_profile_dump() {
+    if (!wg_profEnabled) return;
+    std::fprintf(stderr,
+                 "[PROF] base_3d_noise.sample=%lld  spline.sample=%lld  interpGrid.fill=%lld  aquiferDeep=%lld  biomeAt=%lld\n",
+                 (long long)wg_profNoiseDF.load(), (long long)wg_profSpline.load(),
+                 (long long)wg_profInterpGrid.load(), (long long)wg_profAquiferDeep.load(),
+                 (long long)wg_profBiomeAt.load());
+}
 
 using namespace wg;
 
@@ -144,6 +173,7 @@ static void fillNoiseSamplers(WorldgenHandle& h,
 extern "C" {
 
 void* wg_create(int64_t seed, const char* worldgenDir) {
+    profileInit();
     if (!worldgenDir) return nullptr;
     try {
         auto h = std::make_unique<WorldgenHandle>();
@@ -308,6 +338,11 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
     BlockColumn col;
     std::vector<int> heightmap(256, MIN_Y - 1);
+    bool profiling = getenv("WG_PROFILE") != nullptr;
+    double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
+    double t0 = profiling ? nowMs() : 0;
+    std::vector<double> densityBuf(BLOCK_COUNT);
+    // 3a. density（独立循环，便于剖析与后续算法优化）
     for (int by = 0; by < HEIGHT; by++) {
         int wy = MIN_Y + by;
         for (int bz = 0; bz < 16; bz++) {
@@ -315,8 +350,17 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                 fpos.x = chunkX * 16 + bx;
                 fpos.y = wy;
                 fpos.z = chunkZ * 16 + bz;
-                double density = h->finalDensity->sample(fpos);
-                int block = aquifer.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, density);
+                densityBuf[by * 256 + bz * 16 + bx] = h->finalDensity->sample(fpos);
+            }
+        }
+    }
+    if (profiling) tA = nowMs();
+    // 3b. aquifer + oreVein（ChainedBlockSource：aquifer null → oreVein）
+    for (int by = 0; by < HEIGHT; by++) {
+        int wy = MIN_Y + by;
+        for (int bz = 0; bz < 16; bz++) {
+            for (int bx = 0; bx < 16; bx++) {
+                int block = aquifer.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, densityBuf[by * 256 + bz * 16 + bx]);
                 if (block < 0) block = oreVein.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz); // ChainedBlockSource：aquifer null → oreVein
                 if (block < 0) block = stone;
                 col.at(bx, wy, bz) = block;
@@ -324,9 +368,11 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
             }
         }
     }
+    if (profiling) tB = nowMs();
 
     // 4. buildSurface
     auto biomeAt = [&](int x, int y, int z) -> std::string {
+        if (wg_profEnabled) wg_profBiomeAt.fetch_add(1, std::memory_order_relaxed);
         NoisePos p;
         // Java MultiNoiseBiomeSource.getBiome：sampler.sample(x >> 2, y >> 2, z >> 2)，
         // 内部 ×4 回 block → 采样位置 = floor(block/4)*4
@@ -351,6 +397,11 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     sh4[2] = aquifer.estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16);
     sh4[3] = aquifer.estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16);
     h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp);
+    if (profiling) {
+        double tEnd = nowMs();
+        std::fprintf(stderr, "[PROF] chunk(%d,%d): density=%.2fms aquifer+oreVein=%.2fms sh4+surface=%.2fms total=%.2fms\n",
+                     chunkX, chunkZ, tA - t0, tB - tA, tEnd - tB, tEnd - t0);
+    }
 
     // 5. 输出
     std::memcpy(out, col.data().data(), BLOCK_COUNT * sizeof(int32_t));

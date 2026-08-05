@@ -94,6 +94,16 @@ struct NoiseThresholdCond : SurfaceCond {
     std::string noiseKey;
     double minTh, maxTh;
     bool test(const SurfaceContext& ctx) const override;
+    // per-instance thread_local 列缓存（O(1) 单槽：buildSurface 逐列连续访问命中率 100%，
+    // 多线程安全——每线程独立槽位）
+    int cacheId;
+    NoiseThresholdCond() : cacheId(nextId.fetch_add(1)) {}
+    struct Slot { int64_t key = INT64_MIN; double val = 0; };
+    static std::atomic<int> nextId;
+    static std::vector<Slot>& tlSlots() {
+        static thread_local std::vector<Slot> slots;
+        return slots;
+    }
 };
 struct HoleCond : SurfaceCond {
     bool test(const SurfaceContext& ctx) const override;
@@ -202,8 +212,16 @@ inline bool StoneDepthCond::test(const SurfaceContext& ctx) const {
 inline bool NoiseThresholdCond::test(const SurfaceContext& ctx) const {
     auto it = ctx.noiseSamplers->find(noiseKey);
     if (it == ctx.noiseSamplers->end()) return false;
-    double d = it->second.sample(ctx.blockX, 0.0, ctx.blockZ);
-    return d >= minTh && d <= maxTh;
+    // 列缓存（无损）：buildSurface 逐列处理，同一 (x,z) 列内 y=0 的 2D 噪声采样位置相同
+    auto& slots = tlSlots();
+    if (slots.size() <= (size_t)cacheId) slots.resize(cacheId + 1);
+    Slot& slot = slots[cacheId];
+    int64_t key = ((int64_t)(uint32_t)ctx.blockX << 32) ^ (uint32_t)ctx.blockZ;
+    if (slot.key != key) {
+        slot.key = key;
+        slot.val = it->second.sample(ctx.blockX, 0.0, ctx.blockZ);
+    }
+    return slot.val >= minTh && slot.val <= maxTh;
 }
 inline bool HoleCond::test(const SurfaceContext& ctx) const { return ctx.runDepth <= 0; }
 inline bool SteepCond::test(const SurfaceContext& ctx) const {
@@ -315,17 +333,32 @@ public:
     }
 
     int sampleRunDepth(int blockX, int blockZ) {
-        double d = getNoise("minecraft:surface").sample(blockX, 0.0, blockZ);
-        double extra = splitter->split(blockX, 0, blockZ).nextDouble();
-        return (int)(d * 2.75 + 3.0 + extra * 0.25);
+        // thread_local 列缓存（无损：纯函数，同列同值；多线程安全——每线程独立）
+        struct Cache { int64_t key = INT64_MIN; int val = 0; };
+        static thread_local Cache cache;
+        int64_t key = ((int64_t)(uint32_t)blockX << 32) ^ (uint32_t)blockZ;
+        if (cache.key != key) {
+            cache.key = key;
+            double d = getNoise("minecraft:surface").sample(blockX, 0.0, blockZ);
+            double extra = splitter->split(blockX, 0, blockZ).nextDouble();
+            cache.val = (int)(d * 2.75 + 3.0 + extra * 0.25);
+        }
+        return cache.val;
     }
     double sampleSecondaryDepth(int blockX, int blockZ) {
         return getNoise("minecraft:surface_secondary").sample(blockX, 0.0, blockZ);
     }
     // getTerracottaBlock(x, y, z)：按 y 索引红陶带
     int getTerracottaBlock(int x, int y, int z) {
-        double d = getNoise("minecraft:clay_bands_offset").sample(x, 0.0, z) * 4.0;
-        int i = (int)std::lround(d);
+        // thread_local 列缓存（无损：clay_bands_offset 是 2D 噪声，同列同值）
+        struct Cache { int64_t key = INT64_MIN; double noise = 0; };
+        static thread_local Cache cache;
+        int64_t key = ((int64_t)(uint32_t)x << 32) ^ (uint32_t)z;
+        if (cache.key != key) {
+            cache.key = key;
+            cache.noise = getNoise("minecraft:clay_bands_offset").sample(x, 0.0, z) * 4.0;
+        }
+        int i = (int)std::lround(cache.noise);
         int n = (int)terracottaBands.size();
         return terracottaBands[((y + i) % n + n) % n];
     }
@@ -655,5 +688,8 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
         }
     }
 }
+
+// NoiseThresholdCond：实例 id 分配（per-instance thread_local 缓存索引）
+std::atomic<int> NoiseThresholdCond::nextId{0};
 
 } // namespace wg
