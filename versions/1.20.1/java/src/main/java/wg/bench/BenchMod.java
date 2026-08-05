@@ -18,6 +18,8 @@ public class BenchMod implements DedicatedServerModInitializer {
                 NoiseProbe.run(server);
             } else if (System.getProperty("router.probe") != null) {
                 RouterProbe.run(server);
+            } else if (System.getProperty("ore.probe") != null) {
+                OreProbe.run(server);
             } else {
                 WorldGenBench.run(server);
             }

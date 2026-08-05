@@ -8,13 +8,18 @@
 
 namespace wg {
 
-// MathHelper.hashCode(x, y, z)——3 参数 LCG 混合（1.20.1）
+// MathHelper.hashCode(x, y, z)——1.20.1 是 long 版本（非 1.18 的 3 参数 LCG！）
 // 用于 RandomSplitter.split(x, y, z) 派生（aquifer/oreVein/surface/verticalGradient）
 inline int64_t hashXYZ(int32_t x, int32_t y, int32_t z) {
-    int32_t i = 1664525 * x + 1013904223;
-    int32_t j = 1664525 * (y ^ -559038737) + 1013904223;
-    int32_t k = 1664525 * (z ^ 984120213) + 1013904223;
-    return (int64_t)(int32_t)(i ^ j ^ k); // int 溢出 → 符号扩展为 long
+    // Java: long l = x * 3129871 ^ z * 116129781L ^ y;
+    // 注意 x * 3129871 是 int 乘法（补码溢出），z * 116129781L 是 long 乘法
+    int32_t xi = (int32_t)((uint32_t)x * 3129871u); // int 溢出（补码）
+    int64_t l = (int64_t)xi ^ ((int64_t)z * 116129781LL) ^ (int64_t)y;
+    // Java: l = l * l * 42317861L + l * 11L; return l >> 16;
+    // l 可能为负（补码），>> 16 是算术右移（符号扩展）——用 uint64 模拟补码乘法后转回有符号再算术右移
+    uint64_t u = (uint64_t)l;
+    u = u * u * 42317861ULL + u * 11ULL;
+    return (int64_t)u >> 16; // gcc/MSVC 有符号右移=算术右移
 }
 
 // Xoroshiro128PlusPlusRandom + Splitter（MC 1.20.1 移植）

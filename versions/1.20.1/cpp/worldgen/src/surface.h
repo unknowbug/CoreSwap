@@ -384,8 +384,8 @@ inline RuleP SurfaceBuilder::buildOverworldRule() {
 
     // materialRule
     RuleP mr = sequence({condition(mc9, B("grass_block")), B("dirt")});
-    RuleP mr2 = sequence({condition(stoneDepth(0, false, 0, false), B("sandstone")), B("sand")}); // STONE_DEPTH_CEILING
-    RuleP mr3 = sequence({condition(stoneDepth(0, false, 0, false), B("stone")), B("gravel")});  // STONE_DEPTH_CEILING
+    RuleP mr2 = sequence({condition(stoneDepth(0, false, 0, true), B("sandstone")), B("sand")}); // STONE_DEPTH_CEILING
+    RuleP mr3 = sequence({condition(stoneDepth(0, false, 0, true), B("stone")), B("gravel")});  // STONE_DEPTH_CEILING
 
     CondP mc14 = biomeCond({"minecraft:warm_ocean", "minecraft:beach", "minecraft:snowy_beach"});
     CondP mc15 = biomeCond({"minecraft:desert"});
@@ -516,7 +516,7 @@ inline RuleP SurfaceBuilder::buildOverworldRule() {
                                 condition(mc18, B("terracotta")),
                                 bandsRule,
                             })),
-                        condition(mc8, sequence({condition(stoneDepth(0, false, 0, false), B("red_sandstone")), B("red_sand")})),
+                        condition(mc8, sequence({condition(stoneDepth(0, false, 0, true), B("red_sandstone")), B("red_sand")})),
                         condition(notCond(mc11), B("orange_terracotta")),
                         condition(mc10, B("white_terracotta")),
                         mr3,

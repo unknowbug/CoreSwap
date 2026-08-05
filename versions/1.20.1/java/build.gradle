@@ -50,6 +50,10 @@ loom {
             if (project.findProperty('routerProbe') != null) {
                 vmArg "-Drouter.probe=true"
             }
+            // ore 矿脉探针：gradle runServer -PoreProbe=true
+            if (project.findProperty('oreProbe') != null) {
+                vmArg "-Dore.probe=true"
+            }
             // 方块导出探针：gradle runServer -PblockProbe=true
             if (project.findProperty('blockProbe') != null) {
                 vmArg "-Dblock.probe=true"

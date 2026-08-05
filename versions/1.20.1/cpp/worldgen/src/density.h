@@ -374,16 +374,9 @@ public:
         int gy = pos.y - MIN_Y;               // 0..383
         int gz = pos.z - chunkZ * 16;
         int cx = gx / CELL_X, cy = gy / CELL_Y, cz = gz / CELL_Z;
-        // 越界保护：chunk 外坐标（如 aquifer 边界扫描 / 世界顶 y=320）→ clamp
-        // 注意需保证 cx+dx ≤ GX-1（三线性插值访问 +1）
+        // 越界保护：clamp 到网格边界内（POC：与 Java DensityInterpolator 直接采样略有差异，但稳定性优先）
         if (cx < 0 || cy < 0 || cz < 0 || cx >= GX || cy >= GY || cz >= GZ ||
             cx >= GX - 1 || cy >= GY - 1 || cz >= GZ - 1) {
-            static bool warned = false;
-            if (!warned) {
-                std::fprintf(stderr, "[InterpolatedDF] OOB pos=(%d,%d,%d) chunk=(%d,%d) g=(%d,%d,%d) cell=(%d,%d,%d)\n",
-                             pos.x, pos.y, pos.z, chunkX, chunkZ, gx, gy, gz, cx, cy, cz);
-                warned = true;
-            }
             cx = cx < 0 ? 0 : (cx > GX - 2 ? GX - 2 : cx);
             cy = cy < 0 ? 0 : (cy > GY - 2 ? GY - 2 : cy);
             cz = cz < 0 ? 0 : (cz > GZ - 2 ? GZ - 2 : cz);

@@ -120,6 +120,9 @@ public:
 
     // estimateSurfaceHeight（ChunkNoiseSampler）：initialDensityWithoutJaggedness > 0.390625
     int estimateSurfaceHeight(int blockX, int blockZ) {
+        // Java: BiomeCoords.toBlock(BiomeCoords.fromBlock(blockX))——floor(blockX/4)*4 对齐
+        blockX = (blockX >> 2) << 2;
+        blockZ = (blockZ >> 2) << 2;
         NoisePos pos;
         for (int l = minY + height; l >= minY; l -= 8) { // verticalCellBlockCount=8
             pos.x = blockX; pos.y = l; pos.z = blockZ;
@@ -316,7 +319,7 @@ private:
 
     int getFluidBlockState(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL, int fluidLevel) {
         int airId = blocks->id("minecraft:air");
-        int state = defaultFL.getBlockState(fluidLevel, airId); // Java: defaultFluidLevel.getBlockState(fluidLevel)
+        int state = defaultFL.block; // Java: BlockState blockState = defaultFluidLevel.state（不经 getBlockState！）
         if (fluidLevel <= -10 && fluidLevel != INT32_MAX && state != blocks->id("minecraft:lava")) {
             int k = floorDiv(blockX, 64);
             int l = floorDiv(blockY, 40);

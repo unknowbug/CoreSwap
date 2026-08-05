@@ -31,6 +31,204 @@ import java.util.TreeMap;
  * 用法：-Dblock.probe=1 -Dbench.seed=<seed> -Dbench.size=<n> -Dbench.originX=<x> -Dbench.originZ=<z>
  */
 public class BlockProbe {
+    /** 驱动真实 ChunkNoiseSampler 插值循环到目标块，打印真实 blockState 与 veinToggle 插值 */
+    private static void driveCnsTo(Object cns, int bx, int by, int bz, net.minecraft.world.gen.noise.NoiseConfig nc) throws Exception {
+        Class<?> cls = cns.getClass();
+        java.lang.reflect.Method mStart = cls.getMethod("sampleStartDensity");
+        java.lang.reflect.Method mEnd = cls.getMethod("sampleEndDensity", int.class);
+        java.lang.reflect.Method mOn = cls.getMethod("onSampledCellCorners", int.class, int.class);
+        java.lang.reflect.Method mY = cls.getMethod("interpolateY", int.class, double.class);
+        java.lang.reflect.Method mX = cls.getMethod("interpolateX", int.class, double.class);
+        java.lang.reflect.Method mZ = cls.getMethod("interpolateZ", int.class, double.class);
+        java.lang.reflect.Method mSwap = cls.getMethod("swapBuffers");
+        java.lang.reflect.Method mSample = cls.getDeclaredMethod("sampleBlockState");
+        mSample.setAccessible(true);
+
+        int ox = 3200, oz = 3200;   // chunk(200,200) 起点
+        int cellX = (bx - ox) / 4;
+        int cellZ = (bz - oz) / 4;
+        int minCellY = -8;
+        int cellY = (by + 64) / 8;
+
+        // 反射拿 veinToggle 的 DensityInterpolator：遍历 interpolators 打印全部结构
+        java.lang.reflect.Field fInterps = cls.getDeclaredField("interpolators");
+        fInterps.setAccessible(true);
+        java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
+        Object vtInterp = null;
+        for (Object it : interps) {
+            try {
+                java.lang.reflect.Field fDel = it.getClass().getDeclaredField("delegate");
+                fDel.setAccessible(true);
+                Object del = fDel.get(it);
+                System.out.println("[InterpList] " + describe(del, 2));
+                if (del != null && describe(del, 2).contains("xz=1.5")) { vtInterp = it; }
+            } catch (Exception ignore) { }
+        }
+
+        mStart.invoke(cns);
+        outer:
+        for (int o = 0; o <= cellX; o++) {
+            mEnd.invoke(cns, o);
+            for (int p = 0; p <= cellZ; p++) {
+                for (int r = 47; r >= 0; r--) {
+                    mOn.invoke(cns, r, p);
+                    for (int s = 7; s >= 0; s--) {
+                        int t = (minCellY + r) * 8 + s;
+                        double d = s / 8.0;
+                        mY.invoke(cns, t, d);
+                        for (int w = 0; w < 4; w++) {
+                            int x = ox + o * 4 + w;
+                            double e = w / 4.0;
+                            mX.invoke(cns, x, e);
+                            for (int z = 0; z < 4; z++) {
+                                int aa = oz + p * 4 + z;
+                                double f = z / 4.0;
+                                mZ.invoke(cns, aa, f);
+                                Object bs = mSample.invoke(cns);
+                                if (x == bx && t == by && aa == bz) {
+                                    double vtVal = vtInterp != null
+                                            ? (double) vtInterp.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class)
+                                                    .invoke(vtInterp, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns)
+                                            : Double.NaN;
+                                    // 反射读 8 角点字段
+                                    StringBuilder corners = new StringBuilder();
+                                    if (vtInterp != null) {
+                                        // 直接采样 delegate 于角点坐标（对照 buffer）
+                                        java.lang.reflect.Field fDel = vtInterp.getClass().getDeclaredField("delegate");
+                                        fDel.setAccessible(true);
+                                        Object del = fDel.get(vtInterp);
+                                        corners.append("delClass=").append(del.getClass().getSimpleName()).append(" ");
+                                        // BlendDensity 的 input 结构（递归 describe）
+                                        try {
+                                            java.lang.reflect.Method mInput = del.getClass().getMethod("input");
+                                            Object in = mInput.invoke(del);
+                                            corners.append("input=").append(describe(in, 3)).append(" ");
+                                        } catch (Exception e4) {
+                                            corners.append("inputErr=").append(e4.getMessage()).append(" ");
+                                        }
+                                        // noiseConfig 原始 veinToggle 结构
+                                        try {
+                                            Object rawVt = nc.getNoiseRouter().veinToggle();
+                                            corners.append("rawVt=").append(rawVt.getClass().getSimpleName()).append(" ");
+                                            java.lang.reflect.Method mVal = rawVt.getClass().getMethod("function");
+                                            Object func = mVal.invoke(rawVt);
+                                            Object v = func.getClass().getMethod("value").invoke(func);
+                                            corners.append("val=").append(v.getClass().getSimpleName()).append(" ");
+                                            // 递归打印 value 结构（最多 3 层）
+                                            Object cur = v;
+                                            for (int depth = 0; depth < 4; depth++) {
+                                                String cn = cur.getClass().getSimpleName();
+                                                corners.append("L").append(depth).append("=").append(cn).append(" ");
+                                                if (cn.contains("Wrapping")) {
+                                                    java.lang.reflect.Method mW = cur.getClass().getMethod("wrapped");
+                                                    cur = mW.invoke(cur);
+                                                } else if (cn.contains("RangeChoice")) {
+                                                    java.lang.reflect.Method mWhen = cur.getClass().getMethod("whenInRange");
+                                                    cur = mWhen.invoke(cur);
+                                                } else if (cn.contains("BlendDensity")) {
+                                                    java.lang.reflect.Method mIn = cur.getClass().getMethod("input");
+                                                    cur = mIn.invoke(cur);
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+                                        } catch (Exception e5) {
+                                            corners.append("rawErr=").append(e5.getMessage()).append(" ");
+                                        }
+                                        var np0 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3208, 0, 3204);
+                                        var np1 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3212, 0, 3204);
+                                        var np2 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3208, 8, 3204);
+                                        var np3 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3212, 8, 3204);
+                                        java.lang.reflect.Method mDelSample = net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                        corners.append("dir(3208,0,3204)=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np0))).append(" ");
+                                        corners.append("dir(3212,0,3204)=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np1))).append(" ");
+                                        corners.append("dir(3208,8,3204)=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np2))).append(" ");
+                                        corners.append("dir(3212,8,3204)=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np3))).append(" ");
+                                        for (String fn : new String[]{"x0y0z0", "x1y0z0", "x0y1z0", "x1y1z0", "x0y0z1", "x1y0z1", "x0y1z1", "x1y1z1", "result"}) {
+                                            try {
+                                                java.lang.reflect.Field fld = vtInterp.getClass().getDeclaredField(fn);
+                                                fld.setAccessible(true);
+                                                corners.append(fn).append("=").append(String.format(java.util.Locale.ROOT, "%.4f", fld.getDouble(vtInterp))).append(" ");
+                                            } catch (Exception ignore) { }
+                                        }
+                                        try {
+                                            java.lang.reflect.Field fsbx = cls.getDeclaredField("startBlockX");
+                                            fsbx.setAccessible(true);
+                                            java.lang.reflect.Field fsbz = cls.getDeclaredField("startBlockZ");
+                                            fsbz.setAccessible(true);
+                                            java.lang.reflect.Field fsby = cls.getDeclaredField("startBlockY");
+                                            fsby.setAccessible(true);
+                                            corners.append("cnsSBX=").append(fsbx.getInt(cns)).append(" SBY=").append(fsby.getInt(cns)).append(" SBZ=").append(fsbz.getInt(cns));
+                                        } catch (Exception ignore) { }
+                                    }
+                                    System.out.println(String.format(java.util.Locale.ROOT,
+                                            "[VeinDiag] (%d,%d,%d) block=%s veinToggle=%.6f %s",
+                                            bx, by, bz, bs, vtVal, corners));
+                                    break outer;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            mSwap.invoke(cns);
+        }
+    }
+
+    /** 递归描述 DensityFunction 结构（最多 depth 层，带关键参数） */
+    private static String describe(Object f, int depth) {
+        if (f == null || depth <= 0) return f == null ? "null" : f.getClass().getSimpleName();
+        StringBuilder sb = new StringBuilder(f.getClass().getSimpleName());
+        sb.append("[");
+        try {
+            String cn = f.getClass().getSimpleName();
+            if (cn.contains("Wrapping")) {
+                sb.append(describe(f.getClass().getMethod("wrapped").invoke(f), depth - 1));
+            } else if (cn.contains("RangeChoice")) {
+                sb.append("min=").append(f.getClass().getMethod("minInclusive").invoke(f))
+                  .append(",max=").append(f.getClass().getMethod("maxExclusive").invoke(f))
+                  .append(",whenIn=").append(describe(f.getClass().getMethod("whenInRange").invoke(f), depth - 1));
+            } else if (cn.contains("BlendDensity")) {
+                sb.append(describe(f.getClass().getMethod("input").invoke(f), depth - 1));
+            } else if (cn.contains("Noise")) {
+                java.lang.reflect.Method mNoise = f.getClass().getMethod("noise");
+                Object rec = mNoise.invoke(f);
+                java.lang.reflect.Field fSamp = rec.getClass().getDeclaredField("noise");
+                fSamp.setAccessible(true);
+                Object samp = fSamp.get(rec);
+                java.lang.reflect.Method mXz = f.getClass().getMethod("xzScale");
+                java.lang.reflect.Method mY = f.getClass().getMethod("yScale");
+                sb.append("samp=").append(samp == null ? "null" : samp.getClass().getSimpleName())
+                  .append(",xz=").append(mXz.invoke(f)).append(",y=").append(mY.invoke(f));
+            } else if (cn.contains("LinearOperation") || cn.contains("Binary")) {
+                for (String am : new String[]{"argument1", "argument2"}) {
+                    try {
+                        sb.append(am).append("=").append(describe(f.getClass().getMethod(am).invoke(f), depth - 1)).append(",");
+                    } catch (Exception ignore) { }
+                }
+            } else if (cn.contains("Constant")) {
+                sb.append(f.getClass().getMethod("value").invoke(f));
+            } else if (cn.contains("RegistryEntryHolder")) {
+                Object fn = f.getClass().getMethod("function").invoke(f);
+                Object v = fn.getClass().getMethod("value").invoke(fn);
+                sb.append(describe(v, depth - 1));
+            } else if (cn.contains("UnaryOperation") || cn.contains("Squeeze") || cn.contains("Abs")) {
+                sb.append(describe(f.getClass().getMethod("input").invoke(f), depth - 1));
+            } else if (cn.contains("Clamp")) {
+                sb.append("min=").append(f.getClass().getMethod("minValue").invoke(f))
+                  .append(",in=").append(describe(f.getClass().getMethod("input").invoke(f), depth - 1));
+            } else if (cn.contains("Y")) {
+                sb.append("Y");
+            } else {
+                sb.append(cn);
+            }
+        } catch (Exception e) {
+            sb.append("err=").append(e.getMessage());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     private static final int MIN_Y = -64;
     private static final int HEIGHT = 384;
 
@@ -57,7 +255,32 @@ public class BlockProbe {
         }
 
         System.out.println("[BlockProbe] seed=" + seed + " size=" + size + " origin=(" + originX + "," + originZ + ")");
+        System.out.println("[BlockProbe] worldSeed=" + world.getSeed());
 
+        // 诊断：verticalGradient deepslate 的 random 值（对照 C++）
+        try {
+            net.minecraft.world.gen.noise.NoiseConfig nc = chunkManager.getNoiseConfig();
+            for (int y : new int[]{2, 3, 4, 5}) {
+                double rnd = nc.getOrCreateRandomDeriver(new net.minecraft.util.Identifier("deepslate"))
+                        .split(3200, y, 3200).nextFloat();
+                long h = net.minecraft.util.math.MathHelper.hashCode(3200, y, 3200);
+                System.out.println(String.format(java.util.Locale.ROOT, "[VgDiag] y=%d rnd=%.6f hash=%d", y, rnd, h));
+            }
+            net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos np =
+                    new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3217, -36, 3200);
+            System.out.println(String.format(java.util.Locale.ROOT, "[CppCmp] floodedness=%.6f erosion=%.6f depth=%.6f",
+                    nc.getNoiseRouter().fluidLevelFloodednessNoise().sample(np),
+                    nc.getNoiseRouter().erosion().sample(np),
+                    nc.getNoiseRouter().depth().sample(np)));
+            net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos np2 =
+                    new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3218, -19, 3192);
+            System.out.println(String.format(java.util.Locale.ROOT, "[CppCmpS] floodedness=%.6f erosion=%.6f depth=%.6f",
+                    nc.getNoiseRouter().fluidLevelFloodednessNoise().sample(np2),
+                    nc.getNoiseRouter().erosion().sample(np2),
+                    nc.getNoiseRouter().depth().sample(np2)));
+        } catch (Exception e) {
+            System.out.println("[VgDiag] failed: " + e);
+        }
 
         // 预热
         for (int i = 0; i < 2; i++) {
@@ -82,8 +305,25 @@ public class BlockProbe {
                     int wz = originZ / 16 + cz;
                     ChunkPos chunkPos = new ChunkPos(wx, wz);
                     long t0 = System.nanoTime();
-                    // SURFACE 状态 = NOISE + SURFACE（不含 structures/carvers/features，与 C++ 方块层对齐）
-                    Chunk chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
+                    // 先生成到 NOISE（ChunkNoiseSampler 存活期），驱动插值诊断，再补 SURFACE
+                    Chunk chunk = world.getChunk(wx, wz, ChunkStatus.NOISE, true);
+                    if (wx == 200 && wz == 200) {
+                        try {
+                            java.lang.reflect.Field fCns = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCns.setAccessible(true);
+                            Object cns = fCns.get(chunk);
+                            if (cns != null) {
+                                driveCnsTo(cns, 3211, 4, 3204, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3211, 40, 3204, chunkManager.getNoiseConfig());
+                                driveCnsTo(cns, 3211, -30, 3204, chunkManager.getNoiseConfig());
+                            } else {
+                                System.out.println("[VeinDiag] chunkNoiseSampler null after NOISE");
+                            }
+                        } catch (Exception e2) {
+                            System.out.println("[VeinDiag] failed: " + e2);
+                        }
+                    }
+                    chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
                     long t1 = System.nanoTime();
                     System.out.println("[BlockProbe] chunk (" + wx + "," + wz + ") FULL in " + (t1 - t0) / 1_000_000 + " ms");
                     out.writeInt(wx);
