@@ -48,14 +48,18 @@ loom {
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
             if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
+            if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
             if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
         }
         server {
             programArgs '--nogui'
             benchVmArgs(delegate)
+            // 原生崩溃诊断：hs_err 写到固定路径（-1073741819/0xC0000005 时定位）
+            vmArg "-XX:ErrorFile=E:/python/MC/versions/1.20.1/java/run/hs_err_%p.log"
         }
         client {
             benchVmArgs(delegate)
+            vmArg "-XX:ErrorFile=E:/python/MC/versions/1.20.1/java/run/hs_err_%p.log"
         }
     }
 }
