@@ -36,7 +36,11 @@ public abstract class NoiseChunkGeneratorMixin {
         if (System.getProperty("comp.probe") != null && !CppBridge.didCompProbe()) {
             CppBridge.compProbe(noiseConfig);
         }
-        if (CppBridge.enabled) {
+        // 只拦截主世界：主世界特征 = minY=-64 + height=384（下界 minY=0/256、末地 TheEndGenerator 不在此类、多数维度 mod 高度不同）
+        // 注意：极端情况下维度 mod 若用 NoiseChunkGenerator 且同为主世界高度，会被误拦——后续可加 -Dcoreswap.dimensions 白名单
+        if (CppBridge.enabled
+                && chunk.getHeightLimitView().getBottomY() == -64
+                && chunk.getHeightLimitView().getHeight() == 384) {
             System.out.println("[Mixin] populateNoise intercepted chunk(" + chunk.getPos().x + "," + chunk.getPos().z + ")");
             CppBridge.fillChunk(chunk);
             cir.setReturnValue(java.util.concurrent.CompletableFuture.completedFuture(chunk));
