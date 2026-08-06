@@ -73,7 +73,7 @@ public class DensityProbe {
             // 分量 dump（负坐标 spline 定位）：router.depth/continents/erosion vs C++ WG_SURFDUMP
             try {
                 StringBuilder sbC = new StringBuilder();
-                for (String comp : new String[]{"depth", "continents", "erosion"}) {
+                for (String comp : new String[]{"depth", "continents", "erosion", "shiftX", "shiftZ"}) {
                     try {
                         var m = router.getClass().getMethod(comp);
                         DensityFunction fc = (DensityFunction) m.invoke(router);
@@ -81,8 +81,21 @@ public class DensityProbe {
                             double v = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
                             sbC.append(comp).append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
                         }
+                    } catch (NoSuchMethodException ex) {
+                        // yarn 名可能是 getXxx()
+                        String alt = "get" + Character.toUpperCase(comp.charAt(0)) + comp.substring(1);
+                        try {
+                            var m = router.getClass().getMethod(alt);
+                            DensityFunction fc = (DensityFunction) m.invoke(router);
+                            for (int y = minY; y < minY + height; y += 4) {
+                                double v = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                                sbC.append(comp).append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
+                            }
+                        } catch (Exception ex2) {
+                            sbC.append(comp).append(" <no-method ").append(ex2).append(">\n");
+                        }
                     } catch (Exception ex) {
-                        sbC.append(comp).append(" <method-threw ").append(ex).append(">\n");
+                        sbC.append(comp).append(" <threw ").append(ex).append(">\n");
                     }
                 }
                 Files.writeString(out.resolve(name.replace(".txt", "_comps.txt")), sbC.toString(), StandardCharsets.UTF_8);

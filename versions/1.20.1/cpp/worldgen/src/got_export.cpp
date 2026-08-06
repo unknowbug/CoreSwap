@@ -31,6 +31,26 @@ int main(int argc, char** argv) {
         wg_destroy(dh);
         return 0;
     }
+    // 任意注册 density function dump：-namedDump <name> cx cz bx bz [dimension]
+    if (argc >= 7 && std::string(argv[3]) == "-namedDump") {
+        std::string nm = argv[4];
+        int dcx = std::atoi(argv[5]), dcz = std::atoi(argv[6]), dbx = std::atoi(argv[7]), dbz = std::atoi(argv[8]);
+        int ddim = 0;
+        for (int a = 9; a + 1 < argc; a++)
+            if (std::string(argv[a]) == "-dimension") { ddim = std::atoi(argv[a + 1]); break; }
+        const char* sname = ddim == 1 ? "nether.json" : "overworld.json";
+        const char* bparams = ddim == 1 ? "biome_params_nether.json" : "biome_params.json";
+        int wh = ddim == 1 ? 256 : 0;
+        void* dh = wg_create(seed, argv[2], sname, bparams, wh);
+        if (!dh) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
+        int wx = dcx * 16 + dbx, wz = dcz * 16 + dbz;
+        for (int y = -64; y <= 127; y += 4) {
+            double v = wg_sample_named(dh, nm.c_str(), wx, y, wz);
+            std::printf("%d %.17g\n", y, v);
+        }
+        wg_destroy(dh);
+        return 0;
+    }
     // base_3d_noise 分量 dump：-nbDump cx cz bx bz [dimension]（默认 1=nether；0=overworld）
     if (argc >= 4 && std::string(argv[3]) == "-nbDump") {
         int dcx = std::atoi(argv[4]), dcz = std::atoi(argv[5]), dbx = std::atoi(argv[6]), dbz = std::atoi(argv[7]);
