@@ -275,3 +275,9 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - **seed 8576294172403134396**，玩家降落 (731, 82, -404)——**z=-404 负坐标区域，地形 bug 特别明显**（用户确认）
 - 1.0.10 候选验证：客户端模式（线程数=物理核-2 留核）可正常进入世界（dll 提取 readJarBytes 修复后）
 - 发布铁律：dumpbin 验证 + 主世界 100% 回归 + jar 内 dll 哈希
+
+## 2026-08-07 负坐标定位进展（十四）：maintainPrecision 反编译确认 + 修复
+
+- ✅ **反编译确认 Java 1.20.1 maintainPrecision**：`(long)(v/33554432.0 + 0.5)`（+0.5 后向零截断）——**C++ 曾误写成纯向零截断**——修复（对齐 Java）
+- ⚠️ **但**：maintainPrecision 折叠只在 |坐标×scaledXz|×2^r > 3.35e7 时触发（|x| > ~19.6 万）——**玩家位置（731,-404）和 -8248 测试区（|x|≤225）不触发**——负坐标小坐标差异根源在别处（Perlin.sample 其他细节）
+- **下一步**：小坐标负坐标 Perlin 差（输入/实现全验证一致）——需 dump sample 内部每步 vs 游戏实际，或考虑 noise-in-Java 兜底
