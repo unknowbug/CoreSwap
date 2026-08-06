@@ -266,7 +266,17 @@ public class BlockProbe {
             throw new RuntimeException("无法创建输出目录: " + dataDir, e);
         }
 
-        ServerWorld world = server.getOverworld();
+        String dim = System.getProperty("blockProbe.dimension", "overworld");
+        ServerWorld world = dim.equals("nether")
+                ? server.getWorld(net.minecraft.world.World.NETHER)
+                : server.getOverworld();
+        if (world == null) {
+            System.out.println("[BlockProbe] world " + dim + " not found, stopping");
+            server.stop(false);
+            return;
+        }
+        int worldMinY = world.getBottomY();
+        int worldHeight = world.getHeight();
         ServerChunkManager chunkManager = world.getChunkManager();
         ChunkGenerator generator = chunkManager.getChunkGenerator();
         if (!(generator instanceof NoiseChunkGenerator)) {
@@ -316,7 +326,8 @@ public class BlockProbe {
             world.getChunk(i, 0, ChunkStatus.FULL, true);
         }
 
-        Path blocksFile = dataDir.resolve("vanilla_" + seed + "_" + size + "_" + originX + "_" + originZ + ".blocks");
+        Path blocksFile = dataDir.resolve("vanilla_" + seed + "_" + size + "_" + originX + "_" + originZ
+                + (dim.equals("nether") ? "_nether" : "") + ".blocks");
         try (DataOutputStream out = new DataOutputStream(
                 new BufferedOutputStream(new FileOutputStream(blocksFile.toFile())))) {
             out.writeInt(0x57474232); // "WGB2"
@@ -324,8 +335,8 @@ public class BlockProbe {
             out.writeInt(size);
             out.writeInt(originX);
             out.writeInt(originZ);
-            out.writeInt(MIN_Y);
-            out.writeInt(HEIGHT);
+            out.writeInt(worldMinY);
+            out.writeInt(worldHeight);
 
             BlockPos.Mutable pos = new BlockPos.Mutable();
             for (int cz = 0; cz < size; cz++) {
@@ -389,7 +400,7 @@ public class BlockProbe {
                     System.out.println("[BlockProbe] chunk (" + wx + "," + wz + ") FULL in " + (t1 - t0) / 1_000_000 + " ms");
                     out.writeInt(wx);
                     out.writeInt(wz);
-                    for (int y = MIN_Y; y < MIN_Y + HEIGHT; y++) {
+                    for (int y = worldMinY; y < worldMinY + worldHeight; y++) {
                         for (int z = 0; z < 16; z++) {
                             for (int x = 0; x < 16; x++) {
                                 Block block = chunk.getBlockState(pos.set(x, y, z)).getBlock();

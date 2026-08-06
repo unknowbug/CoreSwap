@@ -45,6 +45,7 @@ loom {
             if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
             if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
+            if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
 if (project.findProperty('biomePreset') != null) run.vmArg "-Dbiome.preset=${project.findProperty('biomePreset')}"
 if (project.findProperty('noiseProbe') != null) run.vmArg "-Dnoise.probe=true"

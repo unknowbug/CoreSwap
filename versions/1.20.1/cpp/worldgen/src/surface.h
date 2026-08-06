@@ -240,8 +240,10 @@ inline bool SurfaceCondC::test(const SurfaceContext& ctx) const {
 inline bool TempCond::test(const SurfaceContext& ctx) const { return ctx.biomeTemp < 0.15; }
 inline bool VerticalGradientCond::test(const SurfaceContext& ctx) const {
     int y = ctx.blockY;
-    if (y <= trueY) return true;
+    // 先查 false 再查 true：支持反锚序（nether bedrock_roof：trueAt=顶部 > falseAt=顶下 5）
+    // 主世界 bedrock_floor（-64/-59）锚序正常，两序结果一致（区间不重叠）
     if (y >= falseY) return false;
+    if (y <= trueY) return true;
     double d = lerpClamp((double)y, (double)trueY, (double)falseY, 1.0, 0.0);
     // NoiseConfig.getOrCreateRandomDeriver(name).split(x, y, z)
     XoroshiroRandom::Splitter s = ctx.splitterFor(name);

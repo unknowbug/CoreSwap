@@ -193,6 +193,88 @@ static void fillNoiseSamplers(WorldgenHandle& h,
 
 extern "C" {
 
+// ===== surface_rule JSON 解析（通用引擎：任意维度 surface_rule 数据驱动）=====
+static CondP parseSurfaceCond(const JsonValue& j, int minY, int worldHeight, const BlockRegistry* blocks, bool& ok);
+static int anchorAbsY(const JsonValue& a, int minY, int worldHeight) {
+    if (const JsonValue* v = a.get("absolute")) return (int)v->numVal;
+    if (const JsonValue* v = a.get("above_bottom")) return minY + (int)v->numVal;
+    if (const JsonValue* v = a.get("below_top")) return minY + worldHeight - (int)v->numVal;
+    return 0;
+}
+static RuleP parseSurfaceRule(const JsonValue& j, int minY, int worldHeight, const BlockRegistry* blocks, bool& ok) {
+    std::string type = j.isString() ? j.strVal : (j.get("type") ? j.get("type")->strVal : "");
+    if (type == "minecraft:sequence") {
+        std::vector<RuleP> rules;
+        if (const JsonValue* seq = j.get("sequence"))
+            for (const auto& r : seq->arr) rules.push_back(parseSurfaceRule(r, minY, worldHeight, blocks, ok));
+        return sequence(std::move(rules));
+    }
+    if (type == "minecraft:condition") {
+        if (const JsonValue* c = j.get("if_true")) {
+            CondP cond = parseSurfaceCond(*c, minY, worldHeight, blocks, ok);
+            RuleP then = j.get("then_run") ? parseSurfaceRule(*j.get("then_run"), minY, worldHeight, blocks, ok) : nullptr;
+            return condition(cond, then);
+        }
+    }
+    if (type == "minecraft:block") {
+        if (const JsonValue* rs = j.get("result_state")) {
+            if (const JsonValue* n = rs->get("Name")) return blockRule(blocks->id(n->strVal));
+        }
+    }
+    ok = false;  // 未支持节点
+    return nullptr;
+}
+static CondP parseSurfaceCond(const JsonValue& j, int minY, int worldHeight, const BlockRegistry* blocks, bool& ok) {
+    std::string type = j.isString() ? j.strVal : (j.get("type") ? j.get("type")->strVal : "");
+    if (type == "minecraft:not") {
+        if (const JsonValue* inv = j.get("invert")) return notCond(parseSurfaceCond(*inv, minY, worldHeight, blocks, ok));
+    }
+    if (type == "minecraft:biome") {
+        std::set<std::string> s;
+        if (const JsonValue* b = j.get("biome_is")) for (const auto& x : b->arr) s.insert(x.strVal);
+        return biomeCond(std::move(s));
+    }
+    if (type == "minecraft:y_above") {
+        const JsonValue* a = j.get("anchor");
+        if (a) {
+            int anchor = anchorAbsY(*a, minY, worldHeight);
+            bool addStoneDepth = j.get("add_stone_depth") ? j.get("add_stone_depth")->boolVal : false;
+            return aboveY(anchor, 0, addStoneDepth);  // surface_depth_multiplier=0 → mult=0
+        }
+    }
+    if (type == "minecraft:stone_depth") {
+        int offset = j.get("offset") ? (int)j.get("offset")->numVal : 0;
+        bool addSurface = j.get("add_surface_depth") ? j.get("add_surface_depth")->boolVal : false;
+        int range = j.get("secondary_depth_range") ? (int)j.get("secondary_depth_range")->numVal : 0;
+        bool ceiling = j.get("surface_type") && j.get("surface_type")->strVal == "ceiling";
+        return stoneDepth(offset, addSurface, range, ceiling);
+    }
+    if (type == "minecraft:noise_threshold") {
+        double min = j.get("min_threshold") ? j.get("min_threshold")->numVal : -1.7e308;
+        double max = j.get("max_threshold") ? j.get("max_threshold")->numVal : 1.7e308;
+        if (const JsonValue* n = j.get("noise")) return noiseThreshold(n->strVal, min, max);
+    }
+    if (type == "minecraft:vertical_gradient") {
+        std::string name = j.get("random_name") ? j.get("random_name")->strVal : "";
+        int trueY = j.get("true_at_and_below") ? anchorAbsY(*j.get("true_at_and_below"), minY, worldHeight) : 0;
+        int falseY = j.get("false_at_and_above") ? anchorAbsY(*j.get("false_at_and_above"), minY, worldHeight) : 0;
+        return verticalGradient(name, trueY, falseY);
+    }
+    if (type == "minecraft:hole") return std::make_shared<HoleCond>();
+    if (type == "minecraft:steep") return std::make_shared<SteepCond>();
+    if (type == "minecraft:water") {
+        auto c = std::make_shared<WaterCond>();
+        c->offset = j.get("offset") ? (int)j.get("offset")->numVal : 0;
+        c->mult = 0;
+        c->addStoneDepth = j.get("add_stone_depth") ? j.get("add_stone_depth")->boolVal : false;
+        return c;
+    }
+    if (type == "minecraft:temperature") return std::make_shared<TempCond>();
+    if (type == "minecraft:surface") return std::make_shared<SurfaceCondC>();
+    ok = false;
+    return nullptr;
+}
+
 void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName, const char* biomeParamsFile, int worldHeight) {
     profileInit();
     if (!worldgenDir) return nullptr;
@@ -295,12 +377,24 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
             return nullptr;
         }
     
-        // surface builder（主世界 seaLevel=63）
+        // surface builder（seaLevel 从 settings 读；主世界 63 / 下界 32）
+        int seaLevel = 63;
+        if (const JsonValue* sl = settings.get("sea_level")) seaLevel = (int)sl->numVal;
         std::string biomeDirForBuilder = wgDir + "/data/minecraft/worldgen/biome/";
         h->surfaceBuilder = std::make_unique<SurfaceBuilder>(
-            &h->noiseSamplers, &h->builder->randomDeriverPublic(), 63, &h->blocks, biomeDirForBuilder);
-        // 规则树预构建（多线程安全：fillOneChunk 只读 overworldRule）
-        h->overworldRule = h->surfaceBuilder->buildOverworldRule();
+            &h->noiseSamplers, &h->builder->randomDeriverPublic(), seaLevel, &h->blocks, biomeDirForBuilder);
+        // 规则树：主世界用代码规则（已逐位验证）；其他维度（下界/mod）用 surface_rule JSON 数据驱动
+        const JsonValue* sr = settings.get("surface_rule");
+        if (dfNs == "overworld" || !sr) {
+            h->overworldRule = h->surfaceBuilder->buildOverworldRule();
+        } else {
+            bool ok = true;
+            h->overworldRule = parseSurfaceRule(*sr, h->dim.minY, h->dim.worldHeight, &h->blocks, ok);
+            if (!ok || !h->overworldRule) {
+                std::fprintf(stderr, "wg_create: surface_rule JSON 解析失败（未支持节点），回退主世界代码规则\n");
+                h->overworldRule = h->surfaceBuilder->buildOverworldRule();
+            }
+        }
         return h.release();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "wg_create: %s\n", e.what());
@@ -505,9 +599,10 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                      chunkX, chunkZ, tA - t0, tB - tA, tEnd - tB, tEnd - t0);
     }
 
-    // 5. 输出
-    std::memcpy(out, col.data().data(), BLOCK_COUNT * sizeof(int32_t));
-    return BLOCK_COUNT;
+    // 5. 输出（维度化：worldHeight 决定 out 大小；overworld 98304 / nether 65536）
+    const size_t outCount = (size_t)h->dim.worldHeight * 256;
+    std::memcpy(out, col.data().data(), outCount * sizeof(int32_t));
+    return (int)outCount;
 }
 
 // 单 chunk（串行兼容入口）
