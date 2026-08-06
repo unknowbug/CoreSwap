@@ -312,8 +312,8 @@ public:
           upper(random, true, -15, OctavePerlinNoiseSampler::rangeClosedAmplitudes(-15, 0)),
           interpolation(random, true, -7, OctavePerlinNoiseSampler::rangeClosedAmplitudes(-7, 0)),
           xzScale(xzS), yScale(yS), xzFactor(xzF), yFactor(yF), smearScaleMultiplier(smear) {
-        scaledXzScale = 684.412 * xzScale;
-        scaledYScale = 684.412 * yScale;
+        scaledXzScale = (double)(float)684.412 * xzScale;  // Java: 684.412F
+        scaledYScale = (double)(float)684.412 * yScale;  // Java: 684.412F
         maxVal = lower.method_40556(scaledYScale);
     }
 
