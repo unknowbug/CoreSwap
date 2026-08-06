@@ -56,7 +56,7 @@ using namespace wg;
 namespace {
 
 // 噪声参数表（BuiltinNoiseParameters 1.20.1）——与 density_probe 一致
-std::map<std::string, DoublePerlinNoiseSampler::NoiseParameters> buildNoiseParams() {
+std::map<std::string, DoublePerlinNoiseSampler::NoiseParameters> buildNoiseParams(const std::string& wgDir) {
     std::map<std::string, DoublePerlinNoiseSampler::NoiseParameters> m;
     auto add = [&](const char* key, int32_t oct, std::initializer_list<double> amps) {
         m[std::string("minecraft:") + key] = DoublePerlinNoiseSampler::NoiseParameters{oct, std::vector<double>(amps)};
@@ -117,6 +117,25 @@ std::map<std::string, DoublePerlinNoiseSampler::NoiseParameters> buildNoiseParam
     add("netherrack", -3, {1.0, 0.0, 0.0, 0.35});
     add("nether_wart", -3, {1.0, 0.0, 0.0, 0.9});
     add("nether_state_selector", -4, {1.0});
+    // 数据驱动补充：noise_params.json（Java 导出的全量噪声参数；JSON 覆盖同 key，mod 维度噪声也由此进入）
+    try {
+        std::string p = wgDir + "/../noise_params.json";
+        std::ifstream pf(p, std::ios::binary);
+        if (pf.good()) {
+            std::stringstream ss;
+            ss << pf.rdbuf();
+            JsonParser sp(ss.str());
+            JsonValue root = sp.parse();
+            for (auto& kv : root.obj) {
+                const JsonValue* octV = kv.second.get("firstOctave");
+                const JsonValue* ampsV = kv.second.get("amplitudes");
+                if (!octV || !ampsV) continue;
+                std::vector<double> amps;
+                for (auto& v : ampsV->arr) amps.push_back(v.numVal);
+                m[kv.first] = DoublePerlinNoiseSampler::NoiseParameters{(int)octV->numVal, amps};
+            }
+        }
+    } catch (...) { /* noise_params.json 缺失/损坏不影响主世界硬编码表 */ }
     return m;
 }
 
@@ -202,7 +221,7 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
         h->dim.aquifersEnabled = aq ? aq->boolVal : true;
         if (biomeParamsFile) h->dim.biomeParamsFile = biomeParamsFile;
 
-        auto noiseParams = buildNoiseParams();
+        auto noiseParams = buildNoiseParams(h->wgDir);
         h->builder = std::make_unique<DensityBuilder>((uint64_t)seed, noiseParams, h->dim.minY, h->dim.noiseHeight);
         std::string dfDir = wgDir + "/data/minecraft/worldgen/density_function/" + dfNs + "/";
         // 捕获 handle（长期存活）而非局部变量，避免悬垂引用
