@@ -13,6 +13,7 @@
 
 // 剖析计数（WG_PROFILE=1 启用；C++17 inline 变量：多 TU 单一实体）
 inline bool wg_profEnabled = false;
+inline bool wg_splineDebug = false;
 inline std::atomic<int64_t> wg_profNoiseDF{0};
 inline std::atomic<int64_t> wg_profSpline{0};
 inline std::atomic<int64_t> wg_profAquiferDeep{0};
@@ -541,6 +542,7 @@ public:
         Slot& slot = slots[cacheId];
         int64_t key = ((int64_t)((uint64_t)(uint32_t)(pos.x >> 4) << 32)) ^ (uint32_t)(pos.z >> 4);
         if (slot.key != key) {
+            if (wg_splineDebug) std::fprintf(stderr, "[CACHE2D] cacheId=%d miss pos=(%d,%d,%d)\n", cacheId, pos.x, pos.y, pos.z);
             slot.key = key;
             slot.value = arg->sample(pos);
         }
@@ -575,6 +577,7 @@ public:
     explicit FlatCacheDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {
         updateInstanceCount();
     }
+    int getCacheId() const { return cacheId; }
 
     double sample(const NoisePos& pos) const override {
         auto& slots = tlSlots();
@@ -633,6 +636,10 @@ private:
                 grid[(size_t)j * GRID + i] = arg->sample(p);
             }
         }
+        if (wg_splineDebug) {
+            std::fprintf(stderr, "[FLATCACHE] chunk=(%d,%d) cacheId=%d grid[0]=%.9f grid[1]=%.9f grid[5]=%.9f\n",
+                         chunkX, chunkZ, cacheId, grid[0], grid[1], grid[5]);
+        }
     }
 };
 
@@ -664,7 +671,20 @@ public:
     double sampleImpl(const NoisePos& pos) const {
         if (isLeaf) return fixedValue;
         double f = locationFunction->sample(pos);
-        return apply(f, pos);
+        double r = apply(f, pos);
+        if (wg_splineDebug) {
+            const auto* fc = dynamic_cast<const FlatCacheDF*>(locationFunction.get());
+            const auto* cn = dynamic_cast<const Cache2DDF*>(locationFunction.get());
+            std::fprintf(stderr, "[SPLINE] pos=(%d,%d,%d) f=%.9f result=%.9f n=%zu locFn=%s%s%s locs=[",
+                         pos.x, pos.y, pos.z, f, r, locations.size(),
+                         fc ? "FlatCache" : (cn ? "Cache2D" : "other"),
+                         fc ? (", cacheId=" + std::to_string(fc->getCacheId())).c_str() : "",
+                         locationFunction == nullptr ? " NULL" : "");
+            for (size_t li = 0; li < locations.size(); li++)
+                std::fprintf(stderr, "%.4f%s", locations[li], li + 1 < locations.size() ? "," : "");
+            std::fprintf(stderr, "]\n");
+        }
+        return r;
     }
 
     double apply(double f, const NoisePos& pos) const {
