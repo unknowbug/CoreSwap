@@ -121,3 +121,17 @@
 - InterpolatedDF 整树插值：正确（勿改）
 
 **C++ 侧当前改动（未提交）**：worldgen_api.cpp 的 WG_DBDEBUG/WG_COMPDUMP 诊断 + vein 顺序改动；java 侧 DensityProbe（comps 扩展+cns 修复）、OreProbe（参数化）、BlockProbe 参数。git 提交建议：诊断工具独立提交（中文信息、author unknowbug）。
+
+### 2026-08-08 追加 3：块状根因缩小（level-seed 坑 + 浅层插值符号翻转）
+
+**重要坑（已踩）**：`java/run/server.properties` 的 `level-seed` **硬编码 -8248318472910187742**！`-PbenchSeed=X` 只设 `-Dbench.seed` 属性，**world 实际 seed 永远 -8248**——所有「8576 参照」（DensityProbe/BlockProbe）实际是 -8248 世界的（错位对比）。**跑其他 seed 前必须改 level-seed**（已验证改后 worldSeed 正确）。
+
+**真实 8576（level-seed 修正后）**：玩家 (731,82,-404) 区域 SURFACE 参照对比 **3.31% diff**（错位假象是 9.59%）——**块状真实存在**（chunk(45,-26) 2.84%）。
+- diff 全在**地表带 y42-65**（-8248 20000 也是 y42-65 峰值 y50-51——同模式）
+- 配对：stone↔water、air↔stone、dirt/grass 错位——**aquifer/surface 浅层错**
+
+**最深疑点（下一步）**：20000 列 (2,11) 剖面：vanilla y52-55 dirt + y56-62 water（海底）；C++ y52-58 stone + y59-61 dirt + y62 grass_block（陆地）——**C++ 插值密度在该列 y52-62 为正而游戏实际为负**——**C++ InterpolatedDF 插值 ≠ 游戏实际（20000 区域，-288 一致）**。候选：
+1. vanilla cell 角点网格布局（cacheAllInCell）在特定坐标与 C++ buildGrids 差
+2. 需要「游戏实际插值密度」参照——cns 反射的 interpolators 不含 finalDensity（get(0) min=-∞ 是某组件）；需找 ChunkNoiseSampler 的「当前密度」字段（非 interpolators）
+
+**-8248 有效参照**：-288 FULL（19:39，含 FEATURE 假 diff——**只用于 density/vein 分析，方块 diff 不可信**）；20000 SURFACE（23:03，真 diff 0.59%）；3200 SURFACE（14:11，100% 基线）
