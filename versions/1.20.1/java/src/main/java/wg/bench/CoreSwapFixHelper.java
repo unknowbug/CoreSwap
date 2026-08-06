@@ -68,6 +68,12 @@ public final class CoreSwapFixHelper {
             // 修复 XuanRikka 报告的「更新 mod 不替换老 dll」——旧缓存让用户永远跑旧代码报假 bug
             byte[] fresh = readJarBytes("native", "worldgen.dll");
             if (fresh == null) {
+                // 兜底：旧逻辑直接从定位的 jar/资源提取（readJarBytes 定位失败时）
+                Files.createDirectories(dir);
+                extractFromJar("native", dir, dir);
+                fresh = Files.exists(dll) ? Files.readAllBytes(dll) : null;
+            }
+            if (fresh == null) {
                 throw new IllegalStateException("worldgen.dll not found in mod native/");
             }
             boolean need = true;
@@ -104,8 +110,9 @@ public final class CoreSwapFixHelper {
                 }
             }
         }
-        // dev 环境（classpath 目录）
+        // dev 环境（classpath 目录）——locateResource 可能返回资源根或 native 目录，两种都试
         Path f = src.resolve(prefix + "/" + file);
+        if (!Files.isRegularFile(f)) f = src.resolve(file);
         return Files.isRegularFile(f) ? Files.readAllBytes(f) : null;
     }
 
