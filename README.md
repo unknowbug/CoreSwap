@@ -18,13 +18,13 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 ## Status (as of 2026-08-06)
 
-**v1.0.0 released — installable Fabric mod for MC 1.20.1.**
+**v1.0.3 released — installable Fabric mod for MC 1.20.1.**
 
 - ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **100% bit-identical to vanilla** — same seed, same terrain, block-for-block
 - ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
 - ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
 - ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
-- 📦 Download: [CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.1)
+- 📦 Download: [CoreSwap 1.20.1 v1.0.3](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.1)
 - 🗺️ Version plan: **full coverage on the roadmap** — 1.20.x ships first, then 1.18/1.19 and 1.17- progressively (worldgen architecture differs per version, docs/08 covers the migration flow)
 - 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
 
@@ -40,13 +40,13 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 ### Steps
 
-1. **Download** `coreswap-1.20.1-1.0.1.jar` from [Releases](https://github.com/unknowbug/CoreSwap/releases)
+1. **Download** `coreswap-1.20.1-1.0.3.jar` from [Releases](https://github.com/unknowbug/CoreSwap/releases)
 2. **Install Fabric** (skip if already installed): run the Fabric installer, pick Minecraft **1.20.1**, Install. It creates a "fabric-loader-…" profile in the launcher
 3. **Open the mods folder**: in the Fabric launcher profile click **Open Mods Folder**, or navigate manually to:
    - Windows: `%appdata%\.minecraft\mods`
    - macOS: `~/Library/Application Support/minecraft/mods`
    - Linux: `~/.minecraft/mods`
-4. **Drop `coreswap-1.20.1-1.0.1.jar` into `mods/`** — done
+4. **Drop `coreswap-1.20.1-1.0.3.jar` into `mods/`** — done
 5. **(Recommended) Add Sodium + Iris** (from [Modrinth](https://modrinth.com/)) — Sodium 0.5.x and Iris 1.7.x for 1.20.1, drop into `mods/` too. **Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — they complement each other, no conflict.** Add a shaderpack (e.g. BSL, Complementary) via `Options → Video Settings → Shader Packs` if you want shaders
 6. **Launch** the Fabric profile. Verify it's active in `logs/latest.log`:
    ```
