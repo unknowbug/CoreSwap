@@ -4,6 +4,7 @@
 
 [中文版 / Chinese](./README.zh-CN.md)
 
+## Some content in this project is provided by AI.
 Rewrite Minecraft Java Edition's performance-critical cores — **world generation** and **entity AI / pathfinding** — in C++, while keeping the **full Java mod ecosystem** intact. Same seed. Same world. Same mods. The C++ goes underneath.
 
 **Why:** Java Edition's performance has been a meme for two decades. Every existing fix has a fatal flaw:
