@@ -311,3 +311,25 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 ### 工具（08-08 就绪）
 
 `WG_DBDEBUG`（列 densityBuf）、`WG_COMPDUMP`（router 组件）、`-densityDump`（主世界无插值 finalDensity）、`-namedDump`（可信 registry）、DensityProbe cache/dfreg/comps 扩展、OreProbe 参数化。参照状态：-288 FULL（只用于 density/vein 分析）、3200/20000/8576 SURFACE（方块对比用）。
+
+## 2026-08-08 晚：spline 差定位进展（factor 3.99 vs Java -0.61，差 4.6）
+
+### 已坐实（可信数据）
+- **factor（spline）差 4.6**：C++ -namedDump 3.9932 vs cache（actualDensityFunctionCache 游戏实际）Spline 实例 -0.610364（@20008,0,20008）——**spline 真差**
+- **depth 差 0.0278**（C++ 0.417451 vs Java 0.389636）：depth 引用 offset（spline）——**同 spline bug，不同量级**
+- **sloped_cheese 差 7.2（y0）**：C++ 6.73 vs cache -0.467——组成 = 4×quarter_negative((depth + jaggedness×half_negative(noise_jagged)) × factor) + base_3d_noise——depth/jaggedness/b3d 已一致 → 差在 factor/noise_jagged
+
+### 已排除（静态审查 + debug 实证，全部与 Java 1.20.1 一致）
+1. **SplineDF.apply**（Catmull-Rom）：`lerp(kd,nv,ov) + kd(1-kd)lerp(kd, p, q)` 逐行一致（mc-src2 Spline.java 核对）
+2. **二分**：`findRangeForLocation = MathHelper.binarySearch(0, len, i -> x < locations[i]) - 1`（动态 predicate）== C++ 二分
+3. **sampleOutsideRange**：Java `f==0.0 ? value : value + f*(point-loc)` == C++（derivative=0 等价）
+4. **locations/derivatives 解析**：factor 顶层 locs=[-0.19,-0.15,-0.1,0.03,0.06] 与 JSON 一致
+5. **cache_2d（chunk 级缓存）**：key=(x>>4)<<32^(z>>4) 与 Java ChunkPos.toLong 一致；debug 实证 10 次 miss 是 chunk 边界（20016=chunk 1251）正常交替，非 bug
+6. **FlatCache 网格/查表**：5×5 角点 (chunkX*4+i)*4、clamp 语义一致
+
+### 剩余嫌疑（下一步）
+- **subSplines 嵌套值**（factor 的嵌套 spline：erosion 10 点、ridges 2 点等）——需逐环节对比（f/kd/nv/ov）
+- **f 的 float 精度**：Java Spline 的 locationFunction 是 ToFloatFunction（applyAsFloat 返回 float），C++ locationFunction->sample 返回 double——float vs double 差 1e-7 级，但 f 落 location 边界时可能跳区间（当前 f=-0.0091 远离边界，暂排除）
+
+### 工具
+WG_SPLINEDEBUG（SplineDF f/result/locations/locFn + Cache2DDF miss + FlatCacheDF grid dump）。
