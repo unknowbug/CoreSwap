@@ -539,20 +539,20 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
             int bx = atoi(sx), bz = atoi(sz);
             if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
                 NoisePos p;
-                for (int y = -64; y <= 63; y += 4) {
+                for (int y = -64; y <= 127; y += 4) {
                     p.x = bx; p.y = y; p.z = bz;
                     std::fprintf(stderr, "[SURF] (%d,%d,%d) initialDensity=%.6f finalDensity=%.6f\n", bx, y, bz,
                                  R["initial_density"]->sample(p), h->finalDensity->sample(p));
                 }
                 std::fprintf(stderr, "[SURF] estimateSurfaceHeight(%d,%d)=%d\n", bx, bz,
                              aquifer ? aquifer->estimateSurfaceHeight(bx, bz) : 0);
-                // 分量 dump（y=31 深水处）
-                p.y = 31;
+                // 分量 dump（y 可配 WG_SURFDUMP_Y，默认 31）
+                p.y = getenv("WG_SURFDUMP_Y") ? atoi(getenv("WG_SURFDUMP_Y")) : 31;
                 const char* comps[] = {"base_3d_noise", "factor", "depth", "jaggedness", "continents", "erosion"};
                 for (const char* c : comps) {
                     DF df = h->builder->getFunction("minecraft:overworld/" + std::string(c));
-                    if (df) std::fprintf(stderr, "[SURF] %s(y=31)=%.6f\n", c, df->sample(p));
-                    else std::fprintf(stderr, "[SURF] %s(y=31)=<missing>\n", c);
+                    if (df) std::fprintf(stderr, "[SURF] %s(y=%d)=%.6f\n", c, p.y, df->sample(p));
+                    else std::fprintf(stderr, "[SURF] %s(y=%d)=<missing>\n", c, p.y);
                 }
             }
         } else if (getenv("WG_SURFDUMP_SCAN")) {
