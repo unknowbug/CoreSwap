@@ -263,3 +263,9 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ **seed -8248 负坐标 = 95.47%（非 100%）**（block_probe 对比 vanilla 参照，4×4 负坐标 chunk）——正坐标 100%、负坐标普遍差——**负坐标 bug 与 seed 无关，真实 bug**
 - ✅ 排除「seed 97 特殊」——负坐标 bug 影响所有 seed（埋雷确认）
 - 🔍 根因仍在：Perlin 负坐标采样 or final 树负坐标——RouterProbe 参照不可靠（rd2 漂移），需游戏实际参照（cns CellCache）或差异模式定位
+
+## 2026-08-07 负坐标定位进展（十三）：差异模式 = 地表高度偏移（Perlin 微小差坐实）
+
+- ✅ **差异 y 分布**（seed -8248 负坐标 16 chunks，71207 块）：**集中在 y0-71（海平面附近，峰值 y56-63=10991）**，y72+ 几乎无（23）——**地表高度偏移几格**（density 零点差），非全列错
+- ✅ **Perlin 负坐标微小差坐实**：-8248 差几格、seed 97 特定位置放大到 52 格（同根源不同幅度）
+- 🔍 输入/实现全验证一致——差异在 Perlin.sample 内部的「微小浮点差」（floorD 边界 or 某步）——需更深逐位对比，或考虑 noise-in-Java 开关兜底
