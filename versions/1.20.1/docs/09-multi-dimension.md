@@ -144,3 +144,9 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - **实施时机：v1.2**（当前先修 surface 立确定性管线）
 
 **论点 4（修 surface = 浇筑多版本稳定基础）——采纳为当前主线**：runDepth/hole/lava 是确定性逻辑（整数/规则判断），修完即确定性管线成型。
+
+## 2026-08-07 surface 字段错位修复 + lava 差根源再定位
+
+- ✅ **字段错位修复**（反编译 SurfaceBuilder 字节码确认）：C++ 把 sampleRunDepth（=Java getSurfaceDepth 列初始）错存进 ctx.runDepth——y_above/stone_depth 用 runDepth 碰巧对（Java 也用列值 surfaceDepth）；**hole 用错**（Java 用 runDepth 扫描计数器：空气→0、非空气非流体→++、流体→保持）。修复：surfaceDepth/runDepth 分离，hole 改 stoneDepthAbove（扫描计数），主世界 100% 保持
+- ❌ **下界仍 72%**：字节码显示 Java buildSurface **跳过流体格**（goto 跳过规则应用）——**lava 不是 surface 规则生成**，来自 fillFromNoise 的流体填充（下界 fluid_level 组件）——C++ 的 3b 阶段下界无 aquifer 时跳过了流体填充 → lava 差 25365 根源
+- **下一步**：C++ fillOneChunk 下界分支补流体填充（Java ChunkNoiseSampler 的 fluid 逻辑：fluidLevelFloodedness/fluidLevelSpread 组件）
