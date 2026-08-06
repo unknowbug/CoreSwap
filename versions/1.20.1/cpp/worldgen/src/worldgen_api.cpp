@@ -476,12 +476,16 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
         p.x = (x >> 2) << 2;
         p.y = (y >> 2) << 2;
         p.z = (z >> 2) << 2;
-        float t = (float)R["temperature"]->sample(p);
-        float hum = (float)R["vegetation"]->sample(p);
-        float cont = (float)R["continents"]->sample(p);
-        float ero = (float)R["erosion"]->sample(p);
-        float dep = (float)R["depth"]->sample(p);
-        float w = (float)R["ridges"]->sample(p);
+        auto samp = [&](const char* k, const NoisePos& q) -> float {
+            auto it = R.find(k);
+            return it != R.end() ? (float)it->second->sample(q) : 0.0f;  // 维度缺组件（mod/简化维度）→ 0
+        };
+        float t = samp("temperature", p);
+        float hum = samp("vegetation", p);
+        float cont = samp("continents", p);
+        float ero = samp("erosion", p);
+        float dep = samp("depth", p);
+        float w = samp("ridges", p);
         const std::string* id = h->biomeSource.find(t, hum, cont, ero, dep, w);
         return id ? *id : "minecraft:plains";
     };
