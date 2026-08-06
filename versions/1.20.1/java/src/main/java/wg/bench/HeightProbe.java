@@ -31,8 +31,13 @@ public class HeightProbe {
         try {
             var col = cg.getColumnSample(x, z, world, world.getChunkManager().getNoiseConfig());
             System.out.println("getColumnSample: " + col);
-        } catch (Exception ex) {
-            System.out.println("getColumnSample threw " + ex);
+            // 列 dump：y 55..75
+            for (int y = 55; y <= 75; y++) {
+                System.out.println("  col y=" + y + ": " + col.getState(y));
+            }
+        } catch (Throwable ex) {
+            System.out.println("getColumnSample threw: " + ex);
+            for (StackTraceElement e : ex.getStackTrace()) System.out.println("    at " + e);
         }
         // 实际方块地表：加载 chunk 读列最高非空气
         Chunk chunk = world.getChunk(cx, cz);
@@ -43,18 +48,24 @@ public class HeightProbe {
             if (!chunk.getBlockState(new net.minecraft.util.math.BlockPos(x, y, z)).isAir()) { top = y; break; }
         }
         System.out.println("实际方块地表 top=" + top + " (minY=" + minY + " maxY=" + maxY + ")");
-        // 附近几列地表（结构周围 5x5）
-        System.out.println("周围 5x5 列地表高度（x 步进 4, z 步进 4）:");
-        for (int dz = -8; dz <= 8; dz += 4) {
-            StringBuilder sb = new StringBuilder("  z=" + (z + dz) + ": ");
-            for (int dx = -8; dx <= 8; dx += 4) {
-                int t = Integer.MIN_VALUE;
+        // 扫整个 chunk 找村庄结构方块（white_wool=帐篷/建筑、oak_log=塔楼）的 y 分布
+        int woolMin = Integer.MAX_VALUE, woolMax = Integer.MIN_VALUE, woolCount = 0;
+        int logMax = Integer.MIN_VALUE;
+        for (int bx = 0; bx < 16; bx++) {
+            for (int bz = 0; bz < 16; bz++) {
                 for (int y = maxY - 1; y >= minY; y--) {
-                    if (!chunk.getBlockState(new net.minecraft.util.math.BlockPos(x + dx, y, z + dz)).isAir()) { t = y; break; }
+                    var bs = chunk.getBlockState(new net.minecraft.util.math.BlockPos(x - (x & 15) + bx, y, z - (z & 15) + bz));
+                    String nm = bs.getBlock().getTranslationKey();
+                    if (nm.contains("white_wool")) {
+                        woolCount++;
+                        if (y < woolMin) woolMin = y;
+                        if (y > woolMax) woolMax = y;
+                    }
+                    if (nm.contains("oak_log") && y > logMax) logMax = y;
                 }
-                sb.append(t == Integer.MIN_VALUE ? "A " : t + " ");
             }
-            System.out.println(sb);
         }
+        System.out.println("chunk 结构方块: white_wool y=" + (woolMin == Integer.MAX_VALUE ? "无" : woolMin + ".." + woolMax) + " 数量=" + woolCount
+                + "  oak_log 最高 y=" + (logMax == Integer.MIN_VALUE ? "无" : logMax));
     }
 }

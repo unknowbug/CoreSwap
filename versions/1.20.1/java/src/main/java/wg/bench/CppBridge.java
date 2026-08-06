@@ -21,6 +21,9 @@ public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
+    /** 生成线程数（-Dcoreswap.threads=N 可配；0=物理核数自适应，修复 Issue #7 逻辑线程过分配） */
+    private static final int THREADS = System.getProperty("coreswap.threads") != null
+            ? Integer.parseInt(System.getProperty("coreswap.threads")) : 0;
 
     private CppBridge() {}
 
@@ -69,7 +72,7 @@ public final class CppBridge {
                 int got = 0;
                 try {
                     got = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz},
-                            new int[][]{buf}, 0);
+                            new int[][]{buf}, THREADS);
                 } catch (Throwable t) {
                     System.out.println("[CppBridge] DIAG noBatch fillBlocks threw chunk(" + cx + "," + cz + "): " + t);
                     return;
@@ -125,7 +128,7 @@ public final class CppBridge {
             try {
                 // 批量 fillBlocks：threads=0 → C++ 自适应 min(核数, n)；批量摊薄 JNI 边界 + 并行生成
                 // 注意：JNI 校验 outs.length == count，BATCH_BUFS 固定 16 → 必须 copyOf 到 n（引用数组，开销可忽略）
-                got = CppWorldgen.fillBlocks(h, cxs, czs, java.util.Arrays.copyOf(BATCH_BUFS, n), 0);
+                got = CppWorldgen.fillBlocks(h, cxs, czs, java.util.Arrays.copyOf(BATCH_BUFS, n), THREADS);
             } catch (Throwable t) {
                 System.out.println("[CppBridge] DIAG batch fillBlocks threw n=" + n + ": " + t);
                 return;

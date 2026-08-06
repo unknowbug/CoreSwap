@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.10.5'
 }
 
-version = '1.20.1-1.0.8'
+version = '1.20.1-1.0.9'
 group = 'wg'
 
 base {
@@ -80,6 +80,7 @@ if (project.findProperty('densityProbeZ') != null) run.vmArg "-DdensityProbe.z=$
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
 if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
+if (project.findProperty('coreswapThreads') != null) run.vmArg "-Dcoreswap.threads=${project.findProperty('coreswapThreads')}"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
 if (project.findProperty('compProbe') != null) {
     run.vmArg "-Dcomp.probe=true"
