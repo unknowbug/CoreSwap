@@ -49,6 +49,12 @@ void wg_profile_dump() {
                  (long long)wg_profNoiseDF.load(), (long long)wg_profSpline.load(),
                  (long long)wg_profInterpGrid.load(), (long long)wg_profAquiferDeep.load(),
                  (long long)wg_profBiomeAt.load());
+    std::fprintf(stderr,
+                 "[PROF] noise=%.1fms(%lld次)  spline=%.1fms(%lld次)  单次: noise=%.0fns spline=%.0fns\n",
+                 wg_profNoiseNs.load() / 1e6, (long long)wg_profNoiseDF.load(),
+                 wg_profSplineNs.load() / 1e6, (long long)wg_profSpline.load(),
+                 wg_profNoiseDF.load() ? (double)wg_profNoiseNs.load() / wg_profNoiseDF.load() : 0.0,
+                 wg_profSpline.load() ? (double)wg_profSplineNs.load() / wg_profSpline.load() : 0.0);
 }
 
 using namespace wg;
@@ -660,6 +666,8 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
 }
 
 } // extern "C"
+
+
 
 
 

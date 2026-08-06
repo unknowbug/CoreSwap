@@ -54,7 +54,8 @@ int main(int argc, char** argv) {
         const char* dfName = ddim == 1 ? "minecraft:nether/base_3d_noise" : "minecraft:overworld/base_3d_noise";
         int wx = dcx * 16 + dbx, wz = dcz * 16 + dbz;
         for (int y = 0; y <= 128; y += 4) {
-            std::printf("%d %.6f\n", y, wg_sample_named(dh, dfName, wx, y, wz));
+            double v = wg_sample_named(dh, dfName, wx, y, wz);
+            std::printf("%d %.17g %a\n", y, v, v);
         }
         wg_destroy(dh);
         return 0;

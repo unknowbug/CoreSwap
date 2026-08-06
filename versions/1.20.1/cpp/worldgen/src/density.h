@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <mutex>
+#include <chrono>
 #include "noise.h"
 
 // 剖析计数（WG_PROFILE=1 启用；C++17 inline 变量：多 TU 单一实体）
@@ -17,6 +18,9 @@ inline std::atomic<int64_t> wg_profSpline{0};
 inline std::atomic<int64_t> wg_profAquiferDeep{0};
 inline std::atomic<int64_t> wg_profBiomeAt{0};
 inline std::atomic<int64_t> wg_profInterpGrid{0};
+// 耗时（ns，WG_PROFILE 下累计；决定“noise 是否热点”的基石证据）
+inline std::atomic<int64_t> wg_profNoiseNs{0};
+inline std::atomic<int64_t> wg_profSplineNs{0};
 
 namespace wg {
 
@@ -314,7 +318,17 @@ public:
     }
 
     double sample(const NoisePos& pos) const override {
-        if (wg_profEnabled) wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);
+        if (wg_profEnabled) {
+            wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);
+            auto t0 = std::chrono::steady_clock::now();
+            double r = sampleImpl(pos);
+            wg_profNoiseNs.fetch_add((int64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - t0).count(), std::memory_order_relaxed);
+            return r;
+        }
+        return sampleImpl(pos);
+    }
+    double sampleImpl(const NoisePos& pos) const {
         double d = pos.x * scaledXzScale;
         double e = pos.y * scaledYScale;
         double f = pos.z * scaledXzScale;
@@ -619,7 +633,17 @@ public:
     SplineDF() : isLeaf(true), fixedValue(0) {}
 
     double sample(const NoisePos& pos) const override {
-        if (wg_profEnabled) wg_profSpline.fetch_add(1, std::memory_order_relaxed);
+        if (wg_profEnabled) {
+            wg_profSpline.fetch_add(1, std::memory_order_relaxed);
+            auto t0 = std::chrono::steady_clock::now();
+            double r = sampleImpl(pos);
+            wg_profSplineNs.fetch_add((int64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - t0).count(), std::memory_order_relaxed);
+            return r;
+        }
+        return sampleImpl(pos);
+    }
+    double sampleImpl(const NoisePos& pos) const {
         if (isLeaf) return fixedValue;
         double f = locationFunction->sample(pos);
         return apply(f, pos);
