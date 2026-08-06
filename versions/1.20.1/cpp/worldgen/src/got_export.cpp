@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     int64_t seed = (int64_t)std::strtoull(argv[1], nullptr, 10);
     int ox = argc >= 5 ? std::atoi(argv[4]) : 3200;
     int oz = argc >= 6 ? std::atoi(argv[5]) : 3208;
-    void* h = wg_create(seed, argv[2]);
+    void* h = wg_create(seed, argv[2], 0);
     if (!h) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
     FILE* f = fopen(argv[3], "wb");
     if (!f) return 1;

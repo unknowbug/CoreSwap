@@ -372,7 +372,8 @@ public:
                       const std::vector<int>& heightmap,
                       const std::vector<int>& surfaceHeights4,
                       const std::function<std::string(int, int, int)>& biomeAt,
-                      const std::function<double(const std::string&)>& biomeTemp);
+                      const std::function<double(const std::string&)>& biomeTemp,
+                      int minY, int worldHeight);
 
     static void addTerracottaBand(XoroshiroRandom& r, std::vector<int>& bands, int minBandSize, int state) {
         int i = r.nextBetween(6, 15);
@@ -608,7 +609,8 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          const std::vector<int>& heightmap,
                                          const std::vector<int>& surfaceHeights4,
                                          const std::function<std::string(int, int, int)>& biomeAt,
-                                         const std::function<double(const std::string&)>& biomeTemp) {
+                                         const std::function<double(const std::string&)>& biomeTemp,
+                                         int minY, int worldHeight) {
 
     SurfaceContext ctx;
     ctx.noiseSamplers = samplers;
@@ -622,7 +624,8 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
     const int airBlock = blocks->id("minecraft:air");
     const int waterBlock = blocks->id("minecraft:water");
     const int lavaBlock = blocks->id("minecraft:lava");
-    const int minY = BLOCK_MIN_Y;
+    const int worldMinY = minY;   // 维度参数化（overworld -64 / nether 0）
+    const int worldTopY = minY + worldHeight;  // 世界顶（overworld 320 / nether 256）
 
     // biome 缓存：按 4×4×4 块粒度（biome coords），packed key
     std::map<int64_t, std::pair<std::string, double>> biomeCache;
@@ -653,7 +656,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
 
             for (int wy = p; wy >= minY; wy--) {
                 int state;
-                if (wy >= BLOCK_MIN_Y + BLOCK_HEIGHT) {
+                if (wy >= worldTopY) {
                     state = airBlock; // 世界高度以上视为空气（vanilla HeightLimitView 越界返回 AIR）
                 } else {
                     state = col.at(k, wy, l);
@@ -670,7 +673,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                         s = INT32_MAX;
                         for (int v = wy - 1; v >= minY - 1; v--) {
                             int st2;
-                            if (v < BLOCK_MIN_Y) {
+                            if (v < worldMinY) {
                                 st2 = airBlock; // 世界底以下视为空气
                             } else {
                                 st2 = col.at(k, v, l);

@@ -138,6 +138,7 @@ constexpr int SZ = 16 / XZ_INTERVAL;   // 4
 constexpr int POINTS_PER_CHUNK = SX * SY * SZ; // 768
 
 struct WorldgenHandle {
+    DimConfig dim;  // 维度配置（通用引擎：minY/worldHeight/noiseHeight/aquifer/biome 参数）
     std::unique_ptr<DensityBuilder> builder;
     DF finalDensity;
     // router 分量（biome 采样 + aquifer）
@@ -173,44 +174,63 @@ static void fillNoiseSamplers(WorldgenHandle& h,
 
 extern "C" {
 
-void* wg_create(int64_t seed, const char* worldgenDir) {
+// 维度参数表（通用引擎：先覆盖 vanilla 主世界/下界；未来 mod 维度由数据驱动扩展）
+static DimConfig dimFor(int dimension) {
+    DimConfig d;
+    if (dimension == 1) {  // nether（noise_settings/nether.json：min_y=0 height=128 噪声、世界 256、无 aquifer）
+        d.minY = 0;
+        d.worldHeight = 256;
+        d.noiseHeight = 128;
+        d.aquifersEnabled = false;
+        d.noiseSettingsFile = "nether.json";
+        d.biomeParamsFile = "biome_params_nether.json";
+    }
+    return d;
+}
+
+void* wg_create(int64_t seed, const char* worldgenDir, int dimension) {
     profileInit();
     if (!worldgenDir) return nullptr;
     try {
         auto h = std::make_unique<WorldgenHandle>();
+        h->dim = dimFor(dimension);
         auto noiseParams = buildNoiseParams();
-        h->builder = std::make_unique<DensityBuilder>((uint64_t)seed, noiseParams);
+        h->builder = std::make_unique<DensityBuilder>((uint64_t)seed, noiseParams, h->dim.minY, h->dim.noiseHeight);
             h->wgDir = worldgenDir;
 
         std::string wgDir = worldgenDir;
-        std::string dfDir = wgDir + "/data/minecraft/worldgen/density_function/overworld/";
+        std::string dfNs = (dimension == 1) ? "nether" : "overworld";  // density function namespace/目录（mod 维度扩展点）
+        std::string dfDir = wgDir + "/data/minecraft/worldgen/density_function/" + dfNs + "/";
         // 捕获 handle（长期存活）而非局部变量，避免悬垂引用
-        h->builder->externalLoader = [hPtr = h.get()](const std::string& fullRef, const std::string& name) -> DF {
-            std::string path = hPtr->wgDir + "/data/minecraft/worldgen/density_function/overworld/" + name + ".json";
+        h->builder->externalLoader = [hPtr = h.get(), dfNs](const std::string& fullRef, const std::string& name) -> DF {
+            std::string path = hPtr->wgDir + "/data/minecraft/worldgen/density_function/" + dfNs + "/" + name + ".json";
             std::ifstream probe(path);
             if (!probe.good()) return nullptr;
             return hPtr->builder->parseFile(fullRef, readFile(path));
         };
 
-        std::vector<std::string> dfFiles = {
-            "base_3d_noise", "continents", "depth", "erosion", "factor",
-            "jaggedness", "offset", "ridges", "ridges_folded", "sloped_cheese",
-            "caves/entrances", "caves/noodle", "caves/pillars",
-            "caves/spaghetti_2d_thickness_modulator", "caves/spaghetti_2d",
-            "caves/spaghetti_roughness_function",
-        };
+        // 维度 density function 列表（overworld 15 个；nether 的 final_density 全内联、只需 base_3d_noise）
+        std::vector<std::string> dfFiles = (dimension == 1)
+            ? std::vector<std::string>{"base_3d_noise"}
+            : std::vector<std::string>{
+                "base_3d_noise", "continents", "depth", "erosion", "factor",
+                "jaggedness", "offset", "ridges", "ridges_folded", "sloped_cheese",
+                "caves/entrances", "caves/noodle", "caves/pillars",
+                "caves/spaghetti_2d_thickness_modulator", "caves/spaghetti_2d",
+                "caves/spaghetti_roughness_function",
+            };
         for (const auto& f : dfFiles) {
-            h->builder->registerFunction("minecraft:overworld/" + f, std::make_shared<DensityBuilder::LazyRef>());
+            h->builder->registerFunction("minecraft:" + dfNs + "/" + f, std::make_shared<DensityBuilder::LazyRef>());
         }
         for (const auto& f : dfFiles) {
             std::string path = dfDir + f + ".json";
             if (std::ifstream(path).good()) {
-                auto df = h->builder->parseFile("minecraft:overworld/" + f, readFile(path));
-                h->builder->registerFunction("minecraft:overworld/" + f, df);
+                auto df = h->builder->parseFile("minecraft:" + dfNs + "/" + f, readFile(path));
+                h->builder->registerFunction("minecraft:" + dfNs + "/" + f, df);
             }
         }
 
-        std::string settingsPath = wgDir + "/data/minecraft/worldgen/noise_settings/overworld.json";
+        std::string settingsPath = wgDir + "/data/minecraft/worldgen/noise_settings/" + h->dim.noiseSettingsFile;
         JsonParser sp(readFile(settingsPath));
         JsonValue settings = sp.parse();
         const JsonValue* router = settings.get("noise_router");
@@ -248,8 +268,8 @@ void* wg_create(int64_t seed, const char* worldgenDir) {
             "iceberg_pillar", "iceberg_pillar_roof", "iceberg_surface",
         });
 
-        // biome 源（biome_params.json：Java BiomeParamProbe 导出的 vanilla 参数表）
-        std::string biomeParamsPath = wgDir + "/../biome_params.json";
+        // biome 源（biome_params.json / biome_params_nether.json：Java BiomeParamProbe 导出的 vanilla 参数表）
+        std::string biomeParamsPath = wgDir + "/../" + h->dim.biomeParamsFile;
         if (!h->biomeSource.loadFromJson(readFile(biomeParamsPath))) {
             std::fprintf(stderr, "wg_create: cannot load %s\n", biomeParamsPath.c_str());
             return nullptr;
@@ -319,33 +339,46 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     //    只对 interpolated 节点插值，min/squeeze/mul 等非线性在插值后应用）
     NoisePos fpos;
 
-    // 2. aquifer（per chunk）——randomDeriver 需按名字派生（NoiseConfig: split("aquifer").nextSplitter()）
+    // 2. aquifer/oreVein（per chunk）——维度化：主世界有 aquifer+oreVein；下界 aquifersEnabled=false 且无 vein 组件（跳过）
     auto& R = h->router;
-    for (const char* k : {"barrier", "fluid_level_floodedness", "fluid_level_spread",
-                          "lava", "erosion", "depth", "initial_density",
-                          "temperature", "vegetation", "continents", "ridges",
-                          "vein_toggle", "vein_ridged", "vein_gap"}) {
-        if (!R.count(k)) { std::fprintf(stderr, "wg_fill_blocks: missing router component %s\n", k); return 0; }
+    const bool hasAquifer = h->dim.aquifersEnabled && R.count("fluid_level_floodedness") && R.count("vein_toggle");
+    if (!hasAquifer) {
+        // 下界：只校验存在的基础组件（barrier/continents/depth/erosion）
+        for (const char* k : {"barrier", "continents", "depth", "erosion"}) {
+            if (!R.count(k)) { std::fprintf(stderr, "wg_fill_blocks: missing router component %s\n", k); return 0; }
+        }
+    } else {
+        for (const char* k : {"barrier", "fluid_level_floodedness", "fluid_level_spread",
+                              "lava", "erosion", "depth", "initial_density",
+                              "temperature", "vegetation", "continents", "ridges",
+                              "vein_toggle", "vein_ridged", "vein_gap"}) {
+            if (!R.count(k)) { std::fprintf(stderr, "wg_fill_blocks: missing router component %s\n", k); return 0; }
+        }
     }
-    XoroshiroRandom aquiferRnd = h->builder->randomDeriverPublic().split("minecraft:aquifer");
-    Aquifer aquifer(R["barrier"], R["fluid_level_floodedness"], R["fluid_level_spread"],
-                    R["lava"], R["erosion"], R["depth"], R["initial_density"],
-                    aquiferRnd.nextSplitter(), &h->blocks, chunkX * 16, chunkZ * 16, MIN_Y, HEIGHT);
-    // ore veins（NoiseConfig: split("ore").nextSplitter()）
-    XoroshiroRandom oreRnd = h->builder->randomDeriverPublic().split("minecraft:ore");
-    OreVeinSampler oreVein(R["vein_toggle"], R["vein_ridged"], R["vein_gap"],
-                           oreRnd.nextSplitter(), &h->blocks);
+    std::unique_ptr<Aquifer> aquifer;
+    std::unique_ptr<OreVeinSampler> oreVein;
+    if (hasAquifer) {
+        XoroshiroRandom aquiferRnd = h->builder->randomDeriverPublic().split("minecraft:aquifer");
+        aquifer = std::make_unique<Aquifer>(R["barrier"], R["fluid_level_floodedness"], R["fluid_level_spread"],
+                        R["lava"], R["erosion"], R["depth"], R["initial_density"],
+                        aquiferRnd.nextSplitter(), &h->blocks, chunkX * 16, chunkZ * 16,
+                        h->dim.minY, h->dim.worldHeight);
+        // ore veins（NoiseConfig: split("ore").nextSplitter()）
+        XoroshiroRandom oreRnd = h->builder->randomDeriverPublic().split("minecraft:ore");
+        oreVein = std::make_unique<OreVeinSampler>(R["vein_toggle"], R["vein_ridged"], R["vein_gap"],
+                                   oreRnd.nextSplitter(), &h->blocks);
+    }
 
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
-    BlockColumn col;
-    std::vector<int> heightmap(256, MIN_Y - 1);
+    BlockColumn col(h->dim.minY, h->dim.worldHeight);
+    std::vector<int> heightmap(256, h->dim.minY - 1);
     bool profiling = getenv("WG_PROFILE") != nullptr;
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
-    std::vector<double> densityBuf(BLOCK_COUNT);
+    std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
     // 3a. density（独立循环，便于剖析与后续算法优化）
-    for (int by = 0; by < HEIGHT; by++) {
-        int wy = MIN_Y + by;
+    for (int by = 0; by < h->dim.worldHeight; by++) {
+        int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
             for (int bx = 0; bx < 16; bx++) {
                 fpos.x = chunkX * 16 + bx;
@@ -370,7 +403,7 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                                  R["initial_density"]->sample(p), h->finalDensity->sample(p));
                 }
                 std::fprintf(stderr, "[SURF] estimateSurfaceHeight(%d,%d)=%d\n", bx, bz,
-                             aquifer.estimateSurfaceHeight(bx, bz));
+                             aquifer ? aquifer->estimateSurfaceHeight(bx, bz) : 0);
                 // 分量 dump（y=31 深水处）
                 p.y = 31;
                 const char* comps[] = {"base_3d_noise", "factor", "depth", "jaggedness", "continents", "erosion"};
@@ -396,13 +429,16 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
             }
         }
     }
-    // 3b. aquifer + oreVein（ChainedBlockSource：aquifer null → oreVein）
-    for (int by = 0; by < HEIGHT; by++) {
-        int wy = MIN_Y + by;
+    // 3b. aquifer + oreVein（ChainedBlockSource：aquifer null → oreVein；下界两者都 null）
+    for (int by = 0; by < h->dim.worldHeight; by++) {
+        int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
             for (int bx = 0; bx < 16; bx++) {
-                int block = aquifer.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, densityBuf[by * 256 + bz * 16 + bx]);
-                if (block < 0) block = oreVein.apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz); // ChainedBlockSource：aquifer null → oreVein
+                int block = -1;
+                if (aquifer) {
+                    block = aquifer->apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz, densityBuf[by * 256 + bz * 16 + bx]);
+                    if (block < 0 && oreVein) block = oreVein->apply(chunkX * 16 + bx, wy, chunkZ * 16 + bz);
+                }
                 if (block < 0) block = stone;
                 col.at(bx, wy, bz) = block;
                 if (block != air && wy > heightmap[bz * 16 + bx]) heightmap[bz * 16 + bx] = wy;
@@ -433,11 +469,12 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
         return h->biomeSource.temperature(id);
     };
     std::vector<int> sh4(4);
-    sh4[0] = aquifer.estimateSurfaceHeight(chunkX * 16, chunkZ * 16);
-    sh4[1] = aquifer.estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16);
-    sh4[2] = aquifer.estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16);
-    sh4[3] = aquifer.estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16);
-    h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp);
+    sh4[0] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16) : 0;
+    sh4[1] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16) : 0;
+    sh4[2] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16) : 0;
+    sh4[3] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16) : 0;
+    h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp,
+                                    h->dim.minY, h->dim.worldHeight);
     if (profiling) {
         double tEnd = nowMs();
         std::fprintf(stderr, "[PROF] chunk(%d,%d): density=%.2fms aquifer+oreVein=%.2fms sh4+surface=%.2fms total=%.2fms\n",

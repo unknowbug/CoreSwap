@@ -9,7 +9,7 @@ extern "C" {
 // 创建 worldgen 句柄：一次 seed 初始化（构建全部 noise samplers + density 树）
 // worldgenDir: vanilla worldgen JSON 数据目录（含 data/minecraft/worldgen/...）
 // 失败返回 NULL
-void* wg_create(int64_t seed, const char* worldgenDir);
+void* wg_create(int64_t seed, const char* worldgenDir, int dimension = 0);
 
 // 释放句柄
 void wg_destroy(void* handle);

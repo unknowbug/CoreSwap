@@ -370,9 +370,11 @@ class InterpolatedDF : public DensityFunction {
 public:
     DF arg;
     static constexpr int CELL_X = 4, CELL_Y = 8, CELL_Z = 4;
-    static constexpr int MIN_Y = -64, HEIGHT = 384;
+    const int minY;     // 噪声 minY（overworld -64 / nether 0）
+    const int height;   // 噪声高度（overworld 384 / nether 128）
 
-    explicit InterpolatedDF(DF a) : arg(std::move(a)), cacheId(nextId.fetch_add(1)) {
+    explicit InterpolatedDF(DF a, int minY_ = -64, int height_ = 384)
+        : arg(std::move(a)), minY(minY_), height(height_), cacheId(nextId.fetch_add(1)) {
         updateInstanceCount();
     }
 
@@ -390,9 +392,9 @@ public:
             buildGrid(chunkX, chunkZ, slot.grid);
             if (wg_profEnabled) wg_profInterpGrid.fetch_add(1, std::memory_order_relaxed);
         }
-        constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
+        const int GX = 16 / CELL_X + 1, GY = height / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         int gx = pos.x - chunkX * 16;         // 0..15
-        int gy = pos.y - MIN_Y;               // 0..383
+        int gy = pos.y - minY;               // 0..height-1
         int gz = pos.z - chunkZ * 16;
         int cx = gx / CELL_X, cy = gy / CELL_Y, cz = gz / CELL_Z;
         // 越界保护：clamp 到网格边界内（POC：与 Java DensityInterpolator 直接采样略有差异，但稳定性优先）
@@ -444,14 +446,14 @@ private:
     static int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
 
     void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
-        constexpr int GX = 16 / CELL_X + 1, GY = HEIGHT / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
+        const int GX = 16 / CELL_X + 1, GY = height / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         grid.assign((size_t)GX * GY * GZ, 0.0);
         NoisePos p;
         for (int gy = 0; gy < GY; gy++)
             for (int gz = 0; gz < GZ; gz++)
                 for (int gx = 0; gx < GX; gx++) {
                     p.x = chunkX * 16 + gx * CELL_X;
-                    p.y = MIN_Y + gy * CELL_Y;
+                    p.y = minY + gy * CELL_Y;
                     p.z = chunkZ * 16 + gz * CELL_Z;
                     grid[((size_t)gy * GZ + gz) * GX + gx] = arg->sample(p);
                 }

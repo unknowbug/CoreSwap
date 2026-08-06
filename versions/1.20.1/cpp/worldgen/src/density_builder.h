@@ -13,8 +13,8 @@ class DensityBuilder {
 public:
     using NoiseParamsMap = std::map<std::string, DoublePerlinNoiseSampler::NoiseParameters>;
 
-    DensityBuilder(uint64_t seed, const NoiseParamsMap& noiseParams)
-        : seed(seed), noiseParams(noiseParams) {
+    DensityBuilder(uint64_t seed, const NoiseParamsMap& noiseParams, int minY_ = -64, int noiseHeight_ = 384)
+        : seed(seed), noiseParams(noiseParams), minY(minY_), noiseHeight(noiseHeight_) {
         // randomDeriver = XoroshiroRandom(seed).nextSplitter()
         XoroshiroRandom base(seed);
         randomDeriver = base.nextSplitter();
@@ -148,7 +148,8 @@ public:
         }
         if (type == "minecraft:interpolated") {
             // NoiseChunk cell 插值（4×4×8）：高频噪声防 alias，块级采样时三线性插值
-            return std::make_shared<InterpolatedDF>(arg("argument"));
+            // 维度参数化：minY/noiseHeight 从噪声设置读（overworld -64/384，nether 0/128）
+            return std::make_shared<InterpolatedDF>(arg("argument"), minY, noiseHeight);
         }
         if (type == "minecraft:old_blended_noise") {
             // InterpolatedNoiseSampler：random = randomDeriver.split(Identifier("terrain"))
@@ -308,6 +309,8 @@ private:
 
     uint64_t seed;
     const NoiseParamsMap& noiseParams;
+    int minY;         // 维度噪声 minY（overworld -64 / nether 0）
+    int noiseHeight;  // 维度噪声高度（overworld 384 / nether 128）
     XoroshiroRandom::Splitter randomDeriver;
     std::map<std::string, DF> registry;
     std::map<std::string, std::shared_ptr<LazyRef>> lazyRefs;

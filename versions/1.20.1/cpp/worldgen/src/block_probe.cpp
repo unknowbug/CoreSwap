@@ -25,20 +25,23 @@ static int64_t be64(int64_t v) {
 int main(int argc, char** argv) {
     try {
     if (argc < 4) {
-        std::fprintf(stderr, "usage: block_probe <seed> <worldgen dir> <vanilla.blocks> [-threads N]\n"
-                             "  -threads N: 并行线程数；省略时按 min(CPU 线程数, chunk 数) 自适应\n");
+        std::fprintf(stderr, "usage: block_probe <seed> <worldgen dir> <vanilla.blocks> [-threads N] [-dimension N]\n"
+                             "  -threads N: 并行线程数；省略时按 min(CPU 线程数, chunk 数) 自适应\n"
+                             "  -dimension N: 维度（0=overworld 默认，1=nether）\n");
         return 1;
     }
     int64_t seed = (int64_t)std::strtoull(argv[1], nullptr, 10);
     std::string wgDir = argv[2];
     std::string blocksPath = argv[3];
     int threadsArg = 0;
+    int dimension = 0;
     for (int a = 4; a + 1 < argc; a++) {
         if (std::string(argv[a]) == "-threads") threadsArg = std::atoi(argv[a + 1]);
+        else if (std::string(argv[a]) == "-dimension") dimension = std::atoi(argv[a + 1]);
     }
     setvbuf(stdout, nullptr, _IONBF, 0); // 无缓冲，崩溃时保留输出定位
 
-    void* h = wg_create(seed, wgDir.c_str());
+    void* h = wg_create(seed, wgDir.c_str(), dimension);
     if (!h) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
 
     // 读 vanilla 参照（大端）
@@ -59,7 +62,7 @@ int main(int argc, char** argv) {
     std::printf("blocks file: magic=0x%08X seed=%lld size=%d origin=(%d,%d) minY=%d height=%d\n",
                 magic, (long long)vseed, size, originX, originZ, minY, height);
 
-    const int BPC = 16 * 16 * 384;
+    const int BPC = 16 * 16 * height;   // 按参照头高度（overworld 384 / nether 256）
     int64_t total = 0, match = 0, matchNonAir = 0, totalNonAir = 0;
     std::vector<int> chunkX, chunkZ;
     std::vector<std::vector<int32_t>> vanillaAll, gotAll;
