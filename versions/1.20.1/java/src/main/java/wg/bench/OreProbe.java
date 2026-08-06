@@ -35,12 +35,16 @@ public class OreProbe {
         StringBuilder sb = new StringBuilder();
         sb.append("#seed ").append(seed).append('\n');
 
-        // 与 C++ ore_probe 相同的采样网格：chunk(200,200) 4×4 列 × y 每 4
+        int chunkX = Integer.parseInt(System.getProperty("ore.chunkX", "200"));
+        int chunkZ = Integer.parseInt(System.getProperty("ore.chunkZ", "200"));
+        int oX = chunkX * 16, oZ = chunkZ * 16;
+
+        // 与 C++ ore_probe 相同的采样网格：4×4 列 × y 每 4
         SimplePos pos = new SimplePos();
         for (int col = 0; col < 4; col++) {
             for (int row = 0; row < 4; row++) {
-                int bx = 200 * 16 + row * 4;
-                int bz = 200 * 16 + col * 4;
+                int bx = oX + row * 4;
+                int bz = oZ + col * 4;
                 for (int by = -64; by <= 100; by += 4) {
                     double vtRaw = vt.sample(pos.set(bx, by, bz));
                     double vrRaw = vr.sample(pos.set(bx, by, bz));
@@ -54,17 +58,17 @@ public class OreProbe {
             }
         }
 
-        // vanilla 矿脉坐标精确诊断：列 (3211,3204) 矿脉段 y=4..56
-        sb.append("#mine column (3211,3204)\n");
-        for (int by = -8; by <= 60; by++) {
-            double vtV = vt.sample(pos.set(3211, by, 3204));
-            double vrV = vr.sample(pos.set(3211, by, 3204));
-            double vgV = vg.sample(pos.set(3211, by, 3204));
-            double vtI = lerp3Interp(vtArg, 3211, by, 3204);
-            double vrI = lerp3Interp(vrArg, 3211, by, 3204);
-            double vgI = lerp3Interp(vgArg, 3211, by, 3204);
+        // 指定列精确诊断：列 (oX+8, oZ+8) 矿脉段 y=-64..60
+        sb.append("#mine column (" + (oX + 8) + "," + (oZ + 8) + ")\n");
+        for (int by = -64; by <= 60; by++) {
+            double vtV = vt.sample(pos.set(oX + 8, by, oZ + 8));
+            double vrV = vr.sample(pos.set(oX + 8, by, oZ + 8));
+            double vgV = vg.sample(pos.set(oX + 8, by, oZ + 8));
+            double vtI = lerp3Interp(vtArg, oX + 8, by, oZ + 8);
+            double vrI = lerp3Interp(vrArg, oX + 8, by, oZ + 8);
+            double vgI = lerp3Interp(vgArg, oX + 8, by, oZ + 8);
             sb.append(String.format(Locale.ROOT, "M %d %d %d vt=%.6f vr=%.6f vg=%.6f vtI=%.6f vrI=%.6f vgI=%.6f%n",
-                    3211, by, 3204, vtV, vrV, vgV, vtI, vrI, vgI));
+                    oX + 8, by, oZ + 8, vtV, vrV, vgV, vtI, vrI, vgI));
         }
         System.out.println("===OREPROBE_BEGIN===");
         System.out.print(sb);

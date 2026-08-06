@@ -36,7 +36,7 @@ public class DensityProbe {
             Field f = Chunk.class.getDeclaredField("chunkNoiseSampler");
             f.setAccessible(true);
             Object cns = f.get(chunk);
-            if (cns == null) { System.out.println("[DensityProbe] cns null at NOISE stage"); server.stop(false); return; }
+            if (cns == null) { System.out.println("[DensityProbe] cns null at NOISE stage — skipping cns chain (density/comps output still valid)"); }
             // RouterProbe 验证过的 yarn 路径：cm.getNoiseConfig().getNoiseRouter().finalDensity()
             net.minecraft.world.gen.noise.NoiseConfig nc = world.getChunkManager().getNoiseConfig();
             net.minecraft.world.gen.noise.NoiseRouter router = nc.getNoiseRouter();
@@ -73,6 +73,8 @@ public class DensityProbe {
                 int minCellY = -8;    // -64/8
                 mSS.invoke(cns);
                 StringBuilder sbCns = new StringBuilder();
+                // 严格复刻 c2me MixinNoiseChunkGenerator.populateNoise（= vanilla 1.20.1 ChunkNoiseGenerator.populateNoise）：
+                // cellX/cellZ/cbx/cbz 全正向；cellY/vb 反向；blockX/blockZ 世界坐标（interpolateX 用它算 cellBlockX）
                 for (int cellX = 0; cellX < cell; cellX++) {
                     mSE.invoke(cns, cellX);
                     for (int cellZ = 0; cellZ < cell; cellZ++) {
@@ -82,24 +84,24 @@ public class DensityProbe {
                                 int blockY = (minCellY + cellY) * vcell + vb;  // 世界 y
                                 double vy = (double) vb / (double) vcell;
                                 for (int cbx = 0; cbx < cell; cbx++) {
-                                    int blockX = -288 + cellX * cell + cbx;   // 世界坐标（chunk(-18) 起点 -288）
+                                    int blockX = cx * 16 + cellX * cell + cbx;   // 世界坐标（c2me: chunkStartX + ...）
                                     double vx = (double) cbx / (double) cell;
                                     for (int cbz = 0; cbz < cell; cbz++) {
-                                        int blockZ = -256 + cellZ * cell + cbz;  // 世界坐标（chunk(-16) 起点 -256）
+                                        int blockZ = cz * 16 + cellZ * cell + cbz;  // 世界坐标
                                         double vz = (double) cbz / (double) cell;
                                         mIY.invoke(cns, blockY, vy);
                                         mIX.invoke(cns, blockX, vx);
                                         mIZ.invoke(cns, blockZ, vz);
-                                        if (blockX == -280 && blockZ == -248) {
+                                        if ((blockX & 15) == bx && (blockZ & 15) == bz) {
                                             // 游戏实际 final density（DensityInterpolator.sample——不经过 aquifer，避免单 chunk 探针越界）
                                             java.lang.reflect.Field fInterps = null;
                                             try { fInterps = cns.getClass().getDeclaredField("interpolators"); }
                                             catch (NoSuchFieldException e) { fInterps = cns.getClass().getSuperclass().getDeclaredField("interpolators"); }
                                             fInterps.setAccessible(true);
                                             java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
-                                            Object di = interps.isEmpty() ? null : interps.get(0);  // finalDensity 的 DensityInterpolator
-                                            java.lang.reflect.Method mDI = di.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
-                                            double dv = (double) mDI.invoke(di, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
+                                            // ChunkNoiseSampler implements DensityFunction：sample(NoisePos) 返回当前插值位置的密度（finalDensity 组合）
+                                            java.lang.reflect.Method mCnsSample = cns.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                            double dv = (double) mCnsSample.invoke(cns, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
                                             sbCns.append(blockY).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", dv)).append('\n');
                                         }
                                     }
@@ -137,7 +139,9 @@ public class DensityProbe {
             // 分量 dump（负坐标 spline 定位）：router.depth/continents/erosion vs C++ WG_SURFDUMP
             try {
                 StringBuilder sbC = new StringBuilder();
-                for (String comp : new String[]{"depth", "continents", "erosion", "shiftX", "shiftZ"}) {
+                for (String comp : new String[]{"depth", "continents", "erosion", "shiftX", "shiftZ",
+                        "barrierNoise", "fluidLevelFloodednessNoise", "fluidLevelSpreadNoise", "lavaNoise",
+                        "veinToggle", "veinRidged", "veinGap", "initialDensity"}) {
                     try {
                         var m = router.getClass().getMethod(comp);
                         DensityFunction fc = (DensityFunction) m.invoke(router);

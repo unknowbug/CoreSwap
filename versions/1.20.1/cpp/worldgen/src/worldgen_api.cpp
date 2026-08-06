@@ -536,6 +536,44 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
         }
     }
     if (profiling) tA = nowMs();
+    // WG_DBDEBUG 诊断：dump 指定列（世界坐标 WG_DBDEBUG_X/Z）的 densityBuf 原始密度（不经 aquifer/surface），
+    // 格式对齐 cns 反射 dump（vanilla_density_*_cns.txt：y 递减，%.6f），便于直接 diff 区分 density 错 vs aquifer/surface 错
+    if (getenv("WG_DBDEBUG")) {
+        const char* sx = getenv("WG_DBDEBUG_X");
+        const char* sz = getenv("WG_DBDEBUG_Z");
+        if (sx && sz) {
+            int bx = atoi(sx), bz = atoi(sz);
+            if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
+                int lx = bx - chunkX * 16;  // chunk 内局部坐标 0..15（densityBuf 按局部索引）
+                int lz = bz - chunkZ * 16;
+                for (int by = h->dim.noiseHeight - 1; by >= 0; by--) {
+                    int wy = h->dim.minY + by;
+                    std::fprintf(stderr, "%d %.6f\n", wy, densityBuf[by * 256 + lz * 16 + lx]);
+                }
+            }
+        }
+    }
+    // WG_COMPDUMP 诊断：dump 指定列全部 router 组件（barrier/fluid/vein 等纯噪声无插值，与 vanilla router.*().sample() 可直接对比）
+    if (getenv("WG_COMPDUMP")) {
+        const char* sx = getenv("WG_COMPDUMP_X");
+        const char* sz = getenv("WG_COMPDUMP_Z");
+        if (sx && sz) {
+            int bx = atoi(sx), bz = atoi(sz);
+            if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
+                const char* comps[] = {"depth", "continents", "erosion", "barrier", "fluid_level_floodedness",
+                                       "fluid_level_spread", "lava", "vein_toggle", "vein_ridged", "vein_gap"};
+                NoisePos p;
+                for (const char* c : comps) {
+                    auto it = R.find(c);
+                    if (it == R.end()) continue;
+                    for (int y = h->dim.minY; y <= h->dim.minY + h->dim.noiseHeight - 1; y += 4) {
+                        p.x = bx; p.y = y; p.z = bz;
+                        std::fprintf(stderr, "[COMP] %s %d %.6f\n", c, y, it->second->sample(p));
+                    }
+                }
+            }
+        }
+    }
     // WG_SURFDUMP 诊断：dump 指定列的表面高度估计与 initialDensity/finalDensity 剖面
     if (getenv("WG_SURFDUMP")) {
         const char* sx = getenv("WG_SURFDUMP_X");

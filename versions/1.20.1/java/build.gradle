@@ -62,6 +62,8 @@ if (project.findProperty('routerZ') != null) run.vmArg "-Drouter.z=${project.fin
 if (project.findProperty('routerDim') != null) run.vmArg "-Drouter.dim=${project.findProperty('routerDim')}"
 if (project.findProperty('routerB3dDump') != null) run.vmArg "-Drouter.b3dDump=1"
             if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
+if (project.findProperty('oreChunkX') != null) run.vmArg "-Dore.chunkX=${project.findProperty('oreChunkX')}"
+if (project.findProperty('oreChunkZ') != null) run.vmArg "-Dore.chunkZ=${project.findProperty('oreChunkZ')}"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
