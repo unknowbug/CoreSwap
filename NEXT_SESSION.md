@@ -135,3 +135,17 @@
 2. 需要「游戏实际插值密度」参照——cns 反射的 interpolators 不含 finalDensity（get(0) min=-∞ 是某组件）；需找 ChunkNoiseSampler 的「当前密度」字段（非 interpolators）
 
 **-8248 有效参照**：-288 FULL（19:39，含 FEATURE 假 diff——**只用于 density/vein 分析，方块 diff 不可信**）；20000 SURFACE（23:03，真 diff 0.59%）；3200 SURFACE（14:11，100% 基线）
+
+### 2026-08-08 凌晨追加 4：20000 角点差根因链（最终收敛）
+
+**可信数据链**（level-seed 已改回 -8248 后）：
+- `-densityDump`（wg_sample_density 无插值）vs vanilla grid：**-288 角点（y≡0 mod 8）完全一致**（差在非角点 = 插值差）；**20000 角点差 0.127（y48）**——**无插值 finalDensity 在 20000 与 vanilla 差**（非插值问题）
+- base_3d_noise（-namedDump == -nbDump == 游戏实际 3e-5）、router 组件（barrier/fluid/veinGap/continents/erosion/depth/ridges）全 0 差异
+- **-namedDump 可信**（与 -nbDump 逐位一致）；**dfreg 不可信**（registry 原始树 ≠ 游戏实际——base_3d_noise 都对不上）；cache（actualDensityFunctionCache）是游戏实际但 435 key 按名匹配难
+
+**根因链（最终）**：
+C++ finalDensity 树内 **factor/sloped_cheese（spline 组合 + shift）与 vanilla 有系统差**（dfreg 参考：factor 差 1.6、sloped_cheese 差 11.6、offset(spline) 差 0.02 恒定——待 cache 可信确认）→ **20000 的差跨 range_choice 阈值（sloped_cheese 1.5625）→ finalDensity 角点差 0.127 → 浅层符号翻转 → 块状**；-288 的差被「同侧分支」吸收 → 100%。
+
+**下一步（唯一）**：拿可信的 vanilla sloped_cheese/factor（cache 里 RangeChoice[fromY=-4064] 实例——sloped_cheese 顶层 range_choice）对比 C++ -namedDump；若确认 spline/shift 差 → 查 C++ SplineDF/ShiftDF 实现细节（spline 差 0.02 恒定、shift 的 offset 噪声）。
+
+**工具就绪**：-densityDump（主世界）、-namedDump（可信）、DensityProbe cache/dfreg/comps、WG_DBDEBUG/WG_COMPDUMP。
