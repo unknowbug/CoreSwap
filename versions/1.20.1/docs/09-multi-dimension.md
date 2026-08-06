@@ -210,3 +210,21 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ 实现逐行对比（floorD/map/grad/sampleSection/Octave sample/maintainPrecision）均与 Java 1.20.1 一致——**排除明显的负数语义错误**
 - 🔍 **剩余嫌疑**：① 684.412f vs 684.412 浮点差在负坐标放大（d = -280*171.103 差 0.0034 → 噪声差 0.06）；但 continents（不用 684.412）也差 0.37 → 不是唯一原因 ② 更深层 Perlin 负数语义（需最小复现）
 - **下一步**：① 快速验证 684.412f ② 或最小复现（C++ 与 Java 同构造 continentalness 噪声对比负坐标采样）
+
+# 🔴 负坐标 bug 排查完整时间线（2026-08-07，重大主线）
+
+**现象**：块状断裂地形（用户：「初始块内正常、往外块状断裂，整体起伏对但能观察到块状」）；村庄塔楼悬空（结构放置高度 vs 实际地表）
+**突破**：CoreSwap 存档 vs vanilla 存档同 seed（97）对比 → **535 个差异 chunk 全部集中在负坐标（x<0/z<0），越负差越大（最大 52 格）**
+
+**排查链**（每步 ✅/❌）：
+1. ❌ 批量错位（BATCH_BUFS 对应正确，无 DIAG）
+2. ❌ 取模/除法/移位负数语义（floorDiv/算术右移/gx 非负都正确）
+3. ❌ aquifer->apply（density>0 直接 stone 逻辑对）
+4. ❌「densityDump vs densityBuf 采样矛盾」——**乌龙**：-densityDump 写死 nether.json（下界），对比错维度
+5. ✅ 正确路径 WG_SURFDUMP（fillOneChunk 内部主世界 final）：final@(-280,-248) y68 转负 → C++ 方块自洽（地表 66）；vanilla 地表 89 → **finalDensity 树负坐标差异坐实**
+6. ❌ b3d（x=0 位级一致——但负坐标未验证）
+7. ✅ **Perlin 负坐标差异坐实**：b3d(-280,-248) C++ 0.0274 vs Java 0.0895（RouterProbe 负坐标采样）
+8. ✅ 实现逐行一致（floorD/map/grad/sampleSection/Octave/maintainPrecision）
+9. 🔍 嫌疑：① 684.412f vs 684.412 浮点差（负坐标放大）② continentalness（不用 684.412）也差 0.37 → 独立问题
+
+**下一步**：最小复现（同 deriver 构造同一噪声采样负坐标逐位对比）；先快速验证 684.412f
