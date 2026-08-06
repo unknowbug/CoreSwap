@@ -163,6 +163,21 @@ public class RouterProbe {
         for (int p = 0; p < 8; p++) {
             net.minecraft.util.math.noise.PerlinNoiseSampler pn = interp.getOctave(p);
             if (pn != null) {
+                if (p < 2) {
+                    java.lang.reflect.Field fo = net.minecraft.util.math.noise.PerlinNoiseSampler.class.getDeclaredField("originX");
+                    fo.setAccessible(true);
+                    double ox = (double) fo.get(pn);
+                    fo = net.minecraft.util.math.noise.PerlinNoiseSampler.class.getDeclaredField("originY");
+                    fo.setAccessible(true);
+                    double oy = (double) fo.get(pn);
+                    fo = net.minecraft.util.math.noise.PerlinNoiseSampler.class.getDeclaredField("originZ");
+                    fo.setAccessible(true);
+                    double oz = (double) fo.get(pn);
+                    double dd = g * o + ox, ee = h * o + oy, ff = i * o + oz;
+                    int ii = (int) Math.floor(dd), jj = (int) Math.floor(ee), kk = (int) Math.floor(ff);
+                    System.out.println("[J-P] interp oct=" + p + " origin=(" + ox + "," + oy + "," + oz + ") d=" + dd + " e=" + ee + " f=" + ff
+                            + " i=" + ii + " j=" + jj + " k=" + kk + " g=" + (dd - ii) + " h=" + (ee - jj) + " l=" + (ff - kk));
+                }
                 double r0 = pn.sample(g * o, h * o, i * o, k * o, h * o);
                 System.out.println("[J-B3D] interp oct=" + p + " res=" + r0 + " contrib=" + r0 / o);
                 n += r0 / o;
