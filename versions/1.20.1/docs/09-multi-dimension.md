@@ -180,3 +180,12 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - 🔍 **新矛盾**：densityDump（finalDensity 树采样）与 fillOneChunk 的 densityBuf（方块生成的密度）**在正负坐标都结果矛盾**——densityDump 显示 chunk(0,9) final@y52-88 全正、chunk(-18,-16) final@96 正，但方块生成地表分别 66/65（y67+/y67+ 空气）——**两个路径采样同一 finalDensity 树却结果不同**
 - **嫌疑**：InterpolatedDF 的 thread_local 缓存（densityDump 与 fillOneChunk 的采样顺序/缓存命中不同 → 缓存值差异）——或 fillOneChunk 的采样路径有偏差
 - **下一步**：WG_SURFDUMP 在 fillOneChunk 内部 dump densityBuf（逐 4 格 finalDensity），与 densityDump 同列对比——定位「采样结果差异」的确切 pos 与缓存行为
+
+## 2026-08-07 负坐标定位进展（二）
+
+- ✅ **乌龙排除**：`-densityDump` 模式写死 `nether.json`（下界）——之前的「densityDump vs densityBuf 采样矛盾」是对比错维度（下界 density vs 主世界方块），不成立
+- ✅ **正确路径**（WG_SURFDUMP，fillOneChunk 内部主世界）：final@列(-280,-248) y64 正、y68 转负 → 方块地表 66（**C++ 方块自洽**）；vanilla 地表 89 → vanilla final@88 正 vs C++ -0.385——**finalDensity 树在负坐标差异坐实**
+- ✅ **b3d 排除**：nbDump 主世界 b3d 负坐标（-280,-248）无异常跳变（y60-96 平滑 -0.03~-0.25）
+- ✅ **InterpolatedDF 排除**：负坐标 chunk 定位/gx 非负/cx 0..3/clamp 不触发——网格逻辑对
+- 🔍 **嫌疑收窄**：spline（depth/continents/erosion）在负坐标——C++ 负坐标 y88 分量：depth=-0.1807、continents=0.1505、erosion=0.1338——**需 Java 侧（DensityProbe）对照分量**
+- **下一步**：DensityProbe 加分量 dump（负坐标 -280,-248 y88）对比 C++——定位 spline 差异
