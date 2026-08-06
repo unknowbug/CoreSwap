@@ -61,6 +61,34 @@ public final class CppBridge {
         long h = handle;  // 本地快照：destroy 后置 0，拦截后续调用（不 use-after-free）
         if (!enabled || h == 0) return;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
+        // 立即模式（-Dcpp.noBatch=1）：跳过 BATCH 攒批，单 chunk 直接 fillBlocks+writeChunk
+        // 诊断用途：区分「攒批机制丢/堵 chunk」与「C++/写入本身问题」（远处地形 air 排查）
+        if (System.getProperty("cpp.noBatch") != null) {
+            synchronized (BATCH_LOCK) {
+                int[] buf = BATCH_BUFS[0];
+                int got = 0;
+                try {
+                    got = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz},
+                            new int[][]{buf}, 0);
+                } catch (Throwable t) {
+                    System.out.println("[CppBridge] DIAG noBatch fillBlocks threw chunk(" + cx + "," + cz + "): " + t);
+                    return;
+                }
+                if (got != 1) {
+                    System.out.println("[CppBridge] DIAG noBatch fillBlocks got=" + got + " chunk(" + cx + "," + cz + ")");
+                    return;
+                }
+                int nz = 0;
+                for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
+                if (nz == 0) System.out.println("[CppBridge] DIAG noBatch buf-all-air chunk(" + cx + "," + cz + ")");
+                try {
+                    writeChunk(chunk, cx, cz, buf);
+                } catch (Throwable t) {
+                    System.out.println("[CppBridge] DIAG noBatch write threw chunk(" + cx + "," + cz + "): " + t);
+                }
+            }
+            return;
+        }
         boolean drain;
         synchronized (BATCH_LOCK) {
             PENDING.addLast(new Object[]{chunk, cx, cz});
