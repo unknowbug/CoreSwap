@@ -53,6 +53,70 @@ public class DensityProbe {
             Files.writeString(out.resolve(name), sb.toString(), StandardCharsets.UTF_8);
             System.out.println("[DensityProbe] " + name + " -> " + out.resolve(name) + " (" + height / 4 + " points)");
 
+            // 游戏实际路径：反射跑 cns 完整生成链（c2me MixinNoiseChunkGenerator 确认的流程）
+            // sampleStartDensity → sampleEndDensity(cellX) → onSampledCellCorners(cellY,cellZ)
+            // → interpolateY/X/Z → sampleBlockState（游戏实际方块）
+            // 只采样列 (8,8)（cellX=2, cellBlockX=0, cellZ=2, cellBlockZ=0）对比 C++
+            try {
+                java.lang.reflect.Method mSS = cns.getClass().getDeclaredMethod("sampleStartDensity");
+                java.lang.reflect.Method mSE = cns.getClass().getDeclaredMethod("sampleEndDensity", int.class);
+                java.lang.reflect.Method mOS = cns.getClass().getDeclaredMethod("onSampledCellCorners", int.class, int.class);
+                java.lang.reflect.Method mIY = cns.getClass().getDeclaredMethod("interpolateY", int.class, double.class);
+                java.lang.reflect.Method mIX = cns.getClass().getDeclaredMethod("interpolateX", int.class, double.class);
+                java.lang.reflect.Method mIZ = cns.getClass().getDeclaredMethod("interpolateZ", int.class, double.class);
+                java.lang.reflect.Method mSB = cns.getClass().getDeclaredMethod("sampleBlockState");
+                java.lang.reflect.Method mSW = cns.getClass().getDeclaredMethod("swapBuffers");
+                for (java.lang.reflect.Method m : new java.lang.reflect.Method[]{mSS, mSE, mOS, mIY, mIX, mIZ, mSB, mSW}) m.setAccessible(true);
+                int cell = 4;      // horizontalCellBlockCount
+                int vcell = 8;     // verticalCellBlockCount（1.20.1 垂直 cell = 8 块）
+                int cellHeight = 48;  // 384/8
+                int minCellY = -8;    // -64/8
+                mSS.invoke(cns);
+                StringBuilder sbCns = new StringBuilder();
+                for (int cellX = 0; cellX < cell; cellX++) {
+                    mSE.invoke(cns, cellX);
+                    for (int cellZ = 0; cellZ < cell; cellZ++) {
+                        for (int cellY = cellHeight - 1; cellY >= 0; cellY--) {
+                            mOS.invoke(cns, cellY, cellZ);
+                            for (int vb = vcell - 1; vb >= 0; vb--) {
+                                int blockY = (minCellY + cellY) * vcell + vb;  // 世界 y
+                                double vy = (double) vb / (double) vcell;
+                                for (int cbx = 0; cbx < cell; cbx++) {
+                                    int blockX = -288 + cellX * cell + cbx;   // 世界坐标（chunk(-18) 起点 -288）
+                                    double vx = (double) cbx / (double) cell;
+                                    for (int cbz = 0; cbz < cell; cbz++) {
+                                        int blockZ = -256 + cellZ * cell + cbz;  // 世界坐标（chunk(-16) 起点 -256）
+                                        double vz = (double) cbz / (double) cell;
+                                        mIY.invoke(cns, blockY, vy);
+                                        mIX.invoke(cns, blockX, vx);
+                                        mIZ.invoke(cns, blockZ, vz);
+                                        if (blockX == -280 && blockZ == -248) {
+                                            // 游戏实际 final density（DensityInterpolator.sample——不经过 aquifer，避免单 chunk 探针越界）
+                                            java.lang.reflect.Field fInterps = null;
+                                            try { fInterps = cns.getClass().getDeclaredField("interpolators"); }
+                                            catch (NoSuchFieldException e) { fInterps = cns.getClass().getSuperclass().getDeclaredField("interpolators"); }
+                                            fInterps.setAccessible(true);
+                                            java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
+                                            Object di = interps.isEmpty() ? null : interps.get(0);  // finalDensity 的 DensityInterpolator
+                                            java.lang.reflect.Method mDI = di.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                            double dv = (double) mDI.invoke(di, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
+                                            sbCns.append(blockY).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", dv)).append('\n');
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    mSW.invoke(cns);
+                }
+                Files.writeString(out.resolve(name.replace(".txt", "_cns.txt")), sbCns.toString(), StandardCharsets.UTF_8);
+                System.out.println("[DensityProbe] cns 游戏实际方块 -> " + name.replace(".txt", "_cns.txt"));
+            } catch (Exception ex) {
+                Throwable c = ex instanceof java.lang.reflect.InvocationTargetException ? ((java.lang.reflect.InvocationTargetException) ex).getTargetException() : ex;
+                System.out.println("[DensityProbe] cns chain threw " + c);
+                c.printStackTrace(System.out);
+            }
+
             // base_3d_noise 分量：优先从 cns.actualDensityFunctionCache 拿 vanilla 实际函数（rd 构造易错）
             DensityFunction b3d = null;
             try {
