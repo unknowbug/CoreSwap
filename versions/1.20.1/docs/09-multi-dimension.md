@@ -196,3 +196,10 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ continents = flat_cache(shifted_noise(continentalness, shift_x, shift_z))——纯噪声；排除 FlatCacheDF 网格定位（k/l 计算对）、ShiftDF（等价 Java shiftA/shiftB）、b3d（负坐标正常）
 - 🔍 **嫌疑收窄**：shifted_noise 内部的 **continentalness 噪声或 shift_x/shift_z 在负坐标采样差**（Perlin 层）
 - **下一步**：拆分 dump continentalness / shift_x / shift_z（C++ vs Java 对照）——定位具体噪声实例
+
+## 2026-08-07 负坐标定位进展（四）：spline 三分量全差 → 嫌疑 biomeAt
+
+- ✅ continents/erosion/depth **三个 spline 相关分量在负坐标都差**（0.37/0.14/0.13）——共同点 = spline（biome 参数）
+- ✅ shift_x 不在 NoiseRouter 上（Java 拿不到）；shift 本身是 spline（offset），差是结果非原因
+- 🔍 **嫌疑**：biomeAt（MultiNoiseBiomeSource.find）在负坐标返回错误的 biome → spline 值差 → 地形差（535 chunk）
+- **下一步**：验证 biomeAt 负坐标（C++ vs Java biome id 对照）——biome 坐标/hash 嫌疑
