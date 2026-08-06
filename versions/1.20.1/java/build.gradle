@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.10.5'
 }
 
-version = '1.20.1-1.0.5'
+version = '1.20.1-1.0.6'
 group = 'wg'
 
 base {
