@@ -417,6 +417,17 @@ double wg_sample_density(void* handle, int x, int y, int z) {
     return h->finalDensity->sample(pos);
 }
 
+// 采样注册的 density function（分量对比：如 "minecraft:nether/base_3d_noise"）
+double wg_sample_named(void* handle, const char* name, int x, int y, int z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !name) return 0.0;
+    DF df = h->builder->getFunction(name);
+    if (!df) return 0.0;
+    NoisePos pos;
+    pos.x = x; pos.y = y; pos.z = z;
+    return df->sample(pos);
+}
+
 int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size, double* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out || size <= 0) return 0;

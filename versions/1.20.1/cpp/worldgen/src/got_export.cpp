@@ -31,6 +31,18 @@ int main(int argc, char** argv) {
         wg_destroy(dh);
         return 0;
     }
+    // base_3d_noise 分量 dump：-nbDump cx cz bx bz
+    if (argc >= 4 && std::string(argv[3]) == "-nbDump") {
+        int dcx = std::atoi(argv[4]), dcz = std::atoi(argv[5]), dbx = std::atoi(argv[6]), dbz = std::atoi(argv[7]);
+        void* dh = wg_create(seed, argv[2], "nether.json", "biome_params_nether.json", 256);
+        if (!dh) { std::fprintf(stderr, "wg_create(nether) failed\n"); return 1; }
+        int wx = dcx * 16 + dbx, wz = dcz * 16 + dbz;
+        for (int y = 0; y <= 128; y += 4) {
+            std::printf("%d %.6f\n", y, wg_sample_named(dh, "minecraft:nether/base_3d_noise", wx, y, wz));
+        }
+        wg_destroy(dh);
+        return 0;
+    }
     if (!h) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
     FILE* f = fopen(argv[3], "wb");
     if (!f) return 1;
