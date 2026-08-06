@@ -153,3 +153,16 @@ python data\diag_full.py   # 全方块互换 top + y 分布
 2. 读 ore_vein.h 当前 `[ov]` 打印需要重跑 got_export 才能看到 → 先直接加个更全的调试（或直接跑一次 got_export 看 toggle 中部值）。
 3. 用 `diag_full.py` 确认当前基线（应为 ~97.7%，含矿脉差异）。
 4. 修 OreVein → 目标先把矿脉差异清零 → 再回头含水层 → 100% 后性能优化（紧凑数组+索引）。
+
+## 🔴 发布铁律（dll 版本验证——踩过 3 次坑：MinGW 旧 dll / 8/5 旧 MSVC dll / 打包不同步）
+
+发布前**逐项验证**（不跳过任何一项）：
+1. **C++ 构建**：必须 MSVC（vcvars64 + Ninja + `cmake --build build-msvc`）——严禁 MinGW（thread_local 退化 → 跨线程共享缓存 → 堆损坏，产生假 bug）
+2. **dll 导入表验证**（关键！）：
+   `dumpbin /dependents build-msvc/bin/worldgen.dll`
+   ✅ 应有 MSVCP140.dll / VCRUNTIME140.dll（MSVC）
+   ❌ 出现 libstdc++-6.dll / libgcc_s_seh-1.dll = MinGW 版，**禁止发布**
+3. **gradle build**：processResources 自动同步最新 MSVC dll（找不到会 WARN）——确认日志有 `[coreswap] 已同步 MSVC dll: 278016 bytes`
+4. **jar 内 dll 验证**：解 jar 里的 native/worldgen.dll → 大小 ~278KB + dumpbin 导入表 MSVC
+5. **主世界回归**：block_probe 4×4 → `TOTAL: match=1572864/1572864 (100.0000%)`
+6. 全部通过才允许 `gh release`
