@@ -337,7 +337,7 @@ public:
         double i = f / xzFactor;
         double j = scaledYScale * smearScaleMultiplier;
         double k = j / yFactor;
-        bool b3dDump = getenv("WG_B3DDUMP") != nullptr;
+        bool b3dDump = []() { static const bool v = getenv("WG_B3DDUMP") != nullptr; return v; }();
         if (b3dDump) std::fprintf(stderr, "[B3D] pos=(%d,%d,%d) d=%.17g e=%.17g f=%.17g g=%.17g h=%.17g i=%.17g j=%.17g k=%.17g\n",
             pos.x, pos.y, pos.z, d, e, f, g, h, i, j, k);
         double l = 0.0, m = 0.0, n = 0.0;

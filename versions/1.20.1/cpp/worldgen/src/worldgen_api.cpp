@@ -640,12 +640,45 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
 
 // 多 chunk 并行：chunkXs/chunkZs/outs 为 count 个 chunk 的坐标与输出缓冲。
 // 每个 chunk 独立生成（确定性随机派生 + thread_local 缓存），结果与串行逐位一致。
+// Windows：GetLogicalProcessorInformationEx 数物理核（SMT 不重复计；未来可区分 P/E 核）
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+static int physicalCoreCount() {
+#ifdef _WIN32
+    DWORD len = 0;
+    GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &len);
+    if (len > 0) {
+        std::vector<char> buf(len);
+        if (GetLogicalProcessorInformationEx(RelationProcessorCore,
+                reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data()), &len)) {
+            int cores = 0;
+            size_t off = 0;
+            while (off < len) {
+                auto* p = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buf.data() + off);
+                if (p->Relationship == RelationProcessorCore) cores++;
+                off += p->Size;
+            }
+            if (cores > 0) return cores;
+        }
+    }
+#endif
+    int hc = (int)std::thread::hardware_concurrency();
+    return hc > 1 ? hc / 2 : 1;  // 非 Windows 兜底：假设 SMT 减半
+}
+
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
     if (count <= 0) return 0;
     if (threads <= 0) {
-        // 默认自适应：min(CPU 逻辑线程数, 任务数)；探测失败兜底 1，避免过度订阅
-        threads = (int)std::thread::hardware_concurrency();
+        // 默认线程数 = 物理核数（Issue #7：4C8T 上 hardware_concurrency()=8 逻辑线程过分配，
+        // SMT 争抢 + thread_local 缓存翻倍 + 内存带宽饱和 → 吞吐倒退 2.5x）
+        const char* envT = getenv("CORESWAP_THREADS");
+        if (envT && *envT) threads = std::atoi(envT);
+        else threads = physicalCoreCount();
         if (threads <= 0) threads = 1;
     }
     if (threads > count) threads = count;
@@ -666,6 +699,9 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
 }
 
 } // extern "C"
+
+
+
 
 
 
