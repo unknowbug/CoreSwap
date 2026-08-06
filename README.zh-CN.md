@@ -25,7 +25,7 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 - ✅ **世界生成 10-20× 提速**：批量并行生成（~3ms/chunk vs vanilla ~60ms），自适应 `min(核数, 任务数)`
 - ✅ 纯算法优化全部无损（FlatCache / Cache2D / spline 缓存）——不靠近似
 - ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——实测 RTX 4060 笔记本 + BSL 光影 + 最大渲染距离全程不卡
-- 📦 下载：[CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.0)
+- 📦 下载：[CoreSwap 1.20.1 v1.0.0](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.1)
 - 🗺️ 版本计划：**全版本覆盖**（含 1.17 及更早）；优先 1.20.x 系列，其余按顺序推进（docs/08 有版本迁移流程）
 - 🔭 路线：光照（LIGHT）、实体 AI（Brain / Goal / 寻路）C++ 化
 
@@ -41,13 +41,13 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 
 ### 安装步骤
 
-1. **下载** `coreswap-1.20.1-1.0.0.jar`（[Releases 页面](https://github.com/unknowbug/CoreSwap/releases)）
+1. **下载** `coreswap-1.20.1-1.0.1.jar`（[Releases 页面](https://github.com/unknowbug/CoreSwap/releases)）
 2. **装 Fabric**（已装可跳过）：运行 Fabric 安装器，选择 **1.20.1**，安装。启动器里会出现 `fabric-loader-…` 版本
 3. **打开 mods 文件夹**：启动器里 Fabric 版本点 **Open Mods Folder**，或手动打开：
    - Windows：`%appdata%\.minecraft\mods`
    - macOS：`~/Library/Application Support/minecraft/mods`
    - Linux：`~/.minecraft/mods`
-4. **把 `coreswap-1.20.1-1.0.0.jar` 拖进 `mods/`**——完成
+4. **把 `coreswap-1.20.1-1.0.1.jar` 拖进 `mods/`**——完成
 5. **（推荐）加装 Sodium + Iris**（[Modrinth](https://modrinth.com/) 下载 1.20.1 版：Sodium 0.5.x、Iris 1.7.x，同样拖进 `mods/`）——**Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载），互补不冲突**。想开光影再在 `选项 → 视频设置 → 光影包` 里选一个（如 BSL、Complementary）
 6. **启动 Fabric 版本**。验证是否生效（看 `logs/latest.log`）：
    ```
