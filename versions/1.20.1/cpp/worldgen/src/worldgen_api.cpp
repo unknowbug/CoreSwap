@@ -410,9 +410,12 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
     }
 }
 
+// 线程池停止（前向声明，定义在 CoreSwapPool 之后）
+void shutdownCoreSwapPool();
+
 void wg_destroy(void* handle) {
     // 停止线程池（等待所有 worker 完成，避免 use-after-free：JVM shutdown 时 destroy 后无 worker 再用 handle）
-    CoreSwapPool::instance().shutdown();
+    shutdownCoreSwapPool();
     delete static_cast<WorldgenHandle*>(handle);
 }
 
@@ -677,6 +680,7 @@ static int physicalCoreCount() {
 class CoreSwapPool {
 public:
     static CoreSwapPool& instance() { static CoreSwapPool p; return p; }
+    void shutdownNow() { shutdown(); }
 
     void ensure(int n) {
         std::lock_guard<std::mutex> l(mtx);
@@ -748,6 +752,9 @@ private:
     bool stop = false;
     int taskQueue = 0, nextTask = 0, doneCount = 0, totalTasks = 0;
 };
+
+// 线程池停止（定义在 CoreSwapPool 之后；wg_destroy 前向调用）
+void shutdownCoreSwapPool() { CoreSwapPool::instance().shutdownNow(); }
 
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
