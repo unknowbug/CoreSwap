@@ -21,9 +21,20 @@ public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
-    /** 生成线程数（-Dcoreswap.threads=N 可配；0=物理核数自适应，修复 Issue #7 逻辑线程过分配） */
-    private static final int THREADS = System.getProperty("coreswap.threads") != null
-            ? Integer.parseInt(System.getProperty("coreswap.threads")) : 0;
+    /** 生成线程数（-Dcoreswap.threads=N 显式覆盖；否则模式自适应：
+     *  服务端全核(-1)、客户端留 2 核(-2) 给渲染/主线程——Issue #7 + 用户设计） */
+    private static final int THREADS = resolveThreads();
+
+    private static int resolveThreads() {
+        String explicit = System.getProperty("coreswap.threads");
+        if (explicit != null) return Integer.parseInt(explicit);
+        try {
+            return net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType()
+                    == net.fabricmc.api.EnvironmentType.SERVER ? -1 : -2;
+        } catch (Throwable t) {
+            return -1;  // 非 Fabric/未知：服务端全核兜底
+        }
+    }
 
     private CppBridge() {}
 

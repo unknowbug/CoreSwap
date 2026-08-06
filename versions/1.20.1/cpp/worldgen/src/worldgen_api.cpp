@@ -735,16 +735,19 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
     if (count <= 0) return 0;
     if (threads <= 0) {
-        // 默认线程数 = 物理核数（Issue #7：4C8T 上 hardware_concurrency()=8 逻辑线程过分配，
-        // SMT 争抢 + thread_local 缓存翻倍 + 内存带宽饱和 → 吞吐倒退 2.5x）
+        // 模式自适应：-1=服务端全核、-2=客户端留 2 核（渲染/主线程）、0=默认（同 -1）
+        // Issue #7：4C8T 上逻辑线程(8)过分配；CORESWAP_THREADS 显式覆盖优先
         const char* envT = getenv("CORESWAP_THREADS");
         if (envT && *envT) threads = std::atoi(envT);
-        else threads = physicalCoreCount();
+        else {
+            int pc = physicalCoreCount();
+            threads = (threads == -2) ? (pc > 2 ? pc - 2 : 1) : pc;
+        }
         if (threads <= 0) threads = 1;
     }
     if (threads > count) threads = count;
-    // 线程复用：持久线程池（首次按物理核数创建，后续复用——不每次创建/销毁 std::thread）
-    int poolThreads = physicalCoreCount();
+    // 线程复用：持久线程池（首次按模式线程数创建，后续复用——不每次创建/销毁 std::thread）
+    int poolThreads = threads;
     if (const char* envP = getenv("CORESWAP_THREADS"); envP && *envP) poolThreads = std::atoi(envP);
     if (poolThreads <= 0) poolThreads = 1;
     CoreSwapPool::instance().ensure(poolThreads);
