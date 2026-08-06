@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.10.5'
 }
 
-version = '1.20.1-1.0.0'
+version = '1.20.1-1.0.1'
 group = 'wg'
 
 base {
@@ -57,6 +57,7 @@ if (project.findProperty('compProbe') != null) {
     if (project.findProperty('compY') != null) run.vmArg "-Dcomp.y=${project.findProperty('compY')}"
 }
             if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
+if (project.findProperty('benchProbe') != null) run.vmArg "-Dworldgen.bench=true"
         }
         server {
             programArgs '--nogui'

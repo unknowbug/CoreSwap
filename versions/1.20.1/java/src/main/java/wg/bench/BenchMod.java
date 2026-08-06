@@ -13,9 +13,19 @@ public class BenchMod implements ModInitializer {
     public void onInitialize() {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> wg.bench.CppBridge.destroy());
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-            // CoreSwap 替换模式：-Dcpp.replace=1（正常游玩，不跑探针）
+            // 发布默认：无任何探针参数 = CoreSwap 正常游玩（服务端/客户端都保持运行，不自动停服）
             boolean replace = System.getProperty("cpp.replace") != null;
-            if (replace) {
+            boolean wgBench = System.getProperty("worldgen.bench") != null;
+            boolean anyProbe = System.getProperty("biome.probe") != null
+                    || System.getProperty("block.probe") != null
+                    || System.getProperty("probe.count") != null
+                    || System.getProperty("router.probe") != null
+                    || System.getProperty("ore.probe") != null
+                    || System.getProperty("jni.probe") != null
+                    || System.getProperty("readWorld.probe") != null
+                    || wgBench;
+            boolean active = replace || !anyProbe;  // 显式探针参数才跑探针，否则默认启用 CoreSwap
+            if (active) {
                 wg.bench.CppBridge.init(server.getOverworld().getSeed());
             }
             if (System.getProperty("biome.probe") != null) {
@@ -32,11 +42,11 @@ public class BenchMod implements ModInitializer {
                 JniProbe.run(server);
             } else if (System.getProperty("readWorld.probe") != null) {
                 ReadWorldProbe.run(server);
-            } else if (replace) {
-                // CoreSwap 替换模式：正常游玩（服务器保持运行，不自动关服）
-                System.out.println("[BenchMod] CoreSwap replace mode: C++ worldgen active");
-            } else {
+            } else if (wgBench) {
                 WorldGenBench.run(server);
+            } else {
+                // 默认：CoreSwap 正常游玩模式（服务器保持运行）
+                System.out.println("[BenchMod] CoreSwap replace mode: C++ worldgen active");
             }
         });
     }
