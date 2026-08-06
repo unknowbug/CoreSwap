@@ -12,6 +12,16 @@
 - **大项目目标（务必记住，勿漏）**：CoreSwap = 「把 Java 版性能核心 C++ 化、保留 MOD 生态」。区块生成是第一刀（已可玩）；**AI 层（实体 Brain / GoalSelector / Pathfinding 寻路的 C++ 化）是规划中的后续刀**（`versions/1.20.1/cpp/ai` 空占位目录）。AI 层一致性标准 = 行为级一致（非逐位，AI 是随机决策）。
 - **待排期**：**多维度通用引擎（用户初始目标，优先）**——参数化 C++ 密度引擎（minY/height/aquifer/biome 从 JSON 读）→ 补下界验证通用性 → 末地 → mod 维度按需（见记忆 core-swap-multi-dimension-engine）；LIGHT 光照 C++ 化（用户定为最后，价值最低）、打包发布、**全版本适配（用户真实目标：含 1.17 及更早，1.20.x 优先，docs/08 流程）**。**FEATURES（矿物/装饰）绝不做 C++ 化**（版本更新必动的大头，全版本适配忙不过来——见记忆 core-swap-full-version-goal）。
 
+### 下界 C++ 化改动清单（2026-08-06 规划，todo 3）
+
+数据已就绪（提交 d200a77）：全量 worldgen data（844 json 含 nether density/surface）+ biome_params_nether.json（5 下界 biomes）。关键事实：nether.json `noise: {min_y:0, height:128}`（噪声高度 128 ≠ 世界高度 256）；noise_router 只有 barrier/continents/depth/erosion/final_density（无 aquifer/oreVein 组件——C++ 现检查 14 个会 fail）；`aquifers_enabled: false`。
+
+改动点：
+- **A. 高度参数化**：blocks.h `BLOCK_MIN_Y/BLOCK_HEIGHT`（-64/384）全局 → WorldgenHandle 成员（per-dimension）；density.h:373 `MIN_Y/HEIGHT`（InterpolatedDF）→ 构造参数。**双高度**：世界高度（buffer/写入，nether 256）vs 噪声高度（采样，nether 128，主世界两者 384）
+- **B. wg_create 维度化**：加维度参数；按维度加载 noise_settings（overworld.json/nether.json）+ biome 参数（biome_params.json/biome_params_nether.json）
+- **C. fillOneChunk 维度分支**：下界跳过 aquifer/oreVein（R 缺组件不 fail）；y 循环 `< worldHeight`；densityBuf/BLOCK_COUNT 按维度（nether 65536）；density → surface rules → 方块（nether 的 surface_rule 在 nether.json 尾部，结构同主世界）
+- **D. JNI/Java**：BLOCK_COUNT 参数化（jni_bridge 98304→按维度）；CppWorldgen.fillBlocks 加维度参数；Java fillChunk 按 chunk 高度判断维度（0/256=nether）→ 传维度 + 对应 buf 大小；BATCH_BUFS 按维度
+
 ## 一、项目与环境
 
 - **项目**：CoreSwap —— Minecraft 1.20.1 worldgen C++ 复刻（JNI 桥 + 方块层），目标与 Java 逐位一致。
