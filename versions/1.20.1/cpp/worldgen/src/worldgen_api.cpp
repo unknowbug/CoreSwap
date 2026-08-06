@@ -329,7 +329,9 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
         }
         for (const auto& f : dfFiles) {
             std::string path = dfDir + f + ".json";
-            if (std::ifstream(path).good()) {
+            std::ifstream ifs(path);
+            if (getenv("WG_PRE")) std::fprintf(stderr, "[PRE] %s good=%d\n", path.c_str(), (int)ifs.good());
+            if (ifs.good()) {
                 auto df = h->builder->parseFile("minecraft:" + dfNs + "/" + f, readFile(path));
                 h->builder->registerFunction("minecraft:" + dfNs + "/" + f, df);
             }
@@ -404,6 +406,15 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
 
 void wg_destroy(void* handle) {
     delete static_cast<WorldgenHandle*>(handle);
+}
+
+// 直接采样 finalDensity（密度级对比/诊断用；维度由 handle 决定）
+double wg_sample_density(void* handle, int x, int y, int z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !h->finalDensity) return 0.0;
+    NoisePos pos;
+    pos.x = x; pos.y = y; pos.z = z;
+    return h->finalDensity->sample(pos);
 }
 
 int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size, double* out) {

@@ -155,8 +155,11 @@ public:
             // InterpolatedNoiseSampler：random = randomDeriver.split(Identifier("terrain"))
             // 注意：split(Identifier) → split(toString) = split("minecraft:terrain")
             XoroshiroRandom rnd = randomDeriver.split("minecraft:terrain");
+            double xzs = obj.num("xz_scale", 0.25), ys = obj.num("y_scale", 0.125);
+            if (getenv("WG_NBDEBUG")) std::fprintf(stderr, "[NB] y_scale=%g xz_scale=%g y_factor=%g\n",
+                ys, xzs, obj.num("y_factor", 160.0));
             return std::make_shared<InterpolatedNoiseDF>(
-                rnd, obj.num("xz_scale", 0.25), obj.num("y_scale", 0.125),
+                rnd, xzs, ys,
                 obj.num("xz_factor", 80.0), obj.num("y_factor", 160.0),
                 obj.num("smear_scale_multiplier", 8.0));
         }

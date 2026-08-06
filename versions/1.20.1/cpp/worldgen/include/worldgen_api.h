@@ -11,6 +11,7 @@ extern "C" {
 // 失败返回 NULL
 void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName = nullptr,
                 const char* biomeParamsFile = nullptr, int worldHeight = 0);
+double wg_sample_density(void* handle, int x, int y, int z);
 
 // 释放句柄
 void wg_destroy(void* handle);

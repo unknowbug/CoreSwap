@@ -668,7 +668,6 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                 if (isAir) {
                     q = 0;
                     r = INT32_MIN;
-                    ctx.runDepth = 0;  // 洞内重置（MC HoleCondition: runDepth<=0；主世界代码规则无 hole 不受影响）
                 } else if (isFluid) {
                     if (r == INT32_MIN) r = wy + 1;
                 } else {
