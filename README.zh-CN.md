@@ -98,6 +98,10 @@ C++ 核心与 vanilla 完全一致地重建密度场：
 
 无需任何容差：C++ 密度场与 vanilla 精确到 IEEE double 每一位。
 
+## 致谢
+
+- **dustinmoon78** — Forge + Sinytra Connector 兼容支持：多级定位 mod jar（`CoreSwapFixHelper`）+ 直接 `JarFile` 提取资源，实测 400+ mod 整合包。见 [#3](https://github.com/unknowbug/CoreSwap/pull/3)。
+
 ## License
 
 MIT
