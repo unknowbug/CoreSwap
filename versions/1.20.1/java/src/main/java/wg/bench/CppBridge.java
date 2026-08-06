@@ -29,8 +29,11 @@ public final class CppBridge {
         String explicit = System.getProperty("coreswap.threads");
         if (explicit != null) return Integer.parseInt(explicit);
         try {
-            return net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType()
-                    == net.fabricmc.api.EnvironmentType.SERVER ? -1 : -2;
+            // 反射拿 Fabric 环境（编译期无 fabric-loader API 依赖；Forge+Connector 也可能没有）
+            Object loader = Class.forName("net.fabricmc.loader.api.FabricLoader")
+                    .getMethod("getInstance").invoke(null);
+            Object env = loader.getClass().getMethod("getEnvironmentType").invoke(loader);
+            return "SERVER".equals(env.toString()) ? -1 : -2;
         } catch (Throwable t) {
             return -1;  // 非 Fabric/未知：服务端全核兜底
         }
