@@ -19,13 +19,13 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 
 ## 当前状态（2026-08-06）
 
-****v1.0.4（pre-release 测试版）**——可安装的 Fabric mod（MC 1.20.1）。连续修复服务端 Chunky 崩溃（MinGW dll）、服务端自动停服、全新环境启动崩溃；验证稳定后发布正式版。**
+****v1.0.6（pre-release 测试版）**——可安装的 Fabric mod（MC 1.20.1）。连续修复服务端 Chunky 崩溃（错误 dll（已彻底禁用 MinGW 改用 MSVC））、服务端自动停服、全新环境启动崩溃；验证稳定后发布正式版。**
 
 - ✅ NOISE+SURFACE 阶段（密度函数 / 含水层 / 矿脉 / 表面规则）与 vanilla **100% 逐位一致**——同种子同地形，逐块不差
 - ✅ **世界生成 10-20× 提速**：批量并行生成（~3ms/chunk vs vanilla ~60ms），自适应 `min(核数, 任务数)`
 - ✅ 纯算法优化全部无损（FlatCache / Cache2D / spline 缓存）——不靠近似
 - ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——实测 RTX 4060 笔记本 + BSL 光影 + 最大渲染距离全程不卡
-- 📦 下载：[CoreSwap 1.20.1 v1.0.4](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.1)
+- 📦 下载：[CoreSwap 1.20.1 v1.0.6](https://github.com/unknowbug/CoreSwap/releases/tag/coreswap-1.20.1-1.0.1)
 - 🗺️ 版本计划：**全版本覆盖**（含 1.17 及更早）；优先 1.20.x 系列，其余按顺序推进（docs/08 有版本迁移流程）
 - 🔭 路线：光照（LIGHT）、实体 AI（Brain / Goal / 寻路）C++ 化
 

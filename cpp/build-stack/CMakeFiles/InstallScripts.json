@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"E:/PYTHON/MC/cpp/build-stack/cmake_install.cmake",
-		"E:/PYTHON/MC/cpp/build-stack/worldgen/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

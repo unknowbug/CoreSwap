@@ -1,3 +1,0 @@
-E:\PYTHON\MC\tools\mingw\mingw64\bin\cmake.exe -E rm -f CMakeFiles\worldgen_jni.dir/objects.a
-E:\PYTHON\MC\tools\mingw\mingw64\bin\ar.exe qc CMakeFiles\worldgen_jni.dir/objects.a @CMakeFiles\worldgen_jni.dir\objects1.rsp
-E:\PYTHON\MC\tools\mingw\mingw64\bin\c++.exe -g -shared -static -o ..\bin\worldgen.dll -Wl,--out-implib,..\bin\libworldgen.dll.a -Wl,--major-image-version,0,--minor-image-version,0 -Wl,--whole-archive CMakeFiles\worldgen_jni.dir/objects.a -Wl,--no-whole-archive @CMakeFiles\worldgen_jni.dir\linkLibs.rsp

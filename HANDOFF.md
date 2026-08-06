@@ -35,9 +35,8 @@
 ## 二、常用命令
 
 ```powershell
-# C++ 编译（Release，产物在 cpp\build\bin\）
-$env:Path = 'E:\python\MC\tools\mingw\mingw64\bin;' + $env:Path
-cmake --build 'versions\1.20.1\cpp\build' --config Release
+# C++ 编译（MSVC Release，产物在 cpp\build-msvc\bin\——严格禁用 MinGW，用户铁律）
+cmd /c "call "D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" && set PATH="D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja";%PATH% && cmake --build "versions\1.20.1\cpp\build-msvc""
 
 # 对比（读 vanilla 参照）
 & 'versions\1.20.1\cpp\build\bin\block_probe.exe' '-8248318472910187742' 'E:\python\MC\data\worldgen' 'E:\python\MC\data\vanilla_-8248318472910187742_4_3200_3208.blocks'

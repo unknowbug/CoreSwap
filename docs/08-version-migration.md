@@ -76,7 +76,7 @@ diff 技巧：**逐类 diff 后，先对照「版本敏感点」清单打勾**�
 
 ## 数据/工具链（E:\python\MC）
 
-- C++ 编译：`$env:Path = 'E:\python\MC\tools\mingw\mingw64\bin;' + $env:Path; cmake --build 'versions\1.20.1\cpp\build' --config Release`
+- C++ 编译（MSVC，严格禁用 MinGW）：`cmd /c "call "D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" && set PATH="D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja";%PATH% && cmake --build "versions\1.20.1\cpp\build-msvc""`
 - block_probe：`block_probe.exe <seed> data\worldgen data\vanilla_*.blocks [-threads N]`
 - Java 导出 vanilla：`gradle runServer -PblockProbe=true -PbenchSeed=<seed> -PbenchSize=4 -PbenchOriginX=3200 -PbenchOriginZ=3208`
 - Java 探针：`-ProuterProbe=true` / `-PoreProbe=true`

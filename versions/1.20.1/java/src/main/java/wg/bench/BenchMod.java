@@ -44,6 +44,8 @@ public class BenchMod implements ModInitializer {
                 ReadWorldProbe.run(server);
             } else if (System.getProperty("noise.probe") != null) {
                 NoiseParamProbe.run(server);
+            } else if (System.getProperty("height.probe") != null) {
+                HeightProbe.run(server);
             } else if (System.getProperty("densityProbe") != null) {
                 DensityProbe.run(server);
             } else if (wgBench) {

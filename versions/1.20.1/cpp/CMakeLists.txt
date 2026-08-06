@@ -4,13 +4,7 @@ project(core_swap CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# MinGW 链接：C++ 运行时静态（自包含，dll 只依赖 msvcrt.dll）+ CRT 动态
-# 注意：全 -static 时 MinGW 的 thread_local 会退化为跨线程共享（多线程并发写缓存 → 堆损坏）
-if(MINGW)
-    add_compile_options(-static-libgcc -static-libstdc++)
-    add_link_options(-static-libgcc -static-libstdc++)
-endif()
-
+# ⚠️ 构建铁律：严格 MSVC（用户禁用 MinGW——MinGW -static 下 thread_local 退化 → 跨线程共享缓存 → 堆损坏 0xC0000005）
 # MSVC：源码为 UTF-8（含中文注释）；NOMINMAX 防 windows.h min/max 宏冲突；/EHsc 异常展开
 if(MSVC)
     add_compile_options(/utf-8 /DNOMINMAX /EHsc)

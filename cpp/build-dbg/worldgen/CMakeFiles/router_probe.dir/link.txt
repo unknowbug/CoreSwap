@@ -1,3 +1,0 @@
-E:\PYTHON\MC\tools\mingw\mingw64\bin\cmake.exe -E rm -f CMakeFiles\router_probe.dir/objects.a
-E:\PYTHON\MC\tools\mingw\mingw64\bin\ar.exe qc CMakeFiles\router_probe.dir/objects.a @CMakeFiles\router_probe.dir\objects1.rsp
-E:\PYTHON\MC\tools\mingw\mingw64\bin\c++.exe -g -static -Wl,--whole-archive CMakeFiles\router_probe.dir/objects.a -Wl,--no-whole-archive -o ..\bin\router_probe.exe -Wl,--out-implib,..\bin\librouter_probe.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\router_probe.dir\linkLibs.rsp

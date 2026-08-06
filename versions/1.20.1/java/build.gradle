@@ -25,6 +25,20 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }
+    // ⚠️ 打包铁律：先同步最新 MSVC dll 到 resources/native（否则发布的是旧版 dll——
+    //   1.0.2 踩过 MinGW 旧 dll、1.0.6 踩过 8/5 旧 MSVC dll，两次都是没同步）
+    doFirst {
+        def src = file('../cpp/build-msvc/bin/worldgen.dll')
+        if (src.exists()) {
+            copy {
+                from src
+                into file('src/main/resources/native')
+            }
+            println "[coreswap] 已同步 MSVC dll: " + src.length() + " bytes"
+        } else {
+            println "[coreswap] WARN: 未找到 MSVC dll（../cpp/build-msvc/bin/worldgen.dll），将打包旧资源！"
+        }
+    }
 }
 
 loom {
@@ -49,6 +63,7 @@ loom {
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
 if (project.findProperty('biomePreset') != null) run.vmArg "-Dbiome.preset=${project.findProperty('biomePreset')}"
 if (project.findProperty('noiseProbe') != null) run.vmArg "-Dnoise.probe=true"
+if (project.findProperty('heightProbe') != null) run.vmArg "-Dheight.probe=true"
 if (project.findProperty('noiseNames') != null) run.vmArg "-Dnoise.names=${project.findProperty('noiseNames')}"
 if (project.findProperty('noiseSuffix') != null) run.vmArg "-Dnoise.suffix=${project.findProperty('noiseSuffix')}"
 if (project.findProperty('densityProbe') != null) run.vmArg "-DdensityProbe=true"

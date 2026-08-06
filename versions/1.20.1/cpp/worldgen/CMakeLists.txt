@@ -4,11 +4,7 @@ project(worldgen CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# MinGW 静态链接运行时：exe/dll 自包含，用户无需安装 MinGW
-if(MINGW)
-    add_compile_options(-static)
-    add_link_options(-static)
-endif()
+# ⚠️ 构建铁律：严格 MSVC（用户禁用 MinGW——thread_local 语义 + 堆损坏问题，见顶层 CMakeLists 注释）
 
 # 统一输出目录：cpp/build/bin/（无论模块嵌套多深，产物路径稳定）
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

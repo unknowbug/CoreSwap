@@ -1,3 +1,0 @@
-E:\PYTHON\MC\tools\mingw\mingw64\bin\cmake.exe -E rm -f CMakeFiles\noise_probe.dir/objects.a
-E:\PYTHON\MC\tools\mingw\mingw64\bin\ar.exe qc CMakeFiles\noise_probe.dir/objects.a @CMakeFiles\noise_probe.dir\objects1.rsp
-E:\PYTHON\MC\tools\mingw\mingw64\bin\c++.exe -O3 -DNDEBUG -Wl,--stack,16777216 -static -Wl,--whole-archive CMakeFiles\noise_probe.dir/objects.a -Wl,--no-whole-archive -o ..\bin\noise_probe.exe -Wl,--out-implib,..\bin\libnoise_probe.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\noise_probe.dir\linkLibs.rsp

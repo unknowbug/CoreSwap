@@ -17,7 +17,7 @@
 4. 全部对齐 100% 后，才做性能优化（紧凑数组+索引+缓存友好布局）。
 
 ## 环境速查
-- C++ 编译：`$env:Path = 'E:\python\MC\tools\mingw\mingw64\bin;' + $env:Path; cmake --build 'versions\1.20.1\cpp\build' --config Release`
+- C++ 编译（MSVC，严格禁用 MinGW）：`cmd /c "call "D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" && set PATH="D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja";%PATH% && cmake --build "versions\1.20.1\cpp\build-msvc""`
 - block_probe：`versions\1.20.1\cpp\build\bin\block_probe.exe -8248318472910187742 data\worldgen data\vanilla_-8248318472910187742_4_3200_3208.blocks`
 - got_export：同目录 `got_export.exe`（3-5 分钟，用后台跑）
 - Java 参照导出：`cd versions\1.20.1\java; gradle runServer --no-daemon -PblockProbe=true -PbenchSeed=-8248318472910187742 -PbenchSize=4 -PbenchOriginX=3200 -PbenchOriginZ=3208`（JAVA_HOME=E:\python\MC\tools\jdk17\jdk-17.0.20+8）

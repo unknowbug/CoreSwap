@@ -69,7 +69,7 @@ public class RouterProbe {
                 double v = fns[f].sample(pos);
                 sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
             }
-            sb.append(String.format(Locale.ROOT, "base_3d_noise %.17g%n", b3d.sample(pos)));
+            sb.append(String.format(Locale.ROOT, "base_3d_noise %.17g %s%n", b3d.sample(pos), Double.toHexString(b3d.sample(pos))));
             // biome 采样（该点 6 维；采样位置 = floor(block/4)*4）
             {
                 SimplePos bp = new SimplePos();
