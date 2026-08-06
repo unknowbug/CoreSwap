@@ -4,6 +4,8 @@
 
 [English / English](./README.md)
 
+## 本项目部分内容由AI提供
+
 把 Minecraft Java 版的性能核心——**区块生成** 和 **实体 AI / 寻路**——用 C++ 重写，**完整保留 Java MOD 生态**。
 同一个种子、同一个世界、同一个 MOD——只是底下换成了 C++。
 
