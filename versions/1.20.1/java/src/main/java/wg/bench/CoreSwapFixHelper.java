@@ -105,7 +105,7 @@ public final class CoreSwapFixHelper {
             }
         }
         // dev 环境（classpath 目录）
-        Path f = src.resolve(file);
+        Path f = src.resolve(prefix + "/" + file);
         return Files.isRegularFile(f) ? Files.readAllBytes(f) : null;
     }
 

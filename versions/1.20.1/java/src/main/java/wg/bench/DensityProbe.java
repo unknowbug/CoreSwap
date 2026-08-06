@@ -70,6 +70,26 @@ public class DensityProbe {
             } catch (Exception ignored) {
             }
             StringBuilder sb2 = new StringBuilder();
+            // 分量 dump（负坐标 spline 定位）：router.depth/continents/erosion vs C++ WG_SURFDUMP
+            try {
+                StringBuilder sbC = new StringBuilder();
+                for (String comp : new String[]{"depth", "continents", "erosion"}) {
+                    try {
+                        var m = router.getClass().getMethod(comp);
+                        DensityFunction fc = (DensityFunction) m.invoke(router);
+                        for (int y = minY; y < minY + height; y += 4) {
+                            double v = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                            sbC.append(comp).append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
+                        }
+                    } catch (Exception ex) {
+                        sbC.append(comp).append(" <method-threw ").append(ex).append(">\n");
+                    }
+                }
+                Files.writeString(out.resolve(name.replace(".txt", "_comps.txt")), sbC.toString(), StandardCharsets.UTF_8);
+                System.out.println("[DensityProbe] comps -> " + out.resolve(name.replace(".txt", "_comps.txt")));
+            } catch (Exception ex) {
+                System.out.println("[DensityProbe] comps threw " + ex);
+            }
             if (b3d != null) {
                 for (int y = minY; y < minY + height; y += 4) {
                     double v = b3d.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
