@@ -158,3 +158,10 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - **根因**：Java 结构放置高度（getHeight/getColumnSample）用 dho 构建（ChunkNoiseSampler horizontalBlockCount=1 的 1-cell 网格 density 采样），实际方块生成用 4-cell 网格——塔楼位置 y63-66 两者差 ~0.0004 → **符号翻转**（Java 地表 66/67 vs 实际 62）→ 结构放高 4-5 格
 - ❌ **未定**：vanilla（无 mod）同一位置村庄是否同样「高 5 格」（若是 MC 本身行为则非我们差异；若 vanilla 落地则结构放置路径有差）——需 vanilla 对照
 - **下一步**：vanilla runServer 对照（无 cppReplace 同 seed 生成村庄看 start 高度）
+
+## 2026-08-07 悬空结构 vanilla 对照结论（更新）
+
+- ✅ **getHeight/getColumnSample 与 vanilla 完全一致**（67/66——纯 Java density 采样，不受 CoreSwap 影响）——结构 start 高度逻辑是 MC 原生行为
+- ❌ vanilla 单 chunk 生成不含村庄 start（结构跨 chunk）——无法直接对比村庄落地；完整对比需预生成村庄 start 区域（成本高）
+- **定性**：悬空结构非 CoreSwap 引入（高度逻辑没被改）；「MC 为什么 vanilla 不悬空」涉及结构模板落地机制/多 chunk blender——MC 深水区，暂缓
+- **优先级调整**：先做问题 2（远处虚空——BATCH 攒批吞吐，性能/体验更实际）
