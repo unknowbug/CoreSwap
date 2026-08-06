@@ -129,3 +129,18 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ❌ **DensityProbe 的 UnblendedNoisePos 路径不可靠**（坐实）：y24 final=0.0425 是 per-call CellCache 插值结果（≈0.5*(arg@16+arg@32)*0.64 squeeze），不是直接 arg@24（=-0.148）——**DensityProbe 下界 final 数据不再作为参照**
 - **推论**：C++ 的 CellCache 网格（buildGrid 直接 arg 采样）与游戏实际路径一致（b3d 一致证明）——下界 72% 方块差**不在 density**，在 surface 规则（runDepth/hole/lava，之前已定位）
 - **下一步**：surface 规则差异（lava 25365/洞穴——runDepth 洞内重置需先确认 MC 1.20.1 源码）
+
+## 2026-08-07 潘多拉审计回应（证据精度 + 耗时占比 + noise-in-Java 开关）
+
+**论点 1（位级一致证据精度）——已修正并实锤**：C++ nbDump 原 %.6f（6 位小数）不足以支撑「逐位一致」；改 %.17g + %a（hex float）双格式，Java RouterProbe 加 Double.toHexString 对照——**y0-60 全部 16 点 17 位有效数字 + 53 位尾数 hex 逐位相等**（含 %.17g 显示差 1 ulp 的 y12，hex 完全一致，确认是打印舍入）。CoreSwap 卖点「exact IEEE double」证据链：主世界 block 100% + b3d hex 位等。
+
+**论点 2（耗时占比）——数据补钉**：WG_PROFILE 计时器（noise/spline 分项 ns 累计）实测 16 chunks：spline 99.4ms(100240 次, 单次 992ns) vs noise 30.6ms(37539 次, 单次 815ns)——**spline 总耗时是 noise 3.2 倍，单次 Perlin 不比单次 spline 贵**。「noise 不是热点」从次数对比升级为耗时占比铁证；把 noise 留 Java 无性能收益（noise 仅占 density 阶段小头，留 Java 还加 JNI 往返）。
+
+**论点 3（noise-in-Java 迁移开关）——采纳为 v1.2 多版本迁移工具**：
+- 运行时：默认全 C++（性能模式），不开开关
+- 开发期：`-Dcpp.noiseInJava=true` 时，C++ 的 InterpolatedNoiseDF 采样改走 JNI 调 Java（游戏侧 old_blended_noise 永远对），C++ 只算确定性管线（渐变/常数/插值/含水层/表面）
+- 新版本适配流程：先开开关跑通（noise 免复刻）→ 验证正确性 → 逐个复刻 noise 回 C++ 拿性能
+- 双用途：多版本迁移脚手架 + 兼容模式兜底
+- **实施时机：v1.2**（当前先修 surface 立确定性管线）
+
+**论点 4（修 surface = 浇筑多版本稳定基础）——采纳为当前主线**：runDepth/hole/lava 是确定性逻辑（整数/规则判断），修完即确定性管线成型。
