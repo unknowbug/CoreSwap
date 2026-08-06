@@ -48,7 +48,8 @@ public final class CppBridge {
                 // 幂等失败时残留旧结构 → 先清再解压
                 if (Files.exists(target)) deleteRecursively(target);
                 Files.createDirectories(wgDir);
-                var container = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("worldgen-bench").get();
+                // mod id 已改名 coreswap（1.0.0+）；改名时务必同步这里，否则全新环境解压数据时 Optional.get() 抛 NoSuchElementException 崩溃（CppBridge.java:51 历史坑）
+                var container = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("coreswap").get();
                 for (Path root : container.getRootPaths()) {
                     Path src = root.resolve("worldgen-data");
                     if (!Files.isDirectory(src)) continue;
