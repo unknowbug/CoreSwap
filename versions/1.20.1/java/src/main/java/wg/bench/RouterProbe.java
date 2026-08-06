@@ -69,6 +69,13 @@ public class RouterProbe {
                 double v = fns[f].sample(pos);
                 sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
             }
+            if (System.getProperty("router.b3dDump") != null) {
+                try {
+                    dumpB3dInternal(b3d, pos);
+                } catch (Throwable ex) {
+                    System.out.println("b3dDump threw " + ex);
+                }
+            }
             sb.append(String.format(Locale.ROOT, "base_3d_noise %.17g %s%n", b3d.sample(pos), Double.toHexString(b3d.sample(pos))));
             // biome 采样（该点 6 维；采样位置 = floor(block/4)*4）
             {
@@ -131,5 +138,63 @@ public class RouterProbe {
         public net.minecraft.world.gen.chunk.Blender getBlender() {
             return net.minecraft.world.gen.chunk.Blender.getNoBlending();
         }
+    }
+
+    /** b3d 内部 dump（WG_B3DDUMP 对照）：反射 lower/upper/interpolation，手动复刻 sampleImpl 循环。 */
+    private static void dumpB3dInternal(net.minecraft.util.math.noise.InterpolatedNoiseSampler b3d, net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos pos) throws Exception {
+        net.minecraft.util.math.noise.OctavePerlinNoiseSampler lower = null, upper = null, interp = null;
+        for (java.lang.reflect.Field f : net.minecraft.util.math.noise.InterpolatedNoiseSampler.class.getDeclaredFields()) {
+            f.setAccessible(true);
+            if (f.getType() == net.minecraft.util.math.noise.OctavePerlinNoiseSampler.class) {
+                Object v = f.get(b3d);
+                if (lower == null) lower = (net.minecraft.util.math.noise.OctavePerlinNoiseSampler) v;
+                else if (upper == null) upper = (net.minecraft.util.math.noise.OctavePerlinNoiseSampler) v;
+                else interp = (net.minecraft.util.math.noise.OctavePerlinNoiseSampler) v;
+            }
+        }
+        if (lower == null || upper == null || interp == null) throw new IllegalStateException("cannot locate octave fields");
+        double scaledXz = 684.412F * 0.25;  // 主世界参数（RouterProbe 构造）
+        double scaledY = 684.412F * 0.125;
+        double d = pos.blockX() * scaledXz, e = pos.blockY() * scaledY, f = pos.blockZ() * scaledXz;
+        double g = d / 80.0, h = e / 160.0, i = f / 80.0;
+        double j = scaledY * 8.0, k = j / 160.0;
+        System.out.println("[J-B3D] pos=(" + pos.blockX() + "," + pos.blockY() + "," + pos.blockZ() + ") d=" + d + " e=" + e + " f=" + f + " g=" + g + " h=" + h + " i=" + i + " j=" + j + " k=" + k);
+        double l = 0, m = 0, n = 0, o = 1.0;
+        for (int p = 0; p < 8; p++) {
+            net.minecraft.util.math.noise.PerlinNoiseSampler pn = interp.getOctave(p);
+            if (pn != null) {
+                double r0 = pn.sample(g * o, h * o, i * o, k * o, h * o);
+                System.out.println("[J-B3D] interp oct=" + p + " res=" + r0 + " contrib=" + r0 / o);
+                n += r0 / o;
+            }
+            o /= 2.0;
+        }
+        double q = (n / 10.0 + 1.0) / 2.0;
+        boolean bl2 = q >= 1.0, bl3 = q <= 0.0;
+        o = 1.0;
+        for (int r = 0; r < 16; r++) {
+            double s = net.minecraft.util.math.noise.OctavePerlinNoiseSampler.maintainPrecision(d * o);
+            double t = net.minecraft.util.math.noise.OctavePerlinNoiseSampler.maintainPrecision(e * o);
+            double u = net.minecraft.util.math.noise.OctavePerlinNoiseSampler.maintainPrecision(f * o);
+            double v = j * o;
+            if (!bl2) {
+                net.minecraft.util.math.noise.PerlinNoiseSampler pn = lower.getOctave(r);
+                if (pn != null) {
+                    double r0 = pn.sample(s, t, u, v, e * o);
+                    System.out.println("[J-B3D] lower oct=" + r + " s=" + s + " t=" + t + " u=" + u + " res=" + r0 + " contrib=" + r0 / o);
+                    l += r0 / o;
+                }
+            }
+            if (!bl3) {
+                net.minecraft.util.math.noise.PerlinNoiseSampler pn = upper.getOctave(r);
+                if (pn != null) {
+                    double r0 = pn.sample(s, t, u, v, e * o);
+                    System.out.println("[J-B3D] upper oct=" + r + " s=" + s + " t=" + t + " u=" + u + " res=" + r0 + " contrib=" + r0 / o);
+                    m += r0 / o;
+                }
+            }
+            o /= 2.0;
+        }
+        System.out.println("[J-B3D] l=" + l + " m=" + m + " q=" + q);
     }
 }

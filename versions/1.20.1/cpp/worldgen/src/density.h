@@ -337,20 +337,26 @@ public:
         double i = f / xzFactor;
         double j = scaledYScale * smearScaleMultiplier;
         double k = j / yFactor;
+        bool b3dDump = getenv("WG_B3DDUMP") != nullptr;
+        if (b3dDump) std::fprintf(stderr, "[B3D] pos=(%d,%d,%d) d=%.17g e=%.17g f=%.17g g=%.17g h=%.17g i=%.17g j=%.17g k=%.17g\n",
+            pos.x, pos.y, pos.z, d, e, f, g, h, i, j, k);
         double l = 0.0, m = 0.0, n = 0.0;
         double o = 1.0;
         for (int p = 0; p < 8; p++) {
             const PerlinNoiseSampler* pn = interpolation.getOctave(p);
             if (pn) {
-                n += pn->sample(
-                         OctavePerlinNoiseSampler::maintainPrecision(g * o),
-                         OctavePerlinNoiseSampler::maintainPrecision(h * o),
-                         OctavePerlinNoiseSampler::maintainPrecision(i * o),
-                         k * o, h * o) / o;
+                double go = OctavePerlinNoiseSampler::maintainPrecision(g * o);
+                double ho = OctavePerlinNoiseSampler::maintainPrecision(h * o);
+                double io = OctavePerlinNoiseSampler::maintainPrecision(i * o);
+                double r0 = pn->sample(go, ho, io, k * o, h * o);
+                if (b3dDump) std::fprintf(stderr, "[B3D] interp oct=%d s=%.17g t=%.17g u=%.17g res=%.17g contrib=%.17g\n",
+                    p, go, ho, io, r0, r0 / o);
+                n += r0 / o;
             }
             o /= 2.0;
         }
         double q = (n / 10.0 + 1.0) / 2.0;
+        if (b3dDump) std::fprintf(stderr, "[B3D] n=%.17g q=%.17g\n", n, q);
         bool bl2 = q >= 1.0;
         bool bl3 = q <= 0.0;
         o = 1.0;
@@ -361,17 +367,29 @@ public:
             double v = j * o;
             if (!bl2) {
                 const PerlinNoiseSampler* pn = lower.getOctave(r);
-                if (pn) l += pn->sample(s, t, u, v, e * o) / o;
+                if (pn) {
+                    double r0 = pn->sample(s, t, u, v, e * o);
+                    if (b3dDump) std::fprintf(stderr, "[B3D] lower oct=%d s=%.17g t=%.17g u=%.17g v=%.17g w=%.17g res=%.17g contrib=%.17g\n",
+                        r, s, t, u, v, e * o, r0, r0 / o);
+                    l += r0 / o;
+                }
             }
             if (!bl3) {
                 const PerlinNoiseSampler* pn = upper.getOctave(r);
-                if (pn) m += pn->sample(s, t, u, v, e * o) / o;
+                if (pn) {
+                    double r0 = pn->sample(s, t, u, v, e * o);
+                    if (b3dDump) std::fprintf(stderr, "[B3D] upper oct=%d s=%.17g t=%.17g u=%.17g v=%.17g w=%.17g res=%.17g contrib=%.17g\n",
+                        r, s, t, u, v, e * o, r0, r0 / o);
+                    m += r0 / o;
+                }
             }
             o /= 2.0;
         }
         // clampedLerp(l/512, m/512, q) / 128
         double qq = clampD(q, 0.0, 1.0);
-        return (l / 512.0 + qq * (m / 512.0 - l / 512.0)) / 128.0;
+        double rr = (l / 512.0 + qq * (m / 512.0 - l / 512.0)) / 128.0;
+        if (b3dDump) std::fprintf(stderr, "[B3D] l=%.17g m=%.17g result=%.17g\n", l, m, rr);
+        return rr;
     }
     double minValue() const override { return -maxValue(); }
     double maxValue() const override { return maxVal; }

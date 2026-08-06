@@ -60,6 +60,7 @@ loom {
 if (project.findProperty('routerX') != null) run.vmArg "-Drouter.x=${project.findProperty('routerX')}"
 if (project.findProperty('routerZ') != null) run.vmArg "-Drouter.z=${project.findProperty('routerZ')}"
 if (project.findProperty('routerDim') != null) run.vmArg "-Drouter.dim=${project.findProperty('routerDim')}"
+if (project.findProperty('routerB3dDump') != null) run.vmArg "-Drouter.b3dDump=1"
             if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
