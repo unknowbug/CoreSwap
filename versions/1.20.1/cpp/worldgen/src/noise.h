@@ -118,7 +118,10 @@ public:
     double maxValue = 0;
 
     static double maintainPrecision(double v) {
-        return v - (double)lfloor(v / 3.3554432E7 + 0.5) * 3.3554432E7;
+        // Java 1.20.1 OctavePerlinNoiseSampler.maintainPrecision: (long)(v / 3.3554432E7) 向零截断
+        // （曾写成 lfloor(v/3.35e7+0.5) 四舍五入——主世界折叠值小数<0.5 未暴露；下界 e*2^12≈2.5e7 小数 0.75 触发分叉）
+        long l = (long)(v / 3.3554432E7);
+        return v - (double)l * 3.3554432E7;
     }
 
     // 默认构造（std::map operator[] 用；调用前必须赋值）

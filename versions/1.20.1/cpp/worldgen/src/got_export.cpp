@@ -34,7 +34,18 @@ int main(int argc, char** argv) {
     // base_3d_noise 分量 dump：-nbDump cx cz bx bz [dimension]（默认 1=nether；0=overworld）
     if (argc >= 4 && std::string(argv[3]) == "-nbDump") {
         int dcx = std::atoi(argv[4]), dcz = std::atoi(argv[5]), dbx = std::atoi(argv[6]), dbz = std::atoi(argv[7]);
-        int ddim = argc >= 9 ? std::atoi(argv[8]) : 1;
+        // 维度：argv[8] 直接是数字（旧用法），或后跟 "-dimension N"（新用法）
+        int ddim = 1;
+        if (argc >= 9) {
+            if (std::isdigit((unsigned char)argv[8][0]) || argv[8][0] == '-') {
+                long v = std::strtol(argv[8], nullptr, 10);
+                if (std::strtol(argv[8], nullptr, 10) == 0 && (argv[8][0] != '0' || argv[8][1] != '\0')) {
+                    // 非数字：找 "-dimension N"
+                    for (int a = 8; a + 1 < argc; a++)
+                        if (std::string(argv[a]) == "-dimension") { ddim = std::atoi(argv[a + 1]); break; }
+                } else ddim = (int)v;
+            }
+        }
         const char* sname = ddim == 1 ? "nether.json" : "overworld.json";
         const char* bparams = ddim == 1 ? "biome_params_nether.json" : "biome_params.json";
         int wh = ddim == 1 ? 256 : 0;
