@@ -52,6 +52,46 @@ public class DensityProbe {
             String name = "vanilla_density_" + dim + "_c" + cx + "_" + cz + "_b" + bx + "_" + bz + ".txt";
             Files.writeString(out.resolve(name), sb.toString(), StandardCharsets.UTF_8);
             System.out.println("[DensityProbe] " + name + " -> " + out.resolve(name) + " (" + height / 4 + " points)");
+
+            // base_3d_noise 分量：优先从 cns.actualDensityFunctionCache 拿 vanilla 实际函数（rd 构造易错）
+            DensityFunction b3d = null;
+            try {
+                Field fc2 = cns.getClass().getDeclaredField("actualDensityFunctionCache");
+                fc2.setAccessible(true);
+                Object cache2 = fc2.get(cns);
+                if (cache2 instanceof java.util.Map<?, ?>) {
+                    for (Object k : ((java.util.Map<?, ?>) cache2).keySet()) {
+                        if (k.toString().contains("base_3d_noise")) {
+                            Object v = ((java.util.Map<?, ?>) cache2).get(k);
+                            if (v instanceof DensityFunction) { b3d = (DensityFunction) v; break; }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            StringBuilder sb2 = new StringBuilder();
+            if (b3d != null) {
+                for (int y = minY; y < minY + height; y += 4) {
+                    double v = b3d.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                    sb2.append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
+                }
+            } else {
+                // fallback：RouterProbe 构造方式（下界参数 0.25/0.375/80/60/8）
+                java.lang.reflect.Field rdField = net.minecraft.world.gen.noise.NoiseConfig.class.getDeclaredField("randomDeriver");
+                rdField.setAccessible(true);
+                var rd = (net.minecraft.util.math.random.RandomSplitter) rdField.get(nc);
+                boolean nether = dim.equals("nether");
+                var b3d2 = new net.minecraft.util.math.noise.InterpolatedNoiseSampler(
+                        rd.split(new net.minecraft.util.Identifier("terrain")),
+                        0.25, nether ? 0.375 : 0.125, 80.0, nether ? 60.0 : 160.0, 8.0);
+                for (int y = minY; y < minY + height; y += 4) {
+                    double v = b3d2.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                    sb2.append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
+                }
+            }
+            String name2 = "vanilla_b3d_" + dim + "_c" + cx + "_" + cz + "_b" + bx + "_" + bz + ".txt";
+            Files.writeString(out.resolve(name2), sb2.toString(), StandardCharsets.UTF_8);
+            System.out.println("[DensityProbe] " + name2 + " -> " + out.resolve(name2));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
