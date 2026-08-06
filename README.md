@@ -18,7 +18,7 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 ## Status (as of 2026-08-06)
 
-**v1.0.3 released — installable Fabric mod for MC 1.20.1.**
+****v1.0.3 (pre-release)** — installable Fabric mod for MC 1.20.1. 测试版：连续修复了服务端 Chunky 崩溃（MinGW dll）、服务端自动停服、全新环境启动崩溃，验证稳定后发布正式版。**
 
 - ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **100% bit-identical to vanilla** — same seed, same terrain, block-for-block
 - ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
