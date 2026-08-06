@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.10.5'
 }
 
-version = '1.20.1-1.0.3'
+version = '1.20.1-1.0.4'
 group = 'wg'
 
 base {
@@ -46,6 +46,7 @@ loom {
             if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
+if (project.findProperty('biomePreset') != null) run.vmArg "-Dbiome.preset=${project.findProperty('biomePreset')}"
             if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"

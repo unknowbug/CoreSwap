@@ -26,10 +26,13 @@ public class BiomeParamProbe {
     public static void run(MinecraftServer server) {
         Registry<MultiNoiseBiomeSourceParameterList> reg =
                 server.getRegistryManager().get(RegistryKeys.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST);
+        // preset 可配（-Dbiome.preset=nether 导下界参数）；overworld 输出 biome_params.json，其他输出 biome_params_<preset>.json
+        String presetName = System.getProperty("biome.preset", "overworld");
+        String outName = presetName.equals("overworld") ? "biome_params.json" : "biome_params_" + presetName + ".json";
         MultiNoiseBiomeSourceParameterList preset = reg.get(
-                RegistryKey.of(RegistryKeys.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, new Identifier("overworld")));
+                RegistryKey.of(RegistryKeys.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, new Identifier(presetName)));
         if (preset == null) {
-            System.err.println("[BiomeParamProbe] preset overworld not found");
+            System.err.println("[BiomeParamProbe] preset " + presetName + " not found");
             server.stop(false);
             return;
         }
@@ -64,8 +67,8 @@ public class BiomeParamProbe {
         try {
             Path out = Path.of(System.getProperty("bench.out", "data")).toAbsolutePath().normalize();
             Files.createDirectories(out);
-            Files.writeString(out.resolve("biome_params.json"), sb.toString(), StandardCharsets.UTF_8);
-            System.out.println("[BiomeParamProbe] biome_params -> " + out.resolve("biome_params.json"));
+            Files.writeString(out.resolve(outName), sb.toString(), StandardCharsets.UTF_8);
+            System.out.println("[BiomeParamProbe] " + outName + " -> " + out.resolve(outName));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
