@@ -41,7 +41,11 @@ int main(int argc, char** argv) {
     }
     setvbuf(stdout, nullptr, _IONBF, 0); // 无缓冲，崩溃时保留输出定位
 
-    void* h = wg_create(seed, wgDir.c_str(), dimension);
+    const char* settingsName = "overworld.json";
+    const char* biomeParams = "biome_params.json";
+    int worldHeight = 0;
+    if (dimension == 1) { settingsName = "nether.json"; biomeParams = "biome_params_nether.json"; worldHeight = 256; }
+    void* h = wg_create(seed, wgDir.c_str(), settingsName, biomeParams, worldHeight);
     if (!h) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
 
     // 读 vanilla 参照（大端）

@@ -174,32 +174,36 @@ static void fillNoiseSamplers(WorldgenHandle& h,
 
 extern "C" {
 
-// 维度参数表（通用引擎：先覆盖 vanilla 主世界/下界；未来 mod 维度由数据驱动扩展）
-static DimConfig dimFor(int dimension) {
-    DimConfig d;
-    if (dimension == 1) {  // nether（noise_settings/nether.json：min_y=0 height=128 噪声、世界 256、无 aquifer）
-        d.minY = 0;
-        d.worldHeight = 256;
-        d.noiseHeight = 128;
-        d.aquifersEnabled = false;
-        d.noiseSettingsFile = "nether.json";
-        d.biomeParamsFile = "biome_params_nether.json";
-    }
-    return d;
-}
-
-void* wg_create(int64_t seed, const char* worldgenDir, int dimension) {
+void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName, const char* biomeParamsFile, int worldHeight) {
     profileInit();
     if (!worldgenDir) return nullptr;
     try {
         auto h = std::make_unique<WorldgenHandle>();
-        h->dim = dimFor(dimension);
+        h->wgDir = worldgenDir;
+        std::string wgDir = worldgenDir;
+
+        // 纯数据驱动（通用引擎）：维度参数全部从 noise_settings/<settingsName>.json 读。
+        // settingsName 决定 density namespace/目录（"overworld.json" -> overworld；mod 维度传自己的设置文件名）。
+        // worldHeight 由 Java 侧传（维度定义里的世界高度；overworld 384 / nether 256 / mod 维度按定义）。
+        std::string settingsFile = settingsName ? settingsName : "overworld.json";
+        std::string dfNs = settingsFile.size() > 5 ? settingsFile.substr(0, settingsFile.size() - 5) : settingsFile;  // 去 ".json"
+        std::string settingsPath = wgDir + "/data/minecraft/worldgen/noise_settings/" + settingsFile;
+        JsonParser sp(readFile(settingsPath));
+        JsonValue settings = sp.parse();
+        const JsonValue* noise = settings.get("noise");
+        if (noise) {
+            const JsonValue* minY = noise->get("min_y");
+            const JsonValue* hgt = noise->get("height");
+            if (minY) h->dim.minY = (int)minY->numVal;
+            if (hgt) h->dim.noiseHeight = (int)hgt->numVal;
+        }
+        h->dim.worldHeight = worldHeight > 0 ? worldHeight : h->dim.noiseHeight;  // 世界高度：Java 传（维度定义）；兜底 = 噪声高度
+        const JsonValue* aq = settings.get("aquifers_enabled");
+        h->dim.aquifersEnabled = aq ? aq->boolVal : true;
+        if (biomeParamsFile) h->dim.biomeParamsFile = biomeParamsFile;
+
         auto noiseParams = buildNoiseParams();
         h->builder = std::make_unique<DensityBuilder>((uint64_t)seed, noiseParams, h->dim.minY, h->dim.noiseHeight);
-            h->wgDir = worldgenDir;
-
-        std::string wgDir = worldgenDir;
-        std::string dfNs = (dimension == 1) ? "nether" : "overworld";  // density function namespace/目录（mod 维度扩展点）
         std::string dfDir = wgDir + "/data/minecraft/worldgen/density_function/" + dfNs + "/";
         // 捕获 handle（长期存活）而非局部变量，避免悬垂引用
         h->builder->externalLoader = [hPtr = h.get(), dfNs](const std::string& fullRef, const std::string& name) -> DF {
@@ -209,16 +213,16 @@ void* wg_create(int64_t seed, const char* worldgenDir, int dimension) {
             return hPtr->builder->parseFile(fullRef, readFile(path));
         };
 
-        // 维度 density function 列表（overworld 15 个；nether 的 final_density 全内联、只需 base_3d_noise）
-        std::vector<std::string> dfFiles = (dimension == 1)
-            ? std::vector<std::string>{"base_3d_noise"}
-            : std::vector<std::string>{
-                "base_3d_noise", "continents", "depth", "erosion", "factor",
-                "jaggedness", "offset", "ridges", "ridges_folded", "sloped_cheese",
-                "caves/entrances", "caves/noodle", "caves/pillars",
-                "caves/spaghetti_2d_thickness_modulator", "caves/spaghetti_2d",
-                "caves/spaghetti_roughness_function",
-            };
+        // 已知维度预注册（overworld 15 个官方密度文件；nether 只需 base_3d_noise）；mod 维度纯惰性（externalLoader 兜底读文件）
+        std::vector<std::string> dfFiles;
+        if (dfNs == "overworld") dfFiles = {
+            "base_3d_noise", "continents", "depth", "erosion", "factor",
+            "jaggedness", "offset", "ridges", "ridges_folded", "sloped_cheese",
+            "caves/entrances", "caves/noodle", "caves/pillars",
+            "caves/spaghetti_2d_thickness_modulator", "caves/spaghetti_2d",
+            "caves/spaghetti_roughness_function",
+        };
+        else if (dfNs == "nether") dfFiles = {"base_3d_noise"};
         for (const auto& f : dfFiles) {
             h->builder->registerFunction("minecraft:" + dfNs + "/" + f, std::make_shared<DensityBuilder::LazyRef>());
         }
@@ -230,9 +234,6 @@ void* wg_create(int64_t seed, const char* worldgenDir, int dimension) {
             }
         }
 
-        std::string settingsPath = wgDir + "/data/minecraft/worldgen/noise_settings/" + h->dim.noiseSettingsFile;
-        JsonParser sp(readFile(settingsPath));
-        JsonValue settings = sp.parse();
         const JsonValue* router = settings.get("noise_router");
         const JsonValue* finalDensity = router->get("final_density");
         h->finalDensity = h->builder->buildNode(*finalDensity);

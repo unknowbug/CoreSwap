@@ -19,7 +19,7 @@ JNIEXPORT jlong JNICALL
 Java_wg_CppWorldgen_init(JNIEnv* env, jclass /*cls*/, jlong seed, jstring worldgenDir) {
     const char* dir = worldgenDir ? env->GetStringUTFChars(worldgenDir, nullptr) : nullptr;
     if (!dir) return 0;
-    void* h = wg_create((int64_t)seed, dir, 0);
+    void* h = wg_create((int64_t)seed, dir);
     env->ReleaseStringUTFChars(worldgenDir, dir);
     return reinterpret_cast<jlong>(h);
 }
