@@ -93,16 +93,28 @@ public class DensityProbe {
                                         mIX.invoke(cns, blockX, vx);
                                         mIZ.invoke(cns, blockZ, vz);
                                         if ((blockX & 15) == bx && (blockZ & 15) == bz) {
-                                            // 游戏实际 final density（DensityInterpolator.sample——不经过 aquifer，避免单 chunk 探针越界）
+                                            // 遍历 8 个 interpolators（ChunkNoiseSampler 的组件插值器：finalDensity/vein 等），
+                                            // dump 每个的当前插值值——vein_ridged 的 ore_vein_a/b 在其中（找 min/max 特征匹配）
                                             java.lang.reflect.Field fInterps = null;
                                             try { fInterps = cns.getClass().getDeclaredField("interpolators"); }
                                             catch (NoSuchFieldException e) { fInterps = cns.getClass().getSuperclass().getDeclaredField("interpolators"); }
                                             fInterps.setAccessible(true);
                                             java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
-                                            // ChunkNoiseSampler implements DensityFunction：sample(NoisePos) 返回当前插值位置的密度（finalDensity 组合）
-                                            java.lang.reflect.Method mCnsSample = cns.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
-                                            double dv = (double) mCnsSample.invoke(cns, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
-                                            sbCns.append(blockY).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", dv)).append('\n');
+                                            if (sbCns.length() == 0) {  // 首行：min/max 特征
+                                                for (int ii = 0; ii < interps.size(); ii++) {
+                                                    Object dii = interps.get(ii);
+                                                    System.out.println("[InterpDiag] idx=" + ii + " min="
+                                                            + ((net.minecraft.world.gen.densityfunction.DensityFunction) dii).minValue()
+                                                            + " max=" + ((net.minecraft.world.gen.densityfunction.DensityFunction) dii).maxValue()
+                                                            + " class=" + dii.getClass().getName());
+                                                }
+                                            }
+                                            java.lang.reflect.Method mDI0 = interps.get(0).getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                            for (int ii = 0; ii < interps.size(); ii++) {
+                                                double dv2 = (double) mDI0.invoke(interps.get(ii), (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
+                                                sbCns.append(blockY).append(' ').append(ii).append(' ')
+                                                     .append(String.format(java.util.Locale.ROOT, "%.6f", dv2)).append('\n');
+                                            }
                                         }
                                     }
                                 }
@@ -126,12 +138,31 @@ public class DensityProbe {
                 fc2.setAccessible(true);
                 Object cache2 = fc2.get(cns);
                 if (cache2 instanceof java.util.Map<?, ?>) {
-                    for (Object k : ((java.util.Map<?, ?>) cache2).keySet()) {
-                        if (k.toString().contains("base_3d_noise")) {
-                            Object v = ((java.util.Map<?, ?>) cache2).get(k);
-                            if (v instanceof DensityFunction) { b3d = (DensityFunction) v; break; }
+                    java.util.Map<?, ?> cmap = (java.util.Map<?, ?>) cache2;
+                    StringBuilder sbCache = new StringBuilder();
+                    // dump 全部缓存 key（factor/sloped_cheese/offset 等 finalDensity 树内组件在 cache 里）
+                    for (Object k : cmap.keySet()) {
+                        Object v = cmap.get(k);
+                        sbCache.append("KEY ").append(k).append('\n');
+                        if (v instanceof DensityFunction) {
+                            DensityFunction fc = (DensityFunction) v;
+                            String ks = k.toString();
+                            if (ks.contains("factor") || ks.contains("sloped_cheese") || ks.contains("offset")
+                                    || ks.contains("base_3d_noise") || ks.contains("jaggedness")
+                                    || ks.contains("RangeChoice") || ks.contains("Spline[spline")
+                                    || ks.contains("ShiftedNoise") || ks.contains("Interpolated, wrapped")) {
+                                if (ks.contains("base_3d_noise") && b3d == null) b3d = fc;
+                                // 每个候选 dump y=-64,0,48（finalDensity 树内组件定位）
+                                for (int y : new int[]{-64, 0, 48}) {
+                                    double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                                    sbCache.append(ks.substring(0, Math.min(90, ks.length())).replace('\n', ' '))
+                                          .append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", vv)).append('\n');
+                                }
+                            }
                         }
                     }
+                    Files.writeString(out.resolve(name.replace(".txt", "_cache.txt")), sbCache.toString(), StandardCharsets.UTF_8);
+                    System.out.println("[DensityProbe] cache -> " + out.resolve(name.replace(".txt", "_cache.txt")));
                 }
             } catch (Exception ignored) {
             }
@@ -141,7 +172,7 @@ public class DensityProbe {
                 StringBuilder sbC = new StringBuilder();
                 for (String comp : new String[]{"depth", "continents", "erosion", "shiftX", "shiftZ",
                         "barrierNoise", "fluidLevelFloodednessNoise", "fluidLevelSpreadNoise", "lavaNoise",
-                        "veinToggle", "veinRidged", "veinGap", "initialDensity"}) {
+                        "veinToggle", "veinRidged", "veinGap", "initialDensity", "factor", "jaggedness", "ridges"}) {
                     try {
                         var m = router.getClass().getMethod(comp);
                         DensityFunction fc = (DensityFunction) m.invoke(router);
@@ -168,6 +199,34 @@ public class DensityProbe {
                 }
                 Files.writeString(out.resolve(name.replace(".txt", "_comps.txt")), sbC.toString(), StandardCharsets.UTF_8);
                 System.out.println("[DensityProbe] comps -> " + out.resolve(name.replace(".txt", "_comps.txt")));
+
+                // 从 DENSITY_FUNCTION registry 直取 factor/sloped_cheese/jaggedness/offset（finalDensity 树内部组件，
+                // router 无方法；对比 C++ -namedDump "minecraft:overworld/<name>"）
+                try {
+                    var regMgr = world.getRegistryManager();
+                    var dfReg = regMgr.get(net.minecraft.registry.RegistryKeys.DENSITY_FUNCTION);
+                    StringBuilder sbR = new StringBuilder();
+                    for (String dfName : new String[]{"factor", "sloped_cheese", "jaggedness", "offset", "base_3d_noise", "ridges", "ridges_folded", "continents", "erosion"}) {
+                        DensityFunction fc = null;
+                        for (var id : dfReg.getIds()) {  // 遍历匹配（registry key 形如 minecraft:overworld/factor）
+                            if (id.getPath().endsWith("/" + dfName) || id.getPath().equals(dfName)) {
+                                fc = dfReg.get(id); break;
+                            }
+                        }
+                        if (fc != null) {
+                            for (int y = minY; y < minY + height; y += 4) {
+                                double v = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                                sbR.append(dfName).append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", v)).append('\n');
+                            }
+                        } else {
+                            sbR.append(dfName).append(" <registry-null>\n");
+                        }
+                    }
+                    Files.writeString(out.resolve(name.replace(".txt", "_dfreg.txt")), sbR.toString(), StandardCharsets.UTF_8);
+                    System.out.println("[DensityProbe] dfreg -> " + out.resolve(name.replace(".txt", "_dfreg.txt")));
+                } catch (Exception ex) {
+                    System.out.println("[DensityProbe] dfreg threw " + ex);
+                }
             } catch (Exception ex) {
                 System.out.println("[DensityProbe] comps threw " + ex);
             }
