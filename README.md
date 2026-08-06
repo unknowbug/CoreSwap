@@ -95,6 +95,10 @@ The C++ core reconstructs the density field exactly as vanilla does:
 
 No tolerance was needed: the C++ density field matches vanilla to the exact IEEE double.
 
+## Credits
+
+- **dustinmoon78** — Forge + Sinytra Connector compatibility: multi-level mod jar resolution (`CoreSwapFixHelper`) + direct `JarFile` extraction, tested on 400+ mod packs. See [#3](https://github.com/unknowbug/CoreSwap/pull/3).
+
 ## License
 
 MIT
