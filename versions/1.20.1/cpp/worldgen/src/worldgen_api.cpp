@@ -490,8 +490,8 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
     std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
-    // 3a. density（独立循环，便于剖析与后续算法优化）
-    for (int by = 0; by < h->dim.worldHeight; by++) {
+    // 3a. density（独立循环，便于剖析与后续算法优化）；y 上限 = noiseHeight（下界 128，上方留 air）
+    for (int by = 0; by < h->dim.noiseHeight; by++) {
         int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
             for (int bx = 0; bx < 16; bx++) {
@@ -544,7 +544,7 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
         }
     }
     // 3b. aquifer + oreVein（ChainedBlockSource：aquifer null → oreVein；下界两者都 null）
-    for (int by = 0; by < h->dim.worldHeight; by++) {
+    for (int by = 0; by < h->dim.noiseHeight; by++) {
         int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
             for (int bx = 0; bx < 16; bx++) {
