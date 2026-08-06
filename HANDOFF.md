@@ -10,7 +10,7 @@
 - **C++ 一律 MSVC**（用户严禁 MinGW/gcc）：`build-msvc/bin/worldgen.dll`，配置见 `configure_msvc.bat`。
 - **JDK17 固定**（`gradle.properties` org.gradle.java.home），runClient/runServer 均用 JDK17（JDK24 会崩）。
 - **大项目目标（务必记住，勿漏）**：CoreSwap = 「把 Java 版性能核心 C++ 化、保留 MOD 生态」。区块生成是第一刀（已可玩）；**AI 层（实体 Brain / GoalSelector / Pathfinding 寻路的 C++ 化）是规划中的后续刀**（`versions/1.20.1/cpp/ai` 空占位目录）。AI 层一致性标准 = 行为级一致（非逐位，AI 是随机决策）。
-- **待排期**：FEATURES 阶段 C++ 化（矿物团/装饰）、LIGHT 光照 C++ 化、打包发布、**全版本适配（用户真实目标：含 1.17 及更早，1.20.x 优先，docs/08 流程）**。
+- **待排期**：LIGHT 光照 C++ 化（用户定为最后，价值最低）、打包发布、**全版本适配（用户真实目标：含 1.17 及更早，1.20.x 优先，docs/08 流程）**。**FEATURES（矿物/装饰）绝不做 C++ 化**（版本更新必动的大头，全版本适配忙不过来——见记忆 core-swap-full-version-goal）。
 
 ## 一、项目与环境
 
