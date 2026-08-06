@@ -27,28 +27,9 @@ public final class CppWorldgen {
     private CppWorldgen() {}
 
     private static String extractNativeDll() {
-        String tmpDir = System.getProperty("java.io.tmpdir");
-        Path dir = Path.of(tmpDir, "coreswap-native");
-        Path dll = dir.resolve("worldgen.dll");
-        try {
-            if (!Files.exists(dll)) {
-                Files.createDirectories(dir);
-                var container = FabricLoader.getInstance().getModContainer("coreswap").get();
-                for (Path root : container.getRootPaths()) {
-                    Path src = root.resolve("native/worldgen.dll");
-                    if (Files.isRegularFile(src)) {
-                        Files.copy(src, dll, StandardCopyOption.REPLACE_EXISTING);
-                        break;
-                    }
-                }
-            }
-            if (!Files.exists(dll)) {
-                throw new IllegalStateException("worldgen.dll not found in mod native/");
-            }
-            return dll.toString();
-        } catch (IOException e) {
-            throw new RuntimeException("failed to extract worldgen.dll", e);
-        }
+        // Forge+Connector 兼容：原 getRootPaths() 在 Forge UnionFileSystem 下不可遍历，
+        // 改用 CoreSwapFixHelper 多级定位 jar（codeSource → ModOrigin.getPaths → classloader）后 JarFile 提取。
+        return CoreSwapFixHelper.extractNativeDll();
     }
 
     /** 创建 worldgen 句柄（seed + worldgen JSON 数据目录） */

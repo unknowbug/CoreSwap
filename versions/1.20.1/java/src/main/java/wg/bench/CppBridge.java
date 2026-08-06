@@ -39,43 +39,9 @@ public final class CppBridge {
      *   <tmp>/coreswap-data/blocks.json / biome_params.json      （wgDir/../ 查找）
      */
     private static String extractWorldgenDir() {
-        String tmpDir = System.getProperty("java.io.tmpdir");
-        Path target = Path.of(tmpDir, "coreswap-data");
-        Path wgDir = target.resolve("worldgen");
-        try {
-            Path marker = wgDir.resolve("data/minecraft/worldgen/noise_settings/overworld.json");
-            if (!Files.exists(marker)) {
-                // 幂等失败时残留旧结构 → 先清再解压
-                if (Files.exists(target)) deleteRecursively(target);
-                Files.createDirectories(wgDir);
-                // mod id 已改名 coreswap（1.0.0+）；改名时务必同步这里，否则全新环境解压数据时 Optional.get() 抛 NoSuchElementException 崩溃（CppBridge.java:51 历史坑）
-                var container = net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("coreswap").get();
-                for (Path root : container.getRootPaths()) {
-                    Path src = root.resolve("worldgen-data");
-                    if (!Files.isDirectory(src)) continue;
-                    try (var stream = Files.walk(src)) {
-                        stream.filter(p -> Files.isRegularFile(p)).forEach(p -> {
-                            Path rel = src.relativize(p);  // data/... 或 blocks.json / biome_params.json
-                            Path dst = rel.startsWith("data") ? wgDir.resolve(rel.toString()) : target.resolve(rel.toString());
-                            try {
-                                Files.createDirectories(dst.getParent());
-                                Files.copy(p, dst, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-                    }
-                }
-                if (!Files.exists(marker)) {
-                    throw new IllegalStateException("worldgen-data not found in mod resources");
-                }
-            }
-            return wgDir.toString();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("failed to extract worldgen-data", e);
-        }
+        // Forge+Connector 兼容：原 getRootPaths() 在 Forge UnionFileSystem 下不可遍历，
+        // 改用 CoreSwapFixHelper 多级定位 jar（codeSource → ModOrigin.getPaths → classloader）后 JarFile 提取。
+        return CoreSwapFixHelper.extractWorldgenDir();
     }
 
     private static void deleteRecursively(Path path) throws IOException {
