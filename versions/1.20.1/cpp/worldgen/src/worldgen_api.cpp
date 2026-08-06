@@ -670,6 +670,67 @@ static int physicalCoreCount() {
     return hc > 1 ? hc / 2 : 1;  // 非 Windows 兜底：假设 SMT 减半
 }
 
+// ---- 持久线程池（复用，避免每次 fillBlocks 创建/销毁线程——用户指出）----
+// 首次调用时按物理核数创建；后续 fillBlocks 只分发任务，线程常驻。
+class CoreSwapPool {
+public:
+    static CoreSwapPool& instance() { static CoreSwapPool p; return p; }
+
+    void ensure(int n) {
+        std::lock_guard<std::mutex> l(mtx);
+        if (!workers.empty() || n <= 0) return;
+        for (int i = 0; i < n; i++) {
+            workers.emplace_back([this] {
+                for (;;) {
+                    int taskId;
+                    {
+                        std::unique_lock<std::mutex> l(mtx);
+                        cvTask.wait(l, [this] { return stop || taskQueue > 0; });
+                        if (stop && taskQueue == 0) return;
+                        taskId = nextTask++;
+                        taskQueue--;
+                    }
+                    if (fn) fn(taskId);
+                    {
+                        std::lock_guard<std::mutex> l(mtx);
+                        doneCount++;
+                        if (doneCount == totalTasks) cvDone.notify_one();
+                    }
+                }
+            });
+        }
+    }
+
+    // 执行 count 个任务（并行），主线程阻塞直到全部完成。
+    void run(int count, const std::function<void(int)>& f) {
+        if (count <= 0) return;
+        if (workers.empty()) ensure(count);
+        {
+            std::lock_guard<std::mutex> l(mtx);
+            fn = f;
+            totalTasks = count;
+            doneCount = 0;
+            nextTask = 0;
+            taskQueue = count;
+        }
+        cvTask.notify_all();
+        {
+            std::unique_lock<std::mutex> l(mtx);
+            cvDone.wait(l, [this] { return doneCount >= totalTasks; });
+            fn = nullptr;
+        }
+    }
+
+private:
+    CoreSwapPool() = default;
+    std::vector<std::thread> workers;
+    std::function<void(int)> fn;
+    std::mutex mtx;
+    std::condition_variable cvTask, cvDone;
+    bool stop = false;
+    int taskQueue = 0, nextTask = 0, doneCount = 0, totalTasks = 0;
+};
+
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
     if (count <= 0) return 0;
@@ -682,19 +743,14 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
         if (threads <= 0) threads = 1;
     }
     if (threads > count) threads = count;
-    std::vector<std::thread> pool;
-    std::atomic<int> next{0};
-    pool.reserve(threads);
-    for (int t = 0; t < threads; t++) {
-        pool.emplace_back([&]() {
-            for (;;) {
-                int i = next.fetch_add(1);
-                if (i >= count) break;
-                fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
-            }
-        });
-    }
-    for (auto& th : pool) th.join();
+    // 线程复用：持久线程池（首次按物理核数创建，后续复用——不每次创建/销毁 std::thread）
+    int poolThreads = physicalCoreCount();
+    if (const char* envP = getenv("CORESWAP_THREADS"); envP && *envP) poolThreads = std::atoi(envP);
+    if (poolThreads <= 0) poolThreads = 1;
+    CoreSwapPool::instance().ensure(poolThreads);
+    CoreSwapPool::instance().run(count, [&](int i) {
+        fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
+    });
     return count;
 }
 
