@@ -250,3 +250,10 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ **origin 差坐实**：interp oct0 Perlin origin——C++ (110.147561,36.856976,54.622212) vs Java RouterProbe (68.458186,92.923998,198.372974)——完全不同
 - ⚠️ **待确认**：RouterProbe 用 rd2（NoiseConfig.randomDeriver 反射）——状态可能被构建消费（seed 97 漂移）；需从游戏实际 cns 的 b3d 实例反射 origin（最可靠）或 C++/Java fresh deriver 对比 nextDouble 序列
 - **如果 C++ deriver 差坐实** → 负坐标 535 chunk 全部源于 deriver（XoroshiroRandom）构造/序列差异 → 修 deriver
+
+## 2026-08-07 负坐标定位进展（十一）：origin 差 = RouterProbe rd2 漂移假象（关键推理）
+
+- ✅ **B 结论**：正坐标存档逐位一致（scan_diff 535 chunk 全负坐标）——**若 C++ deriver 差则正坐标也差 → C++ deriver 对**
+- ✅ **origin 差是假象**：RouterProbe 用 rd2（NoiseConfig.randomDeriver），1.20.1 split(long) 用 lo^seed（当前状态）——rd2 被构建消费 → origin 漂移 → RouterProbe 负坐标 b3d 参照（0.0895）**不可靠**
+- 🔍 **负坐标差是坐标相关**（Perlin 采样负坐标 or 更深）——**需游戏实际参照**（cns 的 CellCache 网格——游戏实际路径的密度）
+- **下一步**：从 cns 的 CellCache 网格拿负坐标密度（游戏实际），对比 C++ InterpolatedDF 网格——定位 Perlin 负坐标采样差异
