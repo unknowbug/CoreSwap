@@ -173,3 +173,10 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - **根因**：C++ 负坐标 NOISE+SURFACE 生成差异（got_export 生成 chunk(-1,9) 地表 y67 vs vanilla 76-78）——**block_probe 100% 只验证正坐标 3200 区域，负坐标从未被覆盖**（JniProbe 的 98.5% 是下界）
 - **候选**：负坐标的 floor/取模语义（Java Math.floorDiv/floorMod vs C++ %）、hashXYZ、aquifer/surface 列缓存索引、InterpolatedDF 网格负坐标
 - **下一步**：densityDump 负坐标 vs vanilla 定位具体函数
+
+## 2026-08-07 负坐标 bug 定位进展（系统排查）
+
+- ✅ **取模/移位/坐标运算系统排查**：核心代码负数语义正确（floorDiv 向下、算术右移=floor、gx 非负、`((y+i)%n+n)%n` 负数安全）——排除 % 类 bug
+- 🔍 **新矛盾**：densityDump（finalDensity 树采样）与 fillOneChunk 的 densityBuf（方块生成的密度）**在正负坐标都结果矛盾**——densityDump 显示 chunk(0,9) final@y52-88 全正、chunk(-18,-16) final@96 正，但方块生成地表分别 66/65（y67+/y67+ 空气）——**两个路径采样同一 finalDensity 树却结果不同**
+- **嫌疑**：InterpolatedDF 的 thread_local 缓存（densityDump 与 fillOneChunk 的采样顺序/缓存命中不同 → 缓存值差异）——或 fillOneChunk 的采样路径有偏差
+- **下一步**：WG_SURFDUMP 在 fillOneChunk 内部 dump densityBuf（逐 4 格 finalDensity），与 densityDump 同列对比——定位「采样结果差异」的确切 pos 与缓存行为
