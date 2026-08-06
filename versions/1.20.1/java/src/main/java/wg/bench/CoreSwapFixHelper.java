@@ -64,18 +64,49 @@ public final class CoreSwapFixHelper {
         Path dir = Path.of(tmpDir, "coreswap-native");
         Path dll = dir.resolve("worldgen.dll");
         try {
-            if (!Files.exists(dll)) {
-                Files.createDirectories(dir);
-                extractFromJar("native", dir, dir);
-            }
-            if (!Files.exists(dll)) {
+            // ⚠️ 版本化缓存：每次启动比较 jar 内 dll 与缓存 dll 的哈希，不同则重新解压。
+            // 修复 XuanRikka 报告的「更新 mod 不替换老 dll」——旧缓存让用户永远跑旧代码报假 bug
+            byte[] fresh = readJarBytes("native", "worldgen.dll");
+            if (fresh == null) {
                 throw new IllegalStateException("worldgen.dll not found in mod native/");
+            }
+            boolean need = true;
+            if (Files.exists(dll) && Files.size(dll) == fresh.length) {
+                try {
+                    need = !java.util.Arrays.equals(Files.readAllBytes(dll), fresh);
+                } catch (IOException e) {
+                    need = true;
+                }
+            }
+            if (need) {
+                Files.createDirectories(dir);
+                Path tmp = dir.resolve("worldgen.dll.tmp");
+                Files.write(tmp, fresh);
+                Files.move(tmp, dll, StandardCopyOption.REPLACE_EXISTING);
             }
             return dll.toString();
         }
         catch (IOException e) {
             throw new RuntimeException("failed to extract worldgen.dll", e);
         }
+    }
+
+    /** 从定位到的 jar 读取指定文件字节（多级定位：codeSource → ModOrigin → classloader）。 */
+    private static byte[] readJarBytes(String prefix, String file) throws IOException {
+        Path src = locateResource(prefix);
+        if (src == null) return null;
+        if (Files.isRegularFile(src)) {
+            try (JarFile jf = new JarFile(src.toFile())) {
+                JarEntry e = jf.getJarEntry(prefix + "/" + file);
+                if (e == null) return null;
+                try (InputStream in = jf.getInputStream(e)) {
+                    return in.readAllBytes();
+                }
+            }
+        }
+        // dev 环境（classpath 目录）
+        Path f = src.resolve(file);
+        return Files.isRegularFile(f) ? Files.readAllBytes(f) : null;
     }
 
     /**
