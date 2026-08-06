@@ -228,3 +228,8 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 9. 🔍 嫌疑：① 684.412f vs 684.412 浮点差（负坐标放大）② continentalness（不用 684.412）也差 0.37 → 独立问题
 
 **下一步**：最小复现（同 deriver 构造同一噪声采样负坐标逐位对比）；先快速验证 684.412f
+
+## 2026-08-07 负坐标定位进展（六）：684.412f 排除
+
+- ✅ **684.412f 验证**：scaledXzScale/scaledYScale 改 (double)(float)684.412（对齐 Java 684.412F）——主世界 100% 保持；**负坐标 b3d(-280,-248) 不变（0.0274）** → 684.412f 不是该坐标差原因（保留改动：对齐 Java 语义）
+- 🔍 Perlin 采样差（0.0274 vs 0.0895）——同 deriver 同参数同实现——**需最小复现**（dump Perlin 内部值 floorD/map/grad 逐位对比）
