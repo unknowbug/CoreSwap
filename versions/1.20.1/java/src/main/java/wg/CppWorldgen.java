@@ -33,7 +33,7 @@ public final class CppWorldgen {
         try {
             if (!Files.exists(dll)) {
                 Files.createDirectories(dir);
-                var container = FabricLoader.getInstance().getModContainer("worldgen-bench").get();
+                var container = FabricLoader.getInstance().getModContainer("coreswap").get();
                 for (Path root : container.getRootPaths()) {
                     Path src = root.resolve("native/worldgen.dll");
                     if (Files.isRegularFile(src)) {
