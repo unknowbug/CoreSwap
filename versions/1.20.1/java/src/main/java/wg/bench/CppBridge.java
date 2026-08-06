@@ -27,7 +27,13 @@ public final class CppBridge {
 
     private static int resolveThreads() {
         String explicit = System.getProperty("coreswap.threads");
-        if (explicit != null) return Integer.parseInt(explicit);
+        if (explicit != null) {
+            try {
+                return Integer.parseInt(explicit);
+            } catch (NumberFormatException e) {
+                return -1;  // 非法值兜底：服务端全核
+            }
+        }
         try {
             // 反射拿 Fabric 环境（编译期无 fabric-loader API 依赖；Forge+Connector 也可能没有）
             Object loader = Class.forName("net.fabricmc.loader.api.FabricLoader")

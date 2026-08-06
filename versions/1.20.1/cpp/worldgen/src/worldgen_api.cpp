@@ -411,6 +411,8 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
 }
 
 void wg_destroy(void* handle) {
+    // 停止线程池（等待所有 worker 完成，避免 use-after-free：JVM shutdown 时 destroy 后无 worker 再用 handle）
+    CoreSwapPool::instance().shutdown();
     delete static_cast<WorldgenHandle*>(handle);
 }
 
@@ -678,8 +680,9 @@ public:
 
     void ensure(int n) {
         std::lock_guard<std::mutex> l(mtx);
-        if (!workers.empty() || n <= 0) return;
-        for (int i = 0; i < n; i++) {
+        if (n <= (int)workers.size()) return;
+        int add = n - (int)workers.size();
+        for (int i = 0; i < add; i++) {
             workers.emplace_back([this] {
                 for (;;) {
                     int taskId;
@@ -721,8 +724,23 @@ public:
         }
     }
 
+    // 停止并回收所有 worker（进程退出 / wg_destroy 时调用，避免 terminate/use-after-free）
+    void shutdown() {
+        {
+            std::lock_guard<std::mutex> l(mtx);
+            stop = true;
+        }
+        cvTask.notify_all();
+        for (auto& w : workers)
+            if (w.joinable()) w.join();
+        workers.clear();
+    }
+
 private:
     CoreSwapPool() = default;
+    ~CoreSwapPool() { shutdown(); }
+    CoreSwapPool(const CoreSwapPool&) = delete;
+    CoreSwapPool& operator=(const CoreSwapPool&) = delete;
     std::vector<std::thread> workers;
     std::function<void(int)> fn;
     std::mutex mtx;
@@ -747,8 +765,7 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
     }
     if (threads > count) threads = count;
     // 线程复用：持久线程池（首次按模式线程数创建，后续复用——不每次创建/销毁 std::thread）
-    int poolThreads = threads;
-    if (const char* envP = getenv("CORESWAP_THREADS"); envP && *envP) poolThreads = std::atoi(envP);
+    int poolThreads = threads;  // 已含 CORESWAP_THREADS 处理（threads<=0 分支），不二次读 env
     if (poolThreads <= 0) poolThreads = 1;
     CoreSwapPool::instance().ensure(poolThreads);
     CoreSwapPool::instance().run(count, [&](int i) {
