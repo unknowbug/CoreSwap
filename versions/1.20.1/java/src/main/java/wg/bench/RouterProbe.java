@@ -21,12 +21,12 @@ public class RouterProbe {
         NoiseRouter router = noiseConfig.getNoiseRouter();
         long seed = world.getSeed();
 
-        // 采样点：chunk (200,200) 起，16 点固定网格（i=10 → (3200, 100, 3208)）
+        // 采样点：列模式（x=0, z=0, y=0..count*4）——下界 b3d 列对比（C++ densityDump 同列）
         double[] xs = new double[count], ys = new double[count], zs = new double[count];
         for (int i = 0; i < count; i++) {
-            xs[i] = 200 * 16.0 + (i % 4) * 4;
-            zs[i] = 200 * 16.0 + (i / 4) * 4;
-            ys[i] = -64 + (i * 16 + 4) % 384;
+            xs[i] = 0.0;
+            zs[i] = 0.0;
+            ys[i] = i * 4;
         }
 
         String[] names = {
@@ -41,7 +41,7 @@ public class RouterProbe {
         // 用 server 的 ChunkNoiseSampler 派生 NoisePos？直接构造最小 NoisePos
         SimplePos pos = new SimplePos();
 
-        // base_3d_noise：直接构造 InterpolatedNoiseSampler（参数来自 base_3d_noise.json）
+        // base_3d_noise：NoiseConfig 的 randomDeriver（游戏实际）反射 + 下界参数
         java.lang.reflect.Field rdField2;
         net.minecraft.util.math.random.RandomSplitter rd2;
         try {
@@ -51,9 +51,12 @@ public class RouterProbe {
         } catch (Exception ex) {
             throw new RuntimeException("cannot get randomDeriver", ex);
         }
+        String dim = System.getProperty("router.dim", "nether");
+        double ys_ = dim.equals("overworld") ? 0.125 : 0.375;
+        double yf = dim.equals("overworld") ? 160.0 : 60.0;
         var b3d = new net.minecraft.util.math.noise.InterpolatedNoiseSampler(
                 rd2.split(new net.minecraft.util.Identifier("terrain")),
-                0.25, 0.125, 80.0, 160.0, 8.0);
+                0.25, ys_, 80.0, yf, 8.0);
 
         StringBuilder sb = new StringBuilder();
         sb.append("#seed ").append(seed).append('\n');
@@ -84,7 +87,7 @@ public class RouterProbe {
             }
         }
         System.out.println("===ROUTERPROBE_BEGIN===");
-        System.out.print(sb);
+        System.out.println(sb);
         System.out.println("===ROUTERPROBE_END===");
 
         // density 纯采样计时：模拟 16 chunk 的 density 网格（4x4x8 = 12288 点）
