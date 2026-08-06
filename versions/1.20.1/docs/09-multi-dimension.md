@@ -239,3 +239,8 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ **B3D 内部 dump（C++ WG_B3DDUMP + Java RouterProbe 反射）**：interp oct0（s=-598.86, t=0, u=-530.42, v=4.277, w=0）**输入逐位全同**（d/e/f/g/h/i/j/k 一致）——但 **C++ res=0.068549 vs Java res=-0.010214**——**PerlinNoiseSampler.sample 本身差坐实**（不是组合/输入/参数）
 - ✅ sample 内部（floorD/map/grad/sampleSection/lerp3）逐行一致——**差在 sample 内部的某细节**（origin 或 yScale 分支或某浮点步）
 - **下一步（最终）**：dump sample 内部（floorD 结果、小数、map 结果、每 grad、lerp3 各步）C++ vs Java 逐位——定位到具体一行
+
+## 2026-08-07 负坐标定位进展（九）：C++ Perlin 内部 dump 完成
+
+- ✅ C++ Perlin.sample 内部（interp oct0）：origin=(110.147561,36.856976,54.622212)、d=-488.71、e=36.86、f=-475.80、**i=-489、j=36、k=-476**、g=0.287、h=0.857、l=0.203、n=0
+- **下一步**：Java 侧同样 dump（反射 origin + 手动算 i/j/k/g/h/l）对比——origin 差→deriver/构造；i/j/k/g/h/l 差→floorD/浮点；全同→map/grad/lerp3
