@@ -68,6 +68,9 @@ public:
         } else {
             n = 0.0;
         }
+        if (getenv("WG_B3DDUMP") != nullptr)
+            std::fprintf(stderr, "[P] x=%.17g y=%.17g z=%.17g yScale=%.17g yMax=%.17g origin=(%.6f,%.6f,%.6f) d=%.17g e=%.17g f=%.17g i=%d j=%d k=%d g=%.17g h=%.17g l=%.17g n=%.17g\n",
+                x, y, z, yScale, yMax, originX, originY, originZ, d, e, f, i, j, k, g, h, l, n);
         return sampleSection(i, j, k, g, h - n, l, h);
     }
 
