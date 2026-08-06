@@ -200,6 +200,7 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 ## 2026-08-07 负坐标定位进展（四）：spline 三分量全差 → 嫌疑 biomeAt
 
 - ✅ continents/erosion/depth **三个 spline 相关分量在负坐标都差**（0.37/0.14/0.13）——共同点 = spline（biome 参数）
+  - ❌ **已更正（2026-08-08）**：router 组件（comps 可信路径）在 -288/20000 全部 0 差异——此为假象，biomeAt 嫌疑排除。见文末「2026-08-08 修正」段。
 - ✅ shift_x 不在 NoiseRouter 上（Java 拿不到）；shift 本身是 spline（offset），差是结果非原因
 - 🔍 **嫌疑**：biomeAt（MultiNoiseBiomeSource.find）在负坐标返回错误的 biome → spline 值差 → 地形差（535 chunk）
 - **下一步**：验证 biomeAt 负坐标（C++ vs Java biome id 对照）——biome 坐标/hash 嫌疑
@@ -207,6 +208,7 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 ## 2026-08-07 负坐标定位进展（五）：Perlin 负坐标差异坐实
 
 - ✅ **b3d 负坐标 C++ vs Java 差异坐实**（RouterProbe 负坐标采样，seed 97，位置 -280,-248）：y0 C++ 0.0274 vs Java 0.0895——x=0 时位级一致、负坐标差
+  - ❌ **已更正（2026-08-08）**：RouterProbe rd2 漂移假象——`-nbDump` vs 游戏实际 b3d 全部 3e-5 级一致（含负坐标），base_3d_noise 彻底排除。见文末修正段。
 - ✅ 实现逐行对比（floorD/map/grad/sampleSection/Octave sample/maintainPrecision）均与 Java 1.20.1 一致——**排除明显的负数语义错误**
 - 🔍 **剩余嫌疑**：① 684.412f vs 684.412 浮点差在负坐标放大（d = -280*171.103 差 0.0034 → 噪声差 0.06）；但 continents（不用 684.412）也差 0.37 → 不是唯一原因 ② 更深层 Perlin 负数语义（需最小复现）
 - **下一步**：① 快速验证 684.412f ② 或最小复现（C++ 与 Java 同构造 continentalness 噪声对比负坐标采样）
@@ -248,6 +250,7 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 ## 2026-08-07 负坐标定位进展（十）：Perlin origin 差坐实（deriver 层）
 
 - ✅ **origin 差坐实**：interp oct0 Perlin origin——C++ (110.147561,36.856976,54.622212) vs Java RouterProbe (68.458186,92.923998,198.372974)——完全不同
+  - ❌ **已更正（2026-08-08）**：origin 差是 rd2 漂移假象（进展十一已证）；b3d 实际一致。见文末修正段。
 - ⚠️ **待确认**：RouterProbe 用 rd2（NoiseConfig.randomDeriver 反射）——状态可能被构建消费（seed 97 漂移）；需从游戏实际 cns 的 b3d 实例反射 origin（最可靠）或 C++/Java fresh deriver 对比 nextDouble 序列
 - **如果 C++ deriver 差坐实** → 负坐标 535 chunk 全部源于 deriver（XoroshiroRandom）构造/序列差异 → 修 deriver
 
@@ -261,6 +264,7 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 ## 2026-08-07 负坐标定位进展（十二）：负坐标差异普遍坐实（所有 seed）
 
 - ✅ **seed -8248 负坐标 = 95.47%（非 100%）**（block_probe 对比 vanilla 参照，4×4 负坐标 chunk）——正坐标 100%、负坐标普遍差——**负坐标 bug 与 seed 无关，真实 bug**
+  - ❌ **已更正（2026-08-08）**：95.47% 大部分是 FEATURE 假 diff（-288 参照为 FULL 状态）；真 bug（SURFACE 参照）在 20000 正坐标 0.59%、8576 3.31%——**正坐标超阈值同样块状**。见文末修正段。
 - ✅ 排除「seed 97 特殊」——负坐标 bug 影响所有 seed（埋雷确认）
 - 🔍 根因仍在：Perlin 负坐标采样 or final 树负坐标——RouterProbe 参照不可靠（rd2 漂移），需游戏实际参照（cns CellCache）或差异模式定位
 
@@ -281,3 +285,29 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ✅ **反编译确认 Java 1.20.1 maintainPrecision**：`(long)(v/33554432.0 + 0.5)`（+0.5 后向零截断）——**C++ 曾误写成纯向零截断**——修复（对齐 Java）
 - ⚠️ **但**：maintainPrecision 折叠只在 |坐标×scaledXz|×2^r > 3.35e7 时触发（|x| > ~19.6 万）——**玩家位置（731,-404）和 -8248 测试区（|x|≤225）不触发**——负坐标小坐标差异根源在别处（Perlin.sample 其他细节）
 - **下一步**：小坐标负坐标 Perlin 差（输入/实现全验证一致）——需 dump sample 内部每步 vs 游戏实际，或考虑 noise-in-Java 兜底
+  - ✅ **已解决（2026-08-08）**：Perlin/b3d 实际一致（3e-5），此「下一步」作废；真正根因 = finalDensity 树内 factor/sloped_cheese spline 系统差 + range_choice 阈值跨越。见文末「2026-08-08 修正」段。
+
+## 2026-08-08 修正（重大：推翻 08-07 部分中间结论，勿再重查）
+
+> 本段修正 08-07 时间线中被后续证据推翻的中间结论。**旧结论文字保留**（铁律），以本段为准。
+
+### ❌ 已推翻的中间结论（对应上文条目）
+
+1. **「Perlin 负坐标差异坐实」（进展五/八/九/十，b3d(-280,-248) C++ 0.0274 vs Java 0.0895）**——**假象**。08-08 用 `-nbDump`（C++ 可信路径）vs DensityProbe 游戏实际 b3d（actualDensityFunctionCache）验证：**-8248 @ -18,-13 列 8,8 与 1250,1250 列 8,8 的 base_3d_noise 全部 3e-5 级一致**（含负坐标）。进展十一的「rd2 漂移假象」推理正确，但进展五/八/九/十未同步标注——**base_3d_noise（InterpolatedNoiseDF）彻底排除**。
+2. **「spline 三分量全差 → 嫌疑 biomeAt」（进展四）**——**假象**。08-08 DensityProbe comps（router 方法，可信）验证：**barrier/fluid/veinGap/continents/erosion/depth/ridges 在 -288 与 20000 全部 0 差异**。biomeAt 嫌疑排除。
+3. **「负坐标 bug 普遍坐实（95.47%）、与 seed 无关」（进展十二）**——**部分假象**。-288 参照是 **FULL 状态**（19:39 导出，含 FEATURE 产物：coal_ore/结构/granite blob 等），C++ 不做 FEATURE → **大部分 diff 是参照状态假 diff**。真正 bug 区（SURFACE 参照下）：20000 正坐标 0.59%、8576 玩家区 3.31%——**正坐标超过一定值也块状**（非纯负坐标）。
+4. **「差异集中在 y0-71（地表高度偏移，Perlin 微小差）」**——**方向吻合但原因错误**。真 bug 区 = 地表带 y42-65（SURFACE 参照），但**不是 Perlin 差**（b3d 一致），是 **finalDensity 树内 factor/sloped_cheese spline 组合的系统差 + range_choice 阈值跨越**（见下）。
+
+### ✅ 08-08 确凿结论（新）
+
+1. **cns 反射不可信**：`ChunkNoiseSampler.interpolators` 是 **8 个组件插值器**（finalDensity 树内标记噪声），get(0) min=-∞ 非 finalDensity；DensityInterpolator.sample 依赖 cns 遍历状态。**勿再以 cns 反射作密度参照**。
+2. **InterpolatedDF 整树插值 = 正确语义**（chunk(-18,-16) 100% 实证）。「噪声插值+非线性后置」重构（interpTransform/CellInterpRef）**已实现并回滚**（全区域变差）——**勿再尝试**。
+3. **OreVeinSampler 与 Java method_40547 逐行一致**（javap 确认）；**vein 先/aquifer 后 与 aquifer 先/vein 后 结果逐位相同**（顺序无关）。granite/diorite/tuff 缺失 = FEATURE（ore_granite 等 placed feature）**非 vein bug**。
+4. **level-seed 坑**：`java/run/server.properties` 的 level-seed 硬编码 -8248，`-PbenchSeed=X` 只设 Java 属性——**跑其他 seed 必须改 level-seed**（08-08 曾因 8576 参照错位误判「seed 派生差异」）。
+5. **20000 无插值 finalDensity 角点差 0.127**（-densityDump 修复后可信）：`-densityDump`（wg_sample_density 无插值）vs vanilla grid——**-288 角点（y≡0 mod 8）逐位一致**、**20000 角点差 0.127（y48）**——**无插值层面就差**（非 InterpolatedDF 插值问题）。
+6. **根因链（最终收敛）**：C++ finalDensity 树内 **factor/sloped_cheese（spline 组合 + shift）与 vanilla 有系统差**（dfreg 参考：factor 差 1.6、sloped_cheese 差 11.6、offset(spline) 差 0.02 恒定——待 cache 可信确认）→ **20000 的差跨 range_choice 阈值（sloped_cheese 1.5625）→ finalDensity 角点差 0.127 → 浅层 y42-65 符号翻转 → 块状**；-288 的差被「range_choice 同侧分支」吸收 → 100%（为何之前查不出）。
+7. **-namedDump 可信**（与 -nbDump 逐位一致）；**dfreg 不可信**（DENSITY_FUNCTION registry 原始树 ≠ 游戏实际——base_3d_noise 0.0145 vs 游戏 0.0596）；cache（actualDensityFunctionCache）是游戏实际（b3d 从这里拿过，可信）。
+
+### 工具（08-08 就绪）
+
+`WG_DBDEBUG`（列 densityBuf）、`WG_COMPDUMP`（router 组件）、`-densityDump`（主世界无插值 finalDensity）、`-namedDump`（可信 registry）、DensityProbe cache/dfreg/comps 扩展、OreProbe 参数化。参照状态：-288 FULL（只用于 density/vein 分析）、3200/20000/8576 SURFACE（方块对比用）。
