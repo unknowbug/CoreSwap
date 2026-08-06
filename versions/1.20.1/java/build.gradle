@@ -60,6 +60,7 @@ if (project.findProperty('densityProbeZ') != null) run.vmArg "-DdensityProbe.z=$
             if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
+if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
 if (project.findProperty('compProbe') != null) {
     run.vmArg "-Dcomp.probe=true"
