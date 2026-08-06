@@ -165,3 +165,11 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 - ❌ vanilla 单 chunk 生成不含村庄 start（结构跨 chunk）——无法直接对比村庄落地；完整对比需预生成村庄 start 区域（成本高）
 - **定性**：悬空结构非 CoreSwap 引入（高度逻辑没被改）；「MC 为什么 vanilla 不悬空」涉及结构模板落地机制/多 chunk blender——MC 深水区，暂缓
 - **优先级调整**：先做问题 2（远处虚空——BATCH 攒批吞吐，性能/体验更实际）
+
+## 2026-08-07 🔴 块状断裂根因坐实：负坐标 chunk C++ 生成差异（重大）
+
+- **用户方案**（CoreSwap 存档 vs vanilla 存档同 seed=97 对比）直接暴露：**535 个差异 chunk，全部集中在负坐标（x<0/z<0）**，越负差越大（最大差 52 格）；正坐标区域逐位一致
+- **模式**：CoreSwap 地表普遍比 vanilla 低（chunk(-18,-16) (0,37,89)：vanilla 89 vs CoreSwap 37）；chunk(-1,9) 差 2-11 格（用户坐标 12,156 附近可见的「块状」）
+- **根因**：C++ 负坐标 NOISE+SURFACE 生成差异（got_export 生成 chunk(-1,9) 地表 y67 vs vanilla 76-78）——**block_probe 100% 只验证正坐标 3200 区域，负坐标从未被覆盖**（JniProbe 的 98.5% 是下界）
+- **候选**：负坐标的 floor/取模语义（Java Math.floorDiv/floorMod vs C++ %）、hashXYZ、aquifer/surface 列缓存索引、InterpolatedDF 网格负坐标
+- **下一步**：densityDump 负坐标 vs vanilla 定位具体函数
