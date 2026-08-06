@@ -132,7 +132,8 @@ struct NotCond : SurfaceCond {
 class SurfaceContext {
 public:
     int blockX = 0, blockY = 0, blockZ = 0;
-    int runDepth = 0;
+    int surfaceDepth = 0;   // 列初始（sampleSurfaceDepth 2D 噪声）——y_above/stone_depth 用（Java MaterialRuleContext.surfaceDepth）
+    int runDepth = 0;       // 扫描计数器（空气→0、非空气非流体→++、流体→保持）——hole 用（Java MaterialRuleContext.runDepth）
     int stoneDepthAbove = 0, stoneDepthBelow = 0;
     int fluidHeight = INT32_MIN;
     std::string biomeId;
@@ -195,16 +196,16 @@ public:
 inline bool BiomeCond::test(const SurfaceContext& ctx) const { return biomes.count(ctx.biomeId) > 0; }
 inline bool AboveYCond::test(const SurfaceContext& ctx) const {
     int y = ctx.blockY + (addStoneDepth ? ctx.stoneDepthAbove : 0);
-    return y >= anchorY + ctx.runDepth * mult;
+    return y >= anchorY + ctx.surfaceDepth * mult;
 }
 inline bool WaterCond::test(const SurfaceContext& ctx) const {
     if (ctx.fluidHeight == INT32_MIN) return true;
     int y = ctx.blockY + (addStoneDepth ? ctx.stoneDepthAbove : 0);
-    return y >= ctx.fluidHeight + offset + ctx.runDepth * mult;
+    return y >= ctx.fluidHeight + offset + ctx.surfaceDepth * mult;
 }
 inline bool StoneDepthCond::test(const SurfaceContext& ctx) const {
     int i = ceiling ? ctx.stoneDepthBelow : ctx.stoneDepthAbove;
-    int j = addSurfaceDepth ? ctx.runDepth : 0;
+    int j = addSurfaceDepth ? ctx.surfaceDepth : 0;
     int k = secondaryDepthRange == 0 ? 0
         : (int)std::floor(lerpClamp(ctx.getSecondaryDepth(), -1.0, 1.0, 0.0, (double)secondaryDepthRange));
     return i <= 1 + offset + j + k;
@@ -223,7 +224,7 @@ inline bool NoiseThresholdCond::test(const SurfaceContext& ctx) const {
     }
     return slot.val >= minTh && slot.val <= maxTh;
 }
-inline bool HoleCond::test(const SurfaceContext& ctx) const { return ctx.runDepth <= 0; }
+inline bool HoleCond::test(const SurfaceContext& ctx) const { return ctx.stoneDepthAbove <= 0; }
 inline bool SteepCond::test(const SurfaceContext& ctx) const {
     int i = ctx.blockX & 15, j = ctx.blockZ & 15;
     int m = (*ctx.columnHeightmap)[i * 16 + std::max(j - 1, 0)];
@@ -649,7 +650,8 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
             int p = heightmap[k * 16 + l] + 1; // WORLD_SURFACE_WG + 1（chunk 内 y）
             ctx.blockX = m;
             ctx.blockZ = n;
-            ctx.runDepth = sampleRunDepth(m, n);
+            ctx.surfaceDepth = sampleRunDepth(m, n);
+            ctx.runDepth = 0;
 
             int q = 0;
             int r = INT32_MIN;   // 最高流体 y + 1
