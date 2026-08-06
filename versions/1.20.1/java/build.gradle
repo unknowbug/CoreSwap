@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.10.5'
 }
 
-version = '1.20.1-1.0.6'
+version = '1.20.1-1.0.8'
 group = 'wg'
 
 base {
@@ -57,6 +57,9 @@ loom {
             run.vmArg "-Dbench.out=${benchOut}"
             if (project.findProperty('probeCount') != null) run.vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
             if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
+if (project.findProperty('routerX') != null) run.vmArg "-Drouter.x=${project.findProperty('routerX')}"
+if (project.findProperty('routerZ') != null) run.vmArg "-Drouter.z=${project.findProperty('routerZ')}"
+if (project.findProperty('routerDim') != null) run.vmArg "-Drouter.dim=${project.findProperty('routerDim')}"
             if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

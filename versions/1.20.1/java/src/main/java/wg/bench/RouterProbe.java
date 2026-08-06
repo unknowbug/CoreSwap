@@ -24,8 +24,8 @@ public class RouterProbe {
         // 采样点：列模式（x=0, z=0, y=0..count*4）——下界 b3d 列对比（C++ densityDump 同列）
         double[] xs = new double[count], ys = new double[count], zs = new double[count];
         for (int i = 0; i < count; i++) {
-            xs[i] = 0.0;
-            zs[i] = 0.0;
+            xs[i] = System.getProperty("router.x") != null ? Double.parseDouble(System.getProperty("router.x")) : 0.0;
+            zs[i] = System.getProperty("router.z") != null ? Double.parseDouble(System.getProperty("router.z")) : 0.0;
             ys[i] = i * 4;
         }
 
