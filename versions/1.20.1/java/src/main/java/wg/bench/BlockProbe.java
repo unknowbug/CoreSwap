@@ -360,6 +360,9 @@ public class BlockProbe {
                             System.out.println("[BioDiag] biome@(3214,31,3212)=" + bio);
                             java.lang.reflect.Method mEst = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
                             System.out.println("[EstDiag] (200,200) estimateSurfaceHeight=" + mEst.invoke(cnsD, 3200, 3211));
+                            for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}}) {
+                                System.out.println("[EstDiag] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + mEst.invoke(cnsD, pt[0], pt[1]));
+                            }
                             java.lang.reflect.Field fIni = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
                             fIni.setAccessible(true);
                             Object ini = fIni.get(cnsD);
