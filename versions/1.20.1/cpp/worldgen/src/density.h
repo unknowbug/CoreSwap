@@ -472,7 +472,12 @@ public:
         double d11 = d011 + (d111 - d011) * fx;
         double d0 = d00 + (d10 - d00) * fy;
         double d1 = d01 + (d11 - d01) * fy;
-        return d0 + (d1 - d0) * fz;
+        double rr = d0 + (d1 - d0) * fz;
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+            std::fprintf(stderr, "[INTERP] pos=(%d,%d,%d) cx=%d cy=%d cz=%d result=%.6f\n",
+                         pos.x, pos.y, pos.z, cx, cy, cz, rr);
+        }
+        return rr;
     }
 
     double minValue() const override { return arg->minValue(); }
