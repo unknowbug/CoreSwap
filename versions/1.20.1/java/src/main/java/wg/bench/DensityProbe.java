@@ -155,7 +155,7 @@ public class DensityProbe {
                                 if (ks.contains("base_3d_noise") && b3d == null) b3d = fc;
                                 // Noise 实例（含 scale 的 NoiseDF）：多 y 采样（对比 C++ -noiseDump）
                                 if (ks.contains("Noise[noise=")) {
-                                    for (int y : new int[]{-64, 0, 48}) {
+                                    for (int y : new int[]{-64, -8, 0, 8, 48}) {
                                         double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
                                         sbCache.append("NOISE ").append(y).append(' ')
                                                .append(String.format(java.util.Locale.ROOT, "%.9f", vv)).append('\n');
@@ -169,8 +169,8 @@ public class DensityProbe {
                                                .append(String.format(java.util.Locale.ROOT, "%.9f", vv)).append('\n');
                                     }
                                 }
-                                // 每个候选 dump y=-64,0,48（finalDensity 树内组件定位）
-                                for (int y : new int[]{-64, 0, 48}) {
+                                // 每个候选 dump y=-64,-8,0,8,48（finalDensity 树内组件定位）
+                                for (int y : new int[]{-64, -8, 0, 8, 48}) {
                                     double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
                                     sbCache.append(ks.substring(0, Math.min(90, ks.length())).replace('\n', ' '))
                                           .append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", vv)).append('\n');
