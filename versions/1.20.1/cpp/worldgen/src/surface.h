@@ -749,11 +749,11 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                         
                         int newState = rule->apply(ctx);
                         if (newState >= 0) col.at(k, wy, l) = newState;
-                        if (wg_surfaceTrace && m == 804 && n == -368) {
+                        if (wg_surfaceTrace && m == wg_surfaceTraceX && n == wg_surfaceTraceZ) {
                             std::fprintf(stderr, "[SURFTRACE] (%d,%d,%d) q=%d vx=%d r=%d s=%d biome=%s state=%d->%d\n",
                                         m, wy, n, q, vx, r, s, b.first.c_str(), state, newState);
                         }
-                    } else if (wg_surfaceTrace && m == 804 && n == -368) {
+                    } else if (wg_surfaceTrace && m == wg_surfaceTraceX && n == wg_surfaceTraceZ) {
                         std::fprintf(stderr, "[SURFTRACE] (%d,%d,%d) q=%d vx=%d r=%d s=%d biome=%s state=%d (non-default, skip)\n",
                                     m, wy, n, q, vx, r, s, b.first.c_str(), state);
                     }
