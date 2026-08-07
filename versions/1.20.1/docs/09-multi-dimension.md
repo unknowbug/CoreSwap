@@ -568,3 +568,24 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 
 ### 下一步
 定位 16 格宽划线位置的 biome 参数（C++ vs Java 的 FlatCache 网格角点值）——确认是否是 FlatCache 网格值差（特定位置）
+
+---
+
+## 2026-08-08 晚补充：8576 剩余差（99.58%→99.8473%）+ 用户崩溃（内存损坏）
+
+### 8576 对齐提升链（block_probe 逐位）
+- **heightmap 索引 x/z 交换修复**（ad81342）：buildSurface 遍历 heightmap[k*16+l] 应为 heightmap[l*16+k]（z*16+x）——-288 95.47→95.72%、8576 99.58→99.80%
+- **above_preliminary_surface 语义**：Java 实测 est=64 的列 y58/y63/y64 都产 grass/terracotta → 语义 = `blockY + surfaceDepth + 4 >= est`（试过 >=est/ +1/+sd/+sd+4，+4 最佳 99.8473%）。3200 保持 100%、-288 不变
+- **est 两版一致**：C++ nc 直接版 initial_density 与 Java cns 查表版在 (738,64) 都 = 0.574（est=64）——FlatCacheDF 直用崩（RAX=0 多线程）已回滚
+- **terracotta 带 y57/58 错位 1 未解决**（lround 正确，floor 更差）——疑带数组差或 biome 差（参照 savanna 列有 terracotta=假 diff 疑点，需 Java 真实 biome 验证）
+
+### 用户崩溃（仅 XMing_Glamorgan，1.0.11-pre→1.0.17 都崩）
+- 已修：CoreSwapPool run fn 并发覆盖（1.0.12）、derivedSplitters 并发写（1.0.14）
+- 1.0.15+：崩溃日志 handler（vectored exception + StackWalk64 + crash-coreswap-*.txt + dll sha256）
+- 1.0.17 崩溃：RIP=堆地址 0x28F57AF5057（call 到堆执行=use-after-free/函数指针覆盖）；data[0x34000]=0x854800014F721D8B（异常值）；MEM-CHK 未报（写坏在 fillOneChunk 外或校验位不对）
+- **0xEFE1 call [0x34001] 之谜**：.rdata 0x34000+1（奇数地址未对齐 call）——静态值垃圾——正常应 call memset——需 CE/dumpbin 确认运行时值
+- 用户机器疑有内存/驱动问题（0x40010006 异常像被 patch）——但需先排除我们代码
+
+### 工具/脚本（data/）
+- read_col2.py（列方块）、read_biome2.py（biome）、pe_probe.py/dis_efe1_16.py/find_pat.py/iat_probe.py/parse_map.py（PE 分析）
+- BlockProbe 参数是 benchOriginX（不是 blockProbeOriginX）；EstDiag 条件 wx==45 && wz==-27

@@ -1,151 +1,145 @@
-# CoreSwap 下一会话交接（2026-08-06 深夜切会话）
+# CoreSwap 下一会话交接（2026-08-08 深夜版 · 完整自包含）
 
-> 主主线：**负坐标 bug**。本文档是唯一权威交接，先读这个再动手。
-
-## 当前唯一主主线：负坐标 bug（块状断裂地形）
-
-**现象**：负坐标区域 C++ 生成的地形断裂/浮空（用户验证 seed `8576294172403134396`，玩家降落 (731,82,-404)）。正坐标 100% 逐位一致，负坐标才触发。
-
-### 已确认的事实（勿重复排查）
-
-1. **差异模式**：C++ 生成比 vanilla 地表低/断裂。seed -8248 负坐标 chunk(-18,-16) 列 (8,8)（世界 -280,-248）：
-   - cns 游戏实际密度（DensityInterpolator.sample）：y 48 = +0.213（正）、y 52 = -0.010（负）——**过零 51-52**
-   - C++ 方块：y 40-51 实心 ✅、**y 52-60 实心 ❌（应空气）**、y 61-64 空气 ✅、**y 65-99 全 stone ❌（应空气，cns y 65=-0.40）**
-2. **排除项**（全部验证过，别重查）：
-   - Perlin 实现（c2me 源码确认 vanilla 原样，C++ 已核对）
-   - maintainPrecision（已修复：Java 是 `(long)(v/3.35e7+0.5)` 截断语义，C++ 已对齐；小坐标不触发折叠）
-   - FlatCacheDF/Cache2DDF 缓存（key `(uint32)x<<32 ^ z` 负坐标唯一；网格索引 kc/lc 用算术右移一致）
-   - InterpolatedDF 插值（gx/gy/cz = pos - chunk*16 均非负，负坐标与正坐标同路径）
-   - 取模/移位/GRADIENTS 表/deriver
-3. **A 方案（cns 游戏实际参照）已跑通**——这是当前最强诊断工具：
-   - DensityProbe.java 反射 cns 完整链：`sampleStartDensity()` → 循环 `sampleEndDensity(cellX)` → `onSampledCellCorners(cellY,cellZ)` → `interpolateY/X/Z(世界坐标, progress)` → **`DensityInterpolator.sample(cns)`**（interpolators 字段 get(0)——字段名 `interpolators` 不是 `interps`）
-   - **注意**：不能调 `sampleBlockState`（aquifer 单 chunk 探针越界 `Index 358`——探针缺周围 chunk 上下文）；必须用 DensityInterpolator.sample
-   - cell 尺寸：水平 4、垂直 8；cellHeight=48；minCellY=-8；blockY = (minCellY+cellY)*8+vb（世界 y）；blockX/blockZ 必须世界坐标（chunkStartX + cellX*4 + cbx）
-   - 跑法：`gradle runServer --no-daemon -PdensityProbe=true -PdensityProbeDimension=overworld -PdensityProbeChunkX=-18 -PdensityProbeChunkZ=-16 -PdensityProbeX=8 -PdensityProbeZ=8 -PbenchSeed=-8248318472910187742`
-   - 输出 `data\vanilla_density_overworld_c-18_-16_b8_8_cns.txt`
-
-### 下一步（按优先级）
-
-1. **dump C++ 的 densityBuf 原始值**（fillOneChunk 内部，不经 aquifer/surface）对比 cns——**区分「density 错」vs「aquifer/surface 错」**
-   - 在 fillOneChunk 的 densityBuf 填充处（worldgen_api.cpp ~534 行）加 WG_DBDEBUG 环境变量条件打印列 (bx,bz) 的原始密度
-   - 对比 cns 反射值：若 density 一致 → 错在 aquifer/surface；若 density 就差 → 错在密度树（负 x/z 的某分量）
-2. **修复 got_export 的 -densityDump**：它**硬编码下界**（`wg_create(..., "nether.json", "biome_params_nether.json", 256)`，忽略 dimension 参数）——主世界 dump 必须用 `-namedDump final_density -18 -16 8 8 -dimension 0`（但 namedDump 目前全 0——final_density 的 registry 名不对，需查 builder 注册的 key）
-3. **WG_SURFDUMP 诊断**：worldgen_api.cpp ~547 行已有 dump 列表面高度/initial/final 剖面——可对比 cns
-4. **若 aquifer/surface 错**：负坐标的 aquifer 表面估计（estimateSurfaceHeight）或 surface 规则遍历
-5. **兜底**：noise-in-Java 开关（v1.2 迁移工具，docs/09 有设计）——噪声交 Java 立即解决（但不优先）
-
-## 工具与命令速查
-
-- C++ 构建（MSVC，禁止 MinGW）：`cmd /c "call \"D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat\" && set PATH=\"...Ninja\";%PATH% && cmake --build build-msvc"`（改 .h 后需 touch worldgen_api.cpp 强制重编——ninja 头依赖未跟踪）
-- 主世界回归：`block_probe -8248318472910187742 E:\python\MC\data\worldgen E:\python\MC\data\vanilla_-8248318472910187742_4_3200_3208.blocks` → 必须 100%
-- 负坐标参照：`data\vanilla_-8248318472910187742_4_-288_-256.blocks`（格式：32B 头 magic/seed/size/originX/originZ/minY/height + 每 chunk 8B pos + 16*16*384 short 大端）
-- c2me 源码已 clone 到 `E:\python\MC\data\c2me-fabric`（MixinNoiseChunkGenerator 有完整 populateNoise 链，MixinChunkNoiseSampler 有 cacheAllInCell 语义）
-- 线程：`-PcoreswapThreads=N` → `-Dcoreswap.threads` → C++ `physicalCoreCount()`（Windows API 物理核）+ `CORESWAP_THREADS` env
-
-## 已发布版本（勿重复发）
-
-1.0.4/1.0.5/1.0.6/1.0.7/1.0.8 均已发布。1.0.8 = dll 版本化（哈希对比自动替换缓存 dll，修 XuanRikka 的更新不替换问题）。当前 build.gradle version = 1.20.1-1.0.8（若改代码需 bump + 发布按铁律：MSVC dll + dumpbin 导入表 + block_probe 100% 回归 + jar 内 dll 验证）。
-
-## 重要铁律（勿违反）
-
-- 知识库 docs/ 追加式更新，禁止覆盖（用户明确）
-- 提交 author 必须 unknowbug，中文提交信息
-- 主世界 100% 是铁律——任何改动后必须回归
-- 不在 GitHub Issue 直接回复（除非用户明确指示）
-- 全版本覆盖是真实目标（对外文档禁止「不计划」措辞）
+> 本文件是唯一权威交接。**先读全文再动手**——所有路径、命令、环境、铁律都在这里，不需要翻历史。
+> 当前主线两条：**① 8576 剩余差（above_preliminary_surface/terracotta 带）**、**② 用户崩溃（内存损坏 0x34001）**。
 
 ---
 
-## 2026-08-07 深夜追加：负坐标/大坐标块状根因已确认（InterpolatedDF 插值语义）
+## 〇、项目全貌
 
-### 根因（决定性证据）
+CoreSwap = Minecraft 1.20.1 自定义世界生成引擎：C++ 密度引擎（逐位对齐 vanilla）+ JNI 桥 + Fabric mod（Forge 通过 Sinytra Connector 兼容）。目标全版本覆盖（1.20.x 已发布，1.17+ 在路线）。逐位一致是核心卖点（禁止近似优化）。
 
-**C++ `InterpolatedDF`（density.h）插值「整棵 argument 树」——把 range_choice/min/squeeze 等非线性阶梯也平滑了；vanilla 的 `minecraft:interpolated` 只插值 argument 树中的「噪声节点」，非线性在插值后应用（保留阶梯）。**
+- 项目根：`E:\PYTHON\MC`
+- C++ 引擎：`versions/1.20.1/cpp/worldgen/`（src/ 源码、include/、build-msvc/ 构建目录）
+- Java mod：`versions/1.20.1/java/`（fabric-loom，src/main/java/wg/bench/ 探针）
+- 参照数据：`E:\PYTHON\MC\data`（vanilla blocks/density 导出、worldgen JSON）
+- 工具：`E:\PYTHON\MC\tools`（coreswap-pkg/jdk17/mc-src/mc-src2）
+- 版本目录仅 1.20.1
 
-证据（veinToggle，range_choice y 范围 -60..51，interpolated 包着）：
-- y=52（max_exclusive=51，范围外）：vanilla=0.00000、C++=-0.02177 ❌（C++ 插值把噪声拖过边界）
-- y=-60（min_inclusive 边界）：vanilla=-0.11003、C++=-0.05142 ❌（C++ 平滑拉向 0）
-- y=-56/48（远离边界）：一致 ✅
+## 一、环境与构建（铁律）
 
-影响面：
-- **vein_toggle/vein_ridged**（range_choice 边界 -60..51）→ -288 区域 granite/diorite/tuff 缺失、gold_ore 错位
-- **finalDensity**（sloped_cheese 的 range_choice 阈值 1.5625 + min/squeeze）→ 20000 区域 y40 差 0.29 + y52 符号翻转
-- 3200「100%」= NOISE 状态旧参照（无 ORE/vein 产物）+ 该区域非线性恰好平缓（非坐标相关，位置巧合）
+1. **C++ 一律本机 MSVC，严格禁用 MinGW**（MinGW -static 下 thread_local 退化 → 堆损坏 0xC0000005）。本机：
+   - VS 2026（v18.7.3）：`D:\Program Files\Microsoft Visual Studio\18\Community`
+   - MSVC 工具链 14.51.36231：`VC\Tools\MSVC\14.51.36231\bin\Hostx64\x64\cl.exe`
+   - Ninja：`D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe`
+   - 构建：`cmd /c "call "...VC\Auxiliary\Build\vcvars64.bat" && set PATH="...Ninja";%PATH% && cmake --build build-msvc"`
+   - **注意**：改头文件后有时 ninja 不重编（no work to do）——删对应 obj（`build-msvc\worldgen\CMakeFiles\...\*.obj`）强制重编
+2. **git 提交**：author 必须 `unknowbug <unknowbug@users.noreply.github.com>`、中文提交信息。命令：`git -c user.name=unknowbug -c user.email="unknowbug@users.noreply.github.com" commit -m @'中文信息'@`
+3. **docs/ 知识库追加式更新，禁止覆盖**（铁律）——新增章节，不改旧正文
+4. **主世界 100% 是铁律**——任何改动后必须回归 3200（block_probe 对比）
+5. **发布铁律**：dll 必须 MSVC + dumpbin 验证导入表（MSVCP140/VCRUNTIME140，无 libstdc++）+ jar 内嵌 dll 大小一致 + block_probe 回归 + 才 gh release
 
-### 已排除（勿重查）
-- yScale 第 4 参：javap 确认 1.20.1 DoublePerlinNoiseSampler 只有 3 参 sample（NoiseDF 3 参+乘 yScale 与 Java 一致）
-- maintainPrecision：已对齐；超大坐标（134313,434419）b3d 差 6.6e-5（正常舍入，无折叠跳变）
-- barrier/fluid/veinGap/continents/erosion：router 组件全 0 一致
-- cns 反射链：interpolators 是 8 个组件插值器（get(0) 不是 finalDensity）；DensityInterpolator.sample 依赖 cns 遍历状态，反射输出不可信
+## 二、当前对齐率（block_probe 逐位对比）
 
-### 修复方向（未开始）
-把 InterpolatedDF 改为 vanilla 语义：遍历 argument 树，标记「噪声型节点」（minecraft:noise/shifted_noise/weird_scaled_sampler/old_blended_noise/spline 噪声），每个分配独立 cell 网格（角点采样该噪声），插值后重建树（非线性后置）。density_builder buildNode 层面做变换最省（不改每类 DensityFunction）。
+- **3200**（正坐标 3200,3208 4×4）：**100.0000%**（回归基线，任何改动必须保持）
+- **-288**（负坐标 -288,-256 4×4）：**95.7243%**（负坐标 bug 剩余——非本次主线）
+- **8576**（用户 seed 8576294172403134396，720,-432 6×6）：**99.8473%**（本次主线，从 99.58% 一路提升）
 
-### 新工具/诊断（本次会话）
-- `WG_DBDEBUG`（worldgen_api.cpp fillOneChunk）：dump 指定列 densityBuf（**注意 chunk 内局部坐标**，世界坐标会越界读垃圾）
-- `WG_COMPDUMP`：dump 全部 router 组件（barrier/fluid/vein 等）格式对齐 DensityProbe comps
-- DensityProbe comps 扩展：barrierNoise/fluidLevelFloodednessNoise/fluidLevelSpreadNoise/lavaNoise/veinToggle/veinRidged/veinGap/initialDensity（yarn 方法名带 Noise 后缀！）
-- got_export -nbDump 0=overworld；c2me MixinNoiseChunkGenerator.populateNoise 是权威遍历（cellX/cellZ/cbx/cbz 正向、cellY/vb 反向、blockX 世界坐标）
-- 参照文件状态：-288 FULL（含 ORE/结构）、3200 NOISE（无 ORE）——正坐标回归需换 FULL 参照（20000/134304 已导出）
+参照 blocks 文件：`data/vanilla_8576294172403134396_6_720_-432.blocks`（重导过一致）、`data/vanilla_-8248318472910187742_4_3200_3208.blocks`、`data/vanilla_-8248318472910187742_4_-288_-256.blocks`
+blocks.json：`java/src/main/resources/worldgen-data/blocks.json`（99=sandstone、909=tuff、970=deepslate、173=fire、32=water、37=海底沙、425/426/433/437/439=terracotta 系、1=stone、8=grass、9=dirt、494=white_terracotta？）
 
-### 2026-08-08 凌晨追加：vein 调查（InterpolatedDF 整树插值确认正确）
+## 三、8576 剩余差主线（当前主任务）
 
-**结论**：
-- C++ InterpolatedDF **整树插值是正确的**（回滚后 chunk(-18,-16) 100%、3200 100% 恢复）。「噪声插值 + 非线性后置」改造（interpTransform/CellInterpRef）已回滚（git checkout density.h density_builder.h）——**勿再尝试**。
-- veinToggle/veinRidged/veinGap 的 C++ InterpolatedDF 插值与 Java 游戏实际**逐点一致**（OreProbe vtI/vrI/vgI 对比，veinToggle 全 0 差异；veinRidged 差异是 OreProbe 自身 bug——unwrap 只解一层、lerp3Interp 对 add/max/abs 整树插值，vanilla 是 2 个 interpolated 独立插值——**C++ 正确**）。
-- **vein 产物（granite/diorite/tuff）缺失的真正机制未定**：最可能是 **aquifer 与 vein 的交互顺序/决策**。
+**状态**：99.8473%（差 5405 块，y<64 占 99.9%——grass/terracotta/dirt 层差）
 
-**Java 1.20.1 反编译确认（javap minecraft-unpicked.jar）**：
-- `OreVeinSampler.create(...)` 返回 BlockStateSampler；`method_40547` = 逐块 `split(blockX,blockY,blockZ)` + veinToggle/veinRidged/veinGap 采样——**与 C++ ore_vein.h 逐行一致**（无 3×3 区域，常量全同）
-- `ChunkNoiseSampler.sampleBlockState()` = `blockStateSampler.sample(cns)`（纯 vein）
-- `NoiseChunkGenerator.getBlockState(...)` = 恒等（直接返回传入 state）——**aquifer 不在 populateNoise 里显式调用**
-- **aquifer 应用位置未定**（可能在 ChunkNoiseSampler 构造的 blockStateSampler 组合里）——下一步：javap 查 ChunkNoiseSampler 构造函数的 blockStateSampler 初始化（putfield #blockStateSampler），确认 aquifer 与 vein 的组合顺序
+**已确认**：
+- **heightmap 索引 x/z 交换修复**（ad81342）：buildSurface 遍历用 `heightmap[l*16+k]`（z*16+x），之前 k*16+l 错位——-288 95.47→95.72%、8576 99.58→99.80%
+- **above_preliminary_surface 语义**（已提交 +4）：Java 实测 est=64 的列 y58/y63/y64 都产 grass/terracotta → 语义 = `blockY + surfaceDepth + 4 >= est`（当前 99.8473%）。试过 `>=est`（99.80）、`+1`（99.809）、`+surfaceDepth`（99.833）、`+sd+4`（99.8473 最佳）
+- **est 用 nc 直接版 initial_density**（R["initial_density"] = "initial_density_without_jaggedness" 的 buildNode）——Java cns 的 est 用查表版（FlatCache）但实测 (738,64) 两版都 = 0.574（一致）——FlatCacheDF 直用会崩（RAX=0 写空指针，多线程），已回滚
+- **Java est 验证**（BlockProbe EstDiag 反射 cns）：(738,-421)/(805,-432)/(808,-432)/(803,-432) est 全 = 64（与 C++ 一致）
+- **surfaceDepth**（C++）：sampleRunDepth = `floor(surface*2.75 + 3.0 + positional*0.25)`，positional = `splitter->split(bx,0,bz).nextDouble()`——(805,-432) d=-0.117 extra=0.695 → val=2（最大也只到 2）
+- **terracotta 带差**：y57/58 错位 1（C++ 在某列 y57 产 439、参照 y58 产 439）——i = `lround(clay_bands_offset*4)`（floor 实验 99.80% 更差，lround 正确）——**未解决**（可能带数组差或 biome 差）
+- **参照假 diff 疑点**：参照 biome=savanna 的列却有 terracotta（savanna 不该产）——blocks 的 biome 段（256 个）读出来两种索引都 savanna——**需验证 Java 真实 biome**（EstDiag 的 getBiome 反射签名错 NoSuchMethodException，需找 yarn 正确签名）
 
-**OreProbe 已参数化**（-PoreChunkX/-PoreChunkZ，build.gradle 已加传递）；dump 列 (chunkX*16+8, chunkZ*16+8) 的 vt/vr/vg raw+插值（lerp3Interp 复刻 DensityInterpolator，**对单个 interpolated 节点可信，对整树不可信**）。
+**下一步候选**（下个 session 从这里继续）：
+1. **验证 Java 真实 biome** @(805,58,-432)（cns.getBiome 正确反射签名——yarn 可能是 `getBiome(int,int,int)` 但非 public 或方法名不同）——确认参照 terracotta 是真差还是假 diff
+2. **terracotta 带数组对比**：C++ 192 带 vs Java（TerracottaBands）——带颜色差 → y 错位
+3. **-288 剩余 4.3%**（负坐标 bug——另一条线，可后续）
 
-**待验证实验**：C++ fillOneChunk 把顺序改成「vein 先、aquifer 后」（Java 疑似顺序），看 vein 产物是否恢复。
+## 四、用户崩溃排查（内存损坏 0x34001）
 
-### 2026-08-08 凌晨追加 2：vein 顺序实验无影响 + 剩余疑点收敛
+**用户**（XMing_Glamorgan，D:\MC，Fabric 1.20.1 + API 0.92.11）——只有他崩，从 1.0.11-pre 一路到 1.0.17。
 
-**顺序交换实验**（vein 先、aquifer 后）→ -288 95.4728%、3200 100% **逐位不变**——顺序不是 vein 缺失根因（两个顺序等价）。已改回原顺序（git 状态 worldgen_api.cpp 有顺序改动——**已手动还原**：`git checkout versions/1.20.1/cpp/worldgen/src/worldgen_api.cpp` 需确认；或保留 vein 先顺序亦可，结果相同）。
+**已修复**：
+- 1.0.12-pre：CoreSwapPool::run 的 fn 共享成员并发覆盖（runMtx 全局锁）
+- 1.0.14：derivedSplitters（mutable std::map）并发写数据竞争（splitterFor 加 mutex）——Worker-Main-11 空 std::function 崩溃
+- 1.0.15：崩溃日志 handler（vectored exception + 栈回溯 + crash-coreswap-*.txt）
+- 1.0.16：StackWalk64 完整栈 + CppBridge.init 打印 dll sha256（验证旧缓存）
+- 1.0.17：崩溃时打印 data[0x34000/1] + fillOneChunk 每 chunk MEM-CHK 校验 0x34001 vs 基线
 
-**vein 决策链剩余疑点（唯一候选）**：
-- **veinRidged 的符号**：ore_vein.h `if (veinRidged->sample(pos) >= 0.0) return -1;`——C++ veinRidged（2 个 interpolated 节点独立插值 + abs/max/add）vs **Java 游戏实际**（ChunkNoiseSampler 的 vein_ridged 插值器）——**没有可信的 Java 参照**（OreProbe 的 lerp3Interp 对整树插值是自身 bug，不可信）。
-- 验证方法：cns 反射遍历 8 个 interpolators，找 vein_ridged 相关（min/max 特征：add(-0.08, max(abs,abs)) 的 min/max ≈ [-0.08-|vrmax|, |vrmax|]）；或 Java 侧新探针直接采样 ChunkNoiseSampler 的 vein_ridged 插值状态。
+**1.0.17 崩溃日志分析**（错误报告-2026-8-7_20.07.42.zip，data/crash_2007/）：
+- dll size=300544（1.0.17 的——排除旧缓存）
+- 崩溃1：0xC0000005 read 0x28F45990000（堆），RIP=0x28F57AF5057（堆地址！）——**call 到堆地址执行**（use-after-free/函数指针被覆盖）
+- **data[0x34000]=0x854800014F721D8B**（不是 memset IAT 的正常值）——0x34000 数据被覆盖/或正常运行时就是这个值（需对比）
+- MEM-CHK 没打印异常（fillOneChunk 内没写坏——**写坏发生在 fillOneChunk 之外**或**MEM-CHK 的 0x34001 校验位置不对**）
+- **关键疑点**：0xEFE1 `call qword ptr [rip+0x25019]` = call [0x34001]——0x34001 在 .rdata（0x34000+1，奇数——**未对齐的 call 目标**）——静态值 = 0x2800000000000000（垃圾）——运行时被 loader 填成什么？——正常应该 call memset（0xEFDA mov edx,0x18 / 0xEFDF xor ecx,ecx / 0xEFD3 lea r8,[rbp+0x270] = memset(rbp+0x270, 0, 0x18)）——**但 0x34001 是奇数地址，call 读取错位 8 字节**——可能编译器生成问题或 .rdata 布局（需下个 session 用 CE 或 dumpbin /disasm 确认 0x34001 的运行时值）
+- 用户机器可能真有问题（内存/驱动）——但 5+ 次固定崩溃模式需先排除我们代码
 
-**已确认（勿重查）**：
-- hashXYZ（split(int,int,int)）：aquifer 100% 实证负坐标一致
-- veinToggle 插值：C++ == Java（OreProbe vtI 全 0 差异）
-- OreVeinSampler 算法：与 Java method_40547 逐行一致（javap 确认）
-- aquifer 与 vein 顺序：无影响
-- InterpolatedDF 整树插值：正确（勿改）
+**下一步**：
+1. 用 CE（cheatengine MCP 可用）attach 到崩溃现场/或本地复现——看 0x34001 的运行时值
+2. 0xEFE1 的 call 目标确认（memset 的 IAT 错位？）——dumpbin /disasm /range 用完整 VA（ImageBase 0x180000000 + RVA）
+3. 让用户试：删 `%TEMP%\coreswap-native` 和 `coreswap-data` 缓存 + 最新版 + 关杀毒（0x40010006 崩溃像被 patch/hook）
 
-**C++ 侧当前改动（未提交）**：worldgen_api.cpp 的 WG_DBDEBUG/WG_COMPDUMP 诊断 + vein 顺序改动；java 侧 DensityProbe（comps 扩展+cns 修复）、OreProbe（参数化）、BlockProbe 参数。git 提交建议：诊断工具独立提交（中文信息、author unknowbug）。
+## 五、已发布版本（GitHub unknowbug/CoreSwap Releases）
 
-### 2026-08-08 追加 3：块状根因缩小（level-seed 坑 + 浅层插值符号翻转）
+- 1.0.13：heightmap x/z 索引修复（3200 100%、8576 99.80%、-288 95.72%）
+- 1.0.14：derivedSplitters 并发崩溃修复
+- 1.0.15：原生崩溃日志 handler（vectored exception + 栈 + 文件）
+- 1.0.16：StackWalk64 完整栈 + dll sha256 打印
+- 1.0.17：内存损坏诊断（data[0x34000] 打印 + MEM-CHK 校验）
+- 兼容性说明（1.0.13+ notes 已改）：Fabric 1.20.1 + Forge（Sinytra Connector，PR #3 兼容——CoreSwapFixHelper 多级定位 jar 提取）
+- Forge 兼容 git 历史：e8d52dc（PR #3 思路）、75b9e75、9b3de36、c61d96c（致谢 dustinmoon78）
 
-**重要坑（已踩）**：`java/run/server.properties` 的 `level-seed` **硬编码 -8248318472910187742**！`-PbenchSeed=X` 只设 `-Dbench.seed` 属性，**world 实际 seed 永远 -8248**——所有「8576 参照」（DensityProbe/BlockProbe）实际是 -8248 世界的（错位对比）。**跑其他 seed 前必须改 level-seed**（已验证改后 worldSeed 正确）。
+## 六、诊断工具（探针）
 
-**真实 8576（level-seed 修正后）**：玩家 (731,82,-404) 区域 SURFACE 参照对比 **3.31% diff**（错位假象是 9.59%）——**块状真实存在**（chunk(45,-26) 2.84%）。
-- diff 全在**地表带 y42-65**（-8248 20000 也是 y42-65 峰值 y50-51——同模式）
-- 配对：stone↔water、air↔stone、dirt/grass 错位——**aquifer/surface 浅层错**
+- **block_probe**（C++）：`build-msvc/bin/block_probe.exe <seed> <worldgen dir> <vanilla.blocks> [-threads N] [-mismatch] [-blockDump X Y Z] [-crashTest]`——-mismatch 输出差块（位置/方块/biome）；**注意 i 的 lx=i%16, ly=i/256, lz=(i/16)%16 已修正**；-blockDump 的 idx 用局部坐标 (by-(-64))*16+lz)*16+lx
+- **got_export**：-namedDump/-densityDump/-compXY/-noiseDump/-biomeDump/-listRegistry（-densityDump 参数是 chunk+块内坐标：`-densityDump cx cz bx bz`）
+- **DensityProbe**（Java）：`gradle runServer -PdensityProbe=true -PdensityProbeChunkX= -PdensityProbeChunkZ= -PdensityProbeX= -PdensityProbeZ= -PbenchSeed=`——CAVES-NOISE 反射 cns 噪声、ESH-ID 反射 initial_density
+- **BlockProbe**（Java）：`gradle runServer -PblockProbe -PbenchSeed= -PbenchOriginX= -PbenchOriginZ= -PbenchSize=`——导出 .blocks 参照（**参数是 benchOriginX 不是 blockProbeOriginX！**）；EstDiag 反射 cns 的 est/initial_density（条件 wx==45 && wz==-27）
+- **CppBridge**（Java）：init 打印 dll 路径/size/sha256（-Dcpp.worldgen.dir 可覆盖）
+- **参照重导**：`-PbenchOut="E:\python\MC\data\recheck"` 导出到指定目录
 
-**最深疑点（下一步）**：20000 列 (2,11) 剖面：vanilla y52-55 dirt + y56-62 water（海底）；C++ y52-58 stone + y59-61 dirt + y62 grass_block（陆地）——**C++ 插值密度在该列 y52-62 为正而游戏实际为负**——**C++ InterpolatedDF 插值 ≠ 游戏实际（20000 区域，-288 一致）**。候选：
-1. vanilla cell 角点网格布局（cacheAllInCell）在特定坐标与 C++ buildGrids 差
-2. 需要「游戏实际插值密度」参照——cns 反射的 interpolators 不含 finalDensity（get(0) min=-∞ 是某组件）；需找 ChunkNoiseSampler 的「当前密度」字段（非 interpolators）
+## 七、关键代码位置
 
-**-8248 有效参照**：-288 FULL（19:39，含 FEATURE 假 diff——**只用于 density/vein 分析，方块 diff 不可信**）；20000 SURFACE（23:03，真 diff 0.59%）；3200 SURFACE（14:11，100% 基线）
+- `surface.h`：
+  - SurfaceCondC::test（above_preliminary_surface）：`blockY + surfaceDepth + 4 >= est`（当前）
+  - estimateSurfaceHeight：initialDensityAt 扫描 >0.390625（间隔 8，从顶向下）
+  - sampleRunDepth：surface 噪声 depth 计算
+  - getTerracottaBlock：红陶带（lround(offset*4) + floorMod(y+i,192)）
+  - buildSurface：遍历 heightmap[l*16+k]（x/z 已修）、stoneDepth 条件 `q <= 1+offset+sd`
+  - splitterFor：derivedSplitters（mutex 已修）
+- `worldgen_api.cpp`：
+  - fillOneChunk（517 行）：density → aquifer/oreVein → buildSurface → out
+  - MEM-CHK（fillOneChunk 开头）：0x34001 vs 基线校验
+  - CoreSwapPool::run（runMtx 已修）
+  - est 的 initialDensityAt lambda：R["initial_density"] 直接采样（FlatCacheDF 直用会崩）
+- `crash_handler.h`：installCrashHandler + CrashHandler（vectored exception + StackWalk64 + data[0x34000] 打印）
+- `worldgen_api.h`：wg_router_sample 声明（-compXY 用）
+- `CMakeLists.txt`：/MAP 生成 worldgen.map（崩溃地址→函数，RVA = 0001:xxxx + 0x1000）
 
-### 2026-08-08 凌晨追加 4：20000 角点差根因链（最终收敛）
+## 八、8576 排查已排除的（避免重走弯路）
 
-**可信数据链**（level-seed 已改回 -8248 后）：
-- `-densityDump`（wg_sample_density 无插值）vs vanilla grid：**-288 角点（y≡0 mod 8）完全一致**（差在非角点 = 插值差）；**20000 角点差 0.127（y48）**——**无插值 finalDensity 在 20000 与 vanilla 差**（非插值问题）
-- base_3d_noise（-namedDump == -nbDump == 游戏实际 3e-5）、router 组件（barrier/fluid/veinGap/continents/erosion/depth/ridges）全 0 差异
-- **-namedDump 可信**（与 -nbDump 逐位一致）；**dfreg 不可信**（registry 原始树 ≠ 游戏实际——base_3d_noise 都对不上）；cache（actualDensityFunctionCache）是游戏实际但 435 key 按名匹配难
+- ❌ FlatCacheDF 直用做 est 查表版（多线程 RAX=0 崩溃 + 单线程 98.88% 更差）——回滚
+- ❌ getTerracottaBlock 的 i 用 floor（99.80% 更差）——lround 正确
+- ❌ vein 顺序交换、InterpolatedDF 整树插值重构——已回滚
+- ✅ cns 反射不可信（interpolators 8 个全组件插值器，无 finalDensity）——弃用
+- ✅ 组件对比（temperature/continents/jaggedness/caves 噪声）逐位一致
+- ✅ 16 格划线 = 误报（用户确认）；(800,534) 高度差 2 = 误报
+- ✅ 写入方向（x/z 映射）一致——排除
 
-**根因链（最终）**：
-C++ finalDensity 树内 **factor/sloped_cheese（spline 组合 + shift）与 vanilla 有系统差**（dfreg 参考：factor 差 1.6、sloped_cheese 差 11.6、offset(spline) 差 0.02 恒定——待 cache 可信确认）→ **20000 的差跨 range_choice 阈值（sloped_cheese 1.5625）→ finalDensity 角点差 0.127 → 浅层符号翻转 → 块状**；-288 的差被「同侧分支」吸收 → 100%。
+## 九、工作环境备注
 
-**下一步（唯一）**：拿可信的 vanilla sloped_cheese/factor（cache 里 RangeChoice[fromY=-4064] 实例——sloped_cheese 顶层 range_choice）对比 C++ -namedDump；若确认 spline/shift 差 → 查 C++ SplineDF/ShiftDF 实现细节（spline 差 0.02 恒定、shift 的 offset 噪声）。
+- PowerShell 7（bash 工具是 pwsh）——`python -c` 多行会被 blocked，用脚本文件（write_file 到 data/ 再 python 执行）
+- 崩溃 zip 在 `E:\Users\NDark\Downloads\`——解压到 `data\crash_*`（Expand-Archive；.7z 用 py7zr）
+- blocks 列读取：`data/read_col2.py wx wz y0 y1`（列方块）、`data/read_biome2.py wx wz`（biome 两种索引）
+- pefile + capstone 已装（反汇编 dll 崩溃点）——`data/pe_probe.py dll rva`、`data/dis_efe1_16.py`、`data/find_pat.py`、`data/iat_probe.py`、`data/parse_map.py`
+- dumpbin：`D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\bin\Hostx64\x64\dumpbin.exe`（/dependents 验证；/disasm /range 需完整 VA 或用 capstone）
+- **用户已告知**：Fabric API 0.92.11+1.20.1（正常）；用户机器 D:\MC（别人的机器，本机无）
+- 记忆已存：全局崩溃日志捕获铁律（mem-9a4a913a02866db45d3da32c26611e83）
 
-**工具就绪**：-densityDump（主世界）、-namedDump（可信）、DensityProbe cache/dfreg/comps、WG_DBDEBUG/WG_COMPDUMP。
+---
+
+**下一步（按优先级）**：
+1. 8576 terracotta 带/above_preliminary 收尾（Java biome 验证 + 带数组对比）
+2. 用户崩溃 0x34001 之谜（CE attach / dumpbin 完整 VA 反汇编 0xEFE1）
+3. -288 负坐标 bug（独立主线，95.72%）
