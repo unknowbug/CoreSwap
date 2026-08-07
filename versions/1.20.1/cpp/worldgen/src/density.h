@@ -119,6 +119,10 @@ public:
             std::fprintf(stderr, "[BINOP] pos=(%d,%d,%d) op=%d a=%.6f b=%.6f -> %.6f\n",
                          pos.x, pos.y, pos.z, (int)op, da, (op == BinOp::MIN && da < b->minValue()) ? b->minValue() : b->sample(pos), r);
         }
+        if (wg_splineDebug && op == BinOp::MIN && (pos.y == -8 || pos.y == 0)) {
+            std::fprintf(stderr, "[MIN] pos=(%d,%d,%d) a=%.6f bmin=%.6f -> %.6f\n",
+                         pos.x, pos.y, pos.z, da, b->minValue(), r);
+        }
         return r;
     }
     double minValue() const override { return mn; }
