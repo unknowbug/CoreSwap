@@ -787,6 +787,11 @@ public:
     // 执行 count 个任务（并行），主线程阻塞直到全部完成。
     void run(int count, const std::function<void(int)>& f) {
         if (count <= 0) return;
+        // ⚠️ 并发 run 保护：MC 的 worldgen 线程池（多个 Worker）会并发调 fillBlocks → wg_fill_blocks_multi → run。
+        // fn/totalTasks/doneCount/nextTask/taskQueue 是共享成员——并发 run 会互相覆盖（A 的 run 尾 fn=nullptr
+        // 被 B 的 workers 读空 → 调用空 std::function → 读地址 0 崩溃（用户 32 视距崩溃的根因）。
+        static std::mutex runMtx;
+        std::lock_guard<std::mutex> lr(runMtx);
         if (workers.empty()) ensure(count);
         {
             std::lock_guard<std::mutex> l(mtx);

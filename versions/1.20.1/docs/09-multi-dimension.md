@@ -538,3 +538,18 @@ est 修复（Java 语义）正确保留（20000/-288 无回归）；8576 主差�
 
 ### 待决
 验证参照（BlockProbe SURFACE 导出）的洞穴底 dirt 是否假 diff（游戏实际 vs 参照）——若假 diff，8576 真差更小
+
+## 2026-08-08 晚（9）：⚠️ 崩溃修复——CoreSwapPool 并发 run 竞争（32 视距崩溃根因）
+
+### 用户崩溃报告（1.0.11-pre）
+- 创建世界 32 视距 → 99% 崩溃 + 改视距进图崩溃（hs_err：EXCEPTION_ACCESS_VIOLATION 读地址 0）
+- 栈：CppBridge.fillChunk → drainBatch → CppWorldgen.fillBlocks（JNI）→ worldgen.dll+0x1b930 → msvcp140.dll+0x12c10（读 0）——Worker-Main-16（MC worldgen 线程池）
+
+### 根因（代码审查确认）
+**CoreSwapPool::run 的共享成员 fn/totalTasks/doneCount/nextTask/taskQueue**——MC 的多个 Worker 线程**并发调 fillBlocks → wg_fill_blocks_multi → run**——并发 run 互相覆盖（A 的 run 尾 fn=nullptr 被 B 的 workers 读空 → 调用空 std::function → 读地址 0 崩溃）
+- 之前测试（block_probe）单批 run 不触发；MC 32 视距多 Worker 并发 fillBlocks 触发
+
+### 修复
+run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线程池仍并行 fillOneChunk，性能影响小）
+- 回归：3200 100% / 20000 99.985% 无回归
+- 待打包新版本（含此修复）供用户测试
