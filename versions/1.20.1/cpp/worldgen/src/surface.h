@@ -258,9 +258,22 @@ inline bool SteepCond::test(const SurfaceContext& ctx) const {
     return q >= r + 4;
 }
 inline bool SurfaceCondC::test(const SurfaceContext& ctx) const {
-    // Java above_preliminary_surface：实测 est=64 的列 y58/y63/y64 都产 grass/terracotta，
-    // sd=1-2 → 反推语义 ≈ blockY + sd + 4 >= est（k=4 由 y58(sd2)+k>=64 推出）
-    return ctx.blockY + ctx.surfaceDepth + 4 >= ctx.estimateSurfaceHeight();
+    // Java above_preliminary_surface（MaterialRules.java:567-572 SurfacePredicate = blockY >= estimateSurfaceHeight()）
+    // estimateSurfaceHeight（MaterialRules.java:488-516）= floor(lerp2(4 角 est)) + runDepth - 8
+    // Java runDepth = sampleRunDepth = C++ surfaceDepth
+    int k;
+    if (ctx.surfaceHeights4 && ctx.surfaceHeights4->size() == 4) {
+        // MathHelper.lerp2(fx, fz, e00, e10, e01, e11)：fx=(blockX&15)/16, fz=(blockZ&15)/16
+        double fx = (ctx.blockX & 15) / 16.0;
+        double fz = (ctx.blockZ & 15) / 16.0;
+        const auto& e = *ctx.surfaceHeights4;
+        double z0row = e[0] + (e[1] - e[0]) * fx;  // 角 (x0,z0)-(x1,z0)
+        double z1row = e[2] + (e[3] - e[2]) * fx;  // 角 (x0,z1)-(x1,z1)
+        k = (int)std::floor(z0row + (z1row - z0row) * fz);
+    } else {
+        k = ctx.estimateSurfaceHeight();  // fallback：单列扫描
+    }
+    return ctx.blockY >= k + ctx.surfaceDepth - 8;
 }
 inline bool TempCond::test(const SurfaceContext& ctx) const { return ctx.biomeTemp < 0.15; }
 inline bool VerticalGradientCond::test(const SurfaceContext& ctx) const {
@@ -736,6 +749,13 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                         
                         int newState = rule->apply(ctx);
                         if (newState >= 0) col.at(k, wy, l) = newState;
+                        if (wg_surfaceTrace && m == 804 && n == -368) {
+                            std::fprintf(stderr, "[SURFTRACE] (%d,%d,%d) q=%d vx=%d r=%d s=%d biome=%s state=%d->%d\n",
+                                        m, wy, n, q, vx, r, s, b.first.c_str(), state, newState);
+                        }
+                    } else if (wg_surfaceTrace && m == 804 && n == -368) {
+                        std::fprintf(stderr, "[SURFTRACE] (%d,%d,%d) q=%d vx=%d r=%d s=%d biome=%s state=%d (non-default, skip)\n",
+                                    m, wy, n, q, vx, r, s, b.first.c_str(), state);
                     }
                 }
             }

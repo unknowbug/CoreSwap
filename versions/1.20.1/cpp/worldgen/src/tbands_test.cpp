@@ -45,6 +45,18 @@ int main(int argc, char** argv) {
         std::printf("x=%d v=%.17g v4=%.6f JavaRound=%d CppLround=%d diff=%d\n",
                     x, v, v4, iJava, iCpp, iJava - iCpp);
     }
+    // sampleRunDepth 对比（Java 实测 (804,-368)=4）：surface 噪声 + splitter extra
+    {
+        double d = samplers["minecraft:surface"].sample(804, 0.0, -368);
+        double extra = splitter.split(804, 0, -368).nextDouble();
+        int rd = (int)(d * 2.75 + 3.0 + extra * 0.25);
+        std::printf("sampleRunDepth(804,-368): d=%.17g extra=%.17g rd=%d (Java rd=4)\n", d, extra, rd);
+        for (int x : {804, 805, 806, 808, 810, 812, 814}) {
+            double d2 = samplers["minecraft:surface"].sample(x, 0.0, -368);
+            double e2 = splitter.split(x, 0, -368).nextDouble();
+            std::printf("  rd(%d,-368): d=%.6f extra=%.6f rd=%d\n", x, d2, e2, (int)(d2 * 2.75 + 3.0 + e2 * 0.25));
+        }
+    }
     // base_3d_noise 正/负坐标对比（负坐标 bug 定位）
     {
         std::map<std::string, DoublePerlinNoiseSampler> all;

@@ -45,7 +45,7 @@ static double nowMs() {
 #include "ore_vein.h"
 
 // ---- 剖析计数（WG_PROFILE=1 启用；变量为 inline 定义于 density.h）----
-static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; }
+static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; }
 void wg_profile_dump() {
     if (!wg_profEnabled) return;
     std::fprintf(stderr,

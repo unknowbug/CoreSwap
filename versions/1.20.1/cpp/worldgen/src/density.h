@@ -14,6 +14,7 @@
 // 剖析计数（WG_PROFILE=1 启用；C++17 inline 变量：多 TU 单一实体）
 inline bool wg_profEnabled = false;
 inline bool wg_splineDebug = false;
+inline bool wg_surfaceTrace = false;
 inline std::atomic<int64_t> wg_profNoiseDF{0};
 inline std::atomic<int64_t> wg_profSpline{0};
 inline std::atomic<int64_t> wg_profAquiferDeep{0};

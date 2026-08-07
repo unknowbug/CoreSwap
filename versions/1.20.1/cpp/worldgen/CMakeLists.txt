@@ -58,6 +58,11 @@ add_executable(got_export src/got_export.cpp)
 target_include_directories(got_export PRIVATE include src)
 target_link_libraries(got_export PRIVATE worldgen_core)
 
+# tbands 带数组导出（对比 Java RouterProbe TBANDS）
+add_executable(tbands_dump src/tbands_dump.cpp)
+target_include_directories(tbands_dump PRIVATE include src)
+target_link_libraries(tbands_dump PRIVATE worldgen_core)
+
 # 崩溃定位：worldgen.dll+0x1b930（读地址 0）——生成 map 文件
 if(MSVC)
   target_link_options(worldgen_jni PRIVATE "/MAP:${CMAKE_BINARY_DIR}/bin/worldgen.map")

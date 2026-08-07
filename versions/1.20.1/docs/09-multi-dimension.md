@@ -660,3 +660,34 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 - `tbands_test.cpp`（一次性）：clay_bands_offset + 原始噪声 + base_3d_noise 正负坐标对比；WG_B3DDUMP 环境变量 dump base_3d_noise 中间值（interp/lower/upper 各 octave）
 - BlockProbe 加 ColDiag：chunk(50,-23) 列 (804,-368) y=50-80 表面后方块 dump（对比参照）
 - RouterProbe：SURFBIOME（8 邻域复刻）/BIOME（floor 对照）；参数 routerY/routerYFrom/routerYTo/routerYStep
+
+## 2026-08-08 深夜（终）：✅ above_preliminary_surface 公式修复（SurfaceCondC）——8576 99.8892%→99.9768%
+
+### ✅ 根因（Java 源码铁证 + 子进程独立审查交叉确认）
+**`surface.h:263` SurfaceCondC（above_preliminary_surface）公式错误**：
+- Java（`MaterialRules.java:567-572` SurfacePredicate）= `blockY >= estimateSurfaceHeight()`
+- `estimateSurfaceHeight()`（`MaterialRules.java:488-516`）= `floor(lerp2(4 角 est)) + runDepth - 8`
+  - 4 角 est = chunk 4 角 `cns.estimateSurfaceHeight`（`BiomeCoords` 对齐 (x>>2)<<2，扫描 initialDensityWithoutJaggedness > 0.390625，步长 8）
+  - lerp2 参数序：`lerp2((blockX&15)/16, (blockZ&15)/16, e00, e10, e01, e11)`（MathHelper.lerp2 = lerp(deltaY, lerp(deltaX,e00,e10), lerp(deltaX,e01,e11))）
+  - Java runDepth = sampleRunDepth = C++ surfaceDepth
+- C++ 旧公式 `blockY + surfaceDepth + 4 >= est` **完全不等价**（缺 4 角插值 + runDepth-8 项）
+- **修复**：`blockY >= k + surfaceDepth - 8`，k = floor(lerp2 4 角 est)（C++ 已传 `surfaceHeights4` 但此前未用）
+
+### ✅ 实测验证（block_probe 逐位，seed 8576 = run/server.properties level-seed）
+| 区域 | 旧公式 | 新公式 |
+|---|---|---|
+| 8576（720,-432 6×6）| 99.8892% | **99.9768%**（chunk(50,-23) 99.59%→100%）|
+| 3200（8576 世界重导）| 99.8814% | **99.9995%**（差 8 块）|
+
+**3200 旧参照（-8248 世界）已被 8/8 重导覆盖**——server.properties `level-seed=8576294172403134396` 固定 8576，BlockProbe 重导的 blocks 文件都是 8576 世界；-288 参照（8/6 19:39）是 -8248 世界（C++ -8248 匹配 95.74%）。**⚠️ 教训：对照 block_probe 前必须确认参照文件实际 seed（`[BlockProbe] worldSeed=` 打印），不能只看文件名/header 的 benchSeed。**
+
+### ✅ 已排除（本问题无关）
+- terracottaBands 192 带数组：C++/Java 逐位一致（tbands_dump + RouterProbe TBANDS 对比）
+- clay_bands_offset、sampleRunDepth、biome 判定（@804,56,-368=badlands、@804,64,-368=savanna）均一致
+- est 值：C++ sh4（aquifer）与 Java cns 4 角在**同 seed** 下一致（8576 seed：48/56 系；-8248：32 系）——之前「est 不同」是 seed 混淆假象
+- RouterProbe 修正：names/fns 数组错位 bug（initial_density 列实际打了 veinGap）已对齐
+
+### 新增工具
+- C++ block_probe：`-biomeDump`、`WG_SURFDUMP`（列剖面+est）、`WG_ESTDUMP`（sh4 4 角+k）、`WG_DENDUMP`（buildSurface 前列）、`WG_SURFTRACE`（逐列 q/vx/s/biome 轨迹）
+- `tbands_dump.exe`：复刻 Java createTerracottaBands 导出 192 带（对比 RouterProbe TBANDS）
+- RouterProbe：修正 fns/names 对齐 + continentalness/offset 噪声直接采样
