@@ -387,7 +387,7 @@ public class DensityProbe {
                     // 模拟 cns.estimateSurfaceHeight：从顶向下扫 initialDensityWithoutJaggedness > 0.390625
                     var ncR2 = world.getChunkManager().getNoiseConfig();
                     var idwj = ncR2.getNoiseRouter().initialDensityWithoutJaggedness();
-                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}}) {
+                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}, {738, -421}}) {
                         int est = Integer.MAX_VALUE;
                         for (int y = 320; y >= -64; y -= 8) {
                             double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
@@ -419,6 +419,34 @@ public class DensityProbe {
                 for (double[] pt : new double[][]{{200, 0, -107}, {199.3, 0, -106.9}, {199.887, 0, -106.9}, {199.305, 0, -106.904}, {198.766, 0, -107.157}, {198.766, 0, -106.9}, {199.549, 0, -107.1}}) {
                     double v = contNoise.sample(pt[0], pt[1], pt[2]);
                     System.out.println(String.format(java.util.Locale.ROOT, "[CONT-NOISE] %.3f %.3f %.3f %.9f", pt[0], pt[1], pt[2], v));
+                }
+                // jaggedness 噪声（xz_scale=1500 折叠坐标）
+                try {
+                    var jagKey = net.minecraft.registry.RegistryKey.of(
+                            net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
+                            new net.minecraft.util.Identifier("minecraft", "jagged"));
+                    var jagNoise = nc2.getOrCreateSampler(jagKey);
+                    for (double[] pt : new double[][]{{1200000, 0, 801000}, {800, 0, 534}, {1199880, 0, 801000}, {1200000, 0, 801240}}) {
+                        double v = jagNoise.sample(pt[0], pt[1], pt[2]);
+                        System.out.println(String.format(java.util.Locale.ROOT, "[JAG-NOISE] %.0f %.0f %.0f %.9f", pt[0], pt[1], pt[2], v));
+                    }
+                } catch (Exception exj) {
+                    System.out.println("[JAG-NOISE] threw " + exj);
+                }
+                // caves 噪声（spaghetti_2d 等 @(800,534)——对比 C++）
+                for (String cn : new String[]{"spaghetti_2d", "spaghetti_3d_1", "spaghetti_roughness", "noodle", "noodle_ridge_a", "spaghetti_2d_modulator"}) {
+                    try {
+                        var cnKey = net.minecraft.registry.RegistryKey.of(
+                                net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
+                                new net.minecraft.util.Identifier("minecraft", cn));
+                        var cnNoise = nc2.getOrCreateSampler(cnKey);
+                        for (double[] pt : new double[][]{{800, 0, 534}, {800, -64, 534}, {1600, 0, 1068}}) {
+                            double v = cnNoise.sample(pt[0], pt[1], pt[2]);
+                            System.out.println(String.format(java.util.Locale.ROOT, "[CAVES-NOISE] %s %.0f %.0f %.0f %.9f", cn, pt[0], pt[1], pt[2], v));
+                        }
+                    } catch (Exception exc) {
+                        System.out.println("[CAVES-NOISE] " + cn + " threw " + exc);
+                    }
                 }
                 // shift_a 的噪声（visitor 处理后的 DensityFunction.Noise）
                 try {
