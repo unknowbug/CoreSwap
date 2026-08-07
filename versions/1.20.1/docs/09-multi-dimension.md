@@ -474,3 +474,21 @@ DensityProbe 扩展：[OFFSET-NOISE]/[CONT-NOISE]/[SHIFT_X]/[SHIFT_Z] 直接采�
 
 ### 下一步
 验证 estimateSurfaceHeight（C++ vs Java @(805,-427)）+ surfaceHeights4 来源（fillOneChunk）——对比 cns 的扫描实现。
+
+## 2026-08-08 晚（5）：surface 规则条件链全验证——runDepth/stoneDepth/split/hashXYZ 全部一致
+
+### 已确认一致（逐位/公式）
+- **runDepth**：Java `sampleRunDepth = (int)(surface*2.75+3.0+split(x,0,z).nextDouble()*0.25)` == C++（公式+hashXYZ 一致）
+- **aboveY**：Java `y + stoneDepthAbove >= anchor + runDepth*mult` == C++（C++ 用 ctx.surfaceDepth==Java runDepth 同值）
+- **stoneDepth**：Java `i(stoneDepthAbove/Below) <= 1+offset+j(addSurfaceDepth?runDepth)+k` == C++（C++ 的 ctx.surfaceDepth==runDepth）
+- **estimateSurfaceHeight（模拟扫描）**：Java `initialDensityWithoutJaggedness > 0.390625 从顶向下`（(805,-427)=64）——**C++ 的 sh4（aquifer 4 角插值）待对比**
+
+### 参照的 y=-32 terracotta 带之谜（未解）
+(805,-427) 列：地表 296（高原顶）、y=-32 单层 red + y=-27..-23 带 red + y=-16 red + y=-11..-10 red + y=-8..-4 white——**bandlands 带（连续同色段）**。但 JSON 规则（badlands 段在 STONE_DEPTH_FLOOR 内）**不覆盖 y=-32**（stoneDepthAbove=328 > 1 不满足 STONE_DEPTH_FLOOR）——**参照的深层 terracotta 带来源不明**（非 JSON surface_rule——可能假 diff 或另有机制）
+
+### 8576 差分类
+1. **terracotta 带差（1554 块）**：参照深层带来源不明
+2. **表层 stone↔grass/dirt（~12500 块，savanna 为主）**：真正的主差——**候选：C++ surface 循环起点（heightmap+1=297）vs Java（cns 的 fill 起点——待查）** → stoneDepthAbove 差 → 表层规则判定差
+
+### 下一步
+javap cns.fillFromNoise 的 surface 阶段（起点：estimateSurfaceHeight 还是高度图）+ sh4（C++ aquifer）vs Java est 对比

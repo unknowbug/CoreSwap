@@ -383,6 +383,21 @@ public class DensityProbe {
                 } catch (Exception ebl) {
                     System.out.println("[USES-LEGACY] nc2 反射: " + ebl);
                 }
+                try {
+                    // 模拟 cns.estimateSurfaceHeight：从顶向下扫 initialDensityWithoutJaggedness > 0.390625
+                    var ncR2 = world.getChunkManager().getNoiseConfig();
+                    var idwj = ncR2.getNoiseRouter().initialDensityWithoutJaggedness();
+                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}}) {
+                        int est = Integer.MAX_VALUE;
+                        for (int y = 320; y >= -64; y -= 8) {
+                            double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
+                            if (v > 0.390625) { est = y; break; }
+                        }
+                        System.out.println("[ESH] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + est);
+                    }
+                } catch (Exception exesh) {
+                    System.out.println("[ESH] threw " + exesh);
+                }
                 var offsetKey = net.minecraft.registry.RegistryKey.of(
                         net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
                         new net.minecraft.util.Identifier("minecraft", "offset"));
