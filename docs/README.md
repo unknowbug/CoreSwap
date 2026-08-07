@@ -18,6 +18,7 @@
 | 6 | [表面规则](06-surface-rules.md) | VanillaSurfaceRules / MaterialRules / SurfaceBuilder |
 | 7 | [块级流水线与性能](07-block-pipeline.md) | NoiseChunkGenerator / ChunkNoiseSampler |
 | 8 | [版本迁移方法论](08-version-migration.md) | diff 流程 + 工具链 + 已知坑 |
+| 9 | [多维度定位（通用引擎）](09-multi-dimension.md) | 参数化密度引擎 / 逐位对齐排查 / 负坐标与结构假 diff |
 
 ## 状态（2026-08-06）
 
