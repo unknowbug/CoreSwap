@@ -15,6 +15,9 @@
 inline bool wg_profEnabled = false;
 inline bool wg_splineDebug = false;
 inline bool wg_surfaceTrace = false;
+inline bool wg_aqfDump = false;
+inline int wg_surfaceTraceX = 804;
+inline int wg_surfaceTraceZ = -368;
 inline std::atomic<int64_t> wg_profNoiseDF{0};
 inline std::atomic<int64_t> wg_profSpline{0};
 inline std::atomic<int64_t> wg_profAquiferDeep{0};
@@ -474,6 +477,9 @@ public:
         updateInstanceCount();
     }
 
+    int getCacheId() const { return cacheId; }
+    static int getInstanceCount() { return instanceCount.load(); }
+
     double sample(const NoisePos& pos) const override {
         int chunkX = floorDivP(pos.x, 16);
         int chunkZ = floorDivP(pos.z, 16);
@@ -500,6 +506,17 @@ public:
             cy = cy < 0 ? 0 : (cy > GY - 2 ? GY - 2 : cy);
             cz = cz < 0 ? 0 : (cz > GZ - 2 ? GZ - 2 : cz);
         }
+        if (wg_splineDebug && pos.z == -256 && (pos.y == 58 || pos.y == 52 || pos.y == 60) && (pos.x == -244 || pos.x == -260)) {
+            // dump 该 cell 8 角点值 + 插值输入（对比 chunk(-16,-16) vs chunk(-17,-16)）
+            auto at = [&](int ix, int iy, int iz) {
+                return slot.grid[((size_t)(cy + iy) * GZ + (cz + iz)) * GX + (cx + ix)];
+            };
+            std::fprintf(stderr, "[GRID] interp@(%d,58,-256) cacheId=%d chunkX=%d key=%lld gx=%d cx=%d cy=%d cz=%d "
+                        "c000=%.6f c100=%.6f c010=%.6f c110=%.6f c001=%.6f c101=%.6f c011=%.6f c111=%.6f\n",
+                        pos.x, cacheId, chunkX, (long long)key, gx, cx, cy, cz,
+                        at(0,0,0), at(1,0,0), at(0,1,0), at(1,1,0),
+                        at(0,0,1), at(1,0,1), at(0,1,1), at(1,1,1));
+        }
         double fx = (gx % CELL_X) / (double)CELL_X;
         double fy = (gy % CELL_Y) / (double)CELL_Y;
         double fz = (gz % CELL_Z) / (double)CELL_Z;
@@ -518,6 +535,10 @@ public:
         if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
             std::fprintf(stderr, "[INTERP] pos=(%d,%d,%d) cx=%d cy=%d cz=%d result=%.6f\n",
                          pos.x, pos.y, pos.z, cx, cy, cz, rr);
+        }
+        if (wg_splineDebug && pos.x == -244 && pos.z == -256 && pos.y == 58) {
+            std::fprintf(stderr, "[INTERP] pos=(-244,58,-256) fx=%.3f fy=%.3f fz=%.3f result=%.6f\n",
+                         fx, fy, fz, rr);
         }
         return rr;
     }

@@ -45,7 +45,7 @@ static double nowMs() {
 #include "ore_vein.h"
 
 // ---- 剖析计数（WG_PROFILE=1 启用；变量为 inline 定义于 density.h）----
-static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; }
+static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; wg_aqfDump = getenv("WG_AQFDUMP") != nullptr; if (getenv("WG_SURFTRACE_X")) wg_surfaceTraceX = atoi(getenv("WG_SURFTRACE_X")); if (getenv("WG_SURFTRACE_Z")) wg_surfaceTraceZ = atoi(getenv("WG_SURFTRACE_Z")); }
 void wg_profile_dump() {
     if (!wg_profEnabled) return;
     std::fprintf(stderr,
@@ -356,6 +356,9 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
         const JsonValue* router = settings.get("noise_router");
         const JsonValue* finalDensity = router->get("final_density");
         h->finalDensity = h->builder->buildNode(*finalDensity);
+        if (getenv("WG_PROFILE"))
+            std::fprintf(stderr, "[BUILD] InterpolatedDF instances=%d (Java cns has 8)\n",
+                         wg::InterpolatedDF::getInstanceCount());
     
         // ---- 方块层装配 ----
         // router 分量
@@ -670,6 +673,8 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                     if (df) std::fprintf(stderr, "[SURF] %s(y=%d)=%.6f\n", c, p.y, df->sample(p));
                     else std::fprintf(stderr, "[SURF] %s(y=%d)=<missing>\n", c, p.y);
                 }
+                if (R.count("barrier"))
+                    std::fprintf(stderr, "[SURF] barrier(y=%d)=%.6f\n", p.y, R["barrier"]->sample(p));
             }
         } else if (getenv("WG_SURFDUMP_SCAN")) {
             // 全列扫描 y=31：找出 finalDensity 偏正（>0.01）的列（vanilla 深水列应 ≤0）
@@ -743,6 +748,15 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     sh4[1] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16) : 0;
     sh4[2] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16) : 0;
     sh4[3] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16) : 0;
+    if (getenv("WG_ESTDUMP")) {
+        std::fprintf(stderr, "[ESTDUMP] chunk(%d,%d) sh4=%d %d %d %d\n", chunkX, chunkZ, sh4[0], sh4[1], sh4[2], sh4[3]);
+        int bx = getenv("WG_ESTDUMP_X") ? atoi(getenv("WG_ESTDUMP_X")) : -244;
+        int bz = getenv("WG_ESTDUMP_Z") ? atoi(getenv("WG_ESTDUMP_Z")) : -256;
+        if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
+            std::fprintf(stderr, "[ESTDUMP] (%d,%d) singleEst=%d\n", bx, bz,
+                         aquifer ? aquifer->estimateSurfaceHeight(bx, bz) : 0);
+        }
+    }
     h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeCellKey, biomeTemp,
                                     h->dim.minY, h->dim.worldHeight,
                                     [&R](int x, int y, int z) -> double {

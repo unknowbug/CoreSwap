@@ -37,7 +37,28 @@ public class DensityProbe {
             f.setAccessible(true);
             Object cns = f.get(chunk);
             if (cns == null) { System.out.println("[DensityProbe] cns null at NOISE stage — skipping cns chain (density/comps output still valid)"); }
-            // RouterProbe 验证过的 yarn 路径：cm.getNoiseConfig().getNoiseRouter().finalDensity()
+            // ⚠️ densityProbe 不在 BenchMod.anyProbe → CppBridge 默认启用 → world.getChunk 被 C++ 接管！
+            // 必须禁用 CppBridge 才能导出真 vanilla 密度（否则文件是 C++ 生成的）
+            try { wg.bench.CppBridge.enabled = false; System.out.println("[DensityProbe] CppBridge disabled for vanilla density export"); } catch (Throwable td) {}
+            // ESH：模拟 cns.estimateSurfaceHeight（router 查表版，可信）——提前执行避免后续崩溃
+            try {
+                var ncR2 = world.getChunkManager().getNoiseConfig();
+                var idwj = ncR2.getNoiseRouter().initialDensityWithoutJaggedness();
+                for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}, {738, -421}, {-244, -256}, {-260, -256}}) {
+                    int est = Integer.MAX_VALUE;
+                    for (int y = 320; y >= -64; y -= 8) {
+                        double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
+                        if (v > 0.390625) { est = y; break; }
+                    }
+                    System.out.println("[ESH] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + est);
+                    for (int y : new int[]{64, 60, 56, 48, 40, 32}) {
+                        double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
+                        System.out.println(String.format(java.util.Locale.ROOT, "[ESH-ID] (%d,%d) y=%d %.6f", pt[0], pt[1], y, v));
+                    }
+                }
+            } catch (Exception exesh) {
+                System.out.println("[ESH] threw " + exesh);
+            }
             net.minecraft.world.gen.noise.NoiseConfig nc = world.getChunkManager().getNoiseConfig();
             net.minecraft.world.gen.noise.NoiseRouter router = nc.getNoiseRouter();
             DensityFunction df = router.finalDensity();
@@ -95,6 +116,24 @@ public class DensityProbe {
                                         if ((blockX & 15) == bx && (blockZ & 15) == bz) {
                                             // 遍历 8 个 interpolators（ChunkNoiseSampler 的组件插值器：finalDensity/vein 等），
                                             // dump 每个的当前插值值——vein_ridged 的 ore_vein_a/b 在其中（找 min/max 特征匹配）
+                                            // ⚠️ CellCache（cacheAllInCell(add(finalDensity,Beardifier))）真实全树值：
+                                            try {
+                                                java.lang.reflect.Field fCaches = null;
+                                                try { fCaches = cns.getClass().getDeclaredField("caches"); }
+                                                catch (NoSuchFieldException e) { fCaches = cns.getClass().getSuperclass().getDeclaredField("caches"); }
+                                                fCaches.setAccessible(true);
+                                                java.util.List<?> caches = (java.util.List<?>) fCaches.get(cns);
+                                                if (!caches.isEmpty()) {
+                                                    Object cellCache = caches.get(0);
+                                                    java.lang.reflect.Method mCC = cellCache.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                                    double dCC = (double) mCC.invoke(cellCache, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns);
+                                                    System.out.println(String.format(java.util.Locale.ROOT, "[CellCache] (%d,%d,%d) density=%.6f", blockX, blockY, blockZ, dCC));
+                                                } else {
+                                                    System.out.println("[CellCache] caches empty");
+                                                }
+                                            } catch (Exception eCC) {
+                                                System.out.println("[CellCache] failed: " + eCC);
+                                            }
                                             java.lang.reflect.Field fInterps = null;
                                             try { fInterps = cns.getClass().getDeclaredField("interpolators"); }
                                             catch (NoSuchFieldException e) { fInterps = cns.getClass().getSuperclass().getDeclaredField("interpolators"); }
@@ -107,6 +146,14 @@ public class DensityProbe {
                                                             + ((net.minecraft.world.gen.densityfunction.DensityFunction) dii).minValue()
                                                             + " max=" + ((net.minecraft.world.gen.densityfunction.DensityFunction) dii).maxValue()
                                                             + " class=" + dii.getClass().getName());
+                                                    try {
+                                                        java.lang.reflect.Field fDlg = dii.getClass().getDeclaredField("delegate");
+                                                        fDlg.setAccessible(true);
+                                                        Object dlg = fDlg.get(dii);
+                                                        System.out.println("[InterpDiag]   delegate=" + dlg + " class=" + (dlg != null ? dlg.getClass().getName() : "null"));
+                                                    } catch (Exception eD) {
+                                                        System.out.println("[InterpDiag]   delegate probe failed: " + eD);
+                                                    }
                                                 }
                                             }
                                             java.lang.reflect.Method mDI0 = interps.get(0).getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
@@ -387,7 +434,7 @@ public class DensityProbe {
                     // 模拟 cns.estimateSurfaceHeight：从顶向下扫 initialDensityWithoutJaggedness > 0.390625
                     var ncR2 = world.getChunkManager().getNoiseConfig();
                     var idwj = ncR2.getNoiseRouter().initialDensityWithoutJaggedness();
-                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}, {738, -421}}) {
+                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}, {738, -421}, {-244, -256}, {-260, -256}}) {
                         int est = Integer.MAX_VALUE;
                         for (int y = 320; y >= -64; y -= 8) {
                             double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));

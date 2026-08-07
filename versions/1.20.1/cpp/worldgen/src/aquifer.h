@@ -102,6 +102,10 @@ public:
         FluidLevel fl2 = getWaterLevelAt(r);
         double d = maxDistance(o, p);
         int bs = fl2.getBlockState(blockY, airId);
+        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= 55 && blockY <= 62) {
+            std::fprintf(stderr, "[AQF] (%d,%d,%d) density=%.6f nearest=(o=%d,p=%d,q=%d) d=%.4f bs=%d\n",
+                        blockX, blockY, blockZ, density, o, p, q, d, bs);
+        }
         if (d <= 0.0) return bs;
         if (bs == waterId &&
             getFluidLevel(blockX, blockY - 1, blockZ).getBlockState(blockY - 1, airId) == lavaId) {
@@ -111,6 +115,10 @@ public:
         FluidLevel fl3 = getWaterLevelAt(s);
         MutableDouble md;
         double e = d * calculateDensity(blockX, blockY, blockZ, md, fl2, fl3);
+        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= 55 && blockY <= 62) {
+            std::fprintf(stderr, "[AQF-e] (%d,%d,%d) density+e=%.6f (e=%.4f) -> %s\n",
+                        blockX, blockY, blockZ, density + e, e, (density + e > 0.0) ? "SOLID" : "FLUID");
+        }
         if (density + e > 0.0) return -1;
 
         FluidLevel fl4 = getWaterLevelAt(t);

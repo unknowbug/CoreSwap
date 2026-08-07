@@ -57,6 +57,7 @@ loom {
             run.vmArg "-Dbench.out=${benchOut}"
             if (project.findProperty('probeCount') != null) run.vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
             if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
+            if (project.findProperty('routerEsh') != null) run.vmArg "-Drouter.esh=true"
 if (project.findProperty('routerX') != null) run.vmArg "-Drouter.x=${project.findProperty('routerX')}"
 if (project.findProperty('routerZ') != null) run.vmArg "-Drouter.z=${project.findProperty('routerZ')}"
 if (project.findProperty('routerY') != null) run.vmArg "-Drouter.y=${project.findProperty('routerY')}"

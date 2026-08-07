@@ -691,3 +691,48 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 - C++ block_probe：`-biomeDump`、`WG_SURFDUMP`（列剖面+est）、`WG_ESTDUMP`（sh4 4 角+k）、`WG_DENDUMP`（buildSurface 前列）、`WG_SURFTRACE`（逐列 q/vx/s/biome 轨迹）
 - `tbands_dump.exe`：复刻 Java createTerracottaBands 导出 192 带（对比 RouterProbe TBANDS）
 - RouterProbe：修正 fns/names 对齐 + continentalness/offset 噪声直接采样
+
+---
+
+## 2026-08-08（深夜终）：✅ -288 负坐标「bug」= 结构/FEATURE 假 diff（非 density bug）
+
+### 排查链条（现象 → 猜测/排除 → 验证 → 发现）
+**现象**：-288（seed -8248318472910187742，4×4）95.74%。参照列 (-244,-256)：y=40-50 stone、51-57 water、58 stone + 59-61 dirt（「岛」）、62 water；C++ 同列 y=58-61 全 water（「岛缺失」）。
+
+**猜测 1：est 差** → ❌ 排除
+- C++ WG_ESTDUMP 测 (-244,-256)/(-241,-253)/(-243,-254)=32
+- Java RouterProbe ESH（router.initialDensityWithoutJaggedness 扫描）+ BlockProbe EstDiagN（cns 查表版 estimateSurfaceHeight）17 点全 32（含岛区）——**查表版=无插值版=C++ 版**
+
+**猜测 2：分量差** → ❌ 排除
+- C++ WG_SURFDUMP vs Java RouterProbe @(-244,58,-256)：barrier -0.305444/-0.305447、erosion 0.246871/0.246878、depth -0.076875 一致、fluid_level_floodedness 0.0191（RouterProbe 新增该分量）、continents -0.206056 一致
+
+**猜测 3：finalDensity 角点差** → ❌ 排除
+- C++/Java @(-244,56,-256) = -0.053461/-0.053463（8 倍数角点逐位一致）
+
+**猜测 4：InterpolatedDF 插值差** → ❌ 排除
+- C++ GRID 打印 interp0(-244,58,-256)=-0.233008、interp1=-0.237669 vs Java cns 链（DensityProbe cns.txt）interp0=-0.233015、interp1=-0.237671——**完全一致**
+- C++ InterpolatedDF 实例 6 个 vs Java DensityInterpolator 8 个——**但 Java idx5-7 是 ore_vein 的**（OreVeinSampler 用，不在 finalDensity 树）——**finalDensity 树内 interpolated 数量一致（5 个）**
+
+**猜测 5：Beardifier（结构密度修正）** → ❌ 排除
+- Java `DensityFunctionTypes.Beardifier.sample` = 恒 0.0（源码 290-312 行）——非差异
+
+**猜测 6：aquifer 判定差（e 值）** → ❌ 排除（结构发现后不再需要）
+- 全部分量/est/邻居一致 → e=0 → 两边都该判 water——矛盾 → 转向结构
+
+**✅ 最终发现：island = ocean ruin 结构（STRUCTURE_STARTS 阶段）**
+- 参照 y=58 层地图：x=-244..-241（4 格宽）× z=-256..-241（16 格长）**完全规则矩形 stone 柱 + dirt 顶**——自然地形不可能 4×16 完全对齐
+- cold_ocean 的 ocean ruin 用普通 stone（warm 用 sandstone）——buildSurface 在结构 stone 上产 dirt（y=59-61）
+- 结构在 NOISE 之后（STRUCTURE_STARTS → NOISE → SURFACE）——aquifer（NOISE）判 water 被结构 stone 覆盖
+- 参照含 FEATURE/结构证据：copper_ore 564、iron_ore 465、oak_log 127、cobblestone 290、chest 2（chunk(-16,-13) 沉船）
+- **C++ 只到 SURFACE 不做 STRUCTURE_STARTS/FEATURE → island 缺失 = 结构假 diff**
+
+### 结论
+- **-288 的 95.74% 差 = 结构（ocean ruin/沉船）+ 矿脉 + 树/草等 FEATURE 假 diff 为主**——C++ 的 density/surface 核心在负坐标已对齐（est/分量/角点/插值全一致）
+- **8576/3200 的剩余差（0.0232%/0.0005%）同样可能是小结构/FEATURE**——8576 的 826 块待验证是否结构区
+- **验证参照状态铁律**：BlockProbe 导出表面是 SURFACE（594 行 getChunk）但实际含 FEATURE/结构（连带推进）——对比前必须过滤 FEATURE/结构方块，或参照导出时禁 spawn 预生成（server.properties simulation-distance=2 + 删 world）
+
+### 新增工具/证据（本 session）
+- C++ `WG_AQFDUMP`（aquifer apply 邻居距离/e 值）、`[BUILD] InterpolatedDF instances`（构造计数）
+- Java BlockProbe `EstDiagN`（cns 查表版 est + cns-ini 列）、`AQF-J`（blockStateSampler.sample 反射——注意 CellCache 缓存污染不可信）、DensityProbe `InterpDiag delegate`（8 个 interpolated 的 delegate 类型）、`[CellCache]`（真实遍历态 density——同样污染）
+- **DensityProbe 导出状态**：`E:\PYTHON\MC\data\vanilla_density_overworld_c-16_-16_b12_0.txt`（无插值）、`_cns.txt`（游戏实际插值链 8 interpolators）、`_cache.txt`（actualDensityFunctionCache dump）
+- **关键文件路径**：C++ `E:\PYTHON\MC\versions\1.20.1\cpp\worldgen\src\aquifer.h`（getFluidLevel/estimateSurfaceHeight）、`density.h`（InterpolatedDF/Cache2DDF/FlatCacheDF）、`density_builder.h`（buildNode）、Java `src\main\java\wg\bench\BlockProbe.java`（EstDiagN/AQF-J）、`DensityProbe.java`（InterpDiag/CellCache）、参照 `E:\PYTHON\MC\data\vanilla_-8248318472910187742_4_-288_-256.blocks`

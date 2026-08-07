@@ -287,6 +287,7 @@ public class BlockProbe {
 
         System.out.println("[BlockProbe] seed=" + seed + " size=" + size + " origin=(" + originX + "," + originZ + ")");
         System.out.println("[BlockProbe] worldSeed=" + world.getSeed());
+        System.out.println("[BlockProbe] spawn=" + world.getSpawnPos());
         // 诊断：DimensionType.field_35479（Aquifer 无效液面常量，C++ 用 INT32_MAX 对应）
         try {
             java.lang.reflect.Field f35479 = net.minecraft.world.dimension.DimensionType.class.getDeclaredField("field_35479");
@@ -467,6 +468,104 @@ public class BlockProbe {
                     long t0 = System.nanoTime();
                     // 先生成到 NOISE（ChunkNoiseSampler 存活期），驱动插值诊断，再补 SURFACE
                     Chunk chunk = world.getChunk(wx, wz, ChunkStatus.NOISE, true);
+                    if (wx == -16 && wz == -16) {
+                        System.out.println("[EstDiagN] chunk status=" + chunk.getStatus() + " class=" + chunk.getClass().getSimpleName());
+                    }
+                        // EstDiag-288：chunk(-16,-16) 4 角 est + 单列 est（对比 C++ 32）
+                        try {
+                            java.lang.reflect.Field fCnsN = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCnsN.setAccessible(true);
+                            Object cnsN = fCnsN.get(chunk);
+                            if (cnsN != null) {
+                                java.lang.reflect.Method mEstN = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
+                                System.out.println("[EstDiagN] (-16,-16) 4角 est: " + mEstN.invoke(cnsN, -256, -256) + " " + mEstN.invoke(cnsN, -240, -256) + " " + mEstN.invoke(cnsN, -256, -240) + " " + mEstN.invoke(cnsN, -240, -240));
+                                System.out.println("[EstDiagN] (-16,-16) est(-244,-256)=" + mEstN.invoke(cnsN, -244, -256));
+                                // initialDensityWithoutJaggedness 列（-244,-256）：C++ 扫描 est=32 → y=32 处 >0.390625
+                                java.lang.reflect.Field fIniN = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
+                                fIniN.setAccessible(true);
+                                Object iniN = fIniN.get(cnsN);
+                                var mSampN = net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                for (int yy : new int[]{64, 56, 48, 40, 32, 24}) {
+                                    var npN = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(-244, yy, -256);
+                                    double ivN = (double) mSampN.invoke(iniN, npN);
+                                    System.out.println(String.format(java.util.Locale.ROOT, "[EstDiagN] cns-ini(-244,%d,-256)=%.6f", yy, ivN));
+                                }
+                            } else {
+                                System.out.println("[EstDiagN] (-16,-16) cns null");
+                            }
+                            // ⚠️ aquifer 实测：反射 cns.blockStateSampler → ChainedBlockSource.samplers[0]（AquiferSampler.Impl）
+                            // 对 (-244,58,-256) 用不同 density 参数调 apply，看判定（null=stone / water）
+                            try {
+                                java.lang.reflect.Field fBss = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("blockStateSampler");
+                                fBss.setAccessible(true);
+                                Object bss = fBss.get(cnsN);
+                                if (bss != null) {
+                                    // 一锤定音：设 cns 位置（blockX=-244,blockY=58,blockZ=-256）+ isInInterpolationLoop=true，
+                                    // 调 blockStateSampler.sample(cns) → ChainedBlockSource → aquifer.apply(pos, cacheAllInCell(add(finalDensity,Beardifier)).sample)
+                                    try {
+                                        java.lang.reflect.Field fSBX = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("startBlockX");
+                                        java.lang.reflect.Field fSBY = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("startBlockY");
+                                        java.lang.reflect.Field fSBZ = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("startBlockZ");
+                                        java.lang.reflect.Field fCBX = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("cellBlockX");
+                                        java.lang.reflect.Field fCBY = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("cellBlockY");
+                                        java.lang.reflect.Field fCBZ = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("cellBlockZ");
+                                        java.lang.reflect.Field fIL = null;
+                                        try { fIL = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("isInInterpolationLoop"); } catch (Exception e) {}
+                                        for (java.lang.reflect.Field ff : new java.lang.reflect.Field[]{fSBX, fSBY, fSBZ, fCBX, fCBY, fCBZ}) ff.setAccessible(true);
+                                        if (fIL != null) fIL.setAccessible(true);
+                                        fSBX.setInt(cnsN, -244); fCBX.setInt(cnsN, 0);
+                                        fSBY.setInt(cnsN, 56); fCBY.setInt(cnsN, 2);
+                                        fSBZ.setInt(cnsN, -256); fCBZ.setInt(cnsN, 0);
+                                        if (fIL != null) fIL.setBoolean(cnsN, true);
+                                        // BlockStateSampler 接口方法 sample(NoisePos)
+                                        java.lang.reflect.Method mSampB = net.minecraft.world.gen.ChainedBlockSource.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                        Object r3 = mSampB.invoke(bss, cnsN);
+                                        System.out.println("[AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> " + r3 + (r3 != null ? " (" + r3 + ")" : ""));
+                                        // Beardifier 验证：反射 aquifer lambda 捕获字段（densityFunction = cacheAllInCell(add(finalDensity,Beardifier))）
+                                        try {
+                                            java.lang.reflect.Field fSamplers2 = bss.getClass().getDeclaredField("samplers");
+                                            fSamplers2.setAccessible(true);
+                                            java.util.List<?> samplers2 = (java.util.List<?>) fSamplers2.get(bss);
+                                            Object aquifer2 = samplers2.get(0);
+                                            // 打印 lambda 捕获字段名
+                                            for (java.lang.reflect.Field ff2 : aquifer2.getClass().getDeclaredFields()) {
+                                                ff2.setAccessible(true);
+                                                Object vv = ff2.get(aquifer2);
+                                                System.out.println("[AQF-J] lambda field " + ff2.getName() + " = " + vv + " class=" + (vv != null ? vv.getClass().getSimpleName() : "null"));
+                                                // densityFunction（DensityFunction 类型）→ sample(cns) 拿 density
+                                                if (vv instanceof net.minecraft.world.gen.densityfunction.DensityFunction) {
+                                                    net.minecraft.world.gen.densityfunction.DensityFunction dFn = (net.minecraft.world.gen.densityfunction.DensityFunction) vv;
+                                                    // 多 y 采样（角点 48/56/64 + 插值点 52/58/60）对比 C++ densityBuf
+                                                    for (int[] yp : new int[][]{{48, 0}, {52, 4}, {56, 0}, {58, 2}, {60, 4}, {64, 0}}) {
+                                                        fSBY.setInt(cnsN, (yp[0] / 8) * 8); fCBY.setInt(cnsN, yp[0] % 8);
+                                                        double dV2 = dFn.sample((net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cnsN);
+                                                        System.out.println(String.format(java.util.Locale.ROOT, "[AQF-J] densFn(-244,%d,-256)=%.6f", yp[0], dV2));
+                                                    }
+                                                    fSBY.setInt(cnsN, 56); fCBY.setInt(cnsN, 2);
+                                                }
+                                            }
+                                        } catch (Exception eB) {
+                                            System.out.println("[AQF-J] beardifier probe failed: " + eB);
+                                        }
+                                        // 同一位置 y=57..61 全测
+                                        for (int yy3 : new int[]{57, 59, 60, 61}) {
+                                            fSBY.setInt(cnsN, (yy3 / 8) * 8); fCBY.setInt(cnsN, yy3 % 8);
+                                            Object r4 = mSampB.invoke(bss, cnsN);
+                                            System.out.println("[AQF-J] sample(cns@-244," + yy3 + ",-256) -> " + r4);
+                                        }
+                                        if (fIL != null) fIL.setBoolean(cnsN, false);
+                                    } catch (Exception eA2) {
+                                        System.out.println("[AQF-J] sample failed: " + eA2);
+                                    }
+                                } else {
+                                    System.out.println("[AQF-J] blockStateSampler null");
+                                }
+                            } catch (Exception eA) {
+                                System.out.println("[AQF-J] failed: " + eA);
+                            }
+                        } catch (Exception eN) {
+                            System.out.println("[EstDiagN] (-16,-16) failed: " + eN);
+                        }
                     if (wx == 45 && wz == -27) {
                         // EstDiag（8576 的 chunk(45,-27)——bench origin 720,-432）
                         try {
@@ -475,7 +574,7 @@ public class BlockProbe {
                             Object cnsD = fCnsDiag.get(chunk);
                             java.lang.reflect.Method mEst = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
                             System.out.println("[EstDiag] (45,-27) chunk est(738,-421)=" + mEst.invoke(cnsD, 738, -421));
-                            for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}, {805, -432}, {808, -432}, {803, -432}}) {
+                            for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}, {805, -432}, {808, -432}, {803, -432}, {-244, -256}, {-256, -256}, {-240, -256}, {-244, -240}, {-260, -256}, {-241, -253}, {-243, -254}, {-242, -253}, {-241, -252}, {-244, -252}}) {
                                 System.out.println("[EstDiag] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + mEst.invoke(cnsD, pt[0], pt[1]));
                             }
                             java.lang.reflect.Field fIni = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
@@ -519,7 +618,24 @@ public class BlockProbe {
                             }
                         }
                     }
-                    // EstDiag2：4 角 estimateSurfaceHeight（Java 4 角 lerp2 插值用）——支持 8576 chunk(50,-23) 与 3200 chunk(200,201)
+                    // EstDiag2：4 角 estimateSurfaceHeight（Java 4 角 lerp2 插值用）——支持 8576 chunk(50,-23) 与 -288 chunk(-16,-16)
+                    if (wx == -16 && wz == -16) {
+                        try {
+                            java.lang.reflect.Field fCns2 = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCns2.setAccessible(true);
+                            Object cns2 = fCns2.get(chunk);
+                            if (cns2 != null) {
+                                java.lang.reflect.Method mEst2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
+                                System.out.println("[EstDiag2] (-16,-16) 4角 est: " + mEst2.invoke(cns2, -256, -256) + " " + mEst2.invoke(cns2, -240, -256) + " " + mEst2.invoke(cns2, -256, -240) + " " + mEst2.invoke(cns2, -240, -240));
+                                // 单列 est（Java cns 扫描，-244,-256）
+                                System.out.println("[EstDiag2] (-16,-16) est(-244,-256)=" + mEst2.invoke(cns2, -244, -256));
+                            } else {
+                                System.out.println("[EstDiag2] (-16,-16) chunkNoiseSampler null");
+                            }
+                        } catch (Exception e12) {
+                            System.out.println("[EstDiag2] (-16,-16) failed: " + e12);
+                        }
+                    }
                     if (wx == 50 && wz == -23) {
                         try {
                             java.lang.reflect.Field fCns2 = Chunk.class.getDeclaredField("chunkNoiseSampler");

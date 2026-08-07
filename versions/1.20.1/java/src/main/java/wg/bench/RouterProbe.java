@@ -58,12 +58,14 @@ public class RouterProbe {
 
         String[] names = {
                 "barrier", "temperature", "vegetation", "continents", "erosion", "depth",
-                "ridges", "initial_density", "final_density", "vein_toggle", "vein_ridged", "vein_gap"
+                "ridges", "initial_density", "final_density", "vein_toggle", "vein_ridged", "vein_gap",
+                "fluid_level_floodedness"
         };
         net.minecraft.world.gen.densityfunction.DensityFunction[] fns = {
                 router.barrierNoise(), router.temperature(), router.vegetation(), router.continents(),
                 router.erosion(), router.depth(), router.ridges(), router.initialDensityWithoutJaggedness(),
-                router.finalDensity(), router.veinToggle(), router.veinRidged(), router.veinGap()
+                router.finalDensity(), router.veinToggle(), router.veinRidged(), router.veinGap(),
+                router.fluidLevelFloodednessNoise()
         };
         // 用 server 的 ChunkNoiseSampler 派生 NoisePos？直接构造最小 NoisePos
         SimplePos pos = new SimplePos();
@@ -110,6 +112,23 @@ public class RouterProbe {
                 if (fns[f] == null) continue;
                 double v = fns[f].sample(pos);
                 sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
+            }
+            // ESH：模拟 cns.estimateSurfaceHeight（initialDensityWithoutJaggedness > 0.390625 扫描，步长 8）
+            if (System.getProperty("router.esh") != null) {
+                var idwj2 = router.initialDensityWithoutJaggedness();
+                for (int[] pt : new int[][]{{-244, -256}, {-260, -256}, {-248, -248}, {-244, -244},
+                    {-256, -256}, {-240, -256}, {-256, -240}, {-240, -240},
+                    {-252, -256}, {-244, -252}, {-236, -256}, {-244, -260}, {-248, -260}, {-240, -260}, {-252, -260}, {-244, -268}, {-236, -268}}) {
+                    int est = Integer.MAX_VALUE;
+                    for (int y = 320; y >= -64; y -= 8) {
+                        if (idwj2.sample(new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(pt[0], y, pt[1])) > 0.390625) { est = y; break; }
+                    }
+                    sb.append(String.format(Locale.ROOT, "ESH %d %d est=%d%n", pt[0], pt[1], est));
+                    for (int y : new int[]{64, 60, 56, 52, 48, 44, 40, 36, 32}) {
+                        double v2 = idwj2.sample(new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
+                        sb.append(String.format(Locale.ROOT, "ESH-ID %d %d y=%d %.6f%n", pt[0], pt[1], y, v2));
+                    }
+                }
             }
             if (System.getProperty("router.b3dDump") != null) {
                 try {
