@@ -407,3 +407,15 @@ C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用�
 - 另一个 caves interp = **-0.192846** == cache #7（-0.19285）逐位一致（排除）
 - when_out_of_range 差不在：cave_layer/cave_cheese（全 y 一致）、#7 interp（一致）——剩：**pillars/spaghetti_2d/spaghetti_roughness interp（cache #1-#6 待对应）或 min/max 选边差**
 - cache Interpolated 实例 y-8 值：-0.28558/-0.04597/0.38682/-0.24612/-0.13824/-0.07872（#1-#6，待与 C++ caves interp 对应）
+
+## 2026-08-08 晚（7）：when_out_of_range 差 = 组合/树结构层（叶子全一致）
+
+- GRID debug（8576 @728,-8,-408）：when_out_of_range 的 4 个 caves interp 全部与 cache 逐位一致
+  （-0.192846=#7、-0.078724=#6、-0.285579=#1、0.386824=#3）；interp(blend)=0.040084（=when_out_of_range C++）
+- MIN 链：when_out_of_range = min(0.788729, 0.040084) → 0.040084；finalDensity = min(0.012826, noodle=64) = 0.012826
+- **叶子全一致但组合差（0.040084 vs -0.00726）→ 树构建结构差嫌疑**：
+  ① 常量折叠（add/mul+Constant → LinearOperation，Java 不折叠——sample 等价但 minValue/maxValue 缓存时机差）
+  ② LazyRef 未填充时的 minValue/maxValue 缓存（-inf/+inf）影响 MIN/MAX 选边
+  ③ when_out_of_range 的 min/max 嵌套层级解析
+- cache #2/#4/#5（-0.04597/-0.24612/-0.13824）是 vanilla 侧 C++ 未采样的 interp（采样路径不同）
+- **下一步**：打印 when_out_of_range 完整树（JSON）对比 C++ 构建；或加 MAX debug 查选边
