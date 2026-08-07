@@ -47,7 +47,7 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
 // 剖析统计输出（WG_PROFILE=1 时启用，运行结束后调用打印到 stderr；无 Profile 时为空操作）
 void wg_profile_dump(void);
 void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen);
-
+double wg_router_sample(void* handle, const char* name, int x, int y, int z);
 #ifdef __cplusplus
 }
 #endif

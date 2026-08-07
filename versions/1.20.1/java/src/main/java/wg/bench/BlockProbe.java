@@ -355,7 +355,7 @@ public class BlockProbe {
                             Object cnsD = fCnsDiag.get(chunk);
                             java.lang.reflect.Method mEst = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
                             System.out.println("[EstDiag] (45,-27) chunk est(738,-421)=" + mEst.invoke(cnsD, 738, -421));
-                            for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}}) {
+                            for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}, {805, -432}, {808, -432}, {803, -432}}) {
                                 System.out.println("[EstDiag] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + mEst.invoke(cnsD, pt[0], pt[1]));
                             }
                             java.lang.reflect.Field fIni = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
