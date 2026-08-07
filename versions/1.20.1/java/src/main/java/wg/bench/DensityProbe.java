@@ -387,13 +387,18 @@ public class DensityProbe {
                     // 模拟 cns.estimateSurfaceHeight：从顶向下扫 initialDensityWithoutJaggedness > 0.390625
                     var ncR2 = world.getChunkManager().getNoiseConfig();
                     var idwj = ncR2.getNoiseRouter().initialDensityWithoutJaggedness();
-                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}}) {
+                    for (int[] pt : new int[][]{{805, -427}, {800, -431}, {802, -427}, {728, -408}, {742, -427}, {739, -427}}) {
                         int est = Integer.MAX_VALUE;
                         for (int y = 320; y >= -64; y -= 8) {
                             double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
                             if (v > 0.390625) { est = y; break; }
                         }
                         System.out.println("[ESH] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + est);
+                        // 直接采样 initial_density（对比 C++ 的 0.76@(742,64)）
+                        for (int y : new int[]{64, 60, 56, 48}) {
+                            double v = idwj.sample(new DensityFunction.UnblendedNoisePos(pt[0], y, pt[1]));
+                            System.out.println(String.format(java.util.Locale.ROOT, "[ESH-ID] (%d,%d) y=%d %.6f", pt[0], pt[1], y, v));
+                        }
                     }
                 } catch (Exception exesh) {
                     System.out.println("[ESH] threw " + exesh);

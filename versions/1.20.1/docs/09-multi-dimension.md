@@ -505,3 +505,22 @@ javap cns.fillFromNoise 的 surface 阶段（起点：estimateSurfaceHeight 还�
 
 ### 下一步
 定位 8576 的 finalDensity 差（0.06@y60）的组件：comps @(742,-427)（cns 查表版）C++ vs Java。
+
+## 2026-08-08 晚（7）：est 验证一致 + 洞穴底 dirt 之谜（8576 差分类收敛）
+
+### est 决定性
+- **Java initial_density_without_jaggedness（模拟）@(742,64,-427) = 0.818289、@(739,64) = 0.679866**——**C++（WG_SURFDUMP）0.76**（差 0.058——**查表 vs 直接实现差**）
+- **Java est（扫描）= 64 == C++（修复后 64）**——**est 一致**（est 修复正确但非 8576 主差）
+- cns 的 initialDensityWithoutJaggedness = router.initialDensityWithoutJaggedness()（apply(getActualDensityFunction) 后——**查表版**）——est 扫描（UnblendedNoisePos）用查表版
+
+### 洞穴底 dirt 之谜（未解）
+参照 (739,-427) 大洞穴（57-60 air）洞穴底 y=56 dirt（C++ stone）——但 est=64（56<64 不满足 above_preliminary）→ **JSON 规则树（bedrock/above_preliminary/deepslate 3 条）不覆盖 56** → 参照的洞穴底 dirt 来源矛盾（可能假 diff 或 Java 另有机制）
+
+### 8576 差分类（收敛）
+1. 洞穴底 dirt（stone↔dirt——~6289 块）——**est 之外**（参照 dirt 来源未明）
+2. stone↔grass（2164 块）——表层 grass 覆盖差
+3. stone↔terracotta 带（2950 块）——参照深层带（假 diff 候选）
+4. finalDensity 微差（(742,64) C++ 0.006 vs Java air——0.006 级洞穴翻转）
+
+### 结论
+est 修复（Java 语义）正确保留（20000/-288 无回归）；8576 主差在 surface 规则（洞穴底/表层）与 finalDensity 微差——**参照导出状态需验证**（洞穴底 dirt 可能假 diff）
