@@ -306,6 +306,7 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 4. **level-seed 坑**：`java/run/server.properties` 的 level-seed 硬编码 -8248，`-PbenchSeed=X` 只设 Java 属性——**跑其他 seed 必须改 level-seed**（08-08 曾因 8576 参照错位误判「seed 派生差异」）。
 5. **20000 无插值 finalDensity 角点差 0.127**（-densityDump 修复后可信）：`-densityDump`（wg_sample_density 无插值）vs vanilla grid——**-288 角点（y≡0 mod 8）逐位一致**、**20000 角点差 0.127（y48）**——**无插值层面就差**（非 InterpolatedDF 插值问题）。
 6. **根因链（最终收敛）**：C++ finalDensity 树内 **factor/sloped_cheese（spline 组合 + shift）与 vanilla 有系统差**（dfreg 参考：factor 差 1.6、sloped_cheese 差 11.6、offset(spline) 差 0.02 恒定——待 cache 可信确认）→ **20000 的差跨 range_choice 阈值（sloped_cheese 1.5625）→ finalDensity 角点差 0.127 → 浅层 y42-65 符号翻转 → 块状**；-288 的差被「range_choice 同侧分支」吸收 → 100%（为何之前查不出）。
+   - ❌ **已更正（2026-08-08 晚 2）**：真正的根因是 **Cache2DDF 缓存 key 用错粒度**（C++ chunk 级 vs Java block 级）——factor/offset 等的 FlatCache grid 查表值差（factor 3.99 vs 4.61）→ finalDensity 角点差 → 块状。spline 类本身与 Java 逐位一致（factor/offset spline GRID 对比 0 差异）。已修复，见文末「2026-08-08 晚（2）」段。
 7. **-namedDump 可信**（与 -nbDump 逐位一致）；**dfreg 不可信**（DENSITY_FUNCTION registry 原始树 ≠ 游戏实际——base_3d_noise 0.0145 vs 游戏 0.0596）；cache（actualDensityFunctionCache）是游戏实际（b3d 从这里拿过，可信）。
 
 ### 工具（08-08 就绪）
@@ -329,7 +330,9 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 
 ### 剩余嫌疑（下一步）
 - **subSplines 嵌套值**（factor 的嵌套 spline：erosion 10 点、ridges 2 点等）——需逐环节对比（f/kd/nv/ov）
+  - ✅ **已排除（2026-08-08 晚 2）**：SplineDF 类与 Java 逐位一致（factor/offset spline GRID 25 角点对比 0 差异）；spline 不是 bug 根源（根因 = Cache2DDF，见下段）
 - **f 的 float 精度**：Java Spline 的 locationFunction 是 ToFloatFunction（applyAsFloat 返回 float），C++ locationFunction->sample 返回 double——float vs double 差 1e-7 级，但 f 落 location 边界时可能跳区间（当前 f=-0.0091 远离边界，暂排除）
+  - ✅ **已排除（2026-08-08 晚 2）**：GRID 对比 0 差异证明 float/double 精度不是问题（8576 剩余差另查 noise_jagged/cave 逻辑）
 
 ### 工具
 WG_SPLINEDEBUG（SplineDF f/result/locations/locFn + Cache2DDF miss + FlatCacheDF grid dump）。

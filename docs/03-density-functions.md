@@ -31,6 +31,8 @@ negative 区域再交给 aquifer/oreVein 细分。
 | `minecraft:shift_*` | ShiftedNoiseDF | 大陆偏移（spline） |
 | `minecraft:blend_alpha/offset/density` | Blend* | 旧世界 blend（NoBlending 时恒等） |
 | `minecraft:cache_*`/`flat_cache` | WrappingDF | 语义委托（性能缓存，C++ 未实现缓存） |
+
+> ✅ **已更正（2026-08-08）**：C++ 已实现 FlatCacheDF（5×5 网格预计算）与 Cache2DDF（列缓存）——后者缓存 key 曾误用 chunk 级（Java 是 block 级 `ChunkPos.toLong(blockX,blockZ)`），2026-08-08 已修复（块状 bug 主因，见 09 篇）。
 | `minecraft:weird_scaled_sampler` | WeirdScaledSampler | 洞穴 noodle 的 rarity 映射 |
 | `minecraft:spline` | SplineDF | 三次样条（continents/erosion/ridges） |
 
