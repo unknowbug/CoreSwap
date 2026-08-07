@@ -6,6 +6,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -56,13 +57,7 @@ struct CondRule : SurfaceRule {
 struct SeqRule : SurfaceRule {
     std::vector<RuleP> rules;
     explicit SeqRule(std::vector<RuleP> rs) : rules(std::move(rs)) {}
-    int apply(const SurfaceContext& ctx) const override {
-        for (auto& r : rules) {
-            int b = r->apply(ctx);
-            if (b >= 0) return b;
-        }
-        return -1;
-    }
+    int apply(const SurfaceContext& ctx) const override;
 };
 struct TerracottaBandsRule : SurfaceRule {
     int apply(const SurfaceContext& ctx) const override;
@@ -147,16 +142,22 @@ public:
     std::function<double(int, int, int)> initialDensityAt;
     std::function<int(int, int, int)> terracottaBandsGetter; // (x,y,z) → 红陶带方块
     // 按名字派生的 splitter 缓存（对应 NoiseConfig.getOrCreateRandomDeriver）
+    // ⚠️ 并发写保护：fillOneChunk 被多个 Worker 并发调用，splitterFor 会写这个 map——
+    // 无锁并发写 std::map = 数据竞争（1.0.13 用户进图后 Worker-Main-11 崩溃，空 std::function 调用）
     mutable std::map<std::string, XoroshiroRandom::Splitter> derivedSplitters;
+    mutable std::mutex derivedSplittersMtx;
 
     // NoiseConfig.getOrCreateRandomDeriver(id) = randomDeriver.split(id).nextSplitter()
     XoroshiroRandom::Splitter splitterFor(const std::string& name) const {
-        auto it = derivedSplitters.find(name);
-        if (it != derivedSplitters.end()) return it->second;
-        XoroshiroRandom r = splitter->split(name);
-        auto s = r.nextSplitter();
-        derivedSplitters.emplace(name, s);
-        return s;
+        {
+            std::lock_guard<std::mutex> lk(derivedSplittersMtx);
+            auto it = derivedSplitters.find(name);
+            if (it != derivedSplitters.end()) return it->second;
+            XoroshiroRandom r = splitter->split(name);
+            auto s = r.nextSplitter();
+            derivedSplitters.emplace(name, s);
+            return s;
+        }
     }
     const std::vector<int>* columnHeightmap = nullptr; // [256] WORLD_SURFACE_WG
     const std::vector<int>* surfaceHeights4 = nullptr; // chunk 4 角 estimateSurfaceHeight
@@ -208,6 +209,13 @@ public:
 
 // ========== 条件实现 ==========
 inline bool BiomeCond::test(const SurfaceContext& ctx) const { return biomes.count(ctx.biomeId) > 0; }
+inline int SeqRule::apply(const SurfaceContext& ctx) const {
+    for (auto& r : rules) {
+        int b = r->apply(ctx);
+        if (b >= 0) return b;
+    }
+    return -1;
+}
 inline bool AboveYCond::test(const SurfaceContext& ctx) const {
     int y = ctx.blockY + (addStoneDepth ? ctx.stoneDepthAbove : 0);
     return y >= anchorY + ctx.surfaceDepth * mult;
@@ -724,7 +732,6 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                         
                         int newState = rule->apply(ctx);
                         if (newState >= 0) col.at(k, wy, l) = newState;
-                        
                     }
                 }
             }
