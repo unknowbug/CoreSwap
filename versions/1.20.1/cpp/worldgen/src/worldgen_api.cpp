@@ -184,6 +184,9 @@ struct WorldgenHandle {
     RuleP overworldRule;
     // worldgen 数据目录（externalLoader 用，避免悬垂引用）
     std::string wgDir;
+    // 世界种子 + BiomeAccess access seed（BiomeAccess.hashSeed(seed)，8 邻域选点用）
+    int64_t seed = 0;
+    int64_t biomeAccessSeed = 0;
 };
 
 // 读取噪声参数到 sampler 表
@@ -292,6 +295,8 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
     try {
         auto h = std::make_unique<WorldgenHandle>();
         h->wgDir = worldgenDir;
+        h->seed = seed;
+        h->biomeAccessSeed = wg::biomeHashSeed(seed);
         std::string wgDir = worldgenDir;
 
         // 纯数据驱动（通用引擎）：维度参数全部从 noise_settings/<settingsName>.json 读。
@@ -470,7 +475,10 @@ void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen) {
     std::string id = "minecraft:plains";
     {
         NoisePos p;
-        p.x = (x >> 2) << 2; p.y = (y >> 2) << 2; p.z = (z >> 2) << 2;
+        // Java BiomeAccess.getBiome(BlockPos)：8 邻域 seed 哈希选点
+        int px, py, pz;
+        wg::biomePickCell(h->biomeAccessSeed, x, y, z, px, py, pz);
+        p.x = px << 2; p.y = py << 2; p.z = pz << 2;
         auto samp = [&](const char* k, const NoisePos& q) -> float {
             auto it = h->router.find(k);
             return it != h->router.end() ? (float)it->second->sample(q) : 0.0f;
@@ -701,11 +709,14 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     auto biomeAt = [&](int x, int y, int z) -> std::string {
         if (wg_profEnabled) wg_profBiomeAt.fetch_add(1, std::memory_order_relaxed);
         NoisePos p;
-        // Java MultiNoiseBiomeSource.getBiome：sampler.sample(x >> 2, y >> 2, z >> 2)，
-        // 内部 ×4 回 block → 采样位置 = floor(block/4)*4
-        p.x = (x >> 2) << 2;
-        p.y = (y >> 2) << 2;
-        p.z = (z >> 2) << 2;
+        // Java BiomeAccess.getBiome(BlockPos)：8 邻域 seed 哈希选点（method_38106 距离）
+        // → storage.getBiomeForNoiseGen(px, py, pz) → MultiNoiseBiomeSource.getBiome
+        //   → sampler.sample(px,py,pz) 内部 ×4 回 block 采样
+        int px, py, pz;
+        wg::biomePickCell(h->biomeAccessSeed, x, y, z, px, py, pz);
+        p.x = px << 2;
+        p.y = py << 2;
+        p.z = pz << 2;
         auto samp = [&](const char* k, const NoisePos& q) -> float {
             auto it = R.find(k);
             return it != R.end() ? (float)it->second->sample(q) : 0.0f;  // 维度缺组件（mod/简化维度）→ 0
@@ -722,12 +733,17 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     auto biomeTemp = [&](const std::string& id) -> double {
         return h->biomeSource.temperature(id);
     };
+    auto biomeCellKey = [&](int x, int y, int z) -> int64_t {
+        int px, py, pz;
+        wg::biomePickCell(h->biomeAccessSeed, x, y, z, px, py, pz);
+        return ((int64_t)((uint64_t)(uint32_t)px << 40)) | ((int64_t)((uint64_t)(uint32_t)py << 20)) | (uint32_t)pz;
+    };
     std::vector<int> sh4(4);
     sh4[0] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16) : 0;
     sh4[1] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16) : 0;
     sh4[2] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16) : 0;
     sh4[3] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16) : 0;
-    h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp,
+    h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeCellKey, biomeTemp,
                                     h->dim.minY, h->dim.worldHeight,
                                     [&R](int x, int y, int z) -> double {
                                         auto it = R.find("initial_density");

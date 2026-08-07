@@ -589,3 +589,74 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 ### 工具/脚本（data/）
 - read_col2.py（列方块）、read_biome2.py（biome）、pe_probe.py/dis_efe1_16.py/find_pat.py/iat_probe.py/parse_map.py（PE 分析）
 - BlockProbe 参数是 benchOriginX（不是 blockProbeOriginX）；EstDiag 条件 wx==45 && wz==-27
+
+### 工具/脚本（data/）
+- read_col2.py（列方块）、read_biome2.py（biome）、pe_probe.py/dis_efe1_16.py/find_pat.py/iat_probe.py/parse_map.py（PE 分析）
+- BlockProbe 参数是 benchOriginX（不是 blockProbeOriginX）；EstDiag 条件 wx==45 && wz==-27
+
+## 2026-08-08 深夜：✅ BiomeAccess 8 邻域选点——8576 剩余差根因（99.8473%→99.8892%）
+（本段覆盖旧条目「terracotta 带 y57/58 错位 1 未解决——疑带数组差或 biome 差（参照 savanna 列有 terracotta=假 diff 疑点）」：那个 savanna 列有 terracotta 的疑点**已解**——不是假 diff，是 C++ biome 判定缺 8 邻域选点）
+
+### 根因（Java 源码逐层确认）
+- 参照列 (805,-432)：biome 段（y=100 采样）=savanna，但列内有 terracotta 带（y=58-71，badlands 专属特征）→ 矛盾疑点
+- Java 表面阶段 biome 判定真实链路：`NoiseChunkGenerator.buildSurface` → `region.getBiomeAccess()` → `BiomeAccess.getBiome(BlockPos)`
+  - `ChunkRegion.biomeAccess = new BiomeAccess(this, hashSeed(seed))`，ChunkRegion 实现 `Storage.getBiomeForNoiseGen` → `world.getGeneratorStoredBiome` → `biomeSource.getBiome(x,y,z, noiseConfig.getMultiNoiseSampler())`（实时采样，非 chunk 存储）
+  - **`BiomeAccess.getBiome(BlockPos)` 不是 floor 采样**：pos-2 → 8 邻域角点 (l,l+1)×(m,m+1)×(n,n+1) + seed 哈希扰动距离选最近（method_38106）
+- C++ biomeAt 直接 `(x>>2)<<2` floor 采样 → 判错 biome（savanna）→ 不产 terracotta；Java 8 邻域在该处判 eroded_badlands
+- Java 实测对照：SURFBIOME（8 邻域）@(804,64,-432)=**eroded_badlands** vs BIOME（floor）=savanna
+- 参照列 terracotta y=58-71 ↔ Java 8 邻域判 eroded_badlands 的 y 区间；grass 地表 y=76-78 ↔ savanna —— 完全吻合
+
+### Java 算法要点（已复刻进 C++）
+- `BiomeAccess.hashSeed(seed)` = `Hashing.sha256().hashLong(seed).asLong()`（Guava：putLong 小端 8 字节 → SHA-256 → 取前 8 字节小端）
+- `SeedMixer.mixSeed(seed, salt)` = `seed * (seed * 6364136223846793005L + 1442695040888963407L) + salt`（64 位无符号回绕）
+- `method_38108(l)` = `(floorMod(l>>24, 1024)/1024 - 0.5) * 0.9`
+- `method_38106(seed, q,r,s, d,e,f)`：6 次 mixSeed（seed→q→r→s→q→r→s）得 m → g=38108(m), m=mixSeed(m,seed), h=38108(m), m=mixSeed(m,seed), n=38108(m) → 距离 = (f+n)²+(e+h)²+(d+g)²
+- `getBiome(pos)`：i=x-2, j=y-2, k=z-2 → l=i>>2, m=j>>2, n=k>>2 → d=(i&3)/4 等 → 8 邻域选最小距离角点 → `storage.getBiomeForNoiseGen(px,py,pz)` → 采样位置 = (px<<2, py<<2, pz<<2)（Java sample 内部 ×4）
+
+### C++ 修复
+- **biome.h**：新增 SHA-256（`biomeHashSeed`）、`mixSeed`、`biomeJitter`（method_38108）、`biomeCellDistance`（method_38106）、`biomePickCell`（8 邻域选点）
+- **worldgen_api.cpp**：WorldgenHandle 加 `seed`/`biomeAccessSeed`；biomeAt 与 wg_sample_biome 先 `biomePickCell` 选点 → p=(px<<2,py<<2,pz<<2) → 6 维采样 → find
+- **surface.h**：biomeAtCached 缓存 key 改 `biomeCellKey`（选点坐标 packed）——原 `(x>>2,y>>2,z>>2)` key 错误（同 4 格内不同 y 的 8 邻域选点不同，会错误复用）
+
+### 验证
+- C++ -biomeDump (805,64,-432)=eroded_badlands（原 savanna）与 Java SURFBIOME 一致；(805,56,-432)/(805,100,-432)=savanna 一致
+- **8576 TOTAL：99.8473% → 99.8892%**（差 0.1527% → 0.1108%，修复约 27% 剩余差）
+
+### 剩余差（未解，下一轮主线）
+- chunk(50,-23) 99.59%、chunk(50,-22) 99.98%：C++ 在 y=56 产 brown_terracotta，Java 参照列 (804,-368) terracotta 带在 y=60-73——**带 y 偏移约 6**
+- clay_bands_offset 采样值 C++/Java 一致（(804,0,-368) v4=1.984，JavaRound=CppLround=2，diff=0）→ 带偏移不是 offset 噪声或 round 差异，疑规则条件（stoneDepth/STONE_DEPTH_FLOOR 窗口）或带数组生成——待续
+
+### 新增工具
+- RouterProbe 加 8 邻域等价复刻输出 `SURFBIOME`（BiomeAccess 直接构造 + biomeSource.getBiome）与 floor 对照 `BIOME`；参数 routerY/routerYFrom/routerYTo/routerYStep（probe.count 会触发 NoiseProbe 分支，勿用）
+- Java 源码提取：`E:\PYTHON\MC\data\mc_src_extract\net\minecraft\world\gen\surfacebuilder\`（MaterialRules/SurfaceBuilder/VanillaSurfaceRules）、`world\biome\source\`（BiomeAccess/SeedMixer）、`world\ChunkRegion.java`
+
+## 2026-08-08 深夜（续）：✅ 关键差异确认（8 邻域已修 + nextDouble float 精度）+ -288 负坐标 bug 定位进展（根因未定）
+
+### ✅ 已确定差异（Java 源码逐行 + 实测双确认）
+1. **BiomeAccess 8 邻域选点缺失**（已修复，见上段「✅ BiomeAccess 8 邻域选点」）：8576 99.8473%→99.8892%；跨 seed/坐标验证：3200=100%、8576@200,200(64chunk)=99.9998%、-8248@20000,20000=99.9997%、-8248@134304,434416=99.9940%——**不是个别点碰巧，三维（含 Y 轴）逻辑全对**。Y 轴：depth 分量 = y_clamped_gradient(-64→1.5, 320→-1.5) 连续 y 函数 + 8 邻域 y 方向选点（j=y-2, m=j>>2, (j&3)/4），每层 y 重选。
+2. **nextDouble float 精度差异**（xoroshiro.h 已修）：
+   - Java `Xoroshiro128PlusPlusRandom.nextDouble() = next(53) * 1.110223E-16F`——**float 常量**（53 位值被舍入到 ~24 位）
+   - C++ 原实现 `(next()>>11) * 1.1102230246251565E-16`（**double** 常量，53 位全保留）
+   - 影响：PerlinNoiseSampler 的 originX/Y/Z（`nextDouble()*256`）差 ~5e-7，在 maintainPrecision 折叠边界（±3.3554432E7）可能被放大；实测 base_3d_noise 差 ~7e-6（微小但确定是差异，已改 float 对齐 Java）
+3. **blocks.json 的 vanilla=1 = minecraft:stone**（不是 air！air=0）——此前误读 mismatch 的 vanilla=1 为 air，实际是 stone
+
+### ✅ 已确认一致（排除项，避免重复排查）
+- InterpolatedDF cell 大小：`verticalCellBlockCount = BiomeCoords.toBlock(size_vertical) = 2×4 = 8`，C++ CELL_Y=8 **正确**（不是 16）
+- Java CellCache（cache_all_in_cell）缓存同 pos 同值，C++ 纯委托**等价**（无损）
+- Java 1.20.1 PerlinNoiseSampler.sample **无 512 归一化**（1.18 前的旧版才有），C++ 直接 floorD 一致
+- OctavePerlinNoiseSampler legacy 构造 random 消费顺序一致（firstPN + kx 循环 + skipCalls=262）
+- Xoroshiro128PlusPlusRandom.nextInt(bound) = Lemire 乘法（`l*bound` 高 32 位 + 拒绝采样），C++ 逐行一致
+- `XoroshiroRandom(seed)` 单参数构造已做 RandomSeed.createXoroshiroSeed（SHA-256 混合，random.h 46 行），与 Java 一致
+- Java 1.20.1 InterpolatedNoiseSampler.sample 与 C++ InterpolatedNoiseDF 逐行一致（8 次 interp + 16 次 lower/upper + clampedLerp）
+
+### -288 负坐标 bug 定位进展（现象确定，根因未定）
+- **现象**：参照列 (-244,-256)：y=40-50 stone、51-57 water、**58 stone + 59-61 dirt（岛）**、62 water、63+ air；C++ 同列 y=51-62 **全 water**（岛缺失）
+- **确定**：C++ finalDensity 插值后 @(-244,56,-256)=-0.053 vs Java cns 反射（DensityProbe 真实生成链）=-0.668——**C++ 偏正 ~0.6 → 挖洞不足 → stone 岛缺失 → 表面规则在错误位置产 gravel/terracotta**
+- **注意基准**：DensityProbe .txt（router.finalDensity().sample 未插值）≠ cns（插值后）≠ RouterProbe b3d（独立构建，可能与真实不同）——对比必须同基准
+- **未定位**：base_3d_noise @(244,58,256) C++=+0.0889 vs Java RouterProbe=+0.0384（差 0.05）、@(-244,58,-256) 差 0.23——但 RouterProbe b3d 是独立构建，需用 cns 真实链对比后才能定论；正坐标 3200=100% 说明主链正确，-288 是负坐标特有
+- 下一步：cns 反射采真实 base_3d_noise 对比；或直接对比 C++/Java 的 sloped_cheese 分量
+
+### 新增工具
+- `tbands_test.cpp`（一次性）：clay_bands_offset + 原始噪声 + base_3d_noise 正负坐标对比；WG_B3DDUMP 环境变量 dump base_3d_noise 中间值（interp/lower/upper 各 octave）
+- BlockProbe 加 ColDiag：chunk(50,-23) 列 (804,-368) y=50-80 表面后方块 dump（对比参照）
+- RouterProbe：SURFBIOME（8 邻域复刻）/BIOME（floor 对照）；参数 routerY/routerYFrom/routerYTo/routerYStep

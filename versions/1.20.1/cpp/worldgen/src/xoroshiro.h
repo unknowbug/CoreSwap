@@ -51,7 +51,7 @@ public:
         return (int32_t)(m >> 32);
     }
 
-    double nextDouble() { return (double)(impl.next() >> 11) * 1.1102230246251565E-16; }
+    double nextDouble() { return (double)((impl.next() >> 11) * 1.110223E-16F); }  // Java: next(53)*1.110223E-16F（float 精度！）
     float nextFloat() { return (float)(impl.next() >> 40) * 5.9604645E-8F; }
     bool nextBoolean() { return (impl.next() & 1ULL) != 0; }
     int32_t nextBetween(int32_t min, int32_t max) { return nextInt(max - min + 1) + min; }

@@ -404,6 +404,7 @@ public:
                       const std::vector<int>& heightmap,
                       const std::vector<int>& surfaceHeights4,
                       const std::function<std::string(int, int, int)>& biomeAt,
+                      const std::function<int64_t(int, int, int)>& biomeCellKey,
                       const std::function<double(const std::string&)>& biomeTemp,
                       int minY, int worldHeight,
                       const std::function<double(int, int, int)>& initialDensityAt);
@@ -642,6 +643,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          const std::vector<int>& heightmap,
                                          const std::vector<int>& surfaceHeights4,
                                          const std::function<std::string(int, int, int)>& biomeAt,
+                                         const std::function<int64_t(int, int, int)>& biomeCellKey,
                                          const std::function<double(const std::string&)>& biomeTemp,
                                          int minY, int worldHeight,
                                          const std::function<double(int, int, int)>& initialDensityAt) {
@@ -664,10 +666,10 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
     const int worldMinY = minY;   // 维度参数化（overworld -64 / nether 0）
     const int worldTopY = minY + worldHeight;  // 世界顶（overworld 320 / nether 256）
 
-    // biome 缓存：按 4×4×4 块粒度（biome coords），packed key
+    // biome 缓存：key = 8 邻域选点结果 (px,py,pz) packed（同一选点 cell 共享 find 结果）
     std::map<int64_t, std::pair<std::string, double>> biomeCache;
     auto biomeAtCached = [&](int bx, int by, int bz) -> std::pair<std::string, double> {
-        int64_t key = ((int64_t)((uint64_t)(uint32_t)(bx >> 2) << 40)) | ((int64_t)((uint64_t)(uint32_t)(by >> 2) << 20)) | (uint32_t)(bz >> 2);
+        int64_t key = biomeCellKey(bx, by, bz);
         auto it = biomeCache.find(key);
         if (it != biomeCache.end()) return it->second;
         std::string id = biomeAt(bx, by, bz);

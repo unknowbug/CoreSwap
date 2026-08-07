@@ -400,6 +400,16 @@ public class BlockProbe {
                         }
                     }
                     chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
+                    if (wx == 50 && wz == -23) {
+                        // ColDiag：dump (804,-368) 列（局部 4,0）Java 表面后方块，对比参照
+                        StringBuilder csb = new StringBuilder();
+                        for (int y = 50; y <= 80; y++) {
+                            net.minecraft.block.Block bb = chunk.getBlockState(pos.set(4, y, 0)).getBlock();
+                            csb.append(y).append('=').append(net.minecraft.registry.Registries.BLOCK.getId(bb))
+                               .append(' ').append(net.minecraft.registry.Registries.BLOCK.getRawId(bb)).append(" | ");
+                        }
+                        System.out.println("[ColDiag] (804,-368) col: " + csb);
+                    }
                     long t1 = System.nanoTime();
                     System.out.println("[BlockProbe] chunk (" + wx + "," + wz + ") FULL in " + (t1 - t0) / 1_000_000 + " ms");
                     out.writeInt(wx);

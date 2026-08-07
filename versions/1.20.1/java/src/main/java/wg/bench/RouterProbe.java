@@ -14,7 +14,11 @@ import java.util.Locale;
  */
 public class RouterProbe {
     public static void run(MinecraftServer server) {
-        int count = 16; // 临时固定（probe.count 读取异常）
+        int count = System.getProperty("router.yFrom") != null
+                ? (int)((Double.parseDouble(System.getProperty("router.yTo", "100"))
+                        - Double.parseDouble(System.getProperty("router.yFrom")))
+                        / Double.parseDouble(System.getProperty("router.yStep", "2")) + 1)
+                : 16;
         ServerWorld world = server.getOverworld();
         ServerChunkManager cm = world.getChunkManager();
         NoiseConfig noiseConfig = cm.getNoiseConfig();
@@ -26,7 +30,11 @@ public class RouterProbe {
         for (int i = 0; i < count; i++) {
             xs[i] = System.getProperty("router.x") != null ? Double.parseDouble(System.getProperty("router.x")) : 0.0;
             zs[i] = System.getProperty("router.z") != null ? Double.parseDouble(System.getProperty("router.z")) : 0.0;
-            ys[i] = i * 4;
+            ys[i] = System.getProperty("router.y") != null
+                    ? Double.parseDouble(System.getProperty("router.y"))
+                    : (System.getProperty("router.yFrom") != null
+                        ? Double.parseDouble(System.getProperty("router.yFrom")) + i * Double.parseDouble(System.getProperty("router.yStep", "2"))
+                        : i * 4);
         }
 
         String[] names = {
@@ -91,6 +99,35 @@ public class RouterProbe {
                 float w = (float) router.ridges().sample(bp);
                 sb.append(String.format(Locale.ROOT, "B %d %d %d %.6f %.6f %.6f %.6f %.6f %.6f%n",
                         bp.blockX(), bp.blockY(), bp.blockZ(), t, hum, cont, ero, dep, w));
+                // 表面规则实际 biome：ChunkRegion.getBiomeAccess().getBiome(BlockPos)（8 邻域选点）等价复刻
+                try {
+                    net.minecraft.world.biome.source.BiomeSource bs2 =
+                            ((net.minecraft.world.gen.chunk.NoiseChunkGenerator) server.getOverworld().getChunkManager().getChunkGenerator()).getBiomeSource();
+                    net.minecraft.world.biome.source.BiomeAccess ba = new net.minecraft.world.biome.source.BiomeAccess(
+                            (bx, by, bz) -> bs2.getBiome(bx, by, bz, noiseConfig.getMultiNoiseSampler()),
+                            net.minecraft.world.biome.source.BiomeAccess.hashSeed(seed));
+                    Object biomeEntry2 = ba.getBiome(new net.minecraft.util.math.BlockPos(pos.x, pos.y, pos.z));
+                    String bid2 = ((net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>)biomeEntry2)
+                            .getKey().map(k -> k.getValue().toString()).orElse("?");
+                    sb.append(String.format(Locale.ROOT, "SURFBIOME %d %d %d %s%n", bp.blockX(), bp.blockY(), bp.blockZ(), bid2));
+                } catch (Throwable ex) {
+                    sb.append("SURFBIOME ERR ").append(ex).append('\n');
+                }
+                // 对照：无 8 邻域（直接 floor）biomeSource 采样
+                try {
+                    net.minecraft.world.gen.chunk.NoiseChunkGenerator gen =
+                            (net.minecraft.world.gen.chunk.NoiseChunkGenerator) server.getOverworld().getChunkManager().getChunkGenerator();
+                    net.minecraft.world.biome.source.BiomeSource bs = gen.getBiomeSource();
+                    java.lang.reflect.Method mSampler = net.minecraft.world.biome.source.BiomeSource.class
+                            .getMethod("getBiome", int.class, int.class, int.class, net.minecraft.world.biome.source.util.MultiNoiseUtil.MultiNoiseSampler.class);
+                    Object biomeEntry = mSampler.invoke(bs, bp.blockX() >> 2, bp.blockY() >> 2, bp.blockZ() >> 2,
+                            noiseConfig.getMultiNoiseSampler());
+                    String bid = ((net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>)biomeEntry)
+                            .getKey().map(k -> k.getValue().toString()).orElse("?");
+                    sb.append(String.format(Locale.ROOT, "BIOME %d %d %d %s%n", bp.blockX(), bp.blockY(), bp.blockZ(), bid));
+                } catch (Throwable ex) {
+                    sb.append("BIOME ERR ").append(ex).append('\n');
+                }
             }
         }
         System.out.println("===ROUTERPROBE_BEGIN===");
