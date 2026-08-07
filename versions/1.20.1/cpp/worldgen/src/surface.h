@@ -363,7 +363,12 @@ public:
         }
         int i = (int)std::lround(cache.noise);
         int n = (int)terracottaBands.size();
-        return terracottaBands[((y + i) % n + n) % n];
+        int idx = ((y + i) % n + n) % n;
+        int b = terracottaBands[idx];
+        if (wg_splineDebug) {
+            std::fprintf(stderr, "[TBANDS] pos=(%d,%d,%d) offset=%.6f i=%d idx=%d block=%d\n", x, y, z, cache.noise, i, idx, b);
+        }
+        return b;
     }
 
     // 主世界规则树：VanillaSurfaceRules.createDefaultRule(true, false, true)

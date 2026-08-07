@@ -199,7 +199,8 @@ public class DensityProbe {
                 StringBuilder sbC = new StringBuilder();
                 for (String comp : new String[]{"depth", "continents", "erosion", "shiftX", "shiftZ",
                         "barrierNoise", "fluidLevelFloodednessNoise", "fluidLevelSpreadNoise", "lavaNoise",
-                        "veinToggle", "veinRidged", "veinGap", "initialDensity", "factor", "jaggedness", "ridges"}) {
+                        "veinToggle", "veinRidged", "veinGap", "initialDensity", "factor", "jaggedness", "ridges",
+                        "temperature", "vegetation"}) {
                     try {
                         var m = router.getClass().getMethod(comp);
                         DensityFunction fc = (DensityFunction) m.invoke(router);
@@ -279,6 +280,50 @@ public class DensityProbe {
             String name2 = "vanilla_b3d_" + dim + "_c" + cx + "_" + cz + "_b" + bx + "_" + bz + ".txt";
             Files.writeString(out.resolve(name2), sb2.toString(), StandardCharsets.UTF_8);
             System.out.println("[DensityProbe] " + name2 + " -> " + out.resolve(name2));
+            // ---- offset 噪声直接采样（对比 C++ shift_a 输入，定位 offset 噪声差）----
+            try {
+                var nc2 = world.getChunkManager().getNoiseConfig();
+                var offsetKey = net.minecraft.registry.RegistryKey.of(
+                        net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
+                        new net.minecraft.util.Identifier("minecraft", "offset"));
+                var os = nc2.getOrCreateSampler(offsetKey);
+                for (int[] pt : new int[][]{{800, 0, -428}, {800, -64, -428}, {200, 0, -107}, {728, 0, -408}, {-428, 800, 0}, {-428, 0, 800}}) {
+                    double v = os.sample((double) pt[0], (double) pt[1], (double) pt[2]);
+                    System.out.println(String.format(java.util.Locale.ROOT, "[OFFSET-NOISE] %d %d %d %.9f", pt[0], pt[1], pt[2], v));
+                }
+                // continentalness 噪声直接采样
+                var contKey = net.minecraft.registry.RegistryKey.of(
+                        net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
+                        new net.minecraft.util.Identifier("minecraft", "continentalness"));
+                var contNoise = nc2.getOrCreateSampler(contKey);
+                for (double[] pt : new double[][]{{200, 0, -107}, {199.3, 0, -106.9}, {199.887, 0, -106.9}, {199.305, 0, -106.904}, {198.766, 0, -107.157}, {198.766, 0, -106.9}, {199.549, 0, -107.1}}) {
+                    double v = contNoise.sample(pt[0], pt[1], pt[2]);
+                    System.out.println(String.format(java.util.Locale.ROOT, "[CONT-NOISE] %.3f %.3f %.3f %.9f", pt[0], pt[1], pt[2], v));
+                }
+                // shift_a 的噪声（visitor 处理后的 DensityFunction.Noise）
+                try {
+                    var dfReg2 = world.getRegistryManager().get(net.minecraft.registry.RegistryKeys.DENSITY_FUNCTION);
+                    for (String sn : new String[]{"shift_x", "shift_z"}) {
+                        var skey = net.minecraft.registry.RegistryKey.of(
+                                net.minecraft.registry.RegistryKeys.DENSITY_FUNCTION,
+                                new net.minecraft.util.Identifier("minecraft", sn));
+                        var sentry = dfReg2.getEntry(skey);
+                        if (sentry.isPresent()) {
+                            var sfunc = sentry.get().value();
+                            for (int[] pt : new int[][]{{800, 0, -428}, {800, -64, -428}}) {
+                                double sv = sfunc.sample(new DensityFunction.UnblendedNoisePos(pt[0], pt[1], pt[2]));
+                                System.out.println(String.format(java.util.Locale.ROOT, "[%s] %d %d %d %.9f", sn.toUpperCase(), pt[0], pt[1], pt[2], sv));
+                            }
+                        } else {
+                            System.out.println("[" + sn.toUpperCase() + "] registry-null");
+                        }
+                    }
+                } catch (Exception ex2) {
+                    System.out.println("[SHIFT_A] threw " + ex2);
+                }
+            } catch (Exception ex1) {
+                System.out.println("[OFFSET-NOISE] threw " + ex1);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

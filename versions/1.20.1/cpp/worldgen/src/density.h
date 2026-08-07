@@ -248,7 +248,12 @@ public:
         double d = pos.x * xzScale + shiftX->sample(pos);
         double e = pos.y * yScale + shiftY->sample(pos);
         double f = pos.z * xzScale + shiftZ->sample(pos);
-        return noise ? noise->sample(d, e, f) : 0.0;
+        double r = noise ? noise->sample(d, e, f) : 0.0;
+        if (wg_splineDebug && pos.x == 800 && pos.y == 0 && pos.z == -428) {
+            std::fprintf(stderr, "[SHIFT] pos=(%d,%d,%d) sx=%.6f sy=%.6f sz=%.6f in=(%.6f,%.6f,%.6f) out=%.9f\n",
+                         pos.x, pos.y, pos.z, shiftX->sample(pos), shiftY->sample(pos), shiftZ->sample(pos), d, e, f, r);
+        }
+        return r;
     }
     double minValue() const override { return -maxValue(); }
     double maxValue() const override { return noise ? noise->getMaxValue() : 2.0; }

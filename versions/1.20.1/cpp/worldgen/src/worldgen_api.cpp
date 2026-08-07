@@ -448,6 +448,28 @@ double wg_sample_noise(void* handle, const char* name, double x, double y, doubl
     return ns->sample(x, y, z);
 }
 
+// 采样 biome（复刻 fillOneChunk 的 biomeAt）：返回 biome id 字符串（写入 out）
+void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !out || outLen <= 0) return;
+    std::string id = "minecraft:plains";
+    {
+        NoisePos p;
+        p.x = (x >> 2) << 2; p.y = (y >> 2) << 2; p.z = (z >> 2) << 2;
+        auto samp = [&](const char* k, const NoisePos& q) -> float {
+            auto it = h->router.find(k);
+            return it != h->router.end() ? (float)it->second->sample(q) : 0.0f;
+        };
+        float t = samp("temperature", p), hum = samp("vegetation", p);
+        float cont = samp("continents", p), ero = samp("erosion", p);
+        float dep = samp("depth", p), w = samp("ridges", p);
+        const std::string* bid = h->biomeSource.find(t, hum, cont, ero, dep, w);
+        if (bid) id = *bid;
+    }
+    strncpy(out, id.c_str(), (size_t)outLen - 1);
+    out[outLen - 1] = '\0';
+}
+
 int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size, double* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out || size <= 0) return 0;
@@ -570,7 +592,8 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
             int bx = atoi(sx), bz = atoi(sz);
             if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
                 const char* comps[] = {"depth", "continents", "erosion", "barrier", "fluid_level_floodedness",
-                                       "fluid_level_spread", "lava", "vein_toggle", "vein_ridged", "vein_gap"};
+                                       "fluid_level_spread", "lava", "vein_toggle", "vein_ridged", "vein_gap",
+                                       "temperature", "vegetation"};
                 NoisePos p;
                 for (const char* c : comps) {
                     auto it = R.find(c);

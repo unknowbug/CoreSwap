@@ -119,9 +119,11 @@ int main(int argc, char** argv) {
                 if (!airV) { matchNonAir++; cna++; }
             } else if (listMismatch) {
                 int lx = i % 16, ly = (i / 16) % height, lz = i / (16 * height);
-                std::printf("MISMATCH chunk(%d,%d) pos(%d,%d,%d) got=%d vanilla=%d\n",
+                char biomeBuf[64] = "";
+                wg_sample_biome(h, chunkX[c] * 16 + lx, minY + ly, chunkZ[c] * 16 + lz, biomeBuf, sizeof(biomeBuf));
+                std::printf("MISMATCH chunk(%d,%d) pos(%d,%d,%d) got=%d vanilla=%d biome=%s\n",
                             chunkX[c], chunkZ[c], chunkX[c] * 16 + lx, minY + ly, chunkZ[c] * 16 + lz,
-                            got[i], vanilla[i]);
+                            got[i], vanilla[i], biomeBuf);
             }
         }
         std::printf("chunk (%d,%d): match=%lld/%d (%.2f%%) nonAir=%lld/%lld (%.2f%%)\n",

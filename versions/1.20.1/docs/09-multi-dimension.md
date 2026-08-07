@@ -438,3 +438,22 @@ C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用�
 - **修复**：`rarity == "type_2"`（Java 1.20.1 带下划线）
 - **成效**：8576 98.67%→99.60%；**密度角点全部对齐（0 差）**；剩余 0.4% = InterpolatedDF 插值差（非角点，已知 POC 现象，y60 陡峭地形翻转）；-288/20000/3200 无回归
 - **工具**：WEIRD/UNARY/CLAMP/YCG/NOISE/GRID 节点级 debug
+
+## 2026-08-08 晚（3）：8576 剩余 0.4% 深挖——continents 差 → biome 边界翻转 → 表层 terracotta 差
+
+### 根因链（8576 玩家区表层差）
+C++ continents（0.031236）vs Java（0.028145）差 0.003 → biome 六维参数（continents 等）在边界位置微差 → **biome 判定翻转（savanna ↔ eroded_badlands）** → 恶地表层规则不触发/触发 → 表层 stone↔terracotta 差块。差块集中在 **z=5 列 + x=810-815**（biome 边界线）。
+
+### 已验证（本轮决定性）
+- **biome 六维参数全一致**（temperature/vegetation/continents/erosion/depth/ridges @(728,-408) 0 差异；@(800,-428) 有 0.0007-0.004 差——**continents 差 0.003 是主因**）
+- **offset 噪声一致**（C++ -0.450812887 == Java -0.450812887 @(800,0,-428)，getOrCreateSampler 路径）
+- **continentalness 噪声一致**（C++ 0.033976100 == Java 0.033976100 @(200,0,-107)）
+- **Java 实际 shift_a/shift_b = -1.234233 / -0.157350**（cache 的 Cache2D[ShiftA/ShiftB] 实例）——**≠ C++ 修前的 -0.695174/0.096050**（×0.25×4 缩放）**也不等于 offset 噪声直接采样**（-0.4508@(800,0,-428)）——**shift_a 的 offsetNoise 来源未明（既非 getOrCreateSampler 也非特判恒 0）**
+- ShiftDF 的 ×0.25×4 尝试去掉（Java 字节码 sample(blockX,0,blockZ) 无缩放）→ **-288 变差（95.71→95.62）→ 已回滚**；修后 20000 的 continents 也仍差（0.031746）
+- 差块 C++ biome=eroded_badlands 与 Java 一致（biome 判定在多数差块一致——**表层规则差是「biome 边界少数的翻转」**）
+
+### 待解之谜
+Java 的 shift_a（-1.234233）的 offsetNoise 参数/派生：usesLegacyRandom=false（OFFSET 特判不触发）、getOrCreateSampler(OFFSET)=-0.4508（≠-1.234）、特判 NoiseParameters(0,0.0,[]) 恒 0（≠-1.234）——三个来源都不匹配。下一步：DensityProbe 反射 shift_a 的 offsetNoise 的 noise 字段（看实际 sampler 的参数/派生）。
+
+### 工具
+DensityProbe 扩展：[OFFSET-NOISE]/[CONT-NOISE]/[SHIFT_X]/[SHIFT_Z] 直接采样（getOrCreateSampler + registry 函数）；block_probe -mismatch 带 C++ biome 输出。
