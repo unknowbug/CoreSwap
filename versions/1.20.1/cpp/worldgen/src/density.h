@@ -236,7 +236,12 @@ public:
           minInclusive(minIn_), maxExclusive(maxEx_) {}
     double sample(const NoisePos& pos) const override {
         double d = input->sample(pos);
-        return (minInclusive <= d && d < maxExclusive) ? inRange->sample(pos) : outOfRange->sample(pos);
+        double r = (minInclusive <= d && d < maxExclusive) ? inRange->sample(pos) : outOfRange->sample(pos);
+        if (wg_splineDebug && minInclusive < -1000.0) {  // final_density 的 range_choice（min=-1e6）
+            std::fprintf(stderr, "[RANGECHOICE] pos=(%d,%d,%d) input=%.6f -> %s (%.6f)\n",
+                         pos.x, pos.y, pos.z, d, (minInclusive <= d && d < maxExclusive) ? "in" : "out", r);
+        }
+        return r;
     }
     double minValue() const override {
         return std::min(inRange->minValue(), outOfRange->minValue());
