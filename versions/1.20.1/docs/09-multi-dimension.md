@@ -492,3 +492,16 @@ DensityProbe 扩展：[OFFSET-NOISE]/[CONT-NOISE]/[SHIFT_X]/[SHIFT_Z] 直接采�
 
 ### 下一步
 javap cns.fillFromNoise 的 surface 阶段（起点：estimateSurfaceHeight 还是高度图）+ sh4（C++ aquifer）vs Java est 对比
+
+## 2026-08-08 晚（6）：est 修复（扫描）+ 8576 根因收敛到 finalDensity 微差
+
+### 修复（C++ surface.h）
+**above_preliminary_surface 的 est 从「4 角插值（aquifer sh4）」改为「扫描」**（Java cns 语义：从顶向下 initial_density_without_jaggedness > 0.390625，间隔 8，列缓存）。20000/-288 无回归；8576 略降（99.60→99.576）——**est 修复正确但 8576 主根因在别处**。
+
+### 8576 根因收敛（决定性）
+- (742,-427) 大洞穴（参照 62..257 air）：C++ finalDensity(y=64)=0.006（solid）vs Java（air）——**finalDensity 微差（0.006 级）在密度边界翻转 → 洞穴/地形差 → est 差 → 表层差**
+- C++ initial_density(y=64)=0.76（>0.390625→est=64）vs Java（洞穴处 <0.390625→est 更低）——**initial_density 差同源**
+- 之前 compaction 记录：8576 修复后 density 仍差（25/96 点、max 0.0607@y60、4 符号相反）——**8576 的 finalDensity 差（0.06@y60）是主根因**（组件差未定位）
+
+### 下一步
+定位 8576 的 finalDensity 差（0.06@y60）的组件：comps @(742,-427)（cns 查表版）C++ vs Java。

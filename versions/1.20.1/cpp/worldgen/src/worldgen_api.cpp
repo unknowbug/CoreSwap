@@ -695,7 +695,13 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     sh4[2] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16, chunkZ * 16 + 16) : 0;
     sh4[3] = aquifer ? aquifer->estimateSurfaceHeight(chunkX * 16 + 16, chunkZ * 16 + 16) : 0;
     h->surfaceBuilder->buildSurface(col, h->overworldRule, chunkX * 16, chunkZ * 16, heightmap, sh4, biomeAt, biomeTemp,
-                                    h->dim.minY, h->dim.worldHeight);
+                                    h->dim.minY, h->dim.worldHeight,
+                                    [&R](int x, int y, int z) -> double {
+                                        auto it = R.find("initial_density");
+                                        if (it == R.end()) return 0.0;
+                                        NoisePos q; q.x = x; q.y = y; q.z = z;
+                                        return it->second->sample(q);
+                                    });
     if (profiling) {
         double tEnd = nowMs();
         std::fprintf(stderr, "[PROF] chunk(%d,%d): density=%.2fms aquifer+oreVein=%.2fms sh4+surface=%.2fms total=%.2fms\n",

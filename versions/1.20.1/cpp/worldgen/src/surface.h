@@ -132,6 +132,7 @@ struct NotCond : SurfaceCond {
 class SurfaceContext {
 public:
     int blockX = 0, blockY = 0, blockZ = 0;
+    int worldMinY = -64, worldHeight = 384;   // 维度参数（est 扫描用）
     int surfaceDepth = 0;   // 列初始（sampleSurfaceDepth 2D 噪声）——y_above/stone_depth 用（Java MaterialRuleContext.surfaceDepth）
     int runDepth = 0;       // 扫描计数器（空气→0、非空气非流体→++、流体→保持）——hole 用（Java MaterialRuleContext.runDepth）
     int stoneDepthAbove = 0, stoneDepthBelow = 0;
@@ -142,6 +143,8 @@ public:
 
     std::map<std::string, DoublePerlinNoiseSampler>* noiseSamplers = nullptr;
     const XoroshiroRandom::Splitter* splitter = nullptr;
+    // initial_density_without_jaggedness（above_preliminary_surface 的 est 扫描用）
+    std::function<double(int, int, int)> initialDensityAt;
     std::function<int(int, int, int)> terracottaBandsGetter; // (x,y,z) → 红陶带方块
     // 按名字派生的 splitter 缓存（对应 NoiseConfig.getOrCreateRandomDeriver）
     mutable std::map<std::string, XoroshiroRandom::Splitter> derivedSplitters;
@@ -171,11 +174,22 @@ public:
     }
 
     int estimateSurfaceHeight() const {
-        double fx = (blockX & 15) / 16.0;
-        double fz = (blockZ & 15) / 16.0;
-        double v = lerp2(fx, fz, (*surfaceHeights4)[0], (*surfaceHeights4)[1],
-                         (*surfaceHeights4)[2], (*surfaceHeights4)[3]);
-        return (int)std::floor(v); // Java: floor(lerp2(4角))，无 runDepth 偏移
+        // Java ChunkNoiseSampler.estimateSurfaceHeight：从顶向下扫描 initialDensityWithoutJaggedness > 0.390625（间隔 8）
+        // 列缓存（无损：纯函数同列同值；多线程安全——每线程独立）
+        struct Cache { int64_t key = INT64_MIN; int val = 0; };
+        static thread_local Cache cache;
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)blockX << 32)) ^ (uint32_t)blockZ;
+        if (cache.key != key) {
+            cache.key = key;
+            int est = INT32_MAX;
+            if (initialDensityAt) {
+                for (int y = worldMinY + worldHeight; y >= worldMinY; y -= 8) {
+                    if (initialDensityAt(blockX, y, blockZ) > 0.390625) { est = y; break; }
+                }
+            }
+            cache.val = est;
+        }
+        return cache.val;
     }
 
     void initVertical(int stoneDepthAbove, int stoneDepthBelow, int fluidHeight,
@@ -381,7 +395,8 @@ public:
                       const std::vector<int>& surfaceHeights4,
                       const std::function<std::string(int, int, int)>& biomeAt,
                       const std::function<double(const std::string&)>& biomeTemp,
-                      int minY, int worldHeight);
+                      int minY, int worldHeight,
+                      const std::function<double(int, int, int)>& initialDensityAt);
 
     static void addTerracottaBand(XoroshiroRandom& r, std::vector<int>& bands, int minBandSize, int state) {
         int i = r.nextBetween(6, 15);
@@ -618,7 +633,8 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          const std::vector<int>& surfaceHeights4,
                                          const std::function<std::string(int, int, int)>& biomeAt,
                                          const std::function<double(const std::string&)>& biomeTemp,
-                                         int minY, int worldHeight) {
+                                         int minY, int worldHeight,
+                                         const std::function<double(int, int, int)>& initialDensityAt) {
 
     SurfaceContext ctx;
     ctx.noiseSamplers = samplers;
@@ -627,6 +643,9 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
     ctx.surfaceHeights4 = &surfaceHeights4;
     ctx.surfaceSecondaryNoise = &getNoise("minecraft:surface_secondary");
     ctx.terracottaBandsGetter = [this](int x, int y, int z) { return getTerracottaBlock(x, y, z); };
+    ctx.initialDensityAt = initialDensityAt;
+    ctx.worldMinY = minY;
+    ctx.worldHeight = worldHeight;
 
     const int defaultBlock = blocks->id("minecraft:stone");
     const int airBlock = blocks->id("minecraft:air");
