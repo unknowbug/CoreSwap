@@ -671,7 +671,7 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
         
         for (int l = 0; l < 16; l++) {
             int m = chunkStartX + k, n = chunkStartZ + l; // 世界坐标
-            int p = heightmap[k * 16 + l] + 1; // WORLD_SURFACE_WG + 1（chunk 内 y）
+            int p = heightmap[l * 16 + k] + 1; // WORLD_SURFACE_WG + 1（chunk 内 y）——索引 z*16+x（fillOneChunk 填充语义）
             ctx.blockX = m;
             ctx.blockZ = n;
             ctx.surfaceDepth = sampleRunDepth(m, n);

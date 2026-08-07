@@ -448,6 +448,16 @@ double wg_sample_noise(void* handle, const char* name, double x, double y, doubl
     return ns->sample(x, y, z);
 }
 
+// 采样 router 分量（temperature/continents 等 @block 坐标）
+double wg_router_sample(void* handle, const char* name, int x, int y, int z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !name) return 0.0;
+    auto it = h->router.find(name);
+    if (it == h->router.end()) return 0.0;
+    NoisePos p; p.x = x; p.y = y; p.z = z;
+    return it->second->sample(p);
+}
+
 // 采样 biome（复刻 fillOneChunk 的 biomeAt）：返回 biome id 字符串（写入 out）
 void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen) {
     auto* h = static_cast<WorldgenHandle*>(handle);

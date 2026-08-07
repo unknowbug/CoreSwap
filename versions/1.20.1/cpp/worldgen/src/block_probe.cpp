@@ -12,6 +12,9 @@
 
 #include "worldgen_api.h"
 
+// -compXY 用（确保 C 符号链接）
+extern "C" double wg_router_sample(void* handle, const char* name, int x, int y, int z);
+
 static int32_t be32(int32_t i) {
     uint32_t u = (uint32_t)i;
     return (int32_t)(((u & 0xFF) << 24) | ((u & 0xFF00) << 8) | ((u >> 8) & 0xFF00) | ((u >> 24) & 0xFF));
@@ -49,6 +52,82 @@ int main(int argc, char** argv) {
     if (dimension == 1) { settingsName = "nether.json"; biomeParams = "biome_params_nether.json"; worldHeight = 256; }
     void* h = wg_create(seed, wgDir.c_str(), settingsName, biomeParams, worldHeight);
     if (!h) { std::fprintf(stderr, "wg_create failed\n"); return 1; }
+
+    // -blockDump X Y Z：生成指定 chunk 并输出指定 block 的方块
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-blockDump" && a + 3 < argc) {
+            int bx = std::atoi(argv[a + 1]), by = std::atoi(argv[a + 2]), bz = std::atoi(argv[a + 3]);
+            int cxs[1] = {bx >> 4}, czs[1] = {bz >> 4};
+            std::vector<int32_t> buf(16 * 16 * 384, 0);
+            int32_t* outs[1] = {buf.data()};
+            wg_fill_blocks_multi(h, cxs, czs, outs, 1, 1);
+            int lx = bx & 15, lz = bz & 15;
+            int idx = ((by - (-64)) * 16 + lz) * 16 + lx;
+            std::fprintf(stderr, "[BLOCK] (%d,%d,%d) id=%d\n", bx, by, bz, idx >= 0 && idx < (int)buf.size() ? buf[idx] : -1);
+            wg_destroy(h);
+            return 0;
+        }
+    }
+
+    // -biomeDump X Y Z：采样 biome 判定
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-biomeDump" && a + 3 < argc) {
+            int bx = std::atoi(argv[a + 1]), by = std::atoi(argv[a + 2]), bz = std::atoi(argv[a + 3]);
+            char buf[64] = "";
+            wg_sample_biome(h, bx, by, bz, buf, sizeof(buf));
+            std::fprintf(stderr, "[BIOME] (%d,%d,%d) = %s\n", bx, by, bz, buf);
+            wg_destroy(h);
+            return 0;
+        }
+    }
+
+    // -compXY X Z [BX BZ]：生成指定坐标的 router 分量（temperature/continents 等），不依赖参照
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-compXY" && a + 2 < argc) {
+            int cx = std::atoi(argv[a + 1]), cz = std::atoi(argv[a + 2]);
+            int bx = a + 3 < argc ? std::atoi(argv[a + 3]) : 0;
+            int bz = a + 4 < argc ? std::atoi(argv[a + 4]) : 0;
+            std::fprintf(stderr, "[COMPXY] chunk(%d,%d) router 分量 @(%d,0,%d)……\n", cx, cz, cx * 16 + bx, cz * 16 + bz);
+            const char* comps[] = {"temperature", "vegetation", "continents", "erosion", "depth", "factor", "ridges", "final_density", "initial_density", "sloped_cheese"};
+            for (const char* c : comps) {
+                std::fprintf(stderr, "[COMPXY] %s %d %.9f\n", c, cx * 16 + bx, wg_router_sample(h, c, cx * 16 + bx, 0, cz * 16 + bz));
+            }
+            wg_destroy(h);
+            return 0;
+        }
+    }
+
+    // -concTest N：模拟 MC 多 Worker 并发 fillBlocks（验证 CoreSwapPool 并发 run 修复）
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-concTest" && a + 1 < argc) {
+            int conc = std::atoi(argv[a + 1]);
+            std::fprintf(stderr, "[CONC] 并发批次测试：%d 线程 × 20 批（每批 4 chunk）……\n", conc);
+            std::vector<std::thread> ts;
+            std::atomic<int> ok{0};
+            for (int t = 0; t < conc; t++) {
+                ts.emplace_back([&, t] {
+                    for (int b = 0; b < 20; b++) {
+                        int cxs[4], czs[4];
+                        int32_t* outs4[4];
+                        std::vector<int32_t> bufs[4];
+                        for (int i = 0; i < 4; i++) {
+                            cxs[i] = 3200 + (t * 4 + i) * 16 + b * 4;
+                            czs[i] = 3208 + b * 16 - (t % 3) * 16;
+                            bufs[i].assign(16 * 16 * 384, 0);
+                            outs4[i] = bufs[i].data();
+                        }
+                        int r = wg_fill_blocks_multi(h, cxs, czs, outs4, 4, 0);
+                        if (r != 4) { std::fprintf(stderr, "[CONC] 线程 %d 批 %d 返回 %d（异常！）\n", t, b, r); return; }
+                    }
+                    ok.fetch_add(1);
+                });
+            }
+            for (auto& th : ts) th.join();
+            std::fprintf(stderr, "[CONC] 完成：%d/%d 线程全部批次成功（无崩溃/异常）\n", ok.load(), conc);
+            wg_destroy(h);
+            return ok.load() == conc ? 0 : 1;
+        }
+    }
 
     // 读 vanilla 参照（大端）
     FILE* f = fopen(blocksPath.c_str(), "rb");
@@ -118,7 +197,10 @@ int main(int argc, char** argv) {
                 match++; cm++;
                 if (!airV) { matchNonAir++; cna++; }
             } else if (listMismatch) {
-                int lx = i % 16, ly = (i / 16) % height, lz = i / (16 * height);
+                int lx = i % 16, ly = i / 256, lz = (i / 16) % 16;
+                if (chunkX[c] == 45 && chunkZ[c] == -27 && lx == 13 && lz == 5 && (ly == 159 || ly == 95 || ly == 128)) {
+                    std::fprintf(stderr, "[DBG] chunk(45,-27) local(13,%d,5) i=%d got=%d vanilla=%d\n", ly, i, got[i], vanilla[i]);
+                }
                 char biomeBuf[64] = "";
                 wg_sample_biome(h, chunkX[c] * 16 + lx, minY + ly, chunkZ[c] * 16 + lz, biomeBuf, sizeof(biomeBuf));
                 std::printf("MISMATCH chunk(%d,%d) pos(%d,%d,%d) got=%d vanilla=%d biome=%s\n",
