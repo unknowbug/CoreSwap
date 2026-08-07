@@ -117,9 +117,18 @@ public:
             return std::make_shared<ShiftDF>(getNoiseSamplerFromObj(obj), ShiftDF::Mode::SHIFT);
         }
         if (type == "minecraft:range_choice") {
+            DF ir = arg("when_in_range");
+            DF oor = arg("when_out_of_range");
+            if (wg_splineDebug) {
+                const auto ic = std::dynamic_pointer_cast<Constant>(ir);
+                std::fprintf(stderr, "[BUILD_RC] min=%.1f when_in_range=%s%s when_out_of_range=%s\n",
+                             obj.num("min_inclusive", 0.0),
+                             ic ? "Constant" : "other",
+                             ic ? (", val=" + std::to_string(ic->value)).c_str() : "",
+                             std::dynamic_pointer_cast<Constant>(oor) ? "Constant" : "other");
+            }
             return std::make_shared<RangeChoice>(
-                arg("input"), obj.num("min_inclusive", 0.0), obj.num("max_exclusive", 0.0),
-                arg("when_in_range"), arg("when_out_of_range"));
+                arg("input"), obj.num("min_inclusive", 0.0), obj.num("max_exclusive", 0.0), ir, oor);
         }
         if (type == "minecraft:y_clamped_gradient") {
             return std::make_shared<YClampedGradient>(

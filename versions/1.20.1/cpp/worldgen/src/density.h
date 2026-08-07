@@ -107,13 +107,19 @@ public:
 
     double sample(const NoisePos& pos) const override {
         double da = a->sample(pos);
+        double r;
         switch (op) {
-            case BinOp::ADD: return da + b->sample(pos);
-            case BinOp::MUL: return da == 0.0 ? 0.0 : da * b->sample(pos);
-            case BinOp::MIN: return da < b->minValue() ? da : std::min(da, b->sample(pos));
-            case BinOp::MAX: return da > b->maxValue() ? da : std::max(da, b->sample(pos));
+            case BinOp::ADD: r = da + b->sample(pos); break;
+            case BinOp::MUL: r = da == 0.0 ? 0.0 : da * b->sample(pos); break;
+            case BinOp::MIN: r = da < b->minValue() ? da : std::min(da, b->sample(pos)); break;
+            case BinOp::MAX: r = da > b->maxValue() ? da : std::max(da, b->sample(pos)); break;
+            default: r = 0;
         }
-        return 0;
+        if (wg_splineDebug && (r < -900000.0 || r > 900000.0)) {
+            std::fprintf(stderr, "[BINOP] pos=(%d,%d,%d) op=%d a=%.6f b=%.6f -> %.6f\n",
+                         pos.x, pos.y, pos.z, (int)op, da, (op == BinOp::MIN && da < b->minValue()) ? b->minValue() : b->sample(pos), r);
+        }
+        return r;
     }
     double minValue() const override { return mn; }
     double maxValue() const override { return mx; }
@@ -238,8 +244,14 @@ public:
         double d = input->sample(pos);
         double r = (minInclusive <= d && d < maxExclusive) ? inRange->sample(pos) : outOfRange->sample(pos);
         if (wg_splineDebug && minInclusive < -1000.0) {  // final_density 的 range_choice（min=-1e6）
-            std::fprintf(stderr, "[RANGECHOICE] pos=(%d,%d,%d) input=%.6f -> %s (%.6f)\n",
-                         pos.x, pos.y, pos.z, d, (minInclusive <= d && d < maxExclusive) ? "in" : "out", r);
+            const auto* ic = dynamic_cast<const Constant*>(inRange.get());
+            const auto* ib = dynamic_cast<const BinaryOperation*>(inRange.get());
+            const auto* iu = dynamic_cast<const UnaryOperation*>(inRange.get());
+            std::fprintf(stderr, "[RANGECHOICE] pos=(%d,%d,%d) input=%.6f -> %s (%.6f) inRange=%s%s%s\n",
+                         pos.x, pos.y, pos.z, d, (minInclusive <= d && d < maxExclusive) ? "in" : "out", r,
+                         ic ? "Constant" : (ib ? "BinOp" : (iu ? "Unary" : "other")),
+                         ic ? (", val=" + std::to_string(ic->value)).c_str() : "",
+                         ib ? (", op=" + std::to_string((int)ib->op)).c_str() : "");
         }
         return r;
     }
