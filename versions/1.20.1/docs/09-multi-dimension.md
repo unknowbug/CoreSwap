@@ -457,3 +457,20 @@ Java 的 shift_a（-1.234233）的 offsetNoise 参数/派生：usesLegacyRandom=
 
 ### 工具
 DensityProbe 扩展：[OFFSET-NOISE]/[CONT-NOISE]/[SHIFT_X]/[SHIFT_Z] 直接采样（getOrCreateSampler + registry 函数）；block_probe -mismatch 带 C++ biome 输出。
+
+## 2026-08-08 晚（4）：shift_a 之谜破解——cns 的 shift 与 C++ 完全一致；新根因候选 estimateSurfaceHeight
+
+### 决定性（反射 + 直接采样）
+- **cns 的 Cache2D 的 shift_a/shift_b（delegate 直接采样 @(800,-428)）= -0.695174451 / 0.096050446**——**与 C++ 的 ShiftDF（×0.25×4）完全一致**（逐位）——**C++ ShiftDF 正确（回滚正确）**
+- **cache 文件里的 -1.234233/-0.157350 是「另一个 Cache2D[ShiftA/B] 实例」**（DensityFunctionTypes$Cache2D——nc 的 router 的？）——**非 continents 实际用的**（continents 用 cns 的 ChunkNoiseSampler$Cache2D——-0.695）
+- comps（DensityProbe 的 nc.router.continents()）是 **Wrapping(FLAT_CACHE).sample = 直接采样**（非查表）——**而游戏实际（cns 的）是查表**——comps 与 C++（查表）存在「实现差」（comps 的 0.0281 vs C++ 查表 0.0245——位置/实现差，非 bug）
+- 差块位置 (805,-427)：continents 差仅 1.8e-4（查表值 vs 直接值）、temperature 差 0.005（spline 放大）——**biome 边界翻转的真正输入是 temperature/erosion 的微小差**
+
+### 新根因候选：estimateSurfaceHeight 实现差
+- **Java cns.estimateSurfaceHeight(x,z)**（javap）：`(x>>2)<<2` biome 格对齐 + 从顶向下扫描 `initialDensityWithoutJaggedness > 0.390625`（间隔 8）
+- **C++ surface.h estimateSurfaceHeight()**：`lerp2((blockX&15)/16, (blockZ&15)/16, surfaceHeights4[4])`——**4 角插值**——**实现完全不同**（06 篇检查清单待办）
+- surfaceHeights4（C++ 的 4 角）来源待查（fillOneChunk）——若 4 角值/插值公式与 Java 差 → steep 条件/表层判定差 → 表层 stone↔grass/terracotta 差
+- 差块 (805,-32,-427) Java=red_terracotta（y=-32 深层）vs C++=stone——JSON 规则 y_above(74) 不覆盖 y=-32——**参照的深层 terracotta 来源待解**（可能与 estimateSurfaceHeight/stoneDepth 相关）
+
+### 下一步
+验证 estimateSurfaceHeight（C++ vs Java @(805,-427)）+ surfaceHeights4 来源（fillOneChunk）——对比 cns 的扫描实现。

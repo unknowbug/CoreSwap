@@ -190,6 +190,100 @@ public class DensityProbe {
                     }
                     Files.writeString(out.resolve(name.replace(".txt", "_cache.txt")), sbCache.toString(), StandardCharsets.UTF_8);
                     System.out.println("[DensityProbe] cache -> " + out.resolve(name.replace(".txt", "_cache.txt")));
+                    // ---- 反射 ShiftA/ShiftB 实例的 offsetNoise 参数（定位 -1.234233 的来源）----
+                    try {
+                        java.lang.reflect.Field wrappedF = null;
+                        try {
+                            Class<?> c2dCls = Class.forName("net.minecraft.world.gen.densityfunction.DensityFunctionTypes$Cache2D");
+                            wrappedF = c2dCls.getDeclaredField("wrapped");
+                            wrappedF.setAccessible(true);
+                        } catch (Exception ignore) {}
+                        for (Object k : cmap.keySet()) {
+                            Object v = cmap.get(k);
+                            if (!(v instanceof DensityFunction)) continue;
+                            Object inner = v;
+                            if (v.getClass().getName().contains("Cache2D")) {
+                                try { inner = wrappedF.get(v); } catch (Exception ignored) {}
+                            }
+                            String cn = inner.getClass().getName();
+                            // ChunkNoiseSampler$Cache2D（cns 的）：解包 delegate
+                            if (cn.contains("ChunkNoiseSampler$Cache2D") || cn.contains("Cache2D")) {
+                                try {
+                                    java.lang.reflect.Field delF = inner.getClass().getDeclaredField("delegate");
+                                    delF.setAccessible(true);
+                                    Object del = delF.get(inner);
+                                    System.out.println("[SHIFT-REFLECT]   Cache2D delegate=" + (del == null ? "null" : del.getClass().getName()));
+                                    if (del != null) {
+                                        double dv = ((DensityFunction) del).sample(new DensityFunction.UnblendedNoisePos(800, -64, -428));
+                                        System.out.println(String.format(java.util.Locale.ROOT, "[SHIFT-REFLECT]   delegate@(800,-64,-428)=%.9f", dv));
+                                        // offsetNoise 反射（shift_a/shift_b 的）
+                                        String dcn = del.getClass().getName();
+                                        if (dcn.contains("ShiftA") || dcn.contains("ShiftB")) {
+                                            java.lang.reflect.Field offF2 = del.getClass().getDeclaredField("offsetNoise");
+                                            offF2.setAccessible(true);
+                                            Object offN2 = offF2.get(del);
+                                            if (offN2 != null) {
+                                                java.lang.reflect.Field nF2 = offN2.getClass().getDeclaredField("noise");
+                                                nF2.setAccessible(true);
+                                                Object samp2 = nF2.get(offN2);
+                                                System.out.println("[SHIFT-REFLECT]   offsetNoise.noise=" + samp2 + " identity=" + (samp2 == null ? "null" : System.identityHashCode(samp2)));
+                                            }
+                                        }
+                                    }
+                                } catch (Exception cex) {
+                                    System.out.println("[SHIFT-REFLECT]   Cache2D 反射: " + cex);
+                                }
+                            }
+                            if (cn.contains("ShiftA") || cn.contains("ShiftB")) {
+                                java.lang.reflect.Field offF = inner.getClass().getDeclaredField("offsetNoise");
+                                offF.setAccessible(true);
+                                Object offNoise = offF.get(inner);
+                                System.out.println("[SHIFT-REFLECT] " + cn + " offsetNoise=" + offNoise);
+                                if (offNoise != null) {
+                                    java.lang.reflect.Field noiseF = offNoise.getClass().getDeclaredField("noise");
+                                    noiseF.setAccessible(true);
+                                    Object sampler = noiseF.get(offNoise);
+                                    System.out.println("[SHIFT-REFLECT]   noise=" + sampler + " identity=" + (sampler == null ? "null" : System.identityHashCode(sampler)));
+                                    // octave origins（对比 getOrCreateSampler 的派生）
+                                    if (sampler != null) {
+                                        try {
+                                            java.lang.reflect.Field f1 = sampler.getClass().getDeclaredField("firstSampler");
+                                            f1.setAccessible(true);
+                                            Object os1 = f1.get(sampler);
+                                            java.lang.reflect.Field oF = os1.getClass().getDeclaredField("octaveSamplers");
+                                            oF.setAccessible(true);
+                                            Object samps = oF.get(os1);
+                                            java.lang.reflect.Field originF = samps.getClass().getComponentType().getDeclaredField("originX");
+                                            originF.setAccessible(true);
+                                            StringBuilder sbO = new StringBuilder();
+                                            for (int oi = 0; oi < java.lang.reflect.Array.getLength(samps) && oi < 8; oi++) {
+                                                Object perlin = java.lang.reflect.Array.get(samps, oi);
+                                                if (perlin != null) sbO.append(originF.getLong(perlin)).append(',');
+                                            }
+                                            System.out.println("[SHIFT-REFLECT]   firstSampler originX: " + sbO);
+                                        } catch (Exception oe) {
+                                            System.out.println("[SHIFT-REFLECT]   octave 反射: " + oe);
+                                        }
+                                    }
+                                    // 对比 getOrCreateSampler(OFFSET)
+                                    var nc3 = world.getChunkManager().getNoiseConfig();
+                                    var offsetKey2 = net.minecraft.registry.RegistryKey.of(
+                                            net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
+                                            new net.minecraft.util.Identifier("minecraft", "offset"));
+                                    Object gs = nc3.getOrCreateSampler(offsetKey2);
+                                    System.out.println("[SHIFT-REFLECT]   getOrCreateSampler identity=" + System.identityHashCode(gs));
+                                    // 直接采样该 ShiftA/ShiftB（对比 cache dump 的 -1.234/-0.157）
+                                    if (inner instanceof DensityFunction) {
+                                        double sv1 = ((DensityFunction) inner).sample(new DensityFunction.UnblendedNoisePos(800, -64, -428));
+                                        double sv2 = ((DensityFunction) inner).sample(new DensityFunction.UnblendedNoisePos(800, 0, -428));
+                                        System.out.println(String.format(java.util.Locale.ROOT, "[SHIFT-REFLECT]   inner@(800,-64,-428)=%.6f @(800,0,-428)=%.6f", sv1, sv2));
+                                    }
+                                }
+                            }
+                        }
+                    } catch (Exception rex) {
+                        System.out.println("[SHIFT-REFLECT] threw " + rex);
+                    }
                 }
             } catch (Exception ignored) {
             }
@@ -283,6 +377,12 @@ public class DensityProbe {
             // ---- offset 噪声直接采样（对比 C++ shift_a 输入，定位 offset 噪声差）----
             try {
                 var nc2 = world.getChunkManager().getNoiseConfig();
+                try {
+                    var settings2 = nc2.getClass().getMethod("usesLegacyRandom").invoke(nc2);
+                    System.out.println("[USES-LEGACY] nc2.usesLegacyRandom=" + settings2);
+                } catch (Exception ebl) {
+                    System.out.println("[USES-LEGACY] nc2 反射: " + ebl);
+                }
                 var offsetKey = net.minecraft.registry.RegistryKey.of(
                         net.minecraft.registry.RegistryKeys.NOISE_PARAMETERS,
                         new net.minecraft.util.Identifier("minecraft", "offset"));
