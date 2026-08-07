@@ -112,7 +112,15 @@ public:
             case BinOp::ADD: r = da + b->sample(pos); break;
             case BinOp::MUL: r = da == 0.0 ? 0.0 : da * b->sample(pos); break;
             case BinOp::MIN: r = da < b->minValue() ? da : std::min(da, b->sample(pos)); break;
-            case BinOp::MAX: r = da > b->maxValue() ? da : std::max(da, b->sample(pos)); break;
+            case BinOp::MAX: {
+                double bmax = b->maxValue();
+                double bv = b->sample(pos);
+                r = da > bmax ? da : std::max(da, bv);
+                if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+                    std::fprintf(stderr, "[MAXDBG] pos=(%d,%d,%d) da=%.6f bmax=%.6f bv=%.6f -> %.6f\n", pos.x, pos.y, pos.z, da, bmax, bv, r);
+                }
+                break;
+            }
             default: r = 0;
         }
         if (wg_splineDebug && (r < -900000.0 || r > 900000.0)) {

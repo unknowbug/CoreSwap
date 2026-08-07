@@ -524,3 +524,17 @@ javap cns.fillFromNoise 的 surface 阶段（起点：estimateSurfaceHeight 还�
 
 ### 结论
 est 修复（Java 语义）正确保留（20000/-288 无回归）；8576 主差在 surface 规则（洞穴底/表层）与 finalDensity 微差——**参照导出状态需验证**（洞穴底 dirt 可能假 diff）
+
+## 2026-08-08 晚（8）：spaghetti_2d 排除（旧 dll 假象）+ 8576 主差收敛到洞穴底 dirt（假 diff 候选）
+
+### spaghetti_2d 排除（MAXDBG @(728,-8,-408)）
+- **add(weird+thickness) = -0.014777、cube = -0.393684、max = -0.014777**——**与 vanilla -0.014777 完全一致**（之前的 0.287444 是旧 dll/推断错）
+- weird（树内）= 0.0679（与 -namedDump 的 spaghetti_2d 噪声一致——**无双实例**）——**spaghetti_2d 正确排除**
+
+### 8576 主差收敛
+- est 修复（扫描）正确（Java 语义）但 8576 略降（99.60→99.576）——**差块重排（est 不是主差）**
+- 主差 = **洞穴底 dirt（stone↔dirt ~6289 块）**：参照 (739,-427) 大洞穴底 y=56 dirt vs C++ stone——**但 est=64（56<64 不满足 above_preliminary）→ Java 的规则树也不该产 dirt → 参照 dirt 疑似假 diff**（但 20000 无此差——8576 洞穴密集）
+- initial_density（C++ 0.76@(742,64) vs Java 模拟 0.818——查表 vs 直接实现差 0.058）；est（Java 模拟 64 == C++ 64）
+
+### 待决
+验证参照（BlockProbe SURFACE 导出）的洞穴底 dirt 是否假 diff（游戏实际 vs 参照）——若假 diff，8576 真差更小
