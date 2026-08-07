@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "worldgen_api.h"
+#include "crash_handler.h"
 
 // -compXY 用（确保 C 符号链接）
 extern "C" double wg_router_sample(void* handle, const char* name, int x, int y, int z);
@@ -43,6 +44,14 @@ int main(int argc, char** argv) {
         if (std::string(argv[a]) == "-threads" && a + 1 < argc) threadsArg = std::atoi(argv[a + 1]);
         else if (std::string(argv[a]) == "-dimension" && a + 1 < argc) dimension = std::atoi(argv[a + 1]);
         else if (std::string(argv[a]) == "-mismatch") listMismatch = true;
+        else if (std::string(argv[a]) == "-crashTest") {
+            wg::installCrashHandler();
+            std::fprintf(stderr, "[CRASH-TEST] 故意解引用空指针…\n");
+            volatile int* p = nullptr;
+            *p = 1;  // 0xC0000005
+            std::fprintf(stderr, "[CRASH-TEST] 未崩溃（不应到这）\n");
+            return 0;
+        }
     }
     setvbuf(stdout, nullptr, _IONBF, 0); // 无缓冲，崩溃时保留输出定位
 

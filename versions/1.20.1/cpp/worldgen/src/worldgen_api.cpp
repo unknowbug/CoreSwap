@@ -1,5 +1,9 @@
 // worldgen_api.cpp — CoreSwap worldgen C API 实现
 #include "worldgen_api.h"
+#include "crash_handler.h"
+
+// 崩溃上下文（thread_local）：当前 JNI 入口名，崩溃 handler 打印
+namespace wg { thread_local const char* g_crashContext = nullptr; }
 
 #include <cstdio>
 #include <cstring>
@@ -282,6 +286,7 @@ static CondP parseSurfaceCond(const JsonValue& j, int minY, int worldHeight, con
 }
 
 void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName, const char* biomeParamsFile, int worldHeight) {
+    wg::installCrashHandler();
     profileInit();
     if (!worldgenDir) return nullptr;
     try {
@@ -867,7 +872,15 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
     if (poolThreads <= 0) poolThreads = 1;
     CoreSwapPool::instance().ensure(poolThreads);
     CoreSwapPool::instance().run(count, [&](int i) {
-        fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
+        wg::g_crashContext = "wg_fill_blocks_multi/fillOneChunk";
+        try {
+            fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
+        } catch (const std::exception& e) {
+            std::fprintf(stderr, "[CORESWAP-EXC] chunk(%d,%d) C++ exception: %s\n", chunkXs[i], chunkZs[i], e.what());
+        } catch (...) {
+            std::fprintf(stderr, "[CORESWAP-EXC] chunk(%d,%d) unknown C++ exception\n", chunkXs[i], chunkZs[i]);
+        }
+        wg::g_crashContext = nullptr;
     });
     return count;
 }
