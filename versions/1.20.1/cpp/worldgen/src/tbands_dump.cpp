@@ -20,8 +20,8 @@ int main(int argc, char** argv) {
 
     BlockRegistry blocks;
     {
-        std::string p = argc > 2 ? argv[2] : "E:/PYTHON/MC/data/worldgen/../blocks.json";
-        // worldgen_api.cpp 用 wgDir + "/../blocks.json"，wgDir=E:/PYTHON/MC/data/worldgen → E:/PYTHON/MC/data/blocks.json
+        std::string p = argc > 2 ? argv[2] : "E:/PYTHON/CoreSwap/data/worldgen/../blocks.json";
+        // worldgen_api.cpp 用 wgDir + "/../blocks.json"，wgDir=E:/PYTHON/CoreSwap/data/worldgen → E:/PYTHON/CoreSwap/data/blocks.json
         FILE* f = fopen(p.c_str(), "rb");
         if (!f) { std::fprintf(stderr, "cannot open %s\n", p.c_str()); return 2; }
         std::string txt;

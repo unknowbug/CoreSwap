@@ -257,6 +257,7 @@ inline bool SteepCond::test(const SurfaceContext& ctx) const {
     int r = (*ctx.columnHeightmap)[p * 16 + j];
     return q >= r + 4;
 }
+// @anchor.test("SurfaceCondC above_preliminary_surface 判定对齐 Java MaterialRules（est 4 角插值 + runDepth，8576 terracotta 带根因）", source="probe:block_probe!SURF#001")
 inline bool SurfaceCondC::test(const SurfaceContext& ctx) const {
     // Java above_preliminary_surface（MaterialRules.java:567-572 SurfacePredicate = blockY >= estimateSurfaceHeight()）
     // estimateSurfaceHeight（MaterialRules.java:488-516）= floor(lerp2(4 角 est)) + runDepth - 8
@@ -372,6 +373,7 @@ public:
         }
     }
 
+    // @anchor.test("sampleRunDepth 对齐 Java MaterialRules.sampleRunDepth（surfaceDepth 列缓存）", source="probe:block_probe!SURF#002")
     int sampleRunDepth(int blockX, int blockZ) {
         // thread_local 列缓存（无损：纯函数，同列同值；多线程安全——每线程独立）
         struct Cache { int64_t key = INT64_MIN; int val = 0; };

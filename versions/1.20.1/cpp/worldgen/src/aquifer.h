@@ -65,6 +65,7 @@ public:
     }
 
     // apply：density > 0 → -1（石头/null）；否则流体决策
+    // @anchor.test("aquifer apply 判定对齐 Java AquiferSampler.Impl.apply（-288 岛缺失排查核心）", source="probe:block_probe!AQF#001")
     // 返回 BlockId；-1 表示 null（保持默认方块）
     int apply(int blockX, int blockY, int blockZ, double density) {
         if (density > 0.0) return -1;
@@ -212,6 +213,7 @@ private:
         return (int)z26;
     }
 
+    // @anchor.test("getBlockPos 邻居随机偏移对齐 Java split(x,y,z)（负坐标 split 种子）", source="probe:block_probe!AQF#002")
     int64_t getBlockPos(int x, int y, int z) {
         int aa = index(x, y, z);
         int64_t ab = blockPositions[aa];
@@ -229,6 +231,7 @@ private:
         return 1.0 - std::abs(a - i) / 25.0;
     }
 
+    // @anchor.test("calculateDensity e 值对齐 Java（barrierNoise/erosion/depth 插值）", source="probe:block_probe!AQF#003")
     double calculateDensity(int blockX, int blockY, int blockZ, MutableDouble& md,
                             const FluidLevel& fl, const FluidLevel& fl2) {
         int bs = fl.getBlockState(blockY, airId);   // Java: fluidLevel.getBlockState(blockY)
@@ -319,6 +322,7 @@ private:
         return FluidLevel(63, waterId);
     }
 
+    // @anchor.test("getFluidBlockY 液面判定对齐 Java（est + fluidFloodedness + barrier）", source="probe:block_probe!AQF#004")
     int getFluidBlockY(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL,
                        int surfaceHeightEstimate, bool bl) {
         NoisePos pos;

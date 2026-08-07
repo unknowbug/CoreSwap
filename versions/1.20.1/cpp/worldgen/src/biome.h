@@ -1,5 +1,6 @@
 // biome.h — MultiNoiseBiomeSource 复刻：六维噪声参数 → 最近 biome
 // 查找等价 vanilla MultiNoiseUtil.getSquaredDistance 遍历全部 biome（SearchTree 仅是加速，结果相同）
+// @anchor.test("biomeJitter 扰动对齐 Java（8 邻域 seed 哈希选点），surface rule 逐块 biome 判定", source="probe:block_probe!SURFBIOME#002")
 // + BiomeAccess.getBiome(BlockPos) 的 8 邻域 seed 哈希选点（surface rule 逐块 biome 判定的真实路径）
 #pragma once
 #include <cstdint>
@@ -114,6 +115,7 @@ inline double biomeCellDistance(int64_t seed, int q, int r, int s, double d, dou
     return (f + n) * (f + n) + (e + h) * (e + h) + (d + g) * (d + g);
 }
 
+// @anchor.test("biomePickCell 8 邻域选点对齐 Java BiomeAccess.getBiome（负坐标 >>2 算术右移 + seed 哈希）", source="probe:block_probe!SURFBIOME#001")
 // BiomeAccess.getBiome(BlockPos) 的选点：block 坐标 → 选中的 biome 坐标 (px, py, pz)
 // 等价 Java：i=x-2, j=y-2, k=z-2; l=i>>2...；8 邻域取最近扰动点
 inline void biomePickCell(int64_t accessSeed, int blockX, int blockY, int blockZ, int& px, int& py, int& pz) {

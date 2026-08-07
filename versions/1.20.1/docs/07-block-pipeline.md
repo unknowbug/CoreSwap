@@ -149,7 +149,7 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - vectored exception + StackWalk64 + crash-coreswap-*.txt + dll sha256 打印；不吞异常（JVM hs_err 照常）
 
 ### ✅ worldgen.dll 对齐铁律（反复踩坑后制度化）
-- **唯一权威 = build-msvc/bin/worldgen.dll**；每次编译后同步到 java/src/main/resources/native/worldgen.dll；对比/打包前 sha256 校验
+- **唯一权威 = cpp/build-msvc/bin/worldgen.dll**；每次编译后同步到 java/src/main/resources/native/worldgen.dll；对比/打包前 sha256 校验
 - **DensityProbe 必须禁用 CppBridge**（densityProbe 不在 BenchMod.anyProbe → 默认启用 C++ 接管 → 参照被污染）——DensityProbe.run 开头 `CppBridge.enabled=false`
 - gradle runServer 崩溃后 java 进程可能残留（占 world/端口）——先 `taskkill /F /IM java.exe`
 

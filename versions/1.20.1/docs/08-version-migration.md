@@ -74,10 +74,10 @@ diff 技巧：**逐类 diff 后，先对照「版本敏感点」清单打勾**�
 - 表面：STONE_DEPTH `<=1+offset`、mr7/mr8 分支归属、s 判定集合（06）
 - 流水线：块级插值顺序、线程默认自适应、多线程一致性验证（07）
 
-## 数据/工具链（E:\python\MC）
+## 数据/工具链（CoreSwap 主工作区）
 
-- C++ 编译（MSVC，严格禁用 MinGW）：`cmd /c "call "D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" && set PATH="D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja";%PATH% && cmake --build "versions\1.20.1\cpp\build-msvc""`
-- block_probe：`block_probe.exe <seed> data\worldgen data\vanilla_*.blocks [-threads N]`
-- Java 导出 vanilla：`gradle runServer -PblockProbe=true -PbenchSeed=<seed> -PbenchSize=4 -PbenchOriginX=3200 -PbenchOriginZ=3208`
+- C++ 编译（MSVC，严格禁用 MinGW）：`cmd /c "call "D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliary\Build\vcvars64.bat" && set PATH="D:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja";%PATH% && cmake --build "E:\PYTHON\CoreSwap\build-msvc""`（CMakeLists 在 CoreSwap 根 + worldgen/，未配置时先 `cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..`）
+- block_probe：`block_probe.exe <seed> data\worldgen data\vanilla_*.blocks [-threads N]`（data/ 在 CoreSwap 下，参照文件随代码仓库）
+- Java 导出 vanilla（探针工程在外部历史位置，gradle）：`gradle runServer -PblockProbe=true -PbenchSeed=<seed> -PbenchSize=4 -PbenchOriginX=3200 -PbenchOriginZ=3208`
 - Java 探针：`-ProuterProbe=true` / `-PoreProbe=true`
 - 提交纪律：author=unknowbug，中文提交信息，进度及时 push

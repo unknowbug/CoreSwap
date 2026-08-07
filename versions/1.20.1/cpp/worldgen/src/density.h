@@ -310,6 +310,7 @@ public:
     YClampedGradient(int32_t fy, int32_t ty, double fv, double tv)
         : fromY(fy), toY(ty), fromValue(fv), toValue(tv) {}
 
+    // @anchor.test("clampedMap 插值映射对齐 Java DensityFunctionTypes.map2 语义", source="probe:block_probe!densityBuf#001")
     static double clampedMap(double v, int32_t a, int32_t b, double c, double d) {
         if (a == b) return (c + d) / 2.0;
         if (v < a) return c;
@@ -395,6 +396,7 @@ public:
         }
         return sampleImpl(pos);
     }
+    // @anchor.test("InterpolatedDF 4x4x8 cell 插值逐位对齐 Java DensityInterpolator", source="probe:block_probe!densityBuf#002")
     double sampleImpl(const NoisePos& pos) const {
         double d = pos.x * scaledXzScale;
         double e = pos.y * scaledYScale;
@@ -463,6 +465,7 @@ public:
 };
 
 // ===== InterpolatedDF（minecraft:interpolated）：NoiseChunk cell 插值（4×4×8）=====
+// @anchor.idk("结构 Beardifier 密度修正未实现：结构附近 density 差 ~0.12 可翻转 aquifer 判定（-288 岛缺失根因，2026-08-08 确认）")
 // vanilla 语义：fillFromNoise 对该函数做 cell 角点采样 + 三线性插值（高频噪声防 alias）
 // 实现：lazy 按 chunk 缓存网格（单线程 POC；构建成本 5×49×5 点采样）
 class InterpolatedDF : public DensityFunction {
@@ -567,6 +570,7 @@ private:
 
     static int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
 
+    // @anchor.test("InterpolatedDF grid 角点对齐 Java 无插值 finalDensity（y=8 倍数验证点）", source="probe:block_probe!GRID#003")
     void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
         const int GX = 16 / CELL_X + 1, GY = height / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         grid.assign((size_t)GX * GY * GZ, 0.0);
@@ -719,6 +723,7 @@ private:
         while (n > cur && !instanceCount.compare_exchange_weak(cur, n)) {}
     }
 
+    // @anchor.test("FlatCacheDF 5x5 角点网格对齐 Java ChunkNoiseSampler.FlatCache（biome 坐标网格间距 4）", source="probe:block_probe!FLATCACHE#004")
     void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
         if (wg_profEnabled) wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);  // [PROF] FlatCache 构建次数
         grid.assign((size_t)GRID * GRID, 0.0);
@@ -763,6 +768,7 @@ public:
         }
         return sampleImpl(pos);
     }
+    // @anchor.test("FlatCacheDF 角点缓存命中/重建路径对齐 Java（5x5 网格 + 位置函数判定）", source="probe:block_probe!FLATCACHE#004")
     double sampleImpl(const NoisePos& pos) const {
         if (isLeaf) return fixedValue;
         double f = locationFunction->sample(pos);
