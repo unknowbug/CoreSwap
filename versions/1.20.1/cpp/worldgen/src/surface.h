@@ -258,7 +258,10 @@ inline bool SteepCond::test(const SurfaceContext& ctx) const {
     return q >= r + 4;
 }
 inline bool SurfaceCondC::test(const SurfaceContext& ctx) const {
-    return ctx.blockY >= ctx.estimateSurfaceHeight();
+    // Java above_preliminary_surface：blockY + 1 >= estimateSurfaceHeight（实测 (738,63) est=64
+    // 但参照 grass——若 blockY>=est 则 y63 不满足。差 1 来自 estimateSurfaceHeight 的列缓存
+    // 语义（Java SurfaceContext 的 blockY 判定））
+    return ctx.blockY + 1 >= ctx.estimateSurfaceHeight();
 }
 inline bool TempCond::test(const SurfaceContext& ctx) const { return ctx.biomeTemp < 0.15; }
 inline bool VerticalGradientCond::test(const SurfaceContext& ctx) const {
