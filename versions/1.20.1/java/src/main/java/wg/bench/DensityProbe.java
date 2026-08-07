@@ -150,8 +150,17 @@ public class DensityProbe {
                             if (ks.contains("factor") || ks.contains("sloped_cheese") || ks.contains("offset")
                                     || ks.contains("base_3d_noise") || ks.contains("jaggedness")
                                     || ks.contains("RangeChoice") || ks.contains("Spline[spline")
-                                    || ks.contains("ShiftedNoise") || ks.contains("Interpolated, wrapped")) {
+                                    || ks.contains("ShiftedNoise") || ks.contains("Interpolated, wrapped")
+                                    || ks.contains("minecraft:jagged")) {
                                 if (ks.contains("base_3d_noise") && b3d == null) b3d = fc;
+                                // jagged Noise 实例：多 y 采样（y 无关 = xz_scale 大 y_scale=0 的 nj）
+                                if (ks.contains("minecraft:jagged")) {
+                                    for (int y : new int[]{-64, 0, 48}) {
+                                        double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                                        sbCache.append("JAGGED ").append(y).append(' ')
+                                               .append(String.format(java.util.Locale.ROOT, "%.9f", vv)).append('\n');
+                                    }
+                                }
                                 // 每个候选 dump y=-64,0,48（finalDensity 树内组件定位）
                                 for (int y : new int[]{-64, 0, 48}) {
                                     double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
