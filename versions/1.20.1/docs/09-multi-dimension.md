@@ -333,3 +333,27 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 
 ### 工具
 WG_SPLINEDEBUG（SplineDF f/result/locations/locFn + Cache2DDF miss + FlatCacheDF grid dump）。
+
+## 2026-08-08 晚（2）：块状 bug 主因修复——Cache2DDF 缓存 key（chunk 级 → block 级）
+
+### 根因（最终）
+**C++ Cache2DDF 的缓存 key 用 chunk 级** `(x>>4)<<32 ^ (z>>4)`；**Java 1.20.1 是 block 级** `ChunkPos.toLong(blockX, blockZ)`（javap 反编译确认：单槽 lastSamplingColumnPos，key 是 block 原值）。
+- 影响：FlatCache 的 5×5 角点（同 chunk 不同 x,z）——Java 每个角点独立采样（block 级 key 不命中），C++ 被 chunk 级缓存**错误共享** → 25 个角点只采样少数几个 → **grid 值错** → factor/offset/erosion/ridges（都是 FlatCache[Cache2D[...]]）查表值差 → finalDensity 角点差 → 浅层符号翻转 → 块状
+- **为何 -288 100%、20000 块状**：块循环（fillFromNoise y→z→x）同列连续采样，chunk 级与 block 级命中率都 100%（无差）；FlatCache buildGrid 才暴露差异——-288 恰好 grid 查表值同侧不翻转，20000 翻转
+- 修复后块循环命中率不变（同列连续）→ **性能无损**
+
+### 成效（block_probe 回归）
+| 区域 | 修复前 | 修复后 |
+|---|---|---|
+| 20000 SURFACE | 99.4115% | **99.9850%**（角点密度 0.127→≤2e-6）|
+| -288 FULL | 95.4728% | 95.7111%（剩余 = FULL 参照 FEATURE 假 diff）|
+| 3200 NOISE | 100% | 100% |
+| 8576 玩家区 | 96.69% | 98.67% |
+
+### 剩余（8576 玩家区 1.33% = 47000 块地形差）
+- **sloped_cheese 值差**（C++ 12.7 @8576 y-8 vs vanilla range_choice 分支不同）——range_choice 阈值 1.5625 附近分支选择差
+- 组件（depth/factor/b3d/jaggedness/continents/erosion）修复后全一致；qn/hn 与 Java 一致（mc-src2 核对 `x>0 ? x : 0.25x`）；**唯一未定位：noise_jagged（xz_scale=1500）或 when_out_of_range 的 cave 逻辑**
+- jagged 噪声 firstOctave=-16；20000 的 jagged@30012000 触发 maintainPrecision 折叠（C++ -0.023052 vs Java 疑似 +0.023028——**符号差待确认**）；8576 不折叠（C++ -0.1373）——待 Java 直接采样确认
+
+### 工具（本轮新增）
+WG_SPLINEDEBUG（spline f/result/locations/locFn + Cache2D miss + FlatCache grid）、block_probe -mismatch（差块明细）、got_export -noiseDump（wg_sample_noise 直接采样噪声）、DensityProbe cache GRID（Spline 25 角点）、buildSpline 构建期 dump。
