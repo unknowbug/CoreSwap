@@ -75,3 +75,30 @@ sloped_cheese 的核心，`random = split("minecraft:terrain")` 派生，xz/y sc
 - `range_choice` 的 `fill` 语义特殊：先填 input 再逐点重采样——复刻时别用默认 fill。
 - `old_blended_noise` 的 random 用 `split("minecraft:terrain")`（Identifier.toString 带命名空间），漏命名空间整体错位。
 - 常量 `0.390625`（estimateSurfaceHeight 阈值）是 1.20.1 硬编码，版本间可能变（见 04 篇）。
+
+## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+
+### ✅ Cache2DDF 缓存 key 修复（块状 bug 主因）
+- Java 1.20.1 Cache2D 是 **block 级**单槽缓存：`ChunkPos.toLong(blockX, blockZ)`（javap 反编译：lastSamplingColumnPos，key 是 block 原值）
+- C++ 曾用 **chunk 级** key `(x>>4)<<32 ^ (z>>4)` → FlatCache 5×5 角点错误共享 → grid 值错 → factor/offset/erosion/ridges 查表差 → finalDensity 角点差 → 浅层符号翻转 → 块状
+- 修复后：20000 99.4115%→**99.9850%**（角点密度 0.127→≤2e-6）；块循环命中率不变（同列连续）→ **性能无损**
+
+### ✅ WeirdScaledSampler rarity 解析修复
+- JSON 是 `"type_2"`（**带下划线**）；C++ 曾写 `"type2"`（漏下划线）→ CAVES 的 weird_scaled_sampler 全部误判 TUNNELS（scale 1.5 vs 1.0）
+- 链条：spaghetti_2d weird 差 → entrances 差 → when_out_of_range 差 → 8576 块状；修复后 8576 98.67%→**99.60%**，密度角点全部对齐
+
+### ✅ 已确认一致 / 已排除
+- **InterpolatedDF 整树插值 = 正确语义**（chunk(-18,-16) 100% 实证）；「噪声插值+非线性后置」重构已实现并回滚（全区域变差）——**勿再尝试**
+- InterpolatedDF cell 大小：`verticalCellBlockCount = BiomeCoords.toBlock(2) = 8`，C++ CELL_Y=8 正确（不是 16）
+- Java CellCache（cache_all_in_cell）缓存同 pos 同值 → C++ 纯委托等价（无损）；**CellCache 反射有缓存污染不可信**（勿作密度参照）
+- **Beardifier.sample 恒 0.0**（结构密度修正在 1.20.1 是空实现）——不是差异
+- **cns 反射不可信**：`ChunkNoiseSampler.interpolators` 是 8 个组件插值器，get(0) min=-∞ 非 finalDensity；DensityInterpolator.sample 依赖 cns 遍历状态
+- **8 个 DensityInterpolator 映射**：idx0=finalDensity 顶层（BlendDensity）、idx1-4=noodle 的 4 个（noodle 噪声/thickness/ridge_a/ridge_b）、**idx5-7=ore_vein 的**（veininess/vein_a/vein_b，在 OreVeinSampler 不在 finalDensity 树）
+- **finalDensity 树结构**：`min(squeeze(0.64×interp(blend)), caves/noodle)`；blend 内嵌 `range_choice(input=sloped_cheese, min=-1e6, max=1.5625, in=min(sloped_cheese, 5×entrances), out=cave 逻辑)`
+- **684.412f / maintainPrecision / 浮点精度**：全部排除（见 02 篇）
+- **-namedDump 可信**（与 -nbDump 逐位一致）；**dfreg 不可信**（DENSITY_FUNCTION registry 原始树 ≠ 游戏实际）；cache（actualDensityFunctionCache）是游戏实际（可信）
+- **base_3d_noise（InterpolatedNoiseSampler）彻底排除**：与 Java 游戏实际 deriver 逐位一致（8 次 interp + 16 次 lower/upper + clampedLerp 逐行一致）
+
+### ❌ 未解（8576 剩余差候选）
+- 8576 剩余 826 块 = **terracotta 带边缘**（y=100-108 地表带，C++ 判 air vs Java terracotta）——est/带数组已排除，疑地表带窗口边界
+- 16 格宽「地貌同构划线」（1.0.12-pre 实测）——疑 FlatCache 网格角点值特定位置差（biome 相关），与 8576 finalDensity 微差（0.006@洞穴）可能同源

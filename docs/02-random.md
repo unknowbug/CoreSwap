@@ -72,3 +72,24 @@ uint64_t hi = big-endian(h[8..15]);
 - **int vs long 乘法**：`x*3129871` 必须 int 溢出，曾导致 surface/verticalGradient 派生错位（surface 坑的根源之一）。
 - **算术右移**：`>> 16` 对负数必须符号扩展；无符号实现后转回有符号再右移。
 - **nextSplitter 有状态**：多线程时每个线程必须从 `split(name)`（纯函数）重新派生，不能共享 Splitter 的 nextSplitter（见 07 篇）。
+
+## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+
+### ✅ 已确认一致
+- **XoroshiroRandom(seed) 单参数构造** = RandomSeed.createXoroshiroSeed（SHA-256 混合，random.h:46）与 Java 一致
+- **Xoroshiro128PlusPlusRandom.nextInt(bound)** = Lemire 乘法（`l*bound` 高 32 位 + 拒绝采样），C++ 逐行一致
+- **legacy 构造 random 消费顺序**：firstPN + kx 循环 + skipCalls=262 一致
+- **Perlin 负坐标差异 = 假象**：b3d（InterpolatedNoiseSampler）在负坐标与 Java 游戏实际 deriver 逐位一致（3e-5 级，含 -8248 负坐标多列）；「负坐标 Perlin 差坐实」是 RouterProbe rd2 漂移假象，勿再查
+- **Java 1.20.1 PerlinNoiseSampler.sample 无 512 归一化**（1.18 前的旧版才有），C++ 直接 floorD 一致
+
+### ✅ maintainPrecision（已修复）
+- Java 1.20.1：`(long)(v/33554432.0 + 0.5)`（+0.5 后向零截断）——C++ 曾误写成纯向零截断
+- **只在 |坐标×scaledXz|×2^r > 3.35e7 时触发**（|x| > ~19.6 万）——玩家小坐标不触发，但正坐标超阈值区域（20000/30012000）会触发
+
+### ✅ nextDouble float 精度（已修复）
+- Java `Xoroshiro128PlusPlusRandom.nextDouble() = next(53) * 1.110223E-16F`——**float 常量**（53 位舍入到 ~24 位）
+- C++ 原实现用 double 常量（53 位全保留）→ base_3d_noise 差 ~7e-6——已改 float 对齐 Java
+- 影响：PerlinNoiseSampler originX/Y/Z（nextDouble()*256）差 ~5e-7，在 maintainPrecision 折叠边界可能放大
+
+### ❌ 已排除
+- **684.412f 精度**：模拟 Java `(double)(float)684.412` 后主世界 100% 无变化

@@ -93,3 +93,42 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **mr7 误放 mr8 分支**：C++ 曾把 taiga/ice_spikes/mushroom/mr 塞进 mr7 结尾，导致非表面位置也生成 grass_block（dirt→grass 200 块）——**对照 Java 时逐行核对规则归属，别只比对分支数**。
 - **s 判定集合**：Java `isDefaultBlock`（==stone）vs C++ 早期只认 air/water/lava——非默认块（gravel 等）的处理集合必须一致。
 - 验证方法：`[sf2]` 打印 before/after + biome 对照；或直接对差异块驱动 buildSurface（08 篇）。
+
+## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+
+### ✅ BiomeAccess 8 邻域选点（已修复）——8576 99.8473%→99.8892%
+- Java `BiomeAccess.getBiome(BlockPos)` **不是 floor 采样**：pos-2 → 8 邻域角点 (l,l+1)×(m,m+1)×(n,n+1) + seed 哈希扰动距离选最近（method_38106）
+- `hashSeed(seed)` = `Hashing.sha256().hashLong(seed).asLong()`（Guava putLong 小端 → SHA-256 → 前 8 字节小端）
+- `mixSeed(seed, salt)` = `seed*(seed*6364136223846793005L + 1442695040888963407L) + salt`（64 位无符号回绕）
+- `method_38108(l)` = `(floorMod(l>>24, 1024)/1024 - 0.5) * 0.9`；method_38106 六次 mixSeed 扰动选最近角点
+- C++ biomeAt 曾直接 `(x>>2)<<2` floor → 判错 biome（savanna vs eroded_badlands）→ 不产 terracotta；修复后 (805,64,-432)=eroded_badlands 与 Java SURFBIOME 一致
+- **biomeAtCached 缓存 key 必须用选点坐标 packed**（原 (x>>2,y>>2,z>>2) 会错误复用：同 4 格内不同 y 的 8 邻域选点不同）
+
+### ✅ above_preliminary_surface（SurfaceCondC）公式修复——8576 99.8892%→99.9768%
+- Java（MaterialRules.java:567-572）= `blockY >= estimateSurfaceHeight()`，其中 `estimateSurfaceHeight()`（488-516）= `floor(lerp2(4 角 est)) + runDepth - 8`
+  - 4 角 est = chunk 4 角 cns.estimateSurfaceHeight；lerp2 参数序 `lerp2((blockX&15)/16, (blockZ&15)/16, e00, e10, e01, e11)`
+- C++ 旧公式 `blockY + surfaceDepth + 4 >= est` **完全不等价**（缺 4 角插值 + runDepth-8）→ 修复 `blockY >= k + surfaceDepth - 8`（k = floor(lerp2 4 角 est)）
+- 验证：8576 99.8892%→**99.9768%**（chunk(50,-23) 99.59%→100%）、3200 99.8814%→**99.9995%**
+
+### ✅ terracotta 带相关（全部一致/排除）
+- terracottaBands 192 带数组：C++/Java 逐位一致（tbands_dump + RouterProbe TBANDS 对比）
+- clay_bands_offset、sampleRunDepth 一致；带 y57/58 错位疑点 = BiomeAccess 8 邻域问题（已解）
+
+### ✅ 表面规则条件链全验证一致
+- runDepth：`(int)(surface*2.75+3.0+split(x,0,z).nextDouble()*0.25)` == C++
+- aboveY：`y + stoneDepthAbove >= anchor + runDepth*mult` == C++
+- stoneDepth：`stoneDepthAbove/Below <= 1+offset+(addSurfaceDepth?runDepth)+k` == C++
+- estimateSurfaceHeight（扫描）== C++（见 04 篇）
+
+### ✅ heightmap 索引修复
+- buildSurface 遍历 heightmap[k*16+l] 应为 heightmap[l*16+k]（z*16+x）——-288 95.47→95.72%、8576 99.58→99.80%
+
+### ✅ 参照状态/seed 校验铁律（对比前必读）
+- BlockProbe 导出表面是 SURFACE（594 行 getChunk）但实际含 FEATURE/结构（连带推进）——**对比前必须过滤 FEATURE/结构方块，或参照导出时 simulation-distance=2 + 删 world**
+- **参照文件实际 seed 看 `[BlockProbe] worldSeed=` 打印**，不能只看文件名/header 的 benchSeed（server.properties level-seed 硬编码 8576；-288 参照是 -8248 世界）
+
+### ❌ 未解（下一轮候选）
+- 8576 剩余 826 块 = terracotta 带边缘（y=100-108 地表带，C++ 判 air vs Java terracotta）
+- 参照深层 terracotta 带（y=-32 单层/带，badlands 段 STONE_DEPTH_FLOOR 不覆盖）来源未明（假 diff 候选）
+- 洞穴底 dirt（参照 (739,-427) 洞穴底 y=56 dirt vs C++ stone，est=64 不满足 above_preliminary）来源未明（假 diff 候选）
+- 16 格宽「地貌同构划线」（biome 相关，疑 FlatCache 网格角点值特定位置差）

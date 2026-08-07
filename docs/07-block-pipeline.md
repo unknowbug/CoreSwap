@@ -136,3 +136,27 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - 混淆名对照：Chunk=`ddx`、ProtoChunk=`des`、ChunkSection=`dej`、PalettedContainer=`deq`
 - yarn 1.20.1 文档：https://maven.fabricmc.net/docs/yarn-1.20.1-rc1+build.1/
 - 看「字段/方法/是否更新计数」类逻辑，读字节码比读源码快
+
+## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+
+### ✅ 崩溃修复链（32 视距 / 并发）
+- **CoreSwapPool::run 并发竞争**（1.0.11-pre 32 视距 99% 崩溃）：共享成员 fn/totalTasks/doneCount/nextTask/taskQueue 被 MC 多 Worker 并发调 → A 的 run 尾 fn=nullptr 被 B 读空 → 调用空 std::function → 读地址 0。**修复：run 开头 static mutex 串行化**（内部线程池仍并行 fillOneChunk）
+- **derivedSplitters 并发写**（1.0.14）
+- **mod id 漏改**（CppWorldgen.java:36 的 getNamespace 用旧 worldgen-bench）→ 1.0.5 修复；社区 PR #2 独立发现
+- **out 越界写**：BLOCK_COUNT(98304) → 维度大小（nether 65536）——下界崩溃根因
+
+### ✅ 崩溃日志 handler（1.0.15+，全局铁律）
+- vectored exception + StackWalk64 + crash-coreswap-*.txt + dll sha256 打印；不吞异常（JVM hs_err 照常）
+
+### ✅ worldgen.dll 对齐铁律（反复踩坑后制度化）
+- **唯一权威 = build-msvc/bin/worldgen.dll**；每次编译后同步到 java/src/main/resources/native/worldgen.dll；对比/打包前 sha256 校验
+- **DensityProbe 必须禁用 CppBridge**（densityProbe 不在 BenchMod.anyProbe → 默认启用 C++ 接管 → 参照被污染）——DensityProbe.run 开头 `CppBridge.enabled=false`
+- gradle runServer 崩溃后 java 进程可能残留（占 world/端口）——先 `taskkill /F /IM java.exe`
+
+### ✅ 参照导出/seed 校验
+- server.properties `level-seed` 硬编码，`-PbenchSeed=X` 只设 Java 属性——跑其他 seed 必须改 level-seed + 删 world
+- simulation-distance=2 + 删 world 可保 cns 存活（NOISE 状态），否则 spawn 预生成连带推进 → cns null
+
+### ⚠️ 坑
+- 混淆名对照：Chunk=`ddx`、ProtoChunk=`des`、ChunkSection=`dej`、PalettedContainer=`deq`（loom jar 是 mojang 混淆名）
+- javap：`javap -c -p -cp <loom jar> <类>`

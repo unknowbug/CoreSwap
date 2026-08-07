@@ -73,3 +73,18 @@ if (block < 0) block = oreVein.apply(x, y, z);
 - **验证方法**：`ore_probe.exe`（C++ 采样 veinToggle 三件套 + apply 决策）与 Java RouterProbe 对照；
   VeinDiag 驱动真实 ChunkNoiseSampler 拿块级插值 result 对照（逐位一致 = 0.162342 vs 0.160928 同列）。
 - vein_toggle 的 wrapped 在 apply 后是 BlendDensity 包装（surface slides 结构）——识别 Interpolator 时容易拿错（挑 RangeChoice 特征 `min=-60` + `xz=1.5`）。
+
+## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+
+### ✅ OreVeinSampler 逐行一致 + 顺序无关
+- **OreVeinSampler 与 Java method_40547 逐行一致**（javap 确认）
+- **vein 先/aquifer 后 与 aquifer 先/vein 后 结果逐位相同**（顺序无关）
+- 8 个 DensityInterpolator 中 idx5-7（ore_veininess/vein_a/vein_b）属于 OreVeinSampler（**不在 finalDensity 树**）——排查 finalDensity 时忽略 idx5-7
+
+### ✅ granite/diorite/tuff 缺失 = FEATURE 假 diff（非 vein bug）
+- granite/andesite/diorite 岩层来自 **ore_granite/ore_andesite/ore_diorite placed feature**（FEATURE 阶段，biome JSON 的 ore_l_upper/lower 引用）
+- tuff 来自 MiscConfiguredFeatures（amethyst/岩层 FEATURE）；deepslate→air = 洞穴雕刻（FEATURE）
+- C++ 只到 SURFACE 不做 FEATURE → 这些差是预期假 diff，**不是 vein 实现 bug**
+
+### ⚠️ 坑
+- **参照含 FEATURE 的判别**：copper_ore/iron_ore/oak_log/grass/kelp/cobblestone/chest 是 FEATURE/结构标志物——对比前先统计这些 id，过滤假 diff
