@@ -360,3 +360,18 @@ WG_SPLINEDEBUG（SplineDF f/result/locations/locFn + Cache2DDF miss + FlatCacheD
 
 ### 工具（本轮新增）
 WG_SPLINEDEBUG（spline f/result/locations/locFn + Cache2D miss + FlatCache grid）、block_probe -mismatch（差块明细）、got_export -noiseDump（wg_sample_noise 直接采样噪声）、DensityProbe cache GRID（Spline 25 角点）、buildSpline 构建期 dump。
+
+## 2026-08-08 晚（3）：8576 剩余差收窄——组件/噪声全一致，收缩到组合层
+
+### 已排除（全部逐位实证，8576 玩家区）
+- nj（jagged noise，xz=1500）：C++ -0.1372547 vs Java cache -0.137255 ✅
+- factor spline：C++ 5.183928740 vs Java 5.183929 ✅（此前「factor 差 0.07」是角点对比错位）
+- cave_layer（xz=1,y=8）：C++ 0.070025/0.360630 vs Java 0.070025/0.360630 ✅
+- cave_cheese（xz=1,y=0.667）：C++ 0.388347/0.258653 vs Java 0.388347/0.258653 ✅
+- -1e6 误判排除：caves/pillars 的 when_in_range=-1e6 是 JSON 合法常量（非 bug）
+- final_density 结构：argument1 = squeeze(0.64×interp(blend))（blend 内嵌 range_choice(input=sloped_cheese, min=-1e6, max=1.5625, in=min(sloped_cheese,5×entrances), out=cave 逻辑)）；argument2 = 1.25×interp(caves/noodle)；树内直接噪声只有 cave_layer/cave_cheese
+
+### 剩余（下一步）
+- when_out_of_range 的组合（min/max/add/clamp/square 嵌套）——C++ 输出 0.114@y-8 vs vanilla 推断 -0.00184（推断依赖假设，需 vanilla 直接值：cache 加 y-8 采样）
+- caves/noodle 引用（argument2）——C++ y-56=0.763（64 是合法 when_out_of_range 常量），需 vanilla 对比
+- y-8 的 InterpolatedDF 插值交互
