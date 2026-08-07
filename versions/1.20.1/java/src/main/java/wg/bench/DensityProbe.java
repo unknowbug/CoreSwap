@@ -151,8 +151,16 @@ public class DensityProbe {
                                     || ks.contains("base_3d_noise") || ks.contains("jaggedness")
                                     || ks.contains("RangeChoice") || ks.contains("Spline[spline")
                                     || ks.contains("ShiftedNoise") || ks.contains("Interpolated, wrapped")
-                                    || ks.contains("minecraft:jagged")) {
+                                    || ks.contains("minecraft:jagged") || ks.contains("Noise[noise=")) {
                                 if (ks.contains("base_3d_noise") && b3d == null) b3d = fc;
+                                // Noise 实例（含 scale 的 NoiseDF）：多 y 采样（对比 C++ -noiseDump）
+                                if (ks.contains("Noise[noise=")) {
+                                    for (int y : new int[]{-64, 0, 48}) {
+                                        double vv = fc.sample(new DensityFunction.UnblendedNoisePos(wx, y, wz));
+                                        sbCache.append("NOISE ").append(y).append(' ')
+                                               .append(String.format(java.util.Locale.ROOT, "%.9f", vv)).append('\n');
+                                    }
+                                }
                                 // jagged Noise 实例：多 y 采样（y 无关 = xz_scale 大 y_scale=0 的 nj）
                                 if (ks.contains("minecraft:jagged")) {
                                     for (int y : new int[]{-64, 0, 48}) {
