@@ -430,3 +430,11 @@ C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用�
 - **已排除**：cave_entrance、spaghetti_3d_rarity（-0.1304857/-0.130486）、WeirdScaledSampler 实现（scale 阈值+公式逐行一致）、ycg、cave_layer/cave_cheese、4 个 caves interp
 - **剩余嫌疑**：weird（spaghetti_3d_1/2 噪声，C++ 0.1076275/0.0261934 @728,-8,-408）或 spaghetti_roughness_function 或 clamp 的 add(-0.0765,...) 组合
 - **瓶颈**：cache 无 spaghetti_3d_1/2 纯 Noise 实例（WeirdScaledSampler 内未单独缓存）——需 Java 直接采样 noise registry 或反推
+
+## 2026-08-08 晚（9）：第二个根因修复——WeirdScaledSampler rarity 解析 bug
+
+- **根因**：density_builder.h 的 rarity 判断 `"type2"`（漏下划线）vs JSON 的 "type_2"——**CAVES 的 weird_scaled_sampler 全部误判 TUNNELS**（scale 1.5 vs 1.0）
+- **链条**：spaghetti_2d 的 weird（scale 错 1.5）→ weird 值差（0.3701 vs 0.0679）→ spaghetti_2d 差（0.2874 vs -0.014777）→ entrances 差 → when_out_of_range 差 → 8576 块状
+- **修复**：`rarity == "type_2"`（Java 1.20.1 带下划线）
+- **成效**：8576 98.67%→99.60%；**密度角点全部对齐（0 差）**；剩余 0.4% = InterpolatedDF 插值差（非角点，已知 POC 现象，y60 陡峭地形翻转）；-288/20000/3200 无回归
+- **工具**：WEIRD/UNARY/CLAMP/YCG/NOISE/GRID 节点级 debug
