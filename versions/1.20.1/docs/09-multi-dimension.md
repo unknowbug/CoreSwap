@@ -419,3 +419,14 @@ C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用�
   ③ when_out_of_range 的 min/max 嵌套层级解析
 - cache #2/#4/#5（-0.04597/-0.24612/-0.13824）是 vanilla 侧 C++ 未采样的 interp（采样路径不同）
 - **下一步**：打印 when_out_of_range 完整树（JSON）对比 C++ 构建；或加 MAX debug 查选边
+
+## 2026-08-08 晚（8）：entrances 差——when_out_of_range 差根源
+
+- **链条**：when_out_of_range@y-8 差 = max(min(min(add(4×square(cave_layer), clamp(0.27+cave_cheese)+clamp(1.5-0.64×sloped_cheese)), entrances), spaghetti_2d+roughness), pillars)——min 选 entrances
+- **entrances@y-8：C++ 0.040084 vs vanilla -0.00726（差 0.047）**
+- entrances = cache_once(min(arg1, arg2))：
+  - arg1 = 0.37 + cave_entrance(xz=0.75,y=0.5) + ycg(-10,30,0.3→0) = 0.788729——cave_entrance 一致（0.1337285/0.133729）
+  - **arg2 = add(spaghetti_roughness_function, clamp(add(max(weird1, weird2), add(-0.0765,...)))) 差**
+- **已排除**：cave_entrance、spaghetti_3d_rarity（-0.1304857/-0.130486）、WeirdScaledSampler 实现（scale 阈值+公式逐行一致）、ycg、cave_layer/cave_cheese、4 个 caves interp
+- **剩余嫌疑**：weird（spaghetti_3d_1/2 噪声，C++ 0.1076275/0.0261934 @728,-8,-408）或 spaghetti_roughness_function 或 clamp 的 add(-0.0765,...) 组合
+- **瓶颈**：cache 无 spaghetti_3d_1/2 纯 Noise 实例（WeirdScaledSampler 内未单独缓存）——需 Java 直接采样 noise registry 或反推
