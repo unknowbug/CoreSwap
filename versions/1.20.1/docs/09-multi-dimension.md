@@ -375,3 +375,11 @@ WG_SPLINEDEBUG（spline f/result/locations/locFn + Cache2D miss + FlatCache grid
 - when_out_of_range 的组合（min/max/add/clamp/square 嵌套）——C++ 输出 0.114@y-8 vs vanilla 推断 -0.00184（推断依赖假设，需 vanilla 直接值：cache 加 y-8 采样）
 - caves/noodle 引用（argument2）——C++ y-56=0.763（64 是合法 when_out_of_range 常量），需 vanilla 对比
 - y-8 的 InterpolatedDF 插值交互
+
+## 2026-08-08 晚（4）：8576 差锁定 when_out_of_range 组合（轴顺序已排除）
+
+- **轴顺序确认**：MC = 长高宽（X 长/Y 高/Z 宽）；NoisePos/索引/采样参数全部正确（20000 角点逐位一致是铁证）
+- **final_density 结构**：min(squeeze(0.64×interp(blend)), caves/noodle 引用)；blend 内嵌 range_choice(input=sloped_cheese, when_out_of_range=cave 逻辑)
+- **8576 y-8 差**：-densityDump 0.0128 vs vanilla -0.0023 = min(squeeze(0.64×rc), noodle) 差——反推 when_out_of_range C++≈0.04 vs vanilla≈-0.0072——**when_out_of_range（cave 逻辑组合）差**；noodle=64（-namedDump）可能一致
+- **已排除**：cave_layer/cave_cheese 噪声（逐位一致）、nj、factor spline、全部组件
+- **下一步**：逐个对比 when_out_of_range 的 caves 引用（pillars/spaghetti_2d/spaghetti_roughness_function）或拆 MIN 链
