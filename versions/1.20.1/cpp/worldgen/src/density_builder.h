@@ -137,8 +137,10 @@ public:
         }
         if (type == "minecraft:weird_scaled_sampler") {
             const JsonValue* rv = obj.get("rarity_value_mapper");
-            std::string rarity = rv ? rv->str() : "type1";
-            WeirdScaledSampler::Rarity r = rarity == "type2" ? WeirdScaledSampler::Rarity::CAVES : WeirdScaledSampler::Rarity::TUNNELS;
+            std::string rarity = rv ? rv->str() : "type_1";
+            // Java 1.20.1：rarity_value_mapper = "type_1"（TUNNELS）/ "type_2"（CAVES）
+            // 注意下划线！曾写成 "type2" 漏下划线 → CAVES 全部误判 TUNNELS（8576 差根因）
+            WeirdScaledSampler::Rarity r = rarity == "type_2" ? WeirdScaledSampler::Rarity::CAVES : WeirdScaledSampler::Rarity::TUNNELS;
             return std::make_shared<WeirdScaledSampler>(arg("input"), refNoise(*obj.get("noise")), r);
         }
         if (type == "minecraft:blend_alpha") return std::make_shared<BlendAlpha>();

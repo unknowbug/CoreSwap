@@ -165,7 +165,13 @@ public:
         if (mn > mx) std::swap(mn, mx);
         return std::make_shared<UnaryOperation>(op, input, mn, mx);
     }
-    double sample(const NoisePos& pos) const override { return applyUnary(op, input->sample(pos)); }
+    double sample(const NoisePos& pos) const override {
+        double r = applyUnary(op, input->sample(pos));
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408 && (op == UnaryOp::CUBE || op == UnaryOp::ABS)) {
+            std::fprintf(stderr, "[UNARY] pos=(%d,%d,%d) op=%d in=%.6f out=%.6f\n", pos.x, pos.y, pos.z, (int)op, input->sample(pos), r);
+        }
+        return r;
+    }
     double minValue() const override { return mn; }
     double maxValue() const override { return mx; }
 };
@@ -176,7 +182,13 @@ public:
     DF input;
     double mn, mx;
     Clamp(DF input_, double mn_, double mx_) : input(std::move(input_)), mn(mn_), mx(mx_) {}
-    double sample(const NoisePos& pos) const override { return clampD(input->sample(pos), mn, mx); }
+    double sample(const NoisePos& pos) const override {
+        double r = clampD(input->sample(pos), mn, mx);
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+            std::fprintf(stderr, "[CLAMP] pos=(%d,%d,%d) mn=%.1f mx=%.1f out=%.6f\n", pos.x, pos.y, pos.z, mn, mx, r);
+        }
+        return r;
+    }
     double minValue() const override { return mn; }
     double maxValue() const override { return mx; }
 };
@@ -190,7 +202,13 @@ public:
         : noise(std::move(n)), xzScale(xz), yScale(y) {}
     double sample(const NoisePos& pos) const override {
         if (!noise) return 0.0;
-        return noise->sample(pos.x * xzScale, pos.y * yScale, pos.z * xzScale);
+        double r = noise->sample(pos.x * xzScale, pos.y * yScale, pos.z * xzScale);
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+            std::fprintf(stderr, "[NOISE] pos=(%d,%d,%d) scale=(%g,%g) in=(%.1f,%.1f,%.1f) value=%.6f\n",
+                         pos.x, pos.y, pos.z, xzScale, yScale,
+                         pos.x * xzScale, pos.y * yScale, pos.z * xzScale, r);
+        }
+        return r;
     }
     double minValue() const override { return -maxValue(); }
     double maxValue() const override { return noise ? noise->getMaxValue() : 2.0; }
@@ -282,7 +300,11 @@ public:
         return c + (v - a) / (double)(b - a) * (d - c);
     }
     double sample(const NoisePos& pos) const override {
-        return clampedMap(pos.y, fromY, toY, fromValue, toValue);
+        double r = clampedMap(pos.y, fromY, toY, fromValue, toValue);
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+            std::fprintf(stderr, "[YCG] pos=(%d,%d,%d) from=(%d,%d) val=(%g,%g) out=%.6f\n", pos.x, pos.y, pos.z, fromY, toY, fromValue, toValue, r);
+        }
+        return r;
     }
     double minValue() const override { return std::min(fromValue, toValue); }
     double maxValue() const override { return std::max(fromValue, toValue); }
@@ -313,7 +335,13 @@ public:
     double sample(const NoisePos& pos) const override {
         double d = scaleValue(rarity, input->sample(pos));
         if (!noise) return 0.0;
-        return d * std::abs(noise->sample(pos.x / d, pos.y / d, pos.z / d));
+        double r = d * std::abs(noise->sample(pos.x / d, pos.y / d, pos.z / d));
+        if (wg_splineDebug && pos.y == -8 && pos.x == 728 && pos.z == -408) {
+            std::fprintf(stderr, "[WEIRD] pos=(%d,%d,%d) rarity=%d input=%.6f scale=%.6f noiseIn=(%.1f,%.1f,%.1f) out=%.6f\n",
+                         pos.x, pos.y, pos.z, (int)rarity, input->sample(pos), d,
+                         pos.x / d, pos.y / d, pos.z / d, r);
+        }
+        return r;
     }
     double minValue() const override { return 0.0; }
     double maxValue() const override {
