@@ -1,61 +1,99 @@
-# CoreSwap — 一边逆向一边编程的混合工程框架
+# CoreSwap
 
-> **「任何声称都必须有可验证的实践锚点。」** — Anchorlaw 第一律
+> **We took the 'Java' out of Minecraft Java Edition. Same mods. Same worlds. Different FPS.**
 
-CoreSwap 是 Minecraft Java worldgen 的 C++ 重写项目（逐位对齐验证），同时是一个**混合工程框架**：
-逆向（Java 源码/javap → 还原 C++）+ 编程（C++ 实现 + 逐位对比验证）一体化。
+[中文版 / Chinese](./README.zh-CN.md)
 
-## 框架组成
+Rewrite Minecraft Java Edition's performance-critical cores — **world generation** (and eventually entity AI / pathfinding) — in C++, while keeping the **full Java mod ecosystem** intact. Same seed. Same world. Same mods. The C++ goes underneath.
+
+**Why:** Java Edition's performance has been a meme for two decades. Every existing fix has a fatal flaw:
+
+| Approach | Flaw |
+|---|---|
+| Paper & optimization plugins | Still Java — treats symptoms, not causes |
+| Cuberite (full C++ rewrite) | Fast, but the mod ecosystem dies |
+| Switch to Bedrock | Ecosystem gone, version drift forever |
+
+CoreSwap walks the path nobody has walked: **C++ performance core + Java mod layer (JNI bridge)** — the mod API stays Java and untouched; everything below it is free to become C++.
+
+## Status (as of 2026-08-08)
+
+**Latest: v1.0.17 (pre-release)** — installable Fabric mod for MC 1.20.1. 连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler、完整调用栈 + dll sha256 诊断、内存损坏诊断。兼容 Forge（Sinytra Connector）。
+
+- ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **bit-identical to vanilla** — same seed, same terrain, block-for-block (3200 区域 100%，玩家 seed 8576 区域 99.9768%+，剩余为 terracotta 带边缘排查中)
+- ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
+- ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
+- ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
+- 📦 Download: [CoreSwap 1.20.1 v1.0.17](https://github.com/unknowbug/CoreSwap/releases)
+- 🗺️ Version plan: **full coverage on the roadmap** — 1.20.x ships first, then 1.18/1.19 and 1.17- progressively (worldgen architecture differs per version)
+- 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
+
+## Installation
+
+### Requirements
+
+- **Minecraft 1.20.1** (Java Edition)
+- **Fabric Loader 0.15.x** — if you don't have Fabric yet, install it with the [Fabric installer](https://fabricmc.net/use/) (select MC 1.20.1, click Install)
+- **Java 17** — Fabric Loader 0.15 requires Java 17+
+
+### Steps
+
+1. **Download** the latest `coreswap-1.20.1-*.jar` from [Releases](https://github.com/unknowbug/CoreSwap/releases)
+2. **Install Fabric** (skip if already installed): run the Fabric installer, pick Minecraft **1.20.1**, Install. It creates a "fabric-loader-…" profile in the launcher
+3. **Open the mods folder**: in the Fabric launcher profile click **Open Mods Folder**, or navigate manually to:
+   - Windows: `%appdata%\.minecraft\mods`
+   - macOS: `~/Library/Application Support/minecraft/mods`
+   - Linux: `~/.minecraft/mods`
+4. **Drop the CoreSwap jar into `mods/`** — done
+5. **(Recommended) Add Sodium + Iris** (from [Modrinth](https://modrinth.com/)) — Sodium 0.5.x and Iris 1.7.x for 1.20.1, drop into `mods/` too. **Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — they complement each other, no conflict.** Add a shaderpack (e.g. BSL, Complementary) via `Options → Video Settings → Shader Packs` if you want shaders
+6. **Launch** the Fabric profile. Verify it's active in `logs/latest.log`:
+   ```
+   [BenchMod] CoreSwap replace mode: C++ worldgen active
+   ```
+
+### Notes
+
+- **Server**: works on dedicated Fabric servers too — put the same jar in the server's `mods/` folder
+- **Forge**: supported via [Sinytra Connector](https://modrinth.com/mod/connector)
+- **FEATURES stage** (ores / decoration) is still vanilla — **NOISE+SURFACE** is bit-identical to vanilla
+- If you don't see the log lines above: check the jar is in `mods/`, MC is 1.20.1, Fabric Loader is 0.15.x, and Java is 17
+
+## Versioning
+
+The repo is organized by **Minecraft Java version number**. Each version lives in its own directory:
 
 ```
-E:\PYTHON\CoreSwap\
-├── AGENTS.md                          ← 项目工作规则（铁律 + 协议 + 混合工作流）
-├── README.md                          ← 本文件
-├── protocol/
-│   └── verification-protocol.md       ← 验证协议（Anchorlaw + RE 方法论 + CoreSwap 定制，跨版本通用）
-├── scripts/
-│   └── scan_cpp_anchors.py           ← C++ @anchor 扫描工具（source 校验 + 汇总，跨版本通用）
-└── versions/                          ← 按大版本组织（多版本引擎；后续 1.18/1.19 各占一目录）
-    └── 1.20.1/
-        ├── cpp/                       ← C++ 工程（CMakeLists + worldgen/src，带 @anchor 注解）
-        │   └── worldgen/src/
-        │       ├── density.h          ← 密度函数引擎（插值/缓存，6 锚点）
-        │       ├── aquifer.h          ← 含水层判定（4 锚点）
-        │       ├── surface.h          ← 表面规则（SurfaceCondC，2 锚点）
-        │       └── ...                ← 其余源码（未标注，增量推进）
-        ├── data/                      ← worldgen JSON + 参照 blocks（该版本）
-        └── docs/                      ← 知识库（01-09 主题 + 时间线）
+CoreSwap/
+├── README.md
+└── versions/
+    ├── 1.20.1/          # ← current
+    │   ├── cpp/         # C++ core (noise + density field + surface rules)
+    │   └── data/        # worldgen JSON + reference block data (for verification)
+    └── <future versions>/
 ```
 
-## 来源融合
+## How It Works
 
-| 来源 | 引入内容 | 状态 |
-|---|---|---|
-| [Anchorlaw v0.4](E:\PYTHON\Anchorlaw) | @anchor.test/@anchor.idk + source 溯源 + noise cards + 验证分层 + retry cap + 第三律挑战 | ✅ 协议落地 |
-| [RE-Framework](E:\PYTHON\RE-Framework) | 置信度状态机（confirmed 用户拍板）+ Phase 0 轻量计划 + Scout/Worker/Judge + Lift 原则（禁信反编译） | ✅ 选择性吸收 |
-| CoreSwap 工程实践 | 知识库链条铁律 + 验证载体（block_probe 等）+ worldgen.dll 对齐 + 差块分类 | ✅ 已有 |
+The C++ core reconstructs the density field exactly as vanilla does:
 
-**明确不引入**：Lift 汇编流程、.artifacts YAML 体系、多 Agent 目录骨架（CoreSwap 是 Java 源码级逆向，无汇编场景；docs 已是成熟知识库，引入=双轨制负担）。
+- **Noise primitives**: Xoroshiro128PlusPlus RNG, MD5-based seed derivation, Perlin / octave / double-perlin samplers — bit-identical to Mojang's implementation
+- **Density function tree**: assembled at runtime from vanilla's `worldgen` JSON (`noise_settings/overworld.json` + `density_function/overworld/*.json`), mirroring `NoiseConfig`'s visitor semantics
+- **InterpolatedNoiseSampler** (`old_blended_noise`): the terrain backbone, reproduced exactly
 
-## 工作区关系
+No tolerance was needed: the C++ density field matches vanilla to the exact IEEE double.
 
-- **CoreSwap（本目录）= 唯一主工作区**：代码 + CMake 构建 + 协议 + 工具 + 知识库 + 参照数据全部自洽。
-- **Anchorlaw 仓库 = 协议来源**，禁止反向修改。
-- 历史参考（Java 探针工程等）只读引用，改动以 CoreSwap 为准。
+## Roadmap
 
-## 快速开始
+1. ✅ **JNI bridge**: bulk chunk data exchange
+2. ✅ **Block layer**: density → block states (surface rules + chunk fill)
+3. ✅ **Integration**: installable Fabric mod / server plugin
+4. **Memory optimization**: compact arrays + indexing + cache-friendly layouts (projected 2-5× more)
+5. **Entity AI / pathfinding**: second core to C++-ify (community precedent: JNI-accelerated pathfinding)
 
-```powershell
-# 扫描 C++ 注解（要求 PYTHONPATH 指向 Anchorlaw scanner）
-set PYTHONPATH=E:\PYTHON\Anchorlaw\python\anchorlaw-scanner
-python scripts\scan_cpp_anchors.py versions\1.20.1\cpp\worldgen\src
+## Credits
 
-# 读协议
-# protocol/verification-protocol.md
-```
+- **dustinmoon78** — Forge + Sinytra Connector compatibility: multi-level mod jar resolution (`CoreSwapFixHelper`) + direct `JarFile` extraction, tested on 400+ mod packs. See [#3](https://github.com/unknowbug/CoreSwap/pull/3).
 
-## 状态（2026-08-08）
+## License
 
-- 注解：density.h（6）+ aquifer.h（4）+ surface.h（2）= 12 anchors 全部 valid（11 test + 1 idk）
-- 核心对齐：正坐标 100%（8576/3200 区域）、负坐标 -288 确认 **非 density bug**（= 结构/FEATURE 假 diff）
-- 已知边界（idk）：结构 Beardifier 密度修正未实现（结构附近 density 差 ~0.12）
+MIT
