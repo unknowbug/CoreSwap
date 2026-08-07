@@ -523,6 +523,24 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out) return 0;
 
+    // 排查用户 1.0.16 崩溃：memset 函数指针存储位 0x34001 被堆覆盖（call 目标=堆地址）。
+    // 每 chunk 校验其值 vs 基线（首个 chunk 记录）——被写坏立即打印（定位写坏时机/线程）。
+    {
+        static HMODULE selfM = GetModuleHandleA("worldgen.dll");
+        uintptr_t baseM = (uintptr_t)selfM;
+        if (baseM) {
+            static uint64_t baseline = 0;
+            static bool haveBase = false;
+            uint64_t v0 = 0;
+            void* p0 = (void*)(baseM + 0x34001);
+            if (IsBadReadPtr(p0, 8) == FALSE) memcpy(&v0, p0, 8);
+            if (!haveBase) { baseline = v0; haveBase = true; }
+            if (v0 != baseline) {
+                std::fprintf(stderr, "[MEM-CHK] chunk(%d,%d) 0x34001=0x%llX（基线 0x%llX——被写坏！）\n", chunkX, chunkZ, v0, baseline);
+            }
+        }
+    }
+
     constexpr int XZ = XZ_INTERVAL, Y = Y_INTERVAL;
     const int air = h->blocks.id("minecraft:air");
     const int stone = h->blocks.id("minecraft:stone");

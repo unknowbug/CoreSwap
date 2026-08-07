@@ -78,6 +78,22 @@ inline LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
     }
     log("[CORESWAP-CRASH] RAX=%p RBX=%p RCX=%p RDX=%p\n", (void*)ctx->Rax, (void*)ctx->Rbx,
         (void*)ctx->Rcx, (void*)ctx->Rdx);
+    // 排查内存损坏：0x34001 是 fillOneChunk 里 memset 函数指针的存储位（1.0.16 用户崩溃
+    // call 目标=堆地址 0x299AA——被越界写覆盖）。崩溃时打印其当前值（正常应为 msvcrt memset 地址）。
+    {
+        HMODULE self = GetModuleHandleA("worldgen.dll");
+        if (!self) self = GetModuleHandleA("block_probe.exe");
+        if (!self) self = GetModuleHandleW(nullptr);
+        uintptr_t base = (uintptr_t)self;
+        if (base) {
+            void* p = (void*)(base + 0x34000);
+            uint64_t v = 0;
+            if (IsBadReadPtr(p, 8) == FALSE) memcpy(&v, p, 8);
+            uint64_t v1 = 0;
+            if (IsBadReadPtr((char*)p + 1, 8) == FALSE) memcpy(&v1, (char*)p + 1, 8);
+            log("[CORESWAP-CRASH] data[0x34000]=0x%llX data[0x34001]=0x%llX\n", v, v1);
+        }
+    }
     log("[CORESWAP-CRASH] RSI=%p RDI=%p RBP=%p RSP=%p RIP=%p\n", (void*)ctx->Rsi, (void*)ctx->Rdi,
         (void*)ctx->Rbp, (void*)ctx->Rsp, (void*)ctx->Rip);
 
