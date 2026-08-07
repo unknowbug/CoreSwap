@@ -400,3 +400,10 @@ WG_SPLINEDEBUG（spline f/result/locations/locFn + Cache2D miss + FlatCache grid
 
 ### 下一步
 C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用值（对比 vanilla 推断），或从 cache 的 Interpolated 实例拿 vanilla 的 spaghetti/pillars 值。
+
+## 2026-08-08 晚（6）：when_out_of_range 差组成拆解（interp(blend)@y-8 确认差）
+
+- InterpolatedDF debug（8576 @728,-8,-408）：interp(blend)@y-8 = **0.040084**（C++）vs cache #0（interp(blend) 角点，y-64=0.11719 证实）= **-0.00726**——差 0.047 确认
+- 另一个 caves interp = **-0.192846** == cache #7（-0.19285）逐位一致（排除）
+- when_out_of_range 差不在：cave_layer/cave_cheese（全 y 一致）、#7 interp（一致）——剩：**pillars/spaghetti_2d/spaghetti_roughness interp（cache #1-#6 待对应）或 min/max 选边差**
+- cache Interpolated 实例 y-8 值：-0.28558/-0.04597/0.38682/-0.24612/-0.13824/-0.07872（#1-#6，待与 C++ caves interp 对应）
