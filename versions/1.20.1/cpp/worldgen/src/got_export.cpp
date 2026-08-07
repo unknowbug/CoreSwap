@@ -38,9 +38,16 @@ int main(int argc, char** argv) {
         wg_destroy(dh);
         return 0;
     }
+    // 噪声采样：-noiseDump <noiseName> x y z（直接 sample DoublePerlinNoiseSampler）
+    if (argc >= 7 && std::string(argv[3]) == "-noiseDump") {
+        std::string nname = argv[4];
+        double nx = std::atof(argv[5]), ny = std::atof(argv[6]), nz = std::atof(argv[7]);
+        double v = wg_sample_noise(h, nname.c_str(), nx, ny, nz);
+        std::printf("%.17g\n", v);
+        return 0;
+    }
     // 任意注册 density function dump：-namedDump <name> cx cz bx bz [dimension]
-    if (argc >= 7 && std::string(argv[3]) == "-namedDump") {
-        std::string nm = argv[4];
+    if (argc >= 7 && std::string(argv[3]) == "-namedDump") {        std::string nm = argv[4];
         int dcx = std::atoi(argv[5]), dcz = std::atoi(argv[6]), dbx = std::atoi(argv[7]), dbz = std::atoi(argv[8]);
         int ddim = 0;
         for (int a = 9; a + 1 < argc; a++)

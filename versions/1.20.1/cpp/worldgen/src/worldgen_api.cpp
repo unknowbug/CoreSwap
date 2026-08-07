@@ -439,6 +439,15 @@ double wg_sample_named(void* handle, const char* name, int x, int y, int z) {
     return df->sample(pos);
 }
 
+// 采样噪声（如 "minecraft:jagged"）：直接 sample 底层 DoublePerlinNoiseSampler
+double wg_sample_noise(void* handle, const char* name, double x, double y, double z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !name) return 0.0;
+    auto ns = h->builder->getNoiseSampler(name);
+    if (!ns) return 0.0;
+    return ns->sample(x, y, z);
+}
+
 int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size, double* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out || size <= 0) return 0;

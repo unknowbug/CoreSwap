@@ -35,9 +35,11 @@ int main(int argc, char** argv) {
     std::string blocksPath = argv[3];
     int threadsArg = 0;
     int dimension = 0;
-    for (int a = 4; a + 1 < argc; a++) {
-        if (std::string(argv[a]) == "-threads") threadsArg = std::atoi(argv[a + 1]);
-        else if (std::string(argv[a]) == "-dimension") dimension = std::atoi(argv[a + 1]);
+    bool listMismatch = false;
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-threads" && a + 1 < argc) threadsArg = std::atoi(argv[a + 1]);
+        else if (std::string(argv[a]) == "-dimension" && a + 1 < argc) dimension = std::atoi(argv[a + 1]);
+        else if (std::string(argv[a]) == "-mismatch") listMismatch = true;
     }
     setvbuf(stdout, nullptr, _IONBF, 0); // 无缓冲，崩溃时保留输出定位
 
@@ -115,6 +117,11 @@ int main(int argc, char** argv) {
             if (vanilla[i] == got[i]) {
                 match++; cm++;
                 if (!airV) { matchNonAir++; cna++; }
+            } else if (listMismatch) {
+                int lx = i % 16, ly = (i / 16) % height, lz = i / (16 * height);
+                std::printf("MISMATCH chunk(%d,%d) pos(%d,%d,%d) got=%d vanilla=%d\n",
+                            chunkX[c], chunkZ[c], chunkX[c] * 16 + lx, minY + ly, chunkZ[c] * 16 + lz,
+                            got[i], vanilla[i]);
             }
         }
         std::printf("chunk (%d,%d): match=%lld/%d (%.2f%%) nonAir=%lld/%lld (%.2f%%)\n",

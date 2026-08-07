@@ -158,6 +158,16 @@ public class DensityProbe {
                                     sbCache.append(ks.substring(0, Math.min(90, ks.length())).replace('\n', ' '))
                                           .append(' ').append(y).append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", vv)).append('\n');
                                 }
+                                // Spline 实例：额外采样 5×5 FlatCache 网格角点（对比 C++ WG_SPLINEDEBUG）
+                                if (ks.contains("Spline[spline=Implementation")) {
+                                    int bx0 = wx & ~15, bz0 = wz & ~15;
+                                    for (int gi = 0; gi < 5; gi++)
+                                        for (int gj = 0; gj < 5; gj++) {
+                                            double vv = fc.sample(new DensityFunction.UnblendedNoisePos(bx0 + gi * 4, 0, bz0 + gj * 4));
+                                            sbCache.append("GRID ").append(bx0 + gi * 4).append(' ').append(bz0 + gj * 4)
+                                                   .append(' ').append(String.format(java.util.Locale.ROOT, "%.6f", vv)).append('\n');
+                                        }
+                                }
                             }
                         }
                     }

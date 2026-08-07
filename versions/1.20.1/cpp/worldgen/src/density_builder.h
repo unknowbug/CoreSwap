@@ -191,6 +191,13 @@ public:
                 spline->subSplines.push_back(std::dynamic_pointer_cast<SplineDF>(buildSpline(*pv, selfKey)));
             }
         }
+        if (wg_splineDebug) {
+            std::fprintf(stderr, "[BUILDSPLINE] selfKey=%s coord=%s n=%zu locs=[", selfKey.c_str(),
+                         coord->isString() ? coord->str().c_str() : "?obj?", spline->locations.size());
+            for (size_t li = 0; li < spline->locations.size(); li++)
+                std::fprintf(stderr, "%.4f%s", spline->locations[li], li + 1 < spline->locations.size() ? "," : "");
+            std::fprintf(stderr, "]\n");
+        }
         return spline;
     }
 

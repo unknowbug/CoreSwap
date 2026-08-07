@@ -540,7 +540,9 @@ public:
         auto& slots = tlSlots();
         if (slots.size() < (size_t)instanceCount.load()) slots.resize(instanceCount.load());
         Slot& slot = slots[cacheId];
-        int64_t key = ((int64_t)((uint64_t)(uint32_t)(pos.x >> 4) << 32)) ^ (uint32_t)(pos.z >> 4);
+        // Java ChunkNoiseSampler.Cache2D：key = ChunkPos.toLong(blockX, blockZ)（block 级，同 x,z 列复用）
+        // 注意：不是 chunk 级——FlatCache 5×5 角点（不同 x,z）必须各自采样，chunk 级缓存会错误共享
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)pos.x << 32)) ^ (uint32_t)pos.z;
         if (slot.key != key) {
             if (wg_splineDebug) std::fprintf(stderr, "[CACHE2D] cacheId=%d miss pos=(%d,%d,%d)\n", cacheId, pos.x, pos.y, pos.z);
             slot.key = key;
