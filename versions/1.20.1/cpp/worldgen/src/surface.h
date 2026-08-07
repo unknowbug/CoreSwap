@@ -258,9 +258,9 @@ inline bool SteepCond::test(const SurfaceContext& ctx) const {
     return q >= r + 4;
 }
 inline bool SurfaceCondC::test(const SurfaceContext& ctx) const {
-    // Java above_preliminary_surface：实测 est=64 的列在 y58/y63 都产 grass/terracotta
-    // （+1 只覆盖 y63，y58 仍需满足）→ 语义 = blockY + surfaceDepth >= est
-    return ctx.blockY + ctx.surfaceDepth >= ctx.estimateSurfaceHeight();
+    // Java above_preliminary_surface：实测 est=64 的列 y58/y63/y64 都产 grass/terracotta，
+    // sd=1-2 → 反推语义 ≈ blockY + sd + 4 >= est（k=4 由 y58(sd2)+k>=64 推出）
+    return ctx.blockY + ctx.surfaceDepth + 4 >= ctx.estimateSurfaceHeight();
 }
 inline bool TempCond::test(const SurfaceContext& ctx) const { return ctx.biomeTemp < 0.15; }
 inline bool VerticalGradientCond::test(const SurfaceContext& ctx) const {
