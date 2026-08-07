@@ -383,3 +383,20 @@ WG_SPLINEDEBUG（spline f/result/locations/locFn + Cache2D miss + FlatCache grid
 - **8576 y-8 差**：-densityDump 0.0128 vs vanilla -0.0023 = min(squeeze(0.64×rc), noodle) 差——反推 when_out_of_range C++≈0.04 vs vanilla≈-0.0072——**when_out_of_range（cave 逻辑组合）差**；noodle=64（-namedDump）可能一致
 - **已排除**：cave_layer/cave_cheese 噪声（逐位一致）、nj、factor spline、全部组件
 - **下一步**：逐个对比 when_out_of_range 的 caves 引用（pillars/spaghetti_2d/spaghetti_roughness_function）或拆 MIN 链
+
+## 2026-08-08 晚（5）：8576 差 = when_out_of_range@y-8；「地下正常」观察分析
+
+### cache 实锤（8576）
+- **final_density range_choice 输出**：y-8 = **-0.00726**（vanilla）vs C++ when_out_of_range ≈ **0.04**——**差 0.047，y-8 特异地差**（y0/y48 一致 0.039/0.051）
+- **cave_layer/cave_cheese 全 y（含 y-8）逐位一致**（cave_layer y-8: 0.161222/0.1612217；cave_cheese y-8: 0.267454/0.2674543）
+- 差收缩到：**when_out_of_range 的 caves 引用（pillars/spaghetti_2d/spaghetti_roughness_function——interp 包装）或组合层（min/max/add/clamp）**
+- C++ caves 引用值（y-8）：pillars -0.1066、spaghetti_2d 0.2874、spaghetti_roughness 0.0075（合理，待 vanilla 对比）
+
+### 用户观察「地下（y<0）正常、地上异常」分析（2026-08-08 用户确认，透视 + 多位置）
+- 8576 密度差分布：y<-28 ≤0.0018（不翻转→方块全石头→正常）；y-20..0 0.005-0.015（接近翻转）；y60-100 0.013-0.061（块状暴露区）
+- **深层「正常」= 密度差小 + 石头掩盖**（方块对 density 符号不敏感），**非轴错**（轴顺序已逐项确认）
+- when_out_of_range 的 cave 逻辑 y 范围 -60 起（y<-60 简单分支）——深层天然一致——与观察吻合
+- **结论**：剩余差 = when_out_of_range（cave 逻辑）在浅层（y>-60）的组合/引用差，非结构性
+
+### 下一步
+C++ 加 debug 拆 when_out_of_range 的 MIN/MAX/ADD/CLAMP 每层 + caves 引用值（对比 vanilla 推断），或从 cache 的 Interpolated 实例拿 vanilla 的 spaghetti/pillars 值。
