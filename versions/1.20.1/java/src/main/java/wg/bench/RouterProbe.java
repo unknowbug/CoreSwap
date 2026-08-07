@@ -25,6 +25,25 @@ public class RouterProbe {
         NoiseRouter router = noiseConfig.getNoiseRouter();
         long seed = world.getSeed();
 
+        // terracotta 带数组导出（对比 C++ SurfaceBuilder 192 带）
+        try {
+            Object sb = noiseConfig.getSurfaceBuilder();
+            java.lang.reflect.Field fBands = sb.getClass().getDeclaredField("terracottaBands");
+            fBands.setAccessible(true);
+            Object bands = fBands.get(sb);
+            StringBuilder bsb = new StringBuilder("TBANDS");
+            for (int bi = 0; bi < java.lang.reflect.Array.getLength(bands); bi++) {
+                Object bs = java.lang.reflect.Array.get(bands, bi);
+                int bid = net.minecraft.registry.Registries.BLOCK.getRawId(
+                        ((net.minecraft.block.BlockState) bs).getBlock());
+                bsb.append(' ').append(bid);
+            }
+            System.out.println(bsb);
+            System.out.println("TBANDS_COUNT=" + java.lang.reflect.Array.getLength(bands));
+        } catch (Throwable ex) {
+            System.out.println("[RouterProbe] tbands dump failed: " + ex);
+        }
+
         // 采样点：列模式（x=0, z=0, y=0..count*4）——下界 b3d 列对比（C++ densityDump 同列）
         double[] xs = new double[count], ys = new double[count], zs = new double[count];
         for (int i = 0; i < count; i++) {
@@ -68,12 +87,27 @@ public class RouterProbe {
 
         StringBuilder sb = new StringBuilder();
         sb.append("#seed ").append(seed).append('\n');
+        // continentalness/offset 噪声直接采样（对比 C++ continents 树内部）
+        try {
+            java.lang.reflect.Method mSampler = net.minecraft.world.gen.noise.NoiseConfig.class.getDeclaredMethod("getOrCreateSampler", net.minecraft.registry.RegistryKey.class);
+            mSampler.setAccessible(true);
+            var continentalness = (net.minecraft.util.math.noise.DoublePerlinNoiseSampler) mSampler.invoke(noiseConfig, net.minecraft.world.gen.noise.NoiseParametersKeys.CONTINENTALNESS);
+            var offsetNoise = (net.minecraft.util.math.noise.DoublePerlinNoiseSampler) mSampler.invoke(noiseConfig, net.minecraft.world.gen.noise.NoiseParametersKeys.OFFSET);
+            sb.append(String.format(Locale.ROOT, "continentalness_noise %.17g %.17g %n", continentalness.sample(800.0, 0.0, 804.0), continentalness.sample(800.0, 0.0, 804.0)));
+            sb.append(String.format(Locale.ROOT, "continentalness_tree %.17g %n", continentalness.sample(798.354203, 0.0, 805.729138)));
+            sb.append(String.format(Locale.ROOT, "offset_noise %.17g %n", offsetNoise.sample(200.0, 0.0, 201.0)));
+            sb.append(String.format(Locale.ROOT, "offset_tree_shiftx %.17g %n", offsetNoise.sample(800.0, 0.0, 804.0) * 4.0));
+            sb.append(String.format(Locale.ROOT, "offset_tree_shiftz %.17g %n", offsetNoise.sample(804.0, 800.0, 0.0) * 4.0));
+        } catch (Throwable ex) {
+            sb.append("noise sampler ERR ").append(ex).append('\n');
+        }
         for (int i = 0; i < count; i++) {
             pos.x = (int) xs[i];
             pos.y = (int) ys[i];
             pos.z = (int) zs[i];
             sb.append(String.format(Locale.ROOT, "P %d %d %d", pos.x, pos.y, pos.z)).append('\n');
             for (int f = 0; f < names.length; f++) {
+                if (fns[f] == null) continue;
                 double v = fns[f].sample(pos);
                 sb.append(String.format(Locale.ROOT, "%s %.17g", names[f], v)).append('\n');
             }

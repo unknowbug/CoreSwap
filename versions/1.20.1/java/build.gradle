@@ -70,6 +70,7 @@ if (project.findProperty('cppDisable') != null) run.vmArg "-Dcpp.worldgen.dir=${
 if (project.findProperty('oreChunkX') != null) run.vmArg "-Dore.chunkX=${project.findProperty('oreChunkX')}"
 if (project.findProperty('oreChunkZ') != null) run.vmArg "-Dore.chunkZ=${project.findProperty('oreChunkZ')}"
             if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
+            if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
 if (project.findProperty('biomePreset') != null) run.vmArg "-Dbiome.preset=${project.findProperty('biomePreset')}"

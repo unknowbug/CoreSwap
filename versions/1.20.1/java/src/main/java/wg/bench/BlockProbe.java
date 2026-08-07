@@ -326,6 +326,126 @@ public class BlockProbe {
             world.getChunk(i, 0, ChunkStatus.FULL, true);
         }
 
+        // RuleDiag：主循环前单独请求 chunk(50,-23) NOISE（未被连带推进），dump surface 前列 + 手动复刻 buildSurface 循环
+        if (System.getProperty("rule.diag") != null) {
+            try {
+                Chunk rchunk = world.getChunk(50, -23, ChunkStatus.NOISE, true);
+                System.out.println("[RuleDiag] chunk class=" + rchunk.getClass().getName() + " status=" + rchunk.getStatus());
+                // applyMaterialRule 单点规则判定（真实 biomeAccess，固定 q=vx=1）
+                try {
+                    net.minecraft.world.gen.surfacebuilder.SurfaceBuilder sb = world.getChunkManager().getNoiseConfig().getSurfaceBuilder();
+                    java.lang.reflect.Method mApply = net.minecraft.world.gen.surfacebuilder.SurfaceBuilder.class.getDeclaredMethod(
+                            "applyMaterialRule",
+                            net.minecraft.world.gen.surfacebuilder.MaterialRules.MaterialRule.class,
+                            net.minecraft.world.gen.carver.CarverContext.class,
+                            java.util.function.Function.class,
+                            Chunk.class,
+                            net.minecraft.world.gen.chunk.ChunkNoiseSampler.class,
+                            net.minecraft.util.math.BlockPos.class,
+                            boolean.class);
+                    mApply.setAccessible(true);
+                    net.minecraft.world.biome.source.BiomeAccess ba = world.getBiomeAccess();
+                    // chunk 存储 biome（populateBiomes 填入 biome 数组）vs 实时采样——表面规则实际用哪个？
+                    try {
+                        for (int yy : new int[]{52, 56, 60, 63, 64, 67}) {
+                            int by = yy >> 2;
+                            var stored = rchunk.getBiomeForNoiseGen(804 >> 2, by, -368 >> 2);
+                            String sStored = stored.getKey().map(k -> k.getValue().toString()).orElse("?");
+                            var live = world.getGeneratorStoredBiome(804 >> 2, by, -368 >> 2);
+                            String sLive = live.getKey().map(k -> k.getValue().toString()).orElse("?");
+                            System.out.println("[RuleDiag] biomeCellY=" + by + " (y=" + yy + ") stored=" + sStored + " live=" + sLive);
+                        }
+                    } catch (Throwable ex4) {
+                        System.out.println("[RuleDiag] biome cmp ERR " + ex4);
+                    }
+                    try {
+                        net.minecraft.world.gen.surfacebuilder.SurfaceBuilder sb2 = world.getChunkManager().getNoiseConfig().getSurfaceBuilder();
+                        Class<?> mrc = Class.forName("net.minecraft.world.gen.surfacebuilder.MaterialRules$MaterialRuleContext");
+                        java.lang.reflect.Constructor<?> mrcCtor = mrc.getDeclaredConstructor(
+                                net.minecraft.world.gen.surfacebuilder.SurfaceBuilder.class,
+                                net.minecraft.world.gen.noise.NoiseConfig.class,
+                                Chunk.class,
+                                net.minecraft.world.gen.chunk.ChunkNoiseSampler.class,
+                                java.util.function.Function.class,
+                                net.minecraft.registry.Registry.class,
+                                net.minecraft.world.gen.HeightContext.class);
+                        mrcCtor.setAccessible(true);
+                        // q/vx 用 RuleDiag 循环实测值：(y,q,vx) 从模拟循环
+                        int[][] qv = {{74,1,1},{73,2,1},{72,3,1},{71,4,1},{70,5,1},{69,6,1},{68,7,1},{67,8,5},
+                                      {66,9,4},{65,10,3},{64,11,2},{63,12,1},{62,13,1},{61,14,1},{60,15,31},
+                                      {59,16,30},{58,17,29},{57,18,28},{56,19,27},{55,20,26},{54,21,25}};
+                        net.minecraft.world.gen.surfacebuilder.MaterialRules.MaterialRule rule =
+                                net.minecraft.world.gen.surfacebuilder.VanillaSurfaceRules.createDefaultRule(true, false, true);
+                        for (int[] qvi : qv) {
+                            int yy = qvi[0];
+                            Object ctx = mrcCtor.newInstance(sb2, world.getChunkManager().getNoiseConfig(), rchunk,
+                                    null, (java.util.function.Function<net.minecraft.util.math.BlockPos, net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>>) ba::getBiome,
+                                    world.getRegistryManager().get(net.minecraft.registry.RegistryKeys.BIOME),
+                                    new net.minecraft.world.gen.HeightContext(
+                                            (net.minecraft.world.gen.chunk.NoiseChunkGenerator) world.getChunkManager().getChunkGenerator(), rchunk));
+                            java.lang.reflect.Method mInitH = mrc.getDeclaredMethod("initHorizontalContext", int.class, int.class);
+                            mInitH.setAccessible(true);
+                            mInitH.invoke(ctx, 804, -368);
+                            java.lang.reflect.Method mInitV = mrc.getDeclaredMethod("initVerticalContext", int.class, int.class, int.class, int.class, int.class, int.class);
+                            mInitV.setAccessible(true);
+                            mInitV.invoke(ctx, qvi[1], qvi[2], Integer.MIN_VALUE, 804, yy, -368);
+                            java.lang.reflect.Method mApply2 = rule.getClass().getMethod("apply", mrc);
+                            Object blockStateRule = mApply2.invoke(rule, ctx);
+                            java.lang.reflect.Method mTry = blockStateRule.getClass().getMethod("tryApply", int.class, int.class, int.class);
+                            Object res = mTry.invoke(blockStateRule, 804, yy, -368);
+                            System.out.println("[RuleDiag] manual q=" + qvi[1] + " vx=" + qvi[2] + " y=" + yy + " -> " +
+                                    (res == null ? "null(保持)" : net.minecraft.registry.Registries.BLOCK.getId(((net.minecraft.block.BlockState) res).getBlock()) + " " + net.minecraft.registry.Registries.BLOCK.getRawId(((net.minecraft.block.BlockState) res).getBlock())));
+                        }
+                    } catch (Throwable ex3) {
+                        System.out.println("[RuleDiag] manual ERR " + ex3);
+                        if (ex3.getCause() != null) ex3.getCause().printStackTrace(System.err);
+                    }
+                } catch (Throwable ex2) {
+                    System.out.println("[RuleDiag] applyMaterialRule ERR " + ex2);
+                    if (ex2.getCause() != null) ex2.getCause().printStackTrace(System.err);
+                }
+                BlockPos.Mutable rpos = new BlockPos.Mutable();
+                StringBuilder rsb = new StringBuilder();
+                for (int y = 50; y <= 80; y++) {
+                    net.minecraft.block.Block bb = rchunk.getBlockState(rpos.set(4, y, 0)).getBlock();
+                    rsb.append(y).append('=').append(net.minecraft.registry.Registries.BLOCK.getId(bb))
+                       .append(' ').append(net.minecraft.registry.Registries.BLOCK.getRawId(bb)).append(" | ");
+                }
+                System.out.println("[RuleDiag] (804,-368) col(NOISE, pre-loop): " + rsb);
+                int hm = rchunk.getHeightmap(net.minecraft.world.Heightmap.Type.WORLD_SURFACE_WG).get(4, 0);
+                System.out.println("[RuleDiag] heightmap(4,0)=" + hm);
+                // 手动复刻 buildSurface 循环：(804,-368) 列
+                int m = 804, n = -368;
+                int minY = rchunk.getBottomY();
+                int q = 0, r = Integer.MIN_VALUE, s = Integer.MAX_VALUE;
+                int p = hm + 1;
+                for (int u = p; u >= minY; u--) {
+                    net.minecraft.block.BlockState st = rchunk.getBlockState(rpos.set(m % 16, u, n % 16));
+                    int raw = net.minecraft.registry.Registries.BLOCK.getRawId(st.getBlock());
+                    if (st.isAir()) {
+                        q = 0; r = Integer.MIN_VALUE;
+                    } else if (!st.getFluidState().isEmpty()) {
+                        if (r == Integer.MIN_VALUE) r = u + 1;
+                    } else {
+                        if (s >= u) {
+                            s = net.minecraft.world.dimension.DimensionType.field_35479;
+                            for (int v = u - 1; v >= minY - 1; v--) {
+                                net.minecraft.block.BlockState st2 = rchunk.getBlockState(rpos.set(m % 16, v, n % 16));
+                                if (!st2.isOf(net.minecraft.block.Blocks.STONE)) { s = v + 1; break; }
+                            }
+                        }
+                        q++;
+                        int vx = u - s + 1;
+                        if (m == 804 && n == -368) {
+                            System.out.println("[RuleDiag] y=" + u + " q=" + q + " vx=" + vx + " r=" + r + " s=" + s + " raw=" + raw);
+                        }
+                    }
+                }
+            } catch (Throwable ex) {
+                System.out.println("[RuleDiag] ERR " + ex);
+            }
+        }
+
         Path blocksFile = dataDir.resolve("vanilla_" + seed + "_" + size + "_" + originX + "_" + originZ
                 + (dim.equals("nether") ? "_nether" : "") + ".blocks");
         try (DataOutputStream out = new DataOutputStream(
@@ -397,6 +517,78 @@ public class BlockProbe {
                             } else {
                                 System.out.println("[VeinDiag] failed: " + e2);
                             }
+                        }
+                    }
+                    // EstDiag2：4 角 estimateSurfaceHeight（Java 4 角 lerp2 插值用）——支持 8576 chunk(50,-23) 与 3200 chunk(200,201)
+                    if (wx == 50 && wz == -23) {
+                        try {
+                            java.lang.reflect.Field fCns2 = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCns2.setAccessible(true);
+                            Object cns2 = fCns2.get(chunk);
+                            if (cns2 != null) {
+                                java.lang.reflect.Method mEst2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
+                                System.out.println("[EstDiag2] (50,-23) 4角 est: " + mEst2.invoke(cns2, 800, -368) + " " + mEst2.invoke(cns2, 816, -368) + " " + mEst2.invoke(cns2, 800, -352) + " " + mEst2.invoke(cns2, 816, -352));
+                                float fx = (804 & 15) / 16.0f, fz = (-368 & 15) / 16.0f;
+                                double e0 = (double) mEst2.invoke(cns2, 800, -368), e1 = (double) mEst2.invoke(cns2, 816, -368);
+                                double e2 = (double) mEst2.invoke(cns2, 800, -352), e3 = (double) mEst2.invoke(cns2, 816, -352);
+                                double k = Math.floor(net.minecraft.util.math.MathHelper.lerp2(fx, fz, e0, e1, e2, e3));
+                                System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag2] k(804,-368)=%.6f (lerp2 fx=%.2f fz=%.2f)", k, fx, fz));
+                            } else {
+                                System.out.println("[EstDiag2] (50,-23) chunkNoiseSampler null");
+                            }
+                        } catch (Exception e10) {
+                            System.out.println("[EstDiag2] (50,-23) failed: " + e10);
+                        }
+                    }
+                    if (wx == 200 && wz == 201) {
+                        try {
+                            java.lang.reflect.Field fCns2 = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCns2.setAccessible(true);
+                            Object cns2 = fCns2.get(chunk);
+                            if (cns2 != null) {
+                                java.lang.reflect.Method mEst2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
+                                System.out.println("[EstDiag2] (200,201) 4角 est: " + mEst2.invoke(cns2, 3200, 3216) + " " + mEst2.invoke(cns2, 3216, 3216) + " " + mEst2.invoke(cns2, 3200, 3232) + " " + mEst2.invoke(cns2, 3216, 3232));
+                                // (3214,3227)：fx=(3214&15)/16=14/16=0.875, fz=(3227&15)/16=11/16=0.6875
+                                float fx = (3214 & 15) / 16.0f, fz = (3227 & 15) / 16.0f;
+                                double e0 = ((Number) mEst2.invoke(cns2, 3200, 3216)).doubleValue(), e1 = ((Number) mEst2.invoke(cns2, 3216, 3216)).doubleValue();
+                                double e2 = ((Number) mEst2.invoke(cns2, 3200, 3232)).doubleValue(), e3 = ((Number) mEst2.invoke(cns2, 3216, 3232)).doubleValue();
+                                double k = Math.floor(net.minecraft.util.math.MathHelper.lerp2(fx, fz, e0, e1, e2, e3));
+                                System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag2] k(3214,3227)=%.6f (lerp2 fx=%.2f fz=%.2f)", k, fx, fz));
+                                // initialDensityWithoutJaggedness 直接采样（C++ 对比：same pos）
+                                java.lang.reflect.Field fIni2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getDeclaredField("initialDensityWithoutJaggedness");
+                                fIni2.setAccessible(true);
+                                Object ini2 = fIni2.get(cns2);
+                                java.lang.reflect.Method mSample = net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                for (int ly : new int[]{64, 56, 48, 40, 32, 24}) {
+                                    var np = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3200, ly, 3216);
+                                    double iv = (double) mSample.invoke(ini2, np);
+                                    System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag2] ini(3200,%d,3216)=%.6f", ly, iv));
+                                }
+                            } else {
+                                System.out.println("[EstDiag2] (200,201) chunkNoiseSampler null");
+                            }
+                        } catch (Exception e11) {
+                            System.out.println("[EstDiag2] (200,201) failed: " + e11);
+                        }
+                    }
+                    // PreDiag：NOISE 阶段 surface 前的列（(804,-368) 局部 4,0）+ heightmap + sampleRunDepth
+                    if (wx == 50 && wz == -23) {
+                        try {
+                            net.minecraft.world.gen.surfacebuilder.SurfaceBuilder sb = world.getChunkManager().getNoiseConfig().getSurfaceBuilder();
+                            java.lang.reflect.Method mRd = net.minecraft.world.gen.surfacebuilder.SurfaceBuilder.class.getDeclaredMethod("sampleRunDepth", int.class, int.class);
+                            mRd.setAccessible(true);
+                            int rd = (int) mRd.invoke(sb, 804, -368);
+                            int hm = chunk.getHeightmap(net.minecraft.world.Heightmap.Type.WORLD_SURFACE_WG).get(4, 0);
+                            System.out.println("[PreDiag] runDepth(804,-368)=" + rd + " heightmap(4,0)=" + hm);
+                            StringBuilder psb = new StringBuilder();
+                            for (int y = 50; y <= 80; y++) {
+                                net.minecraft.block.Block bb = chunk.getBlockState(pos.set(4, y, 0)).getBlock();
+                                psb.append(y).append('=').append(net.minecraft.registry.Registries.BLOCK.getId(bb))
+                                   .append(' ').append(net.minecraft.registry.Registries.BLOCK.getRawId(bb)).append(" | ");
+                            }
+                            System.out.println("[PreDiag] (804,-368) col(NOISE): " + psb);
+                        } catch (Throwable ex) {
+                            System.out.println("[PreDiag] ERR " + ex);
                         }
                     }
                     chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
