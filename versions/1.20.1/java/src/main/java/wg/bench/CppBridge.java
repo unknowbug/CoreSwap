@@ -53,6 +53,16 @@ public final class CppBridge {
         handle = CppWorldgen.init(seed, dir);
         enabled = handle != 0;
         System.out.println("[CppBridge] init seed=" + seed + " worldgenDir=" + dir + " enabled=" + enabled);
+        // 打印 dll 版本信息（排查旧缓存：用户加载的 dll 应与 jar 内的一致）
+        try {
+            java.nio.file.Path dllPath = java.nio.file.Path.of(CppWorldgen.getNativeLibraryPath());
+            byte[] loaded = java.nio.file.Files.readAllBytes(dllPath);
+            String sha = java.security.MessageDigest.getInstance("SHA-256").digest(loaded).length > 0
+                    ? java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(loaded)) : "";
+            System.out.println("[CppBridge] dll=" + dllPath + " size=" + loaded.length + " sha256=" + sha.substring(0, 16) + "...");
+        } catch (Exception e) {
+            System.out.println("[CppBridge] dll info failed: " + e);
+        }
     }
 
     /**

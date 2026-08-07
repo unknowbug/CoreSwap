@@ -31,6 +31,11 @@ public final class CppWorldgen {
         return wg.bench.CoreSwapFixHelper.extractNativeDll();
     }
 
+    /** 当前加载的 dll 路径（版本排查用）。 */
+    public static String getNativeLibraryPath() {
+        return wg.bench.CoreSwapFixHelper.extractNativeDll();
+    }
+
     /** 创建 worldgen 句柄（seed + worldgen JSON 数据目录） */
     public static native long init(long seed, String worldgenDir);
 

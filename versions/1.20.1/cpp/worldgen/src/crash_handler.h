@@ -91,19 +91,32 @@ inline LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
     }
     log("\n");
 
-    // 调用栈（CaptureStackBackTrace，最多 24 帧）——打印模块偏移 + 函数名（dbghelp 延迟加载）
+    // 调用栈：用异常现场的 CONTEXT 做 StackWalk64（比 CaptureStackBackTrace 完整——后者在
+    // vectored handler 里被异常分发栈帧污染，只剩 5 帧）。dbghelp 延迟加载。
+    typedef BOOL(__stdcall* StackWalk64Fn)(DWORD, HANDLE, HANDLE, LPSTACKFRAME64, PVOID, PREAD_PROCESS_MEMORY_ROUTINE64, PFUNCTION_TABLE_ACCESS_ROUTINE64, PGET_MODULE_BASE_ROUTINE64, PTRANSLATE_ADDRESS_ROUTINE64);
+    typedef DWORD64(__stdcall* SymGetModuleBase64Fn)(HANDLE, DWORD64);
     typedef BOOL(__stdcall* SymInitializeFn)(HANDLE, PCSTR, BOOL);
     typedef BOOL(__stdcall* SymFromAddrFn)(HANDLE, DWORD64, PDWORD64, PSYMBOL_INFO);
     static HMODULE dbg = LoadLibraryA("dbghelp.dll");
+    static StackWalk64Fn pStackWalk = dbg ? (StackWalk64Fn)GetProcAddress(dbg, "StackWalk64") : nullptr;
+    static SymGetModuleBase64Fn pModBase = dbg ? (SymGetModuleBase64Fn)GetProcAddress(dbg, "SymGetModuleBase64") : nullptr;
     static SymInitializeFn pSymInit = dbg ? (SymInitializeFn)GetProcAddress(dbg, "SymInitialize") : nullptr;
     static SymFromAddrFn pSymAddr = dbg ? (SymFromAddrFn)GetProcAddress(dbg, "SymFromAddr") : nullptr;
     static bool symInit = pSymInit ? pSymInit(GetCurrentProcess(), nullptr, TRUE) : false;
-    void* frames[24];
-    int n = CaptureStackBackTrace(0, 24, frames, nullptr);
-    log("[CORESWAP-CRASH] stack (%d frames):\n", n);
-    for (int i = 0; i < n; i++) {
+    log("[CORESWAP-CRASH] stack (StackWalk64):\n");
+    STACKFRAME64 sf = {};
+    sf.AddrPC.Offset = ctx->Rip;
+    sf.AddrPC.Mode = AddrModeFlat;
+    sf.AddrStack.Offset = ctx->Rsp;
+    sf.AddrStack.Mode = AddrModeFlat;
+    sf.AddrFrame.Offset = ctx->Rbp;
+    sf.AddrFrame.Mode = AddrModeFlat;
+    for (int i = 0; i < 24; i++) {
+        if (!pStackWalk || !pStackWalk(IMAGE_FILE_MACHINE_AMD64, GetCurrentProcess(), GetCurrentThread(), &sf, ctx, nullptr, nullptr, nullptr, nullptr))
+            break;
+        if (sf.AddrPC.Offset == 0) break;
         uintptr_t base = 0;
-        const char* mod = moduleNameAt(frames[i], base);
+        const char* mod = moduleNameAt((void*)sf.AddrPC.Offset, base);
         char fname[256] = "";
         if (symInit && pSymAddr) {
             alignas(SYMBOL_INFO) char symBuf[sizeof(SYMBOL_INFO) + 256 * sizeof(char)];
@@ -111,11 +124,11 @@ inline LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
             si->SizeOfStruct = sizeof(SYMBOL_INFO);
             si->MaxNameLen = 256;
             DWORD64 disp = 0;
-            if (pSymAddr(GetCurrentProcess(), (DWORD64)frames[i], &disp, si)) {
+            if (pSymAddr(GetCurrentProcess(), sf.AddrPC.Offset, &disp, si)) {
                 snprintf(fname, sizeof(fname), " %s+0x%llX", si->Name, disp);
             }
         }
-        log("  #%d %s+0x%llX%s\n", i, mod, (uintptr_t)frames[i] - base, fname);
+        log("  #%d %s+0x%llX%s\n", i, mod, sf.AddrPC.Offset - base, fname);
     }
     log("[CORESWAP-CRASH] ============ end ============\n");
     if (ffile) fclose(ffile);
@@ -128,6 +141,16 @@ inline void installCrashHandler() {
     if (installed) return;
     AddVectoredExceptionHandler(1, CrashHandler);  // 高优先（first=1）
     installed = true;
+    // 打印当前 dll 的路径 + 文件大小（验证用户加载的是不是最新版——旧缓存排查）
+    HMODULE self = nullptr;
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       (LPCWSTR)(LPCVOID)&installCrashHandler, &self);
+    char selfPath[1024] = "";
+    if (self && GetModuleFileNameA(self, selfPath, sizeof(selfPath))) {
+        WIN32_FILE_ATTRIBUTE_DATA fad = {};
+        GetFileAttributesExA(selfPath, GetFileExInfoStandard, &fad);
+        std::fprintf(stderr, "[CORESWAP] dll=%s size=%llu\n", selfPath, (unsigned long long)fad.nFileSizeLow);
+    }
     std::fprintf(stderr, "[CORESWAP] crash handler installed\n");
 }
 

@@ -347,19 +347,14 @@ public class BlockProbe {
                     long t0 = System.nanoTime();
                     // 先生成到 NOISE（ChunkNoiseSampler 存活期），驱动插值诊断，再补 SURFACE
                     Chunk chunk = world.getChunk(wx, wz, ChunkStatus.NOISE, true);
-                    if (wx == 200 && wz == 200) {
-                        // EstDiag
+                    if (wx == 45 && wz == -27) {
+                        // EstDiag（8576 的 chunk(45,-27)——bench origin 720,-432）
                         try {
                             java.lang.reflect.Field fCnsDiag = Chunk.class.getDeclaredField("chunkNoiseSampler");
                             fCnsDiag.setAccessible(true);
                             Object cnsD = fCnsDiag.get(chunk);
-                            java.lang.reflect.Method mBiome = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("getBiome", int.class, int.class, int.class);
-                            Object bio = mBiome.invoke(cnsD, 3200, 59, 3211);
-                            System.out.println("[BioDiag] biome@(3200,59,3211)=" + bio);
-                            bio = mBiome.invoke(cnsD, 3214, 31, 3212);
-                            System.out.println("[BioDiag] biome@(3214,31,3212)=" + bio);
                             java.lang.reflect.Method mEst = net.minecraft.world.gen.chunk.ChunkNoiseSampler.class.getMethod("estimateSurfaceHeight", int.class, int.class);
-                            System.out.println("[EstDiag] (200,200) estimateSurfaceHeight=" + mEst.invoke(cnsD, 3200, 3211));
+                            System.out.println("[EstDiag] (45,-27) chunk est(738,-421)=" + mEst.invoke(cnsD, 738, -421));
                             for (int[] pt : new int[][]{{739, -427}, {742, -427}, {805, -427}, {728, -408}, {800, -431}, {742, 64}, {739, 56}, {738, -421}}) {
                                 System.out.println("[EstDiag] (" + pt[0] + "," + pt[1] + ") estimateSurfaceHeight=" + mEst.invoke(cnsD, pt[0], pt[1]));
                             }
@@ -371,6 +366,12 @@ public class BlockProbe {
                                 npX = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(3200, yy, 3211);
                                 double iv = (double) net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class).invoke(ini, npX);
                                 System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag] initialDensity(3200,%d,3211)=%.6f", yy, iv));
+                            }
+                            // (738,-421) 的 initial_density 列（cns 查表版——网格覆盖判定）
+                            for (int yy : new int[]{72, 64, 56, 48}) {
+                                npX = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(738, yy, -421);
+                                double iv = (double) net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class).invoke(ini, npX);
+                                System.out.println(String.format(java.util.Locale.ROOT, "[EstDiag] cns-ini(738,%d,-421)=%.6f", yy, iv));
                             }
                         } catch (Exception e9) {
                             System.out.println("[EstDiag] failed: " + e9);
