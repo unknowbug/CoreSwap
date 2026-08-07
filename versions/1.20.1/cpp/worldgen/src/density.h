@@ -515,6 +515,10 @@ private:
                     p.y = minY + gy * CELL_Y;
                     p.z = chunkZ * 16 + gz * CELL_Z;
                     grid[((size_t)gy * GZ + gz) * GX + gx] = arg->sample(p);
+                    if (wg_splineDebug && p.x == 728 && p.y == -8 && p.z == -408) {
+                        std::fprintf(stderr, "[GRID] interp@(728,-8,-408) gx=%d gy=%d gz=%d value=%.6f\n",
+                                     gx, gy, gz, grid[((size_t)gy * GZ + gz) * GX + gx]);
+                    }
                 }
     }
 };
