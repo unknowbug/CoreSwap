@@ -440,6 +440,10 @@ private:
     const BlockRegistry* blocks;
     std::vector<int> terracottaBands;
 
+    // eroded_badlands 支柱填充（Java SurfaceBuilder.placeBadlandsPillar）：pillar 顶 j 以下 air → stone
+    void placeBadlandsPillar(BlockColumn& col, int wx, int wz, int cx, int cz,
+                             int surfaceY, int& columnHeight, int bottomY, int worldTopY);
+
     DoublePerlinNoiseSampler& getNoise(const std::string& key) {
         auto it = samplers->find(key);
         if (it == samplers->end()) {
@@ -698,9 +702,19 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
         
         for (int l = 0; l < 16; l++) {
             int m = chunkStartX + k, n = chunkStartZ + l; // 世界坐标
-            int p = heightmap[l * 16 + k] + 1; // WORLD_SURFACE_WG + 1（chunk 内 y）——索引 z*16+x（fillOneChunk 填充语义）
+            int idx = l * 16 + k; // heightmap 索引 z*16+x（fillOneChunk 填充语义）
+            // Java SurfaceBuilder.buildSurface L117：o = WORLD_SURFACE_WG + 1（pillar 前表面高度）
+            int o = heightmap[idx] + 1;
             ctx.blockX = m;
             ctx.blockZ = n;
+            // Java L119-121：biome 采样在 pillar 前（getBiome(m, o, n)），仅 eroded_badlands 触发 pillar
+            auto pillarBiome = biomeAtCached(m, o, n);
+            int columnH = heightmap[idx]; // 列表面高度（pillar 可能抬升；heightmap 为 const 只读）
+            if (pillarBiome.first == "minecraft:eroded_badlands") {
+                placeBadlandsPillar(col, m, n, k, l, o, columnH, minY, worldTopY);
+            }
+            // Java L124：pillar 后重采样 heightmap + 1（有 pillar 且 surfaceY<=j 时 = j+2）
+            int p = columnH + 1;
             ctx.surfaceDepth = sampleRunDepth(m, n);
             ctx.runDepth = 0;
 
@@ -763,6 +777,45 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
             }
         }
     }
+}
+
+// ========== placeBadlandsPillar（对应 Java SurfaceBuilder.placeBadlandsPillar L208-234）==========
+// @anchor.test("placeBadlandsPillar 对齐 Java SurfaceBuilder.placeBadlandsPillar（eroded_badlands pillar 顶/填充/heightmap 抬升）", source="probe:block_probe!PILLAR#001")
+inline void SurfaceBuilder::placeBadlandsPillar(BlockColumn& col, int wx, int wz, int cx, int cz,
+                                                int surfaceY, int& columnHeight, int bottomY, int worldTopY) {
+    const int defaultBlock = blocks->id("minecraft:stone");
+    const int airBlock = blocks->id("minecraft:air");
+    const int waterBlock = blocks->id("minecraft:water");
+    // Java L210：e = min(|badlands_surface(x,0,z)*8.25|, badlands_pillar(x*0.2,0,z*0.2)*15.0)
+    // 注意 badlands_surface 用原始坐标，badlands_pillar 用 x*0.2/z*0.2；pillar 项无 abs（可为负 → e<=0 跳过）
+    double e = std::min(std::abs(getNoise("minecraft:badlands_surface").sample(wx, 0.0, wz) * 8.25),
+                        getNoise("minecraft:badlands_pillar").sample(wx * 0.2, 0.0, wz * 0.2) * 15.0);
+    if (e <= 0.0) return; // Java L211：!(e <= 0.0) 才继续
+    // Java L214：h = |badlands_pillar_roof(x*0.75,0,z*0.75)*1.5|
+    double h = std::abs(getNoise("minecraft:badlands_pillar_roof").sample(wx * 0.75, 0.0, wz * 0.75) * 1.5);
+    // Java L215-216：i = 64.0 + min(e*e*2.5, ceil(h*50.0)+24.0)；j = MathHelper.floor(i)（向 -inf）
+    double i = 64.0 + std::min(e * e * 2.5, std::ceil(h * 50.0) + 24.0);
+    int j = (int)std::floor(i);
+    if (surfaceY > j) return; // Java L217：surfaceY <= j 才填充
+    // Java L218-227 校验循环：从 j 向下，遇 stone（isOf(defaultState.getBlock())）break、遇 water 整列 return
+    // 越界读（y >= worldTopY）按 Java BlockColumn.getState 返回 AIR 处理
+    for (int y = j; y >= bottomY; y--) {
+        int state = (y >= worldTopY) ? airBlock : col.at(cx, y, cz);
+        if (state == defaultBlock) break;
+        if (state == waterBlock) return;
+    }
+    // Java L229-231 填充循环：从 j 向下 while air → defaultState(stone)；越界（y >= worldTopY）不写
+    bool filled = false;
+    for (int y = j; y >= bottomY; y--) {
+        int state = (y >= worldTopY) ? airBlock : col.at(cx, y, cz);
+        if (state != airBlock) break;
+        if (y < worldTopY) {
+            col.at(cx, y, cz) = defaultBlock;
+            filled = true;
+        }
+    }
+    // Java trackUpdate 等效：填充首个 y=j → heightmap = j+1（后续 y<j 不触发 y<=i-2 更新）
+    if (filled) columnHeight = std::max(columnHeight, j + 1);
 }
 
 // NoiseThresholdCond：实例 id 分配（per-instance thread_local 缓存索引）
