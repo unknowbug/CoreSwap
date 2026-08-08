@@ -17,6 +17,7 @@
 #include "json.h"
 #include "searchtree.h"   // MultiNoiseUtil.SearchTree 移植（平局 tie-break 对齐）
 #include <memory>         // std::unique_ptr
+#include <mutex>          // std::once_flag / std::call_once（searchTree 懒构建线程安全）
 
 namespace wg {
 
@@ -235,10 +236,11 @@ public:
 private:
     std::vector<BiomeEntry> entries;
     mutable std::unique_ptr<SearchTree<std::string>> tree_;   // 首次 find 懒构建（SearchTree 平局语义）
+    mutable std::once_flag treeOnce_;                          // 线程安全：spawn 预生成多线程并发首调 find → data race（2026-08-08 服务器崩溃根因）
 
-    // 懒构建 SearchTree（树内容只依赖 entries，构建一次后复用）
+    // 懒构建 SearchTree（树内容只依赖 entries，构建一次后复用；call_once 保证并发安全）
     const SearchTree<std::string>& searchTree() const {
-        if (!tree_) {
+        std::call_once(treeOnce_, [this] {
             std::vector<SearchTree<std::string>::Entry> es;
             es.reserve(entries.size());
             for (const auto& e : entries) {
@@ -256,7 +258,7 @@ private:
             tree_ = std::make_unique<SearchTree<std::string>>(std::move(es));
             // 默认关闭 previousResult 缓存（确定性，平局=树序遍历第一个）；WG_SEARCHTREE_CACHE=1 复刻 Java 缓存语义（A/B 对照用）
             tree_->setUsePrevious(getenv("WG_SEARCHTREE_CACHE") != nullptr);
-        }
+        });
         return *tree_;
     }
 

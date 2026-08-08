@@ -798,3 +798,47 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 - **探针采样坐标语义三套**：RouterProbe `B`/`SURFBIOME` = floor 对齐 `(x>>2)<<2`（SURFBIOME 打印 bp 对齐坐标、判定输入原始 BlockPos）；C++ `-biomeDump`/`WG_BIOMEDUMP` = 8 邻域选点后 `(px<<2,py<<2,pz<<2)`；`WG_COMPDUMP` = 原始块坐标直采——**跨工具同点对比 MUST 先确认语义**
 - **参照文件完整性**：2×2 导出曾混入范围外 chunk（chunk(65515,65515) int16 溢出坐标）——导出后查 header/范围/TOTAL
 - **seed 三查**：改 server.properties level-seed 前备份 → 删 run/world 强重新生成 → 输出核对 #seed / [BlockProbe] worldSeed / blocks file seed
+
+---
+
+## 2026-08-08 晚：✅ spawn 预生成后 native 崩溃根因——AddVectoredExceptionHandler 干扰 JVM 硬件异常（VEH vs JVM 冲突）
+
+> **结论已提炼** → docs/07 追加 3（worldgen 运行时的崩溃日志机制）+ knowledge/discovered/compiler-idioms.md 发现 #5（VEH 在 JVM 进程不可用）+ knowledge/discovered/build-tooling.md（gradle 三坑）。本条保留完整二分链。
+
+### 症状
+- `gradle runServer`（seed 8576，replace 模式 C++ 接管）→ spawn 预生成完成（Done）后 ~2 秒 native 崩溃
+- 崩溃线程 = JVM "Server thread"；RIP 指向 JVM metadata；RAX 是 Java Object[] oop；后续 jvm.dll 连锁崩溃；栈被 0xDEADDEAF 覆盖
+- 崩溃 handler（dll 的 VEH）打印：RIP=堆地址（每次不同）、rw=read 0x8/0x24、寄存器小数字（0x11AFA/0x76AC）、stack-window 返回地址区全垃圾
+
+### 二分排查链（每条带状态标注）
+1. ❌ **线程数**：CORESWAP_THREADS=1（C++ 内部线程池单线程）→ 仍崩 → **排除** C++ 线程池并发
+2. ❌ **攒批**：-Dcpp.noBatch=1（单 chunk 直调 fillBlocks）→ 仍崩 → **排除** BATCH 攒批机制
+3. ✅ **fillChunk 计数**：CppBridge 加日志 → **fillChunk 0 次调用**（spawn 预生成在 init 之前完成；mixin 拦截条件 CppBridge.enabled 此时 false）→ **排除** C++ 生成相关（崩溃与生成无关）
+4. ✅ **wg_create 阶段**：分段日志 → 4 阶段（finalDensity/noiseSamplers/biomeSource/surfaceRule）全部 OK → **排除** wg_create 内部
+5. ✅ **对照实验**：BenchMod `active = replace`（禁无条件 init C++）→ **不崩** → 崩溃与 wg_create/init 相关（收窄）
+6. ✅ **二分 VEH**：注释 installCrashHandler → **不崩** → **根因 = AddVectoredExceptionHandler**
+
+### 根因
+- `AddVectoredExceptionHandler`（崩溃日志铁律的 VEH 实现）**干扰 JVM 的硬件异常处理**：JIT null-check、GC guard page、写屏障都是 SEH 异常，VEH 先于 SEH 执行（StackWalk64/打印重活）→ JVM 内存被破坏（Server thread 堆损坏：Java 对象字段变垃圾、metadata 被当代码执行、栈 poison 0xDEADDEAF）→ 崩溃
+- **block_probe/got_export 独立进程不崩**（无 JVM 异常模式）；**用户机器 D:\MC 的 0x34001 崩溃 = 同根因**（1.0.17 客户端 = C++ 接管 + VEH）
+- 崩溃日志铁律（全局崩溃捕获）与 JVM 进程**冲突**——VEH 捕获一切异常（含 JVM 预期异常）并做重活
+
+### 修复（worldgen_api.cpp wg_create L292）
+```cpp
+// 独立进程装 VEH（block_probe/got_export 崩溃日志）；JVM 进程不装（jvm.dll 已加载检测）
+if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
+```
+- JVM 侧崩溃由 JVM 自带 hs_err（含 native 栈 dll 偏移）兜底——仍满足「崩溃可定位」铁律
+- 验证：修复后服务器稳定运行（>5 分钟无崩溃），8576/3200 回归零变化
+
+### 过程中发现/顺带修复的次问题（一并记录）
+1. ✅ **build.gradle dll 同步源错误**：processResources 的 `../cpp/build-msvc` 指向 MC 侧历史旧 cpp（非 CoreSwap）→ 打包旧 dll（1.0.2/1.0.6 同款坑复发）；修复：改 `E:/PYTHON/CoreSwap/versions/1.20.1/cpp/build-msvc/bin/worldgen.dll`
+2. ✅ **processResources UP-TO-DATE 不重同步**：doFirst 的 copy 不算 task input，dll 更新后 gradle 判定 UP-TO-DATE 跳过 → 服务器加载旧 dll（sha 不匹配排查半天）；规避：手动 Copy resources 或 --rerun-tasks
+3. ✅ **gradle daemon env 缓存**：$env:CORESWAP_THREADS 传给 gradle daemon 不重启不生效（fork 的 JVM 继承 daemon 启动时 env）→ 用 -P 属性（vmArg 映射）或重启 daemon
+4. ✅ **gradle 8.13 -D 参数解析**：`gradle runServer -Dcpp.replace=1` 被拆成任务（`.replace=1 not found`）→ 用 build.gradle 的 -PcppReplace → vmArg 映射
+5. ✅ **crash handler 增强**（本次加，保留）：module base 打印（崩溃 RVA 定位）、stack-window 打印（RSP±0x50 qword + 0xDEADDEAF poison 标记）、WG_FBLOG（fillBlocks 批次日志 env 开关）
+6. ✅ **CppBridge 诊断增强**（保留）：-Dcpp.noBatch env 兜底 CORESWAP_NOBATCH
+
+### 通用模式（已入 knowledge/）
+- **VEH 在 JVM 进程（jvm.dll 已加载）不可用** → knowledge/discovered/compiler-idioms.md 发现 #5（检测 GetModuleHandleA("jvm.dll")）
+- **gradle 三坑**（processResources doFirst copy 不算 input → UP-TO-DATE；daemon env 缓存；8.13 -D 拆任务） → knowledge/discovered/build-tooling.md 发现 #1-#3

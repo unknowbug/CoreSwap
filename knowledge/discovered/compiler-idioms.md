@@ -77,3 +77,24 @@ Java `Math.floorDiv / Math.floorMod` 与 C++ `/ %`（截断除法）在负坐标
 - **MSVC 下 64 位整数一律用 `long long` / `int64_t`，不用 `long`**（`int64_t` 在 MSVC 就是 long long）
 - 移植 Java long / Linux 源码时 grep `INT64_MAX`、`INT64_MIN`、`0x7FFFFFFFFFFFFFFF` 赋值给 long 的代码
 - Java `long` → C++ `int64_t`/`long long`（不是 long）
+
+## 发现 #5: AddVectoredExceptionHandler（VEH）在 JVM 进程（jvm.dll 已加载）不可用
+
+**发现时间:** 2026-08-08 晚
+**发现者:** worker（spawn 崩溃 DEBUG）
+**来源定位:** worldgen_api.cpp wg_create 崩溃日志 handler（AddVectoredExceptionHandler + StackWalk64）
+**置信度:** confirmed（对照实验：注释 installCrashHandler → 不崩；修复后 >5 分钟稳定运行）
+**module:** re-code / swe（Windows 原生 + JVM 混合进程）
+
+### 观察
+`AddVectoredExceptionHandler` 注册的 VEH 在**所有 SEH 之前执行**（异常处理链第一顺位）。JVM 大量用「预期异常」做正常控制流：JIT null-check、GC guard page、写屏障都是 SEH 异常。VEH 里若做重活（StackWalk64/打印/内存扫描）会破坏 JVM 堆/栈 → 连锁崩溃。
+
+### 证据
+- CoreSwap 崩溃日志 handler（VEH + StackWalk64）在 gradle runServer（JVM 进程）下 spawn 预生成后 ~2s native 崩溃：崩溃线程 = JVM "Server thread"、RIP 指向 JVM metadata、RAX 是 Java Object[] oop、栈被 0xDEADDEAF 覆盖、jvm.dll 连锁崩溃
+- 二分链逐步排除：线程数（❌）→ 攒批（❌）→ fillChunk 计数（✅ 0 次调用，与 C++ 生成无关）→ wg_create 阶段（✅ 全 OK）→ 对照实验 BenchMod active=replace 不崩 → **注释 installCrashHandler 不崩** → 根因 = VEH
+- 独立原生进程（block_probe/got_export）不崩——无 JVM 异常模式；用户机器 D:\MC 的 0x34001 崩溃 = 同根因（客户端 C++ 接管 + VEH）
+
+### 如何利用
+- **JVM 进程（jvm.dll 已加载）不装 VEH 崩溃日志 handler**；检测 `GetModuleHandleA("jvm.dll")` 非空则跳过
+- JVM 侧崩溃交给 JVM 自带 hs_err（含 native 栈 dll 偏移）兜底——仍满足「崩溃可定位」
+- 独立原生进程可安全使用 VEH + StackWalk64

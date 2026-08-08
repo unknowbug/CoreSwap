@@ -289,7 +289,11 @@ static CondP parseSurfaceCond(const JsonValue& j, int minY, int worldHeight, con
 }
 
 void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName, const char* biomeParamsFile, int worldHeight) {
-    wg::installCrashHandler();
+    // 崩溃日志：独立进程（block_probe/got_export）装 VEH——JVM 进程（jvm.dll 已加载）不装！
+    // 实测（2026-08-08）：AddVectoredExceptionHandler 干扰 JVM 硬件异常处理（JIT null-check / GC guard page 均为
+    // SEH 异常，VEH 先执行 StackWalk64/打印重活 → Server thread 堆损坏崩溃，用户 0x34001 同根因）。
+    // JVM 侧崩溃由 JVM 自带 hs_err（含 native 栈 dll 偏移）兜底。
+    if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
     profileInit();
     if (!worldgenDir) return nullptr;
     try {
@@ -909,6 +913,11 @@ void shutdownCoreSwapPool() { CoreSwapPool::instance().shutdownNow(); }
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads) {
     if (count <= 0) return 0;
+    // 崩溃定位日志（每次调用打批次信息；正常运行时开 WG_FBLOG=1 才打印，防刷屏）
+    if (getenv("WG_FBLOG")) {
+        std::fprintf(stderr, "[FBLOCK] count=%d first=(%d,%d) last=(%d,%d) threads=%d\n",
+                     count, chunkXs[0], chunkZs[0], chunkXs[count - 1], chunkZs[count - 1], threads);
+    }
     if (threads <= 0) {
         // 模式自适应：-1=服务端全核、-2=客户端留 2 核（渲染/主线程）、0=默认（同 -1）
         // Issue #7：4C8T 上逻辑线程(8)过分配；CORESWAP_THREADS 显式覆盖优先

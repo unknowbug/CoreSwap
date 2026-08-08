@@ -177,3 +177,36 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - **根因假设**：块级 finalDensity 边界翻转 + 插值精度差——final_density 树在 range_choice 分支切换陡峭区（sloped_cheese≈1.5625 阈值，见 knowledge/discovered/algorithm-fingerprints.md 发现 #2）对网格角点值微差敏感，单块判 air/方块翻转；非 biome/terracotta 机制问题（biome tie-break 已修）。**candidate 待立项验证**。
 - **修复后剩余**：8576 99.9993%→**99.9994%**（24→22）；3200 99.9997% 零退化；-288 95.7376% 结案基线（结构/FEATURE 假 diff，不属本课题）。
 - **20000 基线修正（重要）**：8/7 深夜记录的 99.9997% 已过时——8/8 HEAD 实测 **99.9989%**；git stash 实验确认 18 块差异在 8/8 HEAD 就存在（非本批改动引入），与 river/taiga 边界插值差同类 → **并入 21 块 finalDensity 课题，不新立方向**。
+
+---
+
+## 2026-08-08 已验证结论（追加 3）：worldgen 运行时的崩溃日志机制——VEH vs JVM 冲突
+
+> 完整二分排查链（症状→线程数→攒批→fillChunk→wg_create 阶段→对照→VEH 根因）见 10-timewise-archive.md「2026-08-08 晚」条目。本节只记结论。
+
+### ✅ 根因结论：AddVectoredExceptionHandler（VEH）在 JVM 进程不可用
+- 崩溃日志铁律（全局崩溃捕获）用 `AddVectoredExceptionHandler` 装 VEH + StackWalk64/打印——**干扰 JVM 的硬件异常处理**：
+  - JVM 的 JIT null-check、GC guard page、写屏障都是 SEH 异常（**预期异常**，正常控制流的一部分）；VEH 在 SEH 之前执行（第一顺位），且 VEH 里做 StackWalk64/打印重活 → JVM 内存被破坏
+  - 崩坏形态：Server thread 堆损坏（Java 对象字段变垃圾、metadata 被当代码执行、栈被 0xDEADDEAF 覆盖）、jvm.dll 连锁崩溃
+- **独立原生进程（block_probe/got_export）不崩**——无 JVM 异常模式，VEH 可安全使用
+- **用户机器 D:\MC 的 0x34001 崩溃 = 同根因**（1.0.17 客户端 = C++ 接管 + VEH）
+
+### ✅ jvm.dll 检测规则（worldgen_api.cpp wg_create L292）
+```cpp
+// 独立进程装 VEH（block_probe/got_export 崩溃日志）；JVM 进程不装（jvm.dll 已加载检测）
+if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
+```
+- **判定依据 = jvm.dll 是否已加载**（`GetModuleHandleA("jvm.dll")`），不靠进程名/命令行
+- JVM 进程 = jvm.dll 已加载 → 不装 VEH；独立原生进程 = jvm.dll 未加载 → 装 VEH
+
+### ✅ hs_err 兜底（仍满足「崩溃可定位」铁律）
+- JVM 侧崩溃由 JVM 自带 hs_err 文件兜底（含 native 栈 dll 偏移，可定位崩溃点）
+- VEH 增强（module base RVA + stack-window + 0xDEADDEAF poison 标记）保留给独立进程；JVM 进程不需要
+
+### ✅ 顺带修复/增强（本次调试中保留）
+- **build.gradle dll 同步源错误**：processResources 的 `../cpp/build-msvc` 指向 MC 侧历史旧 cpp（非 CoreSwap）→ 打包旧 dll（1.0.2/1.0.6 同款坑复发）；改 `E:/PYTHON/CoreSwap/versions/1.20.1/cpp/build-msvc/bin/worldgen.dll`
+- **processResources UP-TO-DATE 不重同步**：doFirst 的 copy 不算 task input → dll 更新后 gradle 跳过 → 服务器加载旧 dll（sha 不匹配排查半天）；规避：手动 Copy resources 或 --rerun-tasks
+- **gradle daemon env 缓存**：$env:CORESWAP_THREADS 传给 daemon 不重启不生效（fork 的 JVM 继承 daemon 启动时 env）→ 用 -P 属性（vmArg 映射）或重启 daemon
+- **gradle 8.13 -D 参数解析**：`gradle runServer -Dcpp.replace=1` 被拆成任务（`.replace=1 not found`）→ 用 build.gradle 的 -PcppReplace → vmArg 映射
+- **crash handler 增强**（本次加，保留）：module base 打印（崩溃 RVA 定位）、stack-window 打印（RSP±0x50 qword + 0xDEADDEAF poison 标记）、WG_FBLOG（fillBlocks 批次日志 env 开关）
+- **CppBridge 诊断增强**（保留）：-Dcpp.noBatch env 兜底 CORESWAP_NOBATCH

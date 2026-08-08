@@ -92,10 +92,25 @@ inline LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
             uint64_t v1 = 0;
             if (IsBadReadPtr((char*)p + 1, 8) == FALSE) memcpy(&v1, (char*)p + 1, 8);
             log("[CORESWAP-CRASH] data[0x34000]=0x%llX data[0x34001]=0x%llX\n", v, v1);
+            log("[CORESWAP-CRASH] module base=0x%p (worldgen.dll)\n", (void*)base);
         }
     }
     log("[CORESWAP-CRASH] RSI=%p RDI=%p RBP=%p RSP=%p RIP=%p\n", (void*)ctx->Rsi, (void*)ctx->Rdi,
         (void*)ctx->Rbp, (void*)ctx->Rsp, (void*)ctx->Rip);
+
+    // 栈内容（RSP-0x40..RSP+0x50，qword）——定位栈损坏/被覆盖的返回地址（0xDEADDEAF 类 poison）
+    {
+        log("[CORESWAP-CRASH] stack-window:\n");
+        uintptr_t rsp = (uintptr_t)ctx->Rsp;
+        for (int i = -8; i <= 10; i++) {
+            uintptr_t a = rsp + (uintptr_t)(i * 8);
+            uint64_t v = 0;
+            if (IsBadReadPtr((void*)a, 8) == FALSE) memcpy(&v, (void*)a, 8);
+            const char* note = "";
+            if ((v & 0xFFFFFFFFFF000000ULL) == 0xDEADDEAF00000000ULL) note = "  <== POISON(0xDEADDEAF)";
+            log("[CORESWAP-CRASH]   [rsp%+d] 0x%llX%s\n", i * 8, v, note);
+        }
+    }
 
     // 崩溃指令前 16 字节（如果可读）
     const uint8_t* ip = (const uint8_t*)ctx->Rip;
