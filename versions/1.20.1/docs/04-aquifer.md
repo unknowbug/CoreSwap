@@ -110,3 +110,11 @@ for (y = 320; y >= -64; y -= 8)
 ### ⚠️ 坑
 - **CellCache 反射污染**：blockStateSampler.sample / CellCache.sample 在非真实遍历状态返回缓存垃圾值（如固定 -0.024995）——**勿以反射作密度参照**；必须用 DensityProbe 的完整 cns 链（sampleStartDensity→interpolateY/X/Z）在真实遍历内取值
 - fluid_level_floodedness = `{"type":"minecraft:noise", y_scale:0.67}`（非 cache 包装）——直接采样，RouterProbe 与 C++ 一致（0.0191 @(-244,58,-256)）
+
+---
+
+## 2026-08-08 已验证结论（追加 2）：顺手对齐（Java float 常量提升 + field_35479 无效液面常量）
+
+- aquifer.h `method_43718`（erosion<-0.225 && depth>0.9）阈值：`-0.225`→`-0.225f`、`0.9`→`0.9f`——Java 源码是 **float 常量比较**（float 提升），C++ 原用 double 字面量等价但类型未对齐；语义零变化，仅对齐 Java 类型。
+- `fluidLevel != INT32_MAX` → `!= -32512`——Java `field_35479` = -32512 是**无效液面常量**（「未初始化」哨兵）；C++ 原用 INT32_MAX 魔法数，值等价但语义/可读性差，对齐 Java 常量名。
+- 两处均为 judge 建议的顺手对齐（与 06 篇追加 3 同批），8576/3200 回归零退化。

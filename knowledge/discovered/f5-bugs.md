@@ -55,3 +55,25 @@ javap 输出的字节码反编译（及混淆 jar）仅供参考，**Java 源码
 
 ### 如何利用
 - 对比时先声明口径（无插值直算 vs 游戏实际插值后）；定位插值差用 GRID 角点 dump（InterpolatedDF 网格值）
+
+## 发现 #4: 探针采样坐标语义三套（floor 对齐 / 8 邻域选点 / 原始直采）
+
+**发现时间:** 2026-08-08
+**发现者:** worker（#23/#24 forest terracotta 排查）
+**来源定位:** RouterProbe / C++ biomeDump / WG_COMPDUMP
+**置信度:** confirmed（已写入 AGENTS.md 四·探针/参照数据采集核对铁律）
+**module:** re-code
+
+### 观察
+同一坐标点在不同探针里的采样口径**不同**，直接对比会得出错误结论：
+- **floor 对齐**：RouterProbe `B`/`SURFBIOME` 行 = `(x>>2)<<2`（biome 格对齐；SURFBIOME 打印 bp 对齐坐标，但判定输入是原始 BlockPos）
+- **8 邻域选点**：C++ `-biomeDump`/`WG_BIOMEDUMP` = BiomeAccess 8 邻域选点后 `(px<<2,py<<2,pz<<2)`
+- **原始直采**：`WG_COMPDUMP` = 原始块坐标直采（无对齐/无选点）
+
+### 证据
+- #23/#24 曾因 -337 vs -336/-340 坐标错位误判「湿度差 0.0054」——实际是不同工具坐标语义不同
+- 2×2 参照导出曾混入范围外 chunk（`chunk(65515,65515)` int16 溢出坐标）→ TOTAL 异常
+
+### 如何利用
+- 跨工具同点对比 MUST 先确认坐标语义（对齐/选点/直采），再比数值
+- 参照 blocks 导出后检查 header（magic/seed/size/origin）+ chunk 范围 + TOTAL 合理性；seed 三查（server.properties level-seed 备份 → 删 world → 输出 #seed/worldSeed 核对）

@@ -1,0 +1,43 @@
+# 交付给主会话合并到 .artifacts/8576-24blocks/index.yaml
+# worker 写权限边界：index.yaml 由主会话更新（terracotta analysis §8 同约定）
+# 追加到 entries 末尾（followup 之后）：
+  - id: 're-code:8576-24blocks:biome-fix-analysis'
+    path: 'biome-fix/analysis.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-analysis2'
+    path: 'biome-fix/analysis2.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-analysis3'
+    path: 'biome-fix/analysis3.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-searchtree'
+    path: 'biome-fix/searchtree.h'
+    kind: code-patch
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-patch-find'
+    path: 'biome-fix/patch-biome-find.md'
+    kind: patch-guide
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-find-diag'
+    path: 'biome-fix/patch-find-diag.diff'
+    kind: code-patch
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-searchtree-fix'
+    path: 'biome-fix/searchtree-fix.md'
+    kind: crash-fix
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-searchtree-fixed'
+    path: 'biome-fix/searchtree.h'
+    kind: code-patch
+    status: draft
+  - id: 're-code:8576-24blocks:biome-fix-st-bug-test'
+    path: 'biome-fix/st_bug_test.cpp'
+    kind: test
+    status: draft
+# 说明：analysis3.md 为 #23/#24 最终定论（find 平局 tie-break），analysis.md/analysis2.md 为前序静态对拍
+#（analysis2 的「badlands 湿度必须 ≤-0.1」结论已被 analysis3 §1 推翻，保留为历史分析链）
+# 修复交付：searchtree.h（SearchTree 完整移植）+ patch-biome-find.md（biome.h 修改手册）+ patch-find-diag.diff（方案 C 诊断）
+# 状态：全部 draft；主会话应用 + 编译 + 四套参照（-288/3200/20000/8576）回归后决定提升/合并

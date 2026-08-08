@@ -416,7 +416,7 @@ public:
     // buildSurface 引擎：对已生成的 BlockColumn 应用规则
     void buildSurface(BlockColumn& col, const RuleP& rule,
                       int chunkStartX, int chunkStartZ,
-                      const std::vector<int>& heightmap,
+                      const std::vector<int>& heightmapIn,
                       const std::vector<int>& surfaceHeights4,
                       const std::function<std::string(int, int, int)>& biomeAt,
                       const std::function<int64_t(int, int, int)>& biomeCellKey,
@@ -659,7 +659,7 @@ inline RuleP SurfaceBuilder::buildOverworldRule() {
 inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          const RuleP& rule,
                                          int chunkStartX, int chunkStartZ,
-                                         const std::vector<int>& heightmap,
+                                         const std::vector<int>& heightmapIn,
                                          const std::vector<int>& surfaceHeights4,
                                          const std::function<std::string(int, int, int)>& biomeAt,
                                          const std::function<int64_t(int, int, int)>& biomeCellKey,
@@ -667,6 +667,9 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
                                          int minY, int worldHeight,
                                          const std::function<double(int, int, int)>& initialDensityAt) {
 
+    // Java SurfaceBuilder.buildSurface 中 placeBadlandsPillar 会 trackUpdate 实时更新 heightmap，
+    // SteepSlopePredicate 等读到的是 pillar 后高度；此处用可变副本（逐列 pillar 写回，对齐 Java 逐列顺序）
+    std::vector<int> heightmap = heightmapIn;
     SurfaceContext ctx;
     ctx.noiseSamplers = samplers;
     ctx.splitter = splitter;
@@ -709,10 +712,12 @@ inline void SurfaceBuilder::buildSurface(BlockColumn& col,
             ctx.blockZ = n;
             // Java L119-121：biome 采样在 pillar 前（getBiome(m, o, n)），仅 eroded_badlands 触发 pillar
             auto pillarBiome = biomeAtCached(m, o, n);
-            int columnH = heightmap[idx]; // 列表面高度（pillar 可能抬升；heightmap 为 const 只读）
+            int columnH = heightmap[idx]; // 列表面高度（pillar 可能抬升；heightmap 为可变副本）
             if (pillarBiome.first == "minecraft:eroded_badlands") {
                 placeBadlandsPillar(col, m, n, k, l, o, columnH, minY, worldTopY);
             }
+            // Java trackUpdate 等效：pillar 抬升写回 heightmap（SteepCond 读 pillar 后高度）
+            heightmap[idx] = columnH;
             // Java L124：pillar 后重采样 heightmap + 1（有 pillar 且 surfaceY<=j 时 = j+2）
             int p = columnH + 1;
             ctx.surfaceDepth = sampleRunDepth(m, n);

@@ -328,8 +328,8 @@ private:
         NoisePos pos;
         pos.x = blockX; pos.y = blockY; pos.z = blockZ;
         double d, e;
-        // VanillaBiomeParameters.method_43718：erosion < -0.225 && depth > 0.9
-        if (erosionDF->sample(pos) < -0.225 && depthDF->sample(pos) > 0.9) {
+        // VanillaBiomeParameters.method_43718：erosion < -0.225F && depth > 0.9F（Java float 常量，提升 double 比较）
+        if (erosionDF->sample(pos) < -0.225f && depthDF->sample(pos) > 0.9f) {
             d = -1.0;
             e = -1.0;
         } else {
@@ -364,7 +364,8 @@ private:
 
     int getFluidBlockState(int blockX, int blockY, int blockZ, const FluidLevel& defaultFL, int fluidLevel) {
         int state = defaultFL.block; // Java: BlockState blockState = defaultFluidLevel.state（不经 getBlockState！）
-        if (fluidLevel <= -10 && fluidLevel != INT32_MAX && state != lavaId) {
+        // Java: fluidLevel != DimensionType.field_35479（-32512）——无效液面时恒 AIR，不判 lava
+        if (fluidLevel <= -10 && fluidLevel != -32512 && state != lavaId) {
             int k = floorDiv(blockX, 64);
             int l = floorDiv(blockY, 40);
             int m = floorDiv(blockZ, 64);

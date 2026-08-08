@@ -489,6 +489,12 @@ void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen) {
         float t = samp("temperature", p), hum = samp("vegetation", p);
         float cont = samp("continents", p), ero = samp("erosion", p);
         float dep = samp("depth", p), w = samp("ridges", p);
+        // WG_BIOMEDUMP 诊断：打印选点坐标 + 判定输入 6 维 + find 结果（对比 Java BiomeAccess/MultiNoiseSampler）
+        if (getenv("WG_BIOMEDUMP")) {
+            std::fprintf(stderr, "[BIOMEIN] (%d,%d,%d) pick=(%d,%d,%d) sample=(%d,%d,%d) "
+                        "t=%.9f hum=%.9f cont=%.9f ero=%.9f dep=%.9f w=%.9f\n",
+                        x, y, z, px, py, pz, p.x, p.y, p.z, t, hum, cont, ero, dep, w);
+        }
         const std::string* bid = h->biomeSource.find(t, hum, cont, ero, dep, w);
         if (bid) id = *bid;
     }

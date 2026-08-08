@@ -1,5 +1,5 @@
 // biome.h — MultiNoiseBiomeSource 复刻：六维噪声参数 → 最近 biome
-// 查找等价 vanilla MultiNoiseUtil.getSquaredDistance 遍历全部 biome（SearchTree 仅是加速，结果相同）
+// 查找 = vanilla MultiNoiseUtil.SearchTree（平局 tie-break 对齐 Java 树序遍历；非平局 = 唯一最近邻）
 // @anchor.test("biomeJitter 扰动对齐 Java（8 邻域 seed 哈希选点），surface rule 逐块 biome 判定", source="probe:block_probe!SURFBIOME#002")
 // + BiomeAccess.getBiome(BlockPos) 的 8 邻域 seed 哈希选点（surface rule 逐块 biome 判定的真实路径）
 #pragma once
@@ -15,6 +15,8 @@
 #include <algorithm>
 
 #include "json.h"
+#include "searchtree.h"   // MultiNoiseUtil.SearchTree 移植（平局 tie-break 对齐）
+#include <memory>         // std::unique_ptr
 
 namespace wg {
 
@@ -162,21 +164,22 @@ struct NoiseHypercube {
     long weirdMin, weirdMax;
     long offset;
 
-    // ParameterRange.getDistance(noise)：区间外距离
-    static long rangeDistance(long min, long max, long noise) {
-        long l = noise - max;
-        long m = min - noise;
-        return l > 0 ? l : (m > 0 ? m : 0);
+    // 6 维距离平方和（MSVC 铁律：long=32 位，距离平方和可能超 2^31 → long long）
+    long long getSquaredDistance(long long t, long long h, long long c, long long e, long long d, long long w) const {
+        long long dt = rangeDistance(tempMin, tempMax, t);
+        long long dh = rangeDistance(humMin, humMax, h);
+        long long dc = rangeDistance(contMin, contMax, c);
+        long long de = rangeDistance(eroMin, eroMax, e);
+        long long dd = rangeDistance(depthMin, depthMax, d);
+        long long dw = rangeDistance(weirdMin, weirdMax, w);
+        return dt * dt + dh * dh + dc * dc + de * de + dd * dd + dw * dw + (long long)offset * offset;
     }
 
-    long getSquaredDistance(long t, long h, long c, long e, long d, long w) const {
-        long dt = rangeDistance(tempMin, tempMax, t);
-        long dh = rangeDistance(humMin, humMax, h);
-        long dc = rangeDistance(contMin, contMax, c);
-        long de = rangeDistance(eroMin, eroMax, e);
-        long dd = rangeDistance(depthMin, depthMax, d);
-        long dw = rangeDistance(weirdMin, weirdMax, w);
-        return dt * dt + dh * dh + dc * dc + de * de + dd * dd + dw * dw + offset * offset;
+    // 区间外距离（64 位）
+    static long long rangeDistance(long long min, long long max, long long noise) {
+        long long l = noise - max;
+        long long m = min - noise;
+        return l > 0 ? l : (m > 0 ? m : 0);
     }
 };
 
@@ -217,26 +220,80 @@ public:
         return 0.5;
     }
 
-    // 六维噪声值 → 最近 biome id（等价 vanilla getValueSimple）
+    // 六维噪声值 → 最近 biome id（等价 vanilla MultiNoiseUtil.SearchTree.getValue，L146-152）
+    // 非平局 = getValueSimple（唯一最近邻，与旧线性 find 结果一致）；平局 = 树序遍历第一个最小距离 leaf（对齐 vanilla）
     const std::string* find(float temp, float hum, float cont, float ero, float depth, float weird) const {
         long t = noiseToLong(temp), h = noiseToLong(hum), c = noiseToLong(cont);
         long e = noiseToLong(ero), d = noiseToLong(depth), w = noiseToLong(weird);
-        const std::string* best = nullptr;
-        long bestDist = -1;
-        for (const auto& entry : entries) {
-            long dist = entry.cube.getSquaredDistance(t, h, c, e, d, w);
-            if (bestDist < 0 || dist < bestDist) {
-                bestDist = dist;
-                best = &entry.id;
-            }
-        }
-        return best;
+        debugFindTop(t, h, c, e, d, w);   // 方案 C 诊断（env 开关，不改结果）
+        long point[SearchTree<std::string>::DIM] = {t, h, c, e, d, w, 0L};
+        return searchTree().get(point);
     }
 
     size_t size() const { return entries.size(); }
 
 private:
     std::vector<BiomeEntry> entries;
+    mutable std::unique_ptr<SearchTree<std::string>> tree_;   // 首次 find 懒构建（SearchTree 平局语义）
+
+    // 懒构建 SearchTree（树内容只依赖 entries，构建一次后复用）
+    const SearchTree<std::string>& searchTree() const {
+        if (!tree_) {
+            std::vector<SearchTree<std::string>::Entry> es;
+            es.reserve(entries.size());
+            for (const auto& e : entries) {
+                SearchTree<std::string>::Entry entry;
+                entry.parameters[0] = STRange{e.cube.tempMin,    e.cube.tempMax};
+                entry.parameters[1] = STRange{e.cube.humMin,     e.cube.humMax};
+                entry.parameters[2] = STRange{e.cube.contMin,    e.cube.contMax};
+                entry.parameters[3] = STRange{e.cube.eroMin,     e.cube.eroMax};
+                entry.parameters[4] = STRange{e.cube.depthMin,   e.cube.depthMax};
+                entry.parameters[5] = STRange{e.cube.weirdMin,   e.cube.weirdMax};
+                entry.parameters[6] = STRange{e.cube.offset,     e.cube.offset};   // 第 7 维 [offset,offset]，点第 7 维恒 0
+                entry.value = e.id;
+                es.push_back(std::move(entry));
+            }
+            tree_ = std::make_unique<SearchTree<std::string>>(std::move(es));
+            // 默认关闭 previousResult 缓存（确定性，平局=树序遍历第一个）；WG_SEARCHTREE_CACHE=1 复刻 Java 缓存语义（A/B 对照用）
+            tree_->setUsePrevious(getenv("WG_SEARCHTREE_CACHE") != nullptr);
+        }
+        return *tree_;
+    }
+
+    // 方案 C 诊断：验证平局。WG_FINDTOP=任意值 → 打印 Top3 距离+id（含平局标记）；WG_FINDDUMP=任意值 → 打印全量距离。
+    // 不改变 find 结果；仅当 env 存在时走线性遍历开销（诊断用）。
+    void debugFindTop(long t, long h, long c, long e, long d, long w) const {
+        static const bool top  = getenv("WG_FINDTOP")  != nullptr;
+        static const bool dump = getenv("WG_FINDDUMP") != nullptr;
+        if (!top && !dump) return;
+        struct Hit { long long dist; const std::string* id; };
+        Hit top3[3] = {{INT64_MAX, nullptr}, {INT64_MAX, nullptr}, {INT64_MAX, nullptr}};
+        std::vector<Hit> all;
+        if (dump) all.reserve(entries.size());
+        for (const auto& entry : entries) {
+            long long dist = entry.cube.getSquaredDistance(t, h, c, e, d, w);
+            if (dump) all.push_back({dist, &entry.id});
+            for (int i = 0; i < 3; i++) {   // 稳定 Top3（相等保留先出现）
+                if (!top3[i].id || dist < top3[i].dist) {
+                    for (int j = 2; j > i; j--) top3[j] = top3[j - 1];
+                    top3[i] = {dist, &entry.id};
+                    break;
+                }
+            }
+        }
+        std::fprintf(stderr, "[FIND] point t=%ld h=%ld c=%ld e=%ld d=%ld w=%ld\n", t, h, c, e, d, w);
+        if (top) {
+            for (int i = 0; i < 3 && top3[i].id; i++) {
+                const char* tie = (i > 0 && top3[i].dist == top3[0].dist) ? "  <== TIE with #1" : "";
+                std::fprintf(stderr, "  #%d %-36s dist=%lld%s\n", i + 1, top3[i].id->c_str(), (long long)top3[i].dist, tie);
+            }
+        }
+        if (dump) {
+            std::sort(all.begin(), all.end(), [](const Hit& a, const Hit& b) { return a.dist < b.dist; });
+            for (const auto& hit : all)
+                std::fprintf(stderr, "  %-36s dist=%lld\n", hit.id->c_str(), (long long)hit.dist);
+        }
+    }
 
     // 解析单个参数值（number、{min,max} 或 [min,max]）
     static void parseRange(const JsonValue* v, long& min, long& max) {

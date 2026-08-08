@@ -57,3 +57,23 @@ Java `Math.floorDiv / Math.floorMod` 与 C++ `/ %`（截断除法）在负坐标
 ### 如何利用
 - 实现任何 cache 节点先确认 Java 语义（key 粒度/生命周期），再写 C++ 缓存
 - 多线程下 cache 需 thread_local 或原子（MSVC 铁律：MinGW thread_local 曾退化）
+
+## 发现 #4: MSVC long = 32 位（Windows LLP64）——`long bestCost = INT64_MAX` 截断为 -1
+
+**发现时间:** 2026-08-08
+**发现者:** worker（SearchTree 移植 3 版迭代）
+**来源定位:** Windows LLP64 ABI（long 4 字节 / long long 8 字节；Linux LP64 下 long 8 字节）+ MultiNoiseUtil.SearchTree 移植
+**置信度:** confirmed（crash 复现 + 改 long long 后修复）
+**module:** re-code / swe
+
+### 观察
+`long bestCost = INT64_MAX` 在 MSVC（Windows LLP64）下 `long` 是 **32 位**，`INT64_MAX` 截断为 -1 → 后续 `bestCost > cost` 恒 false → 分支选择逻辑全错（bestBatches 恒空 → makeBranch throw → 崩溃）。Java `long` / Linux 代码里 long 常被当 64 位，直接搬到 MSVC 就会踩。
+
+### 证据
+- SearchTree 移植 v1 空指针崩溃、v2 异常崩溃（makeBranch throw），v3 定位 `long bestCost = INT64_MAX` 为根因
+- 改 `long long`（64 位）后 (812,73,-337) forest→badlands 修复、8576 24→22 mismatch
+
+### 如何利用
+- **MSVC 下 64 位整数一律用 `long long` / `int64_t`，不用 `long`**（`int64_t` 在 MSVC 就是 long long）
+- 移植 Java long / Linux 源码时 grep `INT64_MAX`、`INT64_MIN`、`0x7FFFFFFFFFFFFFFF` 赋值给 long 的代码
+- Java `long` → C++ `int64_t`/`long long`（不是 long）

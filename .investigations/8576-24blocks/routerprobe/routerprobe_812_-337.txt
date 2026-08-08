@@ -1,0 +1,338 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/D:/gradle/gradle-8.13/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Starting a Gradle Daemon, 53 busy and 1 incompatible and 1 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig
+> Task :configureLaunch
+
+> Task :runServer
+[18:32:21] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.20.1 with Fabric Loader 0.15.11
+[18:32:22] [main/INFO] (FabricLoader) Loading 46 mods:
+	- coreswap 1.20.1-1.0.17
+	- fabric-api 0.92.0+1.20.1
+	- fabric-api-base 0.4.31+1802ada577
+	- fabric-api-lookup-api-v1 1.6.36+1802ada577
+	- fabric-biome-api-v1 13.0.13+1802ada577
+	- fabric-block-api-v1 1.0.11+1802ada577
+	- fabric-block-view-api-v2 1.0.1+1802ada577
+	- fabric-command-api-v1 1.2.34+f71b366f77
+	- fabric-command-api-v2 2.2.13+1802ada577
+	- fabric-commands-v0 0.2.51+df3654b377
+	- fabric-containers-v0 0.1.64+df3654b377
+	- fabric-content-registries-v0 4.0.11+1802ada577
+	- fabric-convention-tags-v1 1.5.5+1802ada577
+	- fabric-crash-report-info-v1 0.2.19+1802ada577
+	- fabric-data-attachment-api-v1 1.0.0+de0fd6d177
+	- fabric-data-generation-api-v1 12.3.4+1802ada577
+	- fabric-dimensions-v1 2.1.54+1802ada577
+	- fabric-entity-events-v1 1.6.0+1c78457f77
+	- fabric-events-interaction-v0 0.6.2+1802ada577
+	- fabric-events-lifecycle-v0 0.2.63+df3654b377
+	- fabric-game-rule-api-v1 1.0.40+1802ada577
+	- fabric-gametest-api-v1 1.2.13+1802ada577
+	- fabric-item-api-v1 2.1.28+1802ada577
+	- fabric-item-group-api-v1 4.0.12+1802ada577
+	- fabric-lifecycle-events-v1 2.2.22+1802ada577
+	- fabric-loot-api-v2 1.2.1+1802ada577
+	- fabric-loot-tables-v1 1.1.45+9e7660c677
+	- fabric-message-api-v1 5.1.9+1802ada577
+	- fabric-mining-level-api-v1 2.1.50+1802ada577
+	- fabric-networking-api-v1 1.3.11+1802ada577
+	- fabric-networking-v0 0.3.51+df3654b377
+	- fabric-object-builder-api-v1 11.1.3+1802ada577
+	- fabric-particles-v1 1.1.2+1802ada577
+	- fabric-recipe-api-v1 1.0.21+1802ada577
+	- fabric-registry-sync-v0 2.3.3+1802ada577
+	- fabric-rendering-data-attachment-v1 0.3.37+92a0d36777
+	- fabric-rendering-fluids-v1 3.0.28+1802ada577
+	- fabric-resource-conditions-api-v1 2.3.8+1802ada577
+	- fabric-resource-loader-v0 0.11.10+1802ada577
+	- fabric-screen-handler-api-v1 1.3.30+1802ada577
+	- fabric-transfer-api-v1 3.3.4+1802ada577
+	- fabric-transitive-access-wideners-v1 4.3.1+1802ada577
+	- fabricloader 0.15.11
+	- java 17
+	- minecraft 1.20.1
+	- mixinextras 0.3.5
+[18:32:22] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.5 Source=file:/C:/Users/NDark/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.13.3+mixin.0.8.5/9527e6b0d2449408958fd1302594dc65ec5ade9c/sponge-mixin-0.13.3+mixin.0.8.5.jar Service=Knot/Fabric Env=SERVER
+[18:32:22] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[18:32:22] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_16
+[18:32:22] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[18:32:23] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.3.5).
+[18:32:37] [main/INFO] (Minecraft) Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[18:32:39] [main/INFO] (Minecraft) Loaded 7 recipes
+[18:32:39] [main/INFO] (Minecraft) Loaded 1271 advancements
+[18:32:40] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 64 new biomes in 2.734 ms
+[18:32:40] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.20.1
+[18:32:40] [Server thread/INFO] (Minecraft) Loading properties
+[18:32:40] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[18:32:40] [Server thread/INFO] (Minecraft) Generating keypair
+[18:32:40] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[18:32:40] [Server thread/INFO] (Minecraft) Using default channel type
+[18:32:41] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[18:32:41] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[18:32:41] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[18:32:41] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[18:32:41] [Server thread/INFO] (Minecraft) Preparing level "world"
+[18:32:44] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[18:32:45] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 0%
+[18:32:45] [Worker-Main-11/INFO] (Minecraft) Preparing spawn area: 0%
+[18:32:45] [Worker-Main-11/INFO] (Minecraft) Preparing spawn area: 0%
+[18:32:46] [Worker-Main-21/INFO] (Minecraft) Preparing spawn area: 0%
+[18:32:46] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 2%
+[18:32:47] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 3%
+[18:32:47] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 6%
+[18:32:48] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 9%
+[18:32:48] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 12%
+[18:32:49] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 17%
+[18:32:49] [Worker-Main-16/INFO] (Minecraft) Preparing spawn area: 21%
+[18:32:50] [Worker-Main-9/INFO] (Minecraft) Preparing spawn area: 26%
+[18:32:50] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 31%
+[18:32:51] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 37%
+[18:32:51] [Worker-Main-20/INFO] (Minecraft) Preparing spawn area: 42%
+[18:32:52] [Worker-Main-16/INFO] (Minecraft) Preparing spawn area: 45%
+[18:32:52] [Worker-Main-4/INFO] (Minecraft) Preparing spawn area: 50%
+[18:32:53] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 56%
+[18:32:53] [Worker-Main-20/INFO] (Minecraft) Preparing spawn area: 62%
+[18:32:54] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 68%
+[18:32:54] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 74%
+[18:32:55] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 80%
+[18:32:55] [Worker-Main-11/INFO] (Minecraft) Preparing spawn area: 84%
+[18:32:56] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 90%
+[18:32:56] [Worker-Main-9/INFO] (Minecraft) Preparing spawn area: 98%
+[18:32:56] [Server thread/INFO] (Minecraft) Time elapsed: 12065 ms
+[18:32:56] [Server thread/INFO] (Minecraft) Done (15.291s)! For help, type "help"
+[18:32:56] [Server thread/INFO] (Minecraft) [STDOUT]: TBANDS 425 433 426 437 437 494 426 494 494 426 494 429 494 426 494 494 425 494 426 494 494 426 429 425 433 429 494 426 425 426 494 439 439 426 494 433 425 429 429 433 425 433 437 439 429 429 494 426 494 425 433 494 426 494 494 433 425 426 437 439 439 425 433 439 437 437 426 494 494 494 433 425 426 494 494 494 494 494 426 494 425 433 494 426 494 494 426 494 426 425 494 494 437 437 433 425 494 426 494 494 426 439 494 494 426 494 494 494 494 426 494 433 425 433 426 439 439 439 439 439 494 494 494 494 494 426 439 425 437 437 437 426 494 494 494 426 494 494 494 494 426 494 426 494 426 494 494 426 494 439 439 437 439 494 439 439 494 426 494 494 494 494 426 494 494 494 494 426 494 494 494 426 494 426 494 437 439 439 439 439 494 494 426 494 426 494 494 494 437 437 426 494
+[18:32:56] [Server thread/INFO] (Minecraft) [STDOUT]: TBANDS_COUNT=192
+[18:32:56] [Server thread/INFO] (Minecraft) [STDOUT]: ===ROUTERPROBE_BEGIN===
+[18:32:56] [Server thread/INFO] (Minecraft) [STDOUT]: #seed 8576294172403134396
+continentalness_noise 0.13077936922827582 0.13077936922827582 
+continentalness_tree 0.13916139665467600 
+offset_noise -0.32470095543783706 
+offset_tree_shiftx 0.31321122364840830 
+offset_tree_shiftz -2.1532514703751113 
+P 812 64 -337
+barrier 0.52947853589405970
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.16193416714668274
+ridges -0.53600644063694580
+initial_density 3.3776161356423700
+final_density 0.071770931945491430
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.32110713135932520
+fluid_level_floodedness -0.17269706258451875
+base_3d_noise 0.11860472993878873 0x1.e5ce12c3cee34p-4
+B 812 64 -340 0.548046 -0.096363 0.015770 -0.441729 0.156736 -0.534382
+SURFBIOME 812 64 -340 minecraft:savanna
+BIOME 812 64 -340 minecraft:forest
+P 812 68 -337
+barrier 0.35317886726658215
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.13068416714668274
+ridges -0.53600644063694580
+initial_density 2.5901161118005120
+final_density 0.075982325045469910
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.17211531368614570
+fluid_level_floodedness -0.17933731599050912
+base_3d_noise 0.19162964241732690 0x1.88751f3903437p-3
+B 812 68 -340 0.548046 -0.096363 0.015770 -0.441729 0.125486 -0.534382
+SURFBIOME 812 68 -340 minecraft:forest
+BIOME 812 68 -340 minecraft:forest
+P 812 72 -337
+barrier 0.065586520779111280
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.099434167146682740
+ridges -0.53600644063694580
+initial_density 1.8026160879586541
+final_density 0.080498050328690450
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.032069525227903815
+fluid_level_floodedness -0.18534330217600756
+base_3d_noise 0.25662725738293840 0x1.06c94bb6e3387p-2
+B 812 72 -340 0.548046 -0.096363 0.015770 -0.441729 0.094236 -0.534382
+SURFBIOME 812 72 -340 minecraft:savanna
+BIOME 812 72 -340 minecraft:forest
+P 812 76 -337
+barrier 0.062311768501482574
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.068184167146682740
+ridges -0.53600644063694580
+initial_density 1.0151160641167962
+final_density 0.085020080212912260
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap -0.040293446243572825
+fluid_level_floodedness -0.19110533741529000
+base_3d_noise 0.28216040446931200 0x1.20eea835aff38p-2
+B 812 76 -340 0.548046 -0.096363 0.015770 -0.441729 0.062986 -0.534382
+SURFBIOME 812 76 -340 minecraft:savanna
+BIOME 812 76 -340 minecraft:forest
+P 812 80 -337
+barrier 0.064597430830783370
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.036934167146682740
+ridges -0.53600644063694580
+initial_density 0.22761604027493830
+final_density 0.25324088377654175
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap -0.033402400986636590
+fluid_level_floodedness -0.19694188730738630
+base_3d_noise 0.29056854342771180 0x1.298accdd12d1bp-2
+B 812 80 -340 0.548046 -0.096363 0.015770 -0.441729 0.031736 -0.534382
+SURFBIOME 812 80 -340 minecraft:savanna
+BIOME 812 80 -340 minecraft:forest
+P 812 84 -337
+barrier -0.048110998390717500
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth 0.0056841671466827390
+ridges -0.53600644063694580
+initial_density -0.55988398356691960
+final_density 0.0066101309613418350
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.060738492374591370
+fluid_level_floodedness -0.20310195152659932
+base_3d_noise 0.22540979600053127 0x1.cda3a6b0299a1p-3
+B 812 84 -340 0.548046 -0.096363 0.015770 -0.441729 0.000486 -0.534382
+SURFBIOME 812 84 -340 minecraft:forest
+BIOME 812 84 -340 minecraft:forest
+P 812 88 -337
+barrier -0.11820644798786450
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth -0.025565832853317260
+ridges -0.53600644063694580
+initial_density -0.86418975185219440
+final_density -0.089203785361317800
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.21842528284228296
+fluid_level_floodedness -0.20977146386018797
+base_3d_noise 0.16991774946501942 0x1.5bfdd647b28b6p-3
+B 812 88 -340 0.548046 -0.096363 0.015770 -0.441729 -0.030764 -0.534382
+SURFBIOME 812 88 -340 minecraft:forest
+BIOME 812 88 -340 minecraft:forest
+P 812 92 -337
+barrier -0.064636295411718740
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth -0.056815832853317260
+ridges -0.53600644063694580
+initial_density -1.0610647578126589
+final_density -0.12916001319175924
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.38848202928924570
+fluid_level_floodedness -0.21707946344655515
+base_3d_noise 0.093262092017736000 0x1.7e006432c374cp-4
+B 812 92 -340 0.548046 -0.096363 0.015770 -0.441729 -0.062014 -0.534382
+SURFBIOME 812 92 -340 minecraft:savanna
+BIOME 812 92 -340 minecraft:forest
+P 812 96 -337
+barrier 0.28701037296204246
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth -0.088065832853317260
+ridges -0.53600644063694580
+initial_density -1.2579397637731233
+final_density -0.18878477570351093
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.51351995412170450
+fluid_level_floodedness -0.22510403721415476
+base_3d_noise 0.079569020421441180 0x1.45ea2a47c1edep-4
+B 812 96 -340 0.548046 -0.096363 0.015770 -0.441729 -0.093264 -0.534382
+SURFBIOME 812 96 -340 minecraft:forest
+BIOME 812 96 -340 minecraft:forest
+P 812 100 -337
+barrier 0.79809248186236180
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth -0.11931583285331726
+ridges -0.53600644063694580
+initial_density -1.4548147697335878
+final_density -0.24259015952552390
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.56592969243570070
+fluid_level_floodedness -0.23387803352085265
+base_3d_noise 0.017349492871892720 0x1.1c410c1f2a6c8p-6
+B 812 100 -340 0.548046 -0.096363 0.015770 -0.441729 -0.124514 -0.534382
+SURFBIOME 812 100 -340 minecraft:forest
+BIOME 812 100 -340 minecraft:forest
+P 812 104 -337
+barrier 0.81408050724686120
+temperature 0.54986955717375670
+vegetation -0.095328359408233390
+continents 0.016784477926345135
+erosion -0.44363876646196077
+depth -0.15056583285331726
+ridges -0.53600644063694580
+initial_density -1.6516897756940523
+final_density -0.26859035803539420
+vein_toggle 0.0000000000000000
+vein_ridged -0.079999998211860660
+vein_gap 0.54309563027690070
+fluid_level_floodedness -0.24339454699406574
+base_3d_noise -0.0046065361840631480 -0x1.2de4da4225f8p-8
+B 812 104 -340 0.548046 -0.096363 0.015770 -0.441729 -0.155764 -0.534382
+SURFBIOME 812 104 -340 minecraft:savanna
+BIOME 812 104 -340 minecraft:forest
+
+[18:32:56] [Server thread/INFO] (Minecraft) [STDOUT]: ===ROUTERPROBE_END===
+[18:32:57] [Server thread/INFO] (Minecraft) [STDOUT]: ===DENSITY_TIMING 12288 points 364.42 ms, acc=-2176.0957304345866===
+[18:32:57] [Server thread/INFO] (Minecraft) Stopping server
+[18:32:57] [Server thread/INFO] (Minecraft) Saving players
+[18:32:57] [Server thread/INFO] (Minecraft) Saving worlds
+[18:32:58] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[18:33:02] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[18:33:02] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[18:33:02] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[18:33:02] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[18:33:02] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[18:33:02] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+
+BUILD SUCCESSFUL in 54s
+6 actionable tasks: 2 executed, 4 up-to-date

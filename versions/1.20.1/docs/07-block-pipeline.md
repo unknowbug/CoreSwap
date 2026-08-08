@@ -160,3 +160,20 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 ### ⚠️ 坑
 - 混淆名对照：Chunk=`ddx`、ProtoChunk=`des`、ChunkSection=`dej`、PalettedContainer=`deq`（loom jar 是 mojang 混淆名）
 - javap：`javap -c -p -cp <loom jar> <类>`
+
+---
+
+## 2026-08-08 已验证结论（追加 2）：24 块 mismatch 收尾分类 + finalDensity 边界翻转课题（candidate 待立项）
+
+**8576（seed 8576294172403134396，720,-432 6×6）24 块 mismatch 收尾分类**（pillar 修复后剩余）：
+
+| 类别 | 数量 | 根因/状态 |
+|---|---|---|
+| 深板岩/水边界 | 12 | 块级 finalDensity 边界翻转（candidate 待立项） |
+| 地表三连错位 | 9 | 同上（=21 块课题） |
+| river | 1 | 同机制（与 20000 river/taiga 边界差同族） |
+| forest terracotta（#23/#24） | 2 | ✅ 已修复（biome 判定 tie-break，见 06 篇追加 3） |
+
+- **根因假设**：块级 finalDensity 边界翻转 + 插值精度差——final_density 树在 range_choice 分支切换陡峭区（sloped_cheese≈1.5625 阈值，见 knowledge/discovered/algorithm-fingerprints.md 发现 #2）对网格角点值微差敏感，单块判 air/方块翻转；非 biome/terracotta 机制问题（biome tie-break 已修）。**candidate 待立项验证**。
+- **修复后剩余**：8576 99.9993%→**99.9994%**（24→22）；3200 99.9997% 零退化；-288 95.7376% 结案基线（结构/FEATURE 假 diff，不属本课题）。
+- **20000 基线修正（重要）**：8/7 深夜记录的 99.9997% 已过时——8/8 HEAD 实测 **99.9989%**；git stash 实验确认 18 块差异在 8/8 HEAD 就存在（非本批改动引入），与 river/taiga 边界插值差同类 → **并入 21 块 finalDensity 课题，不新立方向**。

@@ -1,0 +1,53 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+# 状态说明：各条目由内部 draft 升 candidate 的依据 = .investigations/8576-24blocks/regression-record.md（#23/#24 修复闭环 + 四套回归 + WG_SURFDUMP 运行时符号证据）
+entries:
+  - id: 're-code:8576-24blocks:surface-plus1'
+    path: 'surface-plus1/analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:aquifer-wateredge'
+    path: 'aquifer-wateredge/analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:biome-terracotta'
+    path: 'biome-terracotta/analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:followup'
+    path: 'followup/analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:biome-fix'
+    path: 'biome-fix/analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:biome-fix-temperature-chain'
+    path: 'biome-fix/analysis2.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:biome-fix-final'
+    path: 'biome-fix/analysis3.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-24blocks:biome-fix-patch'
+    path: 'biome-fix/patch-biome-find.md'
+    kind: code-patch
+    status: candidate
+  - id: 're-code:8576-24blocks:searchtree'
+    path: '../cpp/worldgen/src/searchtree.h'
+    kind: code
+    status: candidate
+  - id: 're-code:8576-24blocks:searchtree-fix'
+    path: 'biome-fix/searchtree-fix.md'
+    kind: crash-fix
+    status: candidate
+  - id: 're-code:8576-24blocks:searchtree-test'
+    path: 'biome-fix/st_bug_test.cpp'
+    kind: test
+    status: candidate
+  - id: 're-code:8576-24blocks:regression'
+    path: '../investigations/8576-24blocks/regression-record.md'
+    kind: verification
+    status: candidate

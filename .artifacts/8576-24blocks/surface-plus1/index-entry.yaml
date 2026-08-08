@@ -1,0 +1,12 @@
+# 供主会话追加到 .artifacts/8576-24blocks/index.yaml 的 entry 片段
+# （worker subagent 写权限仅限 surface-plus1/ 子目录，根 index 由主会话更新）
+# 首次创建 .artifacts/8576-24blocks/index.yaml 时可直接采用下方整体；已存在则仅追加 entries 项。
+
+schema_version: 1
+project: CoreSwap
+module: re-code
+entries:
+  - id: 're-code:8576-24blocks:surface-plus1'
+    path: 'surface-plus1/analysis.md'
+    kind: analysis
+    status: draft

@@ -128,8 +128,9 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **参照文件实际 seed 看 `[BlockProbe] worldSeed=` 打印**，不能只看文件名/header 的 benchSeed（server.properties level-seed 硬编码 8576；-288 参照是 -8248 世界）
 
 ### ❌ 未解（下一轮候选）
-- 8576 剩余 826 块 = terracotta 带边缘（y=100-108 地表带，C++ 判 air vs Java terracotta）
-- 参照深层 terracotta 带（y=-32 单层/带，badlands 段 STONE_DEPTH_FLOOR 不覆盖）来源未明（假 diff 候选）
+> 注：本清单为 placeBadlandsPillar 修复前状态——826 块已由 pillar 修复解决（见下方「追加 2」）；剩余 24 块收尾分类见「追加 3」+ 07 篇（21 块 finalDensity 课题 + 2 块 forest 修复）。y=-32 深层 terracotta 噪声卡已关闭（追加 3）。
+- 8576 剩余 826 块 = terracotta 带边缘（y=100-108 地表带，C++ 判 air vs Java terracotta）——✅ 后续 placeBadlandsPillar 修复解决（826→24，见追加 2）
+- 参照深层 terracotta 带（y=-32 单层/带，badlands 段 STONE_DEPTH_FLOOR 不覆盖）来源未明（假 diff 候选）——✅ 已关闭（追加 3：badlands terracottaBands 产物，biome 判定随 8 邻域修复解决）
 - 洞穴底 dirt（参照 (739,-427) 洞穴底 y=56 dirt vs C++ stone，est=64 不满足 above_preliminary）来源未明（假 diff 候选）
 - 16 格宽「地貌同构划线」（biome 相关，疑 FlatCache 网格角点值特定位置差）
 
@@ -143,3 +144,14 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **验证**：8576 99.9768% → **99.9993%**（820→24 mismatch）；3200 干净参照回归 **99.9997%**（4 mismatch，零退化）。
 - **3200 参照污染（重要）**：anilla_-8248318472910187742_4_3200_3208.blocks 在 8/8 00:02 被 8576 世界重导覆盖（server level-seed 固定 8576 但 benchSeed=-8248）——**不能只看文件名/header 的 benchSeed**；已重新导出干净参照（16:16，worldSeed=-8248 核对）。
 - **剩余 24 mismatch**（8576）：散落边缘（forest terracotta×2、savanna 水/深板岩 ~20、river），非 pillar 范围，待立项。
+
+---
+
+## 2026-08-08 已验证结论（追加 3）：biome 判定平局 tie-break + SearchTree 移植（#23/#24 forest terracotta）——8576 24→22
+
+- **#23/#24 根因 = biome 判定平局 tie-break 差**：C++ 线性 `find` 用严格 `<` 取 entries 首个命中（→ forest）；vanilla `MultiNoiseUtil.SearchTree` 按树序遍历，**平局（等 cost）时取后访问的 badlands** → 参照产 terracotta 带而 C++ 判 forest。
+- **修复**：移植 `MultiNoiseUtil.SearchTree`（searchtree.h，@anchor.test SURFBIOME#003）——按 Java 树序（in-order）遍历参数索引，平局语义与 vanilla 一致。
+- **根因坑（MSVC long 32 位，Windows LLP64）**：`long bestCost = INT64_MAX` 截断为 -1 → `bestCost > cost` 恒 false → bestBatches 恒空 → makeBranch 抛异常 → 崩溃；**改 `long long`（64 位）后修复**（详见 knowledge/discovered/compiler-idioms.md 发现 #4）。
+- **验证**：(812,73,-337) forest→badlands ✓（与 Java SURFBIOME 一致）；8576 99.9993%→**99.9994%**（24→22）；3200 零退化；门禁 invalid=0。
+- **y=-32 深层 terracotta 噪声卡关闭**：(805,-32,-427) = badlands terracottaBands 产物，biome 判定已随 8 邻域修复解决（当前匹配）——与 #23/#24 同机制族（选点/tie-break），关闭不再独立排查。
+- **顺手对齐（judge 建议，同批）**：surface.h buildSurface heightmap 改可变副本 + pillar 写回（SteepCond 读 pillar 后高度，对齐 Java trackUpdate）；aquifer.h 两处见 04 篇「追加 2」。

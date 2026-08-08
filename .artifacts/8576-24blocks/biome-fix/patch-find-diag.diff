@@ -1,0 +1,68 @@
+# #23/#24 方案 C：biome.h find 平局诊断（WG_FINDTOP / WG_FINDDUMP）
+# ------------------------------------------------------------------
+# 说明：本 diff 只加诊断，不改变 find 结果（debugFindTop 为只读线性扫描，仅当 env 开关存在时执行）。
+# 应用：`git apply`（或手动按上下文应用）。若 git apply 因行号拒绝，直接采用
+#      patch-biome-find.md §4.2/§4.4 的完整代码（等价）。
+# 用法：
+#   WG_FINDTOP=1  block_probe ...   → stderr 打印 Top3 距离 + biome id（第 2/3 名与 #1 相等时标 <== TIE）
+#   WG_FINDDUMP=1 block_probe ...   → stderr 打印全量条目距离（升序）
+# 验证目标：(812,73,-337) 判定点 t=5500 h=-946 c=161 e=-4442 d=1039 w=-5418 应看到
+#   #1 minecraft:forest   dist=16406746
+#   #2 minecraft:badlands dist=16406746  <== TIE with #1
+# ---
+
+--- a/versions/1.20.1/cpp/worldgen/src/biome.h
++++ b/versions/1.20.1/cpp/worldgen/src/biome.h
+@@ -220,17 +220,52 @@
+     // 六维噪声值 → 最近 biome id（等价 vanilla getValueSimple）
+     const std::string* find(float temp, float hum, float cont, float ero, float depth, float weird) const {
+         long t = noiseToLong(temp), h = noiseToLong(hum), c = noiseToLong(cont);
+         long e = noiseToLong(ero), d = noiseToLong(depth), w = noiseToLong(weird);
++        debugFindTop(t, h, c, e, d, w); // 方案 C 诊断（WG_FINDTOP/WG_FINDDUMP，不改结果）
+         const std::string* best = nullptr;
+         long bestDist = -1;
+         for (const auto& entry : entries) {
+             long dist = entry.cube.getSquaredDistance(t, h, c, e, d, w);
+             if (bestDist < 0 || dist < bestDist) {
+                 bestDist = dist;
+                 best = &entry.id;
+             }
+         }
+         return best;
+     }
++
++    // 方案 C 诊断：WG_FINDTOP（Top3 距离+id，标平局）/ WG_FINDDUMP（全量距离）—— 验证 find 平局（#23/#24 根因）
++    void debugFindTop(long t, long h, long c, long e, long d, long w) const {
++        static const bool top  = getenv("WG_FINDTOP")  != nullptr;
++        static const bool dump = getenv("WG_FINDDUMP") != nullptr;
++        if (!top && !dump) return;
++        struct Hit { long dist; const std::string* id; };
++        Hit top3[3] = {{INT64_MAX, nullptr}, {INT64_MAX, nullptr}, {INT64_MAX, nullptr}};
++        std::vector<Hit> all;
++        if (dump) all.reserve(entries.size());
++        for (const auto& entry : entries) {
++            long dist = entry.cube.getSquaredDistance(t, h, c, e, d, w);
++            if (dump) all.push_back({dist, &entry.id});
++            for (int i = 0; i < 3; i++) {
++                if (!top3[i].id || dist < top3[i].dist) {
++                    for (int j = 2; j > i; j--) top3[j] = top3[j - 1];
++                    top3[i] = {dist, &entry.id};
++                    break;
++                }
++            }
++        }
++        std::fprintf(stderr, "[FIND] point t=%ld h=%ld c=%ld e=%ld d=%ld w=%ld\n", t, h, c, e, d, w);
++        if (top) {
++            for (int i = 0; i < 3 && top3[i].id; i++) {
++                const char* tie = (i > 0 && top3[i].dist == top3[0].dist) ? "  <== TIE with #1" : "";
++                std::fprintf(stderr, "  #%d %-36s dist=%lld%s\n", i + 1, top3[i].id->c_str(), (long long)top3[i].dist, tie);
++            }
++        }
++        if (dump) {
++            std::sort(all.begin(), all.end(), [](const Hit& a, const Hit& b) { return a.dist < b.dist; });
++            for (const auto& hit : all)
++                std::fprintf(stderr, "  %-36s dist=%lld\n", hit.id->c_str(), (long long)hit.dist);
++        }
++    }
+ 
+     size_t size() const { return entries.size(); }

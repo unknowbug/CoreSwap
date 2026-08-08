@@ -764,3 +764,37 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 6. **3200 参照污染**（worker6 诊断）：anilla_-8248318472910187742_4_3200_3208.blocks 8/8 00:02 被 8576 世界重导覆盖（level-seed 固定 8576）——89.89% 假象；已重导干净参照（worldSeed=-8248 核对）+ 污染备份 E:\tmp\vanilla_-8248_3200_POLLUTED.bak.blocks
 7. **judge 审查**（core.judge subagent）：7 项通过、无阻塞；建议保持 candidate（用户可考虑授予 confirmed）、SteepCond 理论差异（零影响）、剩余 24 mismatch 立项、y=-32 噪声卡关闭
 8. **框架流程首跑完成**：Phase 0 架构计划（.investigations/000-架构设计/）→ Phase 1 scout（squeeze 确认）→ Phase 2 worker1-6 → Phase 2.5 block_probe 双回归 → Phase 3 judge → 知识库更新
+
+---
+
+## 2026-08-08（深夜终 2）：✅ 24 块 mismatch 收尾——#23/#24 forest terracotta 破案（SearchTree 移植 3 版迭代）+ finalDensity 课题归类 + 20000 基线修正
+
+### ✅ 24 块分类（8576 seed 8576294172403134396，720,-432 6×6）
+- **finalDensity 边界翻转课题**（candidate 待立项）：深板岩/水边界 12 + 地表三连错位 9（=21 块）+ river 1（同机制）——根因假设 = 块级 finalDensity 边界翻转（插值精度差），与 20000 的 river/taiga 边界差同族
+- **forest terracotta 2（#23/#24）**——本轮破案修复（biome 判定 tie-break，见下）
+
+### ✅ #23/#24 根因：biome 判定平局 tie-break 差（C++ vs vanilla SearchTree）
+- C++ 线性 `find` 用严格 `<` 取 entries 首个命中（→ forest）；vanilla `MultiNoiseUtil.SearchTree` 按树序遍历，**平局（等 cost）取 badlands** → 参照产 terracotta 带而 C++ 判 forest
+- 🔍 排查中曾误判「湿度差 0.0054」——实为坐标错位（-337 vs -336/-340 探针语义不同，见数据采集教训）
+
+### ✅ 修复：移植 MultiNoiseUtil.SearchTree（searchtree.h）——3 版迭代
+- ❌ v1：**空指针崩溃**（crash-coreswap-20260808-*.txt 一连串）
+- ❌ v2：**异常崩溃**（makeBranch throw）
+- ✅ v3：根因 = **MSVC long 32 位（Windows LLP64）**：`long bestCost = INT64_MAX` 被截断为 -1 → `bestCost > cost` 恒 false → bestBatches 恒空 → makeBranch 抛异常 → 崩溃；**改 `long long`（64 位）后修复**
+- 验证：(812,73,-337) forest→badlands ✓（与 Java SURFBIOME 一致）；门禁 scan_cpp_anchors.py invalid=0（searchtree.h 新增 @anchor.test SURFBIOME#003）
+
+### ✅ 顺手对齐（judge 建议，与 tie-break 同批）
+- aquifer.h：`-0.225`→`-0.225f`、`0.9`→`0.9f`（Java float 常量提升）；`fluidLevel != INT32_MAX`→`!= -32512`（Java field_35479 无效液面常量）
+- surface.h：buildSurface heightmap 改可变副本 + pillar 写回（SteepCond 读 pillar 后高度，对齐 Java trackUpdate）
+
+### ✅ y=-32 噪声卡关闭
+- (805,-32,-427) 深层 terracotta = badlands terracottaBands 产物，biome 判定已随 8 邻域修复解决（当前匹配）——**噪声卡关闭**，与 #23/#24 同机制族（选点/tie-break），不再独立排查
+
+### ✅ 回归（block_probe 逐位）
+- 8576 99.9993%→**99.9994%**（24→22）；3200 **99.9997%** 零退化；20000 **99.9989%**；-288 **95.7376%**（结案基线，结构/FEATURE 假 diff 不动）
+- **20000 过期基线修正**：8/7 深夜记录的 20000 99.9997% 已过时（当时非干净 HEAD）——git stash 实验确认 18 块差异在 8/8 HEAD 就存在，与 river/taiga 边界插值差同类 → **并入 21 块 finalDensity 课题，不新立方向**
+
+### ✅ 数据采集教训（已写入 AGENTS.md 四·探针/参照数据采集核对铁律）
+- **探针采样坐标语义三套**：RouterProbe `B`/`SURFBIOME` = floor 对齐 `(x>>2)<<2`（SURFBIOME 打印 bp 对齐坐标、判定输入原始 BlockPos）；C++ `-biomeDump`/`WG_BIOMEDUMP` = 8 邻域选点后 `(px<<2,py<<2,pz<<2)`；`WG_COMPDUMP` = 原始块坐标直采——**跨工具同点对比 MUST 先确认语义**
+- **参照文件完整性**：2×2 导出曾混入范围外 chunk（chunk(65515,65515) int16 溢出坐标）——导出后查 header/范围/TOTAL
+- **seed 三查**：改 server.properties level-seed 前备份 → 删 run/world 强重新生成 → 输出核对 #seed / [BlockProbe] worldSeed / blocks file seed
