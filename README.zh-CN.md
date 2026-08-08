@@ -19,7 +19,7 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 
 ## 当前状态（2026-08-08）
 
-**最新：v1.0.17（pre-release 测试版）**——可安装的 Fabric mod（MC 1.20.1）。连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler（异常+调用栈+crash 文件）、完整调用栈 + dll sha256 诊断、内存损坏诊断。兼容 Forge（Sinytra Connector）。
+**最新：v1.0.18（pre-release 测试版）**——可安装的 Fabric mod（MC 1.20.1）。连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler（异常+调用栈+crash 文件）、完整调用栈 + dll sha256 诊断、内存损坏诊断、**VEH 崩溃日志 handler 与 JVM 兼容（不再干扰 JIT/GC，JVM 进程内自动降级）**。兼容 Forge（Sinytra Connector）。
 
 - ✅ NOISE+SURFACE 阶段（密度函数 / 含水层 / 矿脉 / 表面规则）与 vanilla **逐位一致**——同种子同地形，逐块不差（3200 区域 100%；玩家 seed 8576 区域 99.9768%+，剩余 terracotta 带边缘排查中）
 - ✅ **世界生成 10-20× 提速**：批量并行生成（~3ms/chunk vs vanilla ~60ms），自适应 `min(核数, 任务数)`

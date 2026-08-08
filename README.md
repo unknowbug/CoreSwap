@@ -18,13 +18,13 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
 
 ## Status (as of 2026-08-08)
 
-**Latest: v1.0.17 (pre-release)** — installable Fabric mod for MC 1.20.1. 连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler、完整调用栈 + dll sha256 诊断、内存损坏诊断。兼容 Forge（Sinytra Connector）。
+**Latest: v1.0.18 (pre-release)** — installable Fabric mod for MC 1.20.1. 连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler（异常+调用栈+crash 文件）、完整调用栈 + dll sha256 诊断、内存损坏诊断、**VEH 崩溃日志 handler 与 JVM 兼容（不再干扰 JIT/GC，JVM 进程内自动降级）**。兼容 Forge（Sinytra Connector）。
 
 - ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **bit-identical to vanilla** — same seed, same terrain, block-for-block (3200 区域 100%，玩家 seed 8576 区域 99.9768%+，剩余为 terracotta 带边缘排查中)
 - ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
 - ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
 - ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
-- 📦 Download: [CoreSwap 1.20.1 v1.0.17](https://github.com/unknowbug/CoreSwap/releases)
+- 📦 Download: [CoreSwap 1.20.1 v1.0.18](https://github.com/unknowbug/CoreSwap/releases)
 - 🗺️ Version plan: **full coverage on the roadmap** — 1.20.x ships first, then 1.18/1.19 and 1.17- progressively (worldgen architecture differs per version)
 - 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
 
