@@ -73,6 +73,32 @@ CoreSwap/
     └── <未来版本>/
 ```
 
+> **注意**：`data/` **不随仓库分发**（内含从 vanilla 导出的 worldgen JSON + 参照 blocks 数据；获取方式见下方「从源码构建」）。C++ 代码**编译不需要它**；验证工具（`block_probe` 等）**运行时需要**。
+
+## 从源码构建
+
+C++ 核心**仅支持 MSVC**（不支持 MinGW——MinGW 静态链接下 `thread_local` 语义退化，跨线程共享缓存会堆损坏）。构建要求：
+
+- **Visual Studio 2022+**（MSVC C++ 工具集，x64）
+- **JDK 17+**（仅 JNI 桥需要 `jni.h`；设置 `JAVA_HOME`）
+- **CMake 3.20+** 与 **Ninja**
+
+构建步骤（Windows，在加载了 vcvars64 的 Developer PowerShell / cmd 中）：
+
+```bat
+:: 加载 MSVC 环境（以 VS 2022 为例）
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+:: ninja 需在 PATH（VS 自带：Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja）
+
+cd versions\1.20.1\cpp
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B build-msvc
+cmake --build build-msvc
+```
+
+产物输出到 `build-msvc\bin\`（`block_probe.exe`、`worldgen.dll` 等）。
+
+**运行验证工具**还需要 worldgen 数据目录（`versions/1.20.1/data/worldgen` —— vanilla 的 `worldgen` JSON 树）与 `blocks.json` + 参照 `.blocks` 导出。这些从 vanilla 1.20.1 服务端/客户端导出（jar 内的 `data/minecraft/worldgen` 目录），参照数据按 seed 用探针工具重新生成；刻意不入库。需要副本请联系维护者。
+
 ## 工作原理
 
 C++ 核心完全复刻 vanilla 的密度场构建：

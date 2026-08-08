@@ -72,6 +72,32 @@ CoreSwap/
     └── <future versions>/
 ```
 
+> **Note**: `data/` is **not** distributed in the repo (it contains worldgen JSON exported from vanilla + reference block dumps; see "Building from source" below for how to obtain it). The C++ code compiles without it; the verification tools (`block_probe` etc.) need it at runtime.
+
+## Building from source
+
+The C++ core is **MSVC-only** (MinGW is not supported — `thread_local` semantics break under MinGW's static linking, corrupting the shared caches). CI-like requirements:
+
+- **Visual Studio 2022+** (MSVC C++ toolset, x64)
+- **JDK 17+** (only for the JNI bridge headers — `jni.h`; set `JAVA_HOME`)
+- **CMake 3.20+** and **Ninja**
+
+Build steps (Windows, from a **Developer PowerShell / cmd with vcvars64** loaded):
+
+```bat
+:: load the MSVC environment (VS 2022 example)
+call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+:: ninja must be on PATH (VS ships it under Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja)
+
+cd versions\1.20.1\cpp
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B build-msvc
+cmake --build build-msvc
+```
+
+Outputs land in `build-msvc\bin\` (`block_probe.exe`, `worldgen.dll`, etc.).
+
+**To run the verification tools** you also need the worldgen data directory (`versions/1.20.1/data/worldgen` — vanilla's `worldgen` JSON tree) and `blocks.json` + reference `.blocks` dumps. These are exported from a vanilla 1.20.1 server/client (the `data/minecraft/worldgen` folder inside the jar) and regenerated per-seed with the probe tools; they are intentionally kept out of the repo. Contact the maintainers if you need a copy.
+
 ## How It Works
 
 The C++ core reconstructs the density field exactly as vanilla does:
