@@ -18,6 +18,8 @@ inline bool wg_surfaceTrace = false;
 inline bool wg_aqfDump = false;
 inline int wg_surfaceTraceX = 804;
 inline int wg_surfaceTraceZ = -368;
+inline int wg_aqfYMin = 55;
+inline int wg_aqfYMax = 62;
 inline std::atomic<int64_t> wg_profNoiseDF{0};
 inline std::atomic<int64_t> wg_profSpline{0};
 inline std::atomic<int64_t> wg_profAquiferDeep{0};

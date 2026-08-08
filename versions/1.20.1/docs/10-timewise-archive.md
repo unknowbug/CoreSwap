@@ -842,3 +842,38 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 ### 通用模式（已入 knowledge/）
 - **VEH 在 JVM 进程（jvm.dll 已加载）不可用** → knowledge/discovered/compiler-idioms.md 发现 #5（检测 GetModuleHandleA("jvm.dll")）
 - **gradle 三坑**（processResources doFirst copy 不算 input → UP-TO-DATE；daemon env 缓存；8.13 -D 拆任务） → knowledge/discovered/build-tooling.md 发现 #1-#3
+
+---
+
+## 2026-08-09：✅ -288 课题破案——C++ 核心无 bug，差异 = 范围外 FEATURE（含洞穴雕刻 carvers）
+
+> **结论已提炼** → docs/07 追加 4（-288 破案 + FEATURE 范围决策）+ docs/05 更新（岩石替换 = 地形性 FEATURE）。本条保留调查链。
+
+### 起因
+- 用户实测：block_probe -288（seed -8248318472910187742，-288,-256 4×4）仍 95.7376%，质疑 8/8「结构/FEATURE 假 diff」结案（「唯一需要担心的反而是那个」）
+- 8/8 结案依据仅单点排除（岛=ocean ruin）+ 参照 FEATURE 计数（≈1448 < 差异 67042）——从未系统量化
+
+### 调查链（14 轮分析，产物 .investigations/-288-reopen/analysis-phase2..13）
+1. ✅ **量化**（phase2）：67042 差异中 natural 82.2% / structure_feature 仅 7.9%——「结构为主」数据上不成立 → 结案质疑成立
+2. ✅ **密度层排除**（phase3）：C++ 插值链 vs Java cns 游戏实际链逐位一致（≤4e-6）；y=36 差 0.23 = 无插值/插值基准错配；base_3d_noise 再排除
+3. ✅ **aquifer 层**（phase4-5）：AQF-J null 判定不可信（CellCache 反射污染 L750 铁律）；同基准 density 一致
+4. ✅ **NOISE-BLK 探针**（新增，BlockProbe chunk.getBlockState 直读）：Java NOISE 阶段 (-244,-256) y=58-61 stone（岛非结构）、(-278,-240) y=15-19 water——块级真相
+5. ✅ **Beardifier**（phase6-8）：Java aquifer 输入含 StructureWeightSampler；含水层区域实测 [BEARD]=0（ocean_ruin 无 terrain_adaptation 不参与）；CellCache 假设推翻（逐块插值无损）
+6. ✅ **noodle/caves 树**（phase10-13）：noodle 低频（firstOctave=-8 单 octave，phase11/12「高频」方向反了）；slopedCheese 3.1~5.1 >1.5625 → caves 树完整；C++ octave 累加正确（persist 归一化后高 octave 贡献小正常）
+7. ✅ **AQF-APPLY 铁证**（DensityProbe 扩展）：cns 游戏同构遍历 + aquifer.apply 直接调用 (-278,12..23,-240) **全部判 solid**，density 与 C++ 逐位一致——Java aquifer 与 C++ 完全一致
+8. ✅ **chunk status 铁证**：chunk(-18,-15) status=`minecraft:carvers`——含水层 water/air = **洞穴雕刻（CaveCarver）阶段**产物（挖洞 + 液面填水），非 aquifer
+
+### 最终结论
+- **C++ 核心（density/aquifer/surface/vein）全部正确，无 bug 需修复**
+- -288 差异 = 岩石替换矿脉 49%（ore_granite/tuff/diorite/andesite）+ 洞穴雕刻 carvers 17% + 结构 3.6%（Beardifier 岛）+ 树草 ~1% + C++ surface 微小项 ~0.1%
+- 8/8 结案**方向正确**（差异 = 范围外功能），机制描述补充完整；时间线 L670「base_3d_noise 差 0.05-0.23」= RouterProbe 独立构建假象（03 篇 L100 排除，本次再确认）
+- 8576 21 块课题独立（22 块清单无 carvers 差异：深板岩/水边界 + 地表分层错位 + terracotta 带）
+
+### FEATURE 范围决策（用户拍板）
+- **只做地形性 FEATURE：carvers（洞穴雕刻）+ 岩石替换（granite/tuff/diorite/andesite）**——影响玩家可见地形；矿石/树草/结构暂缓
+- **暂缓实施**（用户「不急着做」）——数据已就绪（worldgen/data 有 configured_carver/configured_feature/placed_feature），实施需 Phase 0 架构设计
+
+### 方法沉淀（已入 07 篇）
+- NOISE-BLK（NOISE 阶段 chunk.getBlockState 直读）= 块级真相权威来源（反射 CellCache 污染不可信）
+- AQF-APPLY（cns 游戏同构遍历 + aquifer.apply 直接调用）= aquifer 判定权威验证
+- chunk status 检查（noise/carvers/surface）防阶段误判

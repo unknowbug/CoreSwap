@@ -45,7 +45,7 @@ static double nowMs() {
 #include "ore_vein.h"
 
 // ---- 剖析计数（WG_PROFILE=1 启用；变量为 inline 定义于 density.h）----
-static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; wg_aqfDump = getenv("WG_AQFDUMP") != nullptr; if (getenv("WG_SURFTRACE_X")) wg_surfaceTraceX = atoi(getenv("WG_SURFTRACE_X")); if (getenv("WG_SURFTRACE_Z")) wg_surfaceTraceZ = atoi(getenv("WG_SURFTRACE_Z")); }
+static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; wg_aqfDump = getenv("WG_AQFDUMP") != nullptr; if (getenv("WG_SURFTRACE_X")) wg_surfaceTraceX = atoi(getenv("WG_SURFTRACE_X")); if (getenv("WG_SURFTRACE_Z")) wg_surfaceTraceZ = atoi(getenv("WG_SURFTRACE_Z")); if (getenv("WG_AQF_YMIN")) wg_aqfYMin = atoi(getenv("WG_AQF_YMIN")); if (getenv("WG_AQF_YMAX")) wg_aqfYMax = atoi(getenv("WG_AQF_YMAX")); }
 void wg_profile_dump() {
     if (!wg_profEnabled) return;
     std::fprintf(stderr,
@@ -698,6 +698,36 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                     if (fd > 0.01) {
                         std::fprintf(stderr, "[SURF+] (%d,%d) fd=%.3f\n", p.x, p.z, fd);
                     }
+                }
+            }
+        }
+    }
+    // WG_NOODLEDUMP 诊断：dump noodle 树 raw 噪声采样 + noodle 树值（高频丢失排查，-288 含水层课题）
+    if (getenv("WG_NOODLEDUMP")) {
+        const char* sx = getenv("WG_NOODLEDUMP_X");
+        const char* sz = getenv("WG_NOODLEDUMP_Z");
+        if (sx && sz) {
+            int bx = atoi(sx), bz = atoi(sz);
+            if (chunkX * 16 <= bx && bx < chunkX * 16 + 16 && chunkZ * 16 <= bz && bz < chunkZ * 16 + 16) {
+                NoisePos p;
+                auto ns = h->builder->getNoiseSampler("minecraft:noodle");
+                auto ts = h->builder->getNoiseSampler("minecraft:noodle_thickness");
+                auto ra = h->builder->getNoiseSampler("minecraft:noodle_ridge_a");
+                auto rb = h->builder->getNoiseSampler("minecraft:noodle_ridge_b");
+                auto cc = h->builder->getNoiseSampler("minecraft:cave_cheese");
+                auto cl = h->builder->getNoiseSampler("minecraft:cave_layer");
+                DF noodle = h->builder->getFunction("minecraft:overworld/caves/noodle");
+                for (int y = 0; y <= 30; y++) {
+                    p.x = bx; p.y = y; p.z = bz;
+                    double nv = ns ? ns->sample((double)bx, (double)y, (double)bz) : -999.0;
+                    double tv = ts ? ts->sample((double)bx, (double)y, (double)bz) : -999.0;
+                    double av = ra ? ra->sample((double)bx * 2.6666666666666665, (double)y * 2.6666666666666665, (double)bz * 2.6666666666666665) : -999.0;
+                    double bv = rb ? rb->sample((double)bx * 2.6666666666666665, (double)y * 2.6666666666666665, (double)bz * 2.6666666666666665) : -999.0;
+                    double ccv = cc ? cc->sample((double)bx, (double)y * 0.6666666666666666, (double)bz) : -999.0;
+                    double clv = cl ? cl->sample((double)bx, (double)y * 8.0, (double)bz) : -999.0;
+                    double nl = noodle ? noodle->sample(p) : -999.0;
+                    std::fprintf(stderr, "[NOODLE] (%d,%d,%d) raw_n=%.6f raw_t=%.6f raw_a=%.6f raw_b=%.6f raw_cheese=%.6f raw_layer=%.6f tree=%.6f\n",
+                                 bx, y, bz, nv, tv, av, bv, ccv, clv, nl);
                 }
             }
         }

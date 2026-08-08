@@ -1,0 +1,38 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=371200
+[CORESWAP] crash handler installed
+blocks file: magic=0x57474232 seed=-8248318472910187742 size=4 origin=(-288,-256) minY=-64 height=384
+[AQF-IN] (-278,8,-240) density=0.042736
+[AQF-IN] (-278,9,-240) density=0.045984
+[AQF-IN] (-278,10,-240) density=0.049232
+[AQF-IN] (-278,11,-240) density=0.052478
+[AQF-IN] (-278,12,-240) density=0.055723
+[AQF-IN] (-278,13,-240) density=0.058967
+[AQF-IN] (-278,14,-240) density=0.062210
+[AQF-IN] (-278,15,-240) density=0.065452
+[AQF-IN] (-278,16,-240) density=0.068692
+[AQF-IN] (-278,17,-240) density=0.068651
+[AQF-IN] (-278,18,-240) density=0.068611
+[AQF-IN] (-278,19,-240) density=0.068570
+[AQF-IN] (-278,20,-240) density=0.068530
+[AQF-IN] (-278,21,-240) density=0.068489
+[AQF-IN] (-278,22,-240) density=0.068448
+[AQF-IN] (-278,23,-240) density=0.068408
+[AQF-IN] (-278,24,-240) density=0.068367
+parallel: 16 chunks, 16 threads (arg=0 hw=24), wall=67.9ms (4.24ms/chunk)
+chunk (-18,-16): match=98304/98304 (100.00%) nonAir=32216/32216 (100.00%)
+chunk (-17,-16): match=98304/98304 (100.00%) nonAir=32445/32445 (100.00%)
+chunk (-16,-16): match=97940/98304 (99.63%) nonAir=32148/32512 (98.88%)
+chunk (-15,-16): match=96914/98304 (98.59%) nonAir=31122/32512 (95.72%)
+chunk (-18,-15): match=95775/98304 (97.43%) nonAir=28407/29464 (96.41%)
+chunk (-17,-15): match=96214/98304 (97.87%) nonAir=28920/30110 (96.05%)
+chunk (-16,-15): match=95436/98304 (97.08%) nonAir=29638/31617 (93.74%)
+chunk (-15,-15): match=95817/98304 (97.47%) nonAir=30111/32409 (92.91%)
+chunk (-18,-14): match=91386/98304 (92.96%) nonAir=23934/30340 (78.89%)
+chunk (-17,-14): match=89498/98304 (91.04%) nonAir=20721/29089 (71.23%)
+chunk (-16,-14): match=91056/98304 (92.63%) nonAir=24228/31355 (77.27%)
+chunk (-15,-14): match=92462/98304 (94.06%) nonAir=27358/32781 (83.46%)
+chunk (-18,-13): match=92619/98304 (94.22%) nonAir=24789/30363 (81.64%)
+chunk (-17,-13): match=90761/98304 (92.33%) nonAir=23722/30882 (76.81%)
+chunk (-16,-13): match=91220/98304 (92.79%) nonAir=25323/31901 (79.38%)
+chunk (-15,-13): match=92116/98304 (93.71%) nonAir=25409/31109 (81.68%)
+TOTAL: match=1505822/1572864 (95.7376%) nonAir match=440491/501105 (87.9039%)

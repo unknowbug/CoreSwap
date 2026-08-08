@@ -215,11 +215,24 @@ public:
         double d = 0.0;
         double e = lacunarity;
         double f = persistence;
+        bool dumpOct = false;
+        if (const char* nd = getenv("WG_NOODLEDUMP")) {
+            if (nd && getenv("WG_NOODLEDUMP_X") && getenv("WG_NOODLEDUMP_Z")) {
+                double tx = strtod(getenv("WG_NOODLEDUMP_X"), nullptr);
+                double tz = strtod(getenv("WG_NOODLEDUMP_Z"), nullptr);
+                dumpOct = ((int64_t)tx == (int64_t)x && (int64_t)tz == (int64_t)z);
+            }
+        }
         for (size_t i = 0; i < octaveSamplers.size(); i++) {
             const auto& pn = octaveSamplers[i];
             if (pn) {
                 double g = pn->sample(maintainPrecision(x * e), maintainPrecision(y * e), maintainPrecision(z * e));
-                d += amplitudes[i] * g * f;
+                double contrib = amplitudes[i] * g * f;
+                if (dumpOct) {
+                    std::fprintf(stderr, "[OCT] fo=%d i=%zu oct=%d freq=%.6f raw=%.6f amp=%.3f persist=%.4f contrib=%.6f\n",
+                                 firstOctave, i, firstOctave + (int)i, e, g, amplitudes[i], f, contrib);
+                }
+                d += contrib;
             }
             e *= 2.0;
             f /= 2.0;

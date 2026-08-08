@@ -1,0 +1,188 @@
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@7ed799e2 class=ChunkNoiseSampler
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@837448d class=CellCache
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.036956
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.037219
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.036956
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@1ec76f16 class=ChunkNoiseSampler
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@53025d7e class=CellCache
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.041260
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.039371
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.041260
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] chunk status=minecraft:noise class=ProtoChunk
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=40 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=41 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=42 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=43 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=44 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=45 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=46 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=47 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=48 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=49 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=50 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=51 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=52 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=53 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=54 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=55 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=56 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=57 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=58 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=59 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=60 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=61 raw=1 stone
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=62 raw=32 water
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=63 raw=0 air
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=64 raw=0 air
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=65 raw=0 air
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] y=66 raw=0 air
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@5c74cf38 class=ChunkNoiseSampler
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@c148dd6 class=CellCache
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.051064
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.044275
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.051064
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:09] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@588252c8 class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@32800de0 class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.058800
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.048147
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.058800
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@62df2eb4 class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@304954d3 class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.036210
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.036846
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.036210
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@7a974400 class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@484aa9bf class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.039878
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.038680
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.039878
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@537b848c class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@296ebdfc class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.045588
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.041536
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.045588
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@69194b95 class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@74030058 class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.051926
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.044707
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.051926
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@7b53a5b0 class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@278e667b class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.034635
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.036059
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.034635
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@4e8d4fc class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@680505f9 class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.037268
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.037375
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.037268
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@e1d536c class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@5a74516a class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.040466
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.038974
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.040466
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@18f931ec class=ChunkNoiseSampler
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@5893d5c7 class=CellCache
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.044762
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.041123
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.044762
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:34:10] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null

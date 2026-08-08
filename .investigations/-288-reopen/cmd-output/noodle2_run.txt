@@ -1,0 +1,52 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=373248
+[CORESWAP] crash handler installed
+blocks file: magic=0x57474232 seed=-8248318472910187742 size=4 origin=(-288,-256) minY=-64 height=384
+[NOODLE] (-278,0,-240) raw_n=-0.383998 raw_t=0.230479 raw_a=-0.738421 raw_b=0.244035 raw_cheese=0.466248 raw_layer=0.185234 tree=64.000000
+[NOODLE] (-278,1,-240) raw_n=-0.385454 raw_t=0.231690 raw_a=-0.746650 raw_b=0.227662 raw_cheese=0.469908 raw_layer=0.208039 tree=64.000000
+[NOODLE] (-278,2,-240) raw_n=-0.386816 raw_t=0.232847 raw_a=-0.751642 raw_b=0.209310 raw_cheese=0.471988 raw_layer=0.234909 tree=64.000000
+[NOODLE] (-278,3,-240) raw_n=-0.388083 raw_t=0.233947 raw_a=-0.753332 raw_b=0.189177 raw_cheese=0.476604 raw_layer=0.265405 tree=64.000000
+[NOODLE] (-278,4,-240) raw_n=-0.389255 raw_t=0.234991 raw_a=-0.751713 raw_b=0.167488 raw_cheese=0.476105 raw_layer=0.298973 tree=64.000000
+[NOODLE] (-278,5,-240) raw_n=-0.390330 raw_t=0.235978 raw_a=-0.746832 raw_b=0.144489 raw_cheese=0.472941 raw_layer=0.334956 tree=64.000000
+[NOODLE] (-278,6,-240) raw_n=-0.391308 raw_t=0.236906 raw_a=-0.738783 raw_b=0.120443 raw_cheese=0.471882 raw_layer=0.372608 tree=64.000000
+[NOODLE] (-278,7,-240) raw_n=-0.392189 raw_t=0.237775 raw_a=-0.727707 raw_b=0.095625 raw_cheese=0.465221 raw_layer=0.411119 tree=64.000000
+[NOODLE] (-278,8,-240) raw_n=-0.392971 raw_t=0.238584 raw_a=-0.713783 raw_b=0.070311 raw_cheese=0.459701 raw_layer=0.449639 tree=64.000000
+[NOODLE] (-278,9,-240) raw_n=-0.393655 raw_t=0.239332 raw_a=-0.697224 raw_b=0.044778 raw_cheese=0.458890 raw_layer=0.487303 tree=64.000000
+[NOODLE] (-278,10,-240) raw_n=-0.394240 raw_t=0.240019 raw_a=-0.678271 raw_b=0.019295 raw_cheese=0.454485 raw_layer=0.523270 tree=64.000000
+[NOODLE] (-278,11,-240) raw_n=-0.394726 raw_t=0.240644 raw_a=-0.657188 raw_b=-0.005885 raw_cheese=0.444159 raw_layer=0.556759 tree=64.000000
+[NOODLE] (-278,12,-240) raw_n=-0.395112 raw_t=0.241206 raw_a=-0.634254 raw_b=-0.030524 raw_cheese=0.435666 raw_layer=0.587090 tree=64.000000
+[NOODLE] (-278,13,-240) raw_n=-0.395399 raw_t=0.241704 raw_a=-0.609759 raw_b=-0.054413 raw_cheese=0.430250 raw_layer=0.613732 tree=64.000000
+[NOODLE] (-278,14,-240) raw_n=-0.395586 raw_t=0.242138 raw_a=-0.583993 raw_b=-0.077371 raw_cheese=0.422772 raw_layer=0.636352 tree=64.000000
+[NOODLE] (-278,15,-240) raw_n=-0.395673 raw_t=0.242507 raw_a=-0.557245 raw_b=-0.099255 raw_cheese=0.411656 raw_layer=0.654871 tree=64.000000
+[NOODLE] (-278,16,-240) raw_n=-0.395661 raw_t=0.242811 raw_a=-0.529789 raw_b=-0.119966 raw_cheese=0.405576 raw_layer=0.669524 tree=64.000000
+[NOODLE] (-278,17,-240) raw_n=-0.395549 raw_t=0.243049 raw_a=-0.501880 raw_b=-0.139391 raw_cheese=0.401044 raw_layer=0.680924 tree=64.000000
+[NOODLE] (-278,18,-240) raw_n=-0.395338 raw_t=0.243221 raw_a=-0.473747 raw_b=-0.157067 raw_cheese=0.391364 raw_layer=0.690128 tree=64.000000
+[NOODLE] (-278,19,-240) raw_n=-0.395028 raw_t=0.243325 raw_a=-0.445580 raw_b=-0.172439 raw_cheese=0.385187 raw_layer=0.698604 tree=64.000000
+[NOODLE] (-278,20,-240) raw_n=-0.394619 raw_t=0.243363 raw_a=-0.417626 raw_b=-0.185030 raw_cheese=0.381611 raw_layer=0.707152 tree=64.000000
+[NOODLE] (-278,21,-240) raw_n=-0.394113 raw_t=0.243333 raw_a=-0.390319 raw_b=-0.194448 raw_cheese=0.377555 raw_layer=0.715381 tree=64.000000
+[NOODLE] (-278,22,-240) raw_n=-0.393508 raw_t=0.243234 raw_a=-0.364088 raw_b=-0.200375 raw_cheese=0.377136 raw_layer=0.722662 tree=64.000000
+[NOODLE] (-278,23,-240) raw_n=-0.392807 raw_t=0.243068 raw_a=-0.339317 raw_b=-0.202570 raw_cheese=0.381003 raw_layer=0.728358 tree=64.000000
+[NOODLE] (-278,24,-240) raw_n=-0.392010 raw_t=0.242832 raw_a=-0.316347 raw_b=-0.200862 raw_cheese=0.386513 raw_layer=0.731845 tree=64.000000
+[NOODLE] (-278,25,-240) raw_n=-0.391118 raw_t=0.242528 raw_a=-0.295476 raw_b=-0.195150 raw_cheese=0.387553 raw_layer=0.732541 tree=64.000000
+[NOODLE] (-278,26,-240) raw_n=-0.390131 raw_t=0.242154 raw_a=-0.276957 raw_b=-0.185396 raw_cheese=0.388730 raw_layer=0.729926 tree=64.000000
+[NOODLE] (-278,27,-240) raw_n=-0.389051 raw_t=0.241710 raw_a=-0.261001 raw_b=-0.171624 raw_cheese=0.395497 raw_layer=0.723561 tree=64.000000
+[NOODLE] (-278,28,-240) raw_n=-0.387879 raw_t=0.241197 raw_a=-0.247775 raw_b=-0.153914 raw_cheese=0.397638 raw_layer=0.713103 tree=64.000000
+[NOODLE] (-278,29,-240) raw_n=-0.386616 raw_t=0.240614 raw_a=-0.237402 raw_b=-0.132399 raw_cheese=0.400452 raw_layer=0.698316 tree=64.000000
+[NOODLE] (-278,30,-240) raw_n=-0.385264 raw_t=0.239962 raw_a=-0.229961 raw_b=-0.107258 raw_cheese=0.407376 raw_layer=0.679080 tree=64.000000
+parallel: 16 chunks, 16 threads (arg=0 hw=24), wall=109.0ms (6.82ms/chunk)
+chunk (-18,-16): match=98304/98304 (100.00%) nonAir=32216/32216 (100.00%)
+chunk (-17,-16): match=98304/98304 (100.00%) nonAir=32445/32445 (100.00%)
+chunk (-16,-16): match=97940/98304 (99.63%) nonAir=32148/32512 (98.88%)
+chunk (-15,-16): match=96914/98304 (98.59%) nonAir=31122/32512 (95.72%)
+chunk (-18,-15): match=95775/98304 (97.43%) nonAir=28407/29464 (96.41%)
+chunk (-17,-15): match=96214/98304 (97.87%) nonAir=28920/30110 (96.05%)
+chunk (-16,-15): match=95436/98304 (97.08%) nonAir=29638/31617 (93.74%)
+chunk (-15,-15): match=95817/98304 (97.47%) nonAir=30111/32409 (92.91%)
+chunk (-18,-14): match=91386/98304 (92.96%) nonAir=23934/30340 (78.89%)
+chunk (-17,-14): match=89498/98304 (91.04%) nonAir=20721/29089 (71.23%)
+chunk (-16,-14): match=91056/98304 (92.63%) nonAir=24228/31355 (77.27%)
+chunk (-15,-14): match=92462/98304 (94.06%) nonAir=27358/32781 (83.46%)
+chunk (-18,-13): match=92619/98304 (94.22%) nonAir=24789/30363 (81.64%)
+chunk (-17,-13): match=90761/98304 (92.33%) nonAir=23722/30882 (76.81%)
+chunk (-16,-13): match=91220/98304 (92.79%) nonAir=25323/31901 (79.38%)
+chunk (-15,-13): match=92116/98304 (93.71%) nonAir=25409/31109 (81.68%)
+TOTAL: match=1505822/1572864 (95.7376%) nonAir match=440491/501105 (87.9039%)

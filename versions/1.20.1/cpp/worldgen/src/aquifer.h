@@ -68,6 +68,9 @@ public:
     // @anchor.test("aquifer apply 判定对齐 Java AquiferSampler.Impl.apply（-288 岛缺失排查核心）", source="probe:block_probe!AQF#001")
     // 返回 BlockId；-1 表示 null（保持默认方块）
     int apply(int blockX, int blockY, int blockZ, double density) {
+        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= wg_aqfYMin && blockY <= wg_aqfYMax) {
+            std::fprintf(stderr, "[AQF-IN] (%d,%d,%d) density=%.6f\n", blockX, blockY, blockZ, density);
+        }
         if (density > 0.0) return -1;
         if (wg_profEnabled) wg_profAquiferDeep.fetch_add(1, std::memory_order_relaxed);
         // fluidLevelSampler 默认（主世界）：y < -54 lava；y < 63 water；否则 air
@@ -103,7 +106,7 @@ public:
         FluidLevel fl2 = getWaterLevelAt(r);
         double d = maxDistance(o, p);
         int bs = fl2.getBlockState(blockY, airId);
-        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= 55 && blockY <= 62) {
+        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= wg_aqfYMin && blockY <= wg_aqfYMax) {
             std::fprintf(stderr, "[AQF] (%d,%d,%d) density=%.6f nearest=(o=%d,p=%d,q=%d) d=%.4f bs=%d\n",
                         blockX, blockY, blockZ, density, o, p, q, d, bs);
         }
@@ -116,7 +119,7 @@ public:
         FluidLevel fl3 = getWaterLevelAt(s);
         MutableDouble md;
         double e = d * calculateDensity(blockX, blockY, blockZ, md, fl2, fl3);
-        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= 55 && blockY <= 62) {
+        if (wg_aqfDump && blockX == wg_surfaceTraceX && blockZ == wg_surfaceTraceZ && blockY >= wg_aqfYMin && blockY <= wg_aqfYMax) {
             std::fprintf(stderr, "[AQF-e] (%d,%d,%d) density+e=%.6f (e=%.4f) -> %s\n",
                         blockX, blockY, blockZ, density + e, e, (density + e > 0.0) ? "SOLID" : "FLUID");
         }

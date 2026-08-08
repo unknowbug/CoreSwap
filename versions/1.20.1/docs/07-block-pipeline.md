@@ -180,7 +180,25 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 
 ---
 
-## 2026-08-08 已验证结论（追加 3）：worldgen 运行时的崩溃日志机制——VEH vs JVM 冲突
+## 2026-08-09 已验证结论（追加 4）：-288 课题破案 + FEATURE 范围决策
+
+> 完整调查链（14 轮：量化→密度层→aquifer→Beardifier→caves 树→AQF-APPLY）见 `.investigations/-288-reopen/`（analysis-phase2..13 + summary-final.md）。本节只记结论。
+
+### ✅ -288 破案：C++ 核心无 bug（AQF-APPLY 铁证）
+- **Java aquifer.apply 直接调用**（cns 游戏同构遍历 + CellCache 真实值）(-278,12..23,-240) **全部判 solid**，density 与 C++ 逐位一致（0.055724~0.068693）——Java aquifer 与 C++ 完全一致，「aquifer 判水 bug」假设推翻
+- **含水层 water/洞穴 air 来自洞穴雕刻（CaveCarver）阶段**：NOISE-BLK chunk status 显示 chunk(-18,-15)=`minecraft:carvers`——carvers 挖洞（y=23 air）+ 液面以下填水（y=15-19 water）；C++ 未实现 carvers → 判 stone
+- **-288 差异构成（67042 块）**：已闭合（范围外 FEATURE/STRUCTURE）≈73%——岩石替换矿脉 ~51%（ore_granite/tuff/diorite/andesite + coal_ore placed feature）+ 洞穴雕刻 carvers ~17%（挖洞 + 液面填水）+ 结构 ~3.6%（含 Beardifier 抬 density 的岛）+ 树/草 ~1%；**未完全闭合 ≈23%**（judge 审查确认）：海底边界 ~11.6%（water↔stone/dirt/sand，候选 surface 海底 gravel/砂染色、结构岛相关）、gravel ~7.3%、表面规则 ~4.3%——待后续定位
+- **8/8 结案修正**：方向正确（差异 = C++ 范围外功能），机制补充完整（含水层 = carvers 液体填充，05 篇 L86 早有记载；岛 = 结构 Beardifier；granite/tuff = ore_* placed feature）；时间线 L670「base_3d_noise 负坐标差」再次确认 = RouterProbe 独立构建假象（03 篇 L100 deriver 排除）
+
+### ✅ FEATURE 复刻范围决策（2026-08-09 用户拍板）
+- **只做地形性 FEATURE：carvers（洞穴雕刻）+ 岩石替换（ore_granite/tuff/diorite/andesite）**——影响玩家可见地形（洞穴可进入、岩层外观），原「FEATURE 全放弃（装饰影响小）」低估
+- 矿石（coal/iron/copper）、树/草/花、结构（村庄/神庙/矿井）：**暂缓**
+- **暂缓实施**（用户明确不急着做）——数据已就绪（worldgen/data 有 configured_carver/configured_feature/placed_feature），实施需 Phase 0 架构设计
+
+### ⚠️ 方法沉淀
+- **NOISE-BLK 探针**（BlockProbe NOISE 阶段 chunk.getBlockState 直读）是「块级真相」权威来源——反射（CellCache/AQF-J）受缓存污染不可信，NOISE-BLK 直读 chunk 状态不受污染
+- **AQF-APPLY 探针**（cns 游戏同构遍历 + aquifer.apply 直接调用）验证 aquifer 判定——反射 CellCache 值不可信（L750 铁律），但 cns 遍历填 cache 后直接调 apply 判定可信
+- **chunk status 检查**（NOISE-BLK 打印 getStatus）——确认读的是哪个阶段（noise/carvers/surface），防止把 carvers/FEATURES 产物误当 aquifer 判定
 
 > 完整二分排查链（症状→线程数→攒批→fillChunk→wg_create 阶段→对照→VEH 根因）见 10-timewise-archive.md「2026-08-08 晚」条目。本节只记结论。
 

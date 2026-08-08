@@ -85,6 +85,7 @@ if (block < 0) block = oreVein.apply(x, y, z);
 - granite/andesite/diorite 岩层来自 **ore_granite/ore_andesite/ore_diorite placed feature**（FEATURE 阶段，biome JSON 的 ore_l_upper/lower 引用）
 - tuff 来自 MiscConfiguredFeatures（amethyst/岩层 FEATURE）；deepslate→air = 洞穴雕刻（FEATURE）
 - C++ 只到 SURFACE 不做 FEATURE → 这些差是预期假 diff，**不是 vein 实现 bug**
+- **2026-08-09 范围决策更新**：岩石替换（ore_granite/tuff/diorite/andesite）重新归类为**地形性 FEATURE**（影响岩层外观，-288 差异 49%）——**纳入复刻范围**（与 carvers 一起，用户拍板「只做地形性 FEATURE」），**暂缓实施**——见 07 篇追加 4 与 `.investigations/-288-reopen/summary-final.md`
 
 ### ⚠️ 坑
 - **参照含 FEATURE 的判别**：copper_ore/iron_ore/oak_log/grass/kelp/cobblestone/chest 是 FEATURE/结构标志物——对比前先统计这些 id，过滤假 diff

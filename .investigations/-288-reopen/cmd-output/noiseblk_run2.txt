@@ -1,0 +1,537 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/D:/gradle/gradle-8.13/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Starting a Gradle Daemon, 56 busy and 1 incompatible and 3 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[22:53:46] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.20.1 with Fabric Loader 0.15.11
+[22:53:46] [main/INFO] (FabricLoader) Loading 46 mods:
+	- coreswap 1.20.1-1.0.18
+	- fabric-api 0.92.0+1.20.1
+	- fabric-api-base 0.4.31+1802ada577
+	- fabric-api-lookup-api-v1 1.6.36+1802ada577
+	- fabric-biome-api-v1 13.0.13+1802ada577
+	- fabric-block-api-v1 1.0.11+1802ada577
+	- fabric-block-view-api-v2 1.0.1+1802ada577
+	- fabric-command-api-v1 1.2.34+f71b366f77
+	- fabric-command-api-v2 2.2.13+1802ada577
+	- fabric-commands-v0 0.2.51+df3654b377
+	- fabric-containers-v0 0.1.64+df3654b377
+	- fabric-content-registries-v0 4.0.11+1802ada577
+	- fabric-convention-tags-v1 1.5.5+1802ada577
+	- fabric-crash-report-info-v1 0.2.19+1802ada577
+	- fabric-data-attachment-api-v1 1.0.0+de0fd6d177
+	- fabric-data-generation-api-v1 12.3.4+1802ada577
+	- fabric-dimensions-v1 2.1.54+1802ada577
+	- fabric-entity-events-v1 1.6.0+1c78457f77
+	- fabric-events-interaction-v0 0.6.2+1802ada577
+	- fabric-events-lifecycle-v0 0.2.63+df3654b377
+	- fabric-game-rule-api-v1 1.0.40+1802ada577
+	- fabric-gametest-api-v1 1.2.13+1802ada577
+	- fabric-item-api-v1 2.1.28+1802ada577
+	- fabric-item-group-api-v1 4.0.12+1802ada577
+	- fabric-lifecycle-events-v1 2.2.22+1802ada577
+	- fabric-loot-api-v2 1.2.1+1802ada577
+	- fabric-loot-tables-v1 1.1.45+9e7660c677
+	- fabric-message-api-v1 5.1.9+1802ada577
+	- fabric-mining-level-api-v1 2.1.50+1802ada577
+	- fabric-networking-api-v1 1.3.11+1802ada577
+	- fabric-networking-v0 0.3.51+df3654b377
+	- fabric-object-builder-api-v1 11.1.3+1802ada577
+	- fabric-particles-v1 1.1.2+1802ada577
+	- fabric-recipe-api-v1 1.0.21+1802ada577
+	- fabric-registry-sync-v0 2.3.3+1802ada577
+	- fabric-rendering-data-attachment-v1 0.3.37+92a0d36777
+	- fabric-rendering-fluids-v1 3.0.28+1802ada577
+	- fabric-resource-conditions-api-v1 2.3.8+1802ada577
+	- fabric-resource-loader-v0 0.11.10+1802ada577
+	- fabric-screen-handler-api-v1 1.3.30+1802ada577
+	- fabric-transfer-api-v1 3.3.4+1802ada577
+	- fabric-transitive-access-wideners-v1 4.3.1+1802ada577
+	- fabricloader 0.15.11
+	- java 17
+	- minecraft 1.20.1
+	- mixinextras 0.3.5
+[22:53:47] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.5 Source=file:/C:/Users/NDark/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.13.3+mixin.0.8.5/9527e6b0d2449408958fd1302594dc65ec5ade9c/sponge-mixin-0.13.3+mixin.0.8.5.jar Service=Knot/Fabric Env=SERVER
+[22:53:47] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[22:53:47] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_16
+[22:53:47] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[22:53:48] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.3.5).
+[22:53:59] [main/INFO] (Minecraft) Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[22:54:01] [main/INFO] (Minecraft) Loaded 7 recipes
+[22:54:02] [main/INFO] (Minecraft) Loaded 1271 advancements
+[22:54:02] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 64 new biomes in 3.609 ms
+[22:54:02] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.20.1
+[22:54:02] [Server thread/INFO] (Minecraft) Loading properties
+[22:54:02] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[22:54:02] [Server thread/INFO] (Minecraft) Generating keypair
+[22:54:02] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[22:54:02] [Server thread/INFO] (Minecraft) Using default channel type
+[22:54:03] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[22:54:03] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[22:54:03] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[22:54:03] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[22:54:03] [Server thread/INFO] (Minecraft) Preparing level "world"
+[22:54:06] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[22:54:06] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 0%
+[22:54:06] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 0%
+[22:54:07] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 0%
+[22:54:07] [Worker-Main-23/INFO] (Minecraft) Preparing spawn area: 1%
+[22:54:08] [Worker-Main-9/INFO] (Minecraft) Preparing spawn area: 5%
+[22:54:08] [Worker-Main-11/INFO] (Minecraft) Preparing spawn area: 9%
+[22:54:09] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 15%
+[22:54:09] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 19%
+[22:54:10] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 23%
+[22:54:10] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 29%
+[22:54:11] [Worker-Main-18/INFO] (Minecraft) Preparing spawn area: 35%
+[22:54:11] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 43%
+[22:54:12] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 51%
+[22:54:12] [Worker-Main-20/INFO] (Minecraft) Preparing spawn area: 57%
+[22:54:13] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 65%
+[22:54:13] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 68%
+[22:54:14] [Worker-Main-13/INFO] (Minecraft) Preparing spawn area: 73%
+[22:54:14] [Worker-Main-4/INFO] (Minecraft) Preparing spawn area: 81%
+[22:54:15] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 87%
+[22:54:15] [Worker-Main-23/INFO] (Minecraft) Preparing spawn area: 94%
+[22:54:16] [Server thread/INFO] (Minecraft) Time elapsed: 9808 ms
+[22:54:16] [Server thread/INFO] (Minecraft) Done (12.852s)! For help, type "help"
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] seed=-8248318472910187742 size=4 origin=(-288,-256)
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] worldSeed=-8248318472910187742
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] spawn=BlockPos{x=-112, y=69, z=-32}
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [DimDiag] field_35479=-32512
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [VgDiag] y=2 rnd=0.266617 hash=76403381185693
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [VgDiag] y=3 rnd=0.326405 hash=-5002592752159
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [VgDiag] y=4 rnd=0.903847 hash=-86408566688720
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [VgDiag] y=5 rnd=0.999963 hash=113660436086667
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [CppCmp] floodedness=0.332939 erosion=-0.169426 depth=0.657500
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [CppCmpS] floodedness=0.265747 erosion=-0.166904 depth=0.524687
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@4e45b700 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@5f94e0a class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.036956
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.037219
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.036956
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-18,-16) FULL in 39 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,40,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,41,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,42,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,43,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,44,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,45,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,46,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,47,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,48,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,49,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,50,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,51,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,52,-250) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,53,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,54,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,55,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,56,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,57,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,58,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,59,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,60,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,61,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,62,-250) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,63,-250) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,64,-250) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,65,-250) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-260,66,-250) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@73bf5ae7 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@428530fd class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.041260
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.039371
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.041260
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-17,-16) FULL in 37 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] chunk status=minecraft:noise class=ProtoChunk
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,40,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,41,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,42,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,43,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,44,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,45,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,46,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,47,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,48,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,49,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,50,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,51,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,52,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,53,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,54,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,55,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,56,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,57,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,58,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,59,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,60,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,61,-256) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,62,-256) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,63,-256) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,64,-256) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,65,-256) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-244,66,-256) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@3a150752 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@7de0d728 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.051064
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.044275
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.051064
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiag2] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiag2] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-16,-16) FULL in 44 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@289e0537 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@4f9c9f46 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.058800
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.048147
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.058800
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-15,-16) FULL in 40 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,0,-240) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,1,-240) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,2,-240) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,3,-240) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,4,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,5,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,6,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,7,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,8,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,9,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,10,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,11,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,12,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,13,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,14,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,15,-240) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,16,-240) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,17,-240) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,18,-240) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,19,-240) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,20,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,21,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,22,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,23,-240) raw=0 air
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,24,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,25,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,26,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,27,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,28,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,29,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-278,30,-240) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@454a2b25 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@51dafb5a class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.036210
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.036846
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.036210
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-18,-15) FULL in 2 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@9b5ebeb class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@22782334 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.039878
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.038680
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.039878
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-17,-15) FULL in 2 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@367f275d class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@30791ae3 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.045588
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.041536
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.045588
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-16,-15) FULL in 1 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@163555b4 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@7537b5c5 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.051926
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.044707
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.051926
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-15,-15) FULL in 1 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,0,-220) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,1,-220) raw=970 deepslate
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,2,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,3,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,4,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,5,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,6,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,7,-220) raw=2 granite
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,8,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,9,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,10,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,11,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,12,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,13,-220) raw=39 gold_ore
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,14,-220) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,15,-220) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,16,-220) raw=32 water
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,17,-220) raw=9 dirt
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,18,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,19,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,20,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,21,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,22,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,23,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,24,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,25,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,26,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,27,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,28,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,29,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [NOISE-BLK] (-280,30,-220) raw=1 stone
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@3a3d31f1 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@42eb9a57 class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.034635
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.036059
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.034635
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-18,-14) FULL in 2 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@7ecfff4b class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@369ee4ca class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.037268
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.037375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.037268
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-17,-14) FULL in 1 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@65ffe951 class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@7bd8ee9b class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.040466
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.038974
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.040466
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-16,-14) FULL in 1 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) 4角 est: 32 32 32 32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) est(-244,-256)=32
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,64,-256)=-1.191938
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,56,-256)=-0.945063
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,48,-256)=-0.683375
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,40,-256)=0.304125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,32,-256)=1.291625
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] cns-ini(-244,24,-256)=2.279125
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] blockStateSampler.sample(cns@-244,58,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$1 = net.minecraft.world.gen.chunk.ChunkNoiseSampler@7a6c630c class=ChunkNoiseSampler
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] lambda field arg$2 = net.minecraft.world.gen.chunk.ChunkNoiseSampler$CellCache@3b15603f class=CellCache
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,48,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,52,-256)=0.044762
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,56,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,58,-256)=0.041123
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,60,-256)=0.044762
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] densFn(-244,64,-256)=0.037482
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,57,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,59,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,60,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] sample(cns@-244,61,-256) -> null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-15,-14) FULL in 1 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) cns null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-18,-13) FULL in 0 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) cns null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-17,-13) FULL in 0 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) cns null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-16,-13) FULL in 0 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [EstDiagN] (-16,-16) cns null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [AQF-J] failed: java.lang.NullPointerException: Cannot invoke "Object.getClass()" because "o" is null
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (-15,-13) FULL in 0 ms
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] blocks -> E:\python\MC\data\vanilla_-8248318472910187742_4_-288_-256.blocks
+[22:54:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] DONE, stopping server
+[22:54:16] [Server thread/INFO] (Minecraft) Stopping server
+[22:54:16] [Server thread/INFO] (Minecraft) Saving players
+[22:54:16] [Server thread/INFO] (Minecraft) Saving worlds
+[22:54:17] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[22:54:22] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[22:54:22] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[22:54:22] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[22:54:22] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[22:54:22] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[22:54:22] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+
+[Incubating] Problems report is available at: file:///E:/PYTHON/MC/versions/1.20.1/java/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 49s
+6 actionable tasks: 2 executed, 4 up-to-date

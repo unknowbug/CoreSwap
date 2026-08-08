@@ -1,0 +1,95 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+# 课题：-288（seed -8248318472910187742）95.7376% 差异破案——C++ 核心无 bug，差异 = 范围外 FEATURE（岩石替换 49% + carvers 17% + 结构 3.6%）
+# 状态说明：draft → candidate 依据 = 14 轮调查（analysis-phase2..13）+ AQF-APPLY/NOISE-BLK 铁证；confirmed 待用户拍板（含 FEATURE 范围决策：只做地形性 FEATURE，暂缓）
+entries:
+  - id: 're-code:-288-reopen:phase2-quantify'
+    path: '../.investigations/-288-reopen/analysis-phase2.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase3-density'
+    path: '../.investigations/-288-reopen/analysis-phase3.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase4-surface'
+    path: '../.investigations/-288-reopen/analysis-phase4.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase5-aqf'
+    path: '../.investigations/-288-reopen/analysis-phase5.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase6-cellcache'
+    path: '../.investigations/-288-reopen/analysis-phase6.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase7-beardifier'
+    path: '../.investigations/-288-reopen/analysis-phase7.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase8-mineshaft'
+    path: '../.investigations/-288-reopen/analysis-phase8.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase9-aqf-chain'
+    path: '../.investigations/-288-reopen/analysis-phase9.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase10-cellcache-final'
+    path: '../.investigations/-288-reopen/analysis-phase10.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase11-noodle'
+    path: '../.investigations/-288-reopen/analysis-phase11.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase12-caves'
+    path: '../.investigations/-288-reopen/analysis-phase12.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:phase13-final'
+    path: '../.investigations/-288-reopen/analysis-phase13.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:-288-reopen:summary-final'
+    path: '../.investigations/-288-reopen/summary-final.md'
+    kind: conclusion
+    status: confirmed
+  - id: 're-code:-288-reopen:probe-patch-noiseblk'
+    path: '../.investigations/-288-reopen/noise_blk_patch.md'
+    kind: code-patch
+    status: confirmed
+  - id: 're-code:-288-reopen:probe-patch-beardifier'
+    path: '../.investigations/-288-reopen/beardifier_patch.md'
+    kind: code-patch
+    status: confirmed
+  - id: 're-code:-288-reopen:raw-data'
+    path: '../.investigations/-288-reopen/cmd-output/'
+    kind: raw-data
+    status: confirmed
+  - id: 're-code:-288-reopen:stats'
+    path: '../.investigations/-288-reopen/m288_pair_counts.txt'
+    kind: raw-data
+    status: confirmed
+  - id: 're-code:-288-reopen:stats-cat'
+    path: '../.investigations/-288-reopen/m288_vanilla_cat.txt'
+    kind: raw-data
+    status: confirmed
+  - id: 're-code:-288-reopen:stats-chunk'
+    path: '../.investigations/-288-reopen/m288_chunk_counts.txt'
+    kind: raw-data
+    status: confirmed
+  - id: 're-code:-288-reopen:stats-natural'
+    path: '../.investigations/-288-reopen/m288_natural_rows.txt'
+    kind: raw-data
+    status: confirmed
+  - id: 're-code:-288-reopen:scripts'
+    path: '../.investigations/-288-reopen/analyze_m288.py'
+    kind: tooling
+    status: confirmed
+  - id: 're-code:-288-reopen:judge-review'
+    path: '../.investigations/-288-reopen/judge-review.md'
+    kind: review
+    status: confirmed
+

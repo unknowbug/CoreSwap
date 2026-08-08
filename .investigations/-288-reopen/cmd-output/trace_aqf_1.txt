@@ -1,0 +1,145 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=370688
+[CORESWAP] crash handler installed
+blocks file: magic=0x57474232 seed=-8248318472910187742 size=4 origin=(-288,-256) minY=-64 height=384
+[AQF] (-244,55,-256) density=-0.043591 nearest=(o=54,p=101,q=126) d=-0.8800 bs=32
+[AQF] (-244,56,-256) density=-0.053461 nearest=(o=67,p=104,q=126) d=-0.4800 bs=32
+[AQF] (-244,57,-256) density=-0.063950 nearest=(o=82,p=107,q=109) d=0.0000 bs=32
+[AQF] (-244,58,-256) density=-0.074424 nearest=(o=90,p=99,q=115) d=0.6400 bs=32
+[AQF-e] (-244,58,-256) density+e=-0.074424 (e=0.0000) -> FLUID
+[AQF] (-244,59,-256) density=-0.084882 nearest=(o=75,p=106,q=118) d=-0.2400 bs=32
+[AQF] (-244,60,-256) density=-0.095322 nearest=(o=62,p=99,q=136) d=-0.4800 bs=32
+[AQF] (-244,61,-256) density=-0.105740 nearest=(o=51,p=94,q=149) d=-0.7200 bs=32
+[AQF] (-244,62,-256) density=-0.116134 nearest=(o=42,p=91,q=142) d=-0.9600 bs=32
+[SURFTRACE] (-244,50,-256) q=1 vx=115 r=63 s=-64 biome=minecraft:cold_ocean state=1->37
+[SURFTRACE] (-244,49,-256) q=2 vx=114 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,48,-256) q=3 vx=113 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,47,-256) q=4 vx=112 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,46,-256) q=5 vx=111 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,45,-256) q=6 vx=110 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,44,-256) q=7 vx=109 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,43,-256) q=8 vx=108 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,42,-256) q=9 vx=107 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,41,-256) q=10 vx=106 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,40,-256) q=11 vx=105 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,39,-256) q=12 vx=104 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,38,-256) q=13 vx=103 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,37,-256) q=14 vx=102 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,36,-256) q=15 vx=101 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,35,-256) q=16 vx=100 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,34,-256) q=17 vx=99 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,33,-256) q=18 vx=98 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,32,-256) q=19 vx=97 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,31,-256) q=20 vx=96 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,30,-256) q=21 vx=95 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,29,-256) q=22 vx=94 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,28,-256) q=23 vx=93 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,27,-256) q=24 vx=92 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,26,-256) q=25 vx=91 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,25,-256) q=26 vx=90 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,24,-256) q=27 vx=89 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,23,-256) q=28 vx=88 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,22,-256) q=29 vx=87 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,21,-256) q=30 vx=86 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,20,-256) q=31 vx=85 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,19,-256) q=32 vx=84 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,18,-256) q=33 vx=83 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,17,-256) q=34 vx=82 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,16,-256) q=35 vx=81 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,15,-256) q=36 vx=80 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,14,-256) q=37 vx=79 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,13,-256) q=38 vx=78 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,12,-256) q=39 vx=77 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,11,-256) q=40 vx=76 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,10,-256) q=41 vx=75 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,9,-256) q=42 vx=74 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,8,-256) q=43 vx=73 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,7,-256) q=44 vx=72 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,6,-256) q=45 vx=71 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,5,-256) q=46 vx=70 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,4,-256) q=47 vx=69 r=63 s=-64 biome=minecraft:cold_ocean state=1->-1
+[SURFTRACE] (-244,3,-256) q=48 vx=68 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,2,-256) q=49 vx=67 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,1,-256) q=50 vx=66 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,0,-256) q=51 vx=65 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-1,-256) q=52 vx=64 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-2,-256) q=53 vx=63 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-3,-256) q=54 vx=62 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-4,-256) q=55 vx=61 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-5,-256) q=56 vx=60 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-6,-256) q=57 vx=59 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-7,-256) q=58 vx=58 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-8,-256) q=59 vx=57 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-9,-256) q=60 vx=56 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-10,-256) q=61 vx=55 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-11,-256) q=62 vx=54 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-12,-256) q=63 vx=53 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-13,-256) q=64 vx=52 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-14,-256) q=65 vx=51 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-15,-256) q=66 vx=50 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-16,-256) q=67 vx=49 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-17,-256) q=68 vx=48 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-18,-256) q=69 vx=47 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-19,-256) q=70 vx=46 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-20,-256) q=71 vx=45 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-21,-256) q=72 vx=44 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-22,-256) q=73 vx=43 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-23,-256) q=74 vx=42 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-24,-256) q=75 vx=41 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-25,-256) q=76 vx=40 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-26,-256) q=77 vx=39 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-27,-256) q=78 vx=38 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-28,-256) q=79 vx=37 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-29,-256) q=80 vx=36 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-30,-256) q=81 vx=35 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-31,-256) q=82 vx=34 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-32,-256) q=83 vx=33 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-33,-256) q=84 vx=32 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-34,-256) q=85 vx=31 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-35,-256) q=86 vx=30 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-36,-256) q=87 vx=29 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-37,-256) q=88 vx=28 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-38,-256) q=89 vx=27 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-39,-256) q=90 vx=26 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-40,-256) q=91 vx=25 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-41,-256) q=92 vx=24 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-42,-256) q=93 vx=23 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-43,-256) q=94 vx=22 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-44,-256) q=95 vx=21 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-45,-256) q=96 vx=20 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-46,-256) q=97 vx=19 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-47,-256) q=98 vx=18 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-48,-256) q=99 vx=17 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-49,-256) q=100 vx=16 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-50,-256) q=101 vx=15 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-51,-256) q=102 vx=14 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-52,-256) q=103 vx=13 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-53,-256) q=104 vx=12 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-54,-256) q=105 vx=11 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-55,-256) q=106 vx=10 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-56,-256) q=107 vx=9 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-57,-256) q=108 vx=8 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-58,-256) q=109 vx=7 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-59,-256) q=110 vx=6 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-60,-256) q=111 vx=5 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-61,-256) q=112 vx=4 r=63 s=-64 biome=minecraft:cold_ocean state=1->31
+[SURFTRACE] (-244,-62,-256) q=113 vx=3 r=63 s=-64 biome=minecraft:cold_ocean state=1->970
+[SURFTRACE] (-244,-63,-256) q=114 vx=2 r=63 s=-64 biome=minecraft:cold_ocean state=1->31
+[SURFTRACE] (-244,-64,-256) q=115 vx=1 r=63 s=-64 biome=minecraft:cold_ocean state=1->31
+parallel: 16 chunks, 16 threads (arg=0 hw=24), wall=74.1ms (4.63ms/chunk)
+chunk (-18,-16): match=98304/98304 (100.00%) nonAir=32216/32216 (100.00%)
+chunk (-17,-16): match=98304/98304 (100.00%) nonAir=32445/32445 (100.00%)
+chunk (-16,-16): match=97940/98304 (99.63%) nonAir=32148/32512 (98.88%)
+chunk (-15,-16): match=96914/98304 (98.59%) nonAir=31122/32512 (95.72%)
+chunk (-18,-15): match=95775/98304 (97.43%) nonAir=28407/29464 (96.41%)
+chunk (-17,-15): match=96214/98304 (97.87%) nonAir=28920/30110 (96.05%)
+chunk (-16,-15): match=95436/98304 (97.08%) nonAir=29638/31617 (93.74%)
+chunk (-15,-15): match=95817/98304 (97.47%) nonAir=30111/32409 (92.91%)
+chunk (-18,-14): match=91386/98304 (92.96%) nonAir=23934/30340 (78.89%)
+chunk (-17,-14): match=89498/98304 (91.04%) nonAir=20721/29089 (71.23%)
+chunk (-16,-14): match=91056/98304 (92.63%) nonAir=24228/31355 (77.27%)
+chunk (-15,-14): match=92462/98304 (94.06%) nonAir=27358/32781 (83.46%)
+chunk (-18,-13): match=92619/98304 (94.22%) nonAir=24789/30363 (81.64%)
+chunk (-17,-13): match=90761/98304 (92.33%) nonAir=23722/30882 (76.81%)
+chunk (-16,-13): match=91220/98304 (92.79%) nonAir=25323/31901 (79.38%)
+chunk (-15,-13): match=92116/98304 (93.71%) nonAir=25409/31109 (81.68%)
+TOTAL: match=1505822/1572864 (95.7376%) nonAir match=440491/501105 (87.9039%)
