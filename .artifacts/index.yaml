@@ -1,0 +1,36 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+entries:
+  - id: 're-code:8576-finaldensity:beardifier-analysis'
+    path: '8576-finaldensity/beardifier-analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-finaldensity:blender-analysis'
+    path: '8576-finaldensity/blender-analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-finaldensity:diag810'
+    path: '8576-finaldensity/diag810.patch'
+    kind: patch
+    status: candidate
+  - id: 're-code:8576-finaldensity:pillar-impl'
+    path: '8576-finaldensity/pillar-impl.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-finaldensity:surfacebuilder-analysis'
+    path: '8576-finaldensity/surfacebuilder-analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:8576-finaldensity:3200-degradation'
+    path: '8576-finaldensity/3200-degradation.md'
+    kind: analysis
+    status: candidate
+  - id: 'core:000-architecture-plan'
+    path: '../.investigations/000-架构设计/架构计划.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:000-squeeze-java'
+    path: '../.investigations/000-架构设计/squeeze-java.md'
+    kind: analysis
+    status: candidate

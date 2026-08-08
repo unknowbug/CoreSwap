@@ -73,7 +73,7 @@ uint64_t hi = big-endian(h[8..15]);
 - **算术右移**：`>> 16` 对负数必须符号扩展；无符号实现后转回有符号再右移。
 - **nextSplitter 有状态**：多线程时每个线程必须从 `split(name)`（纯函数）重新派生，不能共享 Splitter 的 nextSplitter（见 07 篇）。
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ 已确认一致
 - **XoroshiroRandom(seed) 单参数构造** = RandomSeed.createXoroshiroSeed（SHA-256 混合，random.h:46）与 Java 一致

@@ -32,7 +32,7 @@ negative 区域再交给 aquifer/oreVein 细分。
 | `minecraft:blend_alpha/offset/density` | Blend* | 旧世界 blend（NoBlending 时恒等） |
 | `minecraft:cache_*`/`flat_cache` | WrappingDF | 语义委托（性能缓存，C++ 未实现缓存） |
 
-> ✅ **已更正（2026-08-08）**：C++ 已实现 FlatCacheDF（5×5 网格预计算）与 Cache2DDF（列缓存）——后者缓存 key 曾误用 chunk 级（Java 是 block 级 `ChunkPos.toLong(blockX,blockZ)`），2026-08-08 已修复（块状 bug 主因，见 09 篇）。
+> ✅ **已更正（2026-08-08）**：C++ 已实现 FlatCacheDF（5×5 网格预计算）与 Cache2DDF（列缓存）——后者缓存 key 曾误用 chunk 级（Java 是 block 级 `ChunkPos.toLong(blockX,blockZ)`），2026-08-08 已修复（块状 bug 主因，见 10 时间线归档）。
 | `minecraft:weird_scaled_sampler` | WeirdScaledSampler | 洞穴 noodle 的 rarity 映射 |
 | `minecraft:spline` | SplineDF | 三次样条（continents/erosion/ridges） |
 
@@ -76,7 +76,7 @@ sloped_cheese 的核心，`random = split("minecraft:terrain")` 派生，xz/y sc
 - `old_blended_noise` 的 random 用 `split("minecraft:terrain")`（Identifier.toString 带命名空间），漏命名空间整体错位。
 - 常量 `0.390625`（estimateSurfaceHeight 阈值）是 1.20.1 硬编码，版本间可能变（见 04 篇）。
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ Cache2DDF 缓存 key 修复（块状 bug 主因）
 - Java 1.20.1 Cache2D 是 **block 级**单槽缓存：`ChunkPos.toLong(blockX, blockZ)`（javap 反编译：lastSamplingColumnPos，key 是 block 原值）

@@ -137,7 +137,7 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - yarn 1.20.1 文档：https://maven.fabricmc.net/docs/yarn-1.20.1-rc1+build.1/
 - 看「字段/方法/是否更新计数」类逻辑，读字节码比读源码快
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ 崩溃修复链（32 视距 / 并发）
 - **CoreSwapPool::run 并发竞争**（1.0.11-pre 32 视距 99% 崩溃）：共享成员 fn/totalTasks/doneCount/nextTask/taskQueue 被 MC 多 Worker 并发调 → A 的 run 尾 fn=nullptr 被 B 读空 → 调用空 std::function → 读地址 0。**修复：run 开头 static mutex 串行化**（内部线程池仍并行 fillOneChunk）

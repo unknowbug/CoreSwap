@@ -94,7 +94,7 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **s 判定集合**：Java `isDefaultBlock`（==stone）vs C++ 早期只认 air/water/lava——非默认块（gravel 等）的处理集合必须一致。
 - 验证方法：`[sf2]` 打印 before/after + biome 对照；或直接对差异块驱动 buildSurface（08 篇）。
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ BiomeAccess 8 邻域选点（已修复）——8576 99.8473%→99.8892%
 - Java `BiomeAccess.getBiome(BlockPos)` **不是 floor 采样**：pos-2 → 8 邻域角点 (l,l+1)×(m,m+1)×(n,n+1) + seed 哈希扰动距离选最近（method_38106）
@@ -132,3 +132,14 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - 参照深层 terracotta 带（y=-32 单层/带，badlands 段 STONE_DEPTH_FLOOR 不覆盖）来源未明（假 diff 候选）
 - 洞穴底 dirt（参照 (739,-427) 洞穴底 y=56 dirt vs C++ stone，est=64 不满足 above_preliminary）来源未明（假 diff 候选）
 - 16 格宽「地貌同构划线」（biome 相关，疑 FlatCache 网格角点值特定位置差）
+
+---
+
+## 2026-08-08 已验证结论（追加 2）：placeBadlandsPillar 修复（eroded_badlands terracotta 带）
+
+- **现象**：8576 chunk(50,-26) 797 块差（C++ air vs Java terracotta 带），参照（SURFACE 导出）y=69-118 terracotta，NOISE 阶段 y=74-118 是 air。
+- **破案链**（10 时间线 2026-08-08）：squeeze 一致排除 → Beardifier 否证（badlands 无结构贡献）→ Blender 否证（无旧世界数据=恒等）→ Diag810（NOISE=air vs SURFACE=terracotta）→ **worker 定位 Java SurfaceBuilder.placeBadlandsPillar（L208-234）：eroded_badlands 每列先算 pillar 顶 j=64+min(e²·2.5, ceil(h·50)+24)，把 y≤j 的 air 填成 stone → heightmap 抬升到 j+1 → 主循环起点变高 → badlands 段规则（blockY+q≡j+1 恒真）→ terracottaBands 染色**。
+- **C++ 修复**（surface.h placeBadlandsPillar，@anchor PILLAR#001）：补 air→stone 填充 + heightmap 抬升 + 主循环起点重采样；规则树本体原已对齐。
+- **验证**：8576 99.9768% → **99.9993%**（820→24 mismatch）；3200 干净参照回归 **99.9997%**（4 mismatch，零退化）。
+- **3200 参照污染（重要）**：anilla_-8248318472910187742_4_3200_3208.blocks 在 8/8 00:02 被 8576 世界重导覆盖（server level-seed 固定 8576 但 benchSeed=-8248）——**不能只看文件名/header 的 benchSeed**；已重新导出干净参照（16:16，worldSeed=-8248 核对）。
+- **剩余 24 mismatch**（8576）：散落边缘（forest terracotta×2、savanna 水/深板岩 ~20、river），非 pillar 范围，待立项。

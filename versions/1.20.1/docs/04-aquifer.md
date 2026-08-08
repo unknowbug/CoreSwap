@@ -93,7 +93,7 @@ for (y = 320; y >= -64; y -= 8)
 - blob 的 `initialDensity.sample(x*4, y*12, z*4)`：参数是 blob 网格坐标×间距，不是块坐标。
 - **验证方法**：C++ `[aq]` 调试打印 r/s/t 位置与 fl2.y 对照 Java；VeinDiag 驱动真实 ChunkNoiseSampler（08 篇）。
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ estimateSurfaceHeight（est）两版一致
 - **Java cns 查表版 = 无插值版 = C++ 版**：17 点（含负坐标岛区）全 32——est 不是负坐标差异来源
@@ -105,7 +105,7 @@ for (y = 320; y >= -64; y -= 8)
 - getFluidLevel 13 邻居 `OFFSETS` 与 Java `CHUNK_POS_OFFSETS` 逐项相同
 - getFluidBlockY / method_43718（erosion<-0.225 && depth>0.9）/ getNoiseBasedFluidLevel / clampedMap / map2 全部一致
 - apply 邻居选择（18 候选 2×3×2）与 Java 逐行一致（含 pack/unpack 负坐标符号扩展）
-- -288 岛区 e=0（fl2/fl3 液面全 63）→ 两侧判定一致——**岛缺失不是 aquifer bug**（是 ocean ruin 结构覆盖，见 06 篇/09 时间线）
+- -288 岛区 e=0（fl2/fl3 液面全 63）→ 两侧判定一致——**岛缺失不是 aquifer bug**（是 ocean ruin 结构覆盖，见 06 篇/10 时间线归档）
 
 ### ⚠️ 坑
 - **CellCache 反射污染**：blockStateSampler.sample / CellCache.sample 在非真实遍历状态返回缓存垃圾值（如固定 -0.024995）——**勿以反射作密度参照**；必须用 DensityProbe 的完整 cns 链（sampleStartDensity→interpolateY/X/Z）在真实遍历内取值

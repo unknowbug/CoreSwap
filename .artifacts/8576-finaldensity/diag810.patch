@@ -1,0 +1,287 @@
+================================================================================
+Diag810 patch —— BlockProbe.java 添加 (810,76,-411) 诊断触发
+================================================================================
+目标文件: E:\PYTHON\MC\versions\1.20.1\java\src\main\java\wg\bench\BlockProbe.java
+目标场景: seed=8576294172403134396, chunk(50,-26), 世界坐标 (810,76,-411)
+          = chunk 局部 (10,76,5)。参照(SURFACE 导出)该处为 terracotta，但所有
+          密度口径(无插值 -0.038 / 插值 / cns 反射)均为 air。
+目的: NOISE 阶段驱动真实 ChunkNoiseSampler 到该块 + dump 列; SURFACE 阶段 dump 同列对比。
+
+共 3 个 PATCH，全部为新增/替换，不删除任何现有诊断（3200 系列、-16/-16、50/-23 均不动）。
+
+--------------------------------------------------------------------------------
+PATCH 1: driveCnsTo 起点参数化（必须）
+--------------------------------------------------------------------------------
+原因（重要）:
+  driveCnsTo 的 bx/by/bz 是【世界坐标】。但原实现硬编码起点 ox=3200, oz=3200
+  （= chunk(200,200) 世界起点，见原 48 行 `int ox = 3200, oz = 3200; // chunk(200,200) 起点`）。
+  循环 `for (int o = 0; o <= cellX; o++)` 中 cellX = (bx-ox)/4；当 bx<3200 或 bz<3200
+  时 cellX/cellZ 为负，循环体一次都不执行 → 无法驱动到 (810,76,-411)。
+  因此必须新增 7 参版本（ox, oz 为目标块所在 chunk 的世界起点）。
+  chunk(50,-26) 的世界起点 = (50*16, -26*16) = (800, -416)。
+  调用示例: driveCnsTo(cns, 800, -416, 810, 76, -411, noiseConfig)
+  cellX=(810-800)/4=2, cellZ=(-411+416)/4=1, cellY=(76+64)/8=17，均在循环可达范围内。
+位置: 方法定义 34-197 行（整段替换为下方两个重载；5 参委托保持 603-609 行调用不变）。
+
+--- 替换后完整代码（原 35-197 行整段）---
+
+    /** 驱动真实 ChunkNoiseSampler 插值循环到目标块，打印真实 blockState 与 veinToggle 插值（默认 chunk(200,200) 起点） */
+    private static void driveCnsTo(Object cns, int bx, int by, int bz, net.minecraft.world.gen.noise.NoiseConfig nc) throws Exception {
+        driveCnsTo(cns, 3200, 3200, bx, by, bz, nc);
+    }
+
+    /** 驱动真实 ChunkNoiseSampler 插值循环到目标块；ox/oz 为目标块所在 chunk 的世界起点
+     *  （如 chunk(50,-26) → (800,-416)；chunk(200,200) → (3200,3200)）。bx/by/bz 为世界坐标。 */
+    private static void driveCnsTo(Object cns, int ox, int oz, int bx, int by, int bz, net.minecraft.world.gen.noise.NoiseConfig nc) throws Exception {
+        Class<?> cls = cns.getClass();
+        java.lang.reflect.Method mStart = cls.getMethod("sampleStartDensity");
+        java.lang.reflect.Method mEnd = cls.getMethod("sampleEndDensity", int.class);
+        java.lang.reflect.Method mOn = cls.getMethod("onSampledCellCorners", int.class, int.class);
+        java.lang.reflect.Method mY = cls.getMethod("interpolateY", int.class, double.class);
+        java.lang.reflect.Method mX = cls.getMethod("interpolateX", int.class, double.class);
+        java.lang.reflect.Method mZ = cls.getMethod("interpolateZ", int.class, double.class);
+        java.lang.reflect.Method mSwap = cls.getMethod("swapBuffers");
+        java.lang.reflect.Method mSample = cls.getDeclaredMethod("sampleBlockState");
+        mSample.setAccessible(true);
+        java.lang.reflect.Method mStop = cls.getMethod("stopInterpolation");
+
+        int cellX = (bx - ox) / 4;
+        int cellZ = (bz - oz) / 4;
+        int minCellY = -8;
+        int cellY = (by + 64) / 8;
+
+        // 反射拿 veinToggle 的 DensityInterpolator：遍历 interpolators 打印全部结构
+        java.lang.reflect.Field fInterps = cls.getDeclaredField("interpolators");
+        fInterps.setAccessible(true);
+        java.util.List<?> interps = (java.util.List<?>) fInterps.get(cns);
+        Object vtInterp = null;
+        Object fdInterp = interps.isEmpty() ? null : interps.get(0);   // finalDensity 的 DensityInterpolator（BlendDensity）
+        for (Object it : interps) {
+            try {
+                java.lang.reflect.Field fDel = it.getClass().getDeclaredField("delegate");
+                fDel.setAccessible(true);
+                Object del = fDel.get(it);
+                System.out.println("[InterpList] " + describe(del, 2));
+                if (del != null && describe(del, 2).contains("xz=1.5")) { vtInterp = it; }
+            } catch (Exception ignore) { }
+        }
+
+        mStart.invoke(cns);
+        outer:
+        for (int o = 0; o <= cellX; o++) {
+            mEnd.invoke(cns, o);
+            for (int p = 0; p <= cellZ; p++) {
+                for (int r = 47; r >= 0; r--) {
+                    mOn.invoke(cns, r, p);
+                    for (int s = 7; s >= 0; s--) {
+                        int t = (minCellY + r) * 8 + s;
+                        double d = s / 8.0;
+                        mY.invoke(cns, t, d);
+                        for (int w = 0; w < 4; w++) {
+                            int x = ox + o * 4 + w;
+                            double e = w / 4.0;
+                            mX.invoke(cns, x, e);
+                            for (int z = 0; z < 4; z++) {
+                                int aa = oz + p * 4 + z;
+                                double f = z / 4.0;
+                                mZ.invoke(cns, aa, f);
+                                Object bs = mSample.invoke(cns);
+                                if (x == bx && t == by && aa == bz) {
+                                    double vtVal = vtInterp != null
+                                            ? (double) vtInterp.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class)
+                                                    .invoke(vtInterp, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns)
+                                            : Double.NaN;
+                                    // 反射读 8 角点字段
+                                    StringBuilder corners = new StringBuilder();
+                                    if (vtInterp != null) {
+                                        // 直接采样 delegate 于角点坐标（对照 buffer）
+                                        java.lang.reflect.Field fDel = vtInterp.getClass().getDeclaredField("delegate");
+                                        fDel.setAccessible(true);
+                                        Object del = fDel.get(vtInterp);
+                                        corners.append("delClass=").append(del.getClass().getSimpleName()).append(" ");
+                                        // BlendDensity 的 input 结构（递归 describe）
+                                        try {
+                                            java.lang.reflect.Method mInput = del.getClass().getMethod("input");
+                                            Object in = mInput.invoke(del);
+                                            corners.append("input=").append(describe(in, 3)).append(" ");
+                                        } catch (Exception e4) {
+                                            corners.append("inputErr=").append(e4.getMessage()).append(" ");
+                                        }
+                                        // noiseConfig 原始 veinToggle 结构
+                                        try {
+                                            Object rawVt = nc.getNoiseRouter().veinToggle();
+                                            corners.append("rawVt=").append(rawVt.getClass().getSimpleName()).append(" ");
+                                            java.lang.reflect.Method mVal = rawVt.getClass().getMethod("function");
+                                            Object func = mVal.invoke(rawVt);
+                                            Object v = func.getClass().getMethod("value").invoke(func);
+                                            corners.append("val=").append(v.getClass().getSimpleName()).append(" ");
+                                            // 递归打印 value 结构（最多 3 层）
+                                            Object cur = v;
+                                            for (int depth = 0; depth < 4; depth++) {
+                                                String cn = cur.getClass().getSimpleName();
+                                                corners.append("L").append(depth).append("=").append(cn).append(" ");
+                                                if (cn.contains("Wrapping")) {
+                                                    java.lang.reflect.Method mW = cur.getClass().getMethod("wrapped");
+                                                    cur = mW.invoke(cur);
+                                                } else if (cn.contains("RangeChoice")) {
+                                                    java.lang.reflect.Method mWhen = cur.getClass().getMethod("whenInRange");
+                                                    cur = mWhen.invoke(cur);
+                                                } else if (cn.contains("BlendDensity")) {
+                                                    java.lang.reflect.Method mIn = cur.getClass().getMethod("input");
+                                                    cur = mIn.invoke(cur);
+                                                } else {
+                                                    break;
+                                                }
+                                            }
+                                        } catch (Exception e5) {
+                                            corners.append("rawErr=").append(e5.getMessage()).append(" ");
+                                        }
+                                        var np0 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(ox + 8, 0, oz + 4);
+                                        var np1 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(ox + 12, 0, oz + 4);
+                                        var np2 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(ox + 8, 8, oz + 4);
+                                        var np3 = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(ox + 12, 8, oz + 4);
+                                        java.lang.reflect.Method mDelSample = net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class);
+                                        corners.append("dir(").append(ox + 8).append(",0,").append(oz + 4).append(")=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np0))).append(" ");
+                                        corners.append("dir(").append(ox + 12).append(",0,").append(oz + 4).append(")=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np1))).append(" ");
+                                        corners.append("dir(").append(ox + 8).append(",8,").append(oz + 4).append(")=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np2))).append(" ");
+                                        corners.append("dir(").append(ox + 12).append(",8,").append(oz + 4).append(")=").append(String.format(java.util.Locale.ROOT, "%.4f", (double) mDelSample.invoke(del, np3))).append(" ");
+                                        for (String fn : new String[]{"x0y0z0", "x1y0z0", "x0y1z0", "x1y1z0", "x0y0z1", "x1y0z1", "x0y1z1", "x1y1z1", "result"}) {
+                                            try {
+                                                java.lang.reflect.Field fld = vtInterp.getClass().getDeclaredField(fn);
+                                                fld.setAccessible(true);
+                                                corners.append(fn).append("=").append(String.format(java.util.Locale.ROOT, "%.4f", fld.getDouble(vtInterp))).append(" ");
+                                            } catch (Exception ignore) { }
+                                        }
+                                        try {
+                                            java.lang.reflect.Field fsbx = cls.getDeclaredField("startBlockX");
+                                            fsbx.setAccessible(true);
+                                            java.lang.reflect.Field fsbz = cls.getDeclaredField("startBlockZ");
+                                            fsbz.setAccessible(true);
+                                            java.lang.reflect.Field fsby = cls.getDeclaredField("startBlockY");
+                                            fsby.setAccessible(true);
+                                            corners.append("cnsSBX=").append(fsbx.getInt(cns)).append(" SBY=").append(fsby.getInt(cns)).append(" SBZ=").append(fsbz.getInt(cns));
+                                        } catch (Exception ignore) { }
+                                    }
+                                    System.out.println(String.format(java.util.Locale.ROOT,
+                                            "[VeinDiag] (%d,%d,%d) block=%s veinToggle=%.6f %s",
+                                            bx, by, bz, bs, vtVal, corners));
+                                    // 反射采样 beardifying（StructureWeightSampler）与 finalDensity
+                                    try {
+                                        java.lang.reflect.Field fBeard = cls.getDeclaredField("beardifying");
+                                        fBeard.setAccessible(true);
+                                        Object beard = fBeard.get(cns);
+                                        var npb = new net.minecraft.world.gen.densityfunction.DensityFunction.UnblendedNoisePos(bx, by, bz);
+                                        double bv = (double) net.minecraft.world.gen.densityfunction.DensityFunction.class.getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class).invoke(beard, npb);
+                                        double fdv = nc.getNoiseRouter().finalDensity().sample(npb);
+                                        double fdInterpV = fdInterp != null
+                                                ? (double) fdInterp.getClass().getMethod("sample", net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos.class)
+                                                        .invoke(fdInterp, (net.minecraft.world.gen.densityfunction.DensityFunction.NoisePos) cns)
+                                                : Double.NaN;
+                                        System.out.println(String.format(java.util.Locale.ROOT,
+                                                "[BeardDiag] (%d,%d,%d) beard=%.6f finalDensity(raw)=%.6f finalDensityInterp=%.6f",
+                                                bx, by, bz, bv, fdv, fdInterpV));
+                                    } catch (Exception e7) {
+                                        System.out.println("[BeardDiag] failed: " + e7);
+                                    }
+                                    mStop.invoke(cns);
+                                    break outer;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            mSwap.invoke(cns);
+        }
+    }
+
+--- PATCH 1 结束 ---
+
+--------------------------------------------------------------------------------
+PATCH 2: NOISE 段插入 Diag810 诊断（driveCnsTo + 目标块 state + 列 dump）
+--------------------------------------------------------------------------------
+位置: 现 709 行（PreDiag 块结束 `}`，其内容 `System.out.println("[PreDiag] ERR " + ex);`/`}` 之后）
+      与 710 行 `chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);` 之间插入。
+      （即 getChunk(NOISE) 之后、getChunk(SURFACE) 之前；与 PreDiag 并列，cns 此时存活。）
+锚点（插入点上下文）:
+      ...PreDiag 块的 catch 块结束...
+      }
+      <<< 在此插入下面代码
+      chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
+
+--- 插入代码（与现有 12 空格缩进一致）---
+
+                    // Diag810：chunk(50,-26) (810,76,-411)（局部 10,76,5）terracotta 矛盾
+                    // NOISE 阶段驱动真实 cns 到目标块 + 目标 state + 列 dump（参考 PreDiag 的 try-catch 模式）
+                    if (wx == 50 && wz == -26) {
+                        try {
+                            java.lang.reflect.Field fCns810 = Chunk.class.getDeclaredField("chunkNoiseSampler");
+                            fCns810.setAccessible(true);
+                            Object cns810 = fCns810.get(chunk);
+                            if (cns810 != null) {
+                                // chunk(50,-26) 世界起点 (800,-416)；目标 (810,76,-411) = 局部 (10,76,5)
+                                driveCnsTo(cns810, 800, -416, 810, 76, -411, chunkManager.getNoiseConfig());
+                                net.minecraft.block.Block bb810 = chunk.getBlockState(pos.set(10, 76, 5)).getBlock();
+                                System.out.println("[Diag810] NOISE state(810,76,-411)=" + net.minecraft.registry.Registries.BLOCK.getId(bb810)
+                                        + " rawId=" + net.minecraft.registry.Registries.BLOCK.getRawId(bb810));
+                            } else {
+                                System.out.println("[Diag810] chunkNoiseSampler null after NOISE");
+                            }
+                            // 列 dump (810,y,-411) 局部 (10,y,5)，y=60..120，参考 PreDiag psb
+                            StringBuilder psb810 = new StringBuilder();
+                            for (int y = 60; y <= 120; y++) {
+                                net.minecraft.block.Block bb = chunk.getBlockState(pos.set(10, y, 5)).getBlock();
+                                psb810.append(y).append('=').append(net.minecraft.registry.Registries.BLOCK.getId(bb))
+                                      .append(' ').append(net.minecraft.registry.Registries.BLOCK.getRawId(bb)).append(" | ");
+                            }
+                            System.out.println("[Diag810] col(NOISE) (810,y,-411) y=60..120: " + psb810);
+                        } catch (Throwable ex) {
+                            System.out.println("[Diag810] NOISE ERR " + ex);
+                        }
+                    }
+
+--- PATCH 2 结束 ---
+
+--------------------------------------------------------------------------------
+PATCH 3: SURFACE 段插入 Diag810 列 dump（对比 NOISE）
+--------------------------------------------------------------------------------
+位置: 现 710 行 `chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);` 之后、
+      现 711 行 ColDiag 块（`if (wx == 50 && wz == -23) {`）之前插入。
+      （此时 chunk 已是 SURFACE 状态，dump 同一列即可对比 NOISE 阶段的 air/方块差异。）
+锚点（插入点上下文）:
+      chunk = world.getChunk(wx, wz, ChunkStatus.SURFACE, true);
+      <<< 在此插入下面代码
+      if (wx == 50 && wz == -23) {   // 现有 ColDiag，不动
+
+--- 插入代码 ---
+
+                    if (wx == 50 && wz == -26) {
+                        // Diag810 SURFACE 阶段同列 dump（对比 NOISE 阶段），参考 ColDiag csb
+                        StringBuilder csb810 = new StringBuilder();
+                        for (int y = 60; y <= 120; y++) {
+                            net.minecraft.block.Block bb = chunk.getBlockState(pos.set(10, y, 5)).getBlock();
+                            csb810.append(y).append('=').append(net.minecraft.registry.Registries.BLOCK.getId(bb))
+                                  .append(' ').append(net.minecraft.registry.Registries.BLOCK.getRawId(bb)).append(" | ");
+                        }
+                        System.out.println("[Diag810] col(SURFACE) (810,y,-411) y=60..120: " + csb810);
+                    }
+
+--- PATCH 3 结束 ---
+
+================================================================================
+预期输出格式示例（seed=8576294172403134396, chunk(50,-26)）
+================================================================================
+[InterpList] ... (driveCnsTo 内部，打印各 interpolator 的 delegate 结构)
+[VeinDiag] (810,76,-411) block=minecraft:air veinToggle=0.000000 delClass=... input=... rawVt=... val=... dir(808,0,-412)=... ... cnsSBX=800 SBY=-64 SBZ=-416
+[BeardDiag] (810,76,-411) beard=0.000000 finalDensity(raw)=-0.038000 finalDensityInterp=-0.038000
+[Diag810] NOISE state(810,76,-411)=minecraft:air rawId=0
+[Diag810] col(NOISE) (810,y,-411) y=60..120: 60=minecraft:air 0 | 61=minecraft:air 0 | ... | 76=minecraft:air 0 | ... | 120=minecraft:air 0 |
+[Diag810] col(SURFACE) (810,y,-411) y=60..120: 60=minecraft:stone 1 | 61=minecraft:stone 1 | ... | 76=minecraft:orange_terracotta 222 | ... | 120=minecraft:air 0 |
+
+注:
+- NOISE 阶段该位置方块若为 air（rawId=0），而 SURFACE 阶段为 terracotta —— 证实矛盾发生在
+  SURFACE 生成（surface builder）而非噪声密度，印证密度口径全部说 air 的观测。
+- BeardDiag 的 finalDensity(raw) 为无插值直接采样值（应为 -0.038 级别），finalDensityInterp 为
+  cns 插值结果；两者都 < 0 即 air。
+- cnsSBX/SBY/SBZ 应为 800/-64/-416（chunk 起点），用于确认驱动起点参数正确。
+================================================================================

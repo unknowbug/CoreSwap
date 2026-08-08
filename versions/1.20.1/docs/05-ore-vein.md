@@ -74,7 +74,7 @@ if (block < 0) block = oreVein.apply(x, y, z);
   VeinDiag 驱动真实 ChunkNoiseSampler 拿块级插值 result 对照（逐位一致 = 0.162342 vs 0.160928 同列）。
 - vein_toggle 的 wrapped 在 apply 后是 BlendDensity 包装（surface slides 结构）——识别 Interpolator 时容易拿错（挑 RangeChoice 特征 `min=-60` + `xz=1.5`）。
 
-## 2026-08-08 已验证结论（自 09 时间线提炼，原样保留在 09）
+## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）
 
 ### ✅ OreVeinSampler 逐行一致 + 顺序无关
 - **OreVeinSampler 与 Java method_40547 逐行一致**（javap 确认）
