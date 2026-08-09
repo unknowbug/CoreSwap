@@ -15,6 +15,7 @@ namespace wg { thread_local const char* g_crashContext = nullptr; }
 #include <string>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <thread>
 #include <atomic>
 
@@ -38,6 +39,7 @@ static double nowMs() {
 #include "json.h"
 #include "density.h"
 #include "density_builder.h"
+#include "beardifier.h"
 #include "blocks.h"
 #include "biome.h"
 #include "surface.h"
@@ -187,6 +189,9 @@ struct WorldgenHandle {
     // 世界种子 + BiomeAccess access seed（BiomeAccess.hashSeed(seed)，8 邻域选点用）
     int64_t seed = 0;
     int64_t biomeAccessSeed = 0;
+    // Beardifier（StructureWeightSampler）per-chunk 输入：key = chunkX<<32 ^ chunkZ
+    // 未设置的 chunk = 无结构（Beardifier=0，与现状一致）
+    std::unordered_map<int64_t, Beardifier> beardifiers;
 };
 
 // 读取噪声参数到 sampler 表
@@ -609,6 +614,15 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
     double t0 = profiling ? nowMs() : 0;
     std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
     // 3a. density（独立循环，便于剖析与后续算法优化）；y 上限 = noiseHeight（下界 128，上方留 air）
+    //     Java 语义：CellCache(add(DensityInterpolator(finalDensity), Beardifier)) —— 块级最终密度 =
+    //     插值 finalDensity + 结构 Beardifier（若该 chunk 有结构布局输入）
+    // @anchor.test("densityBuf = finalDensity + Beardifier 对齐 Java CellCache(add(...)) 语义", source="probe:block_probe!BEARD244#005")
+    const Beardifier* beard = nullptr;
+    {
+        int64_t bkey = ((int64_t)((uint64_t)(uint32_t)chunkX << 32)) ^ (uint32_t)chunkZ;
+        auto bit = h->beardifiers.find(bkey);
+        if (bit != h->beardifiers.end() && !bit->second.empty()) beard = &bit->second;
+    }
     for (int by = 0; by < h->dim.noiseHeight; by++) {
         int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
@@ -616,7 +630,9 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                 fpos.x = chunkX * 16 + bx;
                 fpos.y = wy;
                 fpos.z = chunkZ * 16 + bz;
-                densityBuf[by * 256 + bz * 16 + bx] = h->finalDensity->sample(fpos);
+                double fd = h->finalDensity->sample(fpos);
+                if (beard) fd += beard->sample(fpos.x, fpos.y, fpos.z);
+                densityBuf[by * 256 + bz * 16 + bx] = fd;
             }
         }
     }
@@ -976,6 +992,47 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
         wg::g_crashContext = nullptr;
     });
     return count;
+}
+
+// 设置指定 chunk 的 Beardifier（StructureWeightSampler）输入
+// pieces 每 8 个 int：{minX, minY, minZ, maxX, maxY, maxZ, terrain(0-3), groundLevelDelta}
+// junctions 每 3 个 int：{sourceX, sourceGroundY, sourceZ}
+void wg_set_beardifier(void* handle, int chunkX, int chunkZ,
+                       const int* pieces, int pieceCount,
+                       const int* junctions, int junctionCount) {
+    if (!handle) return;
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    int64_t key = ((int64_t)((uint64_t)(uint32_t)chunkX << 32)) ^ (uint32_t)chunkZ;
+    Beardifier& b = h->beardifiers[key];
+    b.pieces.clear();
+    b.junctions.clear();
+    if (pieces && pieceCount > 0) {
+        b.pieces.reserve((size_t)pieceCount);
+        for (int i = 0; i < pieceCount; i++) {
+            const int* p = pieces + i * 8;
+            BeardPiece bp;
+            bp.minX = p[0]; bp.minY = p[1]; bp.minZ = p[2];
+            bp.maxX = p[3]; bp.maxY = p[4]; bp.maxZ = p[5];
+            bp.terrain = (TerrainAdaptation)p[6];
+            bp.groundLevelDelta = p[7];
+            b.pieces.push_back(bp);
+        }
+    }
+    if (junctions && junctionCount > 0) {
+        b.junctions.reserve((size_t)junctionCount);
+        for (int i = 0; i < junctionCount; i++) {
+            const int* j = junctions + i * 3;
+            BeardJunction bj;
+            bj.sourceX = j[0]; bj.sourceGroundY = j[1]; bj.sourceZ = j[2];
+            b.junctions.push_back(bj);
+        }
+    }
+}
+
+void wg_clear_beardifier(void* handle) {
+    if (!handle) return;
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    h->beardifiers.clear();
 }
 
 } // extern "C"

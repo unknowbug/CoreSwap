@@ -1,0 +1,657 @@
+chunk -18 -16
+chunk -17 -16
+chunk -16 -16
+piece -239 63 -252 -239 63 -252 2 0
+piece -230 63 -252 -230 63 -252 2 0
+piece -239 63 -245 -239 63 -245 2 0
+piece -234 62 -267 -227 71 -259 2 1
+piece -244 63 -272 -238 69 -266 2 0
+piece -235 63 -258 -235 63 -258 2 0
+piece -241 62 -260 -237 69 -255 2 1
+junction -235 63 -234
+junction -235 63 -233
+junction -232 63 -236
+junction -235 63 -233
+junction -235 63 -239
+junction -233 63 -236
+junction -235 63 -234
+junction -238 64 -231
+junction -235 63 -238
+junction -239 64 -252
+junction -230 64 -252
+junction -239 64 -245
+junction -235 63 -255
+junction -237 64 -231
+junction -240 63 -234
+junction -239 63 -252
+junction -230 63 -252
+junction -239 63 -245
+junction -235 63 -254
+junction -234 63 -263
+junction -235 64 -258
+junction -237 63 -257
+junction -240 63 -233
+junction -243 63 -236
+junction -235 63 -263
+junction -235 63 -258
+junction -236 63 -257
+junction -242 63 -236
+chunk -15 -16
+piece -239 63 -252 -239 63 -252 2 0
+piece -230 63 -252 -230 63 -252 2 0
+piece -239 63 -245 -239 63 -245 2 0
+piece -234 62 -267 -227 71 -259 2 1
+piece -244 63 -272 -238 69 -266 2 0
+piece -235 63 -258 -235 63 -258 2 0
+piece -241 62 -260 -237 69 -255 2 1
+junction -235 63 -234
+junction -235 63 -233
+junction -232 63 -236
+junction -235 63 -233
+junction -235 63 -239
+junction -233 63 -236
+junction -235 63 -234
+junction -238 64 -231
+junction -235 63 -238
+junction -239 64 -252
+junction -230 64 -252
+junction -239 64 -245
+junction -235 63 -255
+junction -237 64 -231
+junction -240 63 -234
+junction -239 63 -252
+junction -230 63 -252
+junction -239 63 -245
+junction -235 63 -254
+junction -234 63 -263
+junction -235 64 -258
+junction -237 63 -257
+junction -240 63 -233
+junction -243 63 -236
+junction -235 63 -263
+junction -235 63 -258
+junction -236 63 -257
+junction -242 63 -236
+chunk -18 -15
+piece -272 63 -218 -264 68 -212 2 0
+chunk -17 -15
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+chunk -16 -15
+piece -239 63 -252 -239 63 -252 2 0
+piece -230 63 -252 -230 63 -252 2 0
+piece -239 63 -245 -239 63 -245 2 0
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -235 67 -218
+junction -235 67 -217
+junction -235 63 -234
+junction -235 63 -233
+junction -232 63 -236
+junction -235 63 -233
+junction -235 63 -239
+junction -233 63 -236
+junction -235 63 -234
+junction -235 64 -228
+junction -238 64 -231
+junction -235 63 -238
+junction -239 64 -245
+junction -235 64 -229
+junction -235 65 -229
+junction -235 65 -223
+junction -232 64 -226
+junction -238 65 -226
+junction -237 64 -231
+junction -240 63 -228
+junction -240 63 -234
+junction -239 63 -245
+junction -235 65 -228
+junction -235 65 -224
+junction -233 64 -226
+junction -230 63 -229
+junction -237 65 -226
+junction -243 63 -226
+junction -240 63 -229
+junction -240 64 -223
+junction -240 63 -233
+junction -243 63 -236
+junction -230 63 -228
+junction -242 63 -226
+junction -240 64 -224
+junction -242 63 -236
+chunk -15 -15
+piece -239 63 -252 -239 63 -252 2 0
+piece -230 63 -252 -230 63 -252 2 0
+piece -239 63 -245 -239 63 -245 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -235 67 -218
+junction -235 67 -217
+junction -235 63 -234
+junction -235 63 -233
+junction -232 63 -236
+junction -235 63 -233
+junction -235 63 -239
+junction -233 63 -236
+junction -235 63 -234
+junction -235 64 -228
+junction -238 64 -231
+junction -235 63 -238
+junction -239 64 -245
+junction -235 64 -229
+junction -235 65 -229
+junction -235 65 -223
+junction -232 64 -226
+junction -238 65 -226
+junction -237 64 -231
+junction -240 63 -228
+junction -240 63 -234
+junction -239 63 -245
+junction -235 65 -228
+junction -235 65 -224
+junction -233 64 -226
+junction -230 63 -229
+junction -237 65 -226
+junction -243 63 -226
+junction -240 63 -229
+junction -240 64 -223
+junction -240 63 -233
+junction -243 63 -236
+junction -230 63 -228
+junction -242 63 -226
+junction -240 64 -224
+junction -242 63 -236
+chunk -18 -14
+piece -262 63 -197 -260 66 -195 2 0
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+junction -263 63 -203
+junction -271 63 -199
+junction -264 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -271 63 -198
+junction -263 63 -210
+junction -268 63 -212
+junction -273 63 -210
+junction -266 62 -203
+junction -268 63 -211
+junction -272 63 -210
+chunk -17 -14
+piece -254 65 -207 -242 70 -199 2 1
+piece -256 66 -197 -254 69 -195 2 0
+piece -249 66 -197 -249 66 -197 2 0
+piece -249 66 -206 -249 68 -206 2 0
+piece -254 66 -199 -254 66 -199 2 0
+piece -262 63 -197 -260 66 -195 2 0
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -250 66 -199
+junction -250 66 -198
+junction -249 66 -206
+junction -254 66 -199
+junction -261 63 -199
+junction -249 65 -206
+junction -254 65 -199
+junction -261 63 -198
+junction -261 63 -208
+junction -263 63 -203
+junction -271 63 -199
+junction -261 63 -207
+junction -261 63 -213
+junction -264 63 -210
+junction -261 64 -210
+junction -258 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -271 63 -198
+junction -261 63 -212
+junction -263 63 -210
+junction -268 63 -212
+junction -273 63 -210
+junction -261 63 -210
+junction -259 63 -210
+junction -252 63 -212
+junction -247 64 -210
+junction -266 62 -203
+junction -268 63 -211
+junction -272 63 -210
+junction -252 63 -211
+junction -248 64 -210
+chunk -16 -14
+piece -240 65 -201 -231 71 -192 2 1
+piece -233 67 -197 -233 69 -197 2 -1
+piece -240 62 -198 -237 64 -195 2 4
+piece -254 65 -207 -242 70 -199 2 1
+piece -256 66 -197 -254 69 -195 2 0
+piece -249 66 -197 -249 66 -197 2 0
+piece -243 66 -197 -243 66 -197 2 0
+piece -233 67 -211 -229 74 -206 2 1
+piece -249 66 -206 -249 68 -206 2 0
+piece -254 66 -199 -254 66 -199 2 0
+piece -262 63 -197 -260 66 -195 2 0
+piece -230 68 -207 -230 68 -207 2 0
+piece -231 68 -210 -231 70 -210 2 0
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -237 66 -198
+junction -235 66 -202
+junction -250 66 -199
+junction -237 67 -198
+junction -235 66 -201
+junction -235 67 -218
+junction -233 68 -209
+junction -250 66 -198
+junction -249 66 -206
+junction -254 66 -199
+junction -261 63 -199
+junction -235 67 -217
+junction -235 63 -234
+junction -234 68 -209
+junction -230 68 -207
+junction -231 68 -210
+junction -249 65 -206
+junction -254 65 -199
+junction -261 63 -198
+junction -261 63 -208
+junction -263 63 -203
+junction -235 63 -233
+junction -235 63 -233
+junction -230 67 -207
+junction -231 67 -210
+junction -261 63 -207
+junction -261 63 -213
+junction -264 63 -210
+junction -261 64 -210
+junction -258 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -235 63 -234
+junction -235 64 -228
+junction -238 64 -231
+junction -261 63 -212
+junction -263 63 -210
+junction -261 63 -210
+junction -259 63 -210
+junction -252 63 -212
+junction -247 64 -210
+junction -266 62 -203
+junction -235 64 -229
+junction -235 65 -229
+junction -235 65 -223
+junction -232 64 -226
+junction -238 65 -226
+junction -237 64 -231
+junction -240 63 -228
+junction -240 63 -234
+junction -252 63 -211
+junction -248 64 -210
+junction -245 64 -213
+junction -235 65 -228
+junction -235 65 -224
+junction -233 64 -226
+junction -230 63 -229
+junction -237 65 -226
+junction -243 63 -226
+junction -240 63 -229
+junction -240 64 -223
+junction -240 63 -233
+junction -245 64 -212
+junction -230 63 -228
+junction -242 63 -226
+junction -240 64 -224
+chunk -15 -14
+piece -240 65 -201 -231 71 -192 2 1
+piece -233 67 -197 -233 69 -197 2 -1
+piece -240 62 -198 -237 64 -195 2 4
+piece -254 65 -207 -242 70 -199 2 1
+piece -249 66 -197 -249 66 -197 2 0
+piece -243 66 -197 -243 66 -197 2 0
+piece -233 67 -211 -229 74 -206 2 1
+piece -249 66 -206 -249 68 -206 2 0
+piece -230 68 -207 -230 68 -207 2 0
+piece -231 68 -210 -231 70 -210 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -237 66 -198
+junction -235 66 -202
+junction -250 66 -199
+junction -228 66 -199
+junction -237 67 -198
+junction -235 66 -201
+junction -235 67 -218
+junction -233 68 -209
+junction -250 66 -198
+junction -249 66 -206
+junction -228 66 -198
+junction -235 67 -217
+junction -235 63 -234
+junction -234 68 -209
+junction -230 68 -207
+junction -231 68 -210
+junction -249 65 -206
+junction -235 63 -233
+junction -235 63 -233
+junction -230 67 -207
+junction -231 67 -210
+junction -235 63 -234
+junction -235 64 -228
+junction -238 64 -231
+junction -247 64 -210
+junction -235 64 -229
+junction -235 65 -229
+junction -235 65 -223
+junction -232 64 -226
+junction -238 65 -226
+junction -237 64 -231
+junction -240 63 -228
+junction -240 63 -234
+junction -248 64 -210
+junction -245 64 -213
+junction -235 65 -228
+junction -235 65 -224
+junction -233 64 -226
+junction -230 63 -229
+junction -237 65 -226
+junction -243 63 -226
+junction -240 63 -229
+junction -240 64 -223
+junction -240 63 -233
+junction -245 64 -212
+junction -230 63 -228
+junction -242 63 -226
+junction -240 64 -224
+chunk -18 -13
+piece -262 63 -197 -260 66 -195 2 0
+piece -270 62 -193 -263 71 -185 2 1
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+junction -264 63 -196
+junction -263 63 -196
+junction -269 63 -196
+junction -263 63 -189
+junction -263 63 -203
+junction -268 63 -196
+junction -271 63 -193
+junction -271 63 -199
+junction -274 63 -196
+junction -262 63 -189
+junction -264 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -271 63 -194
+junction -271 63 -198
+junction -273 63 -196
+junction -290 63 -196
+junction -263 63 -210
+junction -268 63 -212
+junction -273 63 -210
+junction -266 62 -203
+junction -289 63 -196
+junction -298 63 -188
+junction -268 63 -211
+junction -272 63 -210
+junction -298 63 -189
+chunk -17 -13
+piece -254 65 -207 -242 70 -199 2 1
+piece -253 66 -195 -247 72 -189 2 0
+piece -256 66 -197 -254 69 -195 2 0
+piece -249 66 -197 -249 66 -197 2 0
+piece -249 66 -206 -249 68 -206 2 0
+piece -254 66 -199 -254 66 -199 2 0
+piece -262 63 -197 -260 66 -195 2 0
+piece -250 67 -192 -250 69 -192 2 -1
+piece -270 62 -193 -263 71 -185 2 1
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -250 66 -199
+junction -259 64 -196
+junction -250 66 -195
+junction -255 67 -196
+junction -249 67 -197
+junction -250 66 -198
+junction -249 66 -206
+junction -254 66 -199
+junction -258 64 -196
+junction -258 63 -196
+junction -261 64 -196
+junction -264 63 -196
+junction -261 63 -193
+junction -261 63 -199
+junction -250 66 -196
+junction -250 66 -192
+junction -255 66 -196
+junction -249 66 -197
+junction -249 65 -206
+junction -254 65 -199
+junction -259 63 -196
+junction -261 63 -196
+junction -263 63 -196
+junction -269 63 -196
+junction -261 63 -194
+junction -261 65 -184
+junction -263 63 -189
+junction -261 63 -198
+junction -261 63 -208
+junction -263 63 -203
+junction -250 65 -192
+junction -268 63 -196
+junction -271 63 -193
+junction -271 63 -199
+junction -274 63 -196
+junction -261 65 -185
+junction -262 63 -189
+junction -261 63 -207
+junction -261 63 -213
+junction -264 63 -210
+junction -261 64 -210
+junction -258 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -271 63 -194
+junction -271 63 -198
+junction -273 63 -196
+junction -261 63 -212
+junction -263 63 -210
+junction -268 63 -212
+junction -273 63 -210
+junction -261 63 -210
+junction -259 63 -210
+junction -252 63 -212
+junction -247 64 -210
+junction -266 62 -203
+junction -268 63 -211
+junction -272 63 -210
+junction -252 63 -211
+junction -248 64 -210
+chunk -16 -13
+piece -240 65 -201 -231 71 -192 2 1
+piece -238 67 -194 -238 69 -194 2 -1
+piece -232 66 -193 -232 68 -193 2 0
+piece -239 66 -193 -239 68 -193 2 0
+piece -233 67 -197 -233 69 -197 2 -1
+piece -236 67 -194 -236 69 -194 2 -1
+piece -240 62 -198 -237 64 -195 2 4
+piece -234 66 -193 -234 68 -193 2 0
+piece -254 65 -207 -242 70 -199 2 1
+piece -253 66 -195 -247 72 -189 2 0
+piece -256 66 -197 -254 69 -195 2 0
+piece -249 66 -197 -249 66 -197 2 0
+piece -243 66 -197 -243 66 -197 2 0
+piece -233 67 -211 -229 74 -206 2 1
+piece -249 66 -206 -249 68 -206 2 0
+piece -254 66 -199 -254 66 -199 2 0
+piece -262 63 -197 -260 66 -195 2 0
+piece -250 67 -192 -250 69 -192 2 -1
+piece -230 68 -207 -230 68 -207 2 0
+piece -231 68 -210 -231 70 -210 2 0
+piece -270 62 -193 -263 71 -185 2 1
+piece -269 63 -206 -263 69 -200 2 0
+piece -261 63 -210 -261 63 -210 2 0
+piece -266 64 -203 -266 66 -203 2 -1
+piece -272 63 -218 -264 68 -212 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -241 66 -197
+junction -238 66 -194
+junction -232 66 -193
+junction -230 66 -196
+junction -239 66 -193
+junction -233 66 -197
+junction -236 66 -194
+junction -237 66 -198
+junction -234 66 -193
+junction -235 66 -202
+junction -236 66 -191
+junction -240 66 -197
+junction -250 66 -199
+junction -259 64 -196
+junction -250 66 -195
+junction -255 67 -196
+junction -249 67 -197
+junction -243 67 -197
+junction -238 65 -194
+junction -232 65 -193
+junction -231 66 -196
+junction -239 65 -193
+junction -233 65 -197
+junction -236 65 -194
+junction -237 67 -198
+junction -234 65 -193
+junction -235 66 -201
+junction -235 67 -218
+junction -233 68 -209
+junction -236 66 -192
+junction -239 65 -189
+junction -250 66 -198
+junction -249 66 -206
+junction -254 66 -199
+junction -258 64 -196
+junction -258 63 -196
+junction -261 64 -196
+junction -264 63 -196
+junction -261 63 -193
+junction -261 63 -199
+junction -250 66 -196
+junction -250 66 -192
+junction -255 66 -196
+junction -249 66 -197
+junction -243 66 -197
+junction -235 67 -217
+junction -234 68 -209
+junction -230 68 -207
+junction -231 68 -210
+junction -238 65 -189
+junction -249 65 -206
+junction -254 65 -199
+junction -259 63 -196
+junction -261 63 -196
+junction -263 63 -196
+junction -261 63 -194
+junction -261 65 -184
+junction -263 63 -189
+junction -261 63 -198
+junction -261 63 -208
+junction -263 63 -203
+junction -250 65 -192
+junction -230 67 -207
+junction -231 67 -210
+junction -261 65 -185
+junction -262 63 -189
+junction -261 63 -207
+junction -261 63 -213
+junction -264 63 -210
+junction -261 64 -210
+junction -258 63 -210
+junction -262 63 -203
+junction -266 63 -203
+junction -261 63 -212
+junction -263 63 -210
+junction -261 63 -210
+junction -259 63 -210
+junction -252 63 -212
+junction -247 64 -210
+junction -266 62 -203
+junction -252 63 -211
+junction -248 64 -210
+junction -245 64 -213
+junction -245 64 -212
+chunk -15 -13
+piece -240 65 -201 -231 71 -192 2 1
+piece -238 67 -194 -238 69 -194 2 -1
+piece -232 66 -193 -232 68 -193 2 0
+piece -239 66 -193 -239 68 -193 2 0
+piece -233 67 -197 -233 69 -197 2 -1
+piece -236 67 -194 -236 69 -194 2 -1
+piece -240 62 -198 -237 64 -195 2 4
+piece -234 66 -193 -234 68 -193 2 0
+piece -254 65 -207 -242 70 -199 2 1
+piece -253 66 -195 -247 72 -189 2 0
+piece -249 66 -197 -249 66 -197 2 0
+piece -243 66 -197 -243 66 -197 2 0
+piece -233 67 -211 -229 74 -206 2 1
+piece -249 66 -206 -249 68 -206 2 0
+piece -250 67 -192 -250 69 -192 2 -1
+piece -230 68 -207 -230 68 -207 2 0
+piece -231 68 -210 -231 70 -210 2 0
+piece -258 62 -220 -248 68 -212 2 1
+junction -241 66 -197
+junction -238 66 -194
+junction -232 66 -193
+junction -230 66 -196
+junction -239 66 -193
+junction -233 66 -197
+junction -236 66 -194
+junction -237 66 -198
+junction -234 66 -193
+junction -235 66 -202
+junction -236 66 -191
+junction -240 66 -197
+junction -250 66 -199
+junction -250 66 -195
+junction -249 67 -197
+junction -243 67 -197
+junction -238 65 -194
+junction -232 65 -193
+junction -231 66 -196
+junction -228 66 -199
+junction -239 65 -193
+junction -233 65 -197
+junction -236 65 -194
+junction -237 67 -198
+junction -234 65 -193
+junction -235 66 -201
+junction -235 67 -218
+junction -233 68 -209
+junction -236 66 -192
+junction -239 65 -189
+junction -250 66 -198
+junction -249 66 -206
+junction -250 66 -196
+junction -250 66 -192
+junction -249 66 -197
+junction -243 66 -197
+junction -228 66 -198
+junction -235 67 -217
+junction -234 68 -209
+junction -230 68 -207
+junction -231 68 -210
+junction -238 65 -189
+junction -249 65 -206
+junction -250 65 -192
+junction -230 67 -207
+junction -231 67 -210
+junction -247 64 -210
+junction -248 64 -210
+junction -245 64 -213
+junction -245 64 -212

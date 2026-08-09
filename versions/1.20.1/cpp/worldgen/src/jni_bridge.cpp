@@ -15,6 +15,21 @@ Java_wg_WorldGen_nativeProbe(JNIEnv* /*env*/, jclass /*cls*/,
 
 // ---- CoreSwap worldgen JNI 桥 ----
 
+// 设置指定 chunk 的 Beardifier（StructureWeightSampler）输入（wg_set_beardifier 的 JNI 包装）
+// pieces 每 8 int：{minX,minY,minZ,maxX,maxY,maxZ,terrain(0-3),groundLevelDelta}；junctions 每 3 int：{sourceX,sourceGroundY,sourceZ}
+JNIEXPORT void JNICALL
+Java_wg_CppWorldgen_setBeardifier(JNIEnv* env, jclass /*cls*/, jlong handle,
+                                  jint chunkX, jint chunkZ,
+                                  jintArray pieces, jint pieceCount,
+                                  jintArray junctions, jint junctionCount) {
+    jint* p = pieces ? env->GetIntArrayElements(pieces, nullptr) : nullptr;
+    jint* j = junctions ? env->GetIntArrayElements(junctions, nullptr) : nullptr;
+    wg_set_beardifier(reinterpret_cast<void*>(handle), chunkX, chunkZ,
+                      p, (int)pieceCount, j, (int)junctionCount);
+    if (p) env->ReleaseIntArrayElements(pieces, p, JNI_ABORT);
+    if (j) env->ReleaseIntArrayElements(junctions, j, JNI_ABORT);
+}
+
 JNIEXPORT jlong JNICALL
 Java_wg_CppWorldgen_init(JNIEnv* env, jclass /*cls*/, jlong seed, jstring worldgenDir) {
     const char* dir = worldgenDir ? env->GetStringUTFChars(worldgenDir, nullptr) : nullptr;

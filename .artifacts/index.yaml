@@ -114,3 +114,27 @@ entries:
     path: '../.investigations/-288-unclosed/cmd-output/beard244_run1.txt'
     kind: evidence
     status: candidate
+  - id: 're-code:-288-unclosed:beardifier-verdict'
+    path: '../.investigations/-288-unclosed/beardifier-verdict.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:-288-unclosed:beardifier-impl'
+    path: '../.investigations/000-架构设计/架构计划-beardifier.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:-288-unclosed:beard-m288-evidence'
+    path: '../.investigations/-288-unclosed/cmd-output/beard_m288.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:-288-unclosed:beardifier-verdict-review'
+    path: '../.investigations/-288-unclosed/review-002.md'
+    kind: review
+    status: candidate
+  - id: 're-code:-288-unclosed:beard-t3-evidence'
+    path: '../.investigations/-288-unclosed/cmd-output/t_beard3_run.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:-288-unclosed:bp288-beard-evidence'
+    path: '../.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt'
+    kind: evidence
+    status: candidate

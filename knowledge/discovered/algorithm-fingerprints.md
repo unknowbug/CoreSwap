@@ -82,3 +82,37 @@ eroded_badlands 每列在 buildSurface 规则应用前，先用 2D 噪声算 pil
 - **C++ buildSurface 对 air 跳过规则是「缺前置步骤」的信号**——某 biome 在 NOISE 是 air 但 SURFACE 有方块时，先查 Java 的 pillar/iceberg 类前置填充（placeIceberg 是 frozen ocean 同类，同样缺失）
 - 跨版本：1.18+ 都有 badlands pillar（1.20.1 公式 64+min(...)）
 - 3200 参照污染教训：**server level-seed 固定 8576 时，BlockProbe 重导的 blocks 文件是 8576 世界**——不能只看文件名/header 的 benchSeed，导出后核对 worldSeed
+
+## 发现 #5: StructureWeightSampler（Beardifier）算法指纹——24³ 权重表 + fastInverseSqrt 位操作 + sample 四分支
+
+**发现时间:** 2026-08-09
+**发现者:** worker（Beardifier 实现，-288 海底边界闭合）
+**来源定位:** MC 1.20.1 StructureWeightSampler.java / C++ beardifier.h（versions/1.20.1/cpp/worldgen/src/beardifier.h）
+**置信度:** confirmed（t_beard3 17/17 逐位一致 + -288 闭合 +10777 块 + 8576/3200 零退化）
+**module:** re-code
+
+### 观察
+Beardifier 是结构密度修正（StructureWeightSampler）：`ChunkNoiseSampler.getActualDensityFunction` L469-470 把 `Beardifier.INSTANCE`（恒 0）替换为真实 beardifying → density 链 = CellCache.add(DensityInterpolator(finalDensity), Beardifier)。算法四要点：
+- **24³=13824 float 权重表**：惰性预计算 `(float)Math.pow(Math.E, -squaredMagnitude(x, y+0.5, z)/16)`——**Java 用 Math.pow(Math.E,...)（fdlibm pow 通用路径）不是 Math.exp**；表索引 `TABLE[k*576 + i*24 + j]`（k=z+12, i=x+12, j=y+12，越界 0）
+- **getMagnitudeWeight = clampedMap(magnitude(x, y/2, z), 0, 6, 1, 0)**——clampedLerp 链（getLerpProgress=(v-s)/(e-s) 不 clamp → clampedLerp 才 clamp）
+- **getStructureWeight = 表查找 + `-d * fastInverseSqrt(e/2)/2` 因子**（d=yy+0.5, e=squaredMagnitude(x,d,z)）
+- **fastInverseSqrt 位操作**：`l = 6910469410427058090LL - (l >> 1)`（Double.doubleToRawLongBits → 有符号算术右移 1 → longBitsToDouble）→ `x*(1.5 - 0.5*x_orig*x*x)` Newton 一步
+- **sample 四分支**（按 piece.terrain）：NONE 跳过 / BURY 累加 getMagnitudeWeight / BEARD_THIN·BEARD_BOX 累加 getStructureWeight×0.8；junction 循环累加 getStructureWeight(r,l,m,l)×0.4；垂直项 q 按 terrain：BURY/BEARD_THIN = blockY-o、BEARD_BOX = max(0, max(o-blockY, blockY-maxY))
+- piece 记录：box（minX/minY/minZ/maxX/maxY/maxZ 含边界）+ terrain（StructureTerrainAdaptation 序数 NONE=0/BURY=1/BEARD_THIN=2/BEARD_BOX=3）+ groundLevelDelta
+
+### 证据
+- t_beard3：(-244,50..66,-256) C++ vs Java BEARD-244 **17/17 逐位一致**（.investigations/-288-unclosed/cmd-output/t_beard3_run.txt）
+- block_probe -288：TOTAL 95.7379%→96.4221%（+10777 块闭合，MISMATCH 67039→56275，.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt）
+- 结构布局参照：.investigations/-288-unclosed/cmd-output/beard_m288.txt（16 chunks：135 pieces + 506 junctions）
+- verdict：.investigations/-288-unclosed/beardifier-verdict.md（density 链等式 8/8 点 ≤3e-6 闭环）
+
+### 如何利用
+- **跨版本迁移（1.18/1.19）**：
+  - piece 记录字段与 terrainAdaptation 枚举**序数**各版本可能不同——迁移时 diff 各版本 StructureWeightSampler.java 的 Piece 字段 / StructureTerrainAdaptation 序数（按序数传，别硬编码字符串名）
+  - 结构布局数据走「vanilla 同源构造（createStructureWeightSampler）+ 反射提取」喂入——**不需要复刻 Java 结构生成器**，跨版本只改构造入口
+- **C++ 移植硬约束**：
+  - `Math.pow(Math.E,...)` 不能换成 `Math.exp`（数学等价但 fdlibm pow 路径位级可能差 1 ulp）——C++ 用 `std::pow(M_E,...)` 或字面量 2.718281828459045
+  - 权重表是 **float 截断**（`(float)` 强转）：先 double 算完整再截 float，不能全程 double
+  - fastInverseSqrt 的 **MSVC long=32 位坑**：必须 int64_t/long long（Java long 有符号算术右移 >>）
+  - clampedMap 链两步不能合并：getLerpProgress 不 clamp、clampedLerp 才 clamp
+- **判定用**：`Beardifier.INSTANCE.sample()` 恒 0 但 cns 替换为真实 beardifying——**只看静态实现会漏掉真实 Beardifier**（density 链必须看 getActualDensityFunction 的替换逻辑）

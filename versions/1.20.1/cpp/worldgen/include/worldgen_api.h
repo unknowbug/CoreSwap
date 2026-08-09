@@ -44,6 +44,18 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out);
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads);
 
+// 设置指定 chunk 的 Beardifier（StructureWeightSampler 结构密度修正）输入。
+// 数据为 vanilla createStructureWeightSampler 产出的 piece/junction 列表：
+//   pieces:   每 8 个 int = {minX, minY, minZ, maxX, maxY, maxZ, terrain, groundLevelDelta}
+//             terrain 序数：0=NONE 1=BURY 2=BEARD_THIN 3=BEARD_BOX
+//   junctions:每 3 个 int = {sourceX, sourceGroundY, sourceZ}
+// 未设置 = 无结构（Beardifier=0，行为与现状一致）。线程安全：调用须在 fill 之前。
+void wg_set_beardifier(void* handle, int chunkX, int chunkZ,
+                       const int* pieces, int pieceCount,
+                       const int* junctions, int junctionCount);
+// 清空全部 chunk 的 Beardifier 输入（可选，destroy 前调用）
+void wg_clear_beardifier(void* handle);
+
 // 剖析统计输出（WG_PROFILE=1 时启用，运行结束后调用打印到 stderr；无 Profile 时为空操作）
 void wg_profile_dump(void);
 void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen);

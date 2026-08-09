@@ -968,3 +968,43 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
   - core.plan 轻量模板加 fan-out 预置节、重量模板加第 8 节
 - CoreSwap 同步：install.py v2.0.0 重装（16 skills + 4 模块声明，framework.json source_commit=e4e88c4）；AGENTS.md 补自检提示；knowledge 发现 #7（上一条）
 - ✅ 结案：fan-out 从「可选工具」升级为「强制触发点」，三触发点并列独立（scout 勘探→fan-out 分叉→judge 审查）
+
+---
+
+## 2026-08-09：✅ Beardifier 实现（StructureWeightSampler 结构密度修正）——-288 海底边界闭合 +10777 块（已结案）
+
+> **结论已提炼** → docs/04 追加 3（海底边界结案）+ docs/06 追加 5（surface 级联）+ discovered 算法指纹 #5。本条保留完整链条。
+
+### 起因
+- verdict-04（2026-08-09）裁决：海底边界 ≈6710 块根因 = **C++ 缺失 Beardifier**（StructureWeightSampler 结构密度修正，NOISE 阶段 density 链 CellCache(add(finalDensity, Beardifier)) 缺项）——04 篇「ocean ruin 结构覆盖」归因推翻，B3「aquifer 液面链待修」撤销
+- 用户拍板：**列入范围内待修**（结构相关但影响 NOISE 阶段 density 链）
+
+### 架构设计（Java 喂数据方案）
+- 结构布局（pieces/junctions）由 Java 侧 vanilla 机制构造：`NoiseChunkGenerator.populateNoise → doFill` 拦截处调 `StructureWeightSampler.createStructureWeightSampler(world, chunkPos)`——**C++ 不复刻结构生成器**，只收数据 + 移植纯算法
+- `CppBridge.feedBeardifier`：vanilla 同源构造 + 反射提取 piece/junction → int[] → JNI `CppWorldgen.setBeardifier` → C++ per-chunk `beardifiers` map（key = chunkX<<32^chunkZ）；无输入则不加、行为不变（8576/3200 零退化保证）
+
+### 算法移植（beardifier.h）
+- **24³ float 权重表惰性预计算**：`(float)calculateStructureWeight = Math.pow(Math.E, -squaredMagnitude(x, y+0.5, z)/16)`——**Java 用 pow(Math.E,...) 非 exp**
+- `getMagnitudeWeight` = clampedMap(magnitude(x, y/2, z), 0, 6, 1, 0)；`getStructureWeight` = 表查找 + `-d * fastInverseSqrt(e/2)/2`（d = yy+0.5）
+- **fastInverseSqrt 位操作**：`l = 6910469410427058090LL - (l >> 1)` + Newton 一步（**MSVC long=32 位 → 必须 int64_t**）
+- sample 四分支：NONE 跳过 / BURY getMagnitudeWeight / BEARD_THIN·BEARD_BOX getStructureWeight×0.8；junction 循环 getStructureWeight(r,l,m,l)×0.4
+
+### 接入（per-chunk + JNI + mixin）
+- worldgen_api.cpp：`wg_set_beardifier`（pieces 每 8 int：bbox6 + terrain + groundLevelDelta；junctions 每 3 int）+ fillOneChunk 3a 段 densityBuf = finalDensity + beard
+- MC 工程（本地 M）：CppWorldgen.setBeardifier native 声明 + NoiseChunkGeneratorMixin.populateNoise 拦截处喂数据 + BlockProbe BEARD-DUMP 段
+
+### 验证（全链）
+- **算法对拍 17/17 逐位一致**：t_beard3（C++ Beardifier）vs BEARD-244 真实参照（beard244_run1.txt）(-244,50..66,-256) 全 17 点（含 y=50=0、y=58 翻转、y=60 峰值、y=63 翻负）
+- **block_probe -288 闭合**：TOTAL 95.7379% → **96.4221%（+10777 块，MISMATCH 67039 → 56275）**；闭合点 86% 在海底边界 y=52..62（9280 块），与 verdict-04 预期 6710 吻合且超预期（村庄 12 格内其他传导差异也闭合）
+- **零退化**：8576 99.9994% / 3200 99.9997%（无 beard 输入时行为不变）；scan_cpp_anchors invalid=0
+- judge 审查 → **用户拍板 candidate**（2026-08-09）
+
+### 坑（勿重蹈）
+- **BEARD-DUMP 初版 cns null 静默跳过**：z=-13 时 chunk 连带推进导致 cns 生命周期问题 → dump 缺失且无报错；修复 = 不依赖 cns，直接 `createStructureWeightSampler(structureAccessor, pos)` 同源构造（BEARD-DUMP 与实机 CppBridge.feedBeardifier 同源）
+- **t_beard2 臆造占位值误报**：测试脚本用臆造占位值 0 当参照 → 误报 y=50..54/64..66 MISMATCH（实为参照错）；用真实参照（beard244_run1.txt）重测 17/17 全过——**对拍参照必须来自真实导出，不能臆造**
+
+### 产物
+- verdict：`.investigations/-288-unclosed/beardifier-verdict.md`
+- 结构布局参照：`.investigations/-288-unclosed/cmd-output/beard_m288.txt`（16 chunks：135 pieces + 506 junctions）
+- 算法对拍：`.investigations/-288-unclosed/cmd-output/t_beard3_run.txt`
+- block_probe：`.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt`

@@ -1,0 +1,4 @@
+
+[BEARD] loaded 16 chunk(s) from E:\tmp\bearddump\beard_m288.txt
+TOTAL: match=1516589/1572864 (96.4221%) nonAir match=451013/501102 (90.0042%)
+

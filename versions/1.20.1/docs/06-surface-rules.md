@@ -170,3 +170,20 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **B3（aquifer e 翻转）否定**：AQF-DUMP 实测 (-244,55..62,-256) fl2.y=fl3.y=fl4.y=63 全等 → Java e=0（与 C++ 一致）——海底边界 **不是 aquifer 液面链差**
 - **根因 = C++ 缺失 Beardifier**（StructureWeightSampler 结构密度修正）：(-244,58..61,-256) Beardifier 非零（+0.092~+0.166）翻转 density 符号 → aquifer 判 solid → NOISE-BLK stone 铁证吻合；海底边界 ≈6710 块主体归因 Beardifier 缺失（结构相关，用户已拍板列入范围内待修）
 - **坑**：03 篇「Beardifier.sample 恒 0.0」旧结论错误——`DensityFunctionTypes.Beardifier.INSTANCE.sample()` 恒 0 但 ChunkNoiseSampler L469-470 把 INSTANCE 替换为真实 `beardifying`（StructureWeightSampler）；只看静态实现会漏掉真实 Beardifier
+
+## 2026-08-09 已验证结论（追加 5）：Beardifier 与 surface 的级联边界差异（13 块新增 mismatch 归因）
+
+### 机制
+- Beardifier 抬 density → 海底判定 solid → **表面分层（gravel/grass/dirt）边界移动**：Beardifier 在结构附近把 density 翻正，aquifer 判 solid 后，SURFACE 阶段规则（stoneDepth/water/表面分层）在该列重新命中，表层方块相对无 Beardifier 时换层/上移
+- 即 surface 规则本体无 bug，但**底层实心位置被 Beardifier 改变后，表面分层边界跟随移动**——属 Beardifier 与 surface 的级联效应
+
+### 13 块新增 mismatch 归因（全部为级联边界，非 Beardifier 算法错误）
+- (-263,53,-198)：beard 抬高 density 后 C++ surface **gravel→stone**（vanilla 保持 gravel）
+- (-247..-243,65,-204/-201 等 12 点)：beard 抬高后 C++ **grass_block/dirt 分层与 vanilla 差一位**
+- 均位于 Beardifier 峰值翻转边界附近（y=60 峰值 / y=63 翻负的过渡区）
+- **判定**：surface rules 与 Beardifier 级联的边界差异 = **surface 独立课题（待后续立项）**——Beardifier 算法本身 17/17 逐位一致不受影响
+
+### 验证基线（Beardifier 实现后）
+- block_probe -288：+10777 块闭合、新增 mismatch 仅 13 块（净收益 99.88%）
+- 8576 99.9994% / 3200 99.9997% 零退化（无结构输入时行为不变）
+- 产物：`.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt`、`.investigations/-288-unclosed/beardifier-verdict.md`（§三 3.3 闭合分布）

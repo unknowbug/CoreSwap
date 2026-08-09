@@ -26,6 +26,56 @@ static int64_t be64(int64_t v) {
                      ((u >> 8) & 0xFF000000ULL) | ((u >> 24) & 0xFF0000ULL) | ((u >> 40) & 0xFF00ULL) | ((u >> 56) & 0xFFULL));
 }
 
+// 解析 Beardifier 结构布局文件（BlockProbe -Dbeard.dump 输出格式）：
+//   chunk <cx> <cz>
+//   piece <minX> <minY> <minZ> <maxX> <maxY> <maxZ> <terrain 0-3> <groundLevelDelta>
+//   junction <sourceX> <sourceGroundY> <sourceZ>
+// 返回解析的 chunk 段数；对每个段调 wg_set_beardifier。
+static int loadBeardFile(void* h, const std::string& path) {
+    FILE* f = fopen(path.c_str(), "r");
+    if (!f) { std::fprintf(stderr, "cannot open beard file %s\n", path.c_str()); return -1; }
+    char line[512];
+    int cx = 0, cz = 0;
+    bool haveChunk = false;
+    std::vector<int> pieces;      // 每 8 int
+    std::vector<int> junctions;   // 每 3 int
+    int chunks = 0;
+    auto flush = [&]() {
+        if (!haveChunk) return;
+        wg_set_beardifier(h, cx, cz,
+                          pieces.empty() ? nullptr : pieces.data(), (int)(pieces.size() / 8),
+                          junctions.empty() ? nullptr : junctions.data(), (int)(junctions.size() / 3));
+        pieces.clear();
+        junctions.clear();
+        haveChunk = false;
+        chunks++;
+    };
+    while (fgets(line, sizeof(line), f)) {
+        char tag[32];
+        if (sscanf(line, "%31s", tag) != 1) continue;
+        if (strcmp(tag, "chunk") == 0) {
+            flush();
+            if (sscanf(line, "chunk %d %d", &cx, &cz) == 2) haveChunk = true;
+        } else if (strcmp(tag, "piece") == 0) {
+            int mnX, mnY, mnZ, mxX, mxY, mxZ, t, gd;
+            if (sscanf(line, "piece %d %d %d %d %d %d %d %d", &mnX, &mnY, &mnZ, &mxX, &mxY, &mxZ, &t, &gd) == 8) {
+                pieces.push_back(mnX); pieces.push_back(mnY); pieces.push_back(mnZ);
+                pieces.push_back(mxX); pieces.push_back(mxY); pieces.push_back(mxZ);
+                pieces.push_back(t);   pieces.push_back(gd);
+            }
+        } else if (strcmp(tag, "junction") == 0) {
+            int sx, sy, sz;
+            if (sscanf(line, "junction %d %d %d", &sx, &sy, &sz) == 3) {
+                junctions.push_back(sx); junctions.push_back(sy); junctions.push_back(sz);
+            }
+        }
+    }
+    flush();
+    fclose(f);
+    std::fprintf(stderr, "[BEARD] loaded %d chunk(s) from %s\n", chunks, path.c_str());
+    return chunks;
+}
+
 int main(int argc, char** argv) {
     try {
     if (argc < 4) {
@@ -40,10 +90,12 @@ int main(int argc, char** argv) {
     int threadsArg = 0;
     int dimension = 0;
     bool listMismatch = false;
+    std::string beardFile;
     for (int a = 4; a < argc; a++) {
         if (std::string(argv[a]) == "-threads" && a + 1 < argc) threadsArg = std::atoi(argv[a + 1]);
         else if (std::string(argv[a]) == "-dimension" && a + 1 < argc) dimension = std::atoi(argv[a + 1]);
         else if (std::string(argv[a]) == "-mismatch") listMismatch = true;
+        else if (std::string(argv[a]) == "-beard" && a + 1 < argc) beardFile = argv[a + 1];
         else if (std::string(argv[a]) == "-crashTest") {
             wg::installCrashHandler();
             std::fprintf(stderr, "[CRASH-TEST] 故意解引用空指针…\n");
@@ -184,6 +236,7 @@ int main(int argc, char** argv) {
     // 并行生成全部 chunk（线程数：-threads N 或 0=自适应 min(CPU, chunk 数)；结果与串行逐位一致）
     std::vector<int32_t*> outs;
     for (auto& g : gotAll) outs.push_back(g.data());
+    if (!beardFile.empty()) loadBeardFile(h, beardFile);
     auto tp0 = std::chrono::steady_clock::now();
     wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), threadsArg);
     auto tp1 = std::chrono::steady_clock::now();

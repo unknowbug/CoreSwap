@@ -120,3 +120,17 @@ for (y = 320; y >= -64; y -= 8)
 - aquifer.h `method_43718`（erosion<-0.225 && depth>0.9）阈值：`-0.225`→`-0.225f`、`0.9`→`0.9f`——Java 源码是 **float 常量比较**（float 提升），C++ 原用 double 字面量等价但类型未对齐；语义零变化，仅对齐 Java 类型。
 - `fluidLevel != INT32_MAX` → `!= -32512`——Java `field_35479` = -32512 是**无效液面常量**（「未初始化」哨兵）；C++ 原用 INT32_MAX 魔法数，值等价但语义/可读性差，对齐 Java 常量名。
 - 两处均为 judge 建议的顺手对齐（与 06 篇追加 3 同批），8576/3200 回归零退化。
+
+## 2026-08-09 已验证结论（追加 3）：海底边界根因结案——Beardifier 缺失已实现闭合（✅ 已结案，candidate）
+
+### ✅ 根因裁决（verdict-04，2026-08-09 candidate + 用户拍板）
+- **海底边界 ≈6710 块根因 = C++ 缺失 Beardifier**（StructureWeightSampler 结构密度修正，NOISE 阶段 density 链 CellCache.add(DensityInterpolator(finalDensity), Beardifier) 缺项）——**不是 aquifer bug，也不是 ocean ruin 方块覆盖**
+- 04 篇早前「岛缺失不是 aquifer bug（ocean ruin 结构覆盖）」**归因推翻**：岛不是结构方块覆盖（NOISE 阶段结构方块未放置），是结构密度修正（Beardifier）抬 density → aquifer 判 solid
+- **e=0 结论保持**：AQF-DUMP 实测 (-244,55..62,-256) `fl2.y=fl3.y=fl4.y=63` 全部相等（8 y 全测，反射真实 getWaterLevel）→ e=0 两侧一致成立（**Java 实测确认**，非假设）
+- **B3「aquifer 液面链待修」正式撤销**：verdict-04 已撤销，本实现完成后最终确认——液面网格输入无差，海底边界 6710 块主体由 **Beardifier 传导**闭合（density 翻正 → aquifer 判 solid → 整列 stone）
+
+### ✅ Beardifier 实现闭合（2026-08-09，candidate）
+- C++ 移植 `cpp/worldgen/src/beardifier.h`（StructureWeightSampler 纯算法）+ 接入 density 链（per-chunk + JNI + mixin，完整链条见 10 时间线 2026-08-09）
+- block_probe -288：TOTAL **95.7379% → 96.4221%（+10777 块闭合，MISMATCH 67039 → 56275）**；闭合点 **86% 在海底边界 y=52..62（9280 块）**，与 verdict-04 预期 ≈6710 吻合且超预期（村庄 12 格内其他 Beardifier 传导差异也闭合）
+- 算法对拍：BEARD-244 y=50..66 **17/17 逐位一致**；新增 mismatch 13 块 = surface 级联边界差异（**surface 独立课题**，见 06 篇追加 5）；8576 99.9994% / 3200 99.9997% 零退化
+- 产物：`.investigations/-288-unclosed/beardifier-verdict.md`、`.investigations/-288-unclosed/cmd-output/t_beard3_run.txt`、`.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt`
