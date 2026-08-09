@@ -1,0 +1,17 @@
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=50 val=0.000000
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=51 val=0.000100
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=52 val=0.000398
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=53 val=0.001375
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=54 val=0.004168
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=55 val=0.011110
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=56 val=0.025864
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=57 val=0.052574
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=58 val=0.092090
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=59 val=0.136843
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=60 val=0.166063
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=61 val=0.147947
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=62 val=0.063334
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=63 val=-0.057071
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=64 val=-0.144082
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=65 val=-0.165489
+[15:43:04] [Server thread/INFO] (Minecraft) [STDOUT]: [BEARD-244] y=66 val=-0.138744

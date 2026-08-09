@@ -71,3 +71,13 @@
 - `.investigations/-288-unclosed/verify_splitter2.py` + 输出（splitter 派生 8/8 逐位一致）
 - `.investigations/-288-unclosed/rst_points.py` + 输出（r/s/t 点坐标）
 - `.investigations/-288-unclosed/classify_m288.py` / `colview_m288.py`（子类归类 + 列形态）
+
+---
+
+## 七、2026-08-09 裁决修正（verdict-04.md 生效，本节覆盖上文 B1/B3）
+
+- **B1 推翻**：(-244,-256) Beardifier 实测非零（BEARD-244：y=58 +0.0921、y=60 +0.1661）——「距村庄 32 格 > 12 → 0」被实测否定（村庄 bbox 距离口径需复核）
+- **B3 否定**：AQF-DUMP 实测 fl2.y=fl3.y=fl4.y=63（8 y 全等）→ Java e=0 → 无液面输入差，e 翻转机制不成立
+- **海底边界根因 = C++ 缺失 Beardifier**（NOISE 阶段 density 链 CellCache(add(finalDensity,Beardifier)) 缺 Beardifier 项）：8/8 点 CellCache 等式闭环（C++ finalDensity + Java Beardifier = Java dCC，≤3e-6）
+- **范围判定**：Beardifier 属「结构」相关（terrainAdaptation），此前 FEATURE 范围决策「结构暂缓」覆盖；是否列入范围内待修需用户拍板
+- 完整裁决：verdict-04.md
