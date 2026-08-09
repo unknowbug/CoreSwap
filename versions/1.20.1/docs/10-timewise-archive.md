@@ -908,3 +908,55 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 ### 方法沉淀
 - splitter 派生链 Python 独立复现（md5/mixStafford13/hashXYZ/nextInt 拒绝采样/floorDiv）= 判别 C++ vs Java 随机派生差异的可复现手段（verify_splitter2.py 8/8 逐位一致）
 - AQF-J 反射污染 → e 值判别必须 Java 真实遍历中间量 dump（禁反射）
+
+---
+
+## 2026-08-09 -288 未闭合差异定位 + 300515 判定 + 重归因（draft→candidate）
+
+### 课题主线
+- judge 审查要求补齐 -288 差异构成缺口 ≈23%（海底边界 6710 + gravel 4900 + 表面规则 2900）
+- Phase 1-3（fan-out B1/B2/B3 + splitter 验证）：**海底边界定位 = aquifer e 值翻转缺失**（B3 部分支持），(a) splitter 派生 8/8 逐位一致排除，(b) 液面网格输入值待 Java dump
+
+### 用户洞察（重大转向）
+- 用户提出：「冰山在无陆地时也生成 = FEATURE 独立生成实心块」，质疑 (-244,-256) 岛是否 FEATURE 产物
+- **决定性验证**：NOISE-BLK 铁证（status=noise 打印验证）(-244,-256) y=58-61 NOISE 阶段已 stone + Java cns 权威密度负 → **e 翻转（B3）成立，岛非 FEATURE**；AQF-J densFn +0.037 = CellCache 反射垃圾（phase5 L750 铁律）
+- **重归因**：-288 的 67042 块 FULL 差异中 **FEATURE 占 74.2%**（岩石替换 33k + 矿石 3k + 村庄方块 + carvers 洞穴 6684 + 含水层 5051）；真核心 17251 块（e 翻转 ~7250 + surface 规则 ~9979）
+
+### 300515 判定（用户提供新 seed）
+- seed 3005152118058349760 + 坐标 (-1320400,-198049)：FULL 差异 **94.13%** = 全部范围外 FEATURE（陆地 flower_forest/plains，无 e 翻转）；SURFACE 状态 99.9986% 对齐 → **C++ 核心无 bug 强证据 + e 翻转确认为海洋/含水层专属**
+
+### 参照状态审计（check_ref_status.py）
+- **8576/3200 参照 = SURFACE 状态**（FEATURE 产物 1773/0）→ **21 块插值课题是纯核心差异，不混 FEATURE，无需重归因**（重要！）
+- **-288/300515 参照 = FULL 状态**（混 FEATURE 74.2%/94%）→ 差异需按 NOISE 状态拆分
+
+### 用户拍板（ask 工具）
+- **FEATURE 实施范围 = 扩展：carvers + 岩石替换 + 装饰层（树草/矿石/团块）**——放弃原「只做 carvers+岩石替换、暂缓装饰层」
+- 理由：-288 74.2% + 300515 94.1% 差异来自 FEATURE；含装饰层才能闭合 300515 实机差异
+
+### 方法沉淀
+- **参照状态三查**：blocks 参照导出后 MUST 检查 FEATURE 产物（岩石替换/ore/草/村庄方块）判定 SURFACE vs FULL 状态——不同状态差异构成完全不同（8576/3200=SURFACE 纯核心 vs -288/300515=FULL 混 FEATURE）
+- **FEATURE 独立于地形**：冰山/村庄/紫晶洞在无 density 支撑处生成实心块（用户早期 bug 观察验证）——海底/陆地差异 MUST 先排除 FEATURE 方块再归因核心
+- **NOISE-BLK 状态验证**：getChunk(x,z,NOISE,true) 请求后 MUST 立即打印 chunk.getStatus() 验证——主循环后续 getChunk(SURFACE/FULL) 会连带推进，NOISE 状态只在请求后立即读才可靠
+- **SURFACE 参照导不出**：主循环 getChunk(SURFACE) 被连带推进到 FULL（stat 验证新参照仍含岩石替换）——SURFACE 状态参照不可用，NOISE-BLK 直读是唯一可靠的阶段隔离手段
+
+### 待办（交下 session）
+- FEATURE 实施（扩展范围：carvers + 岩石替换 + 装饰层）——Phase 0 架构设计先行
+- 海底边界 e 翻转 (b) 判别（Java 真实遍历中间量 dump）——优先级下调（真核心仅 ~7250 块）
+- 21 块插值课题（8576/3200 参照纯净，可继续）
+- P1 surface secondaryDepth（terrain 互换 ~9979 块中部分）
+
+### ⚠️ 知识库冲突裁决记录（2026-08-09 审计发现，交下 session）
+
+**04 篇已 confirmed 结论**：「-288 岛区 e=0（fl2/fl3 液面全 63）→ 两侧判定一致——岛缺失不是 aquifer bug（是 ocean ruin 结构覆盖）」【04-aquifer.md L108】
+
+**本次 session 验证发现的前提漏洞**：
+- 「e=0 两侧一致」中 **Java 侧 e 值从未实测**——trace_aqf_1.txt 只有 C++ 的 e=0.0000；Java 侧 e 值（fl2.y/fl3.y 液面输入）是**假设**，非测量
+- B3 (b) 子候选 =「Java 液面网格输入值 ≠ C++（如 fl3.y=-32512 无效液面 → j≠0 → e≠0 → density+e>0 翻转判 solid）」——**从未被 Java 真实遍历中间量 dump 直接验证**
+- NOISE-BLK 铁证（status=noise 打印验证）：(-244,-256) y=58-61 **NOISE 阶段已是 stone**（FEATURE 之前）——与「Java aquifer 判 water」矛盾；若 Java 真判 water，stone 只能来自非 aquifer 的 NOISE 产物（oreVein 不可能形成 4 格厚岛）→ **矛盾未解**
+- 04 篇「ocean ruin 结构覆盖」是 phase6/7 排除法推断（aquifer 无 bug → 岛另有来源），**未直接验证 structure start**
+
+**裁决点（下 session 最高优先）**：Java 真实遍历内 dump (-244,55..62,-256) 的 o/p/q/d/fl2.y/fl3.y/fl4.y/e/g/h（DensityProbe 扩展，禁反射）——
+- 若 Java e≠0（fl2.y≠fl3.y）→ e 翻转成立，04 篇「不是 aquifer bug」结论**推翻**（需修订）
+- 若 Java e=0 且判 water → NOISE-BLK 的 stone 另有来源（需查 NOISE 阶段非 aquifer 产物）
+- 若 Java e=0 且判 solid → density 输入差（反查插值链）
+- **无论哪种，04 篇 L108 的「ocean ruin 结构覆盖」结论都需重新验证**（该结论无 structure start 直接证据）

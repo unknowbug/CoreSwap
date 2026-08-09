@@ -106,6 +106,7 @@ for (y = 320; y >= -64; y -= 8)
 - getFluidBlockY / method_43718（erosion<-0.225 && depth>0.9）/ getNoiseBasedFluidLevel / clampedMap / map2 全部一致
 - apply 邻居选择（18 候选 2×3×2）与 Java 逐行一致（含 pack/unpack 负坐标符号扩展）
 - -288 岛区 e=0（fl2/fl3 液面全 63）→ 两侧判定一致——**岛缺失不是 aquifer bug**（是 ocean ruin 结构覆盖，见 06 篇/10 时间线归档）
+  - **⚠️ 2026-08-09 重审**：本结论的「e=0 两侧一致」中 **Java 侧 e 值从未实测**（trace_aqf_1.txt 仅 C++ e=0.0000；Java fl2.y/fl3.y 是假设）。且 NOISE-BLK 铁证（status=noise 验证）(-244,-256) y=58-61 **NOISE 阶段已 stone**（FEATURE 之前）与「Java aquifer 判 water」矛盾。B3 (b) 子候选（Java 液面网格输入 ≠ C++）未验证。**裁决点**：Java 真实遍历内 dump e 值（DensityProbe 扩展，禁反射）——详见 10 时间线「知识库冲突裁决记录 2026-08-09」；04 篇此结论在裁决前视为 **draft（重审中）**
 
 ### ⚠️ 坑
 - **CellCache 反射污染**：blockStateSampler.sample / CellCache.sample 在非真实遍历状态返回缓存垃圾值（如固定 -0.024995）——**勿以反射作密度参照**；必须用 DensityProbe 的完整 cns 链（sampleStartDensity→interpolateY/X/Z）在真实遍历内取值
