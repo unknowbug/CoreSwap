@@ -2,7 +2,7 @@
 
 > 课题：04 篇 L108「-288 岛区 e=0 → 岛缺失不是 aquifer bug（是 ocean ruin 结构覆盖）」vs NOISE-BLK 铁证（NOISE 阶段 (-244,58..61,-256) 已 stone）矛盾裁决。
 > 方法：DensityProbe 扩展 AQF-DUMP（真实 cns 遍历内复刻 apply 控制流 + 反射真实私有方法）+ BlockProbe BEARD-244（反射 StructureWeightSampler 采样目标列）。
-> 日期：2026-08-09。状态：**draft**（candidate 授予前 MUST judge）。
+> 日期：2026-08-09。状态：**candidate**（judge 审查通过 + 用户 2026-08-09 拍板认可）。
 
 ---
 
@@ -82,3 +82,9 @@
   3. Beardifier 实现立项（范围判定：结构相关，需用户确认是否推进）
   4. 海底边界 6710 块重归因（Beardifier 传导，非 aquifer）
 - 后续验证：C++ 实现 Beardifier（StructureWeightSampler 移植）→ block_probe -288 海底边界闭合约 6710 块验证
+
+
+## 六、用户拍板（2026-08-09）
+
+- **裁决认可**：海底边界根因 = C++ 缺失 Beardifier，标记 **candidate**（用户拍板）
+- **Beardifier 范围决策**：**列入范围内待修**（结构相关但影响 NOISE 阶段 density 链，可闭合约 6710 块海底差异）——后续 Phase 0 架构设计立项
