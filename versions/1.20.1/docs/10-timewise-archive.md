@@ -960,3 +960,12 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 若 Java e=0 且判 water → NOISE-BLK 的 stone 另有来源（需查 NOISE 阶段非 aquifer 产物）
 - 若 Java e=0 且判 solid → density 输入差（反查插值链）
 - **无论哪种，04 篇 L108 的「ocean ruin 结构覆盖」结论都需重新验证**（该结论无 structure start 直接证据）
+
+### 2026-08-09 框架同步（e4e88c4）：fan-out 强制触发点（第三条）
+- 发现驱动：CoreSwap -288 未闭合课题——B3 (a)/(b) 子候选主会话自推多轮（splitter 复现→液面链→est→r/s/t 点），用户两次提醒「派 worker」「启动 judge」；AGENTS.md 审计发现 fan-out 仅描述性文字无 MUST 触发规则（judge/scout 均有）
+- RE-Framework 更新（commit e4e88c4，我们这边发现反馈后官方落地）：
+  - spec §4.5 执行强制链扩为三条：judge / scout / **fan-out**（判定树分叉 ≥2 互斥候选 MUST 并行 fan-out，禁止主会话逐个自推；场景四：多疑点冲突/同一现象多机制/旧结论 vs 新证据/子假设再分叉；原则：不因候选小自推、自推成本 > 派 worker 隔离成本；自检提示：第二轮仍无定论自查已分叉）
+  - core.fanout 触发条件升级（3 个以上 → ≥2 个互斥候选，MUST 语言 + 场景表 + 自检提示）
+  - core.plan 轻量模板加 fan-out 预置节、重量模板加第 8 节
+- CoreSwap 同步：install.py v2.0.0 重装（16 skills + 4 模块声明，framework.json source_commit=e4e88c4）；AGENTS.md 补自检提示；knowledge 发现 #7（上一条）
+- ✅ 结案：fan-out 从「可选工具」升级为「强制触发点」，三触发点并列独立（scout 勘探→fan-out 分叉→judge 审查）
