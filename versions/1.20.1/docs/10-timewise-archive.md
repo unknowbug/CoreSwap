@@ -877,3 +877,34 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - NOISE-BLK（NOISE 阶段 chunk.getBlockState 直读）= 块级真相权威来源（反射 CellCache 污染不可信）
 - AQF-APPLY（cns 游戏同构遍历 + aquifer.apply 直接调用）= aquifer 判定权威验证
 - chunk status 检查（noise/carvers/surface）防阶段误判
+
+---
+
+## 2026-08-09 -288 未闭合 ~23% 差异定位（Phase 1-3，draft）
+
+### 课题
+- judge 审查要求补齐 -288 差异构成缺口 ≈23%：海底边界（C++ water vs vanilla solid ≈6710）+ gravel（≈4900）+ 表面规则（≈2900）
+
+### Phase 1 勘探（recode.scout，pipeline-map.md）
+- Java surface 管线：ChunkStatus.SURFACE → NoiseChunkGenerator.buildSurface → SurfaceBuilder.buildSurface（MaterialRules 引擎）；海底高度本体 = density/aquifer（逐位一致）
+- C++ surface.h 偏差点：P1 StoneDepthCond secondaryDepth 映射（Java (int)map(sec,-1,1,0,range) 不 clamp+截断 vs C++ floor(lerpClamp) clamp）；P2 HoleCond 字段错（-288 不触发）；P3 s 未找到；P4 isFluid
+
+### Phase 2 归类量化（classify_m288.py / colview_m288.py）
+- seabed 11135 = 含水层 stone→water 4416（carvers 已闭合）+ 海底边界 water→solid 6710（y=52-62）
+- gravel 4881（深层 deepslate→gravel 1802 = ore_gravel FEATURE + 浅层 2881 surface rule）；surface_rules 4675（beach 1876）
+- **关键判定：C++ 海底系统性低 4-10 格（非 ±1e-6 翻转）→ 独立机制，不并入 8576 21 块课题**
+
+### Phase 3 机制定位（fan-out 3 worker + 主会话验证）
+- **B1 Beardifier：推翻**——StructureWeightSampler 非零区 = structure bbox 外 11 格（±1 口径）+ y 基准 ±12（phase6/7「24 格」= TABLE 尺寸误读）；(-244,-256) 距村庄 32 > 11 → Beardifier=0
+- **B2 aquifer pocket：推翻**——AquiferSampler L149 density>0→null 硬铁律；C++ 已完整实现形状场；含水层 = carvers（AQF-APPLY + chunk status 铁证）
+- **B3 aquifer 液面/e 值：部分支持（机制成立）**——C++ trace e=0.0000（fl2.y==fl3.y==63 → j=0）→ density+e<0 → 判水；vanilla 浮岛实心只能由 density+e>0 翻转产生；(a) splitter 派生排除（Python 复现 8/8 o/p/q 逐位一致，verify_splitter2.txt）；(b) 液面网格输入值未闭合（需 Java 真实遍历中间量 dump 判别，AQF-J 反射污染不可信）
+- P1 表面规则：beach RANGE_6 sandstone 层边界差（可解释块数待量化，非直接 2900）
+
+### 状态
+- ✅ 海底边界机制定位（e 翻转缺失）＝ candidate（judge 建议，机制级）
+- 🔍 (b) 液面网格输入值判别（Java dump）= 下一步最高优先
+- ⏸️ P1 修复（前置量化收益后再改）、carvers 后重测海底 gravel
+
+### 方法沉淀
+- splitter 派生链 Python 独立复现（md5/mixStafford13/hashXYZ/nextInt 拒绝采样/floorDiv）= 判别 C++ vs Java 随机派生差异的可复现手段（verify_splitter2.py 8/8 逐位一致）
+- AQF-J 反射污染 → e 值判别必须 Java 真实遍历中间量 dump（禁反射）

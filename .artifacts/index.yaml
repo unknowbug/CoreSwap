@@ -34,3 +34,67 @@ entries:
     path: '../.investigations/000-架构设计/squeeze-java.md'
     kind: analysis
     status: candidate
+  - id: 're-code:-288-unclosed:phase1-pipeline-map'
+    path: '../.investigations/-288-unclosed/pipeline-map.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:phase2-classify'
+    path: '../.investigations/-288-unclosed/phase2-classify.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:phase3-locating'
+    path: '../.investigations/-288-unclosed/phase3-locating.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:b1-beardifier'
+    path: '../.investigations/-288-unclosed/b1-beardifier.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:b2-aquifer-pocket'
+    path: '../.investigations/-288-unclosed/b2-aquifer-pocket.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:b3-aquifer-fluid'
+    path: '../.investigations/-288-unclosed/b3-aquifer-fluid.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:-288-unclosed:verify-splitter'
+    path: '../.investigations/-288-unclosed/verify_splitter2.py'
+    kind: script
+    status: candidate
+  - id: 're-code:-288-unclosed:verify-splitter-out'
+    path: '../.investigations/-288-unclosed/verify_splitter2.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:-288-unclosed:rst-points'
+    path: '../.investigations/-288-unclosed/rst_points.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:classify'
+    path: '../.investigations/-288-unclosed/classify_m288.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:colview'
+    path: '../.investigations/-288-unclosed/colview_m288.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:compare-cols'
+    path: '../.investigations/-288-unclosed/compare_cols_m288.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:extract-noiseblk'
+    path: '../.investigations/-288-unclosed/extract_noiseblk.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:search-beard'
+    path: '../.investigations/-288-unclosed/search_beard.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:beard-ctx'
+    path: '../.investigations/-288-unclosed/beard_ctx.py'
+    kind: script
+    status: draft
+  - id: 're-code:-288-unclosed:dump12'
+    path: '../.investigations/-288-unclosed/dump12.py'
+    kind: script
+    status: draft
