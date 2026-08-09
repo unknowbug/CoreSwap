@@ -228,8 +228,10 @@ inline bool WaterCond::test(const SurfaceContext& ctx) const {
 inline bool StoneDepthCond::test(const SurfaceContext& ctx) const {
     int i = ceiling ? ctx.stoneDepthBelow : ctx.stoneDepthAbove;
     int j = addSurfaceDepth ? ctx.surfaceDepth : 0;
-    int k = secondaryDepthRange == 0 ? 0
-        : (int)std::floor(lerpClamp(ctx.getSecondaryDepth(), -1.0, 1.0, 0.0, (double)secondaryDepthRange));
+    // @anchor.test("StoneDepthCond k = secondaryDepth 映射对齐 Java (int)MathHelper.map(sec,-1,1,0,range)——不 clamp + (int) 截断（Java MaterialRules.java StoneDepthPredicate.test）", source="probe:block_probe!SURF#002")
+    // Java: (int)MathHelper.map(sec, -1, 1, 0, range) = (int)(0 + lerpProgress * range)，lerpProgress=(sec+1)/2 不 clamp，(int) 向零截断
+    // C++ 旧: (int)std::floor(lerpClamp(...)) —— 双错：lerpClamp 钳制 [0,1] + floor 向负无穷（Java (int) 向零截断）
+    int k = secondaryDepthRange == 0 ? 0 : (int)(((ctx.getSecondaryDepth() + 1.0) * 0.5) * (double)secondaryDepthRange);
     return i <= 1 + offset + j + k;
 }
 inline bool NoiseThresholdCond::test(const SurfaceContext& ctx) const {

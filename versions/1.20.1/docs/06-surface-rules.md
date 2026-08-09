@@ -155,3 +155,18 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 - **验证**：(812,73,-337) forest→badlands ✓（与 Java SURFBIOME 一致）；8576 99.9993%→**99.9994%**（24→22）；3200 零退化；门禁 invalid=0。
 - **y=-32 深层 terracotta 噪声卡关闭**：(805,-32,-427) = badlands terracottaBands 产物，biome 判定已随 8 邻域修复解决（当前匹配）——与 #23/#24 同机制族（选点/tie-break），关闭不再独立排查。
 - **顺手对齐（judge 建议，同批）**：surface.h buildSurface heightmap 改可变副本 + pillar 写回（SteepCond 读 pillar 后高度，对齐 Java trackUpdate）；aquifer.h 两处见 04 篇「追加 2」。
+
+---
+
+## 2026-08-09 已验证结论（追加 4）：StoneDepthCond secondaryDepth 映射对齐 + 海底边界根因纠正
+
+### ✅ StoneDepthCond::test 的 k 映射修复（P1，对齐 Java (int)MathHelper.map）
+- **现象**：C++ `(int)std::floor(lerpClamp(sec,-1,1,0,range))` vs Java `(int)MathHelper.map(sec,-1,1,0,range)`——**双错**：lerpClamp 钳制 [0,1]（Java map 不 clamp）+ floor 向负无穷（Java (int) 向零截断）
+- **修复**（surface.h StoneDepthCond::test，@anchor SURF#002）：`k = (int)((sec+1)*0.5*range)`（= lerpProgress=(sec+1)/2 不 clamp + (int) 截断，精确对齐 Java）
+- **验证**：-288 95.7376%→95.7379%（+4~5 块，chunk(-18,-14)/(-17,-14)/(-17,-13)）；8576/3200 零退化（99.9994%/99.9997%）；scan invalid=0
+- **收益说明**：远小于 pipeline-map 预估 1500-2000 块——-288 区域 beach biome 列少、secondaryDepth 超 [-1,1] 触发少；修复正确但收益小，保留
+
+### ✅ 海底边界根因纠正（04 篇裁决联动，详见 verdict-04.md）
+- **B3（aquifer e 翻转）否定**：AQF-DUMP 实测 (-244,55..62,-256) fl2.y=fl3.y=fl4.y=63 全等 → Java e=0（与 C++ 一致）——海底边界 **不是 aquifer 液面链差**
+- **根因 = C++ 缺失 Beardifier**（StructureWeightSampler 结构密度修正）：(-244,58..61,-256) Beardifier 非零（+0.092~+0.166）翻转 density 符号 → aquifer 判 solid → NOISE-BLK stone 铁证吻合；海底边界 ≈6710 块主体归因 Beardifier 缺失（结构相关，用户已拍板列入范围内待修）
+- **坑**：03 篇「Beardifier.sample 恒 0.0」旧结论错误——`DensityFunctionTypes.Beardifier.INSTANCE.sample()` 恒 0 但 ChunkNoiseSampler L469-470 把 INSTANCE 替换为真实 `beardifying`（StructureWeightSampler）；只看静态实现会漏掉真实 Beardifier
