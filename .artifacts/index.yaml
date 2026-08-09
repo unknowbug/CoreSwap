@@ -98,3 +98,19 @@ entries:
     path: '../.investigations/-288-unclosed/dump12.py'
     kind: script
     status: draft
+  - id: 're-code:-288-unclosed:verdict-04'
+    path: '../.investigations/-288-unclosed/verdict-04.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:-288-unclosed:verdict-04-review'
+    path: '../.investigations/-288-unclosed/review-001.md'
+    kind: review
+    status: candidate
+  - id: 're-code:-288-unclosed:aqfdump-evidence'
+    path: '../.investigations/-288-unclosed/cmd-output/aqfdump_run1.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:-288-unclosed:beard244-evidence'
+    path: '../.investigations/-288-unclosed/cmd-output/beard244_run1.txt'
+    kind: evidence
+    status: candidate

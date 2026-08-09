@@ -24,6 +24,7 @@
 - 反射真实私有方法 `getWaterLevel(long)`/`calculateDensity(...)`/`maxDistance(...)` → fl2/fl3/fl4 + d/e/g/h
 - **fl2.y=fl3.y=fl4.y=63 全部相等（8 个 y 全测）→ e=0（Java 侧实测，非假设）**
 - o/p/q/r/s/t 与 C++ trace_aqf_1.txt 逐位一致（如 y=58: o=90 p=99 q=115 d=0.64 ✓）
+- **AQF-APPLY 取值口径（vs 04 篇 L112 CellCache 反射污染铁律）**：dCC 来自 `CellCache.sample(cns)` 反射——该反射在**非遍历/未填充 cell** 返回垃圾值（本 run y≥310 恒 -0.024995，与 L112 记载一致）；但 y=55..62 的 cell 已被真实 cns 遍历填充，dCC 为真实值——**由证据 3 的 8/8 点独立闭环（diff ≤3e-6）证明 y=55..62 段 dCC 可信**；垃圾值段不参与裁决。fl.y/e 判定不依赖 dCC（独立反射 getWaterLevel），不受此口径影响
 
 ### 证据 2：BEARD-244（BlockProbe 扩展，反射 StructureWeightSampler）
 ```
@@ -74,6 +75,7 @@
 ## 五、产物与后续
 
 - 探针改动（MC 工程，本地 M）：DensityProbe AQF-DUMP + BlockProbe BEARD-244
+- **retry 声明**：本课题（-288 未闭合）历史已有 retry cap 记录（phase10-13 超 3 轮，见 -288-reopen/summary-final §四-5）；本次裁决为**新方向（Beardifier）**，基于 AQF-DUMP/BEARD-244 两个新探针 + 8/8 点闭环，非对失败假设的重复验证——按 spec §5.3 声明，本轮验证计数 1
 - 待 judge 审查 → 用户拍板：
   1. 04 篇修订（L108 归因错 → Beardifier 缺失）
   2. B1/B3 结论修正（phase3-locating.md）

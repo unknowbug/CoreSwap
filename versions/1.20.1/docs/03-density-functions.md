@@ -91,7 +91,7 @@ sloped_cheese 的核心，`random = split("minecraft:terrain")` 派生，xz/y sc
 - **InterpolatedDF 整树插值 = 正确语义**（chunk(-18,-16) 100% 实证）；「噪声插值+非线性后置」重构已实现并回滚（全区域变差）——**勿再尝试**
 - InterpolatedDF cell 大小：`verticalCellBlockCount = BiomeCoords.toBlock(2) = 8`，C++ CELL_Y=8 正确（不是 16）
 - Java CellCache（cache_all_in_cell）缓存同 pos 同值 → C++ 纯委托等价（无损）；**CellCache 反射有缓存污染不可信**（勿作密度参照）
-- **Beardifier.sample 恒 0.0**（结构密度修正在 1.20.1 是空实现）——不是差异
+- **~~Beardifier.sample 恒 0.0~~（结构密度修正在 1.20.1 是空实现）——不是差异** → ❌ **2026-08-09 推翻**：`DensityFunctionTypes.Beardifier.INSTANCE.sample()` 确实恒 0，但 ChunkNoiseSampler L469-470 `getActualDensityFunctionImpl` 把 INSTANCE **替换为真实 `beardifying`（StructureWeightSampler）**——游戏实际 density 链 = `add(finalDensity, 真实Beardifier)`。verdict-04 实测 (-244,-256) Beardifier 非零（峰值 +0.166@60），**海底边界 6710 块根因 = C++ 缺失 Beardifier**（详见 verdict-04.md + 04 篇 L108 重审）
 - **cns 反射不可信**：`ChunkNoiseSampler.interpolators` 是 8 个组件插值器，get(0) min=-∞ 非 finalDensity；DensityInterpolator.sample 依赖 cns 遍历状态
 - **8 个 DensityInterpolator 映射**：idx0=finalDensity 顶层（BlendDensity）、idx1-4=noodle 的 4 个（noodle 噪声/thickness/ridge_a/ridge_b）、**idx5-7=ore_vein 的**（veininess/vein_a/vein_b，在 OreVeinSampler 不在 finalDensity 树）
 - **finalDensity 树结构**：`min(squeeze(0.64×interp(blend)), caves/noodle)`；blend 内嵌 `range_choice(input=sloped_cheese, min=-1e6, max=1.5625, in=min(sloped_cheese, 5×entrances), out=cave 逻辑)`

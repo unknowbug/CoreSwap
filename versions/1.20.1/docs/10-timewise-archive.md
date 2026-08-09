@@ -727,8 +727,7 @@ run 开头加 `static std::mutex runMtx`（整个 run 串行化——内部线�
 - C++ GRID 打印 interp0(-244,58,-256)=-0.233008、interp1=-0.237669 vs Java cns 链（DensityProbe cns.txt）interp0=-0.233015、interp1=-0.237671——**完全一致**
 - C++ InterpolatedDF 实例 6 个 vs Java DensityInterpolator 8 个——**但 Java idx5-7 是 ore_vein 的**（OreVeinSampler 用，不在 finalDensity 树）——**finalDensity 树内 interpolated 数量一致（5 个）**
 
-**猜测 5：Beardifier（结构密度修正）** → ❌ 排除
-- Java `DensityFunctionTypes.Beardifier.sample` = 恒 0.0（源码 290-312 行）——非差异
+**猜测 5：Beardifier（结构密度修正）** → ❌ ~~排除~~ → **2026-08-09 推翻重开**：`DensityFunctionTypes.Beardifier.INSTANCE.sample()` = 恒 0.0 属实（源码 290-312 行），但 ChunkNoiseSampler L469-470 的 `getActualDensityFunctionImpl` 把 INSTANCE **替换为真实 `beardifying`（StructureWeightSampler）**——只看 INSTANCE 静态实现导致误判。verdict-04（2026-08-09）实测 (-244,-256) 真实 Beardifier 非零（峰值 +0.166@60、y=58 +0.092），**海底边界 6710 块根因 = C++ 缺失 Beardifier**（AQF-APPLY dCC = C++ finalDensity + Java Beardifier，8/8 点 ≤3e-6 闭环）
 
 **猜测 6：aquifer 判定差（e 值）** → ❌ 排除（结构发现后不再需要）
 - 全部分量/est/邻居一致 → e=0 → 两边都该判 water——矛盾 → 转向结构
