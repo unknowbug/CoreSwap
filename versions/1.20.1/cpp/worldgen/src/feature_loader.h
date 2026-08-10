@@ -24,10 +24,6 @@ struct ConfiguredFeature {
     DiskFeatureConfig diskConfig;   // disk 用
     SpringFeatureConfig springConfig; // spring_feature 用
     UnderwaterMagmaFeatureConfig magmaConfig; // underwater_magma 用
-    RandomPatchFeatureConfig randomPatchConfig; // flower / random_patch 用
-    SimpleBlockFeatureConfig simpleConfig; // simple_block 用
-    TreeFeatureConfig treeConfig; // tree 用
-    RandomSelectorFeatureConfig randomSelectorConfig; // random_selector 用（trees_*）
     bool freezeTop = false;         // freeze_top_layer 用
 
     // 生成（Java ConfiguredFeature.generate → Feature.generate）
@@ -68,18 +64,9 @@ struct ConfiguredFeature {
             }
             return r;
         }
-        // 生态装饰（flower/random_patch/tree）——2026-08-10 用户拍板范围外：实机 Mod 装饰主要挂 FEATURES 阶段，
-        // C++ 全接管会丢 Mod 花/草/树；且 vanilla 装饰 JSON 版本差异大（1.20→1.21 大量变动）。block_probe 自证不依赖此。
-        // 实现代码留档（RandomPatchFeature/SimpleBlockFeature/TreeFeature 在 feature.h），此处不接入。
-        if (type.find("flower") != std::string::npos || type.find("random_patch") != std::string::npos) {
-            return false;
-        }
-        if (type.find("simple_block") != std::string::npos) {
-            return false;
-        }
-        if (type.find("tree") != std::string::npos) {
-            return false;
-        }
+        // 生态装饰（flower/random_patch/simple_block/tree/random_selector）——2026-08-10 用户拍板范围外：
+        // 实机 Mod 装饰主要挂 FEATURES 阶段，C++ 全接管会丢 Mod 花/草/树；且 vanilla 装饰 JSON 版本差异大
+        // （1.20→1.21 大量变动）。实现代码已归档到 deprecated-vegetation/（2026-08-11），此处不接入。
         return false;
     }
 
@@ -96,17 +83,11 @@ struct ConfiguredFeature {
             cf.springConfig = SpringFeatureConfig::parse(cfg, blocks);
         } else if (cf.type.find("underwater_magma") != std::string::npos) {
             cf.magmaConfig = UnderwaterMagmaFeatureConfig::parse(cfg, blocks);
-        } else if (cf.type.find("flower") != std::string::npos || cf.type.find("random_patch") != std::string::npos) {
-            cf.randomPatchConfig = RandomPatchFeatureConfig::parse(cfg, blocks);
-        } else if (cf.type.find("simple_block") != std::string::npos) {
-            cf.simpleConfig = SimpleBlockFeatureConfig::parse(cfg, blocks);
-        } else if (cf.type.find("tree") != std::string::npos) {
-            cf.treeConfig = TreeFeatureConfig::parse(cfg, blocks);
-        } else if (cf.type.find("random_selector") != std::string::npos) {
-            cf.randomSelectorConfig = RandomSelectorFeatureConfig::parse(cfg, blocks);
         } else if (cf.type.find("freeze_top_layer") != std::string::npos) {
             cf.freezeTop = true;
         }
+        // 树花植被（flower/random_patch/simple_block/tree/random_selector）不解析——2026-08-10 用户拍板范围外，
+        // 实现代码归档 deprecated-vegetation/，此处置空 config（generateOther 对未知 type return false）
         return cf;
     }
 };

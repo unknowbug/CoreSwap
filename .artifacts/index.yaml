@@ -138,3 +138,19 @@ entries:
     path: '../.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt'
     kind: evidence
     status: candidate
+  - id: 're-code:feature-pipeline:map'
+    path: '../.investigations/feature-pipeline/pipeline-map.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:feature-pipeline:baseline-m288'
+    path: '../.investigations/feature-pipeline/cmd-output/phase0_baseline_m288.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:feature-pipeline:baseline-300515'
+    path: '../.investigations/feature-pipeline/cmd-output/phase0_baseline_300515.txt'
+    kind: evidence
+    status: candidate
+  - id: 're-code:feature-pipeline:deprecated-vegetation'
+    path: '../versions/1.20.1/cpp/worldgen/deprecated-vegetation/README.md'
+    kind: decision
+    status: candidate

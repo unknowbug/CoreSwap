@@ -1356,12 +1356,10 @@ static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chu
                         int type = cf->type.find("scattered_ore") != std::string::npos ? 1 : 0;
                         return cf->generate(fcx, octx, cf->oreConfig, type, gx, gy, gz);
                     }
-                    // [JUDGE-DIAG] random_selector（trees_*）分支已禁用——隔离树负贡献
-                    if (cf->type.find("random_selector") != std::string::npos) {
-                        return false;
-                    }
-                    // Phase 4/5：disk / spring / freeze_top_layer / underwater_magma / flower / random_patch / simple_block / tree
-                    if (cf->type.find("ore") == std::string::npos) {
+                    // Phase 4/5：disk / spring / freeze_top_layer / underwater_magma
+                    // 树花植被（flower/random_patch/simple_block/tree/random_selector）2026-08-10 用户拍板范围外，
+                    // generateOther 对未知 type return false；实现代码归档 deprecated-vegetation/（见 feature_loader.h）
+                    {
                         float biomeTemp = curBiome ? (float)curBiome->temperature : 0.5f;
                         float biomeRainfall = 0.5f;
                         return cf->generateOther(fcx, octx, gx, gy, gz, biomeTemp, biomeRainfall);
