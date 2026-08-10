@@ -1,0 +1,29 @@
+[Phase 2 CARVERS 成果 - 2026-08-10]
+## 根因（已修复）
+carveTunnels/carveRavine 内部 Java `Random.create(seed)` = CheckedRandom（48 位 LCG）！
+C++ 曾误用 XoroshiroRandom → 漂移序列全错 → 挖洞位置不重合（仅 12%）
+修复：carver.h carveTunnels/carveRavine 内部 XoroshiroRandom → CheckedRandom
+
+## 成果（seed=-8248318472910187742, -288,-256 4x4, FULL 参照含 carver）
+- SURFACE 模式（无 carver）：93.4462%（参照有 carver 洞，SURFACE 不挖）
+- FULL 模式（carver 开启）：93.9442%（超过 SURFACE，carver 闭合 +0.5%）
+- 挖洞对比：我们挖 17300 vs 参照洞 17573（量匹配），重合 11929（69%）
+  - 修复前重合仅 12%（2042/16668）
+- 剩余差异：挖多 5371 / 挖少 5644（对称，浅层 y=8-43，carveRegion 边界微差 candidate 待续）
+
+## 零退化（SURFACE 模式）
+- 8576: 99.9994% / 3200: 99.9997% ✓
+
+## 关键修复链（本轮）
+1. block_probe biome 段跳过 bug（blen<128 截断）→ 参照读取错误 → 修复（参照一直含 biome 段）
+2. BlockProbe 预生成 17x17 邻域 → 参照才含 carver 产物（此前逐 chunk 生成 carver 静默跳过）
+3. carveCave 范围判断用 targetChunkX/Z（当前 chunk）——Java carveRegion 内部 chunk.getPos()
+4. mathSin/mathCos 查表（65536 项 SINE_TABLE）
+5. MathHelper.sin 参数 float π（3.1415927F * j / branchCount 全程 float）
+6. [根因] carveTunnels/carveRavine 内部 Random.create(seed) = CheckedRandom（48 位 LCG）
+7. getState density=0.0 走液面链（3b density>0 直接 solid，carver 首次暴露液面链路径——已验证 d 逐位一致）
+
+## 遗留（candidate 待续）
+- 剩余 31% 挖洞差异（5371/5644 对称，浅层 y=8-43）——carveRegion 边界微差或 mask 交互，非机制级
+- canyon 在 -288 区域无贡献（prob 0.01 低）
+- FEATURE（岩石替换/矿石等）未实现——Phase 3

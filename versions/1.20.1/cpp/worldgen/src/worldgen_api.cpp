@@ -45,6 +45,10 @@ static double nowMs() {
 #include "surface.h"
 #include "aquifer.h"
 #include "ore_vein.h"
+#include "carver.h"
+#include "feature.h"
+#include "placement.h"
+#include "feature_loader.h"
 
 // ---- 剖析计数（WG_PROFILE=1 启用；变量为 inline 定义于 density.h）----
 static void profileInit() { wg_profEnabled = getenv("WG_PROFILE") != nullptr; wg_splineDebug = getenv("WG_SPLINEDEBUG") != nullptr; wg_surfaceTrace = getenv("WG_SURFTRACE") != nullptr; wg_aqfDump = getenv("WG_AQFDUMP") != nullptr; if (getenv("WG_SURFTRACE_X")) wg_surfaceTraceX = atoi(getenv("WG_SURFTRACE_X")); if (getenv("WG_SURFTRACE_Z")) wg_surfaceTraceZ = atoi(getenv("WG_SURFTRACE_Z")); if (getenv("WG_AQF_YMIN")) wg_aqfYMin = atoi(getenv("WG_AQF_YMIN")); if (getenv("WG_AQF_YMAX")) wg_aqfYMax = atoi(getenv("WG_AQF_YMAX")); }
@@ -192,6 +196,23 @@ struct WorldgenHandle {
     // Beardifier（StructureWeightSampler）per-chunk 输入：key = chunkX<<32 ^ chunkZ
     // 未设置的 chunk = 无结构（Beardifier=0，与现状一致）
     std::unordered_map<int64_t, Beardifier> beardifiers;
+    // 生成模式：0=SURFACE（默认，density→aquifer→surface，8576/3200 零退化铁律）；
+    //           1=FULL（+ CARVERS→FEATURES 阶段，对照 FULL 状态参照 -288/300515）
+    // 由 env WG_GEN_MODE=full 开启（block_probe -features 设置）
+    int genMode = 0;
+    // FEATURE 阶段：PlacedFeatureIndexer（全局编号）+ placed/configured_feature 懒加载缓存
+    wg::PlacedFeatureIndexer featureIndexer;
+    std::map<std::string, wg::ConfiguredFeature> configuredFeatures; // id → 配置（懒加载）
+    std::map<std::string, wg::PlacedFeature> placedFeatures;        // id → placed（懒加载）
+    // OCEAN_FLOOR_WG 高度图（NOISE 阶段构建，[z*16+x]；FULL 模式 OreFeature 用）
+    std::vector<int> oceanFloorHeightmap; // per-chunk，FULL 模式填充
+    // 两阶段 FEATURE：区域 col 缓存（(chunkX,chunkZ) → 98304 数组）
+    // 阶段 1（surface+carvers）存全部 col；阶段 2（features）跨 chunk 写邻域 col（Java 语义）
+    std::mutex regionColsMtx;
+    std::map<std::pair<int, int>, std::vector<int32_t>> regionCols;
+    // 跨 chunk pending 写入（阶段 2 末尾应用：A 后生成覆盖 B）——(chunkX,chunkZ) → [(块索引, state)]
+    std::map<std::pair<int, int>, std::vector<std::pair<int, int32_t>>> pendingCross;
+    std::mutex pendingCrossMtx;
 };
 
 // 读取噪声参数到 sampler 表
@@ -305,6 +326,8 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
         auto h = std::make_unique<WorldgenHandle>();
         h->wgDir = worldgenDir;
         h->seed = seed;
+        // 生成模式：WG_GEN_MODE=full → FULL（CARVERS→FEATURES）；默认 SURFACE（零退化）
+        if (const char* gm = getenv("WG_GEN_MODE"); gm && std::string(gm) == "full") h->genMode = 1;
         h->biomeAccessSeed = wg::biomeHashSeed(seed);
         std::string wgDir = worldgenDir;
 
@@ -406,6 +429,10 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
             std::fprintf(stderr, "wg_create: cannot load %s\n", biomeParamsPath.c_str());
             return nullptr;
         }
+        // GenerationSettings（biome/*.json 的 carvers + features 分层列表，FEATURE 阶段用）
+        h->biomeSource.loadGenerationSettings(wgDir);
+        // PlacedFeatureIndexer（全局编号，setDecoratorSeed 的 p）+ placed/configured_feature 加载
+        h->featureIndexer.build(h->biomeSource);
     
         // surface builder（seaLevel 从 settings 读；主世界 63 / 下界 32）
         int seaLevel = 63;
@@ -542,10 +569,17 @@ int wg_height(void*) { return HEIGHT; }
 int wg_density_points_per_chunk(void*) { return POINTS_PER_CHUNK; }
 
 // ---- 方块层：完整区块生成（density → aquifer → surface rules）----
+// FULL 模式（CARVERS→FEATURES）前向声明：实现在文件末尾 stub（Phase 2/3 替换真实现）。
+// 在 buildSurface 之后按 Java ChunkStatus 顺序执行：CARVERS（洞穴雕刻）→ FEATURES（装饰层）。
+// 默认 SURFACE 模式不调用（8576/3200 零退化铁律）。
+static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chunkX, int chunkZ,
+                                    std::vector<int>& heightmap,
+                                    const std::map<std::string, DF>& router, Aquifer& aquifer,
+                                    bool runFeatures = true);
 // out: int32_t[16*16*384]（BlockId，vanilla raw id）
 // 单个 chunk 的生成逻辑（线程安全：InterpolatedDF 缓存 thread_local、
 // SurfaceContext/aquifer/oreVein 均为 per-chunk 局部对象、split() 纯函数）
-static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
+static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, bool runFeatures, bool storeRegion) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out) return 0;
 
@@ -827,15 +861,28 @@ static int fillOneChunk(void* handle, int chunkX, int chunkZ, int32_t* out) {
                      chunkX, chunkZ, tA - t0, tB - tA, tEnd - tB, tEnd - t0);
     }
 
+    // 4.5 FULL 模式：CARVERS（洞穴雕刻）→ FEATURES（装饰层）——Java ChunkStatus 顺序（SURFACE 之后）
+    // 默认 SURFACE 模式跳过（8576/3200 零退化铁律）；Phase 2/3 填实现
+    if (h->genMode == 1 && hasAquifer) {
+        applyCarversAndFeatures(*h, col, chunkX, chunkZ, heightmap, R, *aquifer, runFeatures);
+    }
+
+    // 两阶段：阶段 1（surface+carvers）存区域 col（供阶段 2 features 跨 chunk 写）
+    if (storeRegion) {
+        std::lock_guard<std::mutex> lk(h->regionColsMtx);
+        auto& rc = h->regionCols[std::make_pair(chunkX, chunkZ)];
+        rc.assign(col.data().begin(), col.data().begin() + (size_t)h->dim.worldHeight * 256);
+    }
+
     // 5. 输出（维度化：worldHeight 决定 out 大小；overworld 98304 / nether 65536）
     const size_t outCount = (size_t)h->dim.worldHeight * 256;
     std::memcpy(out, col.data().data(), outCount * sizeof(int32_t));
     return (int)outCount;
 }
 
-// 单 chunk（串行兼容入口）
+// 单 chunk（串行兼容入口）——FULL 单阶段（surface+carvers+features，无 regionCols 跨 chunk）
 int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out) {
-    return fillOneChunk(handle, chunkX, chunkZ, out);
+    return fillOneChunkCore(handle, chunkX, chunkZ, out, true, false);
 }
 
 // 多 chunk 并行：chunkXs/chunkZs/outs 为 count 个 chunk 的坐标与输出缓冲。
@@ -983,7 +1030,7 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
     CoreSwapPool::instance().run(count, [&](int i) {
         wg::g_crashContext = "wg_fill_blocks_multi/fillOneChunk";
         try {
-            fillOneChunk(handle, chunkXs[i], chunkZs[i], outs[i]);
+            fillOneChunkCore(handle, chunkXs[i], chunkZs[i], outs[i], true, false);
         } catch (const std::exception& e) {
             std::fprintf(stderr, "[CORESWAP-EXC] chunk(%d,%d) C++ exception: %s\n", chunkXs[i], chunkZs[i], e.what());
         } catch (...) {
@@ -991,6 +1038,46 @@ int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
         }
         wg::g_crashContext = nullptr;
     });
+    return count;
+}
+
+// 两阶段 FEATURE（跨 chunk 球体）：phase 0=FULL 单阶段（同 wg_fill_blocks_multi，兼容现状）
+// phase 1=surface+carvers 并存 regionCols（阶段 1）；phase 2=features 重跑跨 chunk 写（阶段 2，必须串行）
+int wg_fill_blocks_multi_phase(void* handle, const int* chunkXs, const int* chunkZs,
+                               int32_t* const* outs, int count, int threads, int phase) {
+    if (count <= 0) return 0;
+    bool runFeatures = (phase != 1);
+    bool storeRegion = (phase == 1);
+    if (phase == 2) threads = 1; // 阶段 2 跨 chunk 写，顺序敏感——强制串行
+    CoreSwapPool::instance().ensure(threads > 0 ? threads : 1);
+    CoreSwapPool::instance().run(count, [&](int i) {
+        wg::g_crashContext = "wg_fill_blocks_multi_phase";
+        try {
+            fillOneChunkCore(handle, chunkXs[i], chunkZs[i], outs[i], runFeatures, storeRegion);
+        } catch (const std::exception& e) {
+            std::fprintf(stderr, "[CORESWAP-EXC] chunk(%d,%d) C++ exception: %s\n", chunkXs[i], chunkZs[i], e.what());
+        } catch (...) {
+            std::fprintf(stderr, "[CORESWAP-EXC] chunk(%d,%d) unknown C++ exception\n", chunkXs[i], chunkZs[i]);
+        }
+        wg::g_crashContext = nullptr;
+    });
+    if (phase == 2) {
+        // 应用跨 chunk pending（A 后生成覆盖 B——Java 语义）。须在 fill 全部完成后。
+        auto* h = static_cast<WorldgenHandle*>(handle);
+        std::lock_guard<std::mutex> lk(h->pendingCrossMtx);
+        for (auto& [key, list] : h->pendingCross) {
+            for (int c = 0; c < count; c++) {
+                if (chunkXs[c] == key.first && chunkZs[c] == key.second) {
+                    int32_t* o = outs[c];
+                    for (auto& [idx, state] : list) {
+                        if (idx >= 0 && idx < (int)h->dim.worldHeight * 256) o[idx] = state;
+                    }
+                    break;
+                }
+            }
+        }
+        h->pendingCross.clear();
+    }
     return count;
 }
 
@@ -1037,6 +1124,256 @@ void wg_clear_beardifier(void* handle) {
 
 } // extern "C"
 
+// ==================== FULL 模式：CARVERS → FEATURES ====================
+// Java ChunkStatus 顺序：SURFACE → CARVERS（NoiseChunkGenerator.carve）→ FEATURES（ChunkGenerator.generateFeatures）
+// CARVERS：17×17 邻域 chunk → biome 的 carvers.air 列表 → setCarverSeed(seed+l, cx, cz) → shouldCarve → carve
+// 注意：邻域 biome 用 biomeSource.getBiome（MultiNoise 直接采样，无 8 邻域 jitter、4 对齐坐标）
+
+// 已加载的 configured_carver（按 id 全名索引），懒加载一次（并发保护：多 worker 同时首次访问）
+static std::map<std::string, wg::ConfiguredCarver>& carverCache() {
+    static std::map<std::string, wg::ConfiguredCarver> cache;
+    return cache;
+}
+static std::mutex& carverCacheMtx() {
+    static std::mutex mtx;
+    return mtx;
+}
+
+static const wg::ConfiguredCarver* getConfiguredCarver(const std::string& wgDir, const std::string& id, wg::BlockRegistry& blocks) {
+    auto& cache = carverCache();
+    {
+        std::lock_guard<std::mutex> lk(carverCacheMtx());
+        auto it = cache.find(id);
+        if (it != cache.end()) return &it->second;
+    }
+    // id = "minecraft:cave" → 文件 cave.json
+    std::string name = id;
+    if (name.rfind("minecraft:", 0) == 0) name = name.substr(10);
+    std::string path = wgDir + "/data/minecraft/worldgen/configured_carver/" + name + ".json";
+    std::ifstream ifs(path);
+    wg::ConfiguredCarver parsed;
+    if (!ifs) {
+        std::fprintf(stderr, "[CARVER] cannot open %s\n", path.c_str());
+    } else {
+        std::stringstream ss; ss << ifs.rdbuf();
+        try {
+            JsonParser parser(ss.str());
+            JsonValue root = parser.parse();
+            parsed = wg::ConfiguredCarver::parse(root, blocks);
+        } catch (const std::exception& ex) {
+            std::fprintf(stderr, "[CARVER] parse %s failed: %s\n", path.c_str(), ex.what());
+        }
+    }
+    std::lock_guard<std::mutex> lk(carverCacheMtx());
+    auto [it, ins] = cache.emplace(id, std::move(parsed));
+    return &it->second;
+}
+
+// ---- placed_feature / configured_feature 懒加载（FEATURES 阶段）----
+static wg::PlacedFeature* getPlacedFeature(WorldgenHandle& h, const std::string& id);
+static wg::ConfiguredFeature* getConfiguredFeature(WorldgenHandle& h, const std::string& id);
+
+// FULL 模式：CARVERS（洞穴雕刻）→ FEATURES（装饰层）——Java ChunkStatus 顺序（SURFACE 之后）
+static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chunkX, int chunkZ,
+                                    std::vector<int>& heightmap,
+                                    const std::map<std::string, DF>& router, Aquifer& aquifer,
+                                    bool runFeatures) {
+    // ---- CARVERS（NoiseChunkGenerator.carve）----
+    // 邻域 biome 直接采样（无 jitter）：biomeSource.getBiome(fromBlock(startX), 0, fromBlock(startZ), sampler)
+    auto biomeAtNoJitter = [&](int cx, int cz) -> const std::string* {
+        NoisePos p;
+        p.x = cx * 16; p.y = 0; p.z = cz * 16;
+        auto samp = [&](const char* k) -> float {
+            auto it = router.find(k);
+            return it != router.end() ? (float)it->second->sample(p) : 0.0f;
+        };
+        return h.biomeSource.find(samp("temperature"), samp("vegetation"), samp("continents"),
+                                  samp("erosion"), samp("depth"), samp("ridges"));
+    };
+    // surface 单点 materialRule（Java applyMaterialRule：grass 挖后 dirt 替换）
+    // 注意：Java 的 biomeAccess2::getBiome 是 8 邻域 jitter（biomeAccess.withSource 保留 jitter）——用 fillOneChunk 同款
+    auto biomeAtJitter = [&](int x, int y, int z) -> std::string {
+        NoisePos p;
+        int px, py, pz;
+        wg::biomePickCell(h.biomeAccessSeed, x, y, z, px, py, pz);
+        p.x = px << 2; p.y = py << 2; p.z = pz << 2;
+        auto samp = [&](const char* k) -> float {
+            auto it = router.find(k);
+            return it != router.end() ? (float)it->second->sample(p) : 0.0f;
+        };
+        float t = samp("temperature"), hum = samp("vegetation"), cont = samp("continents"),
+              ero = samp("erosion"), dep = samp("depth"), w = samp("ridges");
+        const std::string* id = h.biomeSource.find(t, hum, cont, ero, dep, w);
+        return id ? *id : "minecraft:plains";
+    };
+    auto biomeTempFn = [&](const std::string& id) -> double { return h.biomeSource.temperature(id); };
+
+    wg::CarverContext ctx;
+    ctx.minY = h.dim.minY;
+    ctx.height = h.dim.worldHeight;
+    ctx.aquifer = &aquifer;
+    ctx.blocks = &h.blocks;
+    ctx.applyMaterialRule = [&](int x, int y, int z, bool hasFluid) -> int {
+        auto initDensity = [&](int bx, int by, int bz) -> double {
+            auto it = router.find("initial_density");
+            if (it == router.end()) return 0.0;
+            NoisePos q; q.x = bx; q.y = by; q.z = bz;
+            return it->second->sample(q);
+        };
+        return h.surfaceBuilder->applyMaterialRuleSingle(h.overworldRule, biomeAtJitter, biomeTempFn,
+                                                         x, y, z, hasFluid, h.dim.minY, h.dim.worldHeight,
+                                                         initDensity);
+    };
+
+    // Java ChunkRandom(new CheckedRandom(RandomSeed.getSeed()))——基类 LCG（carve 用）
+    wg::ChunkRandom chunkRandom(wg::ChunkRandom::BaseKind::CHECKED);
+    // CarvingMask：per-carverStep（主世界 air）一个，17×17 邻域所有 carver 共享（Java ProtoChunk.getOrCreateCarvingMask）
+    wg::CarvingMask mask(h.dim.worldHeight, h.dim.minY);
+
+    // OCEAN_FLOOR_WG 高度图（Java NOISE 阶段构建 = surface 后、carver 前——挖洞不影响）
+    // 洞穴处 top=原海底（Java OCEAN_FLOOR_WG 跳过 fluid，但构建时机在 carver 前 → 洞穴未挖）
+    h.oceanFloorHeightmap.assign(256, h.dim.minY - 1);
+    for (int lz = 0; lz < 16; lz++) {
+        for (int lx = 0; lx < 16; lx++) {
+            int wx = chunkX * 16 + lx, wz = chunkZ * 16 + lz;
+            for (int wy = h.dim.minY + h.dim.worldHeight - 1; wy >= h.dim.minY; wy--) {
+                int block = col.at(lx, wy, lz);
+                if (block != 0 && block != 32 && block != 10 && block != 11) { // 非 air/water/lava/flowing_lava
+                    h.oceanFloorHeightmap[lz * 16 + lx] = wy;
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int j = -8; j <= 8; j++) {
+        for (int k = -8; k <= 8; k++) {
+            int cx2 = chunkX + j, cz2 = chunkZ + k;
+            const std::string* biomeId = biomeAtNoJitter(cx2, cz2);
+            if (!biomeId) continue;
+            const wg::BiomeEntry* entry = h.biomeSource.findEntry(*biomeId);
+            if (!entry) continue;
+            if (getenv("WG_CARVERLOG")) std::fprintf(stderr, "[CARVER] chunk(%d,%d) neigh(%d,%d) biome=%s carvers=%zu\n",
+                                                     chunkX, chunkZ, cx2, cz2, biomeId->c_str(), entry->carversAir.size());
+            int l = 0;
+            for (const auto& carverId : entry->carversAir) {
+                // TEMP-DIAG：WG_CARVER_SKIP 过滤指定 carver id 子串（隔离崩溃）
+                if (const char* skip = getenv("WG_CARVER_SKIP"); skip && std::string(carverId).find(skip) != std::string::npos) { l++; continue; }
+                const wg::ConfiguredCarver* cc = getConfiguredCarver(h.wgDir, carverId, h.blocks);
+                if (!cc) { l++; continue; }
+                chunkRandom.setCarverSeed(h.seed + l, cx2, cz2);
+                if (getenv("WG_CARVERLOG")) {
+                    // 打印 shouldCarve 判定输入（与 Java ChunkRandomProbe 对照）——注意 setCarverSeed 后 nextFloat 是首个消费
+                    float nf = chunkRandom.nextFloat();
+                    std::fprintf(stderr, "[CARVER] chunk(%d,%d) %s @(%d,%d) shouldCarveNextFloat=%.7f prob=%.3f\n",
+                                 chunkX, chunkZ, carverId.c_str(), cx2, cz2, nf, cc->probability);
+                    // 重新 setSeed（nextFloat 已消费，shouldCarve 用新序列）
+                    chunkRandom.setCarverSeed(h.seed + l, cx2, cz2);
+                }
+                if (cc->shouldCarve(chunkRandom)) {
+                    if (getenv("WG_CARVERLOG")) std::fprintf(stderr, "[CARVER] chunk(%d,%d) carve %s @(%d,%d)\n",
+                                                             chunkX, chunkZ, carverId.c_str(), cx2, cz2);
+                    // carve：洞穴中心 = 邻域 (cx2,cz2)，写方块目标 = 当前 chunk (chunkX,chunkZ)
+                    cc->carve(ctx, col, biomeAtJitter, chunkRandom, cx2, cz2, chunkX, chunkZ, mask);
+                }
+                l++;
+            }
+        }
+    }
+
+    // ==================== FEATURES（ChunkGenerator.generateFeatures）====================
+    // 简化（Phase 3）：set = 当前 chunk biome（Java 是 3×3 chunk 所有 biome section）；structure 部分跳过
+    // Java：l = 0; for k (step) { intSet = set 中所有 biome 的 step k features 全局索引; 排序;
+    //        for p : intSet { setDecoratorSeed(l, p, k); placedFeature.generate(...); l++ } }
+    // ChunkRandom(Xoroshiro base)（generateFeatures 用，与 carver 的 CHECKED 不同！）
+    wg::ChunkRandom featRandom(wg::ChunkRandom::BaseKind::XOROSHIRO);
+    const std::string* curBiomeId = biomeAtNoJitter(chunkX, chunkZ);
+    const wg::BiomeEntry* curBiome = curBiomeId ? h.biomeSource.findEntry(*curBiomeId) : nullptr;
+
+    // OCEAN_FLOOR_WG 高度图已在 applyCarversAndFeatures 开头（carver 前）构建——FEATURES 阶段直接复用
+    if (runFeatures && curBiome) {
+        // Java：l = chunkRandom.setPopulationSeed(worldSeed, blockPos.x, blockPos.z)——常数 populationSeed
+        // setDecoratorSeed(l, p, k) = (long)k*65713L + 11L + (long)p*985L + l（p=indexMapping lastIndex，k=step）
+        long long populationSeed = featRandom.setPopulationSeed(h.seed, chunkX * 16, chunkZ * 16);
+        int maxStep = (int)curBiome->features.size();
+        for (int k = 0; k < maxStep; k++) {
+            std::vector<int> intSet = h.featureIndexer.intSetFor(curBiome, k);
+            for (int p : intSet) {
+                // p = lastIndex → featureId = stepFeatures[k][p]（Java indexedFeatures2.features().get(p)）
+                if (k < 0 || k >= (int)h.featureIndexer.stepFeatures.size()) continue;
+                const auto& stepList = h.featureIndexer.stepFeatures[(size_t)k];
+                if (p < 0 || p >= (int)stepList.size()) continue;
+                const std::string& fid = stepList[(size_t)p];
+                if (getenv("WG_FEATURELOG")) std::fprintf(stderr, "[FEATURE] chunk(%d,%d) step=%d p=%d fid=%s\n",
+                                                          chunkX, chunkZ, k, p, fid.c_str());
+                featRandom.setDecoratorSeed(populationSeed, p, k);
+                // PlacedFeature.generate（懒加载 placed_feature JSON）
+                wg::PlacedFeature* pf = getPlacedFeature(h, fid);
+                if (!pf) continue;
+                if (getenv("WG_FEATURELOG") && fid.find("ore_granite") != std::string::npos) {
+                    std::fprintf(stderr, "[MODS] chunk(%d,%d) %s mods=%zu step=%d\n", chunkX, chunkZ, fid.c_str(), pf->modifiers.size(), k);
+                }
+                // FeaturePlacementContext
+                wg::FeaturePlacementContext fctx;
+                fctx.biomeAt = biomeAtJitter;
+                fctx.posToBiome = biomeAtJitter;
+                fctx.oceanFloor = &h.oceanFloorHeightmap;
+                fctx.worldSurface = &heightmap;
+                fctx.minY = h.dim.minY;
+                fctx.height = h.dim.worldHeight;
+                fctx.chunkStartX = chunkX * 16;
+                fctx.chunkStartZ = chunkZ * 16;
+                // OreFeatureContext（ConfiguredFeature.generate 用）
+                wg::OreFeatureContext octx(featRandom, col, h.blocks);
+                octx.chunkStartX = chunkX * 16;
+                octx.chunkStartZ = chunkZ * 16;
+                octx.minY = h.dim.minY;
+                octx.height = h.dim.worldHeight;
+                octx.oceanFloor = &h.oceanFloorHeightmap;
+                // 两阶段跨 chunk：regionColAt 从区域缓存取邻域 col（target 判定读）；pendingCross 记录跨 chunk 写入
+                octx.regionColsMtx = &h.regionColsMtx;
+                octx.regionColAt = [&h](int cx, int cz) -> int32_t* {
+                    auto it = h.regionCols.find(std::make_pair(cx, cz));
+                    return it != h.regionCols.end() ? it->second.data() : nullptr;
+                };
+                octx.pendingCross = [&h](int cx, int cz, int idx, int32_t state) {
+                    std::lock_guard<std::mutex> lk(h.pendingCrossMtx);
+                    h.pendingCross[std::make_pair(cx, cz)].push_back({idx, state});
+                };
+                // placement modifier 的世界方块读取（block_predicate_filter）
+                fctx.blockAt = [&octx](int wx, int wy, int wz) -> int { return octx.blockAt(wx, wy, wz); };
+                // ConfiguredFeature 分发
+                auto genFn = [&](wg::FeaturePlacementContext& fcx, int gx, int gy, int gz) -> bool {
+                    wg::ConfiguredFeature* cf = getConfiguredFeature(h, pf->configuredFeature);
+                    if (!cf) return false;
+                    if (getenv("WG_FEATURELOG") && pf->configuredFeature.find("ore_granite") != std::string::npos) {
+                        std::fprintf(stderr, "[ORIGIN] fid=%s origin=(%d,%d,%d)\n", pf->configuredFeature.c_str(), gx, gy, gz);
+                    }
+                    if (getenv("WG_FEATURELOG") && pf->configuredFeature.find("underwater_magma") != std::string::npos) {
+                        std::fprintf(stderr, "[ORIGIN] fid=%s origin=(%d,%d,%d)\n", pf->configuredFeature.c_str(), gx, gy, gz);
+                    }
+                    if (cf->type.find("ore") != std::string::npos) {
+                        int type = cf->type.find("scattered_ore") != std::string::npos ? 1 : 0;
+                        return cf->generate(fcx, octx, cf->oreConfig, type, gx, gy, gz);
+                    }
+                    // [JUDGE-DIAG] random_selector（trees_*）分支已禁用——隔离树负贡献
+                    if (cf->type.find("random_selector") != std::string::npos) {
+                        return false;
+                    }
+                    // Phase 4/5：disk / spring / freeze_top_layer / underwater_magma / flower / random_patch / simple_block / tree
+                    if (cf->type.find("ore") == std::string::npos) {
+                        float biomeTemp = curBiome ? (float)curBiome->temperature : 0.5f;
+                        float biomeRainfall = 0.5f;
+                        return cf->generateOther(fcx, octx, gx, gy, gz, biomeTemp, biomeRainfall);
+                    }
+                    return false;
+                };
+                pf->generateConfigured = genFn;
+                pf->generate(fctx, featRandom, chunkX * 16, h.dim.minY, chunkZ * 16);
+            }
+        }
+    }
+}
 
 
 
@@ -1049,3 +1386,117 @@ void wg_clear_beardifier(void* handle) {
 
 
 
+
+
+// ---- placed_feature / configured_feature 懒加载实现 ----
+static wg::PlacedFeature* getPlacedFeature(WorldgenHandle& h, const std::string& id) {
+    auto it = h.placedFeatures.find(id);
+    if (it != h.placedFeatures.end()) return &it->second;
+    std::string name = id;
+    if (name.rfind("minecraft:", 0) == 0) name = name.substr(10);
+    std::string path = h.wgDir + "/data/minecraft/worldgen/placed_feature/" + name + ".json";
+    std::ifstream ifs(path);
+    if (!ifs) { h.placedFeatures[id] = wg::PlacedFeature{}; return &h.placedFeatures[id]; }
+    std::stringstream ss; ss << ifs.rdbuf();
+    try {
+        JsonParser parser(ss.str());
+        JsonValue root = parser.parse();
+        wg::PlacedFeature pf;
+        pf.id = id;
+        if (const JsonValue* feat = root.get("feature")) pf.configuredFeature = feat->strVal;
+        if (const JsonValue* mods = root.get("placement")) {
+            for (const auto& m : mods->arr) {
+                std::string type = m.get("type") ? m.get("type")->strVal : "";
+                if (type.find("count") != std::string::npos && type.find("noise") == std::string::npos) {
+                    if (const JsonValue* c = m.get("count")) {
+                        wg::IntProvider ip = wg::IntProvider::parse(c);
+                        pf.modifiers.push_back(std::make_shared<wg::CountPlacementModifier>(ip));
+                    }
+                } else if (type.find("rarity_filter") != std::string::npos) {
+                    pf.modifiers.push_back(std::make_shared<wg::RarityFilterPlacementModifier>(
+                        (int)(m.get("chance") ? m.get("chance")->numVal : 0)));
+                } else if (type.find("in_square") != std::string::npos) {
+                    pf.modifiers.push_back(std::make_shared<wg::SquarePlacementModifier>());
+                } else if (type.find("height_range") != std::string::npos) {
+                    if (const JsonValue* hp = m.get("height")) {
+                        wg::HeightProvider hh = wg::HeightProvider::parse(hp);
+                        pf.modifiers.push_back(std::make_shared<wg::HeightRangePlacementModifier>(hh));
+                    }
+                } else if (type.find("heightmap") != std::string::npos) {
+                    std::string hm = m.get("heightmap") ? m.get("heightmap")->strVal : "WORLD_SURFACE_WG";
+                    pf.modifiers.push_back(std::make_shared<wg::HeightmapPlacementModifier>(hm));
+                } else if (type.find("biome") != std::string::npos) {
+                    pf.modifiers.push_back(std::make_shared<wg::BiomePlacementModifier>());
+                } else if (type.find("random_offset") != std::string::npos) {
+                    wg::IntProvider zx{wg::IntProvider::Kind::CONSTANT, 0, 0, 0};
+                    wg::IntProvider zy{wg::IntProvider::Kind::CONSTANT, 0, 0, 0};
+                    wg::IntProvider zz{wg::IntProvider::Kind::CONSTANT, 0, 0, 0};
+                    if (const JsonValue* o = m.get("xz_spread")) { zx = wg::IntProvider::parse(o); zy = wg::IntProvider::parse(o); }
+                    if (const JsonValue* oy = m.get("y_spread")) zy = wg::IntProvider::parse(oy);
+                    pf.modifiers.push_back(std::make_shared<wg::RandomOffsetPlacementModifier>(zx, zy, zz));
+                } else if (type.find("noise_based_count") != std::string::npos) {
+                    wg::IntProvider cnt{wg::IntProvider::Kind::CONSTANT, 0, 0, 0};
+                    if (const JsonValue* c = m.get("count")) cnt = wg::IntProvider::parse(c);
+                    pf.modifiers.push_back(std::make_shared<wg::NoiseBasedCountPlacementModifier>(0, "", 0.0, cnt));
+                } else if (type.find("block_predicate_filter") != std::string::npos) {
+                    // predicate：matching_fluids（water/lava）或 matching_blocks——简化
+                    if (const JsonValue* pred = m.get("predicate")) {
+                        std::string ptype = pred->get("type") ? pred->get("type")->strVal : "";
+                        std::vector<int> ids;
+                        bool isFluid = ptype.find("matching_fluids") != std::string::npos;
+                        if (const JsonValue* fl = pred->get(isFluid ? "fluids" : "blocks")) {
+                            if (fl->isArray()) {
+                                for (const auto& b : fl->arr) {
+                                    std::string nm = b.strVal;
+                                    if (nm.rfind("#", 0) == 0) nm = nm.substr(1); // tag 简化：water/lava 直接 id
+                                    if (nm == "minecraft:water") ids.push_back(h.blocks.id("minecraft:water"));
+                                    else if (nm == "minecraft:lava") ids.push_back(h.blocks.id("minecraft:lava"));
+                                    else ids.push_back(h.blocks.id(nm));
+                                }
+                            } else {
+                                std::string nm = fl->strVal;
+                                if (nm == "minecraft:water") ids.push_back(h.blocks.id("minecraft:water"));
+                                else if (nm == "minecraft:lava") ids.push_back(h.blocks.id("minecraft:lava"));
+                                else ids.push_back(h.blocks.id(nm));
+                            }
+                        }
+                        pf.modifiers.push_back(std::make_shared<wg::BlockPredicateFilterPlacementModifier>(isFluid, ids));
+                    }
+                } else if (type.find("surface_relative_threshold") != std::string::npos) {
+                    std::string hm = m.get("heightmap") ? m.get("heightmap")->strVal : "WORLD_SURFACE_WG";
+                    bool hasMin = m.get("min_inclusive") != nullptr;
+                    bool hasMax = m.get("max_inclusive") != nullptr;
+                    int mn = hasMin ? (int)m.get("min_inclusive")->numVal : 0;
+                    int mx = hasMax ? (int)m.get("max_inclusive")->numVal : 0;
+                    pf.modifiers.push_back(std::make_shared<wg::SurfaceRelativeThresholdPlacementModifier>(hm, hasMin, hasMax, mn, mx));
+                }
+                // 其余 modifier Phase 4 补（surface_relative_threshold 等——忽略）
+            }
+        }
+        h.placedFeatures[id] = std::move(pf);
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "[FEATURE] parse %s failed: %s\n", path.c_str(), ex.what());
+        h.placedFeatures[id] = wg::PlacedFeature{};
+    }
+    return &h.placedFeatures[id];
+}
+
+static wg::ConfiguredFeature* getConfiguredFeature(WorldgenHandle& h, const std::string& id) {
+    auto it = h.configuredFeatures.find(id);
+    if (it != h.configuredFeatures.end()) return &it->second;
+    std::string name = id;
+    if (name.rfind("minecraft:", 0) == 0) name = name.substr(10);
+    std::string path = h.wgDir + "/data/minecraft/worldgen/configured_feature/" + name + ".json";
+    std::ifstream ifs(path);
+    if (!ifs) { h.configuredFeatures[id] = wg::ConfiguredFeature{}; return &h.configuredFeatures[id]; }
+    std::stringstream ss; ss << ifs.rdbuf();
+    try {
+        JsonParser parser(ss.str());
+        JsonValue root = parser.parse();
+        h.configuredFeatures[id] = wg::ConfiguredFeature::parse(id, root, h.blocks);
+    } catch (const std::exception& ex) {
+        std::fprintf(stderr, "[FEATURE] parse %s failed: %s\n", path.c_str(), ex.what());
+        h.configuredFeatures[id] = wg::ConfiguredFeature{};
+    }
+    return &h.configuredFeatures[id];
+}

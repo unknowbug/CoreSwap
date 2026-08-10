@@ -188,6 +188,10 @@ struct BiomeEntry {
     NoiseHypercube cube;
     std::string id; // "minecraft:plains"
     double temperature = 0.5;
+    // GenerationSettings（biome/*.json）：carvers（按 Carver step：air/liquid）+ features（按 GenerationStep.Feature ordinal 分层）
+    std::vector<std::string> carversAir;      // carvers.air（如 minecraft:cave / cave_extra_underground / canyon）
+    std::vector<std::string> carversLiquid;   // carvers.liquid（主世界空）
+    std::vector<std::vector<std::string>> features; // features[step][]（placed_feature 引用名，Java PlacedFeature.LISTS_CODEC）
 };
 
 class BiomeSource {
@@ -232,6 +236,45 @@ public:
     }
 
     size_t size() const { return entries.size(); }
+    const std::vector<BiomeEntry>& allEntries() const { return entries; }
+
+    // 按 id 查找 entry（FEATURE 阶段按 biome id 取 carvers/features 列表）
+    const BiomeEntry* findEntry(const std::string& id) const {
+        for (const auto& e : entries) if (e.id == id) return &e;
+        return nullptr;
+    }
+
+    // 从 biome/*.json 加载 GenerationSettings（carvers + features 分层列表）。
+    // biome id "minecraft:cold_ocean" → 文件 cold_ocean.json；缺失/解析失败跳过（记 stderr）。
+    // 注意：biome_params.json 的 temperature 已在此前 loadFromJson 填入；本方法只补 carvers/features。
+    void loadGenerationSettings(const std::string& wgDir) {
+        std::string biomeDir = wgDir + "/data/minecraft/worldgen/biome/";
+        for (auto& e : entries) {
+            std::string name = e.id;
+            if (name.rfind("minecraft:", 0) == 0) name = name.substr(10); // 去 "minecraft:" 前缀（10 字符）
+            std::string path = biomeDir + name + ".json";
+            std::ifstream ifs(path);
+            if (!ifs) { std::fprintf(stderr, "biome: no settings file %s (skip)\n", path.c_str()); continue; }
+            std::stringstream ss; ss << ifs.rdbuf();
+            try {
+                JsonParser parser(ss.str());
+                JsonValue root = parser.parse();
+                if (const JsonValue* carvers = root.get("carvers")) {
+                    if (const JsonValue* air = carvers->get("air"))
+                        for (const auto& c : air->arr) e.carversAir.push_back(c.str());
+                    if (const JsonValue* liquid = carvers->get("liquid"))
+                        for (const auto& c : liquid->arr) e.carversLiquid.push_back(c.str());
+                }
+                if (const JsonValue* features = root.get("features")) {
+                    e.features.resize(features->arr.size());
+                    for (size_t k = 0; k < features->arr.size(); k++)
+                        for (const auto& f : features->arr[k].arr) e.features[k].push_back(f.str());
+                }
+            } catch (const std::exception& ex) {
+                std::fprintf(stderr, "biome: parse %s failed: %s (skip)\n", path.c_str(), ex.what());
+            }
+        }
+    }
 
 private:
     std::vector<BiomeEntry> entries;

@@ -426,6 +426,30 @@ public:
                       int minY, int worldHeight,
                       const std::function<double(int, int, int)>& initialDensityAt);
 
+    // Java SurfaceBuilder.applyMaterialRule（carver 挖掉 grass 后 dirt 单点替换）
+    // 构造单点 SurfaceContext（stoneDepthAbove/Below=1）+ 应用规则树；返回 block id 或 -1
+    int applyMaterialRuleSingle(const RuleP& rule,
+                                const std::function<std::string(int, int, int)>& biomeAt,
+                                const std::function<double(const std::string&)>& biomeTemp,
+                                int x, int y, int z, bool hasFluid,
+                                int minY, int worldHeight,
+                                const std::function<double(int, int, int)>& initialDensityAt) {
+        SurfaceContext ctx;
+        ctx.noiseSamplers = samplers;
+        ctx.splitter = splitter;
+        ctx.surfaceSecondaryNoise = &getNoise("minecraft:surface_secondary");
+        ctx.terracottaBandsGetter = [this](int x, int y, int z) { return getTerracottaBlock(x, y, z); };
+        ctx.initialDensityAt = initialDensityAt;
+        ctx.worldMinY = minY;
+        ctx.worldHeight = worldHeight;
+        std::string biome = biomeAt(x, y, z);
+        ctx.biomeId = biome;
+        ctx.biomeTemp = biomeTemp(biome);
+        // Java MaterialRuleContext.initVerticalContext(1, 1, hasFluid ? j+1 : MIN, i, j, k)
+        ctx.initVertical(1, 1, hasFluid ? y + 1 : INT32_MIN, x, y, z, biome);
+        return rule->apply(ctx);
+    }
+
     static void addTerracottaBand(XoroshiroRandom& r, std::vector<int>& bands, int minBandSize, int state) {
         int i = r.nextBetween(6, 15);
         for (int j = 0; j < i; j++) {

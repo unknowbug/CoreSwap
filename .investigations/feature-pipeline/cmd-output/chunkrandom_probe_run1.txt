@@ -1,0 +1,33 @@
+[ChunkRandomProbe] === CheckedRandom (LCG 48-bit) === 
+cr.next(32)=-1045225129
+cr.next(32)=1084206043
+cr.nextLong=-3933948616470016951
+cr.nextLong=-518819946905544879
+cr.nextInt(10)=4
+cr.nextInt(10)=6
+[ChunkRandomProbe] === Xoroshiro128PlusPlusRandom === 
+xr.nextLong=-6173829750206801647
+xr.nextLong=-2257156978324007003
+xr.nextLong=215407908469699695
+xr.nextLong=1678382591273684319
+xr.nextInt(10)=5
+xr.nextFloat=0.5679502
+[ChunkRandomProbe] === ChunkRandom(Xoroshiro base) setPopulationSeed/setDecoratorSeed === 
+populationSeed=-3665859634238804548
+afterPop.nextLong=-7508349385403582096
+afterPop.nextLong=-5481884486643468655
+afterPop.nextInt(256)=7
+afterPop.nextFloat=0.49389488
+deco(step=0,index=0) nextLong=-7508349385403582096 nextInt(64)=44 nextFloat=0.5386385
+deco(step=0,index=1) nextLong=-3766154493263439697 nextInt(64)=4 nextFloat=0.55216247
+deco(step=0,index=2) nextLong=1940938260340561462 nextInt(64)=23 nextFloat=0.7721962
+deco(step=1,index=0) nextLong=6663053810773451003 nextInt(64)=1 nextFloat=0.114055455
+deco(step=1,index=1) nextLong=-733400428311386564 nextInt(64)=17 nextFloat=0.847755
+deco(step=1,index=2) nextLong=7554019272896959582 nextInt(64)=33 nextFloat=0.4711588
+[ChunkRandomProbe] === ChunkRandom(CheckedRandom base) setCarverSeed === 
+carver(-18,-15) nextFloat=0.5614767
+carver(-18,-15) nextInt(16)=12
+carver(-18,-15) nextInt(16)=11
+carver(-18,-15) nextInt(16)=2
+carver2(-18,-15) shouldCarve nextFloat=0.5614767
+carver2(-18,-15) nextLong=-3711936206981428316

@@ -1,0 +1,14 @@
+[Phase 4 简单装饰结果 - 2026-08-10]
+实现: DiskFeature / SpringFeature / FreezeTopLayerFeature / UnderwaterMagmaFeature（CaveSurface 语义）+ block_predicate_filter + surface_relative_threshold_filter + IntProvider uniform value 嵌套修复
+结果:
+  -288 FULL: 97.8390%（Phase3 97.8464% -> -0.007%，magma 位置错引入 ~20 块）
+  300515 FULL: 98.0975%（Phase3 98.0948% -> +0.003%，disk/spring 正确放置）
+  8576 SURFACE: 99.9994% / 3200 SURFACE: 99.9997%（零退化保持）
+关键修复:
+  1. IntProvider::parse uniform 的 min/max 在 value 子对象 -> count=uniform(44,52) 修复（magma 0 -> 43）
+  2. oceanFloorHeightmap 构建时机：carver 后 -> carver 前（Java NOISE 阶段语义）
+  3. UnderwaterMagmaFeature 重写为 CaveSurface.getFloorHeight + Box.stream 语义（isValidPosition 全石头包围）
+已知限制（记录）:
+  - magma 位置与参照重合 0：Java BiomePlacementModifier 过滤（cold_ocean）C++ 不过滤 + origin 依赖洞穴水位置（Phase 2 carver 差异 31% 连锁）——影响 0.004%
+  - disk state_provider 规则（sandstone 分支）未实现（简化 fallback）
+  - FreezeTopLayer 用 OCEAN_FLOOR_WG 近似 MOTION_BLOCKING（-288 温度高无冻结，无影响）

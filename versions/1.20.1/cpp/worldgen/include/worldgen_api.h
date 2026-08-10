@@ -44,6 +44,13 @@ int wg_fill_blocks(void* handle, int chunkX, int chunkZ, int32_t* out);
 int wg_fill_blocks_multi(void* handle, const int* chunkXs, const int* chunkZs,
                          int32_t* const* outs, int count, int threads);
 
+// 两阶段 FEATURE（跨 chunk 球体，Java 语义）：
+//   phase 1：surface+carvers 全部生成并存 regionCols（阶段 1，可并行）
+//   phase 2：features 重跑（跨 chunk 写 regionCols 邻域；顺序敏感，内部强制串行）
+// 需先调用 phase 1 再 phase 2（同一 handle）。
+int wg_fill_blocks_multi_phase(void* handle, const int* chunkXs, const int* chunkZs,
+                               int32_t* const* outs, int count, int threads, int phase);
+
 // 设置指定 chunk 的 Beardifier（StructureWeightSampler 结构密度修正）输入。
 // 数据为 vanilla createStructureWeightSampler 产出的 piece/junction 列表：
 //   pieces:   每 8 个 int = {minX, minY, minZ, maxX, maxY, maxZ, terrain, groundLevelDelta}

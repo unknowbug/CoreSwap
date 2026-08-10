@@ -96,6 +96,7 @@ int main(int argc, char** argv) {
         else if (std::string(argv[a]) == "-dimension" && a + 1 < argc) dimension = std::atoi(argv[a + 1]);
         else if (std::string(argv[a]) == "-mismatch") listMismatch = true;
         else if (std::string(argv[a]) == "-beard" && a + 1 < argc) beardFile = argv[a + 1];
+        else if (std::string(argv[a]) == "-features") _putenv_s("WG_GEN_MODE", "full"); // FULL 模式：CARVERS→FEATURES 对照 FULL 状态参照
         else if (std::string(argv[a]) == "-crashTest") {
             wg::installCrashHandler();
             std::fprintf(stderr, "[CRASH-TEST] 故意解引用空指针…\n");
@@ -226,7 +227,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 256; i++) {
             if (std::fread(buf, 1, 2, f) != 2) break;
             int blen = ((int)buf[0] << 8) | buf[1];
-            if (blen > 0 && blen < 128) std::fread(buf, 1, blen, f);
+            if (blen > 0) std::fread(buf, 1, blen, f); // writeUTF 长度无上界（biome 名 ≤ 64，但安全读全部）
         }
         vanillaAll.push_back(std::move(vanilla));
         gotAll.emplace_back(BPC);
@@ -237,8 +238,15 @@ int main(int argc, char** argv) {
     std::vector<int32_t*> outs;
     for (auto& g : gotAll) outs.push_back(g.data());
     if (!beardFile.empty()) loadBeardFile(h, beardFile);
+    bool featuresMode = getenv("WG_GEN_MODE") && std::string(getenv("WG_GEN_MODE")).find("full") != std::string::npos;
     auto tp0 = std::chrono::steady_clock::now();
-    wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), threadsArg);
+    if (featuresMode) {
+        // 两阶段：1) surface+carvers 全部存 regionCols；2) features 逐 chunk（串行）跨 chunk 写
+        wg_fill_blocks_multi_phase(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), threadsArg, 1);
+        wg_fill_blocks_multi_phase(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), 1, 2);
+    } else {
+        wg_fill_blocks_multi(h, chunkX.data(), chunkZ.data(), outs.data(), (int)gotAll.size(), threadsArg);
+    }
     auto tp1 = std::chrono::steady_clock::now();
     double wall = std::chrono::duration<double, std::milli>(tp1 - tp0).count();
     int hwc = (int)std::thread::hardware_concurrency();
@@ -273,6 +281,28 @@ int main(int argc, char** argv) {
         std::printf("chunk (%d,%d): match=%lld/%d (%.2f%%) nonAir=%lld/%lld (%.2f%%)\n",
                     chunkX[c], chunkZ[c], cm, BPC, 100.0 * cm / BPC, cna, tna,
                     tna ? 100.0 * cna / tna : 100.0);
+    }
+
+    // -save <path>：写出生成的 blocks 文件（与参照同格式；对比 SURFACE/FULL 模式差异用）
+    for (int a = 4; a < argc; a++) {
+        if (std::string(argv[a]) == "-save" && a + 1 < argc) {
+            FILE* sf = fopen(argv[a + 1], "wb");
+            if (sf) {
+                auto w32 = [&](int32_t v) { int32_t b = be32(v); std::fwrite(&b, 1, 4, sf); };
+                auto w64 = [&](int64_t v) { int64_t b = be64(v); std::fwrite(&b, 1, 8, sf); };
+                w32(0x57474232); w64(seed); w32(size); w32(originX); w32(originZ); w32(minY); w32(height);
+                for (int c = 0; c < (int)gotAll.size(); c++) {
+                    w32(chunkX[c]); w32(chunkZ[c]);
+                    for (int i = 0; i < BPC; i++) {
+                        uint16_t v = (uint16_t)gotAll[c][i];
+                        uint8_t b[2] = { (uint8_t)(v >> 8), (uint8_t)(v & 0xFF) };
+                        std::fwrite(b, 1, 2, sf);
+                    }
+                }
+                fclose(sf);
+                std::fprintf(stderr, "[SAVE] wrote %s\n", argv[a + 1]);
+            }
+        }
     }
     std::printf("TOTAL: match=%lld/%lld (%.4f%%) nonAir match=%lld/%lld (%.4f%%)\n",
                 match, total, 100.0 * match / total, matchNonAir, totalNonAir,

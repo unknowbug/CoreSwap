@@ -63,6 +63,11 @@ add_executable(tbands_dump src/tbands_dump.cpp)
 target_include_directories(tbands_dump PRIVATE include src)
 target_link_libraries(tbands_dump PRIVATE worldgen_core)
 
+# ChunkRandom/CheckedRandom 移植单测（参照 = ChunkRandomProbe Java 输出，逐位对拍）
+add_executable(chunkrandom_test src/chunkrandom_test.cpp)
+target_include_directories(chunkrandom_test PRIVATE include src)
+target_link_libraries(chunkrandom_test PRIVATE worldgen_core)
+
 # 崩溃定位：worldgen.dll+0x1b930（读地址 0）——生成 map 文件
 if(MSVC)
   target_link_options(worldgen_jni PRIVATE "/MAP:${CMAKE_BINARY_DIR}/bin/worldgen.map")

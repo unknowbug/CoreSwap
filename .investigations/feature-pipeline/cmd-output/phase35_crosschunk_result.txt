@@ -1,0 +1,1 @@
+Phase 3.5 cross-chunk: -288 FULL 97.8464% (nonAir 93.65%), 300515 98.0948% (94.06%), granite 88.3% diorite 85.7% tuff 87.8% dirt 92.7%; two-phase (surface+carvers store regionCols -> features pendingCross apply A-overwrites-B)
