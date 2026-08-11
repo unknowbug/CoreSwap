@@ -92,3 +92,11 @@
   1. **伪共享**（新候选，最强）：thread_local slots（FlatCache/Cache2D/Interpolated 的 vector<Slot>）每线程独立分配但可能物理相邻 → 写 slot.key/stamps 时跨线程 cache line ping-pong → 8 线程写放大 10x
   2. 内存带宽/L3 容量：8 线程同时遍历共享 density 树（sloped_cheese 大树）→ 带宽争用
   3. 验证手段：tlSlots 加 alignas(64) padding 测伪共享；或用 VS2026 profiler 采样
+
+## 9. 根因定论：内存带宽饱和（架构级，非锁/伪共享）
+
+- **证据**：t8 下每 chunk 各阶段均慢 9-10x（density 44->416ms、aquifer 30->230ms、surface 10->50ms）——aquifer 是纯计算（13 邻居扫描 + 噪声采样，per-chunk 对象无共享写）也慢 8x → **排除缓存伪共享/锁，指向全局内存带宽饱和**
+- **量化**：单线程 density 44ms/chunk × 98304 采样 = 448ns/采样；每次采样遍历 density 树读多节点 → 单线程 ~2.2GB/s，8 线程 ~17.8GB/s 接近 DDR4 带宽上限 → 争用
+- **性质**：架构级（每块采样遍历整棵 density 树是内存密集），非本次 FlatCache 修复范围
+- **修复方向** = RQ-006（C++ 有损加速，用户已拍板宏观一致容忍）：base_3d_noise 网格插值缓存 / 树扁平化 / 分块中间结果复用 → 减少每块内存访问
+- **决策点**：是否启用 RQ-006 有损优化（用户逐项拍板）→ Phase 4 评估
