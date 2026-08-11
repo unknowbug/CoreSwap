@@ -1,0 +1,20 @@
+# 方法产物模板 — 复制到 <project>/.artifacts/classes/<Name>/methods/<method>.yaml
+schema_version: 1
+name: <方法名>
+locator: <地址 | 字节码偏移 | 签名>              # 语言无关定位
+status: draft | candidate | confirmed
+signature: <签名>
+return_type: <类型>
+anchor_path: <对应 anchor 载体路径，如 _anchors.py 或 JSDoc/C++ 注释位置>
+retry:                                          # 逆向假设验证轮次（judge 核对，spec §5.3）
+  count: 0                                      # Lift→Verify 轮次（工程修复不计数）
+  over_cap: false                               # 超限（>3）必须声明
+  history: []                                   # 可选每轮摘要
+uncertain_areas:                                  # 来自 @anchor.idk
+  - '<具体未知项>'
+dependencies:
+  - locator: '<依赖目标>'
+    type: callee | data | type
+    name_hint: '<推测名>'
+notes: |
+  <还原过程备注>

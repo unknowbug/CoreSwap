@@ -1,0 +1,11 @@
+# 类产物模板 — 复制到 <project>/.artifacts/classes/<Name>/class.yaml
+schema_version: 1
+class_name: <name>
+locator: <地址 | 字节码偏移 | 类全名>            # 语言无关定位
+status: draft | candidate | confirmed
+members:
+  - offset: <偏移>
+    type: <type>
+    name: <推测名>
+    evidence: '<观察证据>'
+methods: [<method 名列表>]

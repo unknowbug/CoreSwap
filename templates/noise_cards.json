@@ -1,0 +1,14 @@
+{
+  "_readme": "噪声卡模板 — schema 引用 Anchorlaw Protocol v0.13 §3 (Noise Card JSON Schema)，不自行维护。失败反馈累积到 <project>/.artifacts/noise_cards.json",
+  "noise_id": "lift-<name>-001",
+  "timestamp": "<ISO8601>",
+  "trigger": "<触发输入>",
+  "function_name": "<module>:<name>",
+  "observed": "<实际观察值>",
+  "expected": "<预期值>",
+  "anchor_violated": "<被违反的 anchor 描述>",
+  "discovery": "<失败揭示的发现>",
+  "curriculum": "<沉淀的经验/教训>",
+  "tags": ["<tag>"],
+  "language": "<语言>"
+}

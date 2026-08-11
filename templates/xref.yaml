@@ -1,0 +1,11 @@
+# 跨引用模板 — 复制到 <project>/.artifacts/cross_refs/xref_<NNN>.yaml
+编号: xref_<NNN>
+状态: draft | candidate | confirmed
+从:
+  binary: <来源>
+  定位: <locator>
+到:
+  目标: <目标>
+  类型: <方法 | 函数 | 数据 | 类>
+关系类型: 调用 | 继承 | 数据引用 | 事件订阅
+证据: <可追溯描述>

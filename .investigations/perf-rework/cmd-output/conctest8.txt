@@ -1,0 +1,4 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=550912
+[CORESWAP] crash handler installed
+[CONC] 并发批次测试：8 线程 × 20 批（每批 4 chunk）……
+[CONC] 完成：8/8 线程全部批次成功（无崩溃/异常）

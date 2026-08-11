@@ -1,0 +1,11 @@
+# 降级声明模板 — 复制到 <project>/.artifacts/uncompilable_functions.yaml
+# 用途: 产物因外部依赖无法独立编译时如实声明（Anchorlaw §9.3），不假装验证了
+- function: <name>
+  locator: '<locator>'
+  uncompilable_reason: "<原因>"
+  missing_deps:
+    - type: function | type | vtable
+      name: <依赖名>
+      locator: '<依赖定位>'
+      lift_status: not_started | draft | candidate
+  suggested_path: "<建议路径>"

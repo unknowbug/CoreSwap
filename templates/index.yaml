@@ -1,0 +1,9 @@
+# 主索引模板 — 复制到 <project>/.artifacts/index.yaml
+schema_version: 1
+project: <project 名>
+module: <core | re-binary | re-code | swe>      # 产出模块（卸载模块时提示产物归属）
+entries:
+  - id: '<module>:<name>:<locator>'
+    path: '<产物相对路径>'
+    kind: class | method | function | xref
+    status: draft | candidate | confirmed
