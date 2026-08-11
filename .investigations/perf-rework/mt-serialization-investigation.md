@@ -82,3 +82,13 @@
 - **density 墙钟随线程数线性膨胀 = 硬件级争用**（非调度等待：worker 独占 chunk 仍慢）
 - density 阶段无共享写（DensityFunction 树 const + FlatCache/Cache2D/Interpolated thread_local + g_curChunk thread_local）→ 代码层无解释，指向**内存带宽/L3 缓存容量**级争用（8 线程 × 每 chunk 98304 次 3D 树采样，每 chunk 786KB densityBuf 写 + 树遍历读）
 - 定位手段建议：VS 2026 性能分析器（本机有）采集 CPU/内存样本；或 reduce chunk 并行度验证带宽假设
+
+## 8. 实机体感验收（2026-08-12 用户实测，BK-002）
+
+- **结果**：几乎无进步，但可以肯定**无退化**
+- **解读**：实机 = MC 多 Worker 并发调 JNI → 走多线程路径 → 单线程 3x 改善被 density 线性膨胀（8t 416ms vs 1t 44ms）完全抵消
+- **结论**：多线程无加速从「剩余课题」**升级为实机瓶颈（最高优先）**——单线程修复不解决实机体感，必须解决多线程争用
+- **候选根因重估**（density 阶段全只读 + thread_local，无共享写）：
+  1. **伪共享**（新候选，最强）：thread_local slots（FlatCache/Cache2D/Interpolated 的 vector<Slot>）每线程独立分配但可能物理相邻 → 写 slot.key/stamps 时跨线程 cache line ping-pong → 8 线程写放大 10x
+  2. 内存带宽/L3 容量：8 线程同时遍历共享 density 树（sloped_cheese 大树）→ 带宽争用
+  3. 验证手段：tlSlots 加 alignas(64) padding 测伪共享；或用 VS2026 profiler 采样
