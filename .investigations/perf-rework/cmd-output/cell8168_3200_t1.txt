@@ -1,0 +1,21 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=550400
+[CORESWAP] crash handler installed
+blocks file: magic=0x57474232 seed=-8248318472910187742 size=4 origin=(3200,3208) minY=-64 height=384
+parallel: 16 chunks, 1 threads (arg=1 hw=24), wall=549.5ms (34.34ms/chunk)
+chunk (200,200): match=95398/98304 (97.04%) nonAir=28925/29501 (98.05%)
+chunk (201,200): match=96468/98304 (98.13%) nonAir=30342/31026 (97.80%)
+chunk (202,200): match=98202/98304 (99.90%) nonAir=32410/32512 (99.69%)
+chunk (203,200): match=97993/98304 (99.68%) nonAir=32201/32512 (99.04%)
+chunk (200,201): match=95383/98304 (97.03%) nonAir=28958/29427 (98.41%)
+chunk (201,201): match=96463/98304 (98.13%) nonAir=30394/31323 (97.03%)
+chunk (202,201): match=98060/98304 (99.75%) nonAir=32268/32512 (99.25%)
+chunk (203,201): match=97393/98304 (99.07%) nonAir=31601/32512 (97.20%)
+chunk (200,202): match=95360/98304 (97.01%) nonAir=28862/29475 (97.92%)
+chunk (201,202): match=97195/98304 (98.87%) nonAir=31328/31795 (98.53%)
+chunk (202,202): match=98083/98304 (99.78%) nonAir=32291/32512 (99.32%)
+chunk (203,202): match=97110/98304 (98.79%) nonAir=31318/32512 (96.33%)
+chunk (200,203): match=93548/98304 (95.16%) nonAir=26043/28567 (91.16%)
+chunk (201,203): match=97047/98304 (98.72%) nonAir=31031/31576 (98.27%)
+chunk (202,203): match=97223/98304 (98.90%) nonAir=31430/32091 (97.94%)
+chunk (203,203): match=96138/98304 (97.80%) nonAir=29842/31229 (95.56%)
+TOTAL: match=1547064/1572864 (98.3597%) nonAir match=489244/501082 (97.6375%)
