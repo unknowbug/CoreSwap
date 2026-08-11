@@ -154,3 +154,28 @@ entries:
     path: '../versions/1.20.1/cpp/worldgen/deprecated-vegetation/README.md'
     kind: decision
     status: candidate
+  - id: 're-code:perf-rework:requirements-doc'
+    path: '../.investigations/perf-rework/requirements-doc.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:perf-rework:static-audit'
+    path: '../.investigations/perf-rework/static-audit.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:root-cause-draft'
+    path: '../.investigations/perf-rework/root-cause-draft.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:review-rootcause'
+    path: '../.investigations/perf-rework/review-rootcause.md'
+    kind: review
+    status: candidate
+
+  - id: 're-code:perf-rework:fix-design'
+    path: '../.investigations/perf-rework/fix-design.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:perf-rework:review-fix-delivery'
+    path: '../.investigations/perf-rework/review-fix-delivery.md'
+    kind: review
+    status: candidate

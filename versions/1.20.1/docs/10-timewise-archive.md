@@ -1094,5 +1094,120 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 - 验证方法：C++ 独立测试（granite_cpp3.exe 球体对拍 3274 块、chunkrandom_test.exe 33 断言）+ Java ChunkRandomProbe（GRANITE/UNDERWATER_MAGMA 段逐位参照）+ block_probe `-save` 输出脚本对比（cmp_ore2/cmp_p4b/cmp_p5 在 E:\tmp）
 - **待沉淀模式**（docs/07 + discovered）：① positions 链深度优先（Java stream.flatMap 惰性 = DFS，BFS 消费错序）② CheckedRandom LCG 48 位（carveTunnels/carveRavine 内部 Random.create = LCG，**非** pipeline-map 假设的 Xoroshiro——勘探假设被实测推翻）③ 两阶段跨 chunk（regionCols + pendingCross，A 后生成覆盖 B）④ 参照 blocks 的 biome 段跳过（每 chunk 后 256 个 biome 条目）
-- ⚠️ 关键坑（勿重蹈）：**pipeline-map 对 Random.create 基类的假设被 Phase 2 实测推翻**——机制不明时以 Java probe 实测为准，勿信地图默认值；参照读取 MUST 跳过 biome 段（曾误判「参照损坏」）
+## 2026-08-11 性能回归调查 + Java 桥并发重写 + C++ 池改造（🔍 性能根因未结案）
 
+> 承接 2026-08-10 深夜拍板（树花植被不做）后，用户实机发现**性能反降**：`-PcppReplace=1` 传送后区块生成卡很久才出现，纯 vanilla（`-PcppDisable=off`）对照确认——启动 perf-rework 调查（`.investigations/perf-rework/`）。
+> 结论已提炼方向：requirements-doc.md（confirmed）+ static-audit.md（Java 桥并发静态审查）+ architecture.md（Phase 0 架构设计）+ 07 篇性能章节修正草稿（subagent 产出，待应用）+ discovered 模式 #10（thread_local 缓存冲突指纹）。本条保留完整推理链。
+
+### 起因：实机性能反降（🔍 → ✅ 定位 Java 桥并发层）
+
+- 🔍 **现象**：`-PcppReplace=1` 传送后区块卡很久才出现；纯 vanilla 对照确认 C++ 接管反而更慢（需求文档背景，2026-08-11）。
+- ✅ **静态审查定位**（static-audit.md，审查对象 `CppBridge.java` 1.20.1-1.0.18；审查时 git 快照 MC HEAD=`78b615b` / CoreSwap HEAD=`0b92c62`，行号对审查时工作区 362 行）：
+  - **P0-1**：JNI `fillBlocks` 被 `synchronized(BATCH_LOCK)` 全局锁串行化（noBatch L158 / 攒批 L182-197 / drainBatch L202）——对 JNI 多线程语义的认知错误（JNI 允许 native 被任意多线程并发调用，线程安全由 native 负责；C++ `wg_fill_blocks_multi` 设计即多线程）。
+  - **P0-2**：writeChunk 锁内串行写 16 chunk（drainBatch L228-242 for 循环全程锁内）——157 万次 setBlockState 串行 + 阻塞攒批线程。
+  - **P1-1**：攒不满 BATCH=16 时 `BATCH_LOCK.wait(2ms)`（L188-195）——低并发每 chunk 固定 +2ms，「区块卡很久」的直接体感来源。
+  - **P1-2**：BATCH_BUFS 共享复用池（静态 `int[BATCH][98304]` ≈ 384KB/chunk）强制锁（L250-254）。
+  - **P2-1**：writeChunk 每 chunk `new BlockState[4096]`（L260）——进程级静态可消除。
+  - **P2-2**：feedBeardifier 每 chunk 全反射（15 次 Method.invoke）——P2-2 后续，不进本次范围。
+- ✅ **runMtx 实证（Judge 第 2 轮 C1，worldgen_api.cpp L954-976）**：`CoreSwapPool::run` 内置 `static std::mutex runMtx` 锁住整个 run 生命周期（共享成员 fn/totalTasks/doneCount/nextTask/taskQueue 被并发 run 覆盖 → 读空 `std::function` 崩溃，**32 视距崩溃根因修复**）——即「批内并行（CoreSwapPool 多线程）、批间串行（runMtx）」；「C++ 耗时随线程数伸缩」在改造前不可达。
+- ✅ **三层串行化定性**（architecture.md）：① Java BATCH_LOCK ② C++ runMtx ③ writeChunk 锁内循环。
+
+### Java 桥去锁重写 + C++ 池改造（✅ 已实施，RQ-001~005）
+
+- ✅ **目标架构**：去锁、M=1 非空即处理——每 worker 独立 thread-local buffer → JNI fillBlocks(1 chunk, buf) → 无锁 writeChunk 自己的 chunk；BATCH 攒批整个删除（用户拍板 M=1）；靠池并行摊薄 JNI 往返。
+- ✅ **C++ CoreSwapPool 任务队列模型**：`run(count, f)` 提交 `{fn, shared_ptr<RunState>}` 到共享队列；RunState = `{atomic done, total, mtx, cvDone}`（per-run）；worker 循环取任务执行；调用方等自己 run 的 cvDone，不阻塞其他 run；删 runMtx。签名/对齐输出不变（`wg_fill_blocks_multi` 对 Java 透明）。风险：多 run 并发 = 池任务超订，操作系统调度兜底（用户拍板「崩了再说」测试策略）。
+- ✅ **Java 侧改动（CppBridge.java）**：删 BATCH_LOCK/PENDING/BATCH_BUFS/drainBatch/wait；thread-local buffer（RQ-004）；stateById 进程级静态（RQ-005）；writeChunk 天然无锁（RQ-002）；noBatch 诊断路径保留为唯一路径（RQ-003）；feedBeardifier 不动。
+- ✅ **随机种子对拍零退化**（random-seed-sampling.md，2026-08-11 改造后验证）：
+  - `-8248318472910187742` 134304,434416 4×4 = TOTAL **99.9992%**（13 块差异）
+  - `8576294172403134396` 200,200 8×8 = TOTAL **99.9997%**（22 块差异）
+  - 与 2026-08-10 基线（99.9994%/99.9997%）同量级，差异均为既有插值课题类，**非本次引入**。只统计留知识，不修复（客户拍板）。
+
+### 🔍 性能回归根因：FlatCache/Cache2D thread_local 缓存失效（未修，待立项）
+
+- 🔍 **2026-08-11 吞吐实测（SURFACE 模式）**：单线程 **98-182ms/chunk**、多线程（8/22 线程）**108-239ms/chunk**——**无加速反降**；07 篇旧基线记录串行 28.1ms/chunk、并行 49.4ms/16chunk（3.1ms/chunk）。退化 ~3.5-6.5×（单线程）且并行不随线程数伸缩。
+- 🔍 **WG_PROFILE 实测（density 阶段 670-1000ms/chunk，旧 8.5-11.7ms）**：
+  - spline 单次 **20,598ns**（旧 992ns，~21×）
+  - spline.sample **338 万次**
+  - FlatCache rebuild **438,092 次 ≈ spline 调用数**——每次 spline 采样都重建 5×5 网格（缓存命中率≈0）
+  - Cache2D miss **458,281 次**
+- 🔍 **对照实验（排除本次改造引入）**：stash 本次改动后 HEAD 版 block_probe 8×8 仍 **10.2s**；连 07 篇基线提交 **86e4057** 也要 **8s** → **回归在 8/6 优化链之后积累，非本次改造引入**（本次改造保持对齐 8576 99.9994%/3200 99.9997%，未恶化吞吐；吞吐退化是独立预存问题，具体引入提交待 git 二分）。
+- 🔍 **疑似根因（candidate 待验证）**：FlatCache/Cache2D 的 per-instance **thread_local** 缓存与「每 chunk 跨线程」执行模型冲突——多线程并行时每线程独立缓存 → 每 chunk 跨线程迁移 → 命中率归零、每 chunk 重建多次；叠加 buildGrid **嵌套采样递归**（边界点 x=cx*16+16 命中本 chunk 网格 k=4 才不重建，失配时触发相邻 chunk 网格重建递归）→ density 阶段 ~100 倍级恶化。
+- 🔍 **待修状态**：根因修复未验证。候选方向：缓存按 chunk 键索引 / 按调用上下文显式传入 / 恢复线程亲和；需 git 二分定位 8/6 后引入提交。**未结案**。
+
+### 决策：优化转向（已结案，2026-08-11 用户拍板）
+
+- ✅ **放弃噪声 100% 对齐目标，转向优化优先**：有损容忍度 = **宏观一致**（地形/洞穴大体一致、允许方块级差异，肉眼基本看不出；用户实测地下也几乎看不出差异）。
+- ✅ **300515 种子差异 = 非本项目问题**（BK-003）：参照含废弃前脏数据（花爆炸/树失败为废弃前实测），用户实测 vanilla 对照确认，不追责。
+- ✅ **性能验收 = 体感**（BK-002）：游戏内「传送后区块出现时间」不采量化基线，验收凭用户体感。
+- ✅ **RQ-006（C++ 有损加速，如 base_3d_noise 网格插值缓存）**：仅评估+用户逐项拍板后实施，不默认开（边界内待议）。
+
+
+## 2026-08-12：性能回归根因定论（H1/H2/H3 假设验证 + judge 通过 + 用户拍板）（✅ 根因定论 / 🔍 修复中 Phase 2）
+
+> 承接 2026-08-11 条目（性能回归根因 candidate 未结案）。2026-08-12 主会话采集新数据（wgprofile_t1/mt + splinedebug 537MB，36 chunks 6×6，seed 8576294172403134396），H1/H2/H3 假设全部验证，根因定论过 judge 审查并经用户拍板确认。完整分析落盘 `.investigations/perf-rework/root-cause-draft.md`（analysis, candidate）+ `review-rootcause.md`（review, candidate），已登记 `.artifacts/index.yaml`。本条保留验证链与定论过程。
+
+### 数据采集（2026-08-12 主会话，勿重复实验）
+
+- 命令：`block_probe 8576294172403134396 versions\1.20.1\data\worldgen versions\1.20.1\data\vanilla_8576294172403134396_6_720_-432.blocks`（36 chunks 6×6）；MSVC 强制重编，TOTAL 99.9994% 对齐保持（纯性能问题，无功能退化）。
+- 原始输出：`cmd-output/wgprofile_8576_t1.txt`、`wgprofile_8576_mt.txt`、`splinedebug_8576_t1.txt`（537MB）；摘要 `cmd-output/collect-summary.md`。
+
+### ✅ 假设验证（三组独立计数器数字闭环）
+
+- **H1（y 主序 → Cache2DDF 单槽 100% miss）：部分成立（非主因）**。y 主序循环属实（worldgen_api.cpp L669-672 `for by{for bz{for bx}}`）且与 density.h L630 注释「同列连续 384 次采样」矛盾；但 splinedebug 全部 SPLINE/CACHE2D 行 **y=0**（grep `pos=(x,非0,z)` 零匹配）→ spline 只在 buildGrid 角点被采样，块级 densityBuf 98,304 次采样被 InterpolatedDF 插值 + FlatCache 查表挡掉（0 次 spline）→ 对爆炸贡献 ≈ 0。改循环顺序无效且不推荐（aquifer 同序读取有对齐风险）。
+- **H2（FlatCacheDF 单槽 + buildGrid 嵌套递归 → 邻居网格重建）：成立（主因）**。density.h L735 `p.x=(chunkX*4+i)*4`，i=4 → `(chunkX+1)*16` = **下一 chunk 首列** → 嵌套 spline（continents/erosion/ridges 的 locationFunction FlatCache）收到**邻居 chunk key**（L687 key=(x>>4,z>>4)）→ 单槽被污染 → 重建邻居网格 → **递归蔓延 112 chunk**（36 生成 + 76 邻居，含左下对角 (44,-28)）。**rebuild 36,252 = 每 chunk ~1007 vs 期望 ~6 → 168× 爆炸** → 直接驱动 spline 调用 **20×**（4,695,145 = 130,420/chunk vs 旧 6,250）。
+- **H3（多线程 thread_local thrashing）：成立（放大器）**。单槽 thread_local（density.h L660-663/L718-721）+ 每 chunk 跨线程迁移 → 每线程每 chunk 首访即 miss。spline 单次 t1 **1,714ns** / mt **27,155ns**（**16×**）；调用量不变（4,703,488 ≈ 4,695,145）；wall mt 8488ms > t1 6533ms（并行反而更慢）。
+- **数字闭环**（三组独立计数器互相印证）：CACHE2D miss 351,536 = 14,061 rebuild × 25 角点 ✓；spline 4,695,145 ≈ 2,400,550（SPLINEDEBUG 非 leaf）× 1.96 ✓ ≈ 351,536 miss × 13.36 spline/miss ✓；130,420/chunk = 9,765 miss/chunk × 13.36 ✓；36,252 ÷ 36 = 1,007 ✓。
+- **08-11 vs 08-12 数据口径**：08-11（rebuild 438,092 / 单次 20,598ns）为多线程 thrashing 环境粗计数器；08-12（36,252 / 1,714ns）为单线程精确统计。不构成矛盾，放大链实为「rebuild 168× × 13.36 spline/miss」。
+
+### ✅ judge 审查通过（review-rootcause.md）
+
+- **主结论通过**：H2 主因（FlatCacheDF 单槽 + buildGrid 角点 i=4 越界 → 嵌套递归蔓延 112 chunk，rebuild 168×）、H3 放大器（thread_local thrashing 16×）、H1 非主因（y 主序注释矛盾已实证不触发 spline），机制与代码一致，数字闭环可复核，置信度标注合法，修复方向（per-chunk 多槽缓存）不破坏 BK-001（采样值逐位不变）。
+- **7 项修正/澄清建议**（已处理或已声明）：① CACHE2D 第 4 个 cacheId 来源（spline locationFunction 可能为 Cache2D，列入 root-cause §6 不确定点）② 08-11 vs 08-12 数据差异（口径说明已补入 07 篇 + 发现 #10 修正）③ collect-summary Java 循环顺序断言修正（root-cause §4.1 独立核对为 y 外层，非 x→z→y）④ index.yaml 登记 root-cause-draft/review-rootcause（本次完成）⑤ retry 记录缺失（H1/H2/H3 单轮验证 + 数字闭环已声明）⑥ 噪声卡历史无法核对（工作区无 noise_cards.json，留档）⑦ wall 时间 6448.0 vs 6533.3 来源注明（取 collect-summary）。
+
+### ✅ 用户拍板 + 修复启动
+
+- ✅ **根因定论（用户拍板确认）**：H2 主因（FlatCacheDF 单槽缓存 + buildGrid 角点越界 → 嵌套 FlatCache 邻居 key 污染 → 递归蔓延，rebuild 168× → spline 20×）+ H3 放大器（thread_local thrashing 单次 ×16）+ H1 非主因（块级不触发 spline）。
+- 🔍 **Phase 2 修复中**：**per-chunk 多槽缓存**（主修复，低风险，采样值逐位不变，不破坏 BK-001 对齐；保留 k=4 边界命中语义 density.h L700-702）→ **线程亲和恢复**（后续，消除 thrashing）；改循环顺序不推荐（H1 非主因）。修复验证待闭环（以 08-12 同口径计数器复测 rebuild/spline 回落）。
+
+
+## 2026-08-12（补）：性能回归修复实施与闭环（16 槽 LRU 失败 → 上下文绑定成功）（✅ 修复闭环 / 用户验收）
+
+> 承接上一条 2026-08-12 根因定论条目。修复经历两版演进：初版 16 槽 LRU 未消除蔓延 → 终版「当前生成 chunk 上下文绑定」与 Java per-chunk 实例语义完全对齐，验证达标 + judge 通过 + 用户验收。设计文档 `.investigations/perf-rework/fix-design.md`（§0 含实现演进注记）+ 审查 `.investigations/perf-rework/review-fix-delivery.md`，均已登记 `.artifacts/index.yaml`（kind: plan / review，status: candidate）。
+
+### 实施演进：16 槽 LRU → 上下文绑定
+
+- **初版（16 槽 LRU）**：FlatCacheDF/Cache2DDF 均改 thread_local 16 槽 LRU（`std::array<SubSlot,CAP>` key/grid/stamp，模拟 Java per-chunk 实例缓存）。实测 rebuild 36,252→**7,318**（5× 降）但**未消除蔓延**：rebuild **203/chunk** vs 期望 6、chunk 覆盖仍 **112**（splinedebug_8576_t1_fixed.txt；SPLINE 14,772/chunk）。→ **弃用原因**：16 槽 LRU 仍为「pos 推导的邻居 key」构建网格，只减少重建频率，**不改变「越界=重建」语义**。
+- **关键洞察**：Java FlatCache 是 **per-chunk 实例**（构造时绑定 chunk、一次性预计算 25 角点、越界 delegate.sample 直算**永不构建邻居网格**，ChunkNoiseSampler.java L836-881）；C++ 是全局单例 DensityFunction 树，单槽/多槽缓存都做不到「越界不重建」——必须显式传入当前 chunk 上下文。
+- **终版（当前 chunk 上下文绑定）**：thread_local `g_curChunkX/Z`（density.h L40-41）在 `fillOneChunkCore` 入口 RAII 设置、函数返回恢复 `INT32_MIN`（judge 修正项 ② RAII 恢复已闭环；诊断路径回退分支语义保留）；网格绑定当前 chunk，k/l 相对 startBiomeX 计算（`k=(pos.x>>2)-slot.cx*4`），越界 → `delegate.sample(pos)` 直算不重建。**Cache2DDF 保留 16 槽 LRU**（角点共享列可命中，无蔓延风险）。与 Java FlatCache 六维逐条对齐（review-fix-delivery.md 审查要点 1 表：实例绑定/网格构建/k-l 计算/界内查表/越界直算/边界共享 ✅）。
+- 机理：buildGrid 角点 i=4 的 pos 采样时 `cx=g_curChunkX=当前 chunk` → `k=4 ∈ [0,5)` 命中本网格；更远越界 → 直算。**蔓延根除**。
+
+### ✅ 验证数据（终版 ctx，2026-08-12 落盘）
+
+数据文件：`cmd-output/regress_8576_raii.txt`、`regress_3200_raii.txt`、`wgprofile_8576_t1_ctx.txt`、`splinedebug_8576_t1_ctx.txt`（stat_ctx.py 统计）、`bench_8x8_noprof.txt`。
+
+| 指标 | 修复前（08-12 定论） | 终版 | 结论 |
+|---|---|---|---|
+| FLATCACHE rebuild | 36,252（~1007/chunk，168×） | **216 = 6.0/chunk** | 期望 ~6 完全达标 ✓ |
+| rebuild chunk 覆盖 | 112（36 生成 + 76 邻居） | **36** | 蔓延根除 ✓ |
+| CACHE2D miss | 351,536 | **23,117** | ↓15× |
+| SPLINE（SPLINEDEBUG 非 leaf 口径） | 66,682/chunk | **3,032/chunk** | 回旧基线 6,250 水平 ✓ |
+| spline.sample（WG_PROFILE 全量） | 130,420/chunk | **5,906/chunk**（212,622/36） | ↓22× |
+| 单线程 wall | 6,533ms（181ms/chunk） | **2,910ms** | 2.2× |
+| bench_chunks 单线程 | ~181ms/chunk | **62.38ms/chunk** | 3× |
+| 对齐 8576 / 3200 | 99.9994% / 99.9997% | **99.9994% / 99.9997%** | 零退化 ✓ |
+
+- 口径注明（judge 修正项 ③ 已闭环）：SPLINEDEBUG `[SPLINE]` 为入口行（非 leaf）计数；WG_PROFILE `spline.sample` 为全量采样计数；wall/bench 为落盘文件数值（wgprofile_8576_t1_ctx.txt wall=2910.0ms；bench_8x8_noprof.txt threads=1 62.38ms/chunk）。
+- 16 槽 LRU 对照：rebuild 7,318（203/chunk）、覆盖仍 112、bench 79.91ms/chunk（bench_fixed_ctx.txt）、wall 3,469ms（wgprofile_8576_t1_fixed.txt）——方向正确但未达标，弃用。
+
+### ✅ judge 审查通过（review-fix-delivery.md）
+
+- **主结论通过**：修复机制（FlatCacheDF 上下文绑定 + 越界直算不重建、Cache2DDF 16 槽 LRU）与 Java per-chunk 实例语义逐条对齐；边界 k=4 命中语义保留；buildGrid 角点 i=4 不再触发邻居网格重建（机理经代码路径推演成立，实测 rebuild 216/覆盖 36 吻合）；纯缓存路径改造零退化在数学上成立（双种子 99.9994%/99.9997% 落盘与修复前一致）；thread_local + fillOneChunkCore 单线程完整处理保证线程安全（无跨线程上下文污染）。
+- **4 项修正已闭环**：① fix-design.md 补实现演进注记（§0）+ 登记 index.yaml ✅ ② fillOneChunkCore 末尾 RAII 恢复 g_curChunkX/Z=INT32_MIN + 注释修正（「未设置或已恢复时回退」）✅ ③ 性能数字口径注明（SPLINEDEBUG 非 leaf vs WG_PROFILE 全量；以落盘文件为准）✅ ④ retry 轮次记录缺失声明（修复为工程迭代，验证单轮完成）✅
+
+### ✅ 用户验收 + 剩余课题
+
+- ✅ **用户验收（2026-08-12）**：修复闭环确认，性能回归结案（rebuild 216=6.0/chunk 完全达期望、蔓延根除、双种子零退化）。
+- 🔍 **剩余课题（独立于本次修复，待续）**：
+  1. **多线程无加速**：bench threads=8 62.17ms/chunk ≈ 单线程 62.38ms——spline/cache 已非瓶颈，**aquifer+oreVein 阶段**（wgprofile_8576_t1_ctx.txt 20-52ms/chunk，远超 spline 贡献）成主导；需线程亲和（root-cause 方案 2）/ aquifer 并行化。
+  2. **spline 单次 7,971ns**（WG_PROFILE ctx 口径）：调用量 ↓22× 后的单次成本，非本次修复引入的劣化（review 三源不一致 #2 已注明出处 = wgprofile_8576_t1_ctx.txt L80），与修复前 1,714ns 为不同测量口径。
+  3. **aquifer 阶段 4× 级**（20-52ms/chunk vs 旧基线 6.5-8.9ms）——独立课题。

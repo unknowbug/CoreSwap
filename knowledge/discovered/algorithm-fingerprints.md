@@ -231,3 +231,47 @@ header: magic(4) + seed(8) + size(4) + originX(4) + originZ(4) + minY(4) + heigh
 - 长度前缀是大端 uint16；blen 用「读 2 字节得长度 → 读满长度字节」安全读，**不要假设长度上界**（栈缓冲 ≥ 128 或按长度动态分配）
 - 诊断信号：chunk 坐标读出来是异常值/负值（看似 int16 溢出）而 header 的 origin/size 正常时——先怀疑**流错位**（漏跳/错跳变长字段），不是坐标本身溢出
 - 用参照文件做对比的脚本（任何语言）都要按此格式解析；跨版本格式若加字段同样适用「未知变长段 MUST 先确认结构再跳」
+
+## 发现 #10: thread_local 缓存与「每 chunk 跨线程」执行模型冲突 → 缓存命中率归零的性能回归指纹
+
+**发现时间:** 2026-08-11（2026-08-12 根因定论确认）
+**发现者:** worker（perf-rework 性能回归调查）
+**来源定位:** MC 1.20.1 主世界密度求值缓存（versions/1.20.1/docs/07-block-pipeline.md 2026-08-06 纯算法优化链 FlatCache/Cache2D）+ `.investigations/perf-rework/`（WG_PROFILE/WG_SPLINEDEBUG 实测 2026-08-11/08-12）
+**置信度:** confirmed（机制已 WG_PROFILE/WG_SPLINEDEBUG 实测坐实；2026-08-12 根因定论经 judge 通过 + 用户拍板；2026-08-12 修复闭环验证达标（rebuild 216=6.0/chunk、覆盖 36）+ judge 通过 + 用户验收）
+**module:** perf
+
+> **2026-08-12 修正（judge 审查要点 4 + 主因升级）**：08-11 实测（rebuild 438,092 / spline 单次 20,598ns）与 08-12 实测（rebuild 36,252 / 单次 1,714ns）差异巨大——两轮测量口径不同（多线程 thrashing 环境粗计数器 vs 单线程精确统计），见「观察」节口径说明；核心指纹结论不变，叠加因素升级为主因机制（H2），见「主因机制」节。
+
+### 观察
+性能优化常引入「局部缓存」把重复计算降为 O(1)（如 8/6 把 spline 采样 34900 → 6250 次/chunk，靠 FlatCache 5×5 网格 + Cache2D 列缓存）。**这类缓存的收益依赖「缓存生命周期 ⊇ 重复访问窗口」**：
+
+- 原设计假设（8/6，单线程串行）：同一 chunk 生成期间大量 spline 采样重复 → per-instance（per-DensityFunction）**thread_local** 缓存命中。
+- 当执行模型变为「线程池并行消费 chunk 任务」（每 chunk 可能由不同线程处理、线程跨 chunk 迁移）时，thread_local 缓存与 chunk 生命周期**不匹配**：每线程独立缓存 → 每 chunk 首访即 miss → 命中率归零 → 每次访问都走完整重建路径。
+
+**指纹信号**：缓存重建/失效计数 ≈ 缓存访问总数（命中率≈0），且原 O(1) 路径变成重建热点（单次成本放大一个量级）；伴随「多线程不加速甚至反降」（并行只放大重建并发，不摊薄重复访问）。本次实测（2026-08-11，多线程 8/22 线程 thrashing 环境下计数器）：FlatCache rebuild 438,092 ≈ spline 调用数、Cache2D miss 458,281 次、spline 单次 992ns → 20,598ns、density 阶段 8.5-11.7ms → 670-1000ms/chunk——正是此指纹。
+
+**08-11 vs 08-12 口径说明（judge 审查要点 4）**：两个测量口径不同，不构成矛盾——
+- **08-11**：多线程（8/22 线程）thrashing 环境下的粗粒度计数器。每 chunk 跨线程迁移 → 单槽缓存全 miss + 多线程重建并发 → rebuild 计数 ≈ spline 调用数（命中率≈0 的表象）、spline 单次被 thrashing 放大到 20,598ns。
+- **08-12**：单线程（-threads 1）WG_SPLINEDEBUG 精确统计，剥离 thrashing 后暴露真实主因结构：rebuild 36,252 次 = 每 chunk ~1007（期望 ~6）→ **168×**；rebuild 仅占 spline 调用（4,695,145 = 130,420/chunk）的 **0.77%**；spline 单次 t1 1,714ns（mt 27,155ns，16× thrashing）。
+- **核心结论不变**：thread_local 单槽缓存 vs 跨线程执行模型失配。08-12 数据把放大链精确化为「rebuild 168× × 13.36 spline/miss」的级联（而非 08-11 表象的「rebuild ≈ 访问总数」）。
+
+**主因机制（2026-08-12 定论，H2 新指纹）**：FlatCache 网格构建含**嵌套采样递归**。buildGrid 角点 `i=4`/`j=4` 时 `p.x=(chunkX*4+4)*4=(chunkX+1)*16` 指向**下一 chunk 首列** → 嵌套 spline（continents/erosion/ridges 的 locationFunction FlatCache）收到**邻居 chunk key**（key=(x>>4,z>>4) chunk 级）→ 单槽缓存被污染 → 重建邻居网格 → 递归蔓延（实测 112 chunk = 36 生成 + 76 邻居，含左下对角 (44,-28)）→ rebuild 36,252 = 每 chunk ~1007 vs 期望 ~6（**168×**）→ spline 调用 20× 爆炸（130,420/chunk vs 旧 6,250）。
+
+**H2 指纹信号**：缓存 key 由采样坐标派生（chunk 级），而采样点存在**越出当前上下文范围的角点**（buildGrid i=4/j=4）时，单槽缓存必然收到非本 chunk key → miss + 重建 + 递归蔓延。排查特征 = 重建计数的 chunk 覆盖**超出生成范围**（112 = 36+76 邻居）。**修复（2026-08-12 已实施并闭环）= 当前 chunk 上下文绑定**：thread_local `g_curChunkX/Z` 绑定当前生成 chunk（fillOneChunkCore 入口 RAII 设置、返回恢复 `INT32_MIN`），k/l 相对 startBiomeX 计算，越界 → `delegate.sample(pos)` **直算不重建**——即 Java per-chunk 实例语义（ChunkNoiseSampler.java L836-881：构造时预计算 25 角点、之后纯查表、永不构建邻居网格）的 C++ 模拟。**关键教训：per-chunk 多槽 LRU 不足以根除**（初版 16 槽 LRU 仍为 pos 推导的邻居 key 构建网格，rebuild 仅 36,252→7,318，覆盖仍 112）——必须消除「越界→重建」语义本身；**改循环顺序无效**（块级不触发 spline，H1 非主因）。
+
+### 证据
+- WG_PROFILE（2026-08-11，density 阶段，多线程 thrashing 环境）：spline 单次 992ns → 20,598ns；spline.sample 338 万次；FlatCache rebuild 438,092 次 ≈ spline 调用数；Cache2D miss 458,281 次；density 阶段 670-1000ms/chunk（旧 8.5-11.7ms）
+- WG_PROFILE/WG_SPLINEDEBUG（2026-08-12，单线程 -threads 1 精确统计）：spline 4,695,145 次（130,420/chunk，旧 6,250 → **20×**）；FlatCache rebuild **36,252** 次 / 112 chunk（每 chunk ~1007，期望 ~6 → **168×**）；CACHE2D miss 351,536 次（4 个 cacheId，= 14,061 rebuild × 25 角点 ✓）；spline 单次 t1 **1,714ns** / mt **27,155ns**（**16×** thrashing）；放大链 = rebuild 168× × 13.36 spline/miss ✓
+- 修复后验证（2026-08-12 终版 ctx，数据 `.investigations/perf-rework/cmd-output/`）：FLATCACHE rebuild **216 = 6.0/chunk**（期望 ~6 完全达标）、覆盖 **36**（蔓延根除）；CACHE2D miss **23,117**（旧 351,536）；SPLINE **3,032/chunk**（SPLINEDEBUG 非 leaf 口径，旧 66,682，回旧基线 6,250 水平；WG_PROFILE 全量 spline.sample **5,906/chunk**）；单线程 wall 6,533→**2,910ms**（2.2×）；bench 单线程 **62.38ms/chunk**（旧 ~181，3×）；8576 **99.9994%** / 3200 **99.9997%** 零退化
+- 初版 16 槽 LRU 对照（已弃用）：rebuild 36,252→7,318（203/chunk）、覆盖仍 112（splinedebug_8576_t1_fixed.txt）——多槽只降频率不除「越界→重建」语义
+- 吞吐（SURFACE）：07 篇旧基线串行 28.1ms/chunk、并行 49.4ms/16chunk（3.1ms/chunk）→ 2026-08-11 实测单线程 98-182ms/chunk、多线程（8/22）108-239ms/chunk **无加速反降**
+- 对照实验排除「本次改造引入」：stash 本次改动（Java 桥重写 + C++ 池改造）后 HEAD 版 block_probe 8×8 仍 10.2s；07 篇基线提交 86e4057 也要 8s → 回归在 8/6 优化链之后积累
+- 数据载体：`.investigations/perf-rework/`（requirements-doc.md / static-audit.md / architecture.md / random-seed-sampling.md）+ 10 时间线 2026-08-11 条目 + 07 篇「性能回归实测」小节草稿
+
+### 如何利用
+- **设计缓存前先明确「缓存生命周期 vs 执行模型」是否匹配**：thread_local 只适合「线程内连续消费同一上下文」（如单线程完整生成一个 chunk）；线程池并行 + 任务迁移时，用 **per-chunk 键索引缓存**（缓存随 chunk 生命周期）或按调用上下文显式传入，**不要依赖线程亲和**
+- **性能回归排查第一手段 = 缓存计数器**：看 rebuild/miss 与命中之比；命中率≈0 即缓存失效（本次正是靠 WG_PROFILE 计数器坐实）
+- **优化计数器要结合真实执行模型验证**：8/6 的 spline 34900 → 6250 次/chunk 是单线程串行模型下的计数，未覆盖多线程并行/线程迁移——「优化后计数器下降」不等于「目标执行模型下收益」
+- **git 二分定位引入点**：stash/checkout 旧提交对照（本次 8s 级退化用 stash 实验证明非本次引入，具体引入提交待二分）
+- **越界角点指纹（H2，2026-08-12 定论，修复已闭环）**：缓存 key 由采样坐标派生（如 `(x>>4,z>>4)` chunk 级）且采样点可能越出当前上下文范围（buildGrid 角点 i=4 → 下一 chunk 首列）时，单槽缓存必然被邻居 key 污染 → 递归重建蔓延。排查 = 检查重建计数的 chunk 覆盖是否超出生成范围（本次 112 chunk = 36 生成 + 76 邻居实锤）；**修复 = 当前 chunk 上下文绑定**（thread_local 显式传入当前 chunk 键 + 越界直算不重建，模拟 Java per-chunk 实例语义；实测 rebuild 216=6.0/chunk、覆盖 36）——**多槽 LRU 不够**（本次初版 16 槽 LRU 仍为邻居 key 建网格、覆盖仍 112），必须消除「越界→重建」语义
+- 跨版本/跨项目通用：任何「局部缓存 + 并行执行」组合都适用此检查
