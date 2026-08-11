@@ -1,10 +1,11 @@
 # 审查意见：性能回归修复收尾提交（Phase 3 交付）
 
-> 角色：core.judge（只出意见，不改 status）· 日期：2026-08-12
+> 角色：core.judge（只出意见，不改 status）· 日期：2026-08-12（2026-08-12 复核更新）
 > 审查对象：本 session 的 3 个新提交（HEAD~3..HEAD）——
 > 1. `6e2c7ea` fix(perf): FlatCache current-chunk context binding - closes rebuild 168x explosion（代码）
 > 2. `bc5f5b0` docs(perf): record FlatCache regression root cause + fix closure in knowledge base（知识库）
 > 3. `c0ac286` docs(perf-rework): archive investigation artifacts incl. open-issue uncertainties（产物归档）
+> 复核更新：审查期间出现跟进提交 `5aeaee9` docs(perf-rework): address judge findings（落实轻微建议 1/3），已纳入本复核。三源核对本次独立重跑：git 元数据（.git/refs/heads/master = 5aeaee9）+ 主会话真实 git 输出（历史 message 487/491/509/511：bc5f5b0 5 文件 267+/3-、c0ac286 git add 范围、5aeaee9 3 文件 129+、status 为空）+ 应用版代码 + cmd-output 落盘。
 > 三源核对：① git 历史/工作区（.git/logs/HEAD、refs/heads/master，git 命令因环境权限被拦截，改用 git 元数据 + 本会话历史中的 git 原始输出）② 应用版代码（density.h / worldgen_api.cpp / CMakeLists.txt / bench_chunks.cpp）③ 落盘数据（cmd-output/*.txt）与知识库（07 篇 / 10 时间线 / discovered #10 / index.yaml / reasonix.toml）
 > 推荐状态：**主结论通过**（代码提交与已审查通过的实现一致；知识库数据与落盘一致；产物归档完整）；附 3 项轻微建议（非阻塞）
 
@@ -108,12 +109,13 @@
 
 ## 轻微建议（不阻塞，处理后可继续）
 
-1. **mt-serialization-investigation.md 补一条已排除假设**：「WG_PROFILE 原子计数争用 = 多线程无加速的假象」——noprof 对照已落盘（wall_t1_noprof.txt 94.04ms/chunk vs wall_t8_noprof.txt 87.61ms/chunk 仅 7%、bench_8x8_noprof.txt 无加速），即排除 WG_PROFILE 计数器开销为无加速主因，但该显式排除条目未写入文档（仅 root-cause-draft.md L147 以「原子计数争用未细分」形式记录为不确定性）。建议在 mt-serialization-investigation.md §2 补一行。
-2. **splinedebug_8576_t1_ctx.txt 引用缺口**：07 篇 L124 / 10 时间线 L1186 引用 `cmd-output/splinedebug_8576_t1_ctx.txt（stat_ctx.py 统计）`，但该统计文件未随 c0ac286 归档（glob 无匹配；rebuild 216/SPLINE 3,032 等数字已固化进知识库，可追溯性依赖草稿 draft-07-block-pipeline-fix-closed）。建议要么补归档该统计文件（小文本），要么在文档中注明「统计文件未归档、数字已固化」。
-3. **c0ac286 未登记 index.yaml**：mt-serialization-investigation.md（analysis, candidate 类）等新归档产物未补登 .artifacts/index.yaml（当前仅 6 个 perf-rework 条目）。产物契约上建议补登（与上次 fix-design 漏登记同类问题）。
+1. **mt-serialization-investigation.md 补一条已排除假设**：「WG_PROFILE 原子计数争用 = 多线程无加速的假象」——noprof 对照已落盘（wall_t1_noprof.txt 94.04ms/chunk vs wall_t8_noprof.txt 87.61ms/chunk 仅 7%、bench_8x8_noprof.txt 无加速），即排除 WG_PROFILE 计数器开销为无加速主因，但该显式排除条目未写入文档（仅 root-cause-draft.md L147 以「原子计数争用未细分」形式记录为不确定性）。建议在 mt-serialization-investigation.md §2 补一行。→ **✅ 已闭环（commit 5aeaee9）**：mt-serialization-investigation.md §2 首条已写入「WG_PROFILE 多线程数据（原子争用假象，显式排除）」，含 758ms 假象机理与 noprof 对照（复核已读 L21-23 确认）。
+2. **splinedebug_8576_t1_ctx.txt 引用缺口**：07 篇 L124 / 10 时间线 L1186 引用 `cmd-output/splinedebug_8576_t1_ctx.txt（stat_ctx.py 统计）`，但该统计文件未随 c0ac286 归档（glob 无匹配；rebuild 216/SPLINE 3,032 等数字已固化进知识库，可追溯性依赖草稿 draft-07-block-pipeline-fix-closed）。建议要么补归档该统计文件（小文本），要么在文档中注明「统计文件未归档、数字已固化」。→ **⏳ 复核后仍开放（未处理）**：glob 复查 `**/*splinedebug*` 无匹配，07 篇 L124 引用保持原样；rebuild 216/SPLINE 3,032 数字可追溯性依赖 knowledge-drafts/draft-07-block-pipeline-fix-closed-20260812.md。
+3. **c0ac286 未登记 index.yaml**：mt-serialization-investigation.md（analysis, candidate 类）等新归档产物未补登 .artifacts/index.yaml（当前仅 6 个 perf-rework 条目）。产物契约上建议补登（与上次 fix-design 漏登记同类问题）。→ **✅ 已闭环（commit 5aeaee9）**：index.yaml 已补登 mt-serialization-investigation（kind: analysis, status: draft）+ review-phase3-commit（kind: review, status: candidate）（复核已读 L183-190 确认）。
 
 ## 汇总 verdict
 
 - **主结论：通过。** 三个提交各归其位：代码提交 6e2c7ea 与 review-fix-delivery.md 审查通过的实现逐条一致（thread_local g_curChunkX/Z + RAII 恢复 + 越界 delegate 直算 + Cache2DDF 16 槽 LRU 保留），无遗漏/多余改动；知识库提交 bc5f5b0 的全部性能数字（rebuild 216=6.0/chunk、覆盖 36、SPLINE 3,032/chunk、spline.sample 5,906/chunk、单线程 wall 2,910ms、bench 62.38ms/chunk 3×、双种子 99.9994%/99.9997%）与 cmd-output 落盘文件逐项一致，cold_resume_prune 删除合理，judge 4 项修正项均已闭环；产物提交 c0ac286 调查链（7 主文档 + 剩余课题 + 10 草稿 + 16 实测文件）完整，多线程无加速 1.25× max、spline 单次 8µs、git 二分建议等不确定性已归档，splinedebug 大文件与 pool_test/alloc_test 二进制均未误入库。工作区干净（HEAD 与 master 一致、无 index.lock、提交时 status 为空）。提交纪律合规（英文动词开头 / unknowbug / 三提交粒度合理）。
-- 3 项轻微建议见上（补 WG_PROFILE 原子争用排除条目、splinedebug 统计文件引用注明、c0ac286 产物补登 index.yaml）——均为文档完整性类，不影响本次交付正确性。
+- 3 项轻微建议见上（补 WG_PROFILE 原子争用排除条目、splinedebug 统计文件引用注明、c0ac286 产物补登 index.yaml）——均为文档完整性类，不影响本次交付正确性。**复核更新（2026-08-12）**：建议 1/3 已由跟进提交 `5aeaee9`（docs(perf-rework): address judge findings，3 文件 129+）闭环，经复核确认内容正确（§2 排除条目 + index.yaml 登记均与落盘一致）；建议 2（splinedebug 统计文件引用缺口）仍开放，属文档可追溯性小瑕疵，不阻塞。
+- **复核结论**：三个提交维持**通过**（6e2c7ea 代码与已审实现逐条一致、bc5f5b0 知识库数据与 cmd-output 落盘逐项一致、c0ac286 产物链完整且大文件/临时二进制未误入库）；跟进提交 5aeaee9 内容无误；工作区在 5aeaee9 后干净（主会话 git status 实测为空，HEAD=master=5aeaee9）。本次复核仅更新本文件（审查交付物，5aeaee9 已入库，本次为追加复核注记）。
 - 未发现越权标 confirmed；意见为建议，最终拍板权在用户。
