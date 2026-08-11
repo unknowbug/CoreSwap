@@ -188,3 +188,16 @@ entries:
     path: '../.investigations/perf-rework/review-phase3-commit.md'
     kind: review
     status: candidate
+
+  - id: 're-code:perf-rework:rq006-candidates'
+    path: '../.investigations/perf-rework/rq006-candidates.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:rq006-quantified'
+    path: '../.investigations/perf-rework/rq006-quantified.md'
+    kind: evidence
+    status: candidate
+  - id: 're-code:perf-rework:review-rq006'
+    path: '../.investigations/perf-rework/review-rq006.md'
+    kind: review
+    status: candidate
