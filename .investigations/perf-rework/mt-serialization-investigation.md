@@ -39,6 +39,28 @@
 2. 检查 SplineDF 子树（noise sampler、shifter）是否有共享 mutable 状态（H-B 静态排查）
 3. MEM-CHK static 数据竞争修复（RAII/atomic，低优先级）
 
+## 6. 2026-08-12 补充调查（git bisect 不可行 + spline 单次假象）
+
+### 6.1 git bisect 不可行（实证）
+- **data 目录不在 git 中**（`git ls-files versions/1.20.1/data` 空；86e4057 ls-tree 也无）——data 是本地外部资源
+- checkout 86e4057 后强制 /utf-8 /DNOMINMAX 编译成功，但运行 `wg_create` 失败（"The system cannot find the path specified"，无 wg_create failed 输出）——旧提交代码期望的 JSON 结构/路径与当前 data 不兼容
+- **结论**：无法为 bisect 候选提交提供匹配的 data → git bisect 不可行（NEXT_SESSION 待办 1 的二分方案需废弃/换数据驱动）
+
+### 6.2 spline 单次 8µs 假象（86e4057 vs HEAD 代码对比）
+- 86e4057 版 `SplineDF::sample`：仅 `wg_profSpline.fetch_add(1)`，**无耗时计时**
+- HEAD 版：`wg_profSplineNs` 计时（每层 2×steady_clock::now() + 2×fetch_add，递归嵌套累加）
+- **结论**：07 篇 992ns 是纯采样耗时口径；HEAD 的 7,971-9,735ns 含计时器开销（嵌套累加）→ **spline 单次 8µs 主要（或全部）是 WG_PROFILE 计时器污染假象**，非真实退化
+- 真实性能以无 profile bench 为准：单线程 62.38ms/chunk（修复前 181ms，3× 改善）
+
+### 6.3 剩余课题重估
+- **density 阶段 44-47ms/chunk（真实 wall，旧 8.5-11.7ms，4× 慢）才是剩余主瓶颈**：
+  - aquifer+oreVein 修复前 125-166ms → 修复后 26-35ms（4-5× 改善，**FlatCache 修复已解决 aquifer 慢**）
+  - density 修复前后几乎不变（44-47ms）——spline 调用量已回基线（5,906/chunk）但 density 仍慢
+  - 构成未明：疑 InterpolatedDF buildGrid 网格角点采样（6 实例 × 每 chunk 网格角点数）或 profile 污染残留
+- **spline 单次 8µs 假象确认**：86e4057 版无耗时计时器，HEAD 版 wg_profSplineNs 嵌套累加 → 7,971-9,735ns 含计时器污染；spline 总计时 57.5ms/chunk > density wall 44ms 即证据（递归嵌套重复计时）
+- **多线程无加速仍为真问题**（无 profile bench 8 线程 ≈ 单线程 62ms/chunk；pool_test T=4 仅 1.25×）——待定位 fillOneChunkCore 串行点
+- git bisect 不可行（data 不兼容），替代 = 数据驱动（无 profile 分阶段计时 / perf 采样）或静态分析 density 阶段构成
+
 ## 5. 附：本次调查产物
 
 - `.investigations/perf-rework/pool_test.cpp` + `alloc_test.cpp`（临时诊断，已注册 CMake target pool_test）
