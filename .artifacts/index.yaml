@@ -179,3 +179,12 @@ entries:
     path: '../.investigations/perf-rework/review-fix-delivery.md'
     kind: review
     status: candidate
+
+  - id: 're-code:perf-rework:mt-serialization-investigation'
+    path: '../.investigations/perf-rework/mt-serialization-investigation.md'
+    kind: analysis
+    status: draft
+  - id: 're-code:perf-rework:review-phase3-commit'
+    path: '../.investigations/perf-rework/review-phase3-commit.md'
+    kind: review
+    status: candidate

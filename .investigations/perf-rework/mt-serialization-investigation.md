@@ -20,6 +20,7 @@
 
 ## 2. 已排除的假设
 
+- ❌ **WG_PROFILE 多线程数据（原子争用假象，显式排除）**：wgprofile_8576_mt_ctx.txt 显示多线程单 chunk density=758ms（单线程 44ms，17×）——此为 profile 计时器污染：SplineDF::sample 每次采样都 `wg_profSplineNs.fetch_add` 原子操作，多线程 21 万次争用同一原子变量 → cache-line ping-pong 假象。**真实性能以无 profile bench 为准**（62.17ms/chunk 8 线程 vs 62.38 单线程）。
 - ❌ **CRT 堆分配锁**：alloc_test 8 线程 0.07ms/iter vs 单线程 0.02ms——分配非瓶颈
 - ❌ **池 worker 数不足**：ensure(poolThreads) 逻辑正确（L1053），concTest 8/8 线程全部批次成功
 - ❌ **beardifierMtx**：SURFACE 模式 beard 空 map，锁内只 find（L665），快
