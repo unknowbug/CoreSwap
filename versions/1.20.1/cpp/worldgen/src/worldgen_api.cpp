@@ -655,7 +655,7 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
     BlockColumn col(h->dim.minY, h->dim.worldHeight);
     std::vector<int> heightmap(256, h->dim.minY - 1);
-    bool profiling = getenv("WG_PROFILE") != nullptr;
+    bool profiling = getenv("WG_PROFILE") != nullptr || getenv("WG_STAGETIMER") != nullptr;
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
     std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
