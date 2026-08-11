@@ -68,6 +68,11 @@ add_executable(chunkrandom_test src/chunkrandom_test.cpp)
 target_include_directories(chunkrandom_test PRIVATE include src)
 target_link_libraries(chunkrandom_test PRIVATE worldgen_core)
 
+# 吞吐基准（SURFACE 模式 = 实机 populateNoise 覆盖路径；2026-08-11 新增）
+add_executable(bench_chunks src/bench_chunks.cpp)
+target_include_directories(bench_chunks PRIVATE include src)
+target_link_libraries(bench_chunks PRIVATE worldgen_core)
+
 # 崩溃定位：worldgen.dll+0x1b930（读地址 0）——生成 map 文件
 if(MSVC)
   target_link_options(worldgen_jni PRIVATE "/MAP:${CMAKE_BINARY_DIR}/bin/worldgen.map")

@@ -6,6 +6,7 @@
 #include <functional>
 #include <algorithm>
 #include <atomic>
+#include <array>
 #include <cstdlib>
 #include <mutex>
 #include <chrono>
@@ -30,6 +31,14 @@ inline std::atomic<int64_t> wg_profNoiseNs{0};
 inline std::atomic<int64_t> wg_profSplineNs{0};
 
 namespace wg {
+
+// ===== 当前生成 chunk 上下文（2026-08-12 修复，FlatCacheDF 网格绑定用）=====
+// Java 语义：FlatCache 是 per-chunk 实例，网格绑定生成 chunk（startBiomeX 固定），
+// 嵌套采样 k/l 相对 startBiomeX 计算，越界直算 delegate，永不构建邻居网格。
+// C++ 用 thread_local 上下文模拟（fillOneChunkCore 入口设置）；未设置（诊断路径直接
+// 采样 finalDensity）时 FlatCacheDF 回退 pos 推导 key（行为与旧实现一致）。
+inline thread_local int g_curChunkX = INT32_MIN;
+inline thread_local int g_curChunkZ = INT32_MIN;
 
 // ===== NoisePos =====
 struct NoisePos {
@@ -625,9 +634,12 @@ public:
 };
 
 // ===== Cache2DDF（minecraft:cache_2d）：列缓存 =====
-// Java ChunkNoiseSampler.Cache2D：同一 (x>>4, z>>4) 列复用首次采样值（列首 pos）。
+// Java ChunkNoiseSampler.Cache2D：同一 (x, z) 列复用首次采样值（列首 pos）。
 // cache_2d 仅用于 2D 函数（不依赖 y）→ 列内任意 pos 采样值相同 → 完全无损。
-// 块循环 y→z→x 顺序下同列连续 384 次采样，命中率 100%（spline 每列只算一次）。
+// 修复（2026-08-12）：单槽 thread_local → per-chunk 16 槽 LRU。
+// 根因：C++ 全局单例 DensityFunction 树（Java 为 per-chunk 实例），单槽跨 chunk 被污染 →
+// 每 chunk 首访即 miss → rebuild 爆炸。多槽缓存最近访问的列，嵌套递归回访同列命中。
+// 语义不变：纯函数缓存，同 (x,z) 采样值逐位相同（BK-001 零退化）。
 class Cache2DDF : public DensityFunction {
 public:
     DF arg;
@@ -642,18 +654,38 @@ public:
         // Java ChunkNoiseSampler.Cache2D：key = ChunkPos.toLong(blockX, blockZ)（block 级，同 x,z 列复用）
         // 注意：不是 chunk 级——FlatCache 5×5 角点（不同 x,z）必须各自采样，chunk 级缓存会错误共享
         int64_t key = ((int64_t)((uint64_t)(uint32_t)pos.x << 32)) ^ (uint32_t)pos.z;
-        if (slot.key != key) {
-            if (wg_splineDebug) std::fprintf(stderr, "[CACHE2D] cacheId=%d miss pos=(%d,%d,%d)\n", cacheId, pos.x, pos.y, pos.z);
-            slot.key = key;
-            slot.value = arg->sample(pos);
+        for (int i = 0; i < CACHE_CAP; i++) {
+            if (slot.keys[i] == key) {
+                slot.stamps[i] = ++slot.tick;
+                return slot.values[i];
+            }
         }
-        return slot.value;
+        // miss：替换最久未用槽（LRU）
+        if (wg_splineDebug) std::fprintf(stderr, "[CACHE2D] cacheId=%d miss pos=(%d,%d,%d)\n", cacheId, pos.x, pos.y, pos.z);
+        int idx = lruIndex(slot);
+        double v = arg->sample(pos);
+        slot.keys[idx] = key;
+        slot.values[idx] = v;
+        slot.stamps[idx] = ++slot.tick;
+        return v;
     }
     double minValue() const override { return arg->minValue(); }
     double maxValue() const override { return arg->maxValue(); }
 
 private:
-    struct Slot { int64_t key = INT64_MIN; double value = 0.0; };
+    static constexpr int CACHE_CAP = 16;  // 每实例每线程缓存最近 16 列（per-chunk 多槽，模拟 Java per-chunk 实例）
+    struct Slot {
+        int64_t keys[CACHE_CAP];
+        double values[CACHE_CAP];
+        uint64_t stamps[CACHE_CAP];
+        uint64_t tick = 0;
+        Slot() { for (int i = 0; i < CACHE_CAP; i++) { keys[i] = INT64_MIN; stamps[i] = 0; values[i] = 0.0; } }
+    };
+    static int lruIndex(const Slot& s) {
+        int b = 0;
+        for (int i = 1; i < CACHE_CAP; i++) if (s.stamps[i] < s.stamps[b]) b = i;
+        return b;
+    }
     int cacheId;
     static std::atomic<int> nextId;
     static std::atomic<int> instanceCount;  // 构造后固定（wg_create 单线程构建）
@@ -672,6 +704,15 @@ private:
 // Java ChunkNoiseSampler.FlatCache：按 biome 坐标网格（horizontalBiomeEnd+1 = 5，间距 4 块）
 // 预计算 delegate.sample(blockX, 0, blockZ)（y=0），块级查表；网格外回退直接采样。
 // 用于 2D 大陆样条（continents/erosion/ridges/factor/jaggedness/offset）→ 完全无损。
+// 修复（2026-08-12）：pos 推导 key → 当前生成 chunk 上下文绑定（Java 语义对齐）。
+// 根因（H2）：Java FlatCache 是 per-chunk 实例，网格绑定生成 chunk（startBiomeX 固定）；
+// 嵌套 spline 的 locationFunction FlatCache 采样 pos 时 k/l 相对 startBiomeX 计算——
+// 角点 i=4 的邻居坐标 (cx+1)*16 → k=4 命中本网格；更远越界 → delegate.sample 直算，
+// **永不构建邻居网格**（无递归蔓延）。C++ 原实现用 pos 推导 key → 嵌套收到邻居坐标 →
+// 单槽被污染 → 重建邻居网格 → 递归蔓延 112 chunk（rebuild 168x 爆炸）。
+// 修复：thread_local 当前生成 chunk 上下文（fillOneChunkCore 设置），网格绑定该 chunk，
+// 与 Java 语义完全一致 → 每 chunk 每实例恰 1 次 buildGrid，无蔓延。
+// 语义不变：纯函数缓存，采样值逐位相同（BK-001 零退化）。
 class FlatCacheDF : public DensityFunction {
 public:
     DF arg;
@@ -684,20 +725,18 @@ public:
         auto& slots = tlSlots();
         if (slots.size() < (size_t)instanceCount.load()) slots.resize(instanceCount.load());
         Slot& slot = slots[cacheId];
-        int64_t key = ((int64_t)((uint64_t)(uint32_t)(pos.x >> 4) << 32)) ^ (uint32_t)(pos.z >> 4);
+        // 当前生成 chunk 上下文（Java: startBiomeX）；未设置（诊断路径直接采样）时回退 pos 推导
+        int cx = (g_curChunkX != INT32_MIN) ? g_curChunkX : (pos.x >> 4);
+        int cz = (g_curChunkZ != INT32_MIN) ? g_curChunkZ : (pos.z >> 4);
+        int64_t key = ((int64_t)((uint64_t)(uint32_t)cx << 32)) ^ (uint32_t)cz;
         if (slot.key != key) {
-            // Java 语义：FlatCache 实例绑定生成 chunk，网格覆盖 [cx*16, cx*16+16]；
-            // 边界点（x=cx*16+16，即下一 chunk 首列）命中现有网格 k=4，不重建（防嵌套递归）。
-            int kc = (pos.x >> 2) - slot.cx * 4;
-            int lc = (pos.z >> 2) - slot.cz * 4;
-            if (slot.key == INT64_MIN || kc < 0 || lc < 0 || kc >= GRID || lc >= GRID) {
-                slot.key = key;
-                slot.cx = pos.x >> 4;
-                slot.cz = pos.z >> 4;
-                buildGrid(slot.cx, slot.cz, slot.grid);
-            }
+            slot.key = key;
+            slot.cx = cx;
+            slot.cz = cz;
+            buildGrid(slot.cx, slot.cz, slot.grid);
         }
-        int k = (pos.x >> 2) - slot.cx * 4;  // 用网格的 chunk（Java: startBiomeX），非 pos 的 chunk
+        // Java 语义：k/l 相对网格 chunk（startBiomeX）计算，界内查表，界外 delegate 直算（不重建）
+        int k = (pos.x >> 2) - slot.cx * 4;
         int l = (pos.z >> 2) - slot.cz * 4;
         if (k >= 0 && l >= 0 && k < GRID && l < GRID) return slot.grid[(size_t)l * GRID + k];
         return arg->sample(pos);
@@ -710,7 +749,8 @@ private:
     struct Slot {
         int64_t key = INT64_MIN;
         int cx = 0, cz = 0;
-        std::vector<double> grid;
+        std::array<double, GRID * GRID> grid;
+        Slot() { grid.fill(0.0); }
     };
     int cacheId;
     static std::atomic<int> nextId;
@@ -726,9 +766,9 @@ private:
     }
 
     // @anchor.test("FlatCacheDF 5x5 角点网格对齐 Java ChunkNoiseSampler.FlatCache（biome 坐标网格间距 4）", source="probe:block_probe!FLATCACHE#004")
-    void buildGrid(int chunkX, int chunkZ, std::vector<double>& grid) const {
+    void buildGrid(int chunkX, int chunkZ, std::array<double, GRID * GRID>& grid) const {
         if (wg_profEnabled) wg_profNoiseDF.fetch_add(1, std::memory_order_relaxed);  // [PROF] FlatCache 构建次数
-        grid.assign((size_t)GRID * GRID, 0.0);
+        grid.fill(0.0);
         NoisePos p;
         p.y = 0;  // Java: UnblendedNoisePos(blockX, 0, blockZ)
         for (int i = 0; i < GRID; i++) {

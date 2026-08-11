@@ -18,6 +18,7 @@ namespace wg { thread_local const char* g_crashContext = nullptr; }
 #include <unordered_map>
 #include <thread>
 #include <atomic>
+#include <queue>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -195,6 +196,9 @@ struct WorldgenHandle {
     int64_t biomeAccessSeed = 0;
     // Beardifier（StructureWeightSampler）per-chunk 输入：key = chunkX<<32 ^ chunkZ
     // 未设置的 chunk = 无结构（Beardifier=0，与现状一致）
+    // ⚠️ 并发：Java 侧 feedBeardifier（Mixin populateNoise 每个 worker 线程，无 BATCH_LOCK 保护）
+    // 与 C++ 池 worker 的 fillOneChunkCore 读并发——必须 mutex 保护（旧代码即有该竞态，去锁后更需）
+    std::mutex beardifierMtx;
     std::unordered_map<int64_t, Beardifier> beardifiers;
     // 生成模式：0=SURFACE（默认，density→aquifer→surface，8576/3200 零退化铁律）；
     //           1=FULL（+ CARVERS→FEATURES 阶段，对照 FULL 状态参照 -288/300515）
@@ -583,6 +587,14 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out) return 0;
 
+    // 2026-08-12 修复：设置当前生成 chunk 上下文（FlatCacheDF 网格绑定，Java per-chunk 实例语义）。
+    // RAII 恢复：函数返回（含异常路径）后恢复 INT32_MIN——同线程后续诊断采样（wg_sample_density
+    // 等直接调 finalDensity）回退 pos 推导 key，行为与旧实现一致（judge 审查修正项 2）。
+    struct CurChunkGuard {
+        CurChunkGuard(int x, int z) { g_curChunkX = x; g_curChunkZ = z; }
+        ~CurChunkGuard() { g_curChunkX = INT32_MIN; g_curChunkZ = INT32_MIN; }
+    } curChunkGuard(chunkX, chunkZ);
+
     // 排查用户 1.0.16 崩溃：memset 函数指针存储位 0x34001 被堆覆盖（call 目标=堆地址）。
     // 每 chunk 校验其值 vs 基线（首个 chunk 记录）——被写坏立即打印（定位写坏时机/线程）。
     {
@@ -652,10 +664,15 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     //     插值 finalDensity + 结构 Beardifier（若该 chunk 有结构布局输入）
     // @anchor.test("densityBuf = finalDensity + Beardifier 对齐 Java CellCache(add(...)) 语义", source="probe:block_probe!BEARD244#005")
     const Beardifier* beard = nullptr;
+    Beardifier beardLocal;  // 锁内拷贝（防锁外悬垂：并发 wg_set_beardifier 可能重哈希 map）
     {
+        std::lock_guard<std::mutex> lk(h->beardifierMtx);
         int64_t bkey = ((int64_t)((uint64_t)(uint32_t)chunkX << 32)) ^ (uint32_t)chunkZ;
         auto bit = h->beardifiers.find(bkey);
-        if (bit != h->beardifiers.end() && !bit->second.empty()) beard = &bit->second;
+        if (bit != h->beardifiers.end() && !bit->second.empty()) {
+            beardLocal = bit->second;
+            beard = &beardLocal;
+        }
     }
     for (int by = 0; by < h->dim.noiseHeight; by++) {
         int wy = h->dim.minY + by;
@@ -931,48 +948,48 @@ public:
         for (int i = 0; i < add; i++) {
             workers.emplace_back([this] {
                 for (;;) {
-                    int taskId;
+                    Task t;
                     {
                         std::unique_lock<std::mutex> l(mtx);
-                        cvTask.wait(l, [this] { return stop || taskQueue > 0; });
-                        if (stop && taskQueue == 0) return;
-                        taskId = nextTask++;
-                        taskQueue--;
+                        cvTask.wait(l, [this] { return stop || !tasks.empty(); });
+                        if (stop && tasks.empty()) return;
+                        t = std::move(tasks.front());
+                        tasks.pop();
                     }
-                    if (fn) fn(taskId);
-                    {
-                        std::lock_guard<std::mutex> l(mtx);
-                        doneCount++;
-                        if (doneCount == totalTasks) cvDone.notify_one();
+                    try {
+                        if (t.fn) t.fn(t.id);
+                    } catch (const std::exception& e) {
+                        std::fprintf(stderr, "[CORESWAP-EXC] pool task exception: %s\n", e.what());
+                    } catch (...) {
+                        std::fprintf(stderr, "[CORESWAP-EXC] pool task unknown exception\n");
+                    }
+                    int done = t.state->done.fetch_add(1) + 1;
+                    if (done >= t.state->total) {
+                        std::lock_guard<std::mutex> l(t.state->mtx);
+                        t.state->cvDone.notify_one();
                     }
                 }
             });
         }
     }
 
-    // 执行 count 个任务（并行），主线程阻塞直到全部完成。
+    // 执行 count 个任务（并行），调用线程阻塞直到本批全部完成。
+    // 并发安全：per-run RunState（原子 done + 独立 cv）+ 共享任务队列——多个 run
+    // 可同时进行（任务全进队列，workers 并行消费），不再需要 runMtx 串行化批间
+    // （旧方案：fn/totalTasks/... 共享成员被并发 run 互相覆盖 → 读空 std::function
+    //   崩溃，即用户 32 视距崩溃根因；现改为 per-run 状态隔离，批间真并行）。
     void run(int count, const std::function<void(int)>& f) {
         if (count <= 0) return;
-        // ⚠️ 并发 run 保护：MC 的 worldgen 线程池（多个 Worker）会并发调 fillBlocks → wg_fill_blocks_multi → run。
-        // fn/totalTasks/doneCount/nextTask/taskQueue 是共享成员——并发 run 会互相覆盖（A 的 run 尾 fn=nullptr
-        // 被 B 的 workers 读空 → 调用空 std::function → 读地址 0 崩溃（用户 32 视距崩溃的根因）。
-        static std::mutex runMtx;
-        std::lock_guard<std::mutex> lr(runMtx);
         if (workers.empty()) ensure(count);
+        auto st = std::make_shared<RunState>();
+        st->total = count;
         {
             std::lock_guard<std::mutex> l(mtx);
-            fn = f;
-            totalTasks = count;
-            doneCount = 0;
-            nextTask = 0;
-            taskQueue = count;
+            for (int i = 0; i < count; i++) tasks.emplace(Task{f, st, i});
         }
         cvTask.notify_all();
-        {
-            std::unique_lock<std::mutex> l(mtx);
-            cvDone.wait(l, [this] { return doneCount >= totalTasks; });
-            fn = nullptr;
-        }
+        std::unique_lock<std::mutex> l(st->mtx);
+        st->cvDone.wait(l, [st] { return st->done >= st->total; });
     }
 
     // 停止并回收所有 worker（进程退出 / wg_destroy 时调用，避免 terminate/use-after-free）
@@ -988,16 +1005,27 @@ public:
     }
 
 private:
+    // 单次 run 的完成状态（per-run 隔离：并发 run 互不覆盖）
+    struct RunState {
+        std::atomic<int> done{0};
+        int total = 0;
+        std::mutex mtx;
+        std::condition_variable cvDone;
+    };
+    struct Task {
+        std::function<void(int)> fn;
+        std::shared_ptr<RunState> state;
+        int id;
+    };
     CoreSwapPool() = default;
     ~CoreSwapPool() { shutdown(); }
     CoreSwapPool(const CoreSwapPool&) = delete;
     CoreSwapPool& operator=(const CoreSwapPool&) = delete;
     std::vector<std::thread> workers;
-    std::function<void(int)> fn;
+    std::queue<Task> tasks;
     std::mutex mtx;
-    std::condition_variable cvTask, cvDone;
+    std::condition_variable cvTask;
     bool stop = false;
-    int taskQueue = 0, nextTask = 0, doneCount = 0, totalTasks = 0;
 };
 
 // 线程池停止（定义在 CoreSwapPool 之后；wg_destroy 前向调用）
@@ -1090,6 +1118,7 @@ void wg_set_beardifier(void* handle, int chunkX, int chunkZ,
     if (!handle) return;
     auto* h = static_cast<WorldgenHandle*>(handle);
     int64_t key = ((int64_t)((uint64_t)(uint32_t)chunkX << 32)) ^ (uint32_t)chunkZ;
+    std::lock_guard<std::mutex> lk(h->beardifierMtx);
     Beardifier& b = h->beardifiers[key];
     b.pieces.clear();
     b.junctions.clear();
@@ -1119,6 +1148,7 @@ void wg_set_beardifier(void* handle, int chunkX, int chunkZ,
 void wg_clear_beardifier(void* handle) {
     if (!handle) return;
     auto* h = static_cast<WorldgenHandle*>(handle);
+    std::lock_guard<std::mutex> lk(h->beardifierMtx);
     h->beardifiers.clear();
 }
 
