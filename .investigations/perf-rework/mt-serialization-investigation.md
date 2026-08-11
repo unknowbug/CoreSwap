@@ -53,15 +53,32 @@
 - 真实性能以无 profile bench 为准：单线程 62.38ms/chunk（修复前 181ms，3× 改善）
 
 ### 6.3 剩余课题重估
-- **density 阶段 44-47ms/chunk（真实 wall，旧 8.5-11.7ms，4× 慢）才是剩余主瓶颈**：
-  - aquifer+oreVein 修复前 125-166ms → 修复后 26-35ms（4-5× 改善，**FlatCache 修复已解决 aquifer 慢**）
-  - density 修复前后几乎不变（44-47ms）——spline 调用量已回基线（5,906/chunk）但 density 仍慢
-  - 构成未明：疑 InterpolatedDF buildGrid 网格角点采样（6 实例 × 每 chunk 网格角点数）或 profile 污染残留
-- **spline 单次 8µs 假象确认**：86e4057 版无耗时计时器，HEAD 版 wg_profSplineNs 嵌套累加 → 7,971-9,735ns 含计时器污染；spline 总计时 57.5ms/chunk > density wall 44ms 即证据（递归嵌套重复计时）
-- **多线程无加速仍为真问题**（无 profile bench 8 线程 ≈ 单线程 62ms/chunk；pool_test T=4 仅 1.25×）——待定位 fillOneChunkCore 串行点
-- git bisect 不可行（data 不兼容），替代 = 数据驱动（无 profile 分阶段计时 / perf 采样）或静态分析 density 阶段构成
+- **density 阶段 44-47ms/chunk（真实 wall）——疑似真实基线而非回归**：
+  - NEXT_SESSION 记录「86e4057 也要 8s（8×8=64 chunks = 125ms/chunk）」与 07 篇「28.1ms/chunk 串行基线」矛盾 → **07 篇 8/6 基线数据可信度存疑**（86e4057 时代代码当前环境重测也慢，可能 8/6 测试环境/数据不同或含 Beardifier/oreVein 后续组件差异）
+  - aquifer+oreVein 修复前 125-166ms → 修复后 26-35ms（4-5× 改善，FlatCache 修复已解决 aquifer 慢）
+  - density 修复前后不变（44-47ms）——spline 调用已回基线但 density 未变
+  - 结论：density 44ms 是否可优化需与 vanilla Java 对照（可能已是当前真实基线）
+- **spline 单次 8µs 假象确认**：86e4057 版无耗时计时器，HEAD 版 wg_profSplineNs 嵌套累加 → 7,971-9,735ns 含计时器污染；spline 总计时 > density wall 即证据
+- **多线程无加速仍为真问题**（无 profile bench 8 线程 ≈ 单线程 62ms/chunk；pool_test T=4 仅 1.25×）：
+  - **WG_STAGETIMER 关键证据（无计数器污染）**：8 线程下每 chunk density 墙钟 416ms（单线程 44ms，10× 恶化）但总 wall 仅 3043ms vs 单线程 3466ms（+12%）——每 chunk 计算本身变慢（worker 独占 chunk 仍 10× 慢）→ 疑 CPU 超订/争用或 fillOneChunkCore 隐藏串行点
+  - 已排除：池 worker 数不足、CRT 堆分配（alloc_test 快）、beardifierMtx（SURFACE 空 map）、splitterFor 锁（per-chunk ctx）、regionCols/pendingCross（SURFACE 不触发）、MEM-CHK（每 chunk ~3-5us，占比 0.005%）、spline 计数器（WG_STAGETIMER 无污染仍 10×）
+  - 剩余候选：CPU 物理核/超订（hw=24 逻辑核 vs physicalCoreCount？）、density 树共享节点的缓存行伪共享、或 surface 阶段 hidden 锁
+- git bisect 不可行（data 不兼容），替代 = 数据驱动（无 profile 分阶段计时 / perf 采样）
 
 ## 5. 附：本次调查产物
 
 - `.investigations/perf-rework/pool_test.cpp` + `alloc_test.cpp`（临时诊断，已注册 CMake target pool_test）
 - `cmd-output/bench_8x8_noprof.txt`、`conctest8.txt`、`wgprofile_8576_t1_ctx.txt`
+
+## 7. WG_STAGETIMER 多线程 density 墙钟线性膨胀（2026-08-12 补充实证）
+
+| 线程数 | 单 chunk density 墙钟 | 倍数 vs 单线程 |
+|---|---|---|
+| 1 | 44ms | 1× |
+| 2 | 64-153ms（均值 ~100ms） | ~2× |
+| 8 | 416-443ms | ~9.5× |
+
+- 总 wall：t1=3466ms / t8=3043ms（36 chunks，仅 +12% 收益）——8 线程几乎无加速
+- **density 墙钟随线程数线性膨胀 = 硬件级争用**（非调度等待：worker 独占 chunk 仍慢）
+- density 阶段无共享写（DensityFunction 树 const + FlatCache/Cache2D/Interpolated thread_local + g_curChunk thread_local）→ 代码层无解释，指向**内存带宽/L3 缓存容量**级争用（8 线程 × 每 chunk 98304 次 3D 树采样，每 chunk 786KB densityBuf 写 + 树遍历读）
+- 定位手段建议：VS 2026 性能分析器（本机有）采集 CPU/内存样本；或 reduce chunk 并行度验证带宽假设
