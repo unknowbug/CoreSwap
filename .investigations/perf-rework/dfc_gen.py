@@ -75,7 +75,7 @@ class DfcGen:
         df = self.resolve_ref(ref)
         expr = self.gen(df)
         self.registry_defs.append((fname, expr))
-        return f"{fname}({self.cx}, {self.cy}, {self.cz})"
+        return f"{fname}(sIdx, {self.cx}, {self.cy}, {self.cz})"
 
     # ---- 噪声实例注册（运行时从 seed 生成参数，这里只收集 + 分配索引）----
     def _register_noise(self, kind, key, params):
@@ -123,29 +123,21 @@ class DfcGen:
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
-            xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
-            return f"normal_noise_{idx}(double({self.cx}) * {xz:.17g}, double({self.cy}) * {y:.17g}, double({self.cz}) * {xz:.17g})"
+            return f"normal_noise_{idx}(sIdx)"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
-            sx = self.gen(df.get("shift_x", 0.0)); sy = self.gen(df.get("shift_y", 0.0)); sz = self.gen(df.get("shift_z", 0.0))
-            # shifted_noise 坐标 = pos*scale + shift（对齐 ShiftedNoiseDF.sample）
-            xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
-            return f"normal_noise_{idx}(double({self.cx}) * {xz:.17g} + double({sx}), double({self.cy}) * {y:.17g} + double({sy}), double({self.cz}) * {xz:.17g} + double({sz}))"
+            return f"normal_noise_{idx}(sIdx)"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             np = self._resolve_noise_params("minecraft:offset")
             idx = self._register_noise("normal", "minecraft:offset", {
                 "noise": "minecraft:offset", "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
             # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
-            if t == "minecraft:shift_a":
-                return f"(normal_noise_{idx}(double({self.cx}) * 0.25, 0.0, double({self.cz}) * 0.25) * 4.0f)"
-            if t == "minecraft:shift_b":
-                return f"(normal_noise_{idx}(double({self.cz}) * 0.25, double({self.cx}) * 0.25, 0.0) * 4.0f)"
-            return f"(normal_noise_{idx}(double({self.cx}) * 0.25, double({self.cy}) * 0.25, double({self.cz}) * 0.25) * 4.0f)"
+            return f"(normal_noise_{idx}(sIdx) * 4.0f)"
         if t == "minecraft:spline":
             return self._gen_spline(df.get("spline", df))
         if t == "minecraft:add":
@@ -220,7 +212,7 @@ class DfcGen:
         idx = len(self.spline_funcs)
         fname = f"spline_{idx}"
         self.spline_funcs.append((fname, coord, n, locs, ders, vals))
-        call = f"{fname}({self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后的）
+        call = f"{fname}(sIdx, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后的）
         self.spline_cache[key] = call
         return call
 
@@ -231,7 +223,7 @@ class DfcGen:
                 s += '.0'
             return s + 'f'
         lines = []
-        lines.append(f"float {fname}(int ix, int iy, int iz) {{")
+        lines.append(f"float {fname}(int sIdx, int ix, int iy, int iz) {{")
         lines.append(f"    float x = float(ix), y = float(iy), z = float(iz);")
         lines.append(f"    float coord = {coord};")
         # 边界外推 + 中间 Hermite（if-else 链，无数组无循环，NVIDIA 编译快）
@@ -254,19 +246,22 @@ class DfcGen:
         expr = self.gen(root_df)
         funcs = []
         # 噪声函数（old_blended double + normal float）先定义（registry 函数会调用）
-        # 分配 octBase（perm/origin buffer 的 octave 偏移）
+        # 分配 octBase（perm/origin buffer 的 octave 偏移）+ splitBase（拆分坐标 buffer 的偏移，单位 6 值/octave）
         octBase = 0
+        splitBase = 0
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
                 funcs.append(self._old_blended_func(idx, params, octBase))
                 octBase += 40
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
-                funcs.append(self._normal_func(idx, params, octBase))
+                funcs.append(self._normal_func(idx, params, octBase, splitBase))
                 octBase += 2 * n
+                splitBase += 6 * 2 * n   # 6 值 [ix,iy,iz,gx,gy,gz] × 2n octave
+        self.split_total = splitBase      # 每采样点的拆分坐标总数
         # registry 函数定义（依赖序已保证），传 int 块坐标，内部转 float
         for fname, fexpr in self.registry_defs:
-            funcs.append(f"float {fname}(int ix, int iy, int iz) {{\n    float x = float(ix), y = float(iy), z = float(iz);\n    return {fexpr};\n}}\n")
+            funcs.append(f"float {fname}(int sIdx, int ix, int iy, int iz) {{\n    float x = float(ix), y = float(iy), z = float(iz);\n    return {fexpr};\n}}\n")
         # spline 函数定义（依赖序：嵌套 spline 先定义）
         for fname, coord, n, locs, ders, vals in self.spline_funcs:
             funcs.append(self._spline_body(fname, coord, n, locs, ders, vals))
@@ -303,12 +298,10 @@ double interp_noise_{idx}(int px, int py, int pz) {{
     return (l / 512.0 + w * (m / 512.0 - l / 512.0)) / 128.0;
 }}"""
 
-    def _normal_func(self, idx, p, octBase):
-        # NormalNoise（DoublePerlinNoiseSampler）：double 坐标拆分 + float 采样，真实参数内联
+    def _normal_func(self, idx, p, octBase, splitBase):
+        # NormalNoise：CPU 预拆分坐标（int32 格点 + float 小数），GPU 纯 float 采样（无 fp64）
         amps = p.get("amplitudes", [1.0])
-        firstOctave = p.get("firstOctave", 0)
         n = len(amps)
-        lacunarity = 2.0 ** firstOctave   # 2^(firstOctave)（对齐 noise.h 的 2^(-j), j=-firstOctave）
         persistence = (2.0 ** (n - 1)) / (2.0 ** n - 1.0)
         nonz = [i for i, a in enumerate(amps) if a != 0.0]
         j = min(nonz) if nonz else 0
@@ -317,40 +310,29 @@ double interp_noise_{idx}(int px, int py, int pz) {{
         amplitude = 0.16666666666666666 / create_amp
         amps_str = ", ".join(f"{a:.17g}" for a in amps)
         return f"""
-float normal_noise_{idx}(double dx, double dy, double dz) {{
+float normal_noise_{idx}(int sIdx) {{
     const double amps[{n}] = double[]({amps_str});
-    // first sampler（OctavePerlinNoiseSampler.sample）
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
     double d = 0.0;
-    double e = {lacunarity:.17g};
     double f = {persistence:.17g};
     for (int i = 0; i < {n}; i++) {{
-        double cx = maintainPrecision(dx * e);
-        double cy = maintainPrecision(dy * e);
-        double cz = maintainPrecision(dz * e);
-        double ox = originBuf.origin[({octBase} + i) * 3 + 0];
-        double oy = originBuf.origin[({octBase} + i) * 3 + 1];
-        double oz = originBuf.origin[({octBase} + i) * 3 + 2];
-        int ix = int(floor(cx + ox)); int iy = int(floor(cy + oy)); int iz = int(floor(cz + oz));
-        float gx = float(cx + ox - double(ix)); float gy = float(cy + oy - double(iy)); float gz = float(cz + oz - double(iz));
+        int b = sIdx * SPLIT_TOTAL + {splitBase} + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
         float ns = pn_sample3_f32({octBase} + i, ix, iy, iz, gx, gy, gz);
         d += amps[i] * double(ns) * f;
-        e *= 2.0; f /= 2.0;
+        f /= 2.0;
     }}
-    // second sampler（坐标 × 1.0181268882175227 = DOMAIN_SCALE）
+    // second sampler（拆分坐标偏移 + 6n）
     double d2 = 0.0;
-    e = {lacunarity:.17g}; f = {persistence:.17g};
+    f = {persistence:.17g};
     for (int i = 0; i < {n}; i++) {{
-        double cx = maintainPrecision(dx * 1.0181268882175227 * e);
-        double cy = maintainPrecision(dy * 1.0181268882175227 * e);
-        double cz = maintainPrecision(dz * 1.0181268882175227 * e);
-        double ox = originBuf.origin[({octBase} + {n} + i) * 3 + 0];
-        double oy = originBuf.origin[({octBase} + {n} + i) * 3 + 1];
-        double oz = originBuf.origin[({octBase} + {n} + i) * 3 + 2];
-        int ix = int(floor(cx + ox)); int iy = int(floor(cy + oy)); int iz = int(floor(cz + oz));
-        float gx = float(cx + ox - double(ix)); float gy = float(cy + oy - double(iy)); float gz = float(cz + oz - double(iz));
+        int b = sIdx * SPLIT_TOTAL + {splitBase} + 6 * {n} + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
         float ns = pn_sample3_f32({octBase} + {n} + i, ix, iy, iz, gx, gy, gz);
         d2 += amps[i] * double(ns) * f;
-        e *= 2.0; f /= 2.0;
+        f /= 2.0;
     }}
     return float((d + d2) * {amplitude:.17g});
 }}"""
@@ -371,6 +353,9 @@ layout(set = 0, binding = 1, std430) buffer PermBuf {{ uint perm[]; }} permBuf;
 layout(set = 0, binding = 2, std430) buffer OriginBuf {{ double origin[]; }} originBuf;
 // 输出 density
 layout(set = 0, binding = 3, std430) buffer OutBuf {{ float density[]; }} outBuf;
+// 拆分坐标（CPU 预计算：每采样点 SPLIT_TOTAL 个 float，[ix,iy,iz,gx,gy,gz] × 每 octave）
+layout(set = 0, binding = 4, std430) buffer SplitBuf {{ float splitCoord[]; }} splitBuf;
+const int SPLIT_TOTAL = {self.split_total};
 
 // ===== double 工具（old_blended_noise 用）=====
 const double GRADIENTS[16][3] = {{
@@ -476,7 +461,7 @@ double octave_noise_f32(int octBase, int nOct, double dx, double dy, double dz,
 
 {funcs_src}
 
-float eval_density(int ix, int iy, int iz) {{
+float eval_density(int sIdx, int ix, int iy, int iz) {{
     float x = float(ix), y = float(iy), z = float(iz);
     return {expr};
 }}
@@ -487,7 +472,7 @@ void main() {{
     int ix = coord.coords[idx * 3 + 0];
     int iy = coord.coords[idx * 3 + 1];
     int iz = coord.coords[idx * 3 + 2];
-    outBuf.density[idx] = eval_density(ix, iy, iz);
+    outBuf.density[idx] = eval_density(int(idx), ix, iy, iz);
 }}
 """
 

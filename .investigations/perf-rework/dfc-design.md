@@ -107,12 +107,27 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 2. registry 调用坐标硬编码 `(ix,iy,iz)` → 用 `self.cx/cy/cz`。
 3. lacunarity `2^(-fo)` → `2^(fo)`；maintainPrecision `floor` → `trunc`；normal 去重 key。
 
-## 九、未完成
+## 九、Phase 7 进展（CPU 预拆分 ✅ 验证通过）
 
-- CPU 预拆分方案落地（NormalNoise fp64 坐标拆分移到 CPU，GPU 纯 float）。
+- ✅ **CPU 预拆分方案落地**：NormalNoise 的 fp64 坐标拆分（maintainPrecision + floor → int32 格点 + float 小数）移到 CPU 侧预计算，GPU 只做纯 float 采样（hash 用 int32、grad/fade/lerp 用 float）。
+- ✅ **同时解决两个问题**：编译慢（GPU 无 fp64 → 秒级，无需 DontInline）+ DontInline 的 fp64 bug（无 fp64 就没有）。
+- ✅ **验证**（dfc_presplit_e2e.cpp，erosion，近坐标）：
+
+```
+[dbg] pipeline created   ← 编译秒级（无 fp64）
+[result] CPU预拆分 erosion GPU float vs CPU double: maxDiff=3.475e-07 avgDiff=2.867e-07
+```
+
+- 精度 3.5e-7（float 采样 ~1e-7 量级，方块零影响），与之前「double 拆分 + float」验证一致。
+- **架构变化**：normal_noise 函数签名改为 `normal_noise_N(int sIdx)`（采样点索引），从拆分坐标 buffer 读 int32 格点 + float 小数；坐标链（flat_cache biome 对齐 + shift_x/shift_z 的 offset 采样 + shifted_noise 坐标）移到 CPU 侧重放（端到端验证程序手动重放）。GPU 侧只剩 float 采样 + spline + 算术。
+- 拆分坐标 buffer：每采样点 SPLIT_TOTAL 值 = Σ(6 × 2n octave)，每 octave [ix,iy,iz,gx,gy,gz]。
+
+## 十、未完成
+
+- 坐标链 CPU 侧重放的**自动生成**（当前端到端验证程序手动重放 flat_cache 对齐 + shift；完整 DF 树如 factor 需 DFC 生成 CPU 侧坐标计算代码，即「多后端」）。
 - interpolated（cell 三线性插值）GPU 实现。
 
-## 十、踩坑（Phase 1-6 保留）
+## 十一、踩坑（Phase 1-7 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
