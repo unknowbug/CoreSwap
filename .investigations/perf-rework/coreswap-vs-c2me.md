@@ -11,7 +11,7 @@
 | 精度策略 | **分层：宏观 F64（CPU）+ 高频 F32（GPU）** | 全 double + 关 FMA | 我们（消费卡吃满 FP32） |
 | FMA | 待测（用户：先跑测试） | `#pragma OPENCL FP_CONTRACT OFF` 关闭 | 待定 |
 | 噪声精度 | 高频 3D 噪声 FP32（相对 double ~5e-7，方块零影响） | 噪声 double（对齐 vanilla double） | 我们（FP32 吃满） |
-| 坐标折叠 | FP64 放 CPU（折叠后小坐标给 GPU） | double `maintainPrecision`（GPU 内） | 我们（绕开 Vulkan FP64 短板） |
+| 坐标折叠 | FP64 放 CPU + 拆 int32 整数/float 小数给 GPU | double `maintainPrecision`（GPU 内） | 我们（绕开 Vulkan FP64 短板） |
 | DFC 后端 | 自写（DF→GLSL 或复用 C2ME 前端+clspv） | DF→OpenCL C→运行时 JIT | 平（我们 AOT 更轻） |
 | 平台 | **Fabric/Forge 双平台** | 只 Fabric（Forge 版停 1.16.5） | 我们（Forge 是硬前提） |
 | 适用场景 | 批量预生成（分层精度吃满 FP32） | Chunky 批量（被 FP64 阉割拖累） | 我们 |

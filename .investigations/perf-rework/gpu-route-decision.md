@@ -27,7 +27,7 @@
 | 高频 3D 噪声（base_3d_noise）+ 算术 + 插值 | FP32 | GPU | 高频（interpolated buildGrid 1225 角点 × 6 实例），性能关键；误差对方块判定鲁棒 |
 
 **关键机制（绕开 Vulkan FP64 短板）**：
-CPU 用 FP64 把大坐标折叠成 `[-2^24, 2^24]` 的小坐标，GPU 只接收折叠后的小坐标 → GPU 端坐标是 float 可精确表示的小值 → 既绕开「Vulkan FP64 精度不明确」，又绕开「远坐标 float ulp 爆炸（3000 万时 ulp≈512）」。
+CPU 用 FP64 折叠坐标，再**拆成「int32 整数（精确 hash）+ float 小数（~1e-8）」传给 GPU** → 既绕开「Vulkan FP64 精度不明确」，又绕开「折叠后坐标 ~2^24 时 float ulp=2 丢小数、整体 float 化误差 O(0.1)」——见 coord-precision-finding.md（实测：整体 float 化误差 2.2e-1，拆分误差 1.3e-8）。
 
 ## 三、支撑依据
 
