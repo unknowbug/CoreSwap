@@ -42,7 +42,26 @@ CPU 用 FP64 把大坐标折叠成 `[-2^24, 2^24]` 的小坐标，GPU 只接收�
 - C2ME 只实现「噪声 + 生物群系」阶段，主要靠 Chunky 批量预生成（1200~2500 cps）——印证「GPU 赢在批量预生成，非实时逐 chunk」。
 - C2ME 死守 FP64（cl_khr_fp64），在消费卡吃的是 FP64 被阉割性能；本方案的「分层精度」是比它更聪明的路线。
 
-## 四、下一步
+## 四、数据流开销实测（CUDA 探针，2026-08-13）
+
+> 用机器上已装的 CUDA/nvcc 实测同一块 GPU 的硬件数据（PCIe 传输 + kernel 启动是硬件层事实，与最终用 Vulkan 无关，可作参考）。
+> 探针：`.investigations/perf-rework/gpu_probe.cu`。
+
+| 项 | 实测值（RTX 4060 Laptop，PCIe 4.0 x8） |
+|---|---|
+| 单 chunk 往返（H2D 88KB + kernel + D2H 384KB + sync） | **144 µs** |
+| D2H 384KB（density 输出） | 57 µs（实测带宽 6.9 GB/s） |
+| kernel 启动延迟（pipeline 摊薄） | 7.1 µs |
+| busy kernel（98304×200 乘加，模拟 FP32 负载） | 10 µs |
+
+**对比 CPU density 47 ms/chunk（spline 扁平化后）**：GPU 单 chunk 往返 144 µs = **326× 快**。
+
+**结论**：
+1. **数据流开销（144 µs）远小于 CPU 计算（47 ms），不是瓶颈** —— 分层方案的传输量（in 88KB + out 384KB）完全可忽略。
+2. **但单 chunk 的 GPU 计算（~10 µs）只占往返（144 µs）的 ~7%** → 单 chunk 场景 GPU 利用率极低，固定开销（PCIe 传输 57µs + 同步）主导。
+3. **批量预生成才是 GPU 最优场景**（一次 H2D 批量坐标 + 一次 kernel 算多 chunk + 一次 D2H 批量结果 → 固定开销摊薄，GPU 满负荷）。实时逐 chunk 虽快 326× 但 GPU 空转。
+
+## 五、下一步
 
 1. 调研 Vulkan compute shader 的 DF 树扁平化（DFC）实现方式（compute pipeline + storage buffer + kernel 生成）。
 2. 验证「CPU FP64 折叠 → GPU 吃小坐标」的数据流（每 chunk 传输量、kernel 启动延迟 vs 实时逐 chunk 的适配性）。
