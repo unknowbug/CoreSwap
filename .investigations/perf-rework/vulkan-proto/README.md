@@ -35,8 +35,19 @@ cmd /c "call `"D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliar
 - 踩坑：`(i % 32) - 16` 中 `i` 为 `uint32_t` 导致减 16 下溢（坐标变 2^29）——已改为 `(int)(i % 32) - 16`。
 - maxDiff=0 是因为坐标取值（`k*0.125`）恰好都能被 float 精确表示；要测真实 float/double 差异需用非精确表示的值（如 0.1）。
 
+## 结果（Perlin 噪声 FP32 vs CPU double）
+
+```
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[result] N=4096, GPU float vs CPU double: maxDiff=4.904e-07 avgDiff=3.822e-08
+[result] maxDiff @ i=2453: coord=(0.500,0.900,0.900) gpu=0.581388295 cpu=0.581387804
+```
+
+- **高频 3D 噪声 FP32 相对 CPU double 差 ~5e-7（噪声值）**，与 fp32-experiment.md 的 ~1e-7 量级一致 → 对方块判定零影响（此前 block_probe 近坐标实测零新增 mismatch）。
+- 纠正：vanilla 1.20.1 `PerlinNoiseSampler` **全是 double**（`double grad`/`perlinFade`/`MathHelper.lerp3`），不是 float——故「高频噪声 FP32」是相对 double 降精度 ~5e-7，而非「对齐 vanilla float」。此前 c2me-dfc-review.md 里「C2ME 噪声 double vs vanilla float」的表述需一并修正。
+
 ## 下一步
 
-1. 把 base_3d_noise 的 Perlin 噪声（OctavePerlinNoiseSampler）搬到 GLSL，验证真实噪声的 GPU FP32 vs CPU double 对齐 + 精度差。
-2. 加「坐标折叠 maintainPrecision」进 shader（或确认放 CPU 的取舍）。
+1. 把 OctavePerlinNoiseSampler 多 octave 叠加 + `maintainPrecision` 折叠加进 GLSL，验证多 octave 的 FP32 差异。
+2. 加 `DoublePerlinNoiseSampler`（first + second×1.018）验证 base_3d_noise 完整链路。
 3. 批量 dispatch 测量（多 chunk 摊薄固定开销）。
