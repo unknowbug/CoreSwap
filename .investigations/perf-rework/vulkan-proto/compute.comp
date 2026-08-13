@@ -1,0 +1,29 @@
+// compute.comp —— 最小 Vulkan compute shader：验证 storage buffer in/out 数据流 + FP32 精度
+// 输入：折叠后坐标 (x,y,z) 三元组（float，CPU FP64 折叠后传入）
+// 输出：一个标量 density（float）
+// 本阶段用简单算术占位，验证数据流通；后续替换为 Perlin 噪声。
+#version 450
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// binding 0: 输入坐标 (x,y,z) 三元组，长度 = 3 * N
+layout(set = 0, binding = 0, std430) buffer InputBuf {
+    float coords[];   // [x0,y0,z0, x1,y1,z1, ...]
+} inputBuf;
+
+// binding 1: 输出 density，长度 = N
+layout(set = 0, binding = 1, std430) buffer OutputBuf {
+    float density[];
+} outputBuf;
+
+void main() {
+    uint i = gl_GlobalInvocationID.x;
+    if (i >= outputBuf.density.length()) {
+        return;
+    }
+    // 占位：density = x*x + y*y + z*z（体现 float 计算）
+    float x = inputBuf.coords[i * 3 + 0];
+    float y = inputBuf.coords[i * 3 + 1];
+    float z = inputBuf.coords[i * 3 + 2];
+    outputBuf.density[i] = x * x + y * y + z * z;
+}
