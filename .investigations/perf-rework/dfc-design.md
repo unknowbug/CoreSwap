@@ -94,12 +94,20 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 2. **maintainPrecision floor→trunc**：noise.h 用 `(long)` 向零截断（trunc），shader 用了 floor（向下取整），负数差 2^25。
 3. **normal 噪声去重失效**：去重 key 用自增 `n{len}`，改成 noise key（offset 被 shift_x/shift_z 引用应复用）。
 
-## 八、未完成（Phase 6）
+## 八、Phase 6 进展（spline 函数化 + factor shader 优化）
 
-- factor/depth（含 old_blended + spline + 多噪声）的端到端验证。
-- shader 尺寸优化。
+- ✅ **spline 函数化 + 去重**：嵌套 spline 用函数调用（`spline_N(ix,iy,iz)`），避免 if-else 链指数膨胀；结构去重（ridges 被多处引用）98→19 个 spline 函数；二分→if-else 链（无数组无循环，NVIDIA 编译快）。
+- ✅ **factor shader 从 514KB → 135KB SPIR-V**（spline 函数化 + 去重）。
+- ✅ **factor CPU 侧验证**（diag_factor_cpu.cpp）：DensityBuilder 构建 factor + 采样正常（64 samples 6ms）。
+- ⏳ **factor GPU 编译慢**：vkCreateComputePipelines 编译 factor shader（含 19 spline + 4 NormalNoise 的 fp64 坐标拆分）>10 分钟（NVIDIA 驱动问题，非功能 bug）。这是部署时一次性成本（可缓存 pipeline）。端到端 GPU vs CPU 对比待 GPU 编译完成后再跑。
 
-## 九、踩坑（Phase 1-5 保留）
+## 九、未完成
+
+- factor/depth GPU 端到端对比（GPU 编译慢，待缓存机制或驱动优化）。
+- interpolated（cell 三线性插值 4×4×8）的 GPU 实现（当前剥掉，误差待测）。
+- weird_scaled_sampler（当前返回 0）。
+
+## 十、踩坑（Phase 1-6 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

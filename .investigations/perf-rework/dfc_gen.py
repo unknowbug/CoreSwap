@@ -16,6 +16,8 @@ class DfcGen:
         self.noise_index = {}
         self.registry_funcs = {}
         self.registry_defs = []
+        self.spline_funcs = []        # [(函数名, coord表达式, n, locs, ders, vals)]，嵌套 spline 函数化
+        self.spline_cache = {}        # spline 结构 JSON -> 函数调用（去重，ridges 被多处引用）
         self.noise_params = {}
         # 坐标变量（gen_with_coords 可切换，用于 flat_cache 的 biome 对齐）
         self.cx, self.cy, self.cz = "ix", "iy", "iz"     # int 块坐标
@@ -198,24 +200,54 @@ class DfcGen:
 
     # ---- spline 生成：Hermite 插值（float），对齐 vanilla 三段式（外推 + Hermite）----
     def _gen_spline(self, spline):
+        # 嵌套 spline 用函数调用（避免 if-else 链指数膨胀），二分查找 + 中间区间 if-else 链
+        # spline 函数接受 int 块坐标（coordinate 表达式在函数体内计算）
+        key = json.dumps(spline, sort_keys=True)   # 结构去重（ridges 被多处引用）
+        if key in self.spline_cache:
+            return self.spline_cache[key]
         coord = self.gen(spline["coordinate"])
         points = spline["points"]
         n = len(points)
         locs = [float(p["location"]) for p in points]
         ders = [float(p["derivative"]) for p in points]
-        vals = [self.gen(p["value"]) for p in points]
-        # 边界外推（vanilla Spline.apply 的 i<0 / i==n-1 分支）
-        lo_extrap = f"({vals[0]} + {ders[0]}f * ({coord} - {locs[0]}f))"
-        hi_extrap = f"({vals[n-1]} + {ders[n-1]}f * ({coord} - {locs[n-1]}f))"
-        # 中间区间 if-else 链（从高区间往下套）
-        expr = hi_extrap
-        for i in range(n - 2, -1, -1):
+        vals = []
+        for p in points:
+            v = p["value"]
+            if isinstance(v, dict) and "points" in v and "coordinate" in v and "type" not in v:
+                vals.append(self._gen_spline(v))   # 嵌套 spline → 函数调用（spline_M(ix,iy,iz)）
+            else:
+                vals.append(self.gen(v))           # 其他 → 内联表达式
+        idx = len(self.spline_funcs)
+        fname = f"spline_{idx}"
+        self.spline_funcs.append((fname, coord, n, locs, ders, vals))
+        call = f"{fname}(ix, iy, iz)"
+        self.spline_cache[key] = call
+        return call
+
+    def _spline_body(self, fname, coord, n, locs, ders, vals):
+        def flit(x):
+            s = format(x, '.17g')
+            if '.' not in s and 'e' not in s and 'E' not in s:
+                s += '.0'
+            return s + 'f'
+        lines = []
+        lines.append(f"float {fname}(int ix, int iy, int iz) {{")
+        lines.append(f"    float x = float(ix), y = float(iy), z = float(iz);")
+        lines.append(f"    float coord = {coord};")
+        # 边界外推 + 中间 Hermite（if-else 链，无数组无循环，NVIDIA 编译快）
+        lines.append(f"    if (coord < {flit(locs[0])}) {{ return ({vals[0]}) + {flit(ders[0])} * (coord - {flit(locs[0])}); }}")
+        for i in range(n - 1):
             span = locs[i+1] - locs[i]
-            seg = f"spline_seg({coord}, {locs[i]}f, {span}f, {vals[i]}, {vals[i+1]}, {ders[i]}f, {ders[i+1]}f)"
-            cond = f"({coord} < {locs[i+1]}f)"
-            expr = f"({cond} ? {seg} : {expr})"
-        expr = f"(({coord} < {locs[0]}f) ? {lo_extrap} : {expr})"
-        return expr
+            lines.append(f"    if (coord < {flit(locs[i+1])}) {{")
+            lines.append(f"        float nv = ({vals[i]}); float ov = ({vals[i+1]});")
+            lines.append(f"        float kd = (coord - {flit(locs[i])}) / {flit(span)};")
+            lines.append(f"        float p = {flit(ders[i])} * {flit(span)} - (ov - nv);")
+            lines.append(f"        float q = -{flit(ders[i+1])} * {flit(span)} + (ov - nv);")
+            lines.append(f"        return lerpF(kd, nv, ov) + kd * (1.0 - kd) * lerpF(kd, p, q);")
+            lines.append(f"    }}")
+        lines.append(f"    return ({vals[n-1]}) + {flit(ders[n-1])} * (coord - {flit(locs[n-1])});")
+        lines.append(f"}}")
+        return "\n".join(lines)
 
     # ---- 生成完整 shader 源码 ----
     def gen_shader(self, root_df):
@@ -235,6 +267,9 @@ class DfcGen:
         # registry 函数定义（依赖序已保证），传 int 块坐标，内部转 float
         for fname, fexpr in self.registry_defs:
             funcs.append(f"float {fname}(int ix, int iy, int iz) {{\n    float x = float(ix), y = float(iy), z = float(iz);\n    return {fexpr};\n}}\n")
+        # spline 函数定义（依赖序：嵌套 spline 先定义）
+        for fname, coord, n, locs, ders, vals in self.spline_funcs:
+            funcs.append(self._spline_body(fname, coord, n, locs, ders, vals))
         return self._shader_template(expr, funcs)
 
     def _old_blended_func(self, idx, p, octBase):
@@ -324,6 +359,7 @@ float normal_noise_{idx}(double dx, double dy, double dz) {{
         funcs_src = "\n".join(funcs)
         return f"""#version 450
 #extension GL_ARB_gpu_shader_fp64 : require
+#extension GL_EXT_control_flow_attributes : require
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
