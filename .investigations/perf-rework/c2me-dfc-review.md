@@ -45,3 +45,38 @@
 1. **用户的直觉对**：C2ME 在「底层算法优化」上比我们的方案**保守**——它死守全 double + 关 FMA（所以要求 `cl_khr_fp64`，消费卡被 FP64 阉割拖累），**没有做「宏观 F64 + 高频 F32」的分层**。我们的分层方案正是它缺的那块，也是它在消费卡上吃满 FP32 的关键。
 2. **复用边界明确**：拿 DFC 前端的「DF 树 → AST → 代码生成」骨架 + flat_cache「CPU 预填充」思路；精度分层 + Vulkan 后端自己写。
 3. **Forge 兼容**：复用 DFC 前端（平台无关）不碰 Forge 雷区；Vulkan 运行时自研天然平台无关（LWJGL 3 同时支持 Fabric/Forge）。
+
+## 七、spline 的 GPU 编译方案（关键发现，2026-08-13 补）
+
+> 解决「GLSL/OpenCL 不支持递归 + spline 嵌套」的正确姿势——**别人已经踩过并解决了**。
+
+**文件**：`c2me-opts-accel-opencl/.../emitters/misc/SplineNormalNodeOpenCLCEmitter.java` + `c2me-opts-dfc/.../gen/jvm/SplineSupport.java`
+
+**C2ME 方案（全非递归，GLSL/OpenCL 都能编译）**：
+
+1. **locations/derivatives 是 const 数组**（数据驱动，不是硬编码 if-else）：
+   ```c
+   const float locations[] = { ... };   // 数据驱动
+   const float derivatives[] = { ... };
+   ```
+2. **区间查找用二分**（`SplineSupport.findRangeForLocation`，就是 vanilla `MathHelper.binarySearch` 的精确复刻）：
+   ```java
+   int min = 0, i = locations.length;
+   while (i > 0) {
+       int j = i / 2, k = min + j;
+       if (x < locations[k]) { i = j; } else { min = k + 1; i -= j + 1; }
+   }
+   return min - 1;
+   ```
+3. **区间 value 用 switch(rangeForLocation)**（不是 if-else 链）：
+   ```c
+   switch (rangeForLocation) { case 0: n = ...; o = ...; break; case 1: ... }
+   ```
+4. **value 是函数调用**（`context.newVarF32(node.values[i])`）——嵌套 spline 的 value 就是**另一个子函数调用**，完全非递归。
+5. **sampleOutsideRange**（越界外插，导数=0 时退化）：
+   ```java
+   float f = derivatives[i];
+   return f == 0.0F ? value : value + f * (point - locations[i]);
+   ```
+
+**对我们的启示**：spline 根本不需要「递归」也不需要「显式栈」——正确姿势是 **「数据驱动 Hermite（const 数组 + 二分查找 + switch-case）+ value 函数调用」**。我们之前 `spline_body` 写成 **if-else 链（n-1 个分支随 locations 数膨胀）是代码膨胀的主因之一**。`_gen_spline_node` 的数组收集方向是对的，错在区间查找用了 if-else 链 + 误以为要用递归（D4 已记录 GLSL 递归被拒）。
