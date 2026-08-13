@@ -21,7 +21,7 @@
 
 1. **全 double（F64）**：所有 binary/unary/noise emitter 默认 `ValuesMethodDefF64`，Add→`+`、Max→`fmax`、Squeeze→`clamp`。
 2. **显式关 FMA**：`c2me_opencl_ext_math.cl` 第 28 行 `#pragma OPENCL FP_CONTRACT OFF`——C2ME 知道 FMA 会引入与 vanilla 的精度差异，选择关闭保精度（而非开 FMA 提速）。
-3. **噪声采样用 double**（`math_perlinFade`/`math_lerp` 全 double），而 vanilla `PerlinNoiseSampler` 内部是 **float** → C2ME 与 vanilla 有 ~1e-7 级差异（double 更精确 ≠ 对齐）。
+3. **噪声采样用 double**（`math_perlinFade`/`math_lerp` 全 double），与 vanilla `PerlinNoiseSampler` 的 double 一致（vanilla 1.20.1 是 all-double，非 float）——**不是差异点**。
 4. **没有「宏观 F64 + 高频 F32」分层**：`ToF32Node` 仅在 spline 的 `FixedFloatFunction` 处用（`ConstantF32Node`），其余全 double。
 
 ## 四、有损/脆弱点（对应「C2ME 损得严重」）

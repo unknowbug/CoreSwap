@@ -10,7 +10,7 @@
 | 计算 API | **Vulkan compute** | OpenCL | 我们（跨厂商 + 驱动生态较稳） |
 | 精度策略 | **分层：宏观 F64（CPU）+ 高频 F32（GPU）** | 全 double + 关 FMA | 我们（消费卡吃满 FP32） |
 | FMA | 待测（用户：先跑测试） | `#pragma OPENCL FP_CONTRACT OFF` 关闭 | 待定 |
-| 噪声精度 | 高频 3D 噪声 FP32 | 噪声 double（vanilla 是 float） | 我们（对齐 vanilla float） |
+| 噪声精度 | 高频 3D 噪声 FP32（相对 double ~5e-7，方块零影响） | 噪声 double（对齐 vanilla double） | 我们（FP32 吃满） |
 | 坐标折叠 | FP64 放 CPU（折叠后小坐标给 GPU） | double `maintainPrecision`（GPU 内） | 我们（绕开 Vulkan FP64 短板） |
 | DFC 后端 | 自写（DF→GLSL 或复用 C2ME 前端+clspv） | DF→OpenCL C→运行时 JIT | 平（我们 AOT 更轻） |
 | 平台 | **Fabric/Forge 双平台** | 只 Fabric（Forge 版停 1.16.5） | 我们（Forge 是硬前提） |
@@ -38,7 +38,7 @@
 
 | 有损点 | C2ME | CoreSwap |
 |---|---|---|
-| 噪声精度 | double vs vanilla float（~1e-7 差异） | 高频 FP32（对齐 vanilla float 量级） |
+| 噪声精度 | double（对齐 vanilla double，非差异） | 高频 FP32（相对 double ~5e-7，方块零影响） |
 | fmax/fmin NaN 语义 | `fmax(NaN,x)=x` ≠ `Math.max(NaN,x)=NaN` | 待定（GPU 语义需逐一核对） |
 | flat_cache miss | `__builtin_trap()` 崩溃（脆弱） | 宏观噪声 CPU 算，无 miss 问题 |
 | 远坐标 | double 精度可保 | 坐标折叠 FP64 可保 |
