@@ -126,6 +126,12 @@
 - **修复**：`minecraft:y` → `self.fy`（坐标变量跟着上下文走）；shader 模板加 `const int minY = -64`。
 - **教训**：**「坐标变量」必须跟着上下文走**（C1 同款坑）——硬编码全局坐标变量 y/minY 在切换坐标上下文的函数（interp 角点）里必然未定义。
 
+### C12. 端到端 maxDiff=0 假象（range_choice 常数分支吸收误差）
+- **现象**：noodle 端到端 maxDiff=0.000e+00，gpu=cpu=64.000000000。
+- **根因**：采样点恰在 range_choice 的 when_in_range 常数分支（interpolated 采样值 < 0 → 返回 64.0），误差被阈值判定吸收，不是真零误差。
+- **定位**：诊断打印 gpu=cpu=64.0 → 发现是常数分支；改采样坐标让 interpolated 采样值跨 0 阈值后误差才体现（maxDiff=5.053e-07）。
+- **教训**：**端到端验证必须让采样点覆盖阈值两侧**——range_choice/abs/max 等非线性节点的常数分支会掩盖底层误差；maxDiff=0 要先怀疑「是不是采样点没覆盖有效路径」，而不是「完全对齐」。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -200,3 +206,4 @@
 | C2280 unique_ptr 拷贝已删除 | DoublePerlinNoiseSampler 含 unique_ptr 不可拷贝，用 shared_ptr 直接构造 |
 | splitTotal 翻倍/实例累积 | old_blended 去重 key 用 len() 自增，改用参数组合 key |
 | y/minY undeclared | 坐标变量硬编码，改 self.fy + shader 模板加 minY 常量 |
+| maxDiff=0 假象 | range_choice 常数分支吸收误差，采样点要覆盖阈值两侧 |

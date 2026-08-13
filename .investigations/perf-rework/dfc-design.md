@@ -200,12 +200,36 @@ factor DF built
 - ✅ **修复**：① `minecraft:y` 硬编码 "y" → `self.fy`；② minY undeclared → shader 模板加 `const int minY = -64`。
 - ⏳ **gen_cpu 侧待做（递归拆分生成）**：interpolated 的 8 角点 delegate 拆分，需要 gen_cpu 的 split 递归遍历 DF 树（`_gen_split_lines`），对 noise 节点在「角点坐标」重放 coord_chain + 拆分，对 interpolated 节点生成 8 角点 delegate 拆分（块级 floorDivP + cell 索引）。这是 interpolated 端到端验证的前置。
 
-## 十七、未完成
+## 十七、Phase 14 进展（interpolated 收编完成 ✅）
 
-- interpolated 收编 gen_cpu 侧（递归拆分生成 `_gen_split_lines`）。
+- ✅ **gen_cpu 侧递归拆分生成**（`_gen_split_lines`）：gen_cpu 的 split 从 flat 列表改成递归遍历 DF 树，对 noise 节点在「坐标上下文」重放 coord_chain + 拆分，对 interpolated 节点生成 8 角点 delegate 拆分（块级 floorDiv + cell 索引）。加了 normal_chain_index/normal_vec_index/normal_split_base/old_split_base/old_vec_index 映射（key = 去重 key 含角点 suffix）。
+- ✅ **noodle 完整 DF 端到端验证通过**（dfc_noodle_backend_e2e.cpp，DensityBuilder 做 CPU 参照）：
+
+```
+[DBG] i=0 pos=(0,-32,0) gpu=0.647133410 cpu=0.647133360 diff=5.022e-08
+[result] noodle 完整 DF: GPU float vs CPU double: maxDiff=5.053e-07 avgDiff=1.165e-07
+```
+
+- 精度 5.053e-07（float 采样 ~1e-7，方块零影响），编译快。
+- ⚠️ **教训（C12）**：首次验证 maxDiff=0 是「采样点恰在 range_choice 的 when_in_range 常数分支（返回 64），误差被阈值判定吸收」——不是真零误差。改采样坐标让 interpolated 采样值跨阈值后误差才体现。**端到端验证必须让采样点覆盖阈值两侧，否则常数分支会掩盖误差**。
+
+## 十八、DFC 生成器全节点支持收官
+
+| 节点 | DFC 支持 |
+|---|---|
+| normal_noise | ✅ |
+| old_blended_noise | ✅ |
+| interpolated（cell 插值） | ✅（本轮收编完成） |
+| spline | ✅ |
+| 算术/range_choice/y_clamped_gradient | ✅ |
+
+DFC 能生成 vanilla 完整 final_density 树的 shader + CpuBackend → 集成 block_probe 的前置全部就绪。
+
+## 十九、未完成
+
 - 真正集成进 block_probe（DFC 生成 final_density 完整 shader + worldgen_api.cpp GPU 批量采样替换 CPU 采样）。
 
-## 十八、踩坑（Phase 1-13 保留）
+## 二十、踩坑（Phase 1-14 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

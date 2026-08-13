@@ -30,6 +30,11 @@ class DfcGen:
         self.interp_instances = []                       # interpolated 实例（delegate DF），gen 时收集
         self.interp_funcs = []                           # [(interp_idx, samples[8])]，interp 包装函数
         self.noise_key_suffix = ""                       # interpolated 角点去重后缀（8 个独立角点实例）
+        self.normal_chain_index = {}                     # normal 实例 key → coord_chains 索引
+        self.normal_vec_index = {}                       # normal 实例 key → normals vector 索引
+        self.old_vec_index = {}                          # old_blended 实例 key → oldBlendeds vector 索引
+        self.normal_split_base = {}                      # normal 实例 key → splitBase
+        self.old_split_base = {}                         # old_blended 实例 key → splitBase
         if noise_dir:
             for f in os.listdir(noise_dir):
                 if f.endswith(".json"):
@@ -109,6 +114,7 @@ class DfcGen:
         if key in self.noise_index:
             return self.noise_index[key]
         idx = len(self.noise_instances)
+        params["_key"] = key
         self.noise_instances.append((kind, params))
         self.noise_index[key] = idx
         return idx
@@ -156,6 +162,7 @@ class DfcGen:
                 "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "flat_cache": self.flat_cache_depth > 0,
             })
+            self.normal_chain_index[df.get("noise", "") + self.noise_key_suffix] = len(self.coord_chains) - 1
             return f"normal_noise_{idx}({self.sidx})"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
@@ -171,6 +178,7 @@ class DfcGen:
                 "shift_y": self._resolve_shift(df.get("shift_y", 0.0)),
                 "shift_z": self._resolve_shift(df.get("shift_z", 0.0)),
             })
+            self.normal_chain_index[df.get("noise", "") + self.noise_key_suffix] = len(self.coord_chains) - 1
             return f"normal_noise_{idx}({self.sidx})"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             # shift 噪声（offset）是坐标链的一部分，CPU 侧 double 采样，GPU 侧不采样
@@ -307,11 +315,15 @@ class DfcGen:
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
                 funcs.append(self._old_blended_func(idx, params, octBase, splitBase))
+                self.old_split_base[params["_key"]] = splitBase
+                self.old_vec_index[params["_key"]] = len(self.old_vec_index)
                 octBase += 40
                 splitBase += 7 * 40   # 5 参数 sample：7 值/octave [ix,iy,iz,gx,gy,gz,fadeY] × 40 octave
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
                 funcs.append(self._normal_func(idx, params, octBase, splitBase))
+                self.normal_split_base[params["_key"]] = splitBase
+                self.normal_vec_index[params["_key"]] = len(self.normal_vec_index)
                 octBase += 2 * n
                 splitBase += 6 * 2 * n   # 6 值 [ix,iy,iz,gx,gy,gz] × 2n octave
         self.split_total = splitBase      # 每采样点的拆分坐标总数
@@ -377,7 +389,66 @@ class DfcGen:
             return f'shiftNoises.at("{key}").sample(({az}) * 0.25, ({ax}) * 0.25, 0.0) * 4.0'
         return f'shiftNoises.at("{key}").sample(({ax}) * 0.25, ({ay}) * 0.25, ({az}) * 0.25) * 4.0'   # shift
 
-    def gen_cpu(self):
+    def _gen_split_lines(self, df, cx, cy, cz):
+        """递归生成拆分代码行（在 cx/cy/cz int 坐标上下文重放 noise 坐标链）"""
+        lines = []
+        if isinstance(df, str):
+            if df in ("minecraft:y", "minecraft:zero", "minecraft:shift_x", "minecraft:shift_z"):
+                return lines
+            return self._gen_split_lines(self.resolve_ref(df), cx, cy, cz)
+        if isinstance(df, (int, float)):
+            return lines
+        t = df.get("type", "")
+        if t in ("minecraft:noise", "minecraft:shifted_noise"):
+            key = df.get("noise", "") + self.noise_key_suffix
+            chain = self.coord_chains[self.normal_chain_index[key]]
+            vi = self.normal_vec_index[key]
+            sb = self.normal_split_base[key]
+            n = len(self._resolve_noise_params(df.get("noise", ""))["amplitudes"])
+            if chain.get("flat_cache"):
+                ax = f"(({cx}) >> 2) << 2"; ay = "0"; az = f"(({cz}) >> 2) << 2"
+            else:
+                ax = cx; ay = cy; az = cz
+            xs, ys = f"{chain['xz_scale']:.17g}", f"{chain['y_scale']:.17g}"
+            if chain["type"] == "noise":
+                dx, dy, dz = f"({ax}) * {xs}", f"({ay}) * {ys}", f"({az}) * {xs}"
+            else:
+                sx = self._shift_cpp(chain["shift_x"], ax, ay, az)
+                sy = self._shift_cpp(chain["shift_y"], ax, ay, az)
+                sz = self._shift_cpp(chain["shift_z"], ax, ay, az)
+                dx = f"({ax}) * {xs} + ({sx})"
+                dy = f"({ay}) * {ys} + ({sy})"
+                dz = f"({az}) * {xs} + ({sz})"
+            lines.append(f'    {{ splitDouble(normals[{vi}], {dx}, {dy}, {dz}, out, {sb}, {n}); }}')
+        elif t == "minecraft:old_blended_noise":
+            key = (f"old_blended:{df.get('xz_scale',0.25)}:{df.get('y_scale',0.125)}:"
+                   f"{df.get('xz_factor',80.0)}:{df.get('y_factor',160.0)}:"
+                   f"{df.get('smear_scale_multiplier',8.0)}{self.noise_key_suffix}")
+            vi = self.old_vec_index[key]
+            sb = self.old_split_base[key]
+            lines.append(f'    {{ splitOldBlended(*oldBlendeds[{vi}], {cx}, {cy}, {cz}, out, {sb}); }}')
+        elif t == "minecraft:interpolated":
+            lines.append("    {")
+            lines.append(f"        int _chunkX = floorDiv({cx}, 16); int _chunkZ = floorDiv({cz}, 16);")
+            lines.append(f"        int _gx = ({cx}) - _chunkX * 16; int _gy = ({cy}) - minY; int _gz = ({cz}) - _chunkZ * 16;")
+            lines.append("        int _cx = _gx / 4; int _cy = _gy / 8; int _cz = _gz / 4;")
+            for c in range(8):
+                dx, dy, dz = c & 1, (c >> 1) & 1, (c >> 2) & 1
+                ax = f"(_chunkX * 16 + (_cx + {dx}) * 4)"
+                ay = f"(minY + (_cy + {dy}) * 8)"
+                az = f"(_chunkZ * 16 + (_cz + {dz}) * 4)"
+                old_suffix = self.noise_key_suffix
+                self.noise_key_suffix = f"@c{c}"
+                lines += self._gen_split_lines(df.get("argument", df.get("input", 0.0)), ax, ay, az)
+                self.noise_key_suffix = old_suffix
+            lines.append("    }")
+        else:
+            for key in ("argument", "argument1", "argument2", "input", "when_in_range", "when_out_of_range"):
+                if key in df:
+                    lines += self._gen_split_lines(df[key], cx, cy, cz)
+        return lines
+
+    def gen_cpu(self, root_df):
         """生成 CPU 后端 C++ 头文件（噪声生成 + 坐标链重放 + 拆分 + perm 收集）"""
         manifest = self.gen_noise_manifest()
         normals = manifest["normal_instances"]
@@ -390,10 +461,14 @@ class DfcGen:
         for kind, params in self.noise_instances:
             if kind == "old_blended":
                 old_blendeds.append({"params": params, "octBase": octBase, "splitBase": splitBase})
+                self.old_split_base[params["_key"]] = splitBase
+                self.old_vec_index[params["_key"]] = len(old_blendeds) - 1
                 octBase += 40
                 splitBase += 7 * 40
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
+                self.normal_split_base[params["_key"]] = splitBase
+                self.normal_vec_index[params["_key"]] = len(self.normal_vec_index)
                 octBase += 2 * n
                 splitBase += 6 * 2 * n
 
@@ -416,25 +491,7 @@ class DfcGen:
                 f'std::make_shared<wg::InterpolatedNoiseDF>(r, {p["xz_scale"]:.17g}, {p["y_scale"]:.17g}, {p["xz_factor"]:.17g}, {p["y_factor"]:.17g}, {p["smear"]:.17g})); '
                 f'oldBase.push_back({ob["octBase"]}); oldSplitBase.push_back({ob["splitBase"]}); }}')
 
-        split_lines = []
-        for i, ob in enumerate(old_blendeds):
-            split_lines.append(f'    {{ splitOldBlended(*oldBlendeds[{i}], x, y, z, out, {ob["splitBase"]}); }}')
-        for i, ni in enumerate(normals):
-            chain = ni["coord_chain"]
-            if chain.get("flat_cache"):
-                ax, ay, az = "(x >> 2) << 2", "0", "(z >> 2) << 2"
-            else:
-                ax, ay, az = "x", "y", "z"
-            xs, ys = f"{chain['xz_scale']:.17g}", f"{chain['y_scale']:.17g}"
-            if chain["type"] == "noise":
-                dx, dy, dz = f"({ax}) * {xs}", f"({ay}) * {ys}", f"({az}) * {xs}"
-            else:   # shifted_noise
-                sx = self._shift_cpp(chain["shift_x"], ax, ay, az)
-                sy = self._shift_cpp(chain["shift_y"], ax, ay, az)
-                sz = self._shift_cpp(chain["shift_z"], ax, ay, az)
-                dx, dy, dz = f"({ax}) * {xs} + ({sx})", f"({ay}) * {ys} + ({sy})", f"({az}) * {xs} + ({sz})"
-            split_lines.append(
-                f'    {{ splitDouble(normals[{i}], {dx}, {dy}, {dz}, out, {ni["splitBase"]}, {ni["n"]}); }}')
+        split_lines = self._gen_split_lines(root_df, "x", "y", "z")
 
         # permSize = 总 octave 数（old_blended 40 + 所有 normal 2n）× 256
         total_octave = 0
@@ -461,6 +518,8 @@ struct CpuBackend {{
     int splitTotal = {manifest["split_total"]};
     int permSize = {perm_size};
 
+    static int floorDiv(int a, int b) {{ int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }}
+    static const int minY = -64;   // overworld 维度 minY（interpolated cell 网格）
     static double maintainPrecision(double v) {{ return v - (long)(v / 3.3554432E7 + 0.5) * 3.3554432E7; }}
 
     void init(uint64_t worldSeed) {{
