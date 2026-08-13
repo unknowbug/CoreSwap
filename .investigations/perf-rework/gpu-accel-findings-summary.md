@@ -40,6 +40,17 @@
 - **结论**：NVIDIA 驱动 fp64 是标准 IEEE double（52 位）；base_3d_noise 用 GPU fp64 完全可行，FP32 的 1e-2 误差改善 16 个数量级。
 - **实现要点**：fp64 是 Vulkan 1.1 core feature（`VkPhysicalDeviceFeatures.shaderFloat64`，非扩展）；smear 常量 `1.0e-7f` 需 `double(1.0e-7f)` 对齐 vanilla `1.0E-7F`。
 
+### F7. 驱动编译时间爆炸：shader 规模（函数数×调用数）是主因，不是 fp64（2026-08-13 后续）
+- **现象**：final_density 全量 shader（210 函数 76338 行 GLSL，SPIR-V 1.2MB）`vkCreateComputePipelines` >10 分钟（NVIDIA RTX 4060 Laptop）。
+- **排除过程**（gpu-accel-errors.md D1-D3）：
+  - D1 fp64 拆分：OpFConvert 2.16% → 全 double 累加，编译仍慢 → fp64 非主因。
+  - D2 DontInline：210 函数加 DontInline，编译 0.44s 但**崩溃（0xC0000005）**——后来定位是 normals[131] 越界（gen_cpu 的 vi 分配 bug），非 DontInline 本身；但 DontInline 有 fp64 副作用（驱动不开 fp64 时不能 DontInline，会丢精度）。
+  - D3 纯 float：fp64 清零（OpFConvert 2.16%→3 个、含 %double 的 OpFAdd→0），编译仍慢 → **fp64 不是主因**。
+- **函数分布诊断（真正主因）**：`spirv-dis` 统计 210 函数 + 76338 行；其中 **spline 56 个函数**是「函数嵌套」最大头（factor 的 nested spline 展开），其次 normal_noise 34 个 + interpolated 6 个。
+- **根因定性**：**shader 规模（函数数 × 嵌套调用深度）超线性拖慢驱动编译**——210 个函数的嵌套调用图，驱动寄存器分配/内联展开爆炸。纯 float 只清 fp64（SPIR-V 1.2MB→1.2MB 几乎不变），不解决函数规模。
+- **连带发现 D4**：GLSL/SPIR-V 链接阶段**禁止递归**（spline_eval ↔ spline_val_at 相互递归被 `Recursion detected` 拒绝）——数据驱动树结构不能照搬 CPU 递归。
+- **解决方向（C2ME 调研，见 c2me-dfc-review.md 第七节）**：spline 改 **「const 数组 + 二分查找 + switch-case + value 函数调用」**（C2ME SplineNormalNodeOpenCLCEmitter 的方案），全非递归、代码量恒定。我们之前的 `spline_body` 是 **if-else 链（n-1 分支随 locations 膨胀）**，是代码膨胀主因之一。
+
 ## 最终分层方案
 
 | 层 | 精度 | 误差 | 位置 |
