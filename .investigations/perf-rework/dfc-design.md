@@ -231,6 +231,8 @@ DFC 能生成 vanilla 完整 final_density 树的 shader + CpuBackend → 集成
 - ✅ **修复 C13**（normals[131] 越界）：gen_final_density.py 的 gen_shader/gen_cpu 顺序颠倒污染 normal_vec_index，改 gen_cpu 先于 gen_shader。
 - ⚠️ **驱动编译慢（D3）**：final_density.spv（76338 行，210 函数）vkCreateComputePipelines >2min。OpFunctionCall 2073 次 = factor 的 7 倍。已试 FunctionControl DontInline（210 个）+ 纯 float（double 累加 → float，fp64 清零）均无效——**根因是函数嵌套（210 函数），不是 fp64**。
 - **待解决方向**：**拆 shader**（final_density 拆成多个子 shader，每个函数数 < 合理规模）或**深度扁平化**（spline 内联到调用点）。这是集成 block_probe 的最后一个障碍。
+- **函数分布诊断**（diag_funcs.py）：noise_instances=139（normal 131 + old_blended 8）、spline=56、interp=6、registry=1（df_overworld_caves_noodle，仅 1 个因为 continents/erosion/ridge 都在 interpolated 内被展开）。**spline 56 是「函数嵌套」主因**（factor spline 嵌套，每个 spline 节点一个函数 + 相互调用）。
+- **下一步：spline 数据驱动**——把 56 个 spline 函数（if-else 链 + 嵌套调用）改成 1 个数据驱动函数（节点数组 SSBO + 显式栈循环递归查表），需处理 GLSL 递归限制 + coordinate 函数指针（switch-case 按 coordinate 种类）。这是减少函数嵌套的第一步，后续仍需拆 shader 处理 normal 131。
 
 ## 二十、未完成
 
