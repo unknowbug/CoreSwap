@@ -1211,3 +1211,30 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
   1. **多线程无加速**：bench threads=8 62.17ms/chunk ≈ 单线程 62.38ms——spline/cache 已非瓶颈，**aquifer+oreVein 阶段**（wgprofile_8576_t1_ctx.txt 20-52ms/chunk，远超 spline 贡献）成主导；需线程亲和（root-cause 方案 2）/ aquifer 并行化。
   2. **spline 单次 7,971ns**（WG_PROFILE ctx 口径）：调用量 ↓22× 后的单次成本，非本次修复引入的劣化（review 三源不一致 #2 已注明出处 = wgprofile_8576_t1_ctx.txt L80），与修复前 1,714ns 为不同测量口径。
   3. **aquifer 阶段 4× 级**（20-52ms/chunk vs 旧基线 6.5-8.9ms）——独立课题。
+
+
+## 2026-08-13：spline 扁平化 + 边界列复用（无损优化）+ 多线程膨胀重新定性 latency-bound（✅ spline 扁平化闭环 / 🔍 边界列复用收益小 / 🔍 多线程根因待续）
+
+> 承接 2026-08-12 修复闭环条目。本轮在「多线程内存带宽饱和优化」课题下做两个无损优化 + 一次根因重新定性。commit aae119d（density.h / density_builder.h）+ ae9a3b9（phase0-2 调查产物）+ 5ec4f07；judge 审查 `.investigations/perf-rework/review-aae119d.md` + 跟进 `review-aae119d-followup.md`。
+
+### ✅ spline 扁平化闭环（主要收益）
+
+- 递归 `shared_ptr<SplineDF>` 树 → 连续节点数组（nodes/locations/derivatives/subIdx/locationFunctions 池）+ 整数索引 + 非虚 `sampleNode`，Hermite 插值公式逐位不变。
+- 单线程 density wall 61.7→47.1ms（**-23.7%**）、[A] threads=1 吞吐 92.08→71.68ms/chunk（**-22.2%**）（analyze_stagetimer 聚合 n=128）。
+- 零退化：8576 99.9994% / 3200 99.9997%（`regress_8576_aae119d.txt` / `regress_3200_aae119d.txt`，本轮针对 aae119d 补落盘，闭合 judge 证据链缺口）。
+
+### 🔍 边界列复用收益小（-1.7% 接近噪声）
+
+- thread_local edge 缓存复用左邻 gx=4 列作 gx=0 列（CELL_X=4 坐标对齐，无损）。density 47.1→46.3ms（-1.7%）、吞吐 71.68→72.06（+0.5% 无改善）。
+- 根因：buildGrid 耗时大头不集中在 gx=0 列（FlatCache buildGrid 只在首个角点触发一次，跳过 gx=0 只移到 gx=1；其余 244 角点查表命中）——优化了错误目标（角点采样次数而非树遍历触发点）。
+
+### 🔍 多线程膨胀重新定位 latency-bound（DDR5）
+
+- 用户纠正内存 DDR5-5600 双通道 → 旧「DDR4 带宽饱和 ~17.8GB/s」定论失效。
+- 重新定性 latency-bound：8t spline 单次 10× vs noise 1.3× 不对称膨胀 = cache miss 延迟，非带宽对称争用。
+- spline 扁平化后单线程 -24% 但 8t density 460.8→478.3ms 无改善 → 多线程根因在 InterpolatedDF::buildGrid 1225 角点树遍历整体（spline + FlatCache 查表 + noise 的 cache miss 叠加），不在 spline 递归本身。**待解决方向 = DFC（整个 DF 树扁平化）**。
+
+### judge 审查（保持 draft）
+
+- 代码语义无损通过（Hermite 逐位等价 + 边界复用坐标对齐）；零退化证据链缺口 → 跟进补 regress 落盘；-1.7% 选择性报告 → 补总 wall 口径；术语「FlatCache buildGrid」→ 修正为「InterpolatedDF::buildGrid」。
+- 状态保持 draft（多线程膨胀课题未闭合，需重新定位 buildGrid 树遍历 cache miss 构成后再评估 DFC）。

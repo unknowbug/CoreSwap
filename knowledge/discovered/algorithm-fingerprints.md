@@ -275,3 +275,58 @@ header: magic(4) + seed(8) + size(4) + originX(4) + originZ(4) + minY(4) + heigh
 - **git 二分定位引入点**：stash/checkout 旧提交对照（本次 8s 级退化用 stash 实验证明非本次引入，具体引入提交待二分）
 - **越界角点指纹（H2，2026-08-12 定论，修复已闭环）**：缓存 key 由采样坐标派生（如 `(x>>4,z>>4)` chunk 级）且采样点可能越出当前上下文范围（buildGrid 角点 i=4 → 下一 chunk 首列）时，单槽缓存必然被邻居 key 污染 → 递归重建蔓延。排查 = 检查重建计数的 chunk 覆盖是否超出生成范围（本次 112 chunk = 36 生成 + 76 邻居实锤）；**修复 = 当前 chunk 上下文绑定**（thread_local 显式传入当前 chunk 键 + 越界直算不重建，模拟 Java per-chunk 实例语义；实测 rebuild 216=6.0/chunk、覆盖 36）——**多槽 LRU 不够**（本次初版 16 槽 LRU 仍为邻居 key 建网格、覆盖仍 112），必须消除「越界→重建」语义
 - 跨版本/跨项目通用：任何「局部缓存 + 并行执行」组合都适用此检查
+
+## 发现 #11: spline 树扁平化模式（递归 shared_ptr 树 → 连续数组 + 非虚采样）——单线程 -24% 零退化，但多线程 latency-bound 不改善
+
+**发现时间:** 2026-08-13
+**发现者:** worker（perf-rework 无损优化 Phase 1）
+**来源定位:** C++ `versions/1.20.1/cpp/worldgen/src/density.h`（SplineDF → 连续 nodes[]/locations[]/derivatives[]/subIdx[] + sampleNode）+ `.investigations/perf-rework/`（phase1-design.md / review-aae119d.md）
+**置信度:** candidate（实测单线程 -24% + judge 逐行核对 Hermite 公式逐位等价 + 零退化落盘；多线程课题未闭合）
+**module:** perf
+
+### 观察
+MC 密度函数的 SplineDF（spline 节点）原生是「递归 shared_ptr 子节点树 + 虚调用采样」：每次 `apply` 经 `locationFunction->sample`（虚调用）→ 二分查 locations → `subSplines[k]->sample`（虚调用递归嵌套）→ Hermite 插值，每层 2 次虚指针间接跳转 + 二分，cache miss 高。
+
+扁平化把递归树展开为连续节点数组（nodes/locations/derivatives/subIdx/locationFunctions 池）+ 整数索引，采样改为非虚递归 `sampleNode`。Hermite 插值公式（`lerp(kd,nv,ov)+kd(1-kd)lerp(kd,p,q)`）逐位不变。
+
+**实测**：单线程 density wall 61.7→47.1ms（-23.7%）、吞吐 92.08→71.68ms/chunk（-22.2%）；零退化 8576 99.9994% / 3200 99.9997%。
+
+**关键边界**：扁平化只解决 spline 子树自身的间接寻址 cache miss。多线程 8t 下 density 460.8→478.3ms **不改善**——多线程膨胀根因在 InterpolatedDF::buildGrid 的 1225 角点树遍历**整体**（spline 递归 + FlatCache 查表 + noise 的 cache miss 叠加），不在 spline 递归这一层。要改善多线程 latency 需 **DFC（整个 DF 树扁平化）**，非仅 spline 子树。
+
+### 证据
+- `analyze_stagetimer.py` 现场复跑（n=128）：phase0_baseline density median 61.7 / phase1_splineflat 47.1；[A] threads=1 92.08→71.68
+- `regress_8576_aae119d.txt` 3538922/3538944（99.9994%）、`regress_3200_aae119d.txt` 1572860/1572864（99.9997%）零退化
+- 8t density median：phase0 460.8 → phase1 478.3（不降反略升，未兑现 phase0-quantify 的「10× 膨胀有望大幅回落」预估）
+- judge review-aae119d.md 要点 1：Hermite 公式逐位等价（含 n==1/i<0/i==n−1/min-max 全边界）
+
+### 如何利用
+- 复刻/优化 MC density 树的 spline 时，优先把「递归指针子节点 + 虚调用采样」扁平化为连续数组 + 整数索引 + 非虚采样：单线程 cache miss 立减，收益大且零退化可保（纯布局重排，采样公式逐位不变）。
+- 但**别指望子树扁平化解决多线程 latency-bound**：先定位耗时大头在哪一层（用 WG_PROFILE/临时计数器拆 buildGrid 角点采样 vs 块级插值），若大头是「上层树遍历触发 + 多层 cache miss 叠加」（如 InterpolatedDF::buildGrid 1225 角点 × arg->sample），则需整个 DF 树扁平化（DFC）而非局部子树。
+- 通用规律：指针链深递归 + 每层虚调用的数据结构，扁平化是低风险高收益的无损优化；但收益上限受「遍历触发点是否集中在该结构」约束——若遍历大头是调用方触发的多层组合，单层扁平化收益有限。
+
+## 发现 #12: 边界角点复用收益小的根因——缓存构建触发点不集中在角点，跳过角点省不了树遍历
+
+**发现时间:** 2026-08-13
+**发现者:** worker（perf-rework 无损优化 Phase 2）
+**来源定位:** C++ `versions/1.20.1/cpp/worldgen/src/density.h`（InterpolatedDF::buildGrid 1225 角点 / FlatCacheDF::buildGrid 5×5=25 角点）+ `.investigations/perf-rework/`（review-aae119d-followup.md §3）
+**置信度:** candidate（实测 -1.7% 收益坐实 + 根因机制推演）
+**module:** perf
+
+### 观察
+InterpolatedDF 网格 x/z 边界角点（gx=0 列 = 左邻 gx=4 列）与相邻 chunk 坐标重合，phase1-design 预估「x/z 双向边界复用可减 -36% buildGrid 采样 → -28% density」。但实测只做 x 方向左邻列复用（上限 245/1225=20%），density 47.1→46.3ms（-1.7% 接近噪声）、吞吐 71.68→72.06（+0.5% 无改善）。
+
+**根因**：InterpolatedDF::buildGrid 的 1225 角点采样耗时大头**不集中在可跳过的边界角点**，而在「每 chunk 每实例 1 次的 FlatCache buildGrid 构建触发」+「spline 树遍历」：
+- FlatCache buildGrid 只在**首个角点**触发一次（其后 24 角点查表命中），跳过 gx=0 列只是把首次触发从 gx=0 移到 gx=1，**省不了这次触发**；
+- gx=0 列其余 244 角点是 FlatCache 查表命中（快），跳过省不了多少。
+
+即：边界复用优化了「角点采样次数」这个**错误目标**——真正的耗时是「树遍历触发点」而非「角点数量」。
+
+### 证据
+- 实测：phase2_edgereuse density median 46.3（vs phase1 47.1，-0.8ms）、[A] threads=1 72.06（vs 71.68，+0.5%）——端到端总 wall 反升
+- review-aae119d.md 要点 2/3：实现只做 x 方向左邻列（非 x/z 双向）；density -0.8ms 在 min-max 波动（±38ms）内
+- review-aae119d-followup.md §3：根因 = FlatCache buildGrid 只在首个角点触发一次，gx=0 列其余 244 角点查表命中
+
+### 如何利用
+- 优化「重复采样」前先拆「每次采样的成本构成」：若某采样点集里只有**首次**采样触发昂贵构建、其余是便宜查表命中，则「减少采样点数量」省不了多少（触发点不随数量减少而消失）——要优化的是「构建触发次数」而非「采样次数」。
+- 边界角点复用类优化的收益上限 = 可跳过的采样里「昂贵采样」的比例，不是「采样总数」的比例。本例 245 角点里只有 1 个（首个）是昂贵构建触发，其余 244 是查表命中 → 收益上限远低于「-36% 采样数」的朴素估算。
+- 通用规律：缓存/预计算类的「重复计算」里，先用计数器区分「首次构建触发（昂贵）」vs「查表命中（便宜）」的占比，再决定是否值得做「去重复」——若昂贵部分不集中在可跳过的边界，去重复收益必然低于按总数比例的估算。

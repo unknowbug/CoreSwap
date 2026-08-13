@@ -506,3 +506,50 @@ C++ 映射（`worldgen_api.cpp` FEATURES 段 + `feature_loader.h` + `placement.h
 - **FEATURE 探针**：`block_probe -features`（FULL 模式）+ `WG_FEATURELOG`/`WG_CARVERLOG`（origin/mods 日志）+ `-save`（生成 blocks 文件对比）。RNG 层先验证（CheckedRandom/Xoroshiro 输出），再 placement 位置，最后方块结果。
 - **参照状态审计**：8576/3200 参照 = SURFACE 状态（纯核心差异）；-288/300515 参照 = FULL 状态（混 FEATURE）——对比前必须判定参照状态，不同状态差异构成完全不同（07 篇追加 4 已记）。
 - **两阶段验证**：FULL 模式跨 chunk 用 `wg_fill_blocks_multi_phase`（phase1 存 regionCols / phase2 串行 + pendingCross）——A 后生成覆盖 B（Java 语义），不要用单阶段逐 chunk。
+
+## 2026-08-13 spline 扁平化 + 边界列复用（无损优化 + 多线程膨胀重新定性）
+
+> 状态：draft（judge 语义无损通过 + 零退化已落盘；多线程课题未闭合）
+> 来源：`.investigations/perf-rework/`（phase0-quantify / phase0-hotspot-analysis / phase0-interp-measurement / phase1-design / static-audit-c2me-steel）+ commit aae119d（density 代码）/ ae9a3b9（phase0-2 产物）+ `cmd-output/phase0_baseline_8x8.txt` / `phase1_splineflat_8x8.txt` / `phase2_edgereuse_8x8.txt` / `regress_8576_aae119d.txt` / `regress_3200_aae119d.txt` + judge `review-aae119d.md` / `review-aae119d-followup.md`
+
+承接 2026-08-12 修复闭环（FlatCache 上下文绑定，spline 调用量回 5,906/chunk、单线程 wall 2,910ms）。本轮在「多线程内存带宽饱和优化」课题下做两个无损优化 + 一次根因重新定性。
+
+### 优化 1：SplineDF 树扁平化（主要收益，单线程 -24% 零退化）
+
+**改动**：SplineDF 从递归 `shared_ptr<SplineDF>` 树改为连续节点数组（`nodes/locations/derivatives/subIdx/locationFunctions` 池）+ 整数索引，采样从递归虚调用 `apply` 改为非虚递归 `sampleNode`。Hermite 插值公式逐位不变（judge 逐行核对 n==1 / i<0 / i==n−1 / min-max 全边界等价）。
+
+**实测**（`bench_chunks 8×8`，analyze_stagetimer 聚合 n=128）：
+
+| 指标（单线程） | 基线 | 扁平化后 | 变化 |
+|---|---|---|---|
+| density wall（median） | 61.7ms | 47.1ms | **-23.7%** |
+| [A] threads=1 吞吐 | 92.08 ms/chunk | 71.68 ms/chunk | **-22.2%** |
+
+**零退化**（block_probe 单线程逐位）：8576 SURFACE 99.9994%（3538922/3538944）、3200 SURFACE 99.9997%（1572860/1572864）——`regress_8576_aae119d.txt` / `regress_3200_aae119d.txt` 落盘。
+
+### 优化 2：InterpolatedDF 边界列复用（收益小，-1.7% 接近噪声）
+
+**改动**：thread_local edge 缓存复用左邻 chunk 的 gx=4 列作为当前 gx=0 列（CELL_X=4 坐标对齐，采样纯函数 → 逐位无损）。
+
+**实测**（单线程）：
+
+| 指标 | 扁平化后 | 边界复用后 | 变化 |
+|---|---|---|---|
+| density wall（median） | 47.1ms | 46.3ms | -1.7%（接近噪声） |
+| [A] threads=1 吞吐 | 71.68 ms/chunk | 72.06 ms/chunk | +0.5%（无改善） |
+
+**根因（为什么收益小）**：InterpolatedDF::buildGrid 耗时大头是「每 chunk 每实例 1 次的 FlatCache buildGrid 构建触发 + spline 树遍历」，**不集中在 gx=0 列**——FlatCache buildGrid 只在首个角点触发一次，跳过 gx=0 列只是把触发点移到 gx=1 列，省不了；gx=0 列其余 244 角点是 FlatCache 查表命中（快）。边界复用优化了错误的目标（角点采样次数，而非树遍历触发点）。且实现只做 x 方向左邻列（上限 245/1225=20%），未达 phase1-design 预估的「x/z 双向 -36%」。
+
+### 多线程膨胀重新定性：bandwidth-bound → latency-bound（DDR5）
+
+**旧定论失效**：此前「8 线程 ~17.8GB/s ≈ DDR4 带宽上限 → 带宽饱和」基于错误的内存类型假设。用户纠正内存为 **DDR5-5600 双通道**（~85GB/s 有效；CPU Ryzen 9 7845HX 12 物理核）后，17.8GB/s 远低于有效带宽 → 非 bandwidth-bound。
+
+**重新定性 latency-bound（cache miss 延迟）**：8t 下 spline 单次 10×（深递归指针链 cache miss 高）vs noise 仅 1.3×（噪声参数表相对局部）——**不对称膨胀**。若带宽饱和两者应同比例排队；实际只有 spline 膨胀 → 符合随机指针链 cache miss 延迟，非带宽对称争用。
+
+**关键结论（扁平化未解决多线程）**：spline 扁平化后单线程 -24%，但多线程无改善（8t density median 460.8→478.3ms，不降反略升）——**多线程膨胀根因在 InterpolatedDF::buildGrid 的 1225 角点树遍历整体**（spline 递归 + FlatCache 查表 + noise 的 cache miss 叠加），不在 spline 递归本身。**待解决方向 = DFC（整个 DF 树扁平化；C2ME 1.21.3+ 引入，Rust SteelMC 静态分派等价物）**，非仅 spline 子树扁平化。
+
+### 状态
+
+- 代码语义无损：成立（SplineDF Hermite 公式逐位等价 + 边界复用 CELL_X=4 坐标对齐，judge 逐行核对通过）。
+- 零退化：成立（regress_8576/3200_aae119d 落盘）。
+- 状态：**保持 draft**——spline 扁平化单线程 -24% 是真实收益，但「多线程膨胀」课题未闭合，需重新定位 InterpolatedDF::buildGrid 树遍历的 cache miss 构成后再评估 DFC。
