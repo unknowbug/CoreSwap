@@ -160,9 +160,9 @@
 ### D3. final_density shader 驱动编译 >2min（210 函数 76338 行，DontInline 无效）
 - **现象**：final_density.spv（1.2MB，76338 行）vkCreateComputePipelines 编译 >2min。
 - **根因**：final_density 是 factor 的 7 倍规模——OpFunctionCall 2073 次、OpVariable 11296、OpLoad 14119（factor 仅 291/1383/1716）。210 个函数（56 spline + 139 normal + 6 interp）嵌套调用，驱动内联展开 → LLVM 寄存器分配在巨型图上超线性爆炸。
-- **尝试**：FunctionControl DontInline（spirv-as 正确生成 210 个 DontInline）后仍 >2min——NVIDIA 驱动忽略 DontInline 或 call 消除后仍爆炸。
-- **待解决**：纯 float（double 累加 → float）减少 fp64 寄存器压力 + 减少函数嵌套（spline 进一步扁平化 / normal 内联）。
-- **教训**：**shader 规模（函数数 × 调用数）是驱动编译时间的主因**，不是单看 fp64；210 函数 76338 行已经超出「单 shader 可编译」的合理规模，需要拆 shader 或深度扁平化。
+- **尝试**：① FunctionControl DontInline（spirv-as 正确生成 210 个）仍 >2min——NVIDIA 驱动忽略或 call 消除后仍爆炸。② 纯 float（normal/old_blended 的 double 累加 → float，OpFConvert 从数百降到 3、double OpFAdd 清零）仍 >2min——**fp64 不是主因**。
+- **待解决**：根因是「函数嵌套」（210 函数 × 2073 调用，spline 56 + normal 139 + interp 6），需**拆 shader**（final_density 拆成多个子 shader）或**深度扁平化**（spline 内联到调用点）。
+- **教训**：**shader 规模（函数数 × 调用数）是驱动编译时间的主因**，不是单看 fp64 也不是 DontInline；210 函数 76338 行已经超出「单 shader 可编译」的合理规模——纯 float 只把 fp64 清零（1.2MB→1.2MB 几乎不变），驱动还是要编译 210 个函数的嵌套调用图。
 
 ---
 
@@ -222,4 +222,4 @@
 | y/minY undeclared | 坐标变量硬编码，改 self.fy + shader 模板加 minY 常量 |
 | maxDiff=0 假象 | range_choice 常数分支吸收误差，采样点要覆盖阈值两侧 |
 | normals[131] 越界 0xC0000005 | gen_shader/gen_cpu 顺序污染 normal_vec_index，gen_cpu 先于 gen_shader |
-| final_density 编译 >2min | 210 函数 76338 行超出单 shader 合理规模，需拆 shader 或纯 float |
+| final_density 编译 >2min | 210 函数 76338 行超单 shader 规模，纯 float/DontInline 均无效，需拆 shader |

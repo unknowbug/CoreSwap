@@ -154,7 +154,7 @@ class DfcGen:
                 "xz_factor": df.get("xz_factor", 80.0), "y_factor": df.get("y_factor", 160.0),
                 "smear": df.get("smear_scale_multiplier", 8.0),
             })
-            return f"(float(interp_noise_{idx}({self.sidx})))"
+            return f"interp_noise_{idx}({self.sidx})"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", "") + self.noise_key_suffix, {
@@ -628,25 +628,25 @@ struct CpuBackend {{
 """
 
     def _old_blended_func(self, idx, p, octBase, splitBase):
-        # CPU 预拆分 5 参数 sample（7 值/octave），GPU 纯 float 采样（pn_section_f32）+ double 累加
+        # CPU 预拆分 5 参数 sample（7 值/octave），GPU 纯 float 采样 + float 累加（无 fp64）
         return f"""
-double interp_noise_{idx}(int sIdx) {{
+float interp_noise_{idx}(int sIdx) {{
     // interpolation 8 octave（octBase+32..39）
-    double n = 0.0; double o = 1.0;
+    float n = 0.0f; float o = 1.0f;
     for (int q = 0; q < 8; q++) {{
-        n += double(pn_section_f32({octBase} + 32 + q, sIdx, {splitBase} + (32 + q) * 7)) / o;
-        o /= 2.0;
+        n += pn_section_f32({octBase} + 32 + q, sIdx, {splitBase} + (32 + q) * 7) / o;
+        o /= 2.0f;
     }}
-    double qq = (n / 10.0 + 1.0) / 2.0;
-    bool bl = qq >= 1.0; bool bl2 = qq <= 0.0;
-    double l = 0.0; double m = 0.0; o = 1.0;
+    float qq = (n / 10.0f + 1.0f) / 2.0f;
+    bool bl = qq >= 1.0f; bool bl2 = qq <= 0.0f;
+    float l = 0.0f; float m = 0.0f; o = 1.0f;
     for (int r = 0; r < 16; r++) {{
-        if (!bl) l += double(pn_section_f32({octBase} + r, sIdx, {splitBase} + r * 7)) / o;
-        if (!bl2) m += double(pn_section_f32({octBase} + 16 + r, sIdx, {splitBase} + (16 + r) * 7)) / o;
-        o /= 2.0;
+        if (!bl) l += pn_section_f32({octBase} + r, sIdx, {splitBase} + r * 7) / o;
+        if (!bl2) m += pn_section_f32({octBase} + 16 + r, sIdx, {splitBase} + (16 + r) * 7) / o;
+        o /= 2.0f;
     }}
-    double w = clamp(qq, 0.0, 1.0);
-    return (l / 512.0 + w * (m / 512.0 - l / 512.0)) / 128.0;
+    float w = clamp(qq, 0.0f, 1.0f);
+    return (l / 512.0f + w * (m / 512.0f - l / 512.0f)) / 128.0f;
 }}"""
 
     def _normal_func(self, idx, p, octBase, splitBase):
@@ -662,30 +662,30 @@ double interp_noise_{idx}(int sIdx) {{
         amps_str = ", ".join(f"{a:.17g}" for a in amps)
         return f"""
 float normal_noise_{idx}(int sIdx) {{
-    const double amps[{n}] = double[]({amps_str});
+    const float amps[{n}] = float[]({amps_str});
     // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
-    double d = 0.0;
-    double f = {persistence:.17g};
+    float d = 0.0f;
+    float f = float({persistence:.17g});
     for (int i = 0; i < {n}; i++) {{
         int b = sIdx * SPLIT_TOTAL + {splitBase} + i * 6;
         int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
         float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
         float ns = pn_sample3_f32({octBase} + i, ix, iy, iz, gx, gy, gz);
-        d += amps[i] * double(ns) * f;
-        f /= 2.0;
+        d += amps[i] * ns * f;
+        f /= 2.0f;
     }}
     // second sampler（拆分坐标偏移 + 6n）
-    double d2 = 0.0;
-    f = {persistence:.17g};
+    float d2 = 0.0f;
+    f = float({persistence:.17g});
     for (int i = 0; i < {n}; i++) {{
         int b = sIdx * SPLIT_TOTAL + {splitBase} + 6 * {n} + i * 6;
         int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
         float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
         float ns = pn_sample3_f32({octBase} + {n} + i, ix, iy, iz, gx, gy, gz);
-        d2 += amps[i] * double(ns) * f;
-        f /= 2.0;
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
     }}
-    return float((d + d2) * {amplitude:.17g});
+    return (d + d2) * float({amplitude:.17g});
 }}"""
 
     def _shader_template(self, expr, funcs):

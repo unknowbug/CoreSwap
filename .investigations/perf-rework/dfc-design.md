@@ -229,8 +229,8 @@ DFC 能生成 vanilla 完整 final_density 树的 shader + CpuBackend → 集成
 
 - ✅ **final_density 完整树生成成功**：noise_instances=139、spline=56、interp=6、split_total=6512。glslc 编译通过（final_density.spv 1.2MB）。
 - ✅ **修复 C13**（normals[131] 越界）：gen_final_density.py 的 gen_shader/gen_cpu 顺序颠倒污染 normal_vec_index，改 gen_cpu 先于 gen_shader。
-- ⚠️ **驱动编译慢（D3）**：final_density.spv（76338 行，210 函数）vkCreateComputePipelines >2min。OpFunctionCall 2073 次 = factor 的 7 倍。FunctionControl DontInline（210 个）无效——NVIDIA 驱动忽略或 call 消除后仍爆炸。
-- **待解决方向**：纯 float（double 累加 → float）减 fp64 寄存器压力 + 减少函数嵌套（spline 深度扁平化 / normal 内联 / 拆 shader）。这是集成 block_probe 的最后一个障碍。
+- ⚠️ **驱动编译慢（D3）**：final_density.spv（76338 行，210 函数）vkCreateComputePipelines >2min。OpFunctionCall 2073 次 = factor 的 7 倍。已试 FunctionControl DontInline（210 个）+ 纯 float（double 累加 → float，fp64 清零）均无效——**根因是函数嵌套（210 函数），不是 fp64**。
+- **待解决方向**：**拆 shader**（final_density 拆成多个子 shader，每个函数数 < 合理规模）或**深度扁平化**（spline 内联到调用点）。这是集成 block_probe 的最后一个障碍。
 
 ## 二十、未完成
 
