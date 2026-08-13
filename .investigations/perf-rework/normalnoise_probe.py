@@ -80,7 +80,7 @@ if __name__ == '__main__':
     amps = [1.0,1.0,2.0,2.0,2.0,1.0,1.0,1.0,1.0]
     firstOctave = -9
     n = len(amps)
-    lacunarity = 2.0 ** (-firstOctave)   # 512
+    lacunarity = 2.0 ** firstOctave   # 2^(firstOctave) = 2^-9 = 1/512（对齐 noise.h）
     persistence = (2.0**(n-1)) / (2.0**n - 1.0)  # 256/511
     nonz = [i for i,a in enumerate(amps) if a != 0.0]
     j, k = min(nonz), max(nonz)

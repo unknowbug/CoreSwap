@@ -104,7 +104,7 @@ class DfcGen:
             return f"(float(interp_noise_{idx}({CX}, {CY}, {CZ})))"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
-            idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
+            idx = self._register_noise("normal", df.get("noise", ""), {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
@@ -112,7 +112,7 @@ class DfcGen:
             return f"normal_noise_{idx}(double({CX}) * {xz:.17g}, double({CY}) * {y:.17g}, double({CZ}) * {xz:.17g})"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
-            idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
+            idx = self._register_noise("normal", df.get("noise", ""), {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
@@ -122,7 +122,7 @@ class DfcGen:
             return f"normal_noise_{idx}(double({CX}) * {xz:.17g} + double({sx}), double({CY}) * {y:.17g} + double({sy}), double({CZ}) * {xz:.17g} + double({sz}))"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             np = self._resolve_noise_params("minecraft:offset")
-            idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
+            idx = self._register_noise("normal", "minecraft:offset", {
                 "noise": "minecraft:offset", "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
             # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
@@ -252,7 +252,7 @@ double interp_noise_{idx}(int px, int py, int pz) {{
         amps = p.get("amplitudes", [1.0])
         firstOctave = p.get("firstOctave", 0)
         n = len(amps)
-        lacunarity = 2.0 ** (-firstOctave)
+        lacunarity = 2.0 ** firstOctave   # 2^(firstOctave)（对齐 noise.h 的 2^(-j), j=-firstOctave）
         persistence = (2.0 ** (n - 1)) / (2.0 ** n - 1.0)
         nonz = [i for i, a in enumerate(amps) if a != 0.0]
         j = min(nonz) if nonz else 0
@@ -322,7 +322,7 @@ const double GRADIENTS[16][3] = {{
     {{ 0,  1,  1}}, {{ 0, -1,  1}}, {{ 0,  1, -1}}, {{ 0, -1, -1}},
     {{ 1,  1,  0}}, {{ 0, -1,  1}}, {{-1,  1,  0}}, {{ 0, -1, -1}}
 }};
-double maintainPrecision(double v) {{ return v - floor(v / 3.3554432E7 + 0.5) * 3.3554432E7; }}
+double maintainPrecision(double v) {{ return v - trunc(v / 3.3554432E7 + 0.5) * 3.3554432E7; }}
 double perlinFadeD(double v) {{ return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }}
 double lerpD(double d, double s, double e) {{ return s + d * (e - s); }}
 int mapPermD(int octBase, int v) {{ return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }}

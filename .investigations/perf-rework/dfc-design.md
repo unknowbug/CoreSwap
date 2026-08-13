@@ -77,12 +77,28 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 - NormalNoise 误差 ~3.6e-7（double 坐标拆分 + float 采样），方块零影响，与单 octave 拆分（1.6e-7）/多 octave（1.4e-7）一致。
 - 踩坑：Python 诊断脚本 float `fade` 漏了 v（v² 写成 v³ 的少一个 v），shader 的 `perlinFadeF` 是对的。
 
-## 七、未完成（Phase 5）
+## 七、Phase 5 进展（完整 DF 树端到端验证 ✅ continents）
 
-- 完整 DF 树（factor/depth）的 Vulkan 端到端验证（当前 base_3d_noise 已验证，NormalNoise 用 Python 验证，未上 GPU）。
-- shader 尺寸优化：sloped_cheese 1.6MB SPIR-V。
+```
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[result] N=1024, continents DFC shader vs CPU double: maxDiff=2.699e-07 avgDiff=8.380e-08
+```
 
-## 八、踩坑（Phase 1-4 保留）
+- **continents 完整链路**（flat_cache + shifted_noise + shift_a/shift_b + NormalNoise×2）GPU vs CPU 误差 2.7e-7，方块零影响。
+- 端到端数据流：seed → randomDeriver → split(noise key) → DoublePerlinNoiseSampler（modern 构造）→ 收集 perm/origin（octBase 布局）→ 上传 → GPU 采样 vs CPU。
+
+### Phase 5 修的 3 个 bug
+
+1. **lacunarity 公式反了**：`2^(-firstOctave)` 应 `2^(firstOctave)`（noise.h 是 `2^(-j), j=-firstOctave`）——错时坐标放大 512 倍，噪声符号都错（误差 0.92）。
+2. **maintainPrecision floor→trunc**：noise.h 用 `(long)` 向零截断（trunc），shader 用了 floor（向下取整），负数差 2^25。
+3. **normal 噪声去重失效**：去重 key 用自增 `n{len}`，改成 noise key（offset 被 shift_x/shift_z 引用应复用）。
+
+## 八、未完成（Phase 6）
+
+- factor/depth（含 old_blended + spline + 多噪声）的端到端验证。
+- shader 尺寸优化。
+
+## 九、踩坑（Phase 1-5 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
