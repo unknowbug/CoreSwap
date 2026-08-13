@@ -201,3 +201,32 @@ entries:
     path: '../.investigations/perf-rework/review-rq006.md'
     kind: review
     status: candidate
+
+  - id: 're-code:perf-rework:phase0-architecture-design'
+    path: '../.investigations/perf-rework/phase0-architecture-design.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:perf-rework:phase0-quantify'
+    path: '../.investigations/perf-rework/phase0-quantify.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:phase0-hotspot-analysis'
+    path: '../.investigations/perf-rework/phase0-hotspot-analysis.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:phase0-interp-measurement'
+    path: '../.investigations/perf-rework/phase0-interp-measurement.md'
+    kind: evidence
+    status: candidate
+  - id: 're-code:perf-rework:phase1-design'
+    path: '../.investigations/perf-rework/phase1-design.md'
+    kind: plan
+    status: candidate
+  - id: 're-code:perf-rework:static-audit-c2me-steel'
+    path: '../.investigations/perf-rework/static-audit-c2me-steel.md'
+    kind: analysis
+    status: candidate
+  - id: 're-code:perf-rework:review-aae119d'
+    path: '../.investigations/perf-rework/review-aae119d.md'
+    kind: review
+    status: candidate
