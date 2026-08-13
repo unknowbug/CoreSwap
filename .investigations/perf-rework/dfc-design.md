@@ -50,13 +50,26 @@ NormalNoise（DoublePerlinNoiseSampler）无 /o 放大，但坐标缩放（pos×
 2. registry 函数缓存命中分支漏改 `(x,y,z)`→`(ix,iy,iz)`（第一次注册和缓存命中不一致）。
 3. Python `.pyc` 缓存导致改代码后仍用旧逻辑（需删 `__pycache__`）。
 
-## 五、未完成（Phase 3）
+## 五、Phase 3 进展（端到端验证 ✅）
 
-- 噪声参数（perm/origin/amplitudes/lacunarity/persistence/amplitude）的 params buffer 布局 + 运行时从 seed 生成上传（当前 identity 内联 + 参数硬编码占位）。
-- 端到端验证：生成的 shader 跑 Vulkan，对比 CPU density 结果（当前只验证了 shader 能编译）。
-- shader 尺寸优化：sloped_cheese 1.6MB / depth 920KB SPIR-V（主表达式内联展开），可函数化主表达式压缩。
+- ✅ **噪声参数布局**：shader 用 4 个 buffer（CoordBuf int + PermBuf uint + OriginBuf double + OutBuf float），perm/origin 运行时上传。
+- ✅ **seed 生成**：复用 noise.h 的 `XoroshiroRandom.split("minecraft:terrain")` + `OctavePerlinNoiseSampler`（legacy 构造）生成 40 个 octave 的 perm/origin（对齐 vanilla）。
+- ✅ **端到端验证**（dfc_e2e.cpp，真实 seed 8576294172403134396）：
 
-## 六、踩坑（Phase 1 保留）
+```
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[result] N=1024, DFC shader(真实seed) vs CPU double: maxDiff=1.422e-08 avgDiff=5.817e-09
+```
+
+- 误差 1.4e-8 = base_3d_noise 的 GPU fp64 采样 → `float()` 输出截断（下游算术用 float），方块判定零影响（远小于 1e-2 判定边际）。
+
+## 六、未完成（Phase 4）
+
+- NormalNoise 的完整参数（firstOctave/amplitudes/lacunarity/persistence/amplitude）布局 + 上传（当前 normal_noise 用占位参数 1 octave）。
+- 完整 DF 树（factor/depth 等）的端到端验证（当前只验证 base_3d_noise）。
+- shader 尺寸优化：sloped_cheese 1.6MB SPIR-V，可函数化主表达式压缩。
+
+## 七、踩坑（Phase 1-3 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

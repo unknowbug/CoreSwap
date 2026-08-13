@@ -243,10 +243,12 @@ layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 // 坐标输入（int 块坐标，x,y,z 三元组）
 layout(set = 0, binding = 0, std430) buffer CoordBuf {{ int coords[]; }} coord;
-// 噪声参数（perm/origin/amplitudes，运行时从 seed 生成上传）
-layout(set = 0, binding = 1, std430) buffer Params {{ uint data[]; }} params;
+// perm 表（每 octave 256 uint，连续）
+layout(set = 0, binding = 1, std430) buffer PermBuf {{ uint perm[]; }} permBuf;
+// origin（每 octave 3 double，连续）
+layout(set = 0, binding = 2, std430) buffer OriginBuf {{ double origin[]; }} originBuf;
 // 输出 density
-layout(set = 0, binding = 2, std430) buffer OutBuf {{ float density[]; }} outBuf;
+layout(set = 0, binding = 3, std430) buffer OutBuf {{ float density[]; }} outBuf;
 
 // ===== double 工具（old_blended_noise 用）=====
 const double GRADIENTS[16][3] = {{
@@ -258,7 +260,7 @@ const double GRADIENTS[16][3] = {{
 double maintainPrecision(double v) {{ return v - floor(v / 3.3554432E7 + 0.5) * 3.3554432E7; }}
 double perlinFadeD(double v) {{ return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }}
 double lerpD(double d, double s, double e) {{ return s + d * (e - s); }}
-int mapPermD(int octBase, int v) {{ return int(params.data[octBase * 256 + uint(v & 255)]); }}
+int mapPermD(int octBase, int v) {{ return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }}
 double gradD(int octBase, int hash, double x, double y, double z) {{
     return GRADIENTS[hash & 15][0] * x + GRADIENTS[hash & 15][1] * y + GRADIENTS[hash & 15][2] * z;
 }}
@@ -280,9 +282,11 @@ double pn_sectionD(int octBase, int sx, int sy, int sz, double lx, double ly, do
     double y0 = lerpD(s, x0, x1); double y1 = lerpD(s, x2, x3);
     return lerpD(t, y0, y1);
 }}
-// 5 参数 sample（double，含 y 轴 smear），origin 当前硬编码 0（Phase 2 改 params 读取）
+// 5 参数 sample（double，含 y 轴 smear），origin 从 OriginBuf 读
 double pn_sample5(int octBase, double x, double y, double z, double yScale, double yMax) {{
-    double d = x; double e = y; double f = z;
+    double d = x + originBuf.origin[octBase * 3 + 0];
+    double e = y + originBuf.origin[octBase * 3 + 1];
+    double f = z + originBuf.origin[octBase * 3 + 2];
     int i = int(floor(d)); int j = int(floor(e)); int k = int(floor(f));
     double g = d - i; double h = e - j; double l = f - k;
     double n;
