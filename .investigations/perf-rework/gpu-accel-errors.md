@@ -114,6 +114,12 @@
 - **修复**：直接用 `auto noodle = std::make_shared<DoublePerlinNoiseSampler>(rd.split(...), {...})`（移动/直接构造进 shared_ptr），后续 `noodle->` 访问。
 - **教训**：**含 unique_ptr 的对象不能拷贝**——用 shared_ptr 直接构造，别走「栈对象 → 拷贝进 shared_ptr」的路径。
 
+### C10. old_blended 去重 key 自增 → gen 重复调用累积实例
+- **现象**：base_3d_noise 的 splitTotal=560（应为 280）、normals=3（应为 1）——gen 被调多次后 noise_instances 累积。
+- **根因**：old_blended 的去重 key 用 `f"ob{len(self.noise_instances)}"`（自增，永不重复），gen_shader 内部再次 gen(df) 时不去重。
+- **修复**：去重 key 改用参数组合 `old_blended:xz_scale:y_scale:xz_factor:y_factor:smear`。
+- **教训**：**去重 key 必须是「业务唯一标识」**（C2 同款坑的 old_blended 变体）——任何用 len()/自增 id 做 key 的地方都会永不重复。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -186,3 +192,4 @@
 | `<<` 右操作数 double | 位移片段裸拼 `* 0.25`，`<<` 优先级低于 `*` → 坐标加括号 |
 | DensityBuilder 非类名 | 在 namespace wg，引用需 `wg::` 前缀 |
 | C2280 unique_ptr 拷贝已删除 | DoublePerlinNoiseSampler 含 unique_ptr 不可拷贝，用 shared_ptr 直接构造 |
+| splitTotal 翻倍/实例累积 | old_blended 去重 key 用 len() 自增，改用参数组合 key |

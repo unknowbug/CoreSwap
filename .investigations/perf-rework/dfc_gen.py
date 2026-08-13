@@ -134,12 +134,13 @@ class DfcGen:
             return f"{float(df.get('value', 0.0))}f"
         if t == "minecraft:old_blended_noise":
             # fp64：调用 double 采样函数，结果转 float
-            idx = self._register_noise("old_blended", f"ob{len(self.noise_instances)}", {
+            obkey = f"old_blended:{df.get('xz_scale',0.25)}:{df.get('y_scale',0.125)}:{df.get('xz_factor',80.0)}:{df.get('y_factor',160.0)}:{df.get('smear_scale_multiplier',8.0)}"
+            idx = self._register_noise("old_blended", obkey, {
                 "xz_scale": df.get("xz_scale", 0.25), "y_scale": df.get("y_scale", 0.125),
                 "xz_factor": df.get("xz_factor", 80.0), "y_factor": df.get("y_factor", 160.0),
                 "smear": df.get("smear_scale_multiplier", 8.0),
             })
-            return f"(float(interp_noise_{idx}({self.cx}, {self.cy}, {self.cz})))"
+            return f"(float(interp_noise_{idx}(sIdx)))"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
@@ -286,8 +287,9 @@ class DfcGen:
         splitBase = 0
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
-                funcs.append(self._old_blended_func(idx, params, octBase))
+                funcs.append(self._old_blended_func(idx, params, octBase, splitBase))
                 octBase += 40
+                splitBase += 7 * 40   # 5 参数 sample：7 值/octave [ix,iy,iz,gx,gy,gz,fadeY] × 40 octave
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
                 funcs.append(self._normal_func(idx, params, octBase, splitBase))
@@ -311,6 +313,7 @@ class DfcGen:
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
                 octBase += 40
+                splitBase += 7 * 40
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
                 chain = self.coord_chains[ci] if ci < len(self.coord_chains) else {"type": "noise", "noise_key": "", "xz_scale": 1.0, "y_scale": 1.0, "flat_cache": False}
@@ -345,6 +348,20 @@ class DfcGen:
         normals = manifest["normal_instances"]
         shift_noises = manifest["shift_noises"]
 
+        # old_blended 实例（收集 + 分配 octBase/splitBase，与 gen_shader 一致）
+        old_blendeds = []
+        octBase = 0
+        splitBase = 0
+        for kind, params in self.noise_instances:
+            if kind == "old_blended":
+                old_blendeds.append({"params": params, "octBase": octBase, "splitBase": splitBase})
+                octBase += 40
+                splitBase += 7 * 40
+            elif kind == "normal":
+                n = len(params.get("amplitudes", [1.0]))
+                octBase += 2 * n
+                splitBase += 6 * 2 * n
+
         init_lines = []
         for key, np in shift_noises.items():
             amps = ", ".join(f"{a:.17g}" for a in np["amplitudes"])
@@ -357,8 +374,16 @@ class DfcGen:
                 f'    {{ auto r = rd.split("{ni["noise_key"]}"); normals.emplace_back('
                 f'wg::DoublePerlinNoiseSampler(r, wg::DoublePerlinNoiseSampler::NoiseParameters{{{ni["firstOctave"]}, {{{amps}}}}})); '
                 f'n.push_back({ni["n"]}); octBase.push_back({ni["octBase"]}); splitBase.push_back({ni["splitBase"]}); }}')
+        for i, ob in enumerate(old_blendeds):
+            p = ob["params"]
+            init_lines.append(
+                f'    {{ wg::XoroshiroRandom r = rd.split("minecraft:terrain"); oldBlendeds.push_back('
+                f'std::make_shared<wg::InterpolatedNoiseDF>(r, {p["xz_scale"]:.17g}, {p["y_scale"]:.17g}, {p["xz_factor"]:.17g}, {p["y_factor"]:.17g}, {p["smear"]:.17g})); '
+                f'oldBase.push_back({ob["octBase"]}); oldSplitBase.push_back({ob["splitBase"]}); }}')
 
         split_lines = []
+        for i, ob in enumerate(old_blendeds):
+            split_lines.append(f'    {{ splitOldBlended(*oldBlendeds[{i}], x, y, z, out, {ob["splitBase"]}); }}')
         for i, ni in enumerate(normals):
             chain = ni["coord_chain"]
             if chain.get("flat_cache"):
@@ -390,11 +415,14 @@ class DfcGen:
 #include <cmath>
 #include "noise.h"
 #include "xoroshiro.h"
+#include "density.h"
 
 struct CpuBackend {{
     std::map<std::string, wg::DoublePerlinNoiseSampler> shiftNoises;
     std::vector<wg::DoublePerlinNoiseSampler> normals;
     std::vector<int> n, octBase, splitBase;
+    std::vector<std::shared_ptr<wg::InterpolatedNoiseDF>> oldBlendeds;
+    std::vector<int> oldBase, oldSplitBase;
     int splitTotal = {manifest["split_total"]};
     int permSize = {perm_size};
 
@@ -427,12 +455,61 @@ struct CpuBackend {{
         }}
     }}
 
+    // 5 参数 sample 拆分：out = [ix,iy,iz,gx,gy(=h-n),gz,fadeY(=h)]
+    static void split7(const wg::PerlinNoiseSampler* pn, double x, double y, double z, double yScale, double yMax, float* out) {{
+        double sx = x + pn->originX, sy = y + pn->originY, sz = z + pn->originZ;
+        int ix = wg::floorD(sx), iy = wg::floorD(sy), iz = wg::floorD(sz);
+        double gx = sx - ix, gy_raw = sy - iy, gz = sz - iz;
+        double n;
+        if (yScale != 0.0) {{
+            double m = (yMax >= 0.0 && yMax < gy_raw) ? yMax : gy_raw;
+            n = wg::floorD(m / yScale + 1.0E-7F) * yScale;
+        }} else n = 0.0;
+        out[0] = (float)ix; out[1] = (float)iy; out[2] = (float)iz;
+        out[3] = (float)gx; out[4] = (float)(gy_raw - n); out[5] = (float)gz; out[6] = (float)gy_raw;
+    }}
+
+    static void splitOldBlended(const wg::InterpolatedNoiseDF& ob, int x, int y, int z, float* out, int base) {{
+        double d = x * ob.scaledXzScale;
+        double e = y * ob.scaledYScale;
+        double f = z * ob.scaledXzScale;
+        double g = d / ob.xzFactor;
+        double h = e / ob.yFactor;
+        double i = f / ob.xzFactor;
+        double j = ob.scaledYScale * ob.smearScaleMultiplier;
+        double k = j / ob.yFactor;
+        double o = 1.0;
+        for (int q = 0; q < 8; q++) {{
+            split7(ob.interpolation.getOctave(q), maintainPrecision(g*o), maintainPrecision(h*o), maintainPrecision(i*o), k*o, h*o, &out[base + (32+q)*7]);
+            o /= 2.0;
+        }}
+        o = 1.0;
+        for (int r = 0; r < 16; r++) {{
+            double s2 = maintainPrecision(d*o), t2 = maintainPrecision(e*o), u2 = maintainPrecision(f*o);
+            split7(ob.lower.getOctave(r), s2, t2, u2, j*o, e*o, &out[base + r*7]);
+            split7(ob.upper.getOctave(r), s2, t2, u2, j*o, e*o, &out[base + (16+r)*7]);
+            o /= 2.0;
+        }}
+    }}
+
     void split(int x, int y, int z, float* out) {{
 {chr(10).join(split_lines)}
     }}
 
     void collectPerm(std::vector<uint32_t>& perm) {{
         perm.assign((size_t)permSize, 0);
+        for (int i = 0; i < (int)oldBlendeds.size(); i++) {{
+            for (int r = 0; r < 16; r++) {{
+                const wg::PerlinNoiseSampler* pn = oldBlendeds[i]->lower.getOctave(r);
+                if (pn) for (int j = 0; j < 256; j++) perm[(size_t)(oldBase[i] + r) * 256 + j] = (uint32_t)pn->permutation[j];
+                pn = oldBlendeds[i]->upper.getOctave(r);
+                if (pn) for (int j = 0; j < 256; j++) perm[(size_t)(oldBase[i] + 16 + r) * 256 + j] = (uint32_t)pn->permutation[j];
+            }}
+            for (int q = 0; q < 8; q++) {{
+                const wg::PerlinNoiseSampler* pn = oldBlendeds[i]->interpolation.getOctave(q);
+                if (pn) for (int j = 0; j < 256; j++) perm[(size_t)(oldBase[i] + 32 + q) * 256 + j] = (uint32_t)pn->permutation[j];
+            }}
+        }}
         for (int i = 0; i < (int)normals.size(); i++) {{
             for (int k = 0; k < n[i]; k++) {{
                 const wg::PerlinNoiseSampler* pn = normals[i].firstSampler.octaveSamplers[k].get();
@@ -445,31 +522,22 @@ struct CpuBackend {{
 }};
 """
 
-    def _old_blended_func(self, idx, p, octBase):
-        # 参数内联（scale/factor/smear）；perm/origin 从 PermBuf/OriginBuf 读（octBase 偏移）
+    def _old_blended_func(self, idx, p, octBase, splitBase):
+        # CPU 预拆分 5 参数 sample（7 值/octave），GPU 纯 float 采样（pn_section_f32）+ double 累加
         return f"""
-double interp_noise_{idx}(int px, int py, int pz) {{
-    double d = double(px) * {684.412 * p['xz_scale']:.17g};
-    double e = double(py) * {684.412 * p['y_scale']:.17g};
-    double f = double(pz) * {684.412 * p['xz_scale']:.17g};
-    double g = d / {p['xz_factor']:.17g};
-    double h = e / {p['y_factor']:.17g};
-    double i = f / {p['xz_factor']:.17g};
-    double j = {684.412 * p['y_scale']:.17g} * {p['smear']:.17g};
-    double k = j / {p['y_factor']:.17g};
+double interp_noise_{idx}(int sIdx) {{
+    // interpolation 8 octave（octBase+32..39）
     double n = 0.0; double o = 1.0;
     for (int q = 0; q < 8; q++) {{
-        n += pn_sample5({octBase} + 32 + q, maintainPrecision(g*o), maintainPrecision(h*o), maintainPrecision(i*o), k*o, h*o) / o;
+        n += double(pn_section_f32({octBase} + 32 + q, sIdx, {splitBase} + (32 + q) * 7)) / o;
         o /= 2.0;
     }}
     double qq = (n / 10.0 + 1.0) / 2.0;
     bool bl = qq >= 1.0; bool bl2 = qq <= 0.0;
     double l = 0.0; double m = 0.0; o = 1.0;
     for (int r = 0; r < 16; r++) {{
-        double s = maintainPrecision(d*o); double t = maintainPrecision(e*o); double u = maintainPrecision(f*o);
-        double v = j*o;
-        if (!bl) l += pn_sample5({octBase} + r, s, t, u, v, e*o) / o;
-        if (!bl2) m += pn_sample5({octBase} + 16 + r, s, t, u, v, e*o) / o;
+        if (!bl) l += double(pn_section_f32({octBase} + r, sIdx, {splitBase} + r * 7)) / o;
+        if (!bl2) m += double(pn_section_f32({octBase} + 16 + r, sIdx, {splitBase} + (16 + r) * 7)) / o;
         o /= 2.0;
     }}
     double w = clamp(qq, 0.0, 1.0);
@@ -615,6 +683,33 @@ float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, fl
     float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
     float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
     float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}}
+// 5 参数 sample（old_blended_noise 用）：读 7 值拆分坐标 [ix,iy,iz,gx,gy(h-n),gz,fadeY(h)]，float 采样
+float pn_section_f32(int octBase, int sIdx, int splitOffset) {{
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int sx = int(splitBuf.splitCoord[b + 0]);
+    int sy = int(splitBuf.splitCoord[b + 1]);
+    int sz = int(splitBuf.splitCoord[b + 2]);
+    float lx = splitBuf.splitCoord[b + 3];
+    float ly = splitBuf.splitCoord[b + 4];
+    float lz = splitBuf.splitCoord[b + 5];
+    float fadeY = splitBuf.splitCoord[b + 6];
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(fadeY); float t = perlinFadeF(lz);
     float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
     float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
     float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);

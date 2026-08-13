@@ -186,13 +186,19 @@ factor DF built
 
 全部噪声类型验证通过 → 可进入「集成进 block_probe」。
 
-## 十五、未完成
+## 十五、Phase 12 进展（old_blended_noise 收编进 DFC ✅）
 
-- old_blended_noise 扩展到 DFC 生成器（当前手写 shader + 手写拆分）。
-- interpolated 扩展到 DFC 生成器（当前手写 shader）。
-- 真正集成进 block_probe（替换 CPU density 采样，接 WG_ 诊断 env + sha256 对齐铁律）。
+- ✅ **old_blended 收编进 DFC**：`_old_blended_func` 改 float 版（pn_section_f32 读 7 值拆分坐标 + double 累加）；`gen_cpu` 生成 oldBlendeds 成员 + split7/splitOldBlended 拆分 + 40 octave perm 收集；shader 模板加 pn_section_f32。splitBase 分配 old_blended += 7×40=280。
+- ✅ **验证**（dfc_base3d_backend_e2e.cpp，DensityBuilder 做 CPU 参照）：base_3d_noise GPU float vs CPU double maxDiff=1.737e-07，编译快。
+- ✅ **修复 old_blended 去重 bug**（C10）：去重 key 原用 `f"ob{len(...)}"`（自增，永不重复）→ 改用参数组合 key（xz_scale/y_scale/xz_factor/y_factor/smear），避免 gen 重复调用累积实例。
+- DFC 生成器当前支持：normal_noise ✅ + old_blended_noise ✅ + spline ✅ + 算术 ✅；interpolated 仍手写 shader（待收编）。
 
-## 十六、踩坑（Phase 1-11 保留）
+## 十六、未完成
+
+- interpolated 收编进 DFC（当前手写 shader）。
+- 真正集成进 block_probe（DFC 生成 final_density 完整 shader + worldgen_api.cpp GPU 批量采样替换 CPU 采样）。
+
+## 十七、踩坑（Phase 1-12 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
