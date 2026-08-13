@@ -1,0 +1,90 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; } coord;
+layout(set = 0, binding = 1, std430) buffer PermBuf { uint perm[]; } permBuf;
+layout(set = 0, binding = 2, std430) buffer OriginBuf { double origin[]; } originBuf;
+layout(set = 0, binding = 3, std430) buffer OutBuf { float density[]; } outBuf;
+layout(set = 0, binding = 4, std430) buffer SplitBuf { float splitCoord[]; } splitBuf;
+
+// noodle 单 octave：每角点 12 值（first 6 + second 6），8 角点
+const int SPLIT_PER_CORNER = 12;
+const int CORNER_COUNT = 8;
+
+const double GRADIENTS[16][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1},
+    { 1,  1,  0}, { 0, -1,  1}, {-1,  1,  0}, { 0, -1, -1}
+};
+
+int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
+
+float perlinFadeF(float v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+float lerpF(float d, float s, float e) { return s + d * (e - s); }
+int mapPermD(int octBase, int v) { return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }
+float gradDotF(int hash, float x, float y, float z) {
+    vec3 g = vec3(float(GRADIENTS[hash & 15][0]), float(GRADIENTS[hash & 15][1]), float(GRADIENTS[hash & 15][2]));
+    return g.x * x + g.y * y + g.z * z;
+}
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+
+// delegate = NoiseDF(noodle)：单 octave normal_noise，amplitude=0.8333...
+float delegateSample(int sIdx, int corner) {
+    int b = sIdx * (CORNER_COUNT * SPLIT_PER_CORNER) + corner * SPLIT_PER_CORNER;
+    int ix1 = int(splitBuf.splitCoord[b + 0]); int iy1 = int(splitBuf.splitCoord[b + 1]); int iz1 = int(splitBuf.splitCoord[b + 2]);
+    float gx1 = splitBuf.splitCoord[b + 3]; float gy1 = splitBuf.splitCoord[b + 4]; float gz1 = splitBuf.splitCoord[b + 5];
+    float ns1 = pn_sample3_f32(0, ix1, iy1, iz1, gx1, gy1, gz1);
+    int ix2 = int(splitBuf.splitCoord[b + 6]); int iy2 = int(splitBuf.splitCoord[b + 7]); int iz2 = int(splitBuf.splitCoord[b + 8]);
+    float gx2 = splitBuf.splitCoord[b + 9]; float gy2 = splitBuf.splitCoord[b + 10]; float gz2 = splitBuf.splitCoord[b + 11];
+    float ns2 = pn_sample3_f32(1, ix2, iy2, iz2, gx2, gy2, gz2);
+    return (ns1 + ns2) * 0.8333333333333333f;
+}
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    int sIdx = int(gid);
+    int ix = coord.coords[sIdx*3+0], iy = coord.coords[sIdx*3+1], iz = coord.coords[sIdx*3+2];
+    int chunkX = floorDivP(ix, 16);
+    int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX*16;        // 0..15
+    int gy = iy - (-64);            // 0..383
+    int gz = iz - chunkZ*16;
+    int cx = gx / 4, cy = gy / 8, cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f, fy = float(gy % 8) / 8.0f, fz = float(gz % 4) / 4.0f;
+    // 8 角点 delegate 采样（d000..d111 对应 (cx+dx, cy+dy, cz+dz)，dx/dy/dz∈{0,1}）
+    float d000 = delegateSample(sIdx, 0);
+    float d100 = delegateSample(sIdx, 1);
+    float d010 = delegateSample(sIdx, 2);
+    float d110 = delegateSample(sIdx, 3);
+    float d001 = delegateSample(sIdx, 4);
+    float d101 = delegateSample(sIdx, 5);
+    float d011 = delegateSample(sIdx, 6);
+    float d111 = delegateSample(sIdx, 7);
+    float d00 = d000 + (d100 - d000) * fx;
+    float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx;
+    float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy;
+    float d1 = d01 + (d11 - d01) * fy;
+    outBuf.density[sIdx] = d0 + (d1 - d0) * fz;
+}

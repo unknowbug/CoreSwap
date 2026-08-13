@@ -108,6 +108,12 @@
 - **修复**：`wg::DensityBuilder` / `wg::DF` / `wg::NoisePos` / `wg::JsonParser` / `wg::JsonValue`。
 - **教训**：**复用 worldgen 头文件先确认命名空间**——wg 命名空间是工程约定，外部文件引用必须带前缀。
 
+### C9. DoublePerlinNoiseSampler 不可拷贝（unique_ptr 成员）
+- **现象**：dfc_interp_e2e.cpp 报 `C2280 unique_ptr<PerlinNoiseSampler> 拷贝构造已删除`。
+- **根因**：DoublePerlinNoiseSampler 内部 octaveSamplers 是 `vector<unique_ptr<PerlinNoiseSampler>>`，不可拷贝；用栈对象 + `make_shared<DoublePerlinNoiseSampler>(noodle)` 触发拷贝构造。
+- **修复**：直接用 `auto noodle = std::make_shared<DoublePerlinNoiseSampler>(rd.split(...), {...})`（移动/直接构造进 shared_ptr），后续 `noodle->` 访问。
+- **教训**：**含 unique_ptr 的对象不能拷贝**——用 shared_ptr 直接构造，别走「栈对象 → 拷贝进 shared_ptr」的路径。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -179,3 +185,4 @@
 | df_overworld_ridges 无匹配重载 | registry 函数签名 5 参数（sIdx+坐标），缓存分支漏传 sIdx 只传 3 参数 |
 | `<<` 右操作数 double | 位移片段裸拼 `* 0.25`，`<<` 优先级低于 `*` → 坐标加括号 |
 | DensityBuilder 非类名 | 在 namespace wg，引用需 `wg::` 前缀 |
+| C2280 unique_ptr 拷贝已删除 | DoublePerlinNoiseSampler 含 unique_ptr 不可拷贝，用 shared_ptr 直接构造 |

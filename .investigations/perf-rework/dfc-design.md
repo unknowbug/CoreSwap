@@ -149,13 +149,26 @@ factor DF built
 - factor = spline(coordinate=continents，嵌套 spline value=erosion/ridge) + 3 个 NormalNoise（continentalness n=9 / erosion n=5 / ridge n=6）+ flat_cache + shifted_noise + shift（offset）。全部走 CPU 拆分 + GPU float 采样 + GPU spline，精度 3.879e-06（spline 插值放大 continents 的 float 误差，仍方块零影响）。
 - **修复的 bug**：① registry 函数调用参数不一致（首次 5 参数 / 后续 3 参数 → 统一 sIdx+坐标）；② shift 表达式运算符优先级（`(x>>2)<<2*0.25` 被解析为 `<<(2*0.25)` → 坐标加括号）；③ DensityBuilder 在 namespace wg（需 wg:: 前缀）。
 
-## 十二、未完成
+## 十二、Phase 10 进展（interpolated cell 三线性插值 GPU 实现 ✅）
 
-- interpolated（cell 三线性插值）GPU 实现（当前 DFC 剥掉 interpolated 节点）。
-- old_blended_noise（base_3d_noise）GPU 实现（16 octave，CPU 拆分 + GPU float 采样，含 fp64 origin/perm 布局）。
-- 真正集成进 block_probe（当前是独立 Vulkan 原型）。
+- ✅ **interpolated 语义**：cell 三线性插值（CELL 4×8×4），delegate 在 cell 角点（chunkX*16+gx*4, minY+gy*8, chunkZ*16+gz*4）采样，采样点三线性插值 8 角点。GX=5, GY=49, GZ=5（per chunk 1225 角点）。
+- ✅ **GPU 实现（单 pass 8 角点）**：每个采样点重算所在 cell 的 8 角点 delegate 采样（normal_noise 读角点拆分坐标）+ 三线性插值。验证（dfc_interp_e2e.cpp，delegate=NoiseDF(noodle)，InterpolatedDF 做 CPU 参照）：
 
-## 十三、踩坑（Phase 1-9 保留）
+```
+[dbg] pipeline created   ← 编译快（无 fp64）
+[result] interpolated 8角点单pass GPU float vs CPU double: maxDiff=1.489e-07 avgDiff=7.531e-08
+```
+
+- 精度 1.489e-07（float 采样 ~1e-7 量级，方块零影响）。
+- **方案取舍**：单 pass 每采样点重算 8 角点（8 倍 delegate 采样），实现简单；块级两 pass（角点网格算一次 + 插值）更高效但需角点网格 buffer，留作优化。noodle 洞穴使用稀疏，8 倍开销可接受。
+
+## 十三、未完成
+
+- old_blended_noise（base_3d_noise，16 octave）GPU 实现（CPU 拆分 + GPU float 采样，含 fp64 origin/perm 布局）。
+- interpolated 扩展到 DFC 生成器（当前手写 shader）。
+- 真正集成进 block_probe（替换 CPU density 采样）。
+
+## 十四、踩坑（Phase 1-10 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
