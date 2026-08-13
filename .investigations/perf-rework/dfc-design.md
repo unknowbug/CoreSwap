@@ -195,14 +195,14 @@ factor DF built
 
 ## 十六、Phase 13 进展（interpolated 收编 gen 侧 ✅，gen_cpu 侧待做）
 
-- ✅ **gen 侧收编**：interpolated 分支生成「8 角点 delegate 采样 + 三线性插值」；引入 `self.sidx`（角点索引 sIdx*8+c）+ `self.interp_funcs`；shader 模板加 floorDivP + minY 常量。
-- ✅ **noodle shader 编译通过**（noodle.comp → noodle.spv 62184 bytes，splitTotal=48，interp=8）。
-- ✅ **修复**：① `minecraft:y` 硬编码 "y" → `self.fy`（interp 函数内 y 未定义）；② minY undeclared → shader 模板加 `const int minY = -64`。
-- ⏳ **gen_cpu 侧待做**：8 角点 delegate 拆分（在角点坐标重放 delegate 坐标链 + 拆分），含 splitBase 递归分配（interpolated 的 delegate 拆分 = 8 角点 × delegate 拆分总和）。这是 interpolated 端到端验证的前置。
+- ✅ **gen 侧收编**：interpolated 分支生成「8 角点 delegate 采样 + 三线性插值」；引入 `self.interp_funcs`；shader 模板加 floorDivP + minY 常量。
+- ✅ **8 角点去重 key 方案**：`self.noise_key_suffix = "@c{c}"`（8 个独立角点实例，去重 key 含角点），避免 stride 上下文复杂度。noodle 生成 noise_instances=32（4 噪声 × 8 角点）、splitTotal=384，shader 编译通过。
+- ✅ **修复**：① `minecraft:y` 硬编码 "y" → `self.fy`；② minY undeclared → shader 模板加 `const int minY = -64`。
+- ⏳ **gen_cpu 侧待做（递归拆分生成）**：interpolated 的 8 角点 delegate 拆分，需要 gen_cpu 的 split 递归遍历 DF 树（`_gen_split_lines`），对 noise 节点在「角点坐标」重放 coord_chain + 拆分，对 interpolated 节点生成 8 角点 delegate 拆分（块级 floorDivP + cell 索引）。这是 interpolated 端到端验证的前置。
 
 ## 十七、未完成
 
-- interpolated 收编 gen_cpu 侧（8 角点 delegate 拆分 + splitBase 递归分配）。
+- interpolated 收编 gen_cpu 侧（递归拆分生成 `_gen_split_lines`）。
 - 真正集成进 block_probe（DFC 生成 final_density 完整 shader + worldgen_api.cpp GPU 批量采样替换 CPU 采样）。
 
 ## 十八、踩坑（Phase 1-13 保留）

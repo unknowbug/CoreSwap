@@ -29,6 +29,7 @@ class DfcGen:
         self.sidx = "sIdx"                               # 拆分坐标采样点索引（interpolated 内切到角点索引）
         self.interp_instances = []                       # interpolated 实例（delegate DF），gen 时收集
         self.interp_funcs = []                           # [(interp_idx, samples[8])]，interp 包装函数
+        self.noise_key_suffix = ""                       # interpolated 角点去重后缀（8 个独立角点实例）
         if noise_dir:
             for f in os.listdir(noise_dir):
                 if f.endswith(".json"):
@@ -137,7 +138,7 @@ class DfcGen:
             return f"{float(df.get('value', 0.0))}f"
         if t == "minecraft:old_blended_noise":
             # fp64：调用 double 采样函数，结果转 float
-            obkey = f"old_blended:{df.get('xz_scale',0.25)}:{df.get('y_scale',0.125)}:{df.get('xz_factor',80.0)}:{df.get('y_factor',160.0)}:{df.get('smear_scale_multiplier',8.0)}"
+            obkey = f"old_blended:{df.get('xz_scale',0.25)}:{df.get('y_scale',0.125)}:{df.get('xz_factor',80.0)}:{df.get('y_factor',160.0)}:{df.get('smear_scale_multiplier',8.0)}{self.noise_key_suffix}"
             idx = self._register_noise("old_blended", obkey, {
                 "xz_scale": df.get("xz_scale", 0.25), "y_scale": df.get("y_scale", 0.125),
                 "xz_factor": df.get("xz_factor", 80.0), "y_factor": df.get("y_factor", 160.0),
@@ -146,7 +147,7 @@ class DfcGen:
             return f"(float(interp_noise_{idx}({self.sidx})))"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
-            idx = self._register_noise("normal", df.get("noise", ""), {
+            idx = self._register_noise("normal", df.get("noise", "") + self.noise_key_suffix, {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
@@ -158,7 +159,7 @@ class DfcGen:
             return f"normal_noise_{idx}({self.sidx})"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
-            idx = self._register_noise("normal", df.get("noise", ""), {
+            idx = self._register_noise("normal", df.get("noise", "") + self.noise_key_suffix, {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
@@ -230,10 +231,10 @@ class DfcGen:
                 ax = f"(chunkX * 16 + (cx + {dx}) * 4)"
                 ay = f"(minY + (cy + {dy}) * 8)"
                 az = f"(chunkZ * 16 + (cz + {dz}) * 4)"
-                old_sidx = self.sidx
-                self.sidx = f"(sIdx * 8 + {c})"
+                old_suffix = self.noise_key_suffix
+                self.noise_key_suffix = f"@c{c}"     # 8 个独立角点实例（去重 key 含角点）
                 samples.append(self.gen_with_coords(arg, ax, ay, az, f"float({ax})", f"float({ay})", f"float({az})"))
-                self.sidx = old_sidx
+                self.noise_key_suffix = old_suffix
             self.interp_funcs.append((interp_idx, samples))
             return f"interp_{interp_idx}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"
         if t == "minecraft:blend_alpha":
@@ -800,4 +801,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
