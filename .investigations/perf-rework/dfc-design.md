@@ -63,13 +63,26 @@ NormalNoise（DoublePerlinNoiseSampler）无 /o 放大，但坐标缩放（pos×
 
 - 误差 1.4e-8 = base_3d_noise 的 GPU fp64 采样 → `float()` 输出截断（下游算术用 float），方块判定零影响（远小于 1e-2 判定边际）。
 
-## 六、未完成（Phase 4）
+## 六、Phase 4 进展（NormalNoise 完整参数 ✅）
 
-- NormalNoise 的完整参数（firstOctave/amplitudes/lacunarity/persistence/amplitude）布局 + 上传（当前 normal_noise 用占位参数 1 octave）。
-- 完整 DF 树（factor/depth 等）的端到端验证（当前只验证 base_3d_noise）。
-- shader 尺寸优化：sloped_cheese 1.6MB SPIR-V，可函数化主表达式压缩。
+- ✅ **NormalNoise 完整参数**：noise_dir 解析 `noise/*.json` 的 firstOctave/amplitudes → 内联 lacunarity(2^-fo)、persistence(2^(n-1)/(2^n-1))、amplitude(0.16667/createAmplitude)。
+- ✅ **octBase 统一分配**：old_blended 40 octave、normal 2×n octave，连续分配在 PermBuf/OriginBuf。
+- ✅ **NormalNoise float 采样验证**（normalnoise_probe.py，continentalness 参数）：
 
-## 七、踩坑（Phase 1-3 保留）
+```
+continentalness: firstOctave=-9 n=9 lacunarity=512 persistence=0.501 amplitude=1.5
+NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 avgDiff=7.569e-08
+```
+
+- NormalNoise 误差 ~3.6e-7（double 坐标拆分 + float 采样），方块零影响，与单 octave 拆分（1.6e-7）/多 octave（1.4e-7）一致。
+- 踩坑：Python 诊断脚本 float `fade` 漏了 v（v² 写成 v³ 的少一个 v），shader 的 `perlinFadeF` 是对的。
+
+## 七、未完成（Phase 5）
+
+- 完整 DF 树（factor/depth）的 Vulkan 端到端验证（当前 base_3d_noise 已验证，NormalNoise 用 Python 验证，未上 GPU）。
+- shader 尺寸优化：sloped_cheese 1.6MB SPIR-V。
+
+## 八、踩坑（Phase 1-4 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

@@ -9,13 +9,25 @@ import os
 CX, CY, CZ = "ix", "iy", "iz"   # int 块坐标
 
 class DfcGen:
-    def __init__(self, df_dir=None):
+    def __init__(self, df_dir=None, noise_dir=None):
         self.df_dir = df_dir          # density_function 目录（用于解析 registry 引用）
         self.df_cache = {}            # ref -> DF dict
         self.noise_instances = []     # [(kind, params_dict)]：old_blended / normal / shifted / shift
         self.noise_index = {}         # 去重 key -> index
         self.registry_funcs = {}      # ref -> 函数名
         self.registry_defs = []       # [(函数名, 表达式)]，按依赖序
+        self.noise_params = {}        # noise key -> {firstOctave, amplitudes}（从 noise_dir 解析）
+        if noise_dir:
+            for f in os.listdir(noise_dir):
+                if f.endswith(".json"):
+                    with open(os.path.join(noise_dir, f), 'r', encoding='utf-8') as fh:
+                        np = json.load(fh)
+                    self.noise_params[f[:-5]] = {"firstOctave": np.get("firstOctave", 0), "amplitudes": np.get("amplitudes", [1.0])}
+
+    def _resolve_noise_params(self, noise_key):
+        """noise key（如 minecraft:continentalness）→ {firstOctave, amplitudes}"""
+        name = noise_key.replace("minecraft:", "")
+        return self.noise_params.get(name, {"firstOctave": 0, "amplitudes": [1.0]})
 
     # ---- registry 引用解析 ----
     def resolve_ref(self, ref):
@@ -91,21 +103,28 @@ class DfcGen:
             })
             return f"(float(interp_noise_{idx}({CX}, {CY}, {CZ})))"
         if t == "minecraft:noise":
+            np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
+                "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
             xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
             return f"normal_noise_{idx}(double({CX}) * {xz:.17g}, double({CY}) * {y:.17g}, double({CZ}) * {xz:.17g})"
         if t == "minecraft:shifted_noise":
+            np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
+                "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
             sx = self.gen(df.get("shift_x", 0.0)); sy = self.gen(df.get("shift_y", 0.0)); sz = self.gen(df.get("shift_z", 0.0))
             # shifted_noise 坐标 = pos*scale + shift（对齐 ShiftedNoiseDF.sample）
             xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
             return f"normal_noise_{idx}(double({CX}) * {xz:.17g} + double({sx}), double({CY}) * {y:.17g} + double({sy}), double({CZ}) * {xz:.17g} + double({sz}))"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
-            idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {"noise": "minecraft:offset"})
+            np = self._resolve_noise_params("minecraft:offset")
+            idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
+                "noise": "minecraft:offset", "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
+            })
             # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
             if t == "minecraft:shift_a":
                 return f"(normal_noise_{idx}(double({CX}) * 0.25, 0.0, double({CZ}) * 0.25) * 4.0f)"
@@ -182,18 +201,23 @@ class DfcGen:
         expr = self.gen(root_df)
         funcs = []
         # 噪声函数（old_blended double + normal float）先定义（registry 函数会调用）
+        # 分配 octBase（perm/origin buffer 的 octave 偏移）
+        octBase = 0
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
-                funcs.append(self._old_blended_func(idx, params))
+                funcs.append(self._old_blended_func(idx, params, octBase))
+                octBase += 40
             elif kind == "normal":
-                funcs.append(self._normal_func(idx, params))
+                n = len(params.get("amplitudes", [1.0]))
+                funcs.append(self._normal_func(idx, params, octBase))
+                octBase += 2 * n
         # registry 函数定义（依赖序已保证），传 int 块坐标，内部转 float
         for fname, fexpr in self.registry_defs:
             funcs.append(f"float {fname}(int ix, int iy, int iz) {{\n    float x = float(ix), y = float(iy), z = float(iz);\n    return {fexpr};\n}}\n")
         return self._shader_template(expr, funcs)
 
-    def _old_blended_func(self, idx, p):
-        # 参数内联（scale/factor/smear）；perm/origin 先用 identity/0（Phase 2 改 params 读取）
+    def _old_blended_func(self, idx, p, octBase):
+        # 参数内联（scale/factor/smear）；perm/origin 从 PermBuf/OriginBuf 读（octBase 偏移）
         return f"""
 double interp_noise_{idx}(int px, int py, int pz) {{
     double d = double(px) * {684.412 * p['xz_scale']:.17g};
@@ -206,7 +230,7 @@ double interp_noise_{idx}(int px, int py, int pz) {{
     double k = j / {p['y_factor']:.17g};
     double n = 0.0; double o = 1.0;
     for (int q = 0; q < 8; q++) {{
-        n += pn_sample5(32 + q, maintainPrecision(g*o), maintainPrecision(h*o), maintainPrecision(i*o), k*o, h*o) / o;
+        n += pn_sample5({octBase} + 32 + q, maintainPrecision(g*o), maintainPrecision(h*o), maintainPrecision(i*o), k*o, h*o) / o;
         o /= 2.0;
     }}
     double qq = (n / 10.0 + 1.0) / 2.0;
@@ -215,23 +239,64 @@ double interp_noise_{idx}(int px, int py, int pz) {{
     for (int r = 0; r < 16; r++) {{
         double s = maintainPrecision(d*o); double t = maintainPrecision(e*o); double u = maintainPrecision(f*o);
         double v = j*o;
-        if (!bl) l += pn_sample5(r, s, t, u, v, e*o) / o;
-        if (!bl2) m += pn_sample5(16 + r, s, t, u, v, e*o) / o;
+        if (!bl) l += pn_sample5({octBase} + r, s, t, u, v, e*o) / o;
+        if (!bl2) m += pn_sample5({octBase} + 16 + r, s, t, u, v, e*o) / o;
         o /= 2.0;
     }}
     double w = clamp(qq, 0.0, 1.0);
     return (l / 512.0 + w * (m / 512.0 - l / 512.0)) / 128.0;
 }}"""
 
-    def _normal_func(self, idx, p):
-        # NormalNoise（DoublePerlinNoiseSampler）：double 坐标拆分 + float 采样
-        # 参数（firstOctave/amplitudes/lacunarity/persistence/amplitude）Phase 2 从 params 读，此处简化占位
+    def _normal_func(self, idx, p, octBase):
+        # NormalNoise（DoublePerlinNoiseSampler）：double 坐标拆分 + float 采样，真实参数内联
+        amps = p.get("amplitudes", [1.0])
+        firstOctave = p.get("firstOctave", 0)
+        n = len(amps)
+        lacunarity = 2.0 ** (-firstOctave)
+        persistence = (2.0 ** (n - 1)) / (2.0 ** n - 1.0)
+        nonz = [i for i, a in enumerate(amps) if a != 0.0]
+        j = min(nonz) if nonz else 0
+        k = max(nonz) if nonz else 0
+        create_amp = 0.1 * (1.0 + 1.0 / (k - j + 1))
+        amplitude = 0.16666666666666666 / create_amp
+        amps_str = ", ".join(f"{a:.17g}" for a in amps)
         return f"""
 float normal_noise_{idx}(double dx, double dy, double dz) {{
-    // Phase 2：octBase/nOct/lacunarity/persistence/amplitudes/amplitude 从 params 读
-    double first = octave_noise_f32(0, 1, dx, dy, dz, 1.0, 1.0);
-    double second = octave_noise_f32(256, 1, dx * 1.0181268882175227, dy * 1.0181268882175227, dz * 1.0181268882175227, 1.0, 1.0);
-    return float((first + second) * 1.0);
+    const double amps[{n}] = double[]({amps_str});
+    // first sampler（OctavePerlinNoiseSampler.sample）
+    double d = 0.0;
+    double e = {lacunarity:.17g};
+    double f = {persistence:.17g};
+    for (int i = 0; i < {n}; i++) {{
+        double cx = maintainPrecision(dx * e);
+        double cy = maintainPrecision(dy * e);
+        double cz = maintainPrecision(dz * e);
+        double ox = originBuf.origin[({octBase} + i) * 3 + 0];
+        double oy = originBuf.origin[({octBase} + i) * 3 + 1];
+        double oz = originBuf.origin[({octBase} + i) * 3 + 2];
+        int ix = int(floor(cx + ox)); int iy = int(floor(cy + oy)); int iz = int(floor(cz + oz));
+        float gx = float(cx + ox - double(ix)); float gy = float(cy + oy - double(iy)); float gz = float(cz + oz - double(iz));
+        float ns = pn_sample3_f32({octBase} + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * double(ns) * f;
+        e *= 2.0; f /= 2.0;
+    }}
+    // second sampler（坐标 × 1.0181268882175227 = DOMAIN_SCALE）
+    double d2 = 0.0;
+    e = {lacunarity:.17g}; f = {persistence:.17g};
+    for (int i = 0; i < {n}; i++) {{
+        double cx = maintainPrecision(dx * 1.0181268882175227 * e);
+        double cy = maintainPrecision(dy * 1.0181268882175227 * e);
+        double cz = maintainPrecision(dz * 1.0181268882175227 * e);
+        double ox = originBuf.origin[({octBase} + {n} + i) * 3 + 0];
+        double oy = originBuf.origin[({octBase} + {n} + i) * 3 + 1];
+        double oz = originBuf.origin[({octBase} + {n} + i) * 3 + 2];
+        int ix = int(floor(cx + ox)); int iy = int(floor(cy + oy)); int iz = int(floor(cz + oz));
+        float gx = float(cx + ox - double(ix)); float gy = float(cy + oy - double(iy)); float gz = float(cz + oz - double(iz));
+        float ns = pn_sample3_f32({octBase} + {n} + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * double(ns) * f;
+        e *= 2.0; f /= 2.0;
+    }}
+    return float((d + d2) * {amplitude:.17g});
 }}"""
 
     def _shader_template(self, expr, funcs):
