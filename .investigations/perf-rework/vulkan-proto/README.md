@@ -56,8 +56,22 @@ cmd /c "call `"D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliar
 - base_3d_noise 完整链路（first 2 octave + second 2 octave×1.018，各含 maintainPrecision 折叠）GPU FP32 vs CPU double 误差 **1.4e-7**，与单 octave（1.6e-7）一致——**多 octave 叠加不放大误差**。
 - 至此分层方案的高频 3D 噪声 FP32 验证闭环：单 octave Perlin 4.9e-7（近坐标）→ 坐标拆分 1.6e-7（远坐标）→ 完整链路 1.4e-7（远坐标），全部 ~1e-7 量级、方块零影响。
 
+## 结果（批量 dispatch 吞吐）
+
+```
+  chunks       点数   kernel时间 吞吐(chunk/s)
+       1         7350        183.9 us           5436
+       4        29400        499.9 us           8002
+      16       117600       1693.3 us           9449
+      64       470400       6637.4 us           9642
+     256      1881600      25706.0 us           9959
+```
+
+- **批量摊薄固定开销**：单 chunk 183.9µs（含 dispatch + fence）→ 256 chunk 批量时每 chunk 摊薄到 100µs，吞吐 ~10000 chunk/s。
+- 对比 CPU 单线程 ~14 chunk/s（71.7ms/chunk）→ **GPU 批量快 ~700×**（注意：这是 2+2 octave 简化的 base_3d_noise 部分，真实 16 octave + 完整 density 会按比例缩）。
+- 印证「批量预生成是 GPU 甜点」的判断。
+
 ## 下一步
 
-1. 批量 dispatch 测量（多 chunk 摊薄固定开销，对比单 chunk 144µs 数据流开销）。
-2. 用真实 old_blended_noise 参数（16 octave）替换简化 2+2 octave，做端到端对齐。
-3. 把「坐标拆分 + 多 octave」模式泛化成 DFC 的 shader 生成器（DF 树 → GLSL）。
+1. 用真实 old_blended_noise 参数（16 octave）替换简化 2+2 octave，做端到端对齐。
+2. 把「坐标拆分 + 多 octave」模式泛化成 DFC 的 shader 生成器（DF 树 → GLSL）。
