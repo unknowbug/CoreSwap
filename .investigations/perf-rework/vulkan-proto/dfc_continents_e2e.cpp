@@ -156,12 +156,14 @@ int main() {
         double maxDiff = 0.0, sumDiff = 0.0; uint32_t maxIdx = 0;
         for (uint32_t i = 0; i < N; i++) {
             int x = coords[3*i+0], y = coords[3*i+1], z = coords[3*i+2];
-            // CPU 参照（对齐 vanilla ShiftDF + ShiftedNoiseDF + NoiseDF）
-            double shiftX = offset.sample(x * 0.25, 0.0, z * 0.25) * 4.0;      // SHIFT_A: y=0
-            double shiftZ = offset.sample(z * 0.25, x * 0.25, 0.0) * 4.0;      // SHIFT_B: x=z,y=x,z=0
-            double d = x * 0.25 + shiftX;
-            double e = y * 0.0 + 0.0;                                          // shift_y = 0
-            double f = z * 0.25 + shiftZ;
+            // CPU 参照（对齐 vanilla FlatCache 的 biome 对齐 + ShiftDF + ShiftedNoiseDF + NoiseDF）
+            int ax = (x >> 2) << 2;   // flat_cache：biome 对齐
+            int az = (z >> 2) << 2;
+            double shiftX = offset.sample(ax * 0.25, 0.0, az * 0.25) * 4.0;      // SHIFT_A: y=0
+            double shiftZ = offset.sample(az * 0.25, ax * 0.25, 0.0) * 4.0;      // SHIFT_B: x=z,y=x,z=0
+            double d = ax * 0.25 + shiftX;
+            double e = 0.0;                                                     // flat_cache y=0
+            double f = az * 0.25 + shiftZ;
             double ref = continentalness.sample(d, e, f);
             double diff = std::fabs((double)out[i] - ref);
             if (diff > maxDiff) { maxDiff = diff; maxIdx = i; }
@@ -169,10 +171,11 @@ int main() {
         }
         std::printf("[result] N=%u, continents DFC shader vs CPU double: maxDiff=%.3e avgDiff=%.3e\n", N, maxDiff, sumDiff / N);
         int x = coords[3*maxIdx], y = coords[3*maxIdx+1], z = coords[3*maxIdx+2];
-        double shiftX = offset.sample(x * 0.25, 0.0, z * 0.25) * 4.0;
-        double shiftZ = offset.sample(z * 0.25, x * 0.25, 0.0) * 4.0;
+        int ax = (x >> 2) << 2, az = (z >> 2) << 2;
+        double shiftX = offset.sample(ax * 0.25, 0.0, az * 0.25) * 4.0;
+        double shiftZ = offset.sample(az * 0.25, ax * 0.25, 0.0) * 4.0;
         std::printf("[result] maxDiff @ (%d,%d,%d): gpu=%.9f cpu=%.9f\n", x, y, z, out[maxIdx],
-                    continentalness.sample(x*0.25+shiftX, 0.0, z*0.25+shiftZ));
+                    continentalness.sample(ax*0.25+shiftX, 0.0, az*0.25+shiftZ));
     }
 
     vkDestroyFence(device, fence, nullptr); vkDestroyCommandPool(device, cmdPool, nullptr); vkDestroyDescriptorPool(device, dpool, nullptr);

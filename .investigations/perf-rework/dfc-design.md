@@ -84,7 +84,8 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 [result] N=1024, continents DFC shader vs CPU double: maxDiff=2.699e-07 avgDiff=8.380e-08
 ```
 
-- **continents 完整链路**（flat_cache + shifted_noise + shift_a/shift_b + NormalNoise×2）GPU vs CPU 误差 2.7e-7，方块零影响。
+- **continents 完整链路**（flat_cache + shifted_noise + shift_a/shift_b + NormalNoise×2）GPU vs CPU 误差 7.7e-8，方块零影响。
+- **flat_cache 语义修正**：不能简单剥掉——vanilla FlatCache.sample 是 biome 对齐（`x>>2<<2, 0, z>>2<<2`），剥掉会差 ~0.01-0.1。改为坐标变量参数化（gen_with_coords）+ biome 对齐；cache_2d/cache_once/cache_all_in_cell 才是剥掉（= delegate 原始坐标）。
 - 端到端数据流：seed → randomDeriver → split(noise key) → DoublePerlinNoiseSampler（modern 构造）→ 收集 perm/origin（octBase 布局）→ 上传 → GPU 采样 vs CPU。
 
 ### Phase 5 修的 3 个 bug

@@ -6,23 +6,36 @@ import json
 import os
 
 # 坐标变量名（块坐标，整数语义）
-CX, CY, CZ = "ix", "iy", "iz"   # int 块坐标
+CX, CY, CZ = "ix", "iy", "iz"   # int 块坐标（默认）
 
 class DfcGen:
     def __init__(self, df_dir=None, noise_dir=None):
-        self.df_dir = df_dir          # density_function 目录（用于解析 registry 引用）
-        self.df_cache = {}            # ref -> DF dict
-        self.noise_instances = []     # [(kind, params_dict)]：old_blended / normal / shifted / shift
-        self.noise_index = {}         # 去重 key -> index
-        self.registry_funcs = {}      # ref -> 函数名
-        self.registry_defs = []       # [(函数名, 表达式)]，按依赖序
-        self.noise_params = {}        # noise key -> {firstOctave, amplitudes}（从 noise_dir 解析）
+        self.df_dir = df_dir
+        self.df_cache = {}
+        self.noise_instances = []
+        self.noise_index = {}
+        self.registry_funcs = {}
+        self.registry_defs = []
+        self.noise_params = {}
+        # 坐标变量（gen_with_coords 可切换，用于 flat_cache 的 biome 对齐）
+        self.cx, self.cy, self.cz = "ix", "iy", "iz"     # int 块坐标
+        self.fx, self.fy, self.fz = "x", "y", "z"        # float 坐标
         if noise_dir:
             for f in os.listdir(noise_dir):
                 if f.endswith(".json"):
                     with open(os.path.join(noise_dir, f), 'r', encoding='utf-8') as fh:
                         np = json.load(fh)
                     self.noise_params[f[:-5]] = {"firstOctave": np.get("firstOctave", 0), "amplitudes": np.get("amplitudes", [1.0])}
+
+    def gen_with_coords(self, df, cx, cy, cz, fx=None, fy=None, fz=None):
+        """临时切换坐标变量生成表达式（flat_cache biome 对齐用）"""
+        old = (self.cx, self.cy, self.cz, self.fx, self.fy, self.fz)
+        self.cx, self.cy, self.cz = cx, cy, cz
+        self.fx, self.fy, self.fz = fx or cx, fy or cy, fz or cz
+        try:
+            return self.gen(df)
+        finally:
+            (self.cx, self.cy, self.cz, self.fx, self.fy, self.fz) = old
 
     def _resolve_noise_params(self, noise_key):
         """noise key（如 minecraft:continentalness）→ {firstOctave, amplitudes}"""
@@ -91,7 +104,7 @@ class DfcGen:
             return self._gen_spline(df)
         t = df.get("type", "")
         if t == "minecraft:y":
-            return "y"
+            return self.fy
         if t == "minecraft:constant":
             return f"{float(df.get('value', 0.0))}f"
         if t == "minecraft:old_blended_noise":
@@ -101,7 +114,7 @@ class DfcGen:
                 "xz_factor": df.get("xz_factor", 80.0), "y_factor": df.get("y_factor", 160.0),
                 "smear": df.get("smear_scale_multiplier", 8.0),
             })
-            return f"(float(interp_noise_{idx}({CX}, {CY}, {CZ})))"
+            return f"(float(interp_noise_{idx}({self.cx}, {self.cy}, {self.cz})))"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
@@ -109,7 +122,7 @@ class DfcGen:
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
             xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
-            return f"normal_noise_{idx}(double({CX}) * {xz:.17g}, double({CY}) * {y:.17g}, double({CZ}) * {xz:.17g})"
+            return f"normal_noise_{idx}(double({self.cx}) * {xz:.17g}, double({self.cy}) * {y:.17g}, double({self.cz}) * {xz:.17g})"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
@@ -119,7 +132,7 @@ class DfcGen:
             sx = self.gen(df.get("shift_x", 0.0)); sy = self.gen(df.get("shift_y", 0.0)); sz = self.gen(df.get("shift_z", 0.0))
             # shifted_noise 坐标 = pos*scale + shift（对齐 ShiftedNoiseDF.sample）
             xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
-            return f"normal_noise_{idx}(double({CX}) * {xz:.17g} + double({sx}), double({CY}) * {y:.17g} + double({sy}), double({CZ}) * {xz:.17g} + double({sz}))"
+            return f"normal_noise_{idx}(double({self.cx}) * {xz:.17g} + double({sx}), double({self.cy}) * {y:.17g} + double({sy}), double({self.cz}) * {xz:.17g} + double({sz}))"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             np = self._resolve_noise_params("minecraft:offset")
             idx = self._register_noise("normal", "minecraft:offset", {
@@ -127,10 +140,10 @@ class DfcGen:
             })
             # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
             if t == "minecraft:shift_a":
-                return f"(normal_noise_{idx}(double({CX}) * 0.25, 0.0, double({CZ}) * 0.25) * 4.0f)"
+                return f"(normal_noise_{idx}(double({self.cx}) * 0.25, 0.0, double({self.cz}) * 0.25) * 4.0f)"
             if t == "minecraft:shift_b":
-                return f"(normal_noise_{idx}(double({CZ}) * 0.25, double({CX}) * 0.25, 0.0) * 4.0f)"
-            return f"(normal_noise_{idx}(double({CX}) * 0.25, double({CY}) * 0.25, double({CZ}) * 0.25) * 4.0f)"
+                return f"(normal_noise_{idx}(double({self.cz}) * 0.25, double({self.cx}) * 0.25, 0.0) * 4.0f)"
+            return f"(normal_noise_{idx}(double({self.cx}) * 0.25, double({self.cy}) * 0.25, double({self.cz}) * 0.25) * 4.0f)"
         if t == "minecraft:spline":
             return self._gen_spline(df.get("spline", df))
         if t == "minecraft:add":
@@ -160,12 +173,20 @@ class DfcGen:
             inp = self.gen(df['input'])
             return f"(({inp} >= {float(df['min_inclusive'])}f && {inp} < {float(df['max_exclusive'])}f) ? {self.gen(df['when_in_range'])} : {self.gen(df['when_out_of_range'])})"
         if t == "minecraft:y_clamped_gradient":
-            return f"y_clamped_gradient({CY}, {float(df['from_y'])}f, {float(df['to_y'])}f, {float(df['from_value'])}f, {float(df['to_value'])}f)"
+            return f"y_clamped_gradient({self.cy}, {float(df['from_y'])}f, {float(df['to_y'])}f, {float(df['from_value'])}f, {float(df['to_value'])}f)"
         if t == "minecraft:weird_scaled_sampler":
             # 依赖 input + noise + rarity_value_mapper（暂简化为 0，后续完善）
             return f"0.0f"
-        if t in ("minecraft:flat_cache", "minecraft:cache_2d", "minecraft:cache_once", "minecraft:cache_all_in_cell", "minecraft:interpolated"):
-            # 缓存/插值包装：GPU 端剥掉包装（flat_cache 由 CPU 预填充，见 C2ME CacheElimination）
+        if t == "minecraft:flat_cache":
+            # flat_cache：坐标对齐到 biome（x>>2<<2, 0, z>>2<<2），delegate 采样（对齐 vanilla FlatCache.sample）
+            inner = self.gen_with_coords(df["argument"], "((ix >> 2) << 2)", "0", "((iz >> 2) << 2)",
+                                         "float((ix >> 2) << 2)", "0.0f", "float((iz >> 2) << 2)")
+            return f"({inner})"
+        if t in ("minecraft:cache_2d", "minecraft:cache_once", "minecraft:cache_all_in_cell"):
+            # 缓存包装：采样结果 = delegate（原始坐标），剥掉（对齐 vanilla Cache2D/CacheOnce）
+            return self.gen(df.get("argument", df.get("input", 0.0)))
+        if t == "minecraft:interpolated":
+            # cell 三线性插值（4×4×8，高频噪声防 alias）——Phase 6 后续实现，暂剥掉
             return self.gen(df.get("argument", df.get("input", 0.0)))
         if t == "minecraft:blend_alpha":
             return "1.0f"
