@@ -162,13 +162,37 @@ factor DF built
 - 精度 1.489e-07（float 采样 ~1e-7 量级，方块零影响）。
 - **方案取舍**：单 pass 每采样点重算 8 角点（8 倍 delegate 采样），实现简单；块级两 pass（角点网格算一次 + 插值）更高效但需角点网格 buffer，留作优化。noodle 洞穴使用稀疏，8 倍开销可接受。
 
-## 十三、未完成
+## 十三、Phase 11 进展（old_blended_noise 5 参数 sample 7 值拆分 ✅）
 
-- old_blended_noise（base_3d_noise，16 octave）GPU 实现（CPU 拆分 + GPU float 采样，含 fp64 origin/perm 布局）。
+- ✅ **old_blended_noise 语义**：3 个 legacy OctavePerlinNoiseSampler（lower/upper 16 octave + interpolation 8 octave），5 参数 sample（x,y,z,yScale,yMax，y 轴 smear）。random = randomDeriver.split("minecraft:terrain")。参数 xz_scale=0.25 y_scale=0.125 xz_factor=80 y_factor=160 smear=8。
+- ✅ **CPU 预拆分（5 参数 sample 7 值/octave）**：每 octave 拆 [ix,iy,iz,gx,gy(=h-n),gz,fadeY(=h)]，比 normal_noise 的 6 值多 fadeY（y 轴 smear 后 h 仍是 fade 输入，插值位置用 h-n）。40 octave × 7 = 280 值/采样点。
+- ✅ **GPU**：pn_section_f32（float grad/fade/lerp 采样，读 7 值）+ double 累加（16 octave 累加精度）。验证（dfc_oldblended_e2e.cpp，InterpolatedNoiseDF 做 CPU 参照）：
+
+```
+[dbg] pipeline created   ← 编译快（采样 float，仅累加 double）
+[result] old_blended_noise 5参数7值拆分 GPU float vs CPU double: maxDiff=1.247e-07 avgDiff=3.341e-08
+```
+
+- 精度 1.247e-07（float 采样 ~1e-7 量级，方块零影响）。
+
+## 十四、CPU 预拆分方案全节点验证收官
+
+| 节点 | 精度 | 状态 |
+|---|---|---|
+| normal_noise（单噪声 + shift） | 3.5e-7 | ✅ |
+| factor 完整 DF 树（spline + 3 噪声） | 3.9e-6 | ✅ |
+| interpolated（cell 插值） | 1.5e-7 | ✅ |
+| old_blended_noise（base_3d_noise 5 参数 sample） | 1.25e-7 | ✅ |
+
+全部噪声类型验证通过 → 可进入「集成进 block_probe」。
+
+## 十五、未完成
+
+- old_blended_noise 扩展到 DFC 生成器（当前手写 shader + 手写拆分）。
 - interpolated 扩展到 DFC 生成器（当前手写 shader）。
-- 真正集成进 block_probe（替换 CPU density 采样）。
+- 真正集成进 block_probe（替换 CPU density 采样，接 WG_ 诊断 env + sha256 对齐铁律）。
 
-## 十四、踩坑（Phase 1-10 保留）
+## 十六、踩坑（Phase 1-11 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
