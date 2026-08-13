@@ -92,7 +92,7 @@ class DfcGen:
     # ---- registry 引用 → 命名函数（去重，避免表达式爆炸）----
     def _gen_registry_call(self, ref):
         if ref in self.registry_funcs:
-            return f"{self.registry_funcs[ref]}({self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
+            return f"{self.registry_funcs[ref]}(sIdx, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
         fname = "df_" + ref.replace("minecraft:", "").replace("/", "_").replace(".", "_")
         self.registry_funcs[ref] = fname          # 先注册（防循环引用）
         df = self.resolve_ref(ref)
@@ -326,6 +326,124 @@ class DfcGen:
                 splitBase += 6 * 2 * n
         return {"normal_instances": normal_instances, "shift_noises": self.shift_noises,
                 "split_total": splitBase}
+
+    # ---- CPU 后端（坐标链重放 + 拆分代码生成）----
+    def _shift_cpp(self, s, ax, ay, az):
+        """shift 描述 → C++ 表达式（坐标偏移，double）"""
+        if s["type"] == "constant":
+            return f"{s['value']:.17g}"
+        key = s["noise_key"]
+        if s["type"] == "shift_a":
+            return f'shiftNoises.at("{key}").sample(({ax}) * 0.25, 0.0, ({az}) * 0.25) * 4.0'
+        if s["type"] == "shift_b":
+            return f'shiftNoises.at("{key}").sample(({az}) * 0.25, ({ax}) * 0.25, 0.0) * 4.0'
+        return f'shiftNoises.at("{key}").sample(({ax}) * 0.25, ({ay}) * 0.25, ({az}) * 0.25) * 4.0'   # shift
+
+    def gen_cpu(self):
+        """生成 CPU 后端 C++ 头文件（噪声生成 + 坐标链重放 + 拆分 + perm 收集）"""
+        manifest = self.gen_noise_manifest()
+        normals = manifest["normal_instances"]
+        shift_noises = manifest["shift_noises"]
+
+        init_lines = []
+        for key, np in shift_noises.items():
+            amps = ", ".join(f"{a:.17g}" for a in np["amplitudes"])
+            init_lines.append(
+                f'    {{ auto r = rd.split("{key}"); shiftNoises.emplace("{key}", '
+                f'wg::DoublePerlinNoiseSampler(r, wg::DoublePerlinNoiseSampler::NoiseParameters{{{np["firstOctave"]}, {{{amps}}}}})); }}')
+        for i, ni in enumerate(normals):
+            amps = ", ".join(f"{a:.17g}" for a in ni["amplitudes"])
+            init_lines.append(
+                f'    {{ auto r = rd.split("{ni["noise_key"]}"); normals.emplace_back('
+                f'wg::DoublePerlinNoiseSampler(r, wg::DoublePerlinNoiseSampler::NoiseParameters{{{ni["firstOctave"]}, {{{amps}}}}})); '
+                f'n.push_back({ni["n"]}); octBase.push_back({ni["octBase"]}); splitBase.push_back({ni["splitBase"]}); }}')
+
+        split_lines = []
+        for i, ni in enumerate(normals):
+            chain = ni["coord_chain"]
+            if chain.get("flat_cache"):
+                ax, ay, az = "(x >> 2) << 2", "0", "(z >> 2) << 2"
+            else:
+                ax, ay, az = "x", "y", "z"
+            xs, ys = f"{chain['xz_scale']:.17g}", f"{chain['y_scale']:.17g}"
+            if chain["type"] == "noise":
+                dx, dy, dz = f"({ax}) * {xs}", f"({ay}) * {ys}", f"({az}) * {xs}"
+            else:   # shifted_noise
+                sx = self._shift_cpp(chain["shift_x"], ax, ay, az)
+                sy = self._shift_cpp(chain["shift_y"], ax, ay, az)
+                sz = self._shift_cpp(chain["shift_z"], ax, ay, az)
+                dx, dy, dz = f"({ax}) * {xs} + ({sx})", f"({ay}) * {ys} + ({sy})", f"({az}) * {xs} + ({sz})"
+            split_lines.append(
+                f'    {{ splitDouble(normals[{i}], {dx}, {dy}, {dz}, out, {ni["splitBase"]}, {ni["n"]}); }}')
+
+        # permSize = 总 octave 数（old_blended 40 + 所有 normal 2n）× 256
+        total_octave = 0
+        for kind, p in self.noise_instances:
+            total_octave += 40 if kind == "old_blended" else 2 * len(p.get("amplitudes", [1.0]))
+        perm_size = total_octave * 256
+
+        return f"""// 自动生成（DFC CPU 后端），勿手改
+#pragma once
+#include <vector>
+#include <map>
+#include <string>
+#include <cmath>
+#include "noise.h"
+#include "xoroshiro.h"
+
+struct CpuBackend {{
+    std::map<std::string, wg::DoublePerlinNoiseSampler> shiftNoises;
+    std::vector<wg::DoublePerlinNoiseSampler> normals;
+    std::vector<int> n, octBase, splitBase;
+    int splitTotal = {manifest["split_total"]};
+    int permSize = {perm_size};
+
+    static double maintainPrecision(double v) {{ return v - (long)(v / 3.3554432E7 + 0.5) * 3.3554432E7; }}
+
+    void init(uint64_t worldSeed) {{
+        wg::XoroshiroRandom base(worldSeed);
+        auto rd = base.nextSplitter();
+{chr(10).join(init_lines)}
+    }}
+
+    static void splitOctave(const wg::PerlinNoiseSampler* pn, double cx, double cy, double cz, float* out) {{
+        double ox = pn ? pn->originX : 0.0, oy = pn ? pn->originY : 0.0, oz = pn ? pn->originZ : 0.0;
+        int ix = (int)std::floor(cx + ox), iy = (int)std::floor(cy + oy), iz = (int)std::floor(cz + oz);
+        out[0] = (float)ix; out[1] = (float)iy; out[2] = (float)iz;
+        out[3] = (float)(cx + ox - ix); out[4] = (float)(cy + oy - iy); out[5] = (float)(cz + oz - iz);
+    }}
+
+    static void splitDouble(const wg::DoublePerlinNoiseSampler& noise, double dx, double dy, double dz, float* out, int base, int nn) {{
+        double lacunarity = std::pow(2.0, noise.firstSampler.firstOctave);
+        double e = lacunarity;
+        for (int i = 0; i < nn; i++) {{
+            splitOctave(noise.firstSampler.octaveSamplers[i].get(),
+                        maintainPrecision(dx*e), maintainPrecision(dy*e), maintainPrecision(dz*e),
+                        &out[base + i * 6]);
+            splitOctave(noise.secondSampler.octaveSamplers[i].get(),
+                        maintainPrecision(dx*1.0181268882175227*e), maintainPrecision(dy*1.0181268882175227*e), maintainPrecision(dz*1.0181268882175227*e),
+                        &out[base + 6 * nn + i * 6]);
+            e *= 2.0;
+        }}
+    }}
+
+    void split(int x, int y, int z, float* out) {{
+{chr(10).join(split_lines)}
+    }}
+
+    void collectPerm(std::vector<uint32_t>& perm) {{
+        perm.assign((size_t)permSize, 0);
+        for (int i = 0; i < (int)normals.size(); i++) {{
+            for (int k = 0; k < n[i]; k++) {{
+                const wg::PerlinNoiseSampler* pn = normals[i].firstSampler.octaveSamplers[k].get();
+                if (pn) for (int j = 0; j < 256; j++) perm[(size_t)(octBase[i] + k) * 256 + j] = (uint32_t)pn->permutation[j];
+                pn = normals[i].secondSampler.octaveSamplers[k].get();
+                if (pn) for (int j = 0; j < 256; j++) perm[(size_t)(octBase[i] + n[i] + k) * 256 + j] = (uint32_t)pn->permutation[j];
+            }}
+        }}
+    }}
+}};
+"""
 
     def _old_blended_func(self, idx, p, octBase):
         # 参数内联（scale/factor/smear）；perm/origin 从 PermBuf/OriginBuf 读（octBase 偏移）

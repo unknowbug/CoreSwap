@@ -135,12 +135,27 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 
 - **架构定型**：GPU 后端（GLSL 纯 float 采样 + spline + 算术）+ CPU 后端（坐标链重放 + 拆分）。shift 噪声（offset）是「坐标链的一部分」，CPU double 采样；主噪声（erosion/continentalness）是「density 输出」，CPU 拆分 + GPU float。
 
-## 十一、未完成
+## 十一、Phase 9 进展（完整 DF 树：CPU 后端代码生成 + factor 端到端 ✅）
 
-- 坐标链重放的**端到端自动生成**（当前通用重放函数在 C++ 手写；完整 DF 树如 factor 需清单 JSON 自动解析 + 递归重放，含 spline 的 coordinate 链）。
-- interpolated（cell 三线性插值）GPU 实现。
+- ✅ **DFC 生成 CPU 后端代码**（gen_cpu）：输出完整 C++ 头文件（CpuBackend），含噪声生成（shift + 主噪声的 DoublePerlinNoiseSampler）+ 坐标链重放（split）+ 拆分（splitDouble/splitOctave）+ perm 收集（collectPerm）。
+- ✅ **factor 完整 DF 树端到端验证**（dfc_factor_backend_e2e.cpp，DensityBuilder 做 CPU 参照）：
 
-## 十二、踩坑（Phase 1-8 保留）
+```
+factor DF built
+[dbg] pipeline created   ← 编译快（无 fp64）
+[result] factor 完整 DF: GPU float vs CPU double: maxDiff=3.879e-06 avgDiff=2.898e-06
+```
+
+- factor = spline(coordinate=continents，嵌套 spline value=erosion/ridge) + 3 个 NormalNoise（continentalness n=9 / erosion n=5 / ridge n=6）+ flat_cache + shifted_noise + shift（offset）。全部走 CPU 拆分 + GPU float 采样 + GPU spline，精度 3.879e-06（spline 插值放大 continents 的 float 误差，仍方块零影响）。
+- **修复的 bug**：① registry 函数调用参数不一致（首次 5 参数 / 后续 3 参数 → 统一 sIdx+坐标）；② shift 表达式运算符优先级（`(x>>2)<<2*0.25` 被解析为 `<<(2*0.25)` → 坐标加括号）；③ DensityBuilder 在 namespace wg（需 wg:: 前缀）。
+
+## 十二、未完成
+
+- interpolated（cell 三线性插值）GPU 实现（当前 DFC 剥掉 interpolated 节点）。
+- old_blended_noise（base_3d_noise）GPU 实现（16 octave，CPU 拆分 + GPU float 采样，含 fp64 origin/perm 布局）。
+- 真正集成进 block_probe（当前是独立 Vulkan 原型）。
+
+## 十三、踩坑（Phase 1-9 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

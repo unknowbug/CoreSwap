@@ -89,6 +89,25 @@
 - **定位**：rg 检查发现两处返回值不一致。
 - **教训**：**改了主路径别忘了缓存分支**——去重/缓存的「命中」和「未命中」两条路径要一起改。
 
+### C6. registry 函数调用参数不一致（首次 5 参数 / 后续 3 参数）
+- **现象**：factor.comp 第 219/237/250/263 行报 `df_overworld_ridges no matching overloaded function`。
+- **根因**：`_gen_registry_call` 的「首次注册」返回 `fname(sIdx, ix, iy, iz)`（5 参数），「缓存命中」分支返回 `fname(ix, iy, iz)`（3 参数），而函数签名是 `fname(int sIdx, int ix, int iy, int iz)`（5 参数，因为 normal_noise 需要 sIdx 读拆分坐标）。spline coordinate 多次引用 ridges 时命中缓存分支 → 3 参数调用 5 参数函数。
+- **定位**：rg 看 df_overworld_ridges 的定义（5 参数）vs 调用点（3 参数）→ 锁定缓存分支漏传 sIdx。
+- **教训**：**「带上下文参数的函数化」——首次/缓存两条路径的参数列表必须一致**；函数签名加了一个参数（sIdx），所有调用点（含缓存分支）都要同步。
+
+### C7. shift 表达式运算符优先级（`<<` 与 `*`）
+- **现象**：生成的 cpu_backend.h 报 `C2297 '<<': 无效，右操作数 double`。
+- **根因**：坐标 `ax = "(x >> 2) << 2"` 直接拼 `f"{ax} * 0.25"` → `(x >> 2) << 2 * 0.25`，C++ 里 `<<` 优先级低于 `*`，被解析为 `(x >> 2) << (2 * 0.25)`（右操作数 double）。
+- **定位**：读生成的 cpu_backend.h 第 48 行看到 `<< 2 * 0.25`。
+- **修复**：坐标表达式加括号 `({ax}) * 0.25`、`({ax}) * {xs}`。
+- **教训**：**代码生成拼表达式，位移/位运算片段必须加括号**——`<<` 优先级低于 `*`/`+`，裸拼必炸。
+
+### C8. DensityBuilder 在 namespace wg（C++ 引用无前缀）
+- **现象**：dfc_factor_backend_e2e.cpp 报 `C2653 DensityBuilder 不是类或命名空间名称`。
+- **根因**：density_builder.h 里 `class DensityBuilder` 在 `namespace wg { }` 内，引用时没加 `wg::` 前缀（noise.h/xoroshiro.h 同样在 wg）。
+- **修复**：`wg::DensityBuilder` / `wg::DF` / `wg::NoisePos` / `wg::JsonParser` / `wg::JsonValue`。
+- **教训**：**复用 worldgen 头文件先确认命名空间**——wg 命名空间是工程约定，外部文件引用必须带前缀。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -157,3 +176,6 @@
 | 函数顺序报错 | GLSL 先声明后使用 |
 | 编译 >10min | 驱动内联 34 函数 → SPIR-V 17 倍 → 寄存器分配爆炸 |
 | DontInline 行为错 | FunctionControl 位（非 decoration），且对 fp64 有副作用 |
+| df_overworld_ridges 无匹配重载 | registry 函数签名 5 参数（sIdx+坐标），缓存分支漏传 sIdx 只传 3 参数 |
+| `<<` 右操作数 double | 位移片段裸拼 `* 0.25`，`<<` 优先级低于 `*` → 坐标加括号 |
+| DensityBuilder 非类名 | 在 namespace wg，引用需 `wg::` 前缀 |
