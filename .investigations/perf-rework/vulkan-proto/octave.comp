@@ -1,0 +1,110 @@
+// octave.comp —— 多 octave Perlin 噪声 + DoublePerlinNoiseSampler（float）
+// 完整 base_3d_noise 链路：first sampler（2 octave）+ second sampler（2 octave，坐标×1.018）
+// 坐标已由 CPU 拆分（每 octave 独立：maintainPrecision 折叠 + floor 拆分 → int32 i + float g）
+// GPU 端：hash 用 i(int32)、grad/lerp 用 g(float)，叠加 × amplitude × persistence，first+second 相加 × amplitude
+#version 450
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+const int OCTAVES_PER_SAMPLER = 2;   // 每个 sampler 的 octave 数
+const int TOTAL_OCTAVES = 4;         // first(2) + second(2)
+
+// binding 0: 参数
+layout(set = 0, binding = 0, std430) buffer Params {
+    uint perm[TOTAL_OCTAVES][256];   // 每 octave 独立 perm 表
+    float amplitudes[OCTAVES_PER_SAMPLER];
+    float persistence;               // 初始 persistence（OctavePerlinNoiseSampler）
+    float amplitude;                 // DoublePerlinNoiseSampler 的 amplitude
+    float domainScale;               // DOMAIN_SCALE = 1.0181268882175227（供 CPU 参考，GPU 不直接用）
+} params;
+
+// binding 1: 拆分坐标 [TOTAL_OCTAVES][N][6]，布局 idx*24 + o*6 + 0..5 = [i,j,k,g,h,l]
+layout(set = 0, binding = 1, std430) buffer CoordBuf {
+    float splitCoord[];
+} coord;
+
+// binding 2: 输出噪声 [N]
+layout(set = 0, binding = 2, std430) buffer OutputBuf {
+    float noise[];
+} outputBuf;
+
+const vec3 GRADIENTS[16] = vec3[](
+    vec3( 1,  1,  0), vec3(-1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0),
+    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0,  1, -1), vec3( 0, -1, -1),
+    vec3( 1,  1,  0), vec3( 0, -1,  1), vec3(-1,  1,  0), vec3( 0, -1, -1)
+);
+
+float perlinFade(float v) {
+    return v * v * v * (v * (v * 6.0 - 15.0) + 10.0);
+}
+float lerpF(float d, float s, float e) {
+    return s + d * (e - s);
+}
+int mapPerm(int octave, int v) {
+    return int(params.perm[octave][v & 255]);
+}
+float gradDot(int hash, vec3 p) {
+    vec3 g = GRADIENTS[hash & 15];
+    return g.x * p.x + g.y * p.y + g.z * p.z;
+}
+float sampleSection(int octave, int sx, int sy, int sz, float lx, float ly, float lz, float fadeY) {
+    int i = mapPerm(octave, sx);
+    int j = mapPerm(octave, sx + 1);
+    int k = mapPerm(octave, i + sy);
+    int l = mapPerm(octave, i + sy + 1);
+    int m = mapPerm(octave, j + sy);
+    int n = mapPerm(octave, j + sy + 1);
+    float d = gradDot(mapPerm(octave, k + sz),     vec3(lx,     ly,     lz));
+    float e = gradDot(mapPerm(octave, m + sz),     vec3(lx - 1.0, ly,     lz));
+    float f = gradDot(mapPerm(octave, l + sz),     vec3(lx,     ly - 1.0, lz));
+    float g = gradDot(mapPerm(octave, n + sz),     vec3(lx - 1.0, ly - 1.0, lz));
+    float h = gradDot(mapPerm(octave, k + sz + 1), vec3(lx,     ly,     lz - 1.0));
+    float o = gradDot(mapPerm(octave, m + sz + 1), vec3(lx - 1.0, ly,     lz - 1.0));
+    float p = gradDot(mapPerm(octave, l + sz + 1), vec3(lx,     ly - 1.0, lz - 1.0));
+    float q = gradDot(mapPerm(octave, n + sz + 1), vec3(lx - 1.0, ly - 1.0, lz - 1.0));
+    float r = perlinFade(lx);
+    float s = perlinFade(fadeY);
+    float t = perlinFade(lz);
+    float x0 = lerpF(r, d, e);
+    float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o);
+    float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1);
+    float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+
+// 对 octave o 采样（读拆分坐标 + 对应 perm）
+float sampleOctave(int o, uint idx) {
+    int i = int(coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 0]);
+    int j = int(coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 1]);
+    int k = int(coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 2]);
+    float g = coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 3];
+    float h = coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 4];
+    float l = coord.splitCoord[idx * (TOTAL_OCTAVES * 6) + o * 6 + 5];
+    return sampleSection(o, i, j, k, g, h, l, h);
+}
+
+// 一个 sampler 的多 octave 叠加
+float octaveSample(int octaveBase, uint idx) {
+    float d = 0.0;
+    float f = params.persistence;
+    for (int o = 0; o < OCTAVES_PER_SAMPLER; o++) {
+        float n = sampleOctave(octaveBase + o, idx);
+        d += params.amplitudes[o] * n * f;
+        f *= 0.5;
+    }
+    return d;
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= outputBuf.noise.length()) {
+        return;
+    }
+    // first sampler (octave 0,1) + second sampler (octave 2,3)
+    float first = octaveSample(0, idx);
+    float second = octaveSample(OCTAVES_PER_SAMPLER, idx);
+    outputBuf.noise[idx] = (first + second) * params.amplitude;
+}

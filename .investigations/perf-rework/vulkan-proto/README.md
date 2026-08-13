@@ -46,8 +46,18 @@ cmd /c "call `"D:\Program Files\Microsoft Visual Studio\18\Community\VC\Auxiliar
 - **高频 3D 噪声 FP32 相对 CPU double 差 ~5e-7（噪声值）**，与 fp32-experiment.md 的 ~1e-7 量级一致 → 对方块判定零影响（此前 block_probe 近坐标实测零新增 mismatch）。
 - 纠正：vanilla 1.20.1 `PerlinNoiseSampler` **全是 double**（`double grad`/`perlinFade`/`MathHelper.lerp3`），不是 float——故「高频噪声 FP32」是相对 double 降精度 ~5e-7，而非「对齐 vanilla float」。此前 c2me-dfc-review.md 里「C2ME 噪声 double vs vanilla float」的表述需一并修正。
 
+## 结果（多 octave + DoublePerlinNoiseSampler 完整链路）
+
+```
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[result] N=4096, 多octave+Double 完整链路: GPU float vs CPU double maxDiff=1.410e-07 avgDiff=3.245e-08
+```
+
+- base_3d_noise 完整链路（first 2 octave + second 2 octave×1.018，各含 maintainPrecision 折叠）GPU FP32 vs CPU double 误差 **1.4e-7**，与单 octave（1.6e-7）一致——**多 octave 叠加不放大误差**。
+- 至此分层方案的高频 3D 噪声 FP32 验证闭环：单 octave Perlin 4.9e-7（近坐标）→ 坐标拆分 1.6e-7（远坐标）→ 完整链路 1.4e-7（远坐标），全部 ~1e-7 量级、方块零影响。
+
 ## 下一步
 
-1. 把 OctavePerlinNoiseSampler 多 octave 叠加 + `maintainPrecision` 折叠加进 GLSL，验证多 octave 的 FP32 差异。
-2. 加 `DoublePerlinNoiseSampler`（first + second×1.018）验证 base_3d_noise 完整链路。
-3. 批量 dispatch 测量（多 chunk 摊薄固定开销）。
+1. 批量 dispatch 测量（多 chunk 摊薄固定开销，对比单 chunk 144µs 数据流开销）。
+2. 用真实 old_blended_noise 参数（16 octave）替换简化 2+2 octave，做端到端对齐。
+3. 把「坐标拆分 + 多 octave」模式泛化成 DFC 的 shader 生成器（DF 树 → GLSL）。
