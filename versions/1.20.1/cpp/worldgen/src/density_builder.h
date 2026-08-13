@@ -180,36 +180,40 @@ public:
         throw std::runtime_error("unknown density type: " + type);
     }
 
-    // 构建 spline
+    // 构建 spline（扁平化：递归填充单个 SplineDF 实例的连续数组，见 density.h SplineDF）
     DF buildSpline(const JsonValue& objIn, const std::string& selfKey) {
         // 解包：{"type":"minecraft:spline","spline":{coordinate,points}} 或直接 {coordinate,points}
         const JsonValue* obj = objIn.isObject() && objIn.get("spline") ? objIn.get("spline") : &objIn;
-        const JsonValue* coord = obj->get("coordinate");
-        const JsonValue* points = obj->get("points");
         auto spline = std::make_shared<SplineDF>();
-        spline->isLeaf = false;
-        spline->locationFunction = buildNode(*coord, selfKey);
-        for (const JsonValue& p : points->arr) {
-            spline->locations.push_back((float)p.num("location", 0.0));
-            spline->derivatives.push_back((float)p.num("derivative", 0.0));
+        spline->root = buildSplineNode(spline, *obj, selfKey);
+        return spline;
+    }
+
+    // 递归填充扁平 spline 节点：先构建子节点（保证 locBegin/subBegin 连续），再登记本节点
+    int buildSplineNode(std::shared_ptr<SplineDF> spline, const JsonValue& obj, const std::string& selfKey) {
+        const JsonValue* coord = obj.get("coordinate");
+        const JsonValue* points = obj.get("points");
+        const int n = (int)points->arr.size();
+        std::vector<float> locs(n), ders(n);
+        std::vector<int> childIds(n);
+        for (int i = 0; i < n; i++) {
+            const JsonValue& p = points->arr[i];
+            locs[i] = (float)p.num("location", 0.0);
+            ders[i] = (float)p.num("derivative", 0.0);
             const JsonValue* pv = p.get("value");
-            if (pv->isNumber()) {
-                auto leaf = std::make_shared<SplineDF>();
-                leaf->isLeaf = true;
-                leaf->fixedValue = (float)pv->numVal;
-                spline->subSplines.push_back(leaf);
-            } else {
-                spline->subSplines.push_back(std::dynamic_pointer_cast<SplineDF>(buildSpline(*pv, selfKey)));
-            }
+            childIds[i] = pv->isNumber() ? spline->addLeaf((float)pv->numVal)
+                                        : buildSplineNode(spline, *pv, selfKey);
         }
+        int nodeId = spline->addNode(buildNode(*coord, selfKey), n);
+        for (int i = 0; i < n; i++) spline->addPoint(locs[i], ders[i], childIds[i]);
         if (wg_splineDebug) {
-            std::fprintf(stderr, "[BUILDSPLINE] selfKey=%s coord=%s n=%zu locs=[", selfKey.c_str(),
-                         coord->isString() ? coord->str().c_str() : "?obj?", spline->locations.size());
-            for (size_t li = 0; li < spline->locations.size(); li++)
-                std::fprintf(stderr, "%.4f%s", spline->locations[li], li + 1 < spline->locations.size() ? "," : "");
+            std::fprintf(stderr, "[BUILDSPLINE] selfKey=%s coord=%s n=%d locs=[", selfKey.c_str(),
+                         coord->isString() ? coord->str().c_str() : "?obj?", n);
+            for (int li = 0; li < n; li++)
+                std::fprintf(stderr, "%.4f%s", locs[li], li + 1 < n ? "," : "");
             std::fprintf(stderr, "]\n");
         }
-        return spline;
+        return nodeId;
     }
 
     // 解析 registry 引用（"minecraft:overworld/continents" 等）

@@ -565,6 +565,10 @@ private:
     struct Slot {
         int64_t key = INT64_MIN;
         std::vector<double> grid;
+        // 边界列复用（无损）：上一个 chunk 的 gx=4 列（GY×GZ），供左邻 chunk 复用 gx=0 列
+        // 复用条件：左邻 chunk 的 gx=4 列坐标 == 当前 chunk 的 gx=0 列坐标（x 相同）→ 采样值逐位相同
+        int edgeCX = INT32_MIN, edgeCZ = INT32_MIN;
+        std::vector<double> edgeCol;
     };
     int cacheId;
     static std::atomic<int> nextId;
@@ -586,9 +590,17 @@ private:
         const int GX = 16 / CELL_X + 1, GY = height / CELL_Y + 1, GZ = 16 / CELL_Z + 1;
         grid.assign((size_t)GX * GY * GZ, 0.0);
         NoisePos p;
+        auto& slots = tlSlots();
+        Slot& slot = slots[cacheId];
+        // 边界列复用（无损）：若上一个 chunk 是左邻 (chunkX-1, chunkZ)，其 gx=4 列 == 当前 gx=0 列
+        const bool reuseLeft = (slot.edgeCX == chunkX - 1 && slot.edgeCZ == chunkZ);
         for (int gy = 0; gy < GY; gy++)
             for (int gz = 0; gz < GZ; gz++)
                 for (int gx = 0; gx < GX; gx++) {
+                    if (gx == 0 && reuseLeft) {
+                        grid[((size_t)gy * GZ + gz) * GX + 0] = slot.edgeCol[(size_t)gy * GZ + gz];
+                        continue;
+                    }
                     p.x = chunkX * 16 + gx * CELL_X;
                     p.y = minY + gy * CELL_Y;
                     p.z = chunkZ * 16 + gz * CELL_Z;
@@ -598,6 +610,12 @@ private:
                                      gx, gy, gz, grid[((size_t)gy * GZ + gz) * GX + gx]);
                     }
                 }
+        // 保存当前 chunk 的 gx=4 列（供右邻 chunk 复用其 gx=0 列）
+        slot.edgeCX = chunkX; slot.edgeCZ = chunkZ;
+        slot.edgeCol.resize((size_t)GY * GZ);
+        for (int gy = 0; gy < GY; gy++)
+            for (int gz = 0; gz < GZ; gz++)
+                slot.edgeCol[(size_t)gy * GZ + gz] = grid[((size_t)gy * GZ + gz) * GX + (GX - 1)];
     }
 };
 
@@ -786,93 +804,131 @@ private:
 };
 
 // ===== Spline（1.20.1 Hermite 插值）=====
+// 扁平化（2026-08-12）：递归 shared_ptr 树 → 连续节点数组 + 整数索引。
+// 收益：去 shared_ptr 间接 + vtable 虚调用，节点/数据连续存储 → 减少树遍历 cache miss
+//（latency-bound 优化，依据 .investigations/perf-rework/phase1-design.md）。
+// 语义不变：Hermite 插值公式逐位相同（BK-001 零退化）。
 class SplineDF : public DensityFunction {
 public:
-    // 位置函数 + 位置点 + 子样条 + 导数
-    std::shared_ptr<DensityFunction> locationFunction;
-    std::vector<float> locations;
-    std::vector<std::shared_ptr<SplineDF>> subSplines; // 可能为叶子（固定值）或嵌套
-    std::vector<float> derivatives;
-    // 叶子：values 是固定值
-    bool isLeaf;
-    float fixedValue;
+    // 扁平节点：所有节点连续存储；子节点用整数索引（nodes 下标）
+    struct Node {
+        int locFn = -1;      // locationFunctions 池索引（叶子为 -1）
+        int locBegin = 0;    // locations/derivatives 全局数组起始索引
+        int subBegin = 0;    // subIdx 全局数组起始索引
+        int n = 0;           // 点数（0 = 叶子，fixedValue 有效）
+        float fixedValue = 0.f;
+    };
 
-    SplineDF() : isLeaf(true), fixedValue(0) {}
+    std::vector<DF> locationFunctions;   // locationFunction 池（FlatCache/noise 等，共享外部对象）
+    std::vector<float> locations;        // 所有节点 locations 连续
+    std::vector<float> derivatives;      // 所有节点 derivatives 连续
+    std::vector<int> subIdx;             // 所有节点子节点索引（nodes 下标）
+    std::vector<Node> nodes;             // 节点元数据数组
+    int root = -1;
+
+    SplineDF() = default;
+
+    // ---- 构建接口（density_builder 递归填充）----
+    int addLeaf(float value) {
+        Node nd; nd.n = 0; nd.fixedValue = value;
+        nodes.push_back(nd);
+        return (int)nodes.size() - 1;
+    }
+    int addNode(DF locationFn, int pointCount) {
+        Node nd; nd.locFn = (int)locationFunctions.size();
+        locationFunctions.push_back(std::move(locationFn));
+        nd.locBegin = (int)locations.size();
+        nd.subBegin = (int)subIdx.size();
+        nd.n = pointCount;
+        nodes.push_back(nd);
+        return (int)nodes.size() - 1;
+    }
+    void addPoint(float loc, float deriv, int childId) {
+        locations.push_back(loc);
+        derivatives.push_back(deriv);
+        subIdx.push_back(childId);
+    }
 
     double sample(const NoisePos& pos) const override {
         if (wg_profEnabled) {
             wg_profSpline.fetch_add(1, std::memory_order_relaxed);
             auto t0 = std::chrono::steady_clock::now();
-            double r = sampleImpl(pos);
+            double r = sampleNode(root, pos);
             wg_profSplineNs.fetch_add((int64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - t0).count(), std::memory_order_relaxed);
             return r;
         }
-        return sampleImpl(pos);
+        return sampleNode(root, pos);
     }
+
+    double minValue() const override { return nodeMin(root); }
+    double maxValue() const override { return nodeMax(root); }
+
+private:
     // @anchor.test("FlatCacheDF 角点缓存命中/重建路径对齐 Java（5x5 网格 + 位置函数判定）", source="probe:block_probe!FLATCACHE#004")
-    double sampleImpl(const NoisePos& pos) const {
-        if (isLeaf) return fixedValue;
-        double f = locationFunction->sample(pos);
-        double r = apply(f, pos);
+    double sampleNode(int nodeId, const NoisePos& pos) const {
+        const Node& nd = nodes[nodeId];
+        if (nd.n == 0) return (double)nd.fixedValue;   // 叶子：固定值
+        double f = locationFunctions[nd.locFn]->sample(pos);
+        const float* locs = locations.data() + nd.locBegin;
+        const float* ders = derivatives.data() + nd.locBegin;
+        const int* subs = subIdx.data() + nd.subBegin;
+        const int n = nd.n;
+        // Java: i = binarySearch(0, n, f < locations[i]) - 1
+        int lo = 0, hi = n;
+        while (lo < hi) {
+            int mid = (lo + hi) / 2;
+            if (f < locs[mid]) hi = mid; else lo = mid + 1;
+        }
+        int i = lo - 1;
+        double r;
+        if (i < 0) {                                   // f < locs[0]
+            float d = ders[0];
+            double base = sampleNode(subs[0], pos);
+            r = base + d * (f - locs[0]);
+        } else if (i == n - 1) {                       // f >= locs[n-1]
+            int idx = n - 1;
+            float d = ders[idx];
+            double base = sampleNode(subs[idx], pos);
+            r = base + d * (f - locs[idx]);
+        } else {
+            int k = i;
+            float g = locs[k], h = locs[k + 1];
+            double kd = (f - g) / (double)(h - g);
+            double nv = sampleNode(subs[k], pos);
+            double ov = sampleNode(subs[k + 1], pos);
+            float l = ders[k], m = ders[k + 1];
+            double p = l * (h - g) - (ov - nv);
+            double q = -m * (h - g) + (ov - nv);
+            r = lerp(kd, nv, ov) + kd * (1.0 - kd) * lerp(kd, p, q);
+        }
         if (wg_splineDebug) {
-            const auto* fc = dynamic_cast<const FlatCacheDF*>(locationFunction.get());
-            const auto* cn = dynamic_cast<const Cache2DDF*>(locationFunction.get());
-            std::fprintf(stderr, "[SPLINE] pos=(%d,%d,%d) f=%.9f result=%.9f n=%zu locFn=%s%s%s locs=[",
-                         pos.x, pos.y, pos.z, f, r, locations.size(),
+            const auto* fc = dynamic_cast<const FlatCacheDF*>(locationFunctions[nd.locFn].get());
+            const auto* cn = dynamic_cast<const Cache2DDF*>(locationFunctions[nd.locFn].get());
+            std::fprintf(stderr, "[SPLINE] pos=(%d,%d,%d) f=%.9f result=%.9f n=%d locFn=%s%s%s locs=[",
+                         pos.x, pos.y, pos.z, f, r, n,
                          fc ? "FlatCache" : (cn ? "Cache2D" : "other"),
                          fc ? (", cacheId=" + std::to_string(fc->getCacheId())).c_str() : "",
-                         locationFunction == nullptr ? " NULL" : "");
-            for (size_t li = 0; li < locations.size(); li++)
-                std::fprintf(stderr, "%.4f%s", locations[li], li + 1 < locations.size() ? "," : "");
+                         locationFunctions[nd.locFn] == nullptr ? " NULL" : "");
+            for (int li = 0; li < n; li++)
+                std::fprintf(stderr, "%.4f%s", locs[li], li + 1 < n ? "," : "");
             std::fprintf(stderr, "]\n");
         }
         return r;
     }
 
-    double apply(double f, const NoisePos& pos) const {
-        size_t n = locations.size();
-        if (n == 1) return sampleOutsideRange(f, pos, 0);
-        // Java: i = binarySearch(0, n, f < locations[i]) - 1
-        size_t lo = 0, hi = n;
-        while (lo < hi) {
-            size_t mid = (lo + hi) / 2;
-            if (f < locations[mid]) hi = mid; else lo = mid + 1;
-        }
-        int64_t i = (int64_t)lo - 1;
-        if (i < 0) return sampleOutsideRange(f, pos, 0);                 // f < locations[0]
-        if (i == (int64_t)n - 1) return sampleOutsideRange(f, pos, (size_t)i); // f >= locations[n-1]
-        size_t k = (size_t)i;
-        float g = locations[k], h = locations[k + 1];
-        double kd = (f - g) / (double)(h - g);
-        double nv = subSplines[k] ? subSplines[k]->sample(pos) : 0.0;
-        double ov = subSplines[k + 1] ? subSplines[k + 1]->sample(pos) : 0.0;
-        float l = derivatives[k], m = derivatives[k + 1];
-        double p = l * (h - g) - (ov - nv);
-        double q = -m * (h - g) + (ov - nv);
-        return lerp(kd, nv, ov) + kd * (1.0 - kd) * lerp(kd, p, q);
-    }
-
-    double sampleOutsideRange(double f, const NoisePos& pos, size_t i) const {
-        // Java: index==0 → subSplines.get(0)；否则 → subSplines.get(size-1)（i=n-1 时越界，需换算）
-        size_t idx = (i == 0) ? 0 : (subSplines.size() - 1);
-        float d = derivatives[idx];
-        double base = subSplines[idx] ? subSplines[idx]->sample(pos) : (double)fixedValue;
-        return base + d * (f - locations[idx]);
-    }
-
-    double minValue() const override { return isLeaf ? fixedValue : computeMin(); }
-    double maxValue() const override { return isLeaf ? fixedValue : computeMax(); }
-
-private:
-    double computeMin() const {
+    double nodeMin(int nodeId) const {
+        const Node& nd = nodes[nodeId];
+        if (nd.n == 0) return (double)nd.fixedValue;
         double mn = std::numeric_limits<double>::infinity();
-        for (auto& s : subSplines) mn = std::min(mn, s ? s->minValue() : fixedValue);
+        for (int j = 0; j < nd.n; j++) mn = std::min(mn, nodeMin(subIdx[nd.subBegin + j]));
         return mn;
     }
-    double computeMax() const {
+    double nodeMax(int nodeId) const {
+        const Node& nd = nodes[nodeId];
+        if (nd.n == 0) return (double)nd.fixedValue;
         double mx = -std::numeric_limits<double>::infinity();
-        for (auto& s : subSplines) mx = std::max(mx, s ? s->maxValue() : fixedValue);
+        for (int j = 0; j < nd.n; j++) mx = std::max(mx, nodeMax(subIdx[nd.subBegin + j]));
         return mx;
     }
 };
