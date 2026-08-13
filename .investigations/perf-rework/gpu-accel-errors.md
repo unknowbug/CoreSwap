@@ -164,6 +164,13 @@
 - **待解决**：根因是「函数嵌套」（210 函数 × 2073 调用，spline 56 + normal 139 + interp 6），需**拆 shader**（final_density 拆成多个子 shader）或**深度扁平化**（spline 内联到调用点）。
 - **教训**：**shader 规模（函数数 × 调用数）是驱动编译时间的主因**，不是单看 fp64 也不是 DontInline；210 函数 76338 行已经超出「单 shader 可编译」的合理规模——纯 float 只把 fp64 清零（1.2MB→1.2MB 几乎不变），驱动还是要编译 210 个函数的嵌套调用图。
 
+### D4. GLSL 不支持递归（spline 数据驱动 spline_eval ↔ spline_val_at 相互递归被拒）
+- **现象**：spline 数据驱动（spline_eval 递归查表替代 56 个 spline 函数）glslc 报 `Linking compute stage: Recursion detected: spline_eval(...) calling spline_val_at(...)`。
+- **根因**：GLSL/SPIR-V 链接阶段**禁止递归**（含相互递归），spline 的嵌套 value（child 递归查表）天然是递归结构，不能用递归函数表达。
+- **尝试**：前向声明（prototype）后仍报 Recursion detected。
+- **待解决**：① 显式栈循环（栈数组 + while 模拟后序递归，1 个函数）；② Python 侧递归内联（嵌套 spline 的 Hermite 内联到 parent，非 GLSL 递归，但代码膨胀 56×15 if-else）。
+- **教训**：**GLSL 无递归**——数据驱动树/图结构（spline 嵌套）必须用「显式栈」或「编译期展开」，不能照搬 CPU 的递归算法。
+
 ---
 
 ## E. GLSL/SPIR-V 语法错误
