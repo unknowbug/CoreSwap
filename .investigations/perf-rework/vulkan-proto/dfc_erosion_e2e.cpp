@@ -1,16 +1,11 @@
-// dfc_factor_e2e.cpp —— factor 完整 DF 树端到端验证（spline 嵌套 + registry 引用 + NormalNoise）
+// dfc_continents_e2e.cpp —— continents 完整链路端到端验证（NormalNoise + shift + shifted_noise）
 #include <vulkan/vulkan.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
 #include <fstream>
-#include <sstream>
 #include <cmath>
-#include <map>
-#include "json.h"
-#include "density.h"
-#include "density_builder.h"
 #include "noise.h"
 #include "xoroshiro.h"
 #include "md5.h"
@@ -27,25 +22,7 @@ static std::vector<uint32_t> loadSpv(const char* path) {
     return code;
 }
 
-static std::string readFile(const std::string& path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) throw std::runtime_error("cannot open " + path);
-    std::stringstream ss; ss << f.rdbuf(); return ss.str();
-}
-
-// 噪声参数表（factor 依赖的 4 个）
-static std::map<std::string, wg::DoublePerlinNoiseSampler::NoiseParameters> buildNoiseParams() {
-    std::map<std::string, wg::DoublePerlinNoiseSampler::NoiseParameters> m;
-    auto add = [&](const char* key, int32_t oct, std::initializer_list<double> amps) {
-        m[std::string("minecraft:") + key] = wg::DoublePerlinNoiseSampler::NoiseParameters{oct, std::vector<double>(amps)};
-    };
-    add("continentalness", -9, {1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0});
-    add("offset", -3, {1.0, 1.0, 1.0, 0.0});
-    add("erosion", -9, {1.0, 1.0, 0.0, 1.0, 1.0});
-    add("ridge", -7, {1.0, 2.0, 1.0, 0.0, 0.0, 0.0});
-    return m;
-}
-
+// 收集一个 DoublePerlinNoiseSampler 的 perm/origin（first + second）
 static void collectNormal(const wg::DoublePerlinNoiseSampler& dn, int octBase,
                           std::vector<uint32_t>& perm, std::vector<double>& origin) {
     int n = (int)dn.firstSampler.octaveSamplers.size();
@@ -53,61 +30,55 @@ static void collectNormal(const wg::DoublePerlinNoiseSampler& dn, int octBase,
         const wg::PerlinNoiseSampler* pn = dn.firstSampler.octaveSamplers[i].get();
         if (pn) {
             for (int k = 0; k < 256; k++) perm[(octBase + i) * 256 + k] = (uint32_t)pn->permutation[k];
-            origin[(octBase + i) * 3 + 0] = pn->originX; origin[(octBase + i) * 3 + 1] = pn->originY; origin[(octBase + i) * 3 + 2] = pn->originZ;
+            origin[(octBase + i) * 3 + 0] = pn->originX;
+            origin[(octBase + i) * 3 + 1] = pn->originY;
+            origin[(octBase + i) * 3 + 2] = pn->originZ;
         }
         pn = dn.secondSampler.octaveSamplers[i].get();
         if (pn) {
             for (int k = 0; k < 256; k++) perm[(octBase + n + i) * 256 + k] = (uint32_t)pn->permutation[k];
-            origin[(octBase + n + i) * 3 + 0] = pn->originX; origin[(octBase + n + i) * 3 + 1] = pn->originY; origin[(octBase + n + i) * 3 + 2] = pn->originZ;
+            origin[(octBase + n + i) * 3 + 0] = pn->originX;
+            origin[(octBase + n + i) * 3 + 1] = pn->originY;
+            origin[(octBase + n + i) * 3 + 2] = pn->originZ;
         }
     }
 }
 
 int main() {
     const uint64_t worldSeed = 8576294172403134396ULL;
-    auto noiseParams = buildNoiseParams();
-    wg::DensityBuilder builder(worldSeed, noiseParams);
+    wg::XoroshiroRandom base(worldSeed);
+    auto randomDeriver = base.nextSplitter();
 
-    // externalLoader：加载 registry 引用
-    std::string dfDir = "E:/PYTHON/CoreSwap/versions/1.20.1/data/worldgen/data/minecraft/worldgen/density_function/overworld/";
-    builder.externalLoader = [&](const std::string& fullRef, const std::string& name) -> wg::DF {
-        std::string path = dfDir + name + ".json";
-        std::ifstream probe(path);
-        if (!probe.good()) return nullptr;
-        return builder.parseFile(fullRef, readFile(path));
-    };
-    // 注册 factor 依赖的 DF（continents/erosion/ridges/ridges_folded + factor）
-    for (const char* f : {"continents", "erosion", "ridges", "ridges_folded", "factor"}) {
-        builder.registerFunction(std::string("minecraft:overworld/") + f, std::make_shared<wg::DensityBuilder::LazyRef>());
-    }
-    for (const char* f : {"continents", "erosion", "ridges", "ridges_folded", "factor"}) {
-        auto df = builder.parseFile(std::string("minecraft:overworld/") + f, readFile(dfDir + f + ".json"));
-        builder.registerFunction(std::string("minecraft:overworld/") + f, df);
-    }
-    wg::DF factor = builder.getRegistryEntry("minecraft:overworld/factor");
-    std::printf("factor DF built\n");
+    // erosion（NormalNoise，fo=-9）+ offset（fo=-3）
+    wg::DoublePerlinNoiseSampler erosion(randomDeriver.split("minecraft:erosion"),
+        wg::DoublePerlinNoiseSampler::NoiseParameters{-9, {1.0,1.0,0.0,1.0,1.0}});
+    wg::DoublePerlinNoiseSampler offset(randomDeriver.split("minecraft:offset"),
+        wg::DoublePerlinNoiseSampler::NoiseParameters{-3, {1.0,1.0,1.0,0.0}});
 
-    // 收集 4 个噪声 perm/origin（octBase 布局：continentalness 0, offset 18, erosion 26, ridge 36）
-    auto rd = builder.randomDeriverPublic();
-    wg::DoublePerlinNoiseSampler continentalness(rd.split("minecraft:continentalness"), noiseParams["minecraft:continentalness"]);
-    wg::DoublePerlinNoiseSampler offset(rd.split("minecraft:offset"), noiseParams["minecraft:offset"]);
-    wg::DoublePerlinNoiseSampler erosion(rd.split("minecraft:erosion"), noiseParams["minecraft:erosion"]);
-    wg::DoublePerlinNoiseSampler ridge(rd.split("minecraft:ridge"), noiseParams["minecraft:ridge"]);
-    const int totalOct = 18 + 8 + 10 + 12;
+    // 收集 perm/origin（octBase 布局：erosion 0..17，offset 18..25）
+    const int totalOct = 10 + 8;
     std::vector<uint32_t> perm(totalOct * 256, 0);
     std::vector<double> origin(totalOct * 3, 0.0);
-    collectNormal(continentalness, 0, perm, origin);
-    collectNormal(offset, 18, perm, origin);
-    collectNormal(erosion, 26, perm, origin);
-    collectNormal(ridge, 36, perm, origin);
+    collectNormal(erosion, 0, perm, origin);
+    collectNormal(offset, 10, perm, origin);
+    // 诊断：对比上传的 perm/origin vs noise.h
+    {
+        auto* pn0 = erosion.firstSampler.octaveSamplers[0].get();
+        printf("[dbg] perm[0..4] 上传 vs noise.h: ");
+        for (int k = 0; k < 5; k++) printf("%u/", perm[k]);
+        for (int k = 0; k < 5; k++) printf("%u ", (unsigned)pn0->permutation[k]);
+        printf("\n");
+        printf("[dbg] origin[0..2] 上传=%.6f,%.6f,%.6f vs noise.h=%.6f,%.6f,%.6f\n",
+               origin[0], origin[1], origin[2], pn0->originX, pn0->originY, pn0->originZ);
+    }
 
-    // 坐标（近坐标，避免远坐标的坐标精度影响 spline）
+    // 坐标（远坐标）
     const uint32_t N = 1024;
     std::vector<int32_t> coords(3 * N);
     for (uint32_t i = 0; i < N; i++) {
-        coords[3*i+0] = (int32_t)(728 + (i % 32));
-        coords[3*i+1] = (int32_t)(-8 + (i / 32 % 16));
-        coords[3*i+2] = (int32_t)(-428 + (i / 512));
+        coords[3*i+0] = (int32_t)(728 + (i % 16));
+        coords[3*i+1] = (int32_t)(64 + (i / 16 % 16));
+        coords[3*i+2] = (int32_t)(-428 + (i / 256));
     }
 
     // ---- Vulkan 初始化（fp64，4 buffer）----
@@ -132,7 +103,7 @@ int main() {
     VkDevice device; CHECK_VK(vkCreateDevice(physDev, &devCI, nullptr, &device));
     VkQueue queue; vkGetDeviceQueue(device, computeFamily, 0, &queue);
 
-    auto spv = loadSpv("factor_noinline.spv");
+    auto spv = loadSpv("erosion.spv");
     VkShaderModuleCreateInfo smCI{}; smCI.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO; smCI.codeSize = spv.size()*4; smCI.pCode = spv.data();
     VkShaderModule shader; CHECK_VK(vkCreateShaderModule(device, &smCI, nullptr, &shader));
     VkDescriptorSetLayoutBinding bindings[4]{};
@@ -143,10 +114,7 @@ int main() {
     VkPipelineLayout pipelineLayout; CHECK_VK(vkCreatePipelineLayout(device, &plCI, nullptr, &pipelineLayout));
     VkComputePipelineCreateInfo cpCI{}; cpCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     cpCI.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; cpCI.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT; cpCI.stage.module = shader; cpCI.stage.pName = "main"; cpCI.layout = pipelineLayout;
-    VkPipeline pipeline; 
-    std::fprintf(stderr, "[dbg] before vkCreateComputePipelines\n");
-    CHECK_VK(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpCI, nullptr, &pipeline));
-    std::fprintf(stderr, "[dbg] pipeline created\n");
+    VkPipeline pipeline; CHECK_VK(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpCI, nullptr, &pipeline));
 
     VkDeviceSize coordSize = coords.size() * sizeof(int32_t);
     VkDeviceSize permSize = perm.size() * sizeof(uint32_t);
@@ -197,24 +165,29 @@ int main() {
     { void* m; CHECK_VK(vkMapMemory(device, outMem, 0, outSize, 0, &m)); std::vector<float> out(N); std::memcpy(out.data(), m, outSize); vkUnmapMemory(device, outMem);
         double maxDiff = 0.0, sumDiff = 0.0; uint32_t maxIdx = 0;
         for (uint32_t i = 0; i < N; i++) {
-            wg::NoisePos pos{coords[3*i+0], coords[3*i+1], coords[3*i+2]};
-            double ref = factor->sample(pos);
+            int x = coords[3*i+0], y = coords[3*i+1], z = coords[3*i+2];
+            // CPU 参照（对齐 vanilla FlatCache 的 biome 对齐 + ShiftDF + ShiftedNoiseDF + NoiseDF）
+            int ax = (x >> 2) << 2;   // flat_cache：biome 对齐
+            int az = (z >> 2) << 2;
+            double shiftX = offset.sample(ax * 0.25, 0.0, az * 0.25) * 4.0;      // SHIFT_A: y=0
+            double shiftZ = offset.sample(az * 0.25, ax * 0.25, 0.0) * 4.0;      // SHIFT_B: x=z,y=x,z=0
+            double d = ax * 0.25 + shiftX;
+            double e = 0.0;                                                     // flat_cache y=0
+            double f = az * 0.25 + shiftZ;
+            double ref = erosion.sample(d, e, f);
             double diff = std::fabs((double)out[i] - ref);
             if (diff > maxDiff) { maxDiff = diff; maxIdx = i; }
             sumDiff += diff;
         }
-        std::printf("[result] N=%u, factor DFC shader vs CPU double: maxDiff=%.3e avgDiff=%.3e\n", N, maxDiff, sumDiff / N);
-        wg::NoisePos p{coords[3*maxIdx], coords[3*maxIdx+1], coords[3*maxIdx+2]};
-        std::printf("[result] maxDiff @ (%d,%d,%d): gpu=%.9f cpu=%.9f\n", p.x, p.y, p.z, out[maxIdx], factor->sample(p));
-        // 诊断：对比 continents 采样值
-        wg::DF continents = builder.getRegistryEntry("minecraft:overworld/continents");
-        wg::DF erosion = builder.getRegistryEntry("minecraft:overworld/erosion");
-        wg::DF ridges = builder.getRegistryEntry("minecraft:overworld/ridges");
-        wg::NoisePos cp{(p.x >> 2) << 2, 0, (p.z >> 2) << 2};
-        std::printf("[dbg] continents.sample(%d,0,%d) = %.9f\n", cp.x, cp.z, continents->sample(cp));
-        std::printf("[dbg] erosion.sample(%d,0,%d) = %.9f\n", cp.x, cp.z, erosion->sample(cp));
-        std::printf("[dbg] ridges.sample(%d,0,%d) = %.9f\n", cp.x, cp.z, ridges->sample(cp));
-        std::printf("[dbg] factor.sample(%d,%d,%d) = %.9f\n", p.x, p.y, p.z, factor->sample(p));
+        std::printf("[result] N=%u, continents DFC shader vs CPU double: maxDiff=%.3e avgDiff=%.3e\n", N, maxDiff, sumDiff / N);
+        int x = coords[3*maxIdx], y = coords[3*maxIdx+1], z = coords[3*maxIdx+2];
+        int ax = (x >> 2) << 2, az = (z >> 2) << 2;
+        double shiftX = offset.sample(ax * 0.25, 0.0, az * 0.25) * 4.0;
+        double shiftZ = offset.sample(az * 0.25, ax * 0.25, 0.0) * 4.0;
+        std::printf("[result] maxDiff @ (%d,%d,%d): gpu=%.9f cpu=%.9f\n", x, y, z, out[maxIdx],
+                    erosion.sample(ax*0.25+shiftX, 0.0, az*0.25+shiftZ));
+        std::printf("[dbg] ax=%d az=%d shiftX=%.9f shiftZ=%.9f\n", ax, az, shiftX, shiftZ);
+        std::printf("[dbg] d=%.9f f=%.9f erosion.sample=%.9f\n", ax*0.25+shiftX, az*0.25+shiftZ, erosion.sample(ax*0.25+shiftX, 0.0, az*0.25+shiftZ));
     }
 
     vkDestroyFence(device, fence, nullptr); vkDestroyCommandPool(device, cmdPool, nullptr); vkDestroyDescriptorPool(device, dpool, nullptr);

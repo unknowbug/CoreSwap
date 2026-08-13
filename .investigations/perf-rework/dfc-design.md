@@ -94,18 +94,23 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 2. **maintainPrecision floor→trunc**：noise.h 用 `(long)` 向零截断（trunc），shader 用了 floor（向下取整），负数差 2^25。
 3. **normal 噪声去重失效**：去重 key 用自增 `n{len}`，改成 noise key（offset 被 shift_x/shift_z 引用应复用）。
 
-## 八、Phase 6 进展（spline 函数化 + factor shader 优化）
+## 八、Phase 6 进展（编译慢根因定位 + DontInline 的坑）
 
-- ✅ **spline 函数化 + 去重**：嵌套 spline 用函数调用（`spline_N(ix,iy,iz)`），避免 if-else 链指数膨胀；结构去重（ridges 被多处引用）98→19 个 spline 函数；二分→if-else 链（无数组无循环，NVIDIA 编译快）。
-- ✅ **factor shader 从 514KB → 135KB SPIR-V**（spline 函数化 + 去重）。
-- ✅ **factor CPU 侧验证**（diag_factor_cpu.cpp）：DensityBuilder 构建 factor + 采样正常（64 samples 6ms）。
-- ⏳ **factor GPU 编译慢**：vkCreateComputePipelines 编译 factor shader（含 19 spline + 4 NormalNoise 的 fp64 坐标拆分）>10 分钟（NVIDIA 驱动问题，非功能 bug）。这是部署时一次性成本（可缓存 pipeline）。端到端 GPU vs CPU 对比待 GPU 编译完成后再跑。
+- ✅ **编译慢根因确认**：不是 fp64（fp64 只占 2% 指令），而是**驱动内联展开 34 个函数**（spline 嵌套 + NormalNoise）→ SPIR-V 17 倍膨胀（135KB → 2.34MB，`spirv-opt --inline-entry-points-exhaustive` 0.9s 复现）→ LLVM 寄存器分配超线性爆炸（>10min）。
+- ✅ **spline 函数化 + 去重**：嵌套 spline 用函数调用，结构去重 98→19 函数，shader 514KB→135KB。
+- ⚠️ **DontInline 的坑**：给非 entry 函数设 `FunctionControl DontInline`（bit 1，注意不是 OpDecorate decoration）编译从 >10min 降到 1.6s，**但引入 fp64 行为错误**——erosion 原始 spv 结果 3.77e-7 正确，DontInline 版 1.48 错误（fp64 的 `maintainPrecision` 等函数不被内联后行为异常）。
+- **方向修正（采纳报告建议）**：报告「CPU 预拆分」是对的——把 NormalNoise 的 fp64 坐标拆分移到 CPU（int32 格点 + float 小数上传），GPU 纯 float 采样，同时解决编译慢（无 fp64 内联）和 DontInline 的 fp64 bug。
+
+### Phase 6 修的 bug（端到端揪出）
+
+1. spline 调用坐标硬编码 `(ix,iy,iz)` → 用 `self.cx/cy/cz`（flat_cache 对齐后）。
+2. registry 调用坐标硬编码 `(ix,iy,iz)` → 用 `self.cx/cy/cz`。
+3. lacunarity `2^(-fo)` → `2^(fo)`；maintainPrecision `floor` → `trunc`；normal 去重 key。
 
 ## 九、未完成
 
-- factor/depth GPU 端到端对比（GPU 编译慢，待缓存机制或驱动优化）。
-- interpolated（cell 三线性插值 4×4×8）的 GPU 实现（当前剥掉，误差待测）。
-- weird_scaled_sampler（当前返回 0）。
+- CPU 预拆分方案落地（NormalNoise fp64 坐标拆分移到 CPU，GPU 纯 float）。
+- interpolated（cell 三线性插值）GPU 实现。
 
 ## 十、踩坑（Phase 1-6 保留）
 

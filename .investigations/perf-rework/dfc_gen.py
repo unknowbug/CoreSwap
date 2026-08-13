@@ -69,13 +69,13 @@ class DfcGen:
     # ---- registry 引用 → 命名函数（去重，避免表达式爆炸）----
     def _gen_registry_call(self, ref):
         if ref in self.registry_funcs:
-            return f"{self.registry_funcs[ref]}(ix, iy, iz)"
+            return f"{self.registry_funcs[ref]}({self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
         fname = "df_" + ref.replace("minecraft:", "").replace("/", "_").replace(".", "_")
         self.registry_funcs[ref] = fname          # 先注册（防循环引用）
         df = self.resolve_ref(ref)
         expr = self.gen(df)
         self.registry_defs.append((fname, expr))
-        return f"{fname}(ix, iy, iz)"
+        return f"{fname}({self.cx}, {self.cy}, {self.cz})"
 
     # ---- 噪声实例注册（运行时从 seed 生成参数，这里只收集 + 分配索引）----
     def _register_noise(self, kind, key, params):
@@ -220,7 +220,7 @@ class DfcGen:
         idx = len(self.spline_funcs)
         fname = f"spline_{idx}"
         self.spline_funcs.append((fname, coord, n, locs, ders, vals))
-        call = f"{fname}(ix, iy, iz)"
+        call = f"{fname}({self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后的）
         self.spline_cache[key] = call
         return call
 
