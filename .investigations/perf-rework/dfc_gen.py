@@ -19,6 +19,10 @@ class DfcGen:
         self.spline_funcs = []        # [(函数名, coord表达式, n, locs, ders, vals)]，嵌套 spline 函数化
         self.spline_cache = {}        # spline 结构 JSON -> 函数调用（去重，ridges 被多处引用）
         self.noise_params = {}
+        # 坐标链（CPU 预拆分）：主噪声的坐标链描述 + shift 噪声参数
+        self.coord_chains = []        # 每个 normal 实例的坐标链（type/scale/shift/flat_cache）
+        self.shift_noises = {}        # shift 噪声 noise_key -> {firstOctave, amplitudes}（CPU double 采样）
+        self.flat_cache_depth = 0     # 当前在 flat_cache 内的嵌套深度
         # 坐标变量（gen_with_coords 可切换，用于 flat_cache 的 biome 对齐）
         self.cx, self.cy, self.cz = "ix", "iy", "iz"     # int 块坐标
         self.fx, self.fy, self.fz = "x", "y", "z"        # float 坐标
@@ -43,6 +47,25 @@ class DfcGen:
         """noise key（如 minecraft:continentalness）→ {firstOctave, amplitudes}"""
         name = noise_key.replace("minecraft:", "")
         return self.noise_params.get(name, {"firstOctave": 0, "amplitudes": [1.0]})
+
+    def _resolve_shift(self, shift_df):
+        """解析 shift 节点，返回 {type, noise_key}，并记录 shift 噪声参数（CPU double 采样）"""
+        if isinstance(shift_df, str):
+            if shift_df == "minecraft:shift_x":
+                shift_df = {"type": "minecraft:shift_a"}
+            elif shift_df == "minecraft:shift_z":
+                shift_df = {"type": "minecraft:shift_b"}
+            else:
+                return {"type": "constant", "value": 0.0}
+        if isinstance(shift_df, (int, float)):
+            return {"type": "constant", "value": float(shift_df)}
+        if isinstance(shift_df, dict):
+            t = shift_df.get("type", "")
+            if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
+                np = self._resolve_noise_params("minecraft:offset")
+                self.shift_noises["minecraft:offset"] = {"firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"]}
+                return {"type": t.replace("minecraft:", ""), "noise_key": "minecraft:offset"}
+        return {"type": "constant", "value": 0.0}
 
     # ---- registry 引用解析 ----
     def resolve_ref(self, ref):
@@ -123,6 +146,11 @@ class DfcGen:
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
+            self.coord_chains.append({
+                "type": "noise", "noise_key": df.get("noise", ""),
+                "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
+                "flat_cache": self.flat_cache_depth > 0,
+            })
             return f"normal_noise_{idx}(sIdx)"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
@@ -130,14 +158,19 @@ class DfcGen:
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
             })
+            self.coord_chains.append({
+                "type": "shifted_noise", "noise_key": df.get("noise", ""),
+                "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
+                "flat_cache": self.flat_cache_depth > 0,
+                "shift_x": self._resolve_shift(df.get("shift_x", 0.0)),
+                "shift_y": self._resolve_shift(df.get("shift_y", 0.0)),
+                "shift_z": self._resolve_shift(df.get("shift_z", 0.0)),
+            })
             return f"normal_noise_{idx}(sIdx)"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
-            np = self._resolve_noise_params("minecraft:offset")
-            idx = self._register_noise("normal", "minecraft:offset", {
-                "noise": "minecraft:offset", "firstOctave": np["firstOctave"], "amplitudes": np["amplitudes"],
-            })
-            # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
-            return f"(normal_noise_{idx}(sIdx) * 4.0f)"
+            # shift 噪声（offset）是坐标链的一部分，CPU 侧 double 采样，GPU 侧不采样
+            self._resolve_shift(df)
+            return "0.0f"
         if t == "minecraft:spline":
             return self._gen_spline(df.get("spline", df))
         if t == "minecraft:add":
@@ -173,8 +206,10 @@ class DfcGen:
             return f"0.0f"
         if t == "minecraft:flat_cache":
             # flat_cache：坐标对齐到 biome（x>>2<<2, 0, z>>2<<2），delegate 采样（对齐 vanilla FlatCache.sample）
+            self.flat_cache_depth += 1
             inner = self.gen_with_coords(df["argument"], "((ix >> 2) << 2)", "0", "((iz >> 2) << 2)",
                                          "float((ix >> 2) << 2)", "0.0f", "float((iz >> 2) << 2)")
+            self.flat_cache_depth -= 1
             return f"({inner})"
         if t in ("minecraft:cache_2d", "minecraft:cache_once", "minecraft:cache_all_in_cell"):
             # 缓存包装：采样结果 = delegate（原始坐标），剥掉（对齐 vanilla Cache2D/CacheOnce）
@@ -266,6 +301,31 @@ class DfcGen:
         for fname, coord, n, locs, ders, vals in self.spline_funcs:
             funcs.append(self._spline_body(fname, coord, n, locs, ders, vals))
         return self._shader_template(expr, funcs)
+
+    def gen_noise_manifest(self):
+        """输出噪声清单（JSON dict）：normal 实例的坐标链 + octBase/splitBase + shift 噪声参数，供 CPU 侧重放"""
+        normal_instances = []
+        octBase = 0
+        splitBase = 0
+        ci = 0   # coord_chains 索引（只对 normal 实例）
+        for idx, (kind, params) in enumerate(self.noise_instances):
+            if kind == "old_blended":
+                octBase += 40
+            elif kind == "normal":
+                n = len(params.get("amplitudes", [1.0]))
+                chain = self.coord_chains[ci] if ci < len(self.coord_chains) else {"type": "noise", "noise_key": "", "xz_scale": 1.0, "y_scale": 1.0, "flat_cache": False}
+                normal_instances.append({
+                    "noise_key": params.get("noise", ""),
+                    "firstOctave": params.get("firstOctave", 0),
+                    "amplitudes": params.get("amplitudes", [1.0]),
+                    "octBase": octBase, "splitBase": splitBase, "n": n,
+                    "coord_chain": chain,
+                })
+                ci += 1
+                octBase += 2 * n
+                splitBase += 6 * 2 * n
+        return {"normal_instances": normal_instances, "shift_noises": self.shift_noises,
+                "split_total": splitBase}
 
     def _old_blended_func(self, idx, p, octBase):
         # 参数内联（scale/factor/smear）；perm/origin 从 PermBuf/OriginBuf 读（octBase 偏移）

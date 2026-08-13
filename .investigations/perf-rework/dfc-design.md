@@ -122,12 +122,25 @@ NormalNoise double拆分+float vs 纯double（远坐标）: maxDiff=3.559e-07 av
 - **架构变化**：normal_noise 函数签名改为 `normal_noise_N(int sIdx)`（采样点索引），从拆分坐标 buffer 读 int32 格点 + float 小数；坐标链（flat_cache biome 对齐 + shift_x/shift_z 的 offset 采样 + shifted_noise 坐标）移到 CPU 侧重放（端到端验证程序手动重放）。GPU 侧只剩 float 采样 + spline + 算术。
 - 拆分坐标 buffer：每采样点 SPLIT_TOTAL 值 = Σ(6 × 2n octave)，每 octave [ix,iy,iz,gx,gy,gz]。
 
-## 十、未完成
+## 十、Phase 8 进展（多后端：坐标链描述 + 通用重放 ✅）
 
-- 坐标链 CPU 侧重放的**自动生成**（当前端到端验证程序手动重放 flat_cache 对齐 + shift；完整 DF 树如 factor 需 DFC 生成 CPU 侧坐标计算代码，即「多后端」）。
+- ✅ **DFC 输出噪声清单**（gen_noise_manifest）：normal 实例的坐标链（type/scale/shift/flat_cache）+ octBase/splitBase + shift 噪声参数（offset 的 firstOctave/amplitudes）。
+- ✅ **坐标链 CPU 侧重放**：gen 时记录 coord_chain（noise/shifted_noise/shift_a/shift_b/shift + flat_cache 对齐），shift 噪声（offset）记录到 shift_noises（CPU double 采样，不生成 GPU 函数）。
+- ✅ **通用重放函数验证**（dfc_manifest_e2e.cpp 的 splitChain + evalShift）：处理 flat_cache 对齐 + shifted_noise + shift 递归，结果与手动重放一致：
+
+```
+[dbg] pipeline created
+[result] 通用坐标链重放 CPU预拆分: maxDiff=3.475e-07 avgDiff=2.867e-07
+```
+
+- **架构定型**：GPU 后端（GLSL 纯 float 采样 + spline + 算术）+ CPU 后端（坐标链重放 + 拆分）。shift 噪声（offset）是「坐标链的一部分」，CPU double 采样；主噪声（erosion/continentalness）是「density 输出」，CPU 拆分 + GPU float。
+
+## 十一、未完成
+
+- 坐标链重放的**端到端自动生成**（当前通用重放函数在 C++ 手写；完整 DF 树如 factor 需清单 JSON 自动解析 + 递归重放，含 spline 的 coordinate 链）。
 - interpolated（cell 三线性插值）GPU 实现。
 
-## 十一、踩坑（Phase 1-7 保留）
+## 十二、踩坑（Phase 1-8 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。
