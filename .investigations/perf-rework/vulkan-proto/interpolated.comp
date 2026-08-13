@@ -1,0 +1,156 @@
+// interpolated.comp —— InterpolatedNoiseSampler（old_blended_noise = base_3d_noise）double 版
+// 完整对齐 vanilla 1.20.1：16 lower + 16 upper + 8 interpolation octave，y 轴 smear，插值
+// 全程 double（GPU fp64），验证 GPU fp64 vs CPU double 误差
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// binding 0: 参数（40 octave：lower[16] upper[16] interp[8]）
+layout(set = 0, binding = 0, std430) buffer Params {
+    uint perm[40][256];      // 每 octave 独立 perm 表
+    double origin[40][3];    // 每 octave 独立 origin
+    double scaledXzScale;
+    double scaledYScale;
+    double xzFactor;
+    double yFactor;
+    double smearScaleMultiplier;
+} params;
+
+// binding 1: 输入坐标 [x,y,z] × N（double，原始块坐标）
+layout(set = 0, binding = 1, std430) buffer CoordBuf {
+    double coords[];
+} coord;
+
+// binding 2: 输出 density [N]（double）
+layout(set = 0, binding = 2, std430) buffer OutputBuf {
+    double density[];
+} outputBuf;
+
+// SimplexNoiseSampler.GRADIENTS（16 梯度，double）
+const double GRADIENTS[16][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1},
+    { 1,  1,  0}, { 0, -1,  1}, {-1,  1,  0}, { 0, -1, -1}
+};
+
+double maintainPrecision(double v) {
+    return v - floor(v / 3.3554432E7 + 0.5) * 3.3554432E7;
+}
+
+double perlinFade(double v) {
+    return v * v * v * (v * (v * 6.0 - 15.0) + 10.0);
+}
+
+double lerpD(double d, double s, double e) {
+    return s + d * (e - s);
+}
+
+int mapPerm(int oct, int v) {
+    return int(params.perm[oct][v & 255]);
+}
+
+double gradDot(int oct, int hash, double x, double y, double z) {
+    // 注意：grad 只用 hash 索引 GRADIENTS，不依赖 oct（vanilla 语义）
+    return GRADIENTS[hash & 15][0] * x + GRADIENTS[hash & 15][1] * y + GRADIENTS[hash & 15][2] * z;
+}
+
+double sampleSection(int oct, int sx, int sy, int sz, double lx, double ly, double lz, double fadeY) {
+    int i = mapPerm(oct, sx);
+    int j = mapPerm(oct, sx + 1);
+    int k = mapPerm(oct, i + sy);
+    int l = mapPerm(oct, i + sy + 1);
+    int m = mapPerm(oct, j + sy);
+    int n = mapPerm(oct, j + sy + 1);
+    double d = gradDot(oct, mapPerm(oct, k + sz),     lx,     ly,     lz);
+    double e = gradDot(oct, mapPerm(oct, m + sz),     lx - 1.0, ly,     lz);
+    double f = gradDot(oct, mapPerm(oct, l + sz),     lx,     ly - 1.0, lz);
+    double g = gradDot(oct, mapPerm(oct, n + sz),     lx - 1.0, ly - 1.0, lz);
+    double h = gradDot(oct, mapPerm(oct, k + sz + 1), lx,     ly,     lz - 1.0);
+    double o = gradDot(oct, mapPerm(oct, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    double p = gradDot(oct, mapPerm(oct, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    double q = gradDot(oct, mapPerm(oct, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    double r = perlinFade(lx);
+    double s = perlinFade(fadeY);
+    double t = perlinFade(lz);
+    double x0 = lerpD(r, d, e);
+    double x1 = lerpD(r, f, g);
+    double x2 = lerpD(r, h, o);
+    double x3 = lerpD(r, p, q);
+    double y0 = lerpD(s, x0, x1);
+    double y1 = lerpD(s, x2, x3);
+    return lerpD(t, y0, y1);
+}
+
+// 5 参数 sample（含 y 轴 smear）
+double sample5(int oct, double x, double y, double z, double yScale, double yMax) {
+    double d = x + params.origin[oct][0];
+    double e = y + params.origin[oct][1];
+    double f = z + params.origin[oct][2];
+    int i = int(floor(d));
+    int j = int(floor(e));
+    int k = int(floor(f));
+    double g = d - i;
+    double h = e - j;
+    double l = f - k;
+    double n;
+    if (yScale != 0.0) {
+        double m = (yMax >= 0.0 && yMax < h) ? yMax : h;
+        n = floor(m / yScale + double(1.0e-7f)) * yScale;
+    } else {
+        n = 0.0;
+    }
+    return sampleSection(oct, i, j, k, g, h - n, l, h);
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= outputBuf.density.length()) {
+        return;
+    }
+    double px = coord.coords[idx * 3 + 0];
+    double py = coord.coords[idx * 3 + 1];
+    double pz = coord.coords[idx * 3 + 2];
+
+    double d = px * params.scaledXzScale;
+    double e = py * params.scaledYScale;
+    double f = pz * params.scaledXzScale;
+    double g = d / params.xzFactor;
+    double h = e / params.yFactor;
+    double i = f / params.xzFactor;
+    double j = params.scaledYScale * params.smearScaleMultiplier;
+    double k = j / params.yFactor;
+
+    // interpolation sampler（8 octave，perm 索引 32..39）
+    double n = 0.0;
+    double o = 1.0;
+    for (int p = 0; p < 8; p++) {
+        int oct = 32 + p;
+        n += sample5(oct, maintainPrecision(g * o), maintainPrecision(h * o), maintainPrecision(i * o), k * o, h * o) / o;
+        o /= 2.0;
+    }
+    double q = (n / 10.0 + 1.0) / 2.0;
+    bool bl = q >= 1.0;
+    bool bl2 = q <= 0.0;
+
+    // lower（perm 索引 0..15）+ upper（perm 索引 16..31）
+    double l = 0.0;
+    double m = 0.0;
+    o = 1.0;
+    for (int r = 0; r < 16; r++) {
+        double s = maintainPrecision(d * o);
+        double t = maintainPrecision(e * o);
+        double u = maintainPrecision(f * o);
+        double v = j * o;
+        if (!bl) {
+            l += sample5(r, s, t, u, v, e * o) / o;
+        }
+        if (!bl2) {
+            m += sample5(16 + r, s, t, u, v, e * o) / o;
+        }
+        o /= 2.0;
+    }
+    double qq = clamp(q, 0.0, 1.0);
+    outputBuf.density[idx] = (l / 512.0 + qq * (m / 512.0 - l / 512.0)) / 128.0;
+}
