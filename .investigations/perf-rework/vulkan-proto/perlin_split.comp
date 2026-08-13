@@ -1,0 +1,86 @@
+// perlin_split.comp —— Perlin 噪声（坐标拆分版，float）
+// 输入是 CPU 已拆好的坐标：每点 6 个 float [i,j,k,g,h,l]
+//   i,j,k = floor(folded + origin)，≤2^24 的整数（float 可精确表示）
+//   g,h,l = 小数部分 ∈ [0,1)
+// GPU 端 hash 用 i/j/k（int），grad/lerp/perlinFade 用 g/h/l（float）
+#version 450
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer NoiseParams {
+    uint perm[256];
+} params;
+
+// 拆分坐标 [i,j,k,g,h,l] × N
+layout(set = 0, binding = 1, std430) buffer CoordBuf {
+    float splitCoord[];
+} coord;
+
+layout(set = 0, binding = 2, std430) buffer OutputBuf {
+    float noise[];
+} outputBuf;
+
+const vec3 GRADIENTS[16] = vec3[](
+    vec3( 1,  1,  0), vec3(-1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0),
+    vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0,  1, -1), vec3( 0, -1, -1),
+    vec3( 1,  1,  0), vec3( 0, -1,  1), vec3(-1,  1,  0), vec3( 0, -1, -1)
+);
+
+float perlinFade(float v) {
+    return v * v * v * (v * (v * 6.0 - 15.0) + 10.0);
+}
+
+float lerpF(float d, float s, float e) {
+    return s + d * (e - s);
+}
+
+int mapPerm(int v) {
+    return int(params.perm[v & 255]);
+}
+
+float gradDot(int hash, vec3 p) {
+    vec3 g = GRADIENTS[hash & 15];
+    return g.x * p.x + g.y * p.y + g.z * p.z;
+}
+
+float sampleSection(int sx, int sy, int sz, float lx, float ly, float lz, float fadeY) {
+    int i = mapPerm(sx);
+    int j = mapPerm(sx + 1);
+    int k = mapPerm(i + sy);
+    int l = mapPerm(i + sy + 1);
+    int m = mapPerm(j + sy);
+    int n = mapPerm(j + sy + 1);
+    float d = gradDot(mapPerm(k + sz),     vec3(lx,     ly,     lz));
+    float e = gradDot(mapPerm(m + sz),     vec3(lx - 1.0, ly,     lz));
+    float f = gradDot(mapPerm(l + sz),     vec3(lx,     ly - 1.0, lz));
+    float g = gradDot(mapPerm(n + sz),     vec3(lx - 1.0, ly - 1.0, lz));
+    float h = gradDot(mapPerm(k + sz + 1), vec3(lx,     ly,     lz - 1.0));
+    float o = gradDot(mapPerm(m + sz + 1), vec3(lx - 1.0, ly,     lz - 1.0));
+    float p = gradDot(mapPerm(l + sz + 1), vec3(lx,     ly - 1.0, lz - 1.0));
+    float q = gradDot(mapPerm(n + sz + 1), vec3(lx - 1.0, ly - 1.0, lz - 1.0));
+    float r = perlinFade(lx);
+    float s = perlinFade(fadeY);
+    float t = perlinFade(lz);
+    float x0 = lerpF(r, d, e);
+    float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o);
+    float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1);
+    float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= outputBuf.noise.length()) {
+        return;
+    }
+    int i = int(coord.splitCoord[idx * 6 + 0]);
+    int j = int(coord.splitCoord[idx * 6 + 1]);
+    int k = int(coord.splitCoord[idx * 6 + 2]);
+    float g = coord.splitCoord[idx * 6 + 3];
+    float h = coord.splitCoord[idx * 6 + 4];
+    float l = coord.splitCoord[idx * 6 + 5];
+    outputBuf.noise[idx] = sampleSection(i, j, k, g, h, l, h);
+}

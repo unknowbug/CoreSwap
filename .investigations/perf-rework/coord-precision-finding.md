@@ -41,3 +41,15 @@ GPU（FP32）：Perlin 采样 = hash（int32 i）+ grad/lerp/perlinFade（float 
 - 「坐标折叠 FP64 放 CPU」仍是正确的，但**不能把折叠后坐标整体 float 化传给 GPU**——必须拆成 int32 整数 + float 小数。
 - 传输量：每坐标 int32 + float = 8 bytes（vs 之前单 float 4 bytes），翻倍但可接受（88KB → 176KB/chunk 输入，仍远小于 CPU 47ms 的数据流开销 144µs）。
 - 更新 gpu-route-decision.md 的「关键机制」与 coreswap-vs-c2me.md 的对应表述。
+
+## GPU 端验证（perlin_split_probe，RTX 4060）
+
+远坐标（3000 万块 × scale 171.103）下，CPU 拆分 → GPU float 采样 vs CPU double 全链路：
+
+```
+[result] N=4096, 坐标拆分: GPU float vs CPU double maxDiff=1.581e-07 avgDiff=2.736e-08
+[result] maxDiff @ n=8: gpu=0.280419052 cpu=0.280418894
+```
+
+- **坐标拆分 GPU 端误差 ~1.6e-7**（vs 整体 float 化 2.2e-1，压低 6 个数量级），方块判定零影响。
+- 分层方案的坐标处理闭环：CPU FP64 折叠 + 拆 int32/float → GPU FP32 采样，远坐标精度损失彻底消除。
