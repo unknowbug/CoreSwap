@@ -132,6 +132,13 @@
 - **定位**：诊断打印 gpu=cpu=64.0 → 发现是常数分支；改采样坐标让 interpolated 采样值跨 0 阈值后误差才体现（maxDiff=5.053e-07）。
 - **教训**：**端到端验证必须让采样点覆盖阈值两侧**——range_choice/abs/max 等非线性节点的常数分支会掩盖底层误差；maxDiff=0 要先怀疑「是不是采样点没覆盖有效路径」，而不是「完全对齐」。
 
+### C13. gen_shader/gen_cpu 顺序污染映射 → normals[131] 越界（0xC0000005）
+- **现象**：final_density 端到端崩溃 0xC0000005，normals[131] 越界（normals 只有 0..130）。
+- **根因**：gen_final_density.py 里 gen_shader 在 gen_cpu 前调用，gen_shader 的分配循环已经填充 normal_vec_index（0..130），gen_cpu 的收集循环再 `normal_vec_index[key] = len(self.normal_vec_index)` 从 131 开始 → vi=131 越界。
+- **定位**：诊断打印 split + collectPerm 后崩溃 → 定位 split 方法 normals[131]；rg 看 normals.emplace_back=131 vs normals[131] 最大索引=131 差 1。
+- **修复**：gen_cpu 在 gen_shader 前调用（先填映射再生成）。
+- **教训**：**gen_cpu 和 gen_shader 都填充 noise 映射（normal_vec_index/split_base），两者顺序必须固定且 gen_cpu 先于 gen_shader**——否则第二次填充从 len() 继续，索引越界。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -149,6 +156,13 @@
 - **定位**：对比「原始 spv（无 DontInline）erosion 正确 3.77e-7」vs「DontInline 版错误 1.48」，锁定 DontInline 引入 bug。
 - **修复**：方向改为「CPU 预拆分」（fp64 坐标拆分移到 CPU，GPU 纯 float），彻底没有 fp64 就没有这个坑。
 - **教训**：**DontInline 是 FunctionControl 位不是 decoration**（查 spirv.hpp `FunctionControlDontInlineShift=1`）；且 **DontInline 对 fp64 有副作用**，不是「免费午餐」。
+
+### D3. final_density shader 驱动编译 >2min（210 函数 76338 行，DontInline 无效）
+- **现象**：final_density.spv（1.2MB，76338 行）vkCreateComputePipelines 编译 >2min。
+- **根因**：final_density 是 factor 的 7 倍规模——OpFunctionCall 2073 次、OpVariable 11296、OpLoad 14119（factor 仅 291/1383/1716）。210 个函数（56 spline + 139 normal + 6 interp）嵌套调用，驱动内联展开 → LLVM 寄存器分配在巨型图上超线性爆炸。
+- **尝试**：FunctionControl DontInline（spirv-as 正确生成 210 个 DontInline）后仍 >2min——NVIDIA 驱动忽略 DontInline 或 call 消除后仍爆炸。
+- **待解决**：纯 float（double 累加 → float）减少 fp64 寄存器压力 + 减少函数嵌套（spline 进一步扁平化 / normal 内联）。
+- **教训**：**shader 规模（函数数 × 调用数）是驱动编译时间的主因**，不是单看 fp64；210 函数 76338 行已经超出「单 shader 可编译」的合理规模，需要拆 shader 或深度扁平化。
 
 ---
 
@@ -207,3 +221,5 @@
 | splitTotal 翻倍/实例累积 | old_blended 去重 key 用 len() 自增，改用参数组合 key |
 | y/minY undeclared | 坐标变量硬编码，改 self.fy + shader 模板加 minY 常量 |
 | maxDiff=0 假象 | range_choice 常数分支吸收误差，采样点要覆盖阈值两侧 |
+| normals[131] 越界 0xC0000005 | gen_shader/gen_cpu 顺序污染 normal_vec_index，gen_cpu 先于 gen_shader |
+| final_density 编译 >2min | 210 函数 76338 行超出单 shader 合理规模，需拆 shader 或纯 float |

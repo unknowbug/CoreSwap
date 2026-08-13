@@ -225,11 +225,19 @@ factor DF built
 
 DFC 能生成 vanilla 完整 final_density 树的 shader + CpuBackend → 集成 block_probe 的前置全部就绪。
 
-## 十九、未完成
+## 十九、Phase 15 进展（final_density 完整树生成 ✅，驱动编译慢 ⚠️）
 
-- 真正集成进 block_probe（DFC 生成 final_density 完整 shader + worldgen_api.cpp GPU 批量采样替换 CPU 采样）。
+- ✅ **final_density 完整树生成成功**：noise_instances=139、spline=56、interp=6、split_total=6512。glslc 编译通过（final_density.spv 1.2MB）。
+- ✅ **修复 C13**（normals[131] 越界）：gen_final_density.py 的 gen_shader/gen_cpu 顺序颠倒污染 normal_vec_index，改 gen_cpu 先于 gen_shader。
+- ⚠️ **驱动编译慢（D3）**：final_density.spv（76338 行，210 函数）vkCreateComputePipelines >2min。OpFunctionCall 2073 次 = factor 的 7 倍。FunctionControl DontInline（210 个）无效——NVIDIA 驱动忽略或 call 消除后仍爆炸。
+- **待解决方向**：纯 float（double 累加 → float）减 fp64 寄存器压力 + 减少函数嵌套（spline 深度扁平化 / normal 内联 / 拆 shader）。这是集成 block_probe 的最后一个障碍。
 
-## 二十、踩坑（Phase 1-14 保留）
+## 二十、未完成
+
+- final_density shader 驱动编译慢的解决（纯 float / 减少嵌套 / 拆 shader）。
+- 真正集成进 block_probe。
+
+## 二十一、踩坑（Phase 1-15 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

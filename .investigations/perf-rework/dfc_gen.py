@@ -30,6 +30,7 @@ class DfcGen:
         self.interp_instances = []                       # interpolated 实例（delegate DF），gen 时收集
         self.interp_funcs = []                           # [(interp_idx, samples[8])]，interp 包装函数
         self.noise_key_suffix = ""                       # interpolated 角点去重后缀（8 个独立角点实例）
+        self.interp_depth = 0                            # interpolated 嵌套深度（>0 时 registry 引用展开不函数化）
         self.normal_chain_index = {}                     # normal 实例 key → coord_chains 索引
         self.normal_vec_index = {}                       # normal 实例 key → normals vector 索引
         self.old_vec_index = {}                          # old_blended 实例 key → oldBlendeds vector 索引
@@ -100,6 +101,9 @@ class DfcGen:
 
     # ---- registry 引用 → 命名函数（去重，避免表达式爆炸）----
     def _gen_registry_call(self, ref):
+        if self.interp_depth > 0:
+            # interpolated 内：展开（每个角点独立注册 normal/old_blended，noise_key_suffix 含角点）
+            return self.gen(self.resolve_ref(ref))
         if ref in self.registry_funcs:
             return f"{self.registry_funcs[ref]}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
         fname = "df_" + ref.replace("minecraft:", "").replace("/", "_").replace(".", "_")
@@ -234,6 +238,7 @@ class DfcGen:
             interp_idx = len(self.interp_instances)
             self.interp_instances.append(arg)
             samples = []
+            self.interp_depth += 1
             for c in range(8):
                 dx = c & 1; dy = (c >> 1) & 1; dz = (c >> 2) & 1
                 ax = f"(chunkX * 16 + (cx + {dx}) * 4)"
@@ -243,6 +248,7 @@ class DfcGen:
                 self.noise_key_suffix = f"@c{c}"     # 8 个独立角点实例（去重 key 含角点）
                 samples.append(self.gen_with_coords(arg, ax, ay, az, f"float({ax})", f"float({ay})", f"float({az})"))
                 self.noise_key_suffix = old_suffix
+            self.interp_depth -= 1
             self.interp_funcs.append((interp_idx, samples))
             return f"interp_{interp_idx}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"
         if t == "minecraft:blend_alpha":
@@ -308,6 +314,9 @@ class DfcGen:
     def gen_shader(self, root_df):
         expr = self.gen(root_df)
         funcs = []
+        # interp 函数前向声明（registry/spline 可能调用 interp，GLSL 需先声明）
+        for interp_idx, _ in self.interp_funcs:
+            funcs.append(f"float interp_{interp_idx}(int sIdx, int ix, int iy, int iz);")
         # 噪声函数（old_blended double + normal float）先定义（registry 函数会调用）
         # 分配 octBase（perm/origin buffer 的 octave 偏移）+ splitBase（拆分坐标 buffer 的偏移，单位 6 值/octave）
         octBase = 0
@@ -442,6 +451,8 @@ class DfcGen:
                 lines += self._gen_split_lines(df.get("argument", df.get("input", 0.0)), ax, ay, az)
                 self.noise_key_suffix = old_suffix
             lines.append("    }")
+        elif t == "minecraft:weird_scaled_sampler":
+            pass   # 暂简化（gen 返回 0.0f），不遍历内部 noise（与 gen 一致）
         else:
             for key in ("argument", "argument1", "argument2", "input", "when_in_range", "when_out_of_range"):
                 if key in df:
