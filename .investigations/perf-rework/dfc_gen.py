@@ -26,6 +26,9 @@ class DfcGen:
         # 坐标变量（gen_with_coords 可切换，用于 flat_cache 的 biome 对齐）
         self.cx, self.cy, self.cz = "ix", "iy", "iz"     # int 块坐标
         self.fx, self.fy, self.fz = "x", "y", "z"        # float 坐标
+        self.sidx = "sIdx"                               # 拆分坐标采样点索引（interpolated 内切到角点索引）
+        self.interp_instances = []                       # interpolated 实例（delegate DF），gen 时收集
+        self.interp_funcs = []                           # [(interp_idx, samples[8])]，interp 包装函数
         if noise_dir:
             for f in os.listdir(noise_dir):
                 if f.endswith(".json"):
@@ -92,13 +95,13 @@ class DfcGen:
     # ---- registry 引用 → 命名函数（去重，避免表达式爆炸）----
     def _gen_registry_call(self, ref):
         if ref in self.registry_funcs:
-            return f"{self.registry_funcs[ref]}(sIdx, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
+            return f"{self.registry_funcs[ref]}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后）
         fname = "df_" + ref.replace("minecraft:", "").replace("/", "_").replace(".", "_")
         self.registry_funcs[ref] = fname          # 先注册（防循环引用）
         df = self.resolve_ref(ref)
         expr = self.gen(df)
         self.registry_defs.append((fname, expr))
-        return f"{fname}(sIdx, {self.cx}, {self.cy}, {self.cz})"
+        return f"{fname}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"
 
     # ---- 噪声实例注册（运行时从 seed 生成参数，这里只收集 + 分配索引）----
     def _register_noise(self, kind, key, params):
@@ -115,7 +118,7 @@ class DfcGen:
             return f"{float(df)}f"
         if isinstance(df, str):
             if df == "minecraft:y":
-                return "y"
+                return self.fy
             if df == "minecraft:zero":
                 return "0.0f"
             if df == "minecraft:shift_x":
@@ -140,7 +143,7 @@ class DfcGen:
                 "xz_factor": df.get("xz_factor", 80.0), "y_factor": df.get("y_factor", 160.0),
                 "smear": df.get("smear_scale_multiplier", 8.0),
             })
-            return f"(float(interp_noise_{idx}(sIdx)))"
+            return f"(float(interp_noise_{idx}({self.sidx})))"
         if t == "minecraft:noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
@@ -152,7 +155,7 @@ class DfcGen:
                 "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
                 "flat_cache": self.flat_cache_depth > 0,
             })
-            return f"normal_noise_{idx}(sIdx)"
+            return f"normal_noise_{idx}({self.sidx})"
         if t == "minecraft:shifted_noise":
             np = self._resolve_noise_params(df.get("noise", ""))
             idx = self._register_noise("normal", df.get("noise", ""), {
@@ -167,7 +170,7 @@ class DfcGen:
                 "shift_y": self._resolve_shift(df.get("shift_y", 0.0)),
                 "shift_z": self._resolve_shift(df.get("shift_z", 0.0)),
             })
-            return f"normal_noise_{idx}(sIdx)"
+            return f"normal_noise_{idx}({self.sidx})"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             # shift 噪声（offset）是坐标链的一部分，CPU 侧 double 采样，GPU 侧不采样
             self._resolve_shift(df)
@@ -216,8 +219,23 @@ class DfcGen:
             # 缓存包装：采样结果 = delegate（原始坐标），剥掉（对齐 vanilla Cache2D/CacheOnce）
             return self.gen(df.get("argument", df.get("input", 0.0)))
         if t == "minecraft:interpolated":
-            # cell 三线性插值（4×4×8，高频噪声防 alias）——Phase 6 后续实现，暂剥掉
-            return self.gen(df.get("argument", df.get("input", 0.0)))
+            # cell 三线性插值（4×4×8）：8 角点 delegate 采样 + 三线性插值
+            # 角点坐标 = chunkX*16 + (cx+dx)*4, minY + (cy+dy)*8, chunkZ*16 + (cz+dz)*4
+            arg = df.get("argument", df.get("input", 0.0))
+            interp_idx = len(self.interp_instances)
+            self.interp_instances.append(arg)
+            samples = []
+            for c in range(8):
+                dx = c & 1; dy = (c >> 1) & 1; dz = (c >> 2) & 1
+                ax = f"(chunkX * 16 + (cx + {dx}) * 4)"
+                ay = f"(minY + (cy + {dy}) * 8)"
+                az = f"(chunkZ * 16 + (cz + {dz}) * 4)"
+                old_sidx = self.sidx
+                self.sidx = f"(sIdx * 8 + {c})"
+                samples.append(self.gen_with_coords(arg, ax, ay, az, f"float({ax})", f"float({ay})", f"float({az})"))
+                self.sidx = old_sidx
+            self.interp_funcs.append((interp_idx, samples))
+            return f"interp_{interp_idx}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"
         if t == "minecraft:blend_alpha":
             return "1.0f"
         if t == "minecraft:blend_offset":
@@ -248,7 +266,7 @@ class DfcGen:
         idx = len(self.spline_funcs)
         fname = f"spline_{idx}"
         self.spline_funcs.append((fname, coord, n, locs, ders, vals))
-        call = f"{fname}(sIdx, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后的）
+        call = f"{fname}({self.sidx}, {self.cx}, {self.cy}, {self.cz})"   # 用当前坐标上下文（flat_cache 对齐后的）
         self.spline_cache[key] = call
         return call
 
@@ -302,6 +320,22 @@ class DfcGen:
         # spline 函数定义（依赖序：嵌套 spline 先定义）
         for fname, coord, n, locs, ders, vals in self.spline_funcs:
             funcs.append(self._spline_body(fname, coord, n, locs, ders, vals))
+        # interpolated 函数（cell 三线性插值：8 角点 delegate 采样 + 插值）
+        for interp_idx, samples in self.interp_funcs:
+            lines = [f"float interp_{interp_idx}(int sIdx, int ix, int iy, int iz) {{"]
+            lines.append("    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);")
+            lines.append("    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;")
+            lines.append("    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;")
+            lines.append("    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;")
+            for c in range(8):
+                dx, dy, dz = c & 1, (c >> 1) & 1, (c >> 2) & 1
+                lines.append(f"    float d{dx}{dy}{dz} = {samples[c]};")
+            lines.append("    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;")
+            lines.append("    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;")
+            lines.append("    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;")
+            lines.append("    return d0 + (d1 - d0) * fz;")
+            lines.append("}")
+            funcs.append("\n".join(lines))
         return self._shader_template(expr, funcs)
 
     def gen_noise_manifest(self):
@@ -651,6 +685,8 @@ double pn_sample5(int octBase, double x, double y, double z, double yScale, doub
 }}
 
 // ===== float 工具（NormalNoise/spline/算术 用）=====
+const int minY = -64;   // overworld 维度 minY（interpolated cell 网格用）
+int floorDivP(int a, int b) {{ int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }}
 float perlinFadeF(float v) {{ return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }}
 float lerpF(float d, float s, float e) {{ return s + d * (e - s); }}
 float spline_seg(float f, float lo, float span, float nv, float ov, float d0, float d1) {{
@@ -764,3 +800,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

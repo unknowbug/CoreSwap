@@ -193,12 +193,19 @@ factor DF built
 - ✅ **修复 old_blended 去重 bug**（C10）：去重 key 原用 `f"ob{len(...)}"`（自增，永不重复）→ 改用参数组合 key（xz_scale/y_scale/xz_factor/y_factor/smear），避免 gen 重复调用累积实例。
 - DFC 生成器当前支持：normal_noise ✅ + old_blended_noise ✅ + spline ✅ + 算术 ✅；interpolated 仍手写 shader（待收编）。
 
-## 十六、未完成
+## 十六、Phase 13 进展（interpolated 收编 gen 侧 ✅，gen_cpu 侧待做）
 
-- interpolated 收编进 DFC（当前手写 shader）。
+- ✅ **gen 侧收编**：interpolated 分支生成「8 角点 delegate 采样 + 三线性插值」；引入 `self.sidx`（角点索引 sIdx*8+c）+ `self.interp_funcs`；shader 模板加 floorDivP + minY 常量。
+- ✅ **noodle shader 编译通过**（noodle.comp → noodle.spv 62184 bytes，splitTotal=48，interp=8）。
+- ✅ **修复**：① `minecraft:y` 硬编码 "y" → `self.fy`（interp 函数内 y 未定义）；② minY undeclared → shader 模板加 `const int minY = -64`。
+- ⏳ **gen_cpu 侧待做**：8 角点 delegate 拆分（在角点坐标重放 delegate 坐标链 + 拆分），含 splitBase 递归分配（interpolated 的 delegate 拆分 = 8 角点 × delegate 拆分总和）。这是 interpolated 端到端验证的前置。
+
+## 十七、未完成
+
+- interpolated 收编 gen_cpu 侧（8 角点 delegate 拆分 + splitBase 递归分配）。
 - 真正集成进 block_probe（DFC 生成 final_density 完整 shader + worldgen_api.cpp GPU 批量采样替换 CPU 采样）。
 
-## 十七、踩坑（Phase 1-12 保留）
+## 十八、踩坑（Phase 1-13 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

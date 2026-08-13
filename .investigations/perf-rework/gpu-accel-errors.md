@@ -120,6 +120,12 @@
 - **修复**：去重 key 改用参数组合 `old_blended:xz_scale:y_scale:xz_factor:y_factor:smear`。
 - **教训**：**去重 key 必须是「业务唯一标识」**（C2 同款坑的 old_blended 变体）——任何用 len()/自增 id 做 key 的地方都会永不重复。
 
+### C11. 坐标变量硬编码（minecraft:y / minY）在 interp 函数内未定义
+- **现象**：noodle shader 编译报 `y undeclared`、`minY undeclared`。
+- **根因**：`minecraft:y` 分支硬编码返回 "y"，但 interpolated 包装函数（interp_N）里 y 未定义（只有 ix/iy/iz + fx/fy/fz）；interp 角点坐标用 minY 但 shader 模板没定义。
+- **修复**：`minecraft:y` → `self.fy`（坐标变量跟着上下文走）；shader 模板加 `const int minY = -64`。
+- **教训**：**「坐标变量」必须跟着上下文走**（C1 同款坑）——硬编码全局坐标变量 y/minY 在切换坐标上下文的函数（interp 角点）里必然未定义。
+
 ---
 
 ## D. 编译类错误（GPU 驱动）
@@ -193,3 +199,4 @@
 | DensityBuilder 非类名 | 在 namespace wg，引用需 `wg::` 前缀 |
 | C2280 unique_ptr 拷贝已删除 | DoublePerlinNoiseSampler 含 unique_ptr 不可拷贝，用 shared_ptr 直接构造 |
 | splitTotal 翻倍/实例累积 | old_blended 去重 key 用 len() 自增，改用参数组合 key |
+| y/minY undeclared | 坐标变量硬编码，改 self.fy + shader 模板加 minY 常量 |
