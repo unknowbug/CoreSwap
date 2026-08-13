@@ -29,16 +29,34 @@ density_function/*.json（DF 树，含 registry 引用）
 3. **spline 三段式**：对齐 vanilla `Spline.apply` 的边界外推（`i<0`/`i==n-1`）+ 中间 Hermite（`lerp(kd,nv,ov) + kd(1-kd)lerp(kd,p,q)`）。
 4. **缓存/插值包装剥离**：`flat_cache`/`cache_2d`/`cache_once`/`interpolated` 在 GPU 端剥掉包装（flat_cache 由 CPU 预填充，对齐 C2ME CacheElimination 思路）。
 
-## 四、当前状态（Phase 1）
+## 四、当前状态（Phase 2 进展）
 
 - ✅ 表达式生成（全部 15 类 DF 类型）+ registry 引用解析 + 嵌套 spline。
 - ✅ base_3d_noise 的 shader 生成 + glslc 编译通过。
-- ⏳ 未完成（Phase 2）：
-  - NormalNoise（`minecraft:noise`）/ shifted_noise / shift 的 float 采样函数（当前占位返回 0）。
-  - 噪声参数（perm/origin/amplitudes）的 params buffer 布局 + 运行时从 seed 生成上传（当前 identity 内联）。
-  - 完整 DF 树（factor/depth 等）的端到端验证（对比 CPU）。
+- ✅ **NormalNoise（minecraft:noise）/ shifted_noise / shift 的 float 采样函数**（double 坐标拆分 + float 采样，见下）。
+- ✅ **全部 10 个 overworld DF 编译通过**：base_3d_noise / continents / depth / erosion / factor / jaggedness / offset / ridges / ridges_folded / sloped_cheese。
 
-## 五、踩坑
+### NormalNoise 的精度设计（关键）
+
+NormalNoise（DoublePerlinNoiseSampler）无 /o 放大，但坐标缩放（pos×xz_scale）在远坐标会丢精度。方案：
+- **double 做坐标缩放 + maintainPrecision + floor 拆分（精确）** → int32 整数 + float 小数；
+- **float 做 grad/fade/lerp 采样（~1e-7）**。
+
+这样 NormalNoise 不需要 CPU 侧拆坐标，GPU 内 double 拆分 + float 采样（与 F3 坐标拆分结论一致）。
+
+### 踩坑（Phase 2 新增）
+
+1. GLSL 函数顺序：噪声函数（normal_noise/interp_noise）必须先于 registry 函数定义（GLSL 先声明后使用）。
+2. registry 函数缓存命中分支漏改 `(x,y,z)`→`(ix,iy,iz)`（第一次注册和缓存命中不一致）。
+3. Python `.pyc` 缓存导致改代码后仍用旧逻辑（需删 `__pycache__`）。
+
+## 五、未完成（Phase 3）
+
+- 噪声参数（perm/origin/amplitudes/lacunarity/persistence/amplitude）的 params buffer 布局 + 运行时从 seed 生成上传（当前 identity 内联 + 参数硬编码占位）。
+- 端到端验证：生成的 shader 跑 Vulkan，对比 CPU density 结果（当前只验证了 shader 能编译）。
+- shader 尺寸优化：sloped_cheese 1.6MB / depth 920KB SPIR-V（主表达式内联展开），可函数化主表达式压缩。
+
+## 六、踩坑（Phase 1 保留）
 
 1. GLSL 保留字 `out` 不能作 buffer 变量名 → `outBuf`。
 2. GLSL 的 C 风格类型转换 `(double)x` 在 fp64 下需 `GL_NV_explicit_typecast` → 用构造函数式 `double(x)`。

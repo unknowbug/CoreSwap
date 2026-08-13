@@ -42,13 +42,13 @@ class DfcGen:
     # ---- registry 引用 → 命名函数（去重，避免表达式爆炸）----
     def _gen_registry_call(self, ref):
         if ref in self.registry_funcs:
-            return f"{self.registry_funcs[ref]}(x, y, z)"
+            return f"{self.registry_funcs[ref]}(ix, iy, iz)"
         fname = "df_" + ref.replace("minecraft:", "").replace("/", "_").replace(".", "_")
         self.registry_funcs[ref] = fname          # 先注册（防循环引用）
         df = self.resolve_ref(ref)
         expr = self.gen(df)
         self.registry_defs.append((fname, expr))
-        return f"{fname}(x, y, z)"
+        return f"{fname}(ix, iy, iz)"
 
     # ---- 噪声实例注册（运行时从 seed 生成参数，这里只收集 + 分配索引）----
     def _register_noise(self, kind, key, params):
@@ -94,19 +94,24 @@ class DfcGen:
             idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
             })
-            return f"normal_noise_{idx}({CX}, {CY}, {CZ})"
+            xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
+            return f"normal_noise_{idx}(double({CX}) * {xz:.17g}, double({CY}) * {y:.17g}, double({CZ}) * {xz:.17g})"
         if t == "minecraft:shifted_noise":
             idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {
                 "noise": df.get("noise", ""), "xz_scale": df.get("xz_scale", 1.0), "y_scale": df.get("y_scale", 1.0),
             })
             sx = self.gen(df.get("shift_x", 0.0)); sy = self.gen(df.get("shift_y", 0.0)); sz = self.gen(df.get("shift_z", 0.0))
-            # 注意：shifted_noise 的坐标 = pos*scale + shift
+            # shifted_noise 坐标 = pos*scale + shift（对齐 ShiftedNoiseDF.sample）
             xz = df.get("xz_scale", 1.0); y = df.get("y_scale", 1.0)
-            return f"shifted_noise_{idx}({CX}, {CY}, {CZ}, {xz}f, {y}f, {sx}, {sy}, {sz})"
+            return f"normal_noise_{idx}(double({CX}) * {xz:.17g} + double({sx}), double({CY}) * {y:.17g} + double({sy}), double({CZ}) * {xz:.17g} + double({sz}))"
         if t in ("minecraft:shift_a", "minecraft:shift_b", "minecraft:shift"):
             idx = self._register_noise("normal", f"n{len(self.noise_instances)}", {"noise": "minecraft:offset"})
-            axis = {"minecraft:shift_a": "x", "minecraft:shift_b": "z", "minecraft:shift": "xz"}[t]
-            return f"shift_noise_{idx}({CX}, {CY}, {CZ}, \"{axis}\")"
+            # 对齐 ShiftDF.sample：SHIFT_A y=0；SHIFT_B x=z,y=x,z=0；SHIFT 不变；×0.25×4
+            if t == "minecraft:shift_a":
+                return f"(normal_noise_{idx}(double({CX}) * 0.25, 0.0, double({CZ}) * 0.25) * 4.0f)"
+            if t == "minecraft:shift_b":
+                return f"(normal_noise_{idx}(double({CZ}) * 0.25, double({CX}) * 0.25, 0.0) * 4.0f)"
+            return f"(normal_noise_{idx}(double({CX}) * 0.25, double({CY}) * 0.25, double({CZ}) * 0.25) * 4.0f)"
         if t == "minecraft:spline":
             return self._gen_spline(df.get("spline", df))
         if t == "minecraft:add":
@@ -176,15 +181,15 @@ class DfcGen:
     def gen_shader(self, root_df):
         expr = self.gen(root_df)
         funcs = []
-        # registry 函数定义（依赖序已保证）
-        for fname, fexpr in self.registry_defs:
-            funcs.append(f"float {fname}(float x, float y, float z) {{\n    return {fexpr};\n}}\n")
-        # 噪声函数（old_blended double + normal float）
+        # 噪声函数（old_blended double + normal float）先定义（registry 函数会调用）
         for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
                 funcs.append(self._old_blended_func(idx, params))
             elif kind == "normal":
                 funcs.append(self._normal_func(idx, params))
+        # registry 函数定义（依赖序已保证），传 int 块坐标，内部转 float
+        for fname, fexpr in self.registry_defs:
+            funcs.append(f"float {fname}(int ix, int iy, int iz) {{\n    float x = float(ix), y = float(iy), z = float(iz);\n    return {fexpr};\n}}\n")
         return self._shader_template(expr, funcs)
 
     def _old_blended_func(self, idx, p):
@@ -219,10 +224,14 @@ double interp_noise_{idx}(int px, int py, int pz) {{
 }}"""
 
     def _normal_func(self, idx, p):
-        # NormalNoise（DoublePerlinNoiseSampler）：first + second × 1.018，float 版（Phase 2 补全参数）
+        # NormalNoise（DoublePerlinNoiseSampler）：double 坐标拆分 + float 采样
+        # 参数（firstOctave/amplitudes/lacunarity/persistence/amplitude）Phase 2 从 params 读，此处简化占位
         return f"""
-float normal_noise_{idx}(int px, int py, int pz) {{
-    return 0.0f;  // Phase 2：OctavePerlinNoiseSampler float 叠加
+float normal_noise_{idx}(double dx, double dy, double dz) {{
+    // Phase 2：octBase/nOct/lacunarity/persistence/amplitudes/amplitude 从 params 读
+    double first = octave_noise_f32(0, 1, dx, dy, dz, 1.0, 1.0);
+    double second = octave_noise_f32(256, 1, dx * 1.0181268882175227, dy * 1.0181268882175227, dz * 1.0181268882175227, 1.0, 1.0);
+    return float((first + second) * 1.0);
 }}"""
 
     def _shader_template(self, expr, funcs):
@@ -296,6 +305,47 @@ float spline_seg(float f, float lo, float span, float nv, float ov, float d0, fl
 float y_clamped_gradient(int y, float fromY, float toY, float fromV, float toV) {{
     float t = clamp((float(y) - fromY) / (toY - fromY), 0.0, 1.0);
     return fromV + t * (toV - fromV);
+}}
+
+// ===== float Perlin（NormalNoise 用）=====
+// 单 octave float 采样：hash 用 int32（精确），grad/fade/lerp 用 float（~1e-7）
+float gradDotF(int hash, float x, float y, float z) {{
+    vec3 g = vec3(float(GRADIENTS[hash & 15][0]), float(GRADIENTS[hash & 15][1]), float(GRADIENTS[hash & 15][2]));
+    return g.x * x + g.y * y + g.z * z;
+}}
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {{
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}}
+// OctavePerlinNoiseSampler（float 采样 + double 坐标拆分）：从 params 读 origin，返回叠加值
+double octave_noise_f32(int octBase, int nOct, double dx, double dy, double dz,
+                        double lacunarity, double persistence) {{
+    double d = 0.0; double e = lacunarity; double f = persistence;
+    for (int i = 0; i < nOct; i++) {{
+        double cx = maintainPrecision(dx * e);
+        double cy = maintainPrecision(dy * e);
+        double cz = maintainPrecision(dz * e);
+        int ix = int(floor(cx)); int iy = int(floor(cy)); int iz = int(floor(cz));
+        float gx = float(cx - double(ix)); float gy = float(cy - double(iy)); float gz = float(cz - double(iz));
+        float n = pn_sample3_f32(octBase + i, ix, iy, iz, gx, gy, gz);
+        d += double(n) * f;   // amplitude 系数运行时上传（Phase 2），此处先简化
+        e *= 2.0; f /= 2.0;
+    }}
+    return d;
 }}
 
 {funcs_src}
