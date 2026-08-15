@@ -282,3 +282,7 @@ entries:
     path: '../.investigations/perf-rework/gpu-accel-errors.md#D25'
     kind: errors
     status: candidate
+  - id: 're-code:perf-rework:004-op-library-direction'
+    path: '../.investigations/000-架构设计/架构计划-gpu-block-integration.md#004'
+    kind: plan
+    status: candidate

@@ -1,0 +1,95 @@
+// op_noise.comp —— FP32 单算子：normal_noise（1 个实例）
+// 输入：coordBuf（n×3 int32 坐标）+ splitBuf（n × 该实例 split 行）
+// 输出：outBuf（n float）
+// 带宽：每点只传该实例的 split 行（n_octaves*12 floats）vs 完整树 8672
+// 用法：CpuBackend.split 产出全量 splitCoord，本 shader 按 sIdx 只读目标实例行
+#version 450
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; };
+layout(set = 0, binding = 1, std430) buffer SplitBuf { float splitCoord[]; };
+layout(set = 0, binding = 2, std430) buffer PermBuf { uint perm[]; };
+layout(set = 0, binding = 3, std430) buffer OutBuf { float outVals[]; };
+
+// ===== 目标实例参数（single-op 模式：只含 1 个实例）=====
+// 由 op_probe 用生成器产出的参数填充（n, octBase, splitBase, persistence, amplitude, amps）
+// 实例 0 = continentalness@c0（dump_instance_params.py 确认）
+const int OP_N = 9;              // octave 数
+const int OP_OCT_BASE = 0;       // octBase
+const int OP_SPLIT_BASE = 0;     // 该实例在 splitCoord 内的行偏移（0 = 行首）
+const float OP_PERSISTENCE = 0.5009784735812133;
+const float OP_AMPLITUDE = 1.5;
+const float OP_AMPS[9] = float[](1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0);
+
+// 每点 split 行宽（n*12 floats）
+const int OP_ROW = OP_N * 12;
+
+int mapPermD(int octBase, int v) {
+    return int(perm[octBase * 256 + uint(v & 255)]);
+}
+
+float gradDotF(int hash, float x, float y, float z) {
+    int h = hash & 15;
+    float u = (h < 8) ? x : y;
+    float vv = (h < 4) ? y : ((h == 12 || h == 14) ? x : z);
+    return (((h & 1) == 0) ? u : -u) + (((h & 2) == 0) ? vv : -vv);
+}
+
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+    int i = mapPermD(octBase, sx);
+    int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy);
+    int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy);
+    int nn = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz), lx, ly, lz);
+    float e = gradDotF(mapPermD(octBase, m + sz), lx - 1.0, ly, lz);
+    float f = gradDotF(mapPermD(octBase, l + sz), lx, ly - 1.0, lz);
+    float g = gradDotF(mapPermD(octBase, nn + sz), lx - 1.0, ly - 1.0, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx, ly, lz - 1.0);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx, ly - 1.0, lz - 1.0);
+    float q = gradDotF(mapPermD(octBase, nn + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    float u = lx * lx * lx * (lx * (lx * 6.0 - 15.0) + 10.0);
+    float vv = ly * ly * ly * (ly * (ly * 6.0 - 15.0) + 10.0);
+    float w = lz * lz * lz * (lz * (lz * 6.0 - 15.0) + 10.0);
+    float x1 = d + u * (e - d);
+    float y1 = f + u * (g - f);
+    float z1 = h + u * (o - h);
+    float z2 = p + u * (q - p);
+    float y2 = z1 + vv * (z2 - z1);
+    float x2 = x1 + vv * (y1 - x1);
+    return x2 + w * (y2 - x2);
+}
+
+float op_normal_noise(int sIdx) {
+    // first sampler（读 splitBuf 行内偏移 0..6n）
+    float d = 0.0;
+    float f = OP_PERSISTENCE;
+    for (int i = 0; i < OP_N; i++) {
+        int b = sIdx * OP_ROW + OP_SPLIT_BASE + i * 6;
+        int ix = int(splitCoord[b + 0]); int iy = int(splitCoord[b + 1]); int iz = int(splitCoord[b + 2]);
+        float gx = splitCoord[b + 3]; float gy = splitCoord[b + 4]; float gz = splitCoord[b + 5];
+        float ns = pn_sample3_f32(OP_OCT_BASE + i, ix, iy, iz, gx, gy, gz);
+        d += OP_AMPS[i] * ns * f;
+        f /= 2.0;
+    }
+    // second sampler（偏移 +6n）
+    float d2 = 0.0;
+    f = OP_PERSISTENCE;
+    for (int i = 0; i < OP_N; i++) {
+        int b = sIdx * OP_ROW + OP_SPLIT_BASE + 6 * OP_N + i * 6;
+        int ix = int(splitCoord[b + 0]); int iy = int(splitCoord[b + 1]); int iz = int(splitCoord[b + 2]);
+        float gx = splitCoord[b + 3]; float gy = splitCoord[b + 4]; float gz = splitCoord[b + 5];
+        float ns = pn_sample3_f32(OP_OCT_BASE + OP_N + i, ix, iy, iz, gx, gy, gz);
+        d2 += OP_AMPS[i] * ns * f;
+        f /= 2.0;
+    }
+    return (d + d2) * OP_AMPLITUDE;
+}
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    int sIdx = int(gid);
+    outVals[sIdx] = op_normal_noise(sIdx);
+}

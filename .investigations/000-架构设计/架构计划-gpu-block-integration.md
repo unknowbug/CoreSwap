@@ -60,3 +60,49 @@
   - **结论**：GPU 角点分组结构与「共享实例 + 每点坐标拆分」（CPU 语义）不兼容——1225 网格角点无法独立求值。
 - **彻底裁决**：GPU 块级生成在当前 shader 结构下**无可行路径**。D24 从「带宽死局」深化为「**结构不兼容**」（角点分组 vs 共享网格）。要突破需重构生成器的 interp 噪声为「共享实例 + 坐标参数」（CPU 语义），工程量大且收益存疑（外层非线性仍 CPU）。
 - **当前状态**：I6 代码保留（WG_GPU_FILL 开关，默认 CPU 零退化）；wg_fill_density 批量 API（22-39x）是 GPU 的实际可用成果。
+
+## 004 候选方向：FP32 算子库（用户 2026-08-15 讨论，未立项）
+
+**用户提议**：写一组简单 FP32 算子（噪声/spline/求值），把需要算的 FP32 运算批量扔 GPU、取回数据。
+
+**可行性分析（主会话）**：
+- ✅ **带宽可行**：`normal_noise(noiseIdx, sIdx)` 是独立函数（按实例查 NORMAL_PACK 参数表 + split 行）——天然单算子。单算子每点只需该实例的 split 行（12-几百 floats），vs 完整树 8672——**带宽降 1-2 个数量级**。
+- ✅ **精度**：FP32 + 坐标预拆分 → e2e maxDiff 3.128e-07、I5 1e-6~8e-6——**近似用途可用**（非逐位对齐）。
+- ✅ **运行时底座**：VkRuntime（init/createPipeline/upload/dispatch/readback）已通用，支持任意 shader/buffer 布局。
+- ⚠️ **前提**：接受「1e-6 级近似精度」（放弃逐位对齐铁律）；逐位对齐场景仍需 CPU double。
+- **最小实现**：算子 shader（如 op_noise.comp：n×3 int32 坐标 + 该算子 split 子集 → n float）+ 宿主 GpuOp 类（复用 VkRuntime）。
+- **带宽实测账**（check_op_bandwidth.py）：10 万点批量，单算子（continentalness/erosion 60 floats/点）**4.8-77 MB** vs 完整树 **3469 MB**——**带宽降 45-723 倍**，算子模式完全可行。
+- **价值场景**：mod 里任何「大量点密度/噪声查询 + 可接受近似」（地图预览/分析/统计/非对齐功能）。
+
+## 004 实施验证（2026-08-15 晚段，op_probe 实测）——✅ 算子库成立
+
+**实现**：`vulkan-proto/op_noise.comp`（FP32 单算子 normal_noise，复用生成器 GLSL 函数体）+ `op_probe.cpp`（VkRuntime + CpuBackend，提取目标实例 split 行）。
+
+**实测（10 万点，实例 0 = continentalness@c0）**：
+- **精度**：GPU FP32 vs CPU double（同 split 行）**maxDiff=6.9e-7 / avgDiff=1.34e-7**——FP32 舍入级，近似用途完全够。
+- **吞吐**：GPU **1186 万点/s** vs CPU double 内联参照 309 万点/s = **3.8x**；带宽紧凑 43.2MB vs 全量 3469MB = **80x 降**。
+- **关键修正**：初版 maxDiff=1.085 是参照 bug（CPU 用原始坐标 sample，split 是角点对齐坐标——两算的不是同一点）；改「同 split 行 double 参照」后 6.9e-7 ✓。
+- **吞吐低于 I5 的 22-39x 原因**：CPU 参照是纯 double 计算无 split 开销（32ms）；真实场景 CPU 完整路径含 split（25.6s）→ GPU 算子实际增益更大。
+- **结论**：FP32 算子库（近似精度 + 小带宽 + 3.8x+ 吞吐）**成立**——「大量点噪声/密度查询」的 GPU 正确用法。
+- **对照**：本质 = C2ME OpenCL 架构的简化版（不重构生成器，只暴露单算子入口）；C2ME 全程 fp64 实时算，我们走 fp32 + 预拆分（精度 1e-6 够近似用）。
+- **未立项**：待用户拍板（今天讨论，未实施）。
+
+## C2ME 对照总结（2026-08-15 深夜段核实）——为什么我们走错了路
+
+**C2ME 实际架构**（源码核实，E:\PYTHON\MC\data\C2ME-fabric）：
+- **主加速 = CPU 多线程**（README：「taking advantage of multiple CPU cores」）——99% 收益来源。
+- **OpenCL GPU 只是可选实验模块**（c2me-opts-accel-opencl，非默认）。
+- **OpenCL 架构**（对我们有对照价值）：
+  - 精度：**GPU 内 fp64 全程实时算**（maintainPrecision double 折叠 L117-119，与 Java 一致）——**无 CPU 预拆分**。
+  - 带宽：每点只传 **3 int32 坐标（12 字节）** + 噪声参数表（const_data 一次性）——无 8672 floats/点。
+  - interpolated 两阶段：角点预填充内核按网格 dispatch（每角点 1 次 delegate 调用，几十字节）→ 主内核读 buffer 插值（L442-474）。
+  - 拆 7 内核 + 预编译二进制随 mod 分发（tar.zst，秒级加载）。
+
+**我们 vs C2ME 三个架构分岔**：
+| | 我们（D2 起） | C2ME OpenCL |
+|---|---|---|
+| 精度策略 | CPU 预拆分 8672 floats/点 → 上传 | GPU 内 fp64 实时（3 int32/点） |
+| 角点结构 | 8 份冗余实例（D25 死局） | 共享 delegate + 坐标参数 |
+| 插值 | 单 pass 8 角点内联 | 两阶段（预填充 + 插值） |
+
+**根本教训**：我们为了 fp32 性能选 split 预拆分架构，代价 = 带宽死局（D24）+ 角点结构死局（D25）。C2ME 证明「GPU fp64 实时 + 共享 delegate」能绕开——但**消费 GPU fp64 吞吐低（RTX 4060 ≈ 1/64 fp32）且 OpenCL 模块是实验性的**，所以 C2ME 也没默认开。**GPU 块生成的收益天花板就是「C2ME 都只能做实验模块」的水平**——这也是我们收尾 GPU 块生成课题、转向「FP32 算子库（近似用途）」的依据。

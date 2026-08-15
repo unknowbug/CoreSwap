@@ -35,6 +35,9 @@ AGENTS.md
 versions/1.20.1/crash-*.txt
 crash-*.txt
 
+# 私有知识资产（用户 2026-08-15 明确：Vulkan/GPU 通用知识库为本项目核心资产，不公开入库）
+knowledge/discovered/vulkan-gpu-programming.md
+
 # 内部工作流（仅本地，不入库）：验证协议 + 锚点扫描工具（引用本机 Anchorlaw 路径）
 protocol/
 scripts/
