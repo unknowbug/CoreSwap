@@ -74,6 +74,8 @@ fillOneChunk(cx, cz)（每 chunk）：
 | 并行（8/22 线程） | 49.4ms/16chunk（3.1ms/chunk） | **108-239ms/chunk** | **无加速反降**；并行不随线程数伸缩 |
 | density 阶段 | 8.5-11.7ms/chunk | **670-1000ms/chunk** | ~100×；根因所在 |
 
+> ⚠️ **2026-08-16 影响标注（notify 丢失 bug，0a781e1 修复）**：本表「并行（8/22 线程）108-239ms/chunk 无加速反降」在 **notify 丢失 bug 活跃期（8/6-8/15）** 采集——[A] T>1 顺序跑下补建 worker 错过 notify 永久等待，**实际并行度=1（串行假象）**，「反降/无加速」幅度**不可信**（真实并行成本被 bug 伪影掩盖）。**H2 主因（FlatCache 单槽缓存 + buildGrid 角点越界 → rebuild 168×）为单线程精确统计（WG_SPLINEDEBUG），不受影响，保留成立**。影响面：`.investigations/worldgen-mt-scaling/notify-bug-impact.md`（§2 #3）+ `mt-scaling-errors.md`（MT1/MT2）；修复后重测数据见文末「2026-08-16 影响评估修正」。
+
 ### WG_PROFILE 计数器（density 阶段，2026-08-11）
 
 | 指标 | 旧值（2026-08-06） | 2026-08-11 实测 | 含义 |
@@ -95,6 +97,8 @@ fillOneChunk(cx, cz)（每 chunk）：
 
 1. **主因（H2 成立）**：FlatCacheDF **单槽 thread_local 缓存**（density.h L683-704）+ buildGrid 嵌套采样递归。buildGrid 角点 `i=4`/`j=4` 时 `p.x=(chunkX*4+4)*4=(chunkX+1)*16` 指向**下一 chunk 首列**（L735），嵌套 spline（continents/erosion/ridges 的 locationFunction FlatCache）收到**邻居 chunk key**（L687 key=(x>>4,z>>4)）→ 单槽被污染 → 重建邻居网格 → **递归蔓延 112 chunk**（36 生成 + 76 邻居）→ **rebuild 36,252 次 = 每 chunk ~1007 次（期望 ~6 次）→ 168× 爆炸** → 直接驱动 spline 调用 **20× 爆炸**（130,420/chunk vs 旧 6,250）。
 2. **放大器（H3 成立）**：thread_local 单槽缓存 + 每 chunk 跨线程迁移 → 每线程每 chunk 首访即 miss。调用量不变（4,703,488 ≈ 4,695,145），单次成本 ×16（多线程 27,155ns vs 单线程 1,714ns）；wall 多线程 8488ms > 单线程 6533ms（并行反而更慢）。
+
+> ⚠️ **2026-08-16 影响标注（H3 ×16 需重新定性）**：本条「mt 27,155ns（×16）」在 **notify 丢失 bug 活跃期**采集——实际并行度=1，「多线程环境」实为单 worker + 扩池开销，**×16 的「多线程侧」基数不可信**，H3 结论**需修复后重测重新定性**（待办：mt 侧 spline 单次成本重测；若 mt≈t1 则 H3 为伪结论/降级，详见 `mt-scaling-errors.md` MT2）。**H2 主因（rebuild 168×，单线程 WG_SPLINEDEBUG 精确统计）不受影响，保留成立**。
 3. **H1 部分成立（非主因）**：y 主序循环与 L630 注释矛盾属实，但 spline/cache_2d **全部来自 buildGrid 角点（y=0）**，块级 densityBuf 98,304 次采样被 InterpolatedDF 插值 + FlatCache 查表挡掉（0 次 spline），对爆炸直接贡献 ≈ 0。
 
 **08-11 vs 08-12 数据口径说明（judge 审查要点 4）**：两个测量口径不同，不构成矛盾——08-11 为**多线程（8/22 线程）thrashing 环境**下粗粒度计数器（rebuild ≈ spline 调用数、单次 20,598ns 被 thrashing 放大）；08-12 为**单线程（-threads 1）WG_SPLINEDEBUG 精确统计**（剥离 thrashing 后暴露真实主因结构：rebuild 36,252 仅占 spline 调用 0.77%，放大链 = rebuild 168× × 13.36 spline/miss）。
@@ -108,6 +112,8 @@ fillOneChunk(cx, cz)（每 chunk）：
 | Cache2D miss | 458,281 | **351,536**（= 14,061 rebuild × 25 角点 ✓，4 个 cacheId） | 角点采样 miss 级联 |
 | spline 单次 | 20,598ns | **t1 1,714ns / mt 27,155ns** | 多线程 thrashing ×16（H3 放大器） |
 | rebuild chunk 覆盖 | — | **112 chunk**（36 生成 + 76 邻居） | 递归蔓延实锤 |
+
+> ⚠️ **2026-08-16 影响标注**：本表「spline 单次 **t1 1,714ns / mt 27,155ns**（×16 H3 放大器）」的 **mt 侧数值在 notify bug 活跃期采集**（实际并行度=1），×16 需修复后重测重新定性（`mt-scaling-errors.md` MT2）；**t1 1,714ns 为单线程精确统计，不受影响**。H2 行（rebuild 36,252 = 168×）为单线程数据，保留成立。
 
 ### 修复方案（已实施并闭环，2026-08-12）
 
@@ -553,3 +559,37 @@ C++ 映射（`worldgen_api.cpp` FEATURES 段 + `feature_loader.h` + `placement.h
 - 代码语义无损：成立（SplineDF Hermite 公式逐位等价 + 边界复用 CELL_X=4 坐标对齐，judge 逐行核对通过）。
 - 零退化：成立（regress_8576/3200_aae119d 落盘）。
 - 状态：**保持 draft**——spline 扁平化单线程 -24% 是真实收益，但「多线程膨胀」课题未闭合，需重新定位 InterpolatedDF::buildGrid 树遍历的 cache miss 构成后再评估 DFC。
+
+---
+
+## 2026-08-16 影响评估修正：notify 丢失 bug 污染面 + 修复后重测 + clamp 发现
+
+> 状态：draft（结论性落盘）| 来源：`.investigations/worldgen-mt-scaling/`
+> 完整错误台账（五段式 + 判错经验 + 速查表）：`mt-scaling-errors.md`（MT1-MT7）；影响评估：`notify-bug-impact.md`；勘探：`scout-map.md`；本修正对应上文 L74/L97/L109 三处 ⚠️ 标注。
+
+### notify 丢失 bug（0a781e1 修复）影响面摘要
+
+- **bug**：CoreSwapPool ensure() 锁内建 worker + run() 入队后 notify_all() 竞争 → 补建 worker 错过通知永久等待（tasks 空 + stop false）→ 只有老 worker 干活 = **串行假象**（[A] T>1 顺序跑实际并行度=1）。引入 252d988（8/6 20:11），修复 0a781e1（8/15 23:50），**活跃约 9 天**。
+- **影响**：8/11-8/15 所有 [A] T>1 顺序跑数据作废（含本文件 L74「108-239ms 反降」、L97/L109「×16」）；**单线程数据全部不受影响**（T=1 无补建）；**H2 主因（rebuild 168×）保留成立**（单线程精确统计）。
+- **触发边界**：只影响 [A] 批量模式（count=N 线程数递增 → 补建 worker 空闲）；[B]/实机 count=1 不补建不触发（其「无并行」是 clamp 问题，见下）。
+
+### 修复后重测（64-chunk 8×8 前台，bench-notifyfix-8x8-20260816.txt）
+
+```
+[A] threads=  1   98.02 ms/chunk
+[A] threads=  8   89.88 ms/chunk   （-8.3%：不再反降，轻度加速）
+[A] threads= 12   90.39 ms/chunk
+[A] threads= 22   97.76 ms/chunk
+[A] threads=  0   96.30 ms/chunk
+[B] workers=  1   86.80 ms/chunk   （[B] 段 120s cap 截断，不影响 [A] 结论）
+```
+
+- **结论**：notify 修复后 [A] T=8 不再反降（比 T=1 快 8%），但**远未到 8× 加速**——「每 chunk 并发下慢」仍存在（第二阶段课题：fillOneChunkCore 并发下每 chunk 耗时随并发增长，WG_MTTRACE 证明 8 worker 真并行但批间 525ms ≈ 8×65ms；fprintf stderr 锁竞争污染待无 fprintf 计数器复测）。
+- ⚠️ 与 scout-map L110「修复后仍反降（T=1 71.40 / T=8 84.24）」**矛盾**（中间状态 C1 版/计时污染混测，单线程基差 +37%）——待同机同状态对照（notify-bug-impact.md §5 #1）。
+
+### [B]/实机 M=1 结构性串行（threads clamp 发现，candidate）
+
+- **发现**：`wg_fill_blocks_multi` L1189 `if (threads > count) threads = count;`（**66e05f5，8/5 引入**，池化 c792e9d 后语义失效）→ count=1 时 clamp 到 1 → ensure(1) → **池恒 1 worker**。
+- **实机推论（代码链路铁证，待实机实跑对比）**：CppBridge.java L170-171（count=1 + THREADS）→ jni_bridge.cpp L93（透传）→ clamp → ensure(1)：**实机 mod 每 worker 调 count=1 时即使传 THREADS=12 也被 clamp 到 1 → 实机「多线程」可能从未真正并行**（结构性串行）。
+- **与 notify bug 独立**：notify 只影响 [A] 批量；clamp 影响 [B]/实机 M=1。
+- **状态/待办**：candidate（代码链路已闭环，唯一剩余验证 = 实机实跑对比）；修复待办（clamp 改 `if (threads > count && count > 1)` 或实机改批量调用）见 `mt-scaling-errors.md` MT3。

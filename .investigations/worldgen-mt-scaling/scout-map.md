@@ -123,6 +123,12 @@
 - **新线索**：并发下每 chunk dur 530ms vs 单线程 71ms（7.5 倍）——**但 WG_MTTRACE 的 fprintf 到 stderr 是同步的，8 线程同时 fprintf 有 stderr 锁竞争**，可能污染 dur
 - **需无 fprintf 测量**（计数器而非打印）确认「并发下每 chunk 真实耗时」——若真 7.5 倍，指向共享资源竞争（但 C7 已排除带宽 1-2%）；若 fprintf 干扰，则多线程实际正常
 
+### 公开资料调研（2026-08-15 晚段，web_search）
+- **结论：MC 社区无「每 chunk 随线程数线性变慢 7.5 倍」的已知通用机制**——C2ME/Paper 的多线程实现（按 chunk 独立任务）都扩展正常（Paper #8177 Spottedleaf 重写 chunk 系统提并行；C2ME 近线性）
+- 相关来源：[Paper PR #8177](https://github.com/PaperMC/Paper/pull/8177)（chunk 系统并行化专门设计）、[Terra issue #481](https://github.com/PolyhedralDev/Terra/issues/481)（自定义生成器多线程）、[SpigotMC 讨论](https://www.spigotmc.org/threads/chunk-generation-plateaus-around-max-cores-is-performance-being-left-out-by-not-taxing-threads.563916/)（扩展性 plateau）、[netty PR #16766](https://github.com/netty/netty/pull/16766)（thread-local 缓存复用）
+- **含义**：我们的「每 chunk 随并发线性涨」是**实现特有 bug**（非 MC 通用现象）——值得继续挖，不是「世界本来就慢」
+- 已静态排除：blocks.id()（const 读 map，无锁）、Splitter::split（const 纯函数，线程安全）
+
 ## 3. 额外线索
 
 1. C2ME DFC = 发现 #11 预告的「整个 DF 树扁平化」未做项——C++ 每块树遍历是膨胀基数

@@ -1445,4 +1445,46 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 - 正确方向（GPU 网格角点 + CPU 插值）未实施——需 fillOneChunkCore 密度阶段重构（「先 GPU 出网格 → CPU 插值」），工作量中等，待后续立项评估。
 
+---
+
+## 2026-08-16：线程池 notify 丢失修复（0a781e1）+ C1 回滚（8966ba9）+ 影响评估 + clamp 发现 + MT 错误台账（✅ 修复闭环 / ↩️ 回滚 / 🔍 H3 待重测 / ⚡ clamp candidate 待实机验证）
+
+> 承接 2026-08-15 深夜段（I6-I8）之后；提交时间 8/15 23:50-23:59，排查/评估/台账 8/16。完整五段式错误记录：`.investigations/worldgen-mt-scaling/mt-scaling-errors.md`（MT1-MT7 + 判错经验 + 速查表）；影响评估：`notify-bug-impact.md`；勘探：`scout-map.md`；docs 影响标注：07-block-pipeline.md「2026-08-16 影响评估修正」。
+
+### ✅ notify 丢失 bug 修复（0a781e1，8/15 23:50）
+
+- **bug**：CoreSwapPool ensure()（L1057-1098）锁内建 worker + run() 入队后 notify_all()（L1125）竞争 → 补建 worker 错过通知永久等待（tasks 空 + stop false）→ 只有老 worker 干活 = **串行假象**（经典丢失唤醒）。引入 252d988（8/6 20:11 扩容支持），**活跃约 9 天**。
+- **现象**：bench [A] T>1 顺序跑「反降 +19-29%」（T=1 73.23 / T=8 87.51 / T=12 89.92 / T=22 94.35 ms/chunk，bench-C2-20260815.txt）；WG_TASKTIME 实证补建 worker 全空闲（顺序跑 done_by 恒老 worker；**单独跑完美并行 = 池无增长时正确，bug 只在扩容路径暴露**）。
+- **修复**：readyCount 原子（worker 进 wait 自增 / 拿任务自减）+ run() 入队前等 `readyCount >= workers.size()`（L1110-1118）。
+- **影响**：8/11-8/15 所有 [A] T>1 顺序跑数据作废（串行假象）；**单线程数据、H2 主因（rebuild 168×）不受影响**（单线程精确统计）。
+- **修复后验证**：64-chunk 8×8 前台重测（bench-notifyfix-8x8-20260816.txt）：[A] T=1 98.02 / T=8 89.88（**-8.3% 不再反降**）/ T=12 90.39 / T=22 97.76——收益仍被「每 chunk 并发下慢」吞掉（第二阶段课题）。
+
+### ↩️ C1 thread_local 复用回滚（8966ba9，8/15 23:59）
+
+- C1 候选验证（tl_col/tl_densityBuf 复用，消除每 chunk 1.2MB 堆分配/释放）→ **单线程慢 9%（71.68→77.93）+ MT 反降依旧** → 回滚；**C1 排除结论保留**（堆分配非 MT 反降主因，负面验证结果本身是资产）。
+
+### ⚠️ 影响评估（8/16，notify-bug-impact.md）
+
+- **H3「thrashing ×16」（mt 27,155ns vs t1 1,714ns）**：mt 侧数据在 bug 活跃期采集（实际并行度=1）→ **×16 需重新定性（🔍 待修复后重测）**；H2（rebuild 168×）保留。
+- **WG_PROFILE/WG_STAGETIMER 计时污染揭穿**：density 460ms 伪影（真实 45ms）——独立污染源（探针自身开销），非 notify bug；探针已分离修复（cc93c50）。
+
+### ⚡ threads clamp 发现（[B]/实机 M=1 结构性串行，candidate 待实机验证）
+
+- `wg_fill_blocks_multi` L1189 `if (threads > count) threads = count;`（**66e05f5，8/5「方块层多线程并行」引入**；池化 c792e9d 后语义失效）→ count=1 时 clamp 到 1 → ensure(1) → **池恒 1 worker**。
+- **实机链路铁证**：CppBridge.java L170-171（count=1 + THREADS）→ jni_bridge.cpp L93（`(int)count, (int)threads` 原样透传）→ L1189 clamp → L1193 ensure(1) → **实机 mod「多线程」可能从未真正并行**（结构性串行；与 notify bug 独立——notify 只影响 [A] 批量，clamp 影响 [B]/实机 M=1）。
+- **修复待办**：clamp 改 `if (threads > count && count > 1)`（count=1 保留 THREADS）或实机改批量调用（未实施，记录待办）。
+
+### ✅ MT 错误台账建立（mt-scaling-errors.md）
+
+- **MT1** notify 丢失（✅ 已修复 0a781e1）| **MT2** H3 ×16 污染（🔍 待重测）| **MT3** clamp 结构性串行（🔍 待定性 + ⚡ candidate）| **MT4** 计时污染（✅ 已修复 cc93c50）| **MT5** C1 thread_local 退化（↩️ 已回滚 8966ba9）| **MT6** 修复后验证缺失（✅ 已补充 64-chunk 重测）| **MT7** runMtx「排队」未留痕（✅ 已核对留痕）+ 判错经验 9 条 + 速查表 11 行。
+- **MT7 演进链核对（git log -S "runMtx" 实证）**：c792e9d 持久池（8/6）→ 252d988 扩容+shutdown（8/6）→ **e388ab4 runMtx 全局互斥（8/7，32 视距崩溃补丁 = 用户记忆的「排队」）** → **6e2c7ea per-run RunState 隔离取代 runMtx（8/11，批间真并行）**——「加了又去掉」只留一半痕（演进记录散在 10 时间线 L567/L1112/L1118，6e2c7ea 只改代码注释未显著标注旧方案作废；09 篇无「排队」字样，初稿说法已修正），本台账已留痕。
+
+### 🔍 遗留项（未立项 / 待复核）
+
+- 🔍 H3 ×16 修复后重测（mt 侧 spline 单次成本；若 mt≈t1 则 H3 降级/删除）
+- ⚡ 实机实跑对比（clamp 推论最后验证——实机多线程生成时 C++ 侧 worker 数 / 吞吐与单线程无差）
+- 🔍 scout-map L110「修复后仍反降（T=1 71.40 / T=8 84.24）」vs 8x8 数据（T=1 98.02）矛盾（中间状态混测，单线程基差 +37% 待同机同状态对照）
+- 🔍 「每 chunk 并发下慢 7.5 倍」真实性（WG_MTTRACE fprintf stderr 锁竞争污染）——需无 fprintf 计数器测量
+- 07 篇 L74/L97/L109 影响标注 + 文末「2026-08-16 影响评估修正」小节（本批次落盘）
+
 

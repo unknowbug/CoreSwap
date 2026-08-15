@@ -1,0 +1,11 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\bench_chunks.exe size=663552
+[CORESWAP] crash handler installed
+[BENCH] seed=8576294172403134396 chunks=64 (8x8) reps=2 hw_threads=24
+[A] threads=  1  6273.1 ms/batch     10.2 chunks/s  (98.02 ms/chunk)
+[A] threads=  8  5752.4 ms/batch     11.1 chunks/s  (89.88 ms/chunk)
+[A] threads= 12  5785.3 ms/batch     11.1 chunks/s  (90.39 ms/chunk)
+[A] threads= 22  6256.8 ms/batch     10.2 chunks/s  (97.76 ms/chunk)
+[A] threads=  0  6163.2 ms/batch     10.4 chunks/s  (96.30 ms/chunk)
+
+[B] 模拟实机 JNI（T worker 各调 count=1）
+[B] workers=  1  5555.3 ms/batch     11.5 chunks/s  (86.80 ms/chunk)

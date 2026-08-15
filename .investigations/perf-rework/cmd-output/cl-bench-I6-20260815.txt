@@ -1,0 +1,7 @@
+bench_chunks.cpp
+bench_chunks.obj : error LNK2019: 无法解析的外部符号 wg_create，函数 main 中引用了该符号
+bench_chunks.obj : error LNK2019: 无法解析的外部符号 wg_destroy，函数 main 中引用了该符号
+bench_chunks.obj : error LNK2019: 无法解析的外部符号 wg_fill_blocks_multi，函数 "private: static unsigned int __cdecl std::thread::_Invoke<class std::tuple<class <lambda_d632bdec481429f151b1d9ac7a842b00> >,0>(void *)" (??$_Invoke@V?$tuple@V<lambda_d632bdec481429f151b1d9ac7a842b00>@@@std@@$0A@@thread@std@@CAIPEAX@Z) 中引用了该符号
+bench_chunks.obj : error LNK2019: 无法解析的外部符号 wg_profile_dump，函数 main 中引用了该符号
+bench_chunks.obj : error LNK2019: 无法解析的外部符号 "char const * const wg::g_crashContext" (?g_crashContext@wg@@3PEBDEB)，函数 "long __cdecl wg::CrashHandler(struct _EXCEPTION_POINTERS *)" (?CrashHandler@wg@@YAJPEAU_EXCEPTION_POINTERS@@@Z) 中引用了该符号
+bench_chunks.exe : fatal error LNK1120: 5 个无法解析的外部命令
