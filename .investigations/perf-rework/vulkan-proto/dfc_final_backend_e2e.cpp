@@ -1,5 +1,4 @@
 // dfc_final_backend_e2e.cpp —— final_density 完整树：DensityBuilder(CPU 参照) + CpuBackend + GPU
-#include <vulkan/vulkan.h>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -8,6 +7,7 @@
 #include <string>
 #include <cmath>
 #include <chrono>
+#include "vulkan_runtime.h"
 #include "cpu_backend.h"
 #include "density_builder.h"
 
@@ -80,52 +80,35 @@ int main() {
 
     const uint32_t N = 1024;
     std::vector<int32_t> coords(3 * N);
+    // P2-1：z 采样覆盖（judge 项——原坐标 z=i/1024 恒 0，只覆盖 z=0 单列，spline 4 种 coordType
+    // （ridges_folded/ridges/erosion/continents）触发未证实）。WG_E2E_Z=1 时 z 覆盖多平面：
+    //   i=0..255   → z=-2，i=256..511 → z=0，i=512..767 → z=2，i=768..1023 → z=4
+    //   每 256 组内 x=i%64（4 轮）× y=-64+(i/64%16)（4 层）
+    const bool zCover = std::getenv("WG_E2E_Z") != nullptr;
     for (uint32_t i = 0; i < N; i++) {
         coords[3*i+0] = 0 + (i % 64);
         coords[3*i+1] = -64 + (i / 64 % 16);
-        coords[3*i+2] = 0 + (i / 1024);
+        coords[3*i+2] = zCover ? (int32_t)((i / 256) * 2 - 2) : 0 + (i / 1024);
     }
+    std::fprintf(stderr, "[step] coords zCover=%d\n", (int)zCover);
     std::vector<float> splitCoord((size_t)backend.splitTotal * N);
     for (uint32_t s = 0; s < N; s++) {
         backend.split(coords[3*s+0], coords[3*s+1], coords[3*s+2], splitCoord.data() + s * backend.splitTotal);
     }
     std::vector<uint32_t> perm;
     backend.collectPerm(perm);
+    // ---- dump splitCoord + perm + coords（供 Python CPU 模拟对比）----
+    { std::ofstream f("split_dump.bin", std::ios::binary); f.write((const char*)splitCoord.data(), splitCoord.size()*4); }
+    { std::ofstream f("perm_dump.bin", std::ios::binary); f.write((const char*)perm.data(), perm.size()*4); }
+    { std::ofstream f("coords_dump.txt"); for (uint32_t i = 0; i < N; i++) f << coords[3*i+0] << " " << coords[3*i+1] << " " << coords[3*i+2] << "\n"; }
+    std::fprintf(stderr, "[step] dumped splitCoord(%zu) perm(%zu) coords(%u)\n", splitCoord.size(), perm.size(), N);
     std::fprintf(stderr, "[step] split + collectPerm done, N=%u permSize=%d\n", N, backend.permSize);
 
-    // ---- Vulkan ----
-    VkApplicationInfo appInfo{}; appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO; appInfo.apiVersion = VK_API_VERSION_1_3;
-    VkInstanceCreateInfo instCI{}; instCI.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO; instCI.pApplicationInfo = &appInfo;
-    VkInstance instance; CHECK_VK(vkCreateInstance(&instCI, nullptr, &instance));
-    uint32_t devCount = 0; vkEnumeratePhysicalDevices(instance, &devCount, nullptr);
-    std::vector<VkPhysicalDevice> phys(devCount); vkEnumeratePhysicalDevices(instance, &devCount, phys.data());
-    VkPhysicalDevice physDev = phys[0];
-    VkPhysicalDeviceProperties devProps; vkGetPhysicalDeviceProperties(physDev, &devProps);
-    std::printf("[device] %s\n", devProps.deviceName);
-    uint32_t qCount = 0; vkGetPhysicalDeviceQueueFamilyProperties(physDev, &qCount, nullptr);
-    std::vector<VkQueueFamilyProperties> qProps(qCount); vkGetPhysicalDeviceQueueFamilyProperties(physDev, &qCount, qProps.data());
-    uint32_t computeFamily = UINT32_MAX;
-    for (uint32_t i = 0; i < qCount; i++) if (qProps[i].queueFlags & VK_QUEUE_COMPUTE_BIT) { computeFamily = i; break; }
-    float qPri = 1.0f;
-    VkDeviceQueueCreateInfo qCI{}; qCI.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO; qCI.queueFamilyIndex = computeFamily; qCI.queueCount = 1; qCI.pQueuePriorities = &qPri;
-    VkDeviceCreateInfo devCI{}; devCI.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO; devCI.queueCreateInfoCount = 1; devCI.pQueueCreateInfos = &qCI;
-    VkDevice device; CHECK_VK(vkCreateDevice(physDev, &devCI, nullptr, &device));
-    VkQueue queue; vkGetDeviceQueue(device, computeFamily, 0, &queue);
-
-    auto spv = loadSpv("final_density.spv");
-    VkShaderModuleCreateInfo smCI{}; smCI.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO; smCI.codeSize = spv.size()*4; smCI.pCode = spv.data();
-    VkShaderModule shader; CHECK_VK(vkCreateShaderModule(device, &smCI, nullptr, &shader));
-    VkDescriptorSetLayoutBinding bindings[5]{};
-    for (int b = 0; b < 5; b++) { bindings[b].binding = b; bindings[b].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; bindings[b].descriptorCount = 1; bindings[b].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; }
-    VkDescriptorSetLayoutCreateInfo dslCI{}; dslCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO; dslCI.bindingCount = 5; dslCI.pBindings = bindings;
-    VkDescriptorSetLayout dsl; CHECK_VK(vkCreateDescriptorSetLayout(device, &dslCI, nullptr, &dsl));
-    VkPipelineLayoutCreateInfo plCI{}; plCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO; plCI.setLayoutCount = 1; plCI.pSetLayouts = &dsl;
-    VkPipelineLayout pipelineLayout; CHECK_VK(vkCreatePipelineLayout(device, &plCI, nullptr, &pipelineLayout));
-    VkComputePipelineCreateInfo cpCI{}; cpCI.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    cpCI.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; cpCI.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT; cpCI.stage.module = shader; cpCI.stage.pName = "main"; cpCI.layout = pipelineLayout;
-    VkPipeline pipeline;
+    // ---- Vulkan（I1：复用 VkRuntime 组件，语义与内联版逐位一致）----
+    VkRuntime rt;
+    rt.init();
     auto tp0 = std::chrono::steady_clock::now();
-    CHECK_VK(vkCreateComputePipelines(device, VK_NULL_HANDLE, 1, &cpCI, nullptr, &pipeline));
+    rt.createPipeline("final_density.spv");
     auto tp1 = std::chrono::steady_clock::now();
     std::printf("[dbg] pipeline created in %.1fs\n", std::chrono::duration<double>(tp1 - tp0).count());
 
@@ -133,67 +116,60 @@ int main() {
     VkDeviceSize permSize = perm.size() * sizeof(uint32_t);
     VkDeviceSize splitSize = splitCoord.size() * sizeof(float);
     VkDeviceSize outSize = N * sizeof(float);
-    auto makeBuffer = [&](VkDeviceSize size, VkBuffer* buf, VkDeviceMemory* mem) {
-        VkBufferCreateInfo bCI{}; bCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO; bCI.size = size; bCI.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT; bCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        CHECK_VK(vkCreateBuffer(device, &bCI, nullptr, buf));
-        VkMemoryRequirements req; vkGetBufferMemoryRequirements(device, *buf, &req);
-        VkPhysicalDeviceMemoryProperties mp; vkGetPhysicalDeviceMemoryProperties(physDev, &mp);
-        uint32_t ti = UINT32_MAX; for (uint32_t i = 0; i < mp.memoryTypeCount; i++) if ((req.memoryTypeBits & (1u<<i)) && (mp.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))) { ti = i; break; }
-        VkMemoryAllocateInfo aI{}; aI.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO; aI.allocationSize = req.size; aI.memoryTypeIndex = ti;
-        CHECK_VK(vkAllocateMemory(device, &aI, nullptr, mem)); CHECK_VK(vkBindBufferMemory(device, *buf, *mem, 0));
-    };
-    VkBuffer coordBuf, permBuf, splitBuf, outBuf; VkDeviceMemory coordMem, permMem, splitMem, outMem;
-    makeBuffer(coordSize, &coordBuf, &coordMem); makeBuffer(permSize, &permBuf, &permMem);
-    makeBuffer(splitSize, &splitBuf, &splitMem); makeBuffer(outSize, &outBuf, &outMem);
-    { void* m; CHECK_VK(vkMapMemory(device, coordMem, 0, coordSize, 0, &m)); std::memcpy(m, coords.data(), coordSize); vkUnmapMemory(device, coordMem); }
-    { void* m; CHECK_VK(vkMapMemory(device, permMem, 0, permSize, 0, &m)); std::memcpy(m, perm.data(), permSize); vkUnmapMemory(device, permMem); }
-    { void* m; CHECK_VK(vkMapMemory(device, splitMem, 0, splitSize, 0, &m)); std::memcpy(m, splitCoord.data(), splitSize); vkUnmapMemory(device, splitMem); }
+    const uint32_t PER_SAMPLE = (uint32_t)backend.perSample;   // D19: 从生成器取（曾硬编码 320 → ws 后 352 越界 → 尾部输出 0）
+    VkDeviceSize valSize = (VkDeviceSize)N * PER_SAMPLE * sizeof(float);
+    VkRuntime::Buffer coordBuf = rt.createBuffer(coordSize), permBuf = rt.createBuffer(permSize);
+    VkRuntime::Buffer splitBuf = rt.createBuffer(splitSize), outBuf = rt.createBuffer(outSize), valBuf = rt.createBuffer(valSize);
+    // A1b/A2：spline SSBO（生成器导出数据，binding 6-11）
+    VkDeviceSize npSize = backend.splineNodePack.size() * sizeof(int32_t);
+    VkDeviceSize locSize = backend.splineLocs.size() * sizeof(float);
+    VkDeviceSize derSize = backend.splineDers.size() * sizeof(float);
+    VkDeviceSize vfSize  = backend.splineValF.size() * sizeof(float);
+    VkDeviceSize vkSize  = backend.splineValKind.size() * sizeof(int32_t);
+    VkDeviceSize vnSize  = backend.splineValNode.size() * sizeof(int32_t);
+    VkRuntime::Buffer npBuf = rt.createBuffer(npSize), locBuf = rt.createBuffer(locSize), derBuf = rt.createBuffer(derSize);
+    VkRuntime::Buffer vfBuf = rt.createBuffer(vfSize), vkBuf = rt.createBuffer(vkSize), vnBuf = rt.createBuffer(vnSize);
+    rt.upload(npBuf, backend.splineNodePack.data(), npSize); rt.upload(locBuf, backend.splineLocs.data(), locSize);
+    rt.upload(derBuf, backend.splineDers.data(), derSize); rt.upload(vfBuf, backend.splineValF.data(), vfSize);
+    rt.upload(vkBuf, backend.splineValKind.data(), vkSize); rt.upload(vnBuf, backend.splineValNode.data(), vnSize);
+    rt.upload(coordBuf, coords.data(), coordSize); rt.upload(permBuf, perm.data(), permSize); rt.upload(splitBuf, splitCoord.data(), splitSize);
 
-    VkDescriptorPoolSize poolSize{}; poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; poolSize.descriptorCount = 5;
-    VkDescriptorPoolCreateInfo dpCI{}; dpCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO; dpCI.maxSets = 1; dpCI.poolSizeCount = 1; dpCI.pPoolSizes = &poolSize;
-    VkDescriptorPool dpool; CHECK_VK(vkCreateDescriptorPool(device, &dpCI, nullptr, &dpool));
-    VkDescriptorSetAllocateInfo dsAI{}; dsAI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO; dsAI.descriptorPool = dpool; dsAI.descriptorSetCount = 1; dsAI.pSetLayouts = &dsl;
-    VkDescriptorSet ds; CHECK_VK(vkAllocateDescriptorSets(device, &dsAI, &ds));
-    VkDescriptorBufferInfo dbis[4]{{coordBuf,0,coordSize},{permBuf,0,permSize},{outBuf,0,outSize},{splitBuf,0,splitSize}};
-    VkWriteDescriptorSet writes[4]{};
-    int wb[4] = {0, 1, 3, 4};
-    for (int b = 0; b < 4; b++) { writes[b].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET; writes[b].dstSet = ds; writes[b].dstBinding = wb[b]; writes[b].descriptorCount = 1; writes[b].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; writes[b].pBufferInfo = &dbis[b]; }
-    vkUpdateDescriptorSets(device, 4, writes, 0, nullptr);
+    // P2-2：binding 号从生成器取（D19 补全）——wb = {0,1,3,4,5} + splineBindBase..+5
+    int wb[11] = {0, 1, 3, 4, 5,
+                  backend.splineBindBase + 0, backend.splineBindBase + 1, backend.splineBindBase + 2,
+                  backend.splineBindBase + 3, backend.splineBindBase + 4, backend.splineBindBase + 5};
+    VkRuntime::Buffer bufs[11] = {coordBuf, permBuf, outBuf, splitBuf, valBuf, npBuf, locBuf, derBuf, vfBuf, vkBuf, vnBuf};
+    VkDeviceSize sizes[11] = {coordSize, permSize, outSize, splitSize, valSize, npSize, locSize, derSize, vfSize, vkSize, vnSize};
+    VkDescriptorSet ds = rt.makeDescriptorSet<11>(bufs, wb, sizes, 11);
+    rt.dispatch(ds, N);
 
-    VkCommandPoolCreateInfo cpPoolCI{}; cpPoolCI.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO; cpPoolCI.queueFamilyIndex = computeFamily;
-    VkCommandPool cmdPool; CHECK_VK(vkCreateCommandPool(device, &cpPoolCI, nullptr, &cmdPool));
-    VkCommandBufferAllocateInfo cbAI{}; cbAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; cbAI.commandPool = cmdPool; cbAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; cbAI.commandBufferCount = 1;
-    VkCommandBuffer cb; CHECK_VK(vkAllocateCommandBuffers(device, &cbAI, &cb));
-    VkCommandBufferBeginInfo begin{}; begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    CHECK_VK(vkBeginCommandBuffer(cb, &begin));
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &ds, 0, nullptr);
-    vkCmdDispatch(cb, (N + 255) / 256, 1, 1);
-    CHECK_VK(vkEndCommandBuffer(cb));
-    VkSubmitInfo submit{}; submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO; submit.commandBufferCount = 1; submit.pCommandBuffers = &cb;
-    VkFenceCreateInfo fenceCI{}; fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    VkFence fence; CHECK_VK(vkCreateFence(device, &fenceCI, nullptr, &fence));
-    CHECK_VK(vkQueueSubmit(queue, 1, &submit, fence));
-    CHECK_VK(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-
-    { void* m; CHECK_VK(vkMapMemory(device, outMem, 0, outSize, 0, &m)); std::vector<float> out(N); std::memcpy(out.data(), m, outSize); vkUnmapMemory(device, outMem);
+    { std::vector<float> out(N); rt.readback(outBuf, out.data(), outSize);
         double maxDiff = 0.0, sumDiff = 0.0;
+        { std::ofstream f("out_dump.txt"); for (uint32_t i = 0; i < N; i++) f << out[i] << "\n"; }
+        struct DiffRec { uint32_t i; float gpu; double ref; double diff; };
+        std::vector<DiffRec> top;
         for (uint32_t i = 0; i < N; i++) {
             wg::NoisePos pos{ coords[3*i+0], coords[3*i+1], coords[3*i+2] };
             double ref = fdDF->sample(pos);
             double diff = std::fabs((double)out[i] - ref);
-            if (i < 4) std::printf("[DBG] i=%u pos=(%d,%d,%d) gpu=%.9f cpu=%.9f diff=%.3e\n", i, pos.x, pos.y, pos.z, out[i], ref, diff);
+            if (i < 16 || i % 128 == 0) std::printf("[DBG] i=%u pos=(%d,%d,%d) gpu=%.9f cpu=%.9f diff=%.3e\n", i, pos.x, pos.y, pos.z, out[i], ref, diff);
             if (diff > maxDiff) maxDiff = diff;
             sumDiff += diff;
+            top.push_back({i, out[i], ref, diff});
+        }
+        std::sort(top.begin(), top.end(), [](const DiffRec& a, const DiffRec& b) { return a.diff > b.diff; });
+        for (int k = 0; k < 12 && k < (int)top.size(); k++) {
+            wg::NoisePos pos{ coords[3*top[k].i+0], coords[3*top[k].i+1], coords[3*top[k].i+2] };
+            std::printf("[TOP%02d] i=%u pos=(%d,%d,%d) gpu=%.9f cpu=%.9f diff=%.3e\n", k, top[k].i, pos.x, pos.y, pos.z, top[k].gpu, top[k].ref, top[k].diff);
         }
         std::printf("[result] N=%u, final_density 完整树: GPU float vs CPU double: maxDiff=%.3e avgDiff=%.3e\n", N, maxDiff, sumDiff / N);
     }
 
-    vkDestroyFence(device, fence, nullptr); vkDestroyCommandPool(device, cmdPool, nullptr); vkDestroyDescriptorPool(device, dpool, nullptr);
-    vkFreeMemory(device, coordMem, nullptr); vkFreeMemory(device, permMem, nullptr); vkFreeMemory(device, splitMem, nullptr); vkFreeMemory(device, outMem, nullptr);
-    vkDestroyBuffer(device, coordBuf, nullptr); vkDestroyBuffer(device, permBuf, nullptr); vkDestroyBuffer(device, splitBuf, nullptr); vkDestroyBuffer(device, outBuf, nullptr);
-    vkDestroyPipeline(device, pipeline, nullptr); vkDestroyPipelineLayout(device, pipelineLayout, nullptr); vkDestroyDescriptorSetLayout(device, dsl, nullptr); vkDestroyShaderModule(device, shader, nullptr);
-    vkDestroyDevice(device, nullptr); vkDestroyInstance(instance, nullptr);
     std::printf("[done]\n");
+    VkRuntime::destroyBuffer(rt.device(), coordBuf); VkRuntime::destroyBuffer(rt.device(), permBuf);
+    VkRuntime::destroyBuffer(rt.device(), splitBuf); VkRuntime::destroyBuffer(rt.device(), outBuf); VkRuntime::destroyBuffer(rt.device(), valBuf);
+    VkRuntime::destroyBuffer(rt.device(), npBuf); VkRuntime::destroyBuffer(rt.device(), locBuf);
+    VkRuntime::destroyBuffer(rt.device(), derBuf); VkRuntime::destroyBuffer(rt.device(), vfBuf);
+    VkRuntime::destroyBuffer(rt.device(), vkBuf); VkRuntime::destroyBuffer(rt.device(), vnBuf);
     return 0;
 }

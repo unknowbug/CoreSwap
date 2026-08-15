@@ -1,0 +1,22 @@
+#version 460
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Out { float outVal[]; };
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    float x = float(gid) * 0.1;
+    float r = 0.0;
+    switch (int(gid % 10)) {
+    case 0: r = 0.0 + x * 0.5; break;
+    case 1: r = 1.0 + x * 0.5; break;
+    case 2: r = 2.0 + x * 0.5; break;
+    case 3: r = 3.0 + x * 0.5; break;
+    case 4: r = 4.0 + x * 0.5; break;
+    case 5: r = 5.0 + x * 0.5; break;
+    case 6: r = 6.0 + x * 0.5; break;
+    case 7: r = 7.0 + x * 0.5; break;
+    case 8: r = 8.0 + x * 0.5; break;
+    case 9: r = 9.0 + x * 0.5; break;
+    }
+    outVal[gid] = r + x;
+}

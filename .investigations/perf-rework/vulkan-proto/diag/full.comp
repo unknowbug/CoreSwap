@@ -1,0 +1,1002 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+#extension GL_EXT_control_flow_attributes : require
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// 坐标输入（int 块坐标，x,y,z 三元组）
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; } coord;
+// perm 表（每 octave 256 uint，连续）
+layout(set = 0, binding = 1, std430) buffer PermBuf { uint perm[]; } permBuf;
+// origin（每 octave 3 double，连续）
+layout(set = 0, binding = 2, std430) buffer OriginBuf { double origin[]; } originBuf;
+// 输出 density
+layout(set = 0, binding = 3, std430) buffer OutBuf { float density[]; } outBuf;
+// 拆分坐标（CPU 预计算：每采样点 SPLIT_TOTAL 个 float，[ix,iy,iz,gx,gy,gz] × 每 octave）
+layout(set = 0, binding = 4, std430) buffer SplitBuf { float splitCoord[]; } splitBuf;
+// val 栈（方案1c：解释器中间值，每采样点 9 区段 = 8 角点 + 1 顶层；无实例名 → valBuf 直接可访问）
+layout(set = 0, binding = 5, std430) buffer ValBuf { float valBuf[]; };
+const int SPLIT_TOTAL = 8672;
+
+// ===== double 工具（old_blended_noise 用）=====
+const double GRADIENTS[16][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1},
+    { 1,  1,  0}, { 0, -1,  1}, {-1,  1,  0}, { 0, -1, -1}
+};
+int mapPermD(int octBase, int v) { return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }
+double maintainPrecision(double v) { return v - trunc(v / 3.3554432E7 + 0.5) * 3.3554432E7; }
+double perlinFadeD(double v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+double lerpD(double d, double s, double e) { return s + d * (e - s); }
+double gradD(int octBase, int hash, double x, double y, double z) {
+    return GRADIENTS[hash & 15][0] * x + GRADIENTS[hash & 15][1] * y + GRADIENTS[hash & 15][2] * z;
+}
+double pn_sectionD(int octBase, int sx, int sy, int sz, double lx, double ly, double lz, double fadeY) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    double d = gradD(octBase, mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    double e = gradD(octBase, mapPermD(octBase, m + sz),     lx - 1.0, ly,     lz);
+    double f = gradD(octBase, mapPermD(octBase, l + sz),     lx,     ly - 1.0, lz);
+    double g = gradD(octBase, mapPermD(octBase, n + sz),     lx - 1.0, ly - 1.0, lz);
+    double h = gradD(octBase, mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0);
+    double o = gradD(octBase, mapPermD(octBase, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    double p = gradD(octBase, mapPermD(octBase, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    double q = gradD(octBase, mapPermD(octBase, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    double r = perlinFadeD(lx); double s = perlinFadeD(fadeY); double t = perlinFadeD(lz);
+    double x0 = lerpD(r, d, e); double x1 = lerpD(r, f, g);
+    double x2 = lerpD(r, h, o); double x3 = lerpD(r, p, q);
+    double y0 = lerpD(s, x0, x1); double y1 = lerpD(s, x2, x3);
+    return lerpD(t, y0, y1);
+}
+// 5 参数 sample（double，含 y 轴 smear），origin 从 OriginBuf 读
+double pn_sample5(int octBase, double x, double y, double z, double yScale, double yMax) {
+    double d = x + originBuf.origin[octBase * 3 + 0];
+    double e = y + originBuf.origin[octBase * 3 + 1];
+    double f = z + originBuf.origin[octBase * 3 + 2];
+    int i = int(floor(d)); int j = int(floor(e)); int k = int(floor(f));
+    double g = d - i; double h = e - j; double l = f - k;
+    double n;
+    if (yScale != 0.0) {
+        double m = (yMax >= 0.0 && yMax < h) ? yMax : h;
+        n = floor(m / yScale + double(1.0e-7f)) * yScale;
+    } else n = 0.0;
+    return pn_sectionD(octBase, i, j, k, g, h - n, l, h);
+}
+
+// ===== float 工具（NormalNoise/spline/算术 用）=====
+const int minY = -64;   // overworld 维度 minY（interpolated cell 网格用）
+int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
+float perlinFadeF(float v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+float lerpF(float d, float s, float e) { return s + d * (e - s); }
+float spline_seg(float f, float lo, float span, float nv, float ov, float d0, float d1) {
+    float kd = (f - lo) / span;
+    float p = d0 * span - (ov - nv);
+    float q = -d1 * span + (ov - nv);
+    return (nv + kd * (ov - nv)) + kd * (1.0 - kd) * (p + kd * (q - p));
+}
+float y_clamped_gradient(int y, float fromY, float toY, float fromV, float toV) {
+    float t = clamp((float(y) - fromY) / (toY - fromY), 0.0, 1.0);
+    return fromV + t * (toV - fromV);
+}
+
+// ===== float Perlin（NormalNoise 用）=====
+// 单 octave float 采样：hash 用 int32（精确），grad/fade/lerp 用 float（~1e-7）
+float gradDotF(int hash, float x, float y, float z) {
+    vec3 g = vec3(float(GRADIENTS[hash & 15][0]), float(GRADIENTS[hash & 15][1]), float(GRADIENTS[hash & 15][2]));
+    return g.x * x + g.y * y + g.z * z;
+}
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+// 5 参数 sample（old_blended_noise 用）：读 7 值拆分坐标 [ix,iy,iz,gx,gy(h-n),gz,fadeY(h)]，float 采样
+float pn_section_f32(int octBase, int sIdx, int splitOffset) {
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int sx = int(splitBuf.splitCoord[b + 0]);
+    int sy = int(splitBuf.splitCoord[b + 1]);
+    int sz = int(splitBuf.splitCoord[b + 2]);
+    float lx = splitBuf.splitCoord[b + 3];
+    float ly = splitBuf.splitCoord[b + 4];
+    float lz = splitBuf.splitCoord[b + 5];
+    float fadeY = splitBuf.splitCoord[b + 6];
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(fadeY); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+// OctavePerlinNoiseSampler（float 采样 + double 坐标拆分）：从 params 读 origin，返回叠加值
+double octave_noise_f32(int octBase, int nOct, double dx, double dy, double dz,
+                        double lacunarity, double persistence) {
+    double d = 0.0; double e = lacunarity; double f = persistence;
+    for (int i = 0; i < nOct; i++) {
+        double cx = maintainPrecision(dx * e);
+        double cy = maintainPrecision(dy * e);
+        double cz = maintainPrecision(dz * e);
+        int ix = int(floor(cx)); int iy = int(floor(cy)); int iz = int(floor(cz));
+        float gx = float(cx - double(ix)); float gy = float(cy - double(iy)); float gz = float(cz - double(iz));
+        float n = pn_sample3_f32(octBase + i, ix, iy, iz, gx, gy, gz);
+        d += double(n) * f;
+        e *= 2.0; f /= 2.0;
+    }
+    return d;
+}
+
+float interp_0(int sIdx, int ix, int iy, int iz);
+float interp_1(int sIdx, int ix, int iy, int iz);
+float interp_2(int sIdx, int ix, int iy, int iz);
+float interp_3(int sIdx, int ix, int iy, int iz);
+float interp_4(int sIdx, int ix, int iy, int iz);
+float eval_df(int rootNode, int corner, int sIdx, int ix, int iy, int iz);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ===== NormalNoise 数据驱动（C2：139 函数 → 1 个 normal_noise）=====
+const int NORMAL_INSTANCES = 200;
+// 每实例 int 参数：n, octBase, splitBase（3 int/实例）
+const int NORMAL_PACK[600] = int[](9, 0, 0, 9, 18, 108, 9, 36, 216, 9, 54, 324, 9, 72, 432, 9, 90, 540, 9, 108, 648, 9, 126, 756, 5, 144, 864, 5, 154, 924, 5, 164, 984, 5, 174, 1044, 5, 184, 1104, 5, 194, 1164, 5, 204, 1224, 5, 214, 1284, 6, 224, 1344, 6, 236, 1416, 6, 248, 1488, 6, 260, 1560, 6, 272, 1632, 6, 284, 1704, 6, 296, 1776, 6, 308, 1848, 16, 320, 1920, 16, 352, 2112, 16, 384, 2304, 16, 416, 2496, 16, 448, 2688, 16, 480, 2880, 16, 512, 3072, 16, 544, 3264, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 896, 5696, 3, 902, 5732, 3, 908, 5768, 3, 914, 5804, 3, 920, 5840, 3, 926, 5876, 3, 932, 5912, 3, 938, 5948, 1, 944, 5984, 1, 946, 5996, 1, 948, 6008, 1, 950, 6020, 1, 952, 6032, 1, 954, 6044, 1, 956, 6056, 1, 958, 6068, 1, 960, 6080, 1, 962, 6092, 1, 964, 6104, 1, 966, 6116, 1, 968, 6128, 1, 970, 6140, 1, 972, 6152, 1, 974, 6164, 1, 976, 6176, 1, 978, 6188, 1, 980, 6200, 1, 982, 6212, 1, 984, 6224, 1, 986, 6236, 1, 988, 6248, 1, 990, 6260, 1, 992, 6272, 1, 994, 6284, 1, 996, 6296, 1, 998, 6308, 1, 1000, 6320, 1, 1002, 6332, 1, 1004, 6344, 1, 1006, 6356, 1, 1008, 6368, 1, 1010, 6380, 1, 1012, 6392, 1, 1014, 6404, 1, 1016, 6416, 1, 1018, 6428, 1, 1020, 6440, 1, 1022, 6452, 1, 1024, 6464, 1, 1026, 6476, 1, 1028, 6488, 1, 1030, 6500, 1, 1032, 6512, 1, 1034, 6524, 1, 1036, 6536, 1, 1038, 6548, 1, 1040, 6560, 1, 1042, 6572, 1, 1044, 6584, 1, 1046, 6596, 1, 1048, 6608, 1, 1050, 6620, 1, 1052, 6632, 1, 1054, 6644, 9, 1056, 6656, 9, 1074, 6764, 9, 1092, 6872, 9, 1110, 6980, 9, 1128, 7088, 9, 1146, 7196, 9, 1164, 7304, 9, 1182, 7412, 1, 1200, 7520, 1, 1202, 7532, 1, 1204, 7544, 1, 1206, 7556, 1, 1208, 7568, 1, 1210, 7580, 1, 1212, 7592, 1, 1214, 7604, 1, 1216, 7616, 1, 1218, 7628, 1, 1220, 7640, 1, 1222, 7652, 1, 1224, 7664, 1, 1226, 7676, 1, 1228, 7688, 1, 1230, 7700, 1, 1232, 7712, 1, 1234, 7724, 1, 1236, 7736, 1, 1238, 7748, 1, 1240, 7760, 1, 1242, 7772, 1, 1244, 7784, 1, 1246, 7796, 1, 1248, 7808, 1, 1250, 7820, 1, 1252, 7832, 1, 1254, 7844, 1, 1256, 7856, 1, 1258, 7868, 1, 1260, 7880, 1, 1262, 7892, 2, 1264, 7904, 2, 1268, 7928, 2, 1272, 7952, 2, 1276, 7976, 2, 1280, 8000, 2, 1284, 8024, 2, 1288, 8048, 2, 1292, 8072, 1, 1296, 8096, 1, 1298, 8108, 1, 1300, 8120, 1, 1302, 8132, 1, 1304, 8144, 1, 1306, 8156, 1, 1308, 8168, 1, 1310, 8180, 1, 1312, 8192, 1, 1314, 8204, 1, 1316, 8216, 1, 1318, 8228, 1, 1320, 8240, 1, 1322, 8252, 1, 1324, 8264, 1, 1326, 8276, 1, 1328, 8288, 1, 1330, 8300, 1, 1332, 8312, 1, 1334, 8324, 1, 1336, 8336, 1, 1338, 8348, 1, 1340, 8360, 1, 1342, 8372, 1, 1344, 8384, 1, 1346, 8396, 1, 1348, 8408, 1, 1350, 8420, 1, 1352, 8432, 1, 1354, 8444, 1, 1356, 8456, 1, 1358, 8468, 1, 1360, 8480, 1, 1362, 8492, 1, 1364, 8504, 1, 1366, 8516, 1, 1368, 8528, 1, 1370, 8540, 1, 1372, 8552, 1, 1374, 8564, 1, 1376, 8576, 1, 1378, 8588, 1, 1380, 8600, 1, 1382, 8612, 1, 1384, 8624, 1, 1386, 8636, 1, 1388, 8648, 1, 1390, 8660);
+// 每实例 float 参数：persistence, amplitude（2 float/实例）
+const float NORMAL_PACK_F[400] = float[](0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.50097847358121328f, 1.4999999999999998f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.5161290322580645f, 1.3888888888888888f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50793650793650791f, 1.25f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.50000762951094835f, 1.5686274509803919f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 0.5714285714285714f, 1.25f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 0.50097847358121328f, 1.4814814814814814f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 0.66666666666666663f, 1.1111111111111109f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f, 1.0f, 0.83333333333333326f);
+// 全部实例的 amps 连续表
+const float NORMAL_AMPS[536] = float[](1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f, 2.0f, 2.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 2.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 0.40000000000000002f, 0.5f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 0.5f, 1.0f, 2.0f, 1.0f, 2.0f, 1.0f, 0.0f, 2.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+// 每实例 amps 起始偏移
+const int NORMAL_AMP_OFF[200] = int[](0, 9, 18, 27, 36, 45, 54, 63, 72, 77, 82, 87, 92, 97, 102, 107, 112, 118, 124, 130, 136, 142, 148, 154, 160, 176, 192, 208, 224, 240, 256, 272, 288, 288, 288, 288, 288, 288, 288, 288, 288, 291, 294, 297, 300, 303, 306, 309, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 377, 386, 395, 404, 413, 422, 431, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 474, 476, 478, 480, 482, 484, 486, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535);
+
+float normal_noise(int noiseIdx, int sIdx) {
+    int base = noiseIdx * 3;
+    int n = NORMAL_PACK[base + 0];
+    int octBase = NORMAL_PACK[base + 1];
+    int splitBase = NORMAL_PACK[base + 2];
+    float persistence = NORMAL_PACK_F[noiseIdx * 2 + 0];
+    float amplitude = NORMAL_PACK_F[noiseIdx * 2 + 1];
+    int ampOff = NORMAL_AMP_OFF[noiseIdx];
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = persistence;
+    for (int i = 0; i < n; i++) {
+        int b = sIdx * SPLIT_TOTAL + splitBase + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(octBase + i, ix, iy, iz, gx, gy, gz);
+        d += NORMAL_AMPS[ampOff + i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = persistence;
+    for (int i = 0; i < n; i++) {
+        int b = sIdx * SPLIT_TOTAL + splitBase + 6 * n + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(octBase + n + i, ix, iy, iz, gx, gy, gz);
+        d2 += NORMAL_AMPS[ampOff + i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * amplitude;
+}
+
+
+// ===== old_blended_noise 数据驱动（D2：8 函数 → 1 个 interp_noise）=====
+const int OLD_INSTANCES = 200;
+const int OLD_PACK[400] = int[](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 576, 3456, 616, 3736, 656, 4016, 696, 4296, 736, 4576, 776, 4856, 816, 5136, 856, 5416, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);   // [octBase, splitBase] × 实例
+
+float interp_noise(int idx, int sIdx) {
+    int octBase = OLD_PACK[idx * 2 + 0];
+    int splitBase = OLD_PACK[idx * 2 + 1];
+    // interpolation 8 octave（octBase+32..39）
+    float n = 0.0f; float o = 1.0f;
+    for (int q = 0; q < 8; q++) {
+        n += pn_section_f32(octBase + 32 + q, sIdx, splitBase + (32 + q) * 7) / o;
+        o /= 2.0f;
+    }
+    float qq = (n / 10.0f + 1.0f) / 2.0f;
+    bool bl = qq >= 1.0f; bool bl2 = qq <= 0.0f;
+    float l = 0.0f; float m = 0.0f; o = 1.0f;
+    for (int r = 0; r < 16; r++) {
+        if (!bl) l += pn_section_f32(octBase + r, sIdx, splitBase + r * 7) / o;
+        if (!bl2) m += pn_section_f32(octBase + 16 + r, sIdx, splitBase + (16 + r) * 7) / o;
+        o /= 2.0f;
+    }
+    float w = clamp(qq, 0.0f, 1.0f);
+    return (l / 512.0f + w * (m / 512.0f - l / 512.0f)) / 128.0f;
+}
+
+// 方案1：噪声 slot 表（结构共享 + 角点运行时实例查表）
+const int NOISE_SLOT_COUNT = 25;
+const int NOISE_SLOT_BASE[25] = int[](0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128, 136, 144, 152, 160, 168, 176, 184, 192);
+const int NOISE_SLOT_STRIDE[25] = int[](1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+
+
+// ===== spline 数据驱动（A 方案：SSBO 表 + 显式栈 spline_eval，56 函数 → 1）=====
+// 数据表 SSBO（binding 6-11）：动态 node 索引变运行时读，驱动不展开（D21 根因修复）
+layout(set = 0, binding = 6, std430) buffer SplineNodePackBuf { int splineNodePack[]; };
+layout(set = 0, binding = 7, std430) buffer SplineLocsBuf { float splineLocs[]; };
+layout(set = 0, binding = 8, std430) buffer SplineDersBuf { float splineDers[]; };
+layout(set = 0, binding = 9, std430) buffer SplineValFBuf { float splineValF[]; };
+layout(set = 0, binding = 10, std430) buffer SplineValKindBuf { int splineValKind[]; };
+layout(set = 0, binding = 11, std430) buffer SplineValNodeBuf { int splineValNode[]; };
+const int SPLINE_NODES = 56;
+
+float spline_coord(int coordType, int corner, int sIdx, int ix, int iy, int iz) {
+    switch (coordType) {
+    case 0: return ((normal_noise(NOISE_SLOT_BASE[0] + corner * NOISE_SLOT_STRIDE[0], sIdx)));
+    case 1: return ((normal_noise(NOISE_SLOT_BASE[1] + corner * NOISE_SLOT_STRIDE[1], sIdx)));
+    case 2: return ((-3.0f * (-0.3333333333333333f + abs((-0.6666666666666666f + abs((normal_noise(NOISE_SLOT_BASE[2] + corner * NOISE_SLOT_STRIDE[2], sIdx))))))));
+    case 3: return ((normal_noise(NOISE_SLOT_BASE[2] + corner * NOISE_SLOT_STRIDE[2], sIdx)));
+    }
+}
+
+// vanilla MathHelper.binarySearch 精确复刻
+int spline_find_range(float x, int locBegin, int n) {
+    int min = 0;
+    int i = n;
+    while (i > 0) {
+        int j = i / 2;
+        int k = min + j;
+        if (x < splineLocs[locBegin + k]) { i = j; }
+        else { min = k + 1; i -= j + 1; }
+    }
+    return min - 1;
+}
+
+float spline_hermite(float coord, float lo, float span, float nv, float ov, float d0, float d1) {
+    float kd = (coord - lo) / span;
+    float p = d0 * span - (ov - nv);
+    float q = -d1 * span + (ov - nv);
+    return (nv + kd * (ov - nv)) + kd * (1.0 - kd) * (p + kd * (q - p));
+}
+
+// 显式栈后序求值（GLSL 禁递归 D4）：帧 = {node, i, coord, stage, v0, v1}
+// stage: 0=init(coord+二分+边界) / 1=等 v0 子帧回填 / 3=等 v1 子帧回填（stage 2 为瞬态不挂起）
+float spline_eval(int rootNode, int corner, int sIdx, int ix, int iy, int iz) {
+    int st_node[32]; int st_i[32]; int st_stage[32];
+    float st_coord[32]; float st_v0[32]; float st_v1[32];
+    int sp = 0;
+    st_node[0] = rootNode; st_stage[0] = 0; sp = 1;
+    float outVal = 0.0;
+    while (sp > 0) {
+        int f = sp - 1;
+        int node = st_node[f];
+        int p = node * 5;
+        int ct = splineNodePack[p + 0];
+        int n = splineNodePack[p + 1];
+        int locB = splineNodePack[p + 2];
+        int derB = splineNodePack[p + 3];
+        int valB = splineNodePack[p + 4];
+        if (st_stage[f] == 0) {
+            float coord = spline_coord(ct, corner, sIdx, ix, iy, iz);
+            int i = spline_find_range(coord, locB, n);
+            st_coord[f] = coord; st_i[f] = i;
+            if (i < 0) {
+                float v0 = (splineValKind[valB] == 0) ? splineValF[valB] : 0.0f;
+                outVal = v0 + splineDers[derB] * (coord - splineLocs[locB]);
+                sp--;
+            } else if (i >= n - 1) {
+                float vn = (splineValKind[valB + n - 1] == 0) ? splineValF[valB + n - 1] : 0.0f;
+                outVal = vn + splineDers[derB + n - 1] * (coord - splineLocs[locB + n - 1]);
+                sp--;
+            } else {
+                st_stage[f] = 1;
+                if (splineValKind[valB + i] == 0) {
+                    st_v0[f] = splineValF[valB + i];
+                    st_stage[f] = 2;
+                    if (splineValKind[valB + i + 1] == 0) {
+                        st_v1[f] = splineValF[valB + i + 1];
+                        float lo = splineLocs[locB + i];
+                        outVal = spline_hermite(coord, lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+                        sp--;
+                    } else {
+                        st_stage[f] = 3;
+                        st_node[sp] = splineValNode[valB + i + 1]; st_stage[sp] = 0; sp++;
+                    }
+                } else {
+                    st_node[sp] = splineValNode[valB + i]; st_stage[sp] = 0; sp++;
+                }
+            }
+        } else if (st_stage[f] == 1) {
+            // 等 v0 子帧回填
+            st_v0[f] = outVal;
+            st_stage[f] = 2;
+            int i = st_i[f];
+            if (splineValKind[valB + i + 1] == 0) {
+                st_v1[f] = splineValF[valB + i + 1];
+                float coord = st_coord[f];
+                float lo = splineLocs[locB + i];
+                outVal = spline_hermite(coord, lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+                sp--;
+            } else {
+                st_stage[f] = 3;
+                st_node[sp] = splineValNode[valB + i + 1]; st_stage[sp] = 0; sp++;
+            }
+        } else if (st_stage[f] == 3) {
+            // 等 v1 子帧回填 → Hermite 完成
+            st_v1[f] = outVal;
+            int i = st_i[f];
+            float coord = st_coord[f];
+            float lo = splineLocs[locB + i];
+            outVal = spline_hermite(coord, lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+            sp--;
+        }
+    }
+    return outVal;
+}
+
+float ws_scale(int kind, float v) {
+    if (kind == 1) {
+        if (v < -0.75) return 0.5;
+        if (v < -0.5) return 0.75;
+        if (v < 0.5) return 1.0;
+        return v < 0.75 ? 2.0 : 3.0;
+    }
+    if (v < -0.5) return 0.75;
+    if (v < 0.0) return 1.0;
+    return v < 0.5 ? 1.5 : 2.0;
+}
+
+
+// ===== D2e：DF 树解释器（方案1e：每 interp 独立解释器副本 + 闭包，防驱动强制内联 TDR）=====
+// 节点数组后序（子节点先编号）→ 顺序求值；val 栈 SSBO（每采样点 PER_SAMPLE 槽）
+// 方案1：噪声节点 a1 = slot id；实例索引 = NOISE_SLOT_BASE[slot] + corner * NOISE_SLOT_STRIDE[slot]
+const int DF_NODES = 163;
+const int DF_TYPE[163] = int[](0, 0, 18, 0, 0, 18, 0, 0, 18, 0, 0, 0, 7, 6, 7, 0, 4, 6, 7, 6, 21, 6, 4, 6, 7, 6, 21, 2, 13, 7, 6, 0, 0, 4, 6, 7, 6, 21, 7, 14, 7, 3, 6, 0, 0, 2, 6, 18, 6, 0, 2, 7, 6, 0, 2, 10, 6, 7, 2, 22, 22, 9, 0, 0, 2, 7, 6, 6, 16, 6, 8, 7, 8, 2, 11, 7, 0, 2, 6, 16, 0, 0, 7, 6, 16, 6, 6, 8, 2, 22, 0, 0, 0, 2, 7, 6, 7, 6, 0, 2, 7, 6, 18, 6, 10, 6, 12, 9, 16, 6, 8, 0, 2, 7, 2, 7, 6, 6, 0, 2, 7, 6, 12, 7, 0, 17, 9, 17, 6, 7, 6, 6, 7, 6, 20, 5, 7, 15, 1, 2, 17, 5, 0, 0, 0, 2, 7, 6, 17, 5, 2, 17, 5, 10, 2, 17, 5, 10, 9, 7, 6, 17, 8);
+const int DF_A1[163] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, 10, 9, -1, 28, 15, 17, 14, 19, 8, 36, 9, 10, 9, 25, 3, 27, 26, 21, -1, -1, 55, 32, 10, 31, 36, 30, 38, 7, 4, 40, -1, -1, 5, 44, -1, 46, -1, 6, 49, 49, -1, 7, 54, 53, 52, 8, 58, 58, 59, -1, -1, 11, 63, 62, 61, 67, 57, 48, 43, 42, 12, 73, 7, -1, 13, 76, 78, -1, -1, 81, 80, 83, 79, 75, 86, 14, 88, -1, -1, -1, 16, 92, 91, 90, 89, -1, 17, 98, 9, -1, 101, 103, 104, 105, 97, 107, 108, 87, -1, 18, 111, 19, 11, 11, 113, -1, 20, 118, 118, 121, 117, -1, 123, 110, 42, 6, 5, 4, 3, 2, 1, 133, 0, 0, 136, -1, 21, 138, 1, -1, -1, -1, 22, 144, 143, 138, 2, 23, 138, 3, 152, 24, 138, 4, 156, 153, 80, 149, 141, 137);
+const int DF_A2[163] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 12, 13, -1, 1, 16, 10, 18, -1, 20, 1, 22, 23, 24, -1, -1, -1, 28, 29, -1, -1, 1, 33, 34, 35, -1, 37, -1, 39, -1, 41, -1, -1, -1, 45, -1, 47, -1, -1, 50, 51, -1, -1, -1, 55, 56, -1, 9, 10, 60, -1, -1, -1, 64, 65, 66, -1, 68, 69, 70, 71, -1, -1, 74, -1, -1, 77, -1, -1, -1, 42, 82, -1, 84, 85, 70, -1, 15, -1, -1, -1, -1, 93, 94, 95, 96, -1, -1, 99, 100, -1, 102, -1, 95, -1, 106, -1, 57, 109, -1, -1, 112, -1, 114, 115, 116, -1, -1, 119, 120, -1, 122, -1, 124, 125, 72, 127, 128, 129, 130, 131, 132, -1, -1, 135, -1, -1, -1, 139, -1, -1, -1, -1, -1, 145, 146, 147, -1, -1, 150, -1, -1, -1, 154, -1, -1, 157, 158, 159, 142, 161);
+const int DF_A3[163] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 123, -1, 126, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 11, -1, -1, -1, -1, -1, -1, -1, 9, -1, -1, 9, -1, -1, -1, 9, -1, -1, -1, -1, -1, 160, -1);
+const float DF_F0[163] = float[](0.64000000000000001f, 0.1171875f, -64.0f, -0.1171875f, -0.078125f, 240.0f, 0.078125f, 4.0f, -64.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -0.5037500262260437f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 10.0f, -10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.37f, 0.0f, 0.0f, -10.0f, 0.0f, -0.050000000000000003f, 0.0f, 0.0f, 0.0f, -0.40000000000000002f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -0.076499999999999999f, -0.011499999999999996f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.27000000000000002f, 0.0f, 0.0f, -1.0f, 1.5f, -0.64000000000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.083000000000000004f, -0.94999999999999996f, -0.35000000000000003f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 0.0f, 0.0f, 0.0f, -64.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.55000000000000004f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1000000.0f, -1000000.0f, 0.0f, -1000000.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -60.0f, 0.0f, 64.0f, -0.075000000000000011f, -0.025000000000000001f, 0.0f, 0.0f, 0.0f, -60.0f, 0.0f, 0.0f, -60.0f, 0.0f, 0.0f, 0.0f, -60.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1000000.0f, 0.0f);
+const float DF_F1[163] = float[](0.0f, 0.0f, -40.0f, 0.0f, 0.0f, 256.0f, 0.0f, 0.0f, 320.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 30.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 320.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.029999999999999999f, 0.0f, 1.5625f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f, 0.0f, 0.0f, 321.0f, 0.0f, 0.0f, 0.0f, 321.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float DF_F2[163] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.29999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float DF_F3[163] = float[](0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -40.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int VAL_SLOTS_TOP = 8;
+const int PER_SAMPLE = 352;
+
+// ---- interp_0 独立解释器（D16：单调用者防驱动强制内联 TDR）----
+const int CLOSURE_0_LEN = 134;
+const int VAL_SLOTS_0 = 18;
+const int CTYPE_0[134] = int[](0, 18, 0, 0, 18, 0, 0, 18, 0, 0, 0, 7, 6, 7, 0, 4, 6, 7, 6, 21, 6, 4, 6, 7, 6, 21, 2, 13, 7, 6, 0, 0, 4, 6, 7, 6, 21, 7, 14, 7, 3, 6, 0, 0, 2, 6, 18, 6, 0, 2, 7, 6, 0, 2, 10, 6, 7, 2, 22, 22, 9, 0, 0, 2, 7, 6, 6, 16, 6, 8, 7, 8, 2, 11, 7, 0, 2, 6, 16, 0, 0, 7, 6, 16, 6, 6, 8, 2, 22, 0, 0, 0, 2, 7, 6, 7, 6, 0, 2, 7, 6, 18, 6, 10, 6, 12, 9, 16, 6, 8, 0, 2, 7, 2, 7, 6, 6, 0, 2, 7, 6, 12, 7, 0, 17, 9, 17, 6, 7, 6, 6, 7, 6, 20);
+const int CA1_0[134] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 10, 9, 8, -1, 28, 14, 16, 13, 18, 7, 36, 8, 9, 8, 24, 3, 26, 25, 20, -1, -1, 55, 31, 9, 30, 35, 29, 37, 6, 4, 39, -1, -1, 5, 43, -1, 45, -1, 6, 48, 48, -1, 7, 53, 52, 51, 8, 57, 57, 58, -1, -1, 11, 62, 61, 60, 66, 56, 47, 42, 41, 12, 72, 6, -1, 13, 75, 77, -1, -1, 80, 79, 82, 78, 74, 85, 14, 87, -1, -1, -1, 16, 91, 90, 89, 88, -1, 17, 97, 8, -1, 100, 102, 103, 104, 96, 106, 107, 86, -1, 18, 110, 19, 10, 10, 112, -1, 20, 117, 117, 120, 116, -1, 122, 109, 41, 5, 4, 3, 2, 1, 0, 132);
+const int CA2_0[134] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 9, 11, 12, -1, 1, 15, 9, 17, -1, 19, 1, 21, 22, 23, -1, -1, -1, 27, 28, -1, -1, 1, 32, 33, 34, -1, 36, -1, 38, -1, 40, -1, -1, -1, 44, -1, 46, -1, -1, 49, 50, -1, -1, -1, 54, 55, -1, 9, 10, 59, -1, -1, -1, 63, 64, 65, -1, 67, 68, 69, 70, -1, -1, 73, -1, -1, 76, -1, -1, -1, 41, 81, -1, 83, 84, 69, -1, 15, -1, -1, -1, -1, 92, 93, 94, 95, -1, -1, 98, 99, -1, 101, -1, 94, -1, 105, -1, 56, 108, -1, -1, 111, -1, 113, 114, 115, -1, -1, 118, 119, -1, 121, -1, 123, 124, 71, 126, 127, 128, 129, 130, 131, -1);
+const int CA3_0[134] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 122, -1, 125, -1, -1, -1, -1, -1, -1, -1);
+const float CF0_0[134] = float[](0.1171875f, -64.0f, -0.1171875f, -0.078125f, 240.0f, 0.078125f, 4.0f, -64.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -0.5037500262260437f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 10.0f, -10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.37f, 0.0f, 0.0f, -10.0f, 0.0f, -0.050000000000000003f, 0.0f, 0.0f, 0.0f, -0.40000000000000002f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -0.076499999999999999f, -0.011499999999999996f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.27000000000000002f, 0.0f, 0.0f, -1.0f, 1.5f, -0.64000000000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.083000000000000004f, -0.94999999999999996f, -0.35000000000000003f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 0.0f, 0.0f, 0.0f, -64.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.55000000000000004f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1000000.0f, -1000000.0f, 0.0f, -1000000.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF1_0[134] = float[](0.0f, -40.0f, 0.0f, 0.0f, 256.0f, 0.0f, 0.0f, 320.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 30.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 320.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.029999999999999999f, 0.0f, 1.5625f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF2_0[134] = float[](0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.29999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 8.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_0[134] = float[](0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -40.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_0[134] = int[](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 11, 12, 13, 14, 12, 13, 11, 12, 7, 11, 7, 11, 7, 11, 13, 11, 7, 11, 12, 13, 14, 12, 9, 11, 9, 7, 9, 7, 11, 7, 9, 12, 13, 9, 12, 9, 13, 14, 13, 9, 14, 15, 14, 9, 13, 14, 15, 13, 14, 15, 16, 17, 15, 14, 13, 14, 13, 12, 7, 12, 14, 12, 6, 14, 15, 6, 14, 15, 16, 15, 14, 15, 6, 12, 6, 13, 6, 14, 15, 16, 17, 15, 14, 6, 13, 14, 16, 13, 8, 14, 8, 13, 8, 13, 6, 8, 6, 8, 9, 12, 8, 9, 8, 9, 8, 10, 12, 10, 8, 10, 8, 9, 8, 6, 7, 5, 4, 3, 2, 1, 0);
+float eval_df_base_0(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_0_LEN; ci++) {
+        int t = CTYPE_0[ci];
+        float r = 0.0;
+        if (t == 0) r = CF0_0[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_0[ci]] + corner * NOISE_SLOT_STRIDE[CA1_0[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_0[ci]] + corner * NOISE_SLOT_STRIDE[CA1_0[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_0[ci] == 1) r = spline_eval(CA1_0[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_0[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_0[ci], CF1_0[ci], CF2_0[ci], CF3_0[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]], CF0_0[ci], CF1_0[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]];
+            r = (inp >= CF0_0[ci] && inp < CF1_0[ci]) ? valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA2_0[ci]]] : valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA3_0[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]];
+            float d = ws_scale(int(CF0_0[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_0[ci]] + corner * NOISE_SLOT_STRIDE[CA2_0[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]] + valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA2_0[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]] * valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA2_0[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]], valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA2_0[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA1_0[ci]]], valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[CA2_0[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + 8 + corner * VAL_SLOTS_0 + SLOT_OF_0[rootPos]];
+}
+
+// ---- interp_1 独立解释器（D16：单调用者防驱动强制内联 TDR）----
+const int CLOSURE_1_LEN = 21;
+const int VAL_SLOTS_1 = 7;
+const int CTYPE_1[21] = int[](0, 0, 18, 0, 0, 0, 7, 6, 7, 0, 4, 6, 7, 6, 21, 6, 2, 13, 1, 2, 17);
+const int CA1_1[21] = int[](-1, -1, -1, -1, -1, -1, 5, 4, 3, -1, 28, 9, 11, 8, 13, 2, 3, 16, -1, 21, 18);
+const int CA2_1[21] = int[](-1, -1, -1, -1, -1, -1, 4, 6, 7, -1, 1, 10, 4, 12, -1, 14, -1, -1, -1, -1, 19);
+const int CA3_1[21] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 5);
+const float CF0_1[21] = float[](0.1171875f, -0.1171875f, -64.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, -0.5037500262260437f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -60.0f);
+const float CF1_1[21] = float[](0.0f, 0.0f, 320.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f);
+const float CF2_1[21] = float[](0.0f, 0.0f, 1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_1[21] = float[](0.0f, 0.0f, -1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_1[21] = int[](0, 0, 0, 1, 2, 3, 4, 5, 4, 1, 5, 6, 1, 2, 1, 2, 0, 1, 0, 1, 2);
+float eval_df_base_1(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_1_LEN; ci++) {
+        int t = CTYPE_1[ci];
+        float r = 0.0;
+        if (t == 0) r = CF0_1[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_1[ci]] + corner * NOISE_SLOT_STRIDE[CA1_1[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_1[ci]] + corner * NOISE_SLOT_STRIDE[CA1_1[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_1[ci] == 1) r = spline_eval(CA1_1[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_1[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_1[ci], CF1_1[ci], CF2_1[ci], CF3_1[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]], CF0_1[ci], CF1_1[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]];
+            r = (inp >= CF0_1[ci] && inp < CF1_1[ci]) ? valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA2_1[ci]]] : valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA3_1[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]];
+            float d = ws_scale(int(CF0_1[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_1[ci]] + corner * NOISE_SLOT_STRIDE[CA2_1[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]] + valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA2_1[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]] * valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA2_1[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]], valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA2_1[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA1_1[ci]]], valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[CA2_1[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + 152 + corner * VAL_SLOTS_1 + SLOT_OF_1[rootPos]];
+}
+
+// ---- interp_2 独立解释器（D16：单调用者防驱动强制内联 TDR）----
+const int CLOSURE_2_LEN = 20;
+const int VAL_SLOTS_2 = 6;
+const int CTYPE_2[20] = int[](0, 0, 0, 0, 4, 0, 0, 4, 6, 7, 6, 2, 10, 1, 0, 0, 2, 7, 6, 17);
+const int CA1_2[20] = int[](-1, -1, -1, -1, 36, -1, -1, 55, 6, 3, 5, 7, 11, -1, -1, -1, 22, 15, 14, 13);
+const int CA2_2[20] = int[](-1, -1, -1, -1, 1, -1, -1, 1, 7, 8, 9, -1, -1, -1, -1, -1, -1, 16, 17, 18);
+const int CA3_2[20] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2);
+const float CF0_2[20] = float[](0.1171875f, 4.0f, 0.0f, 1.0f, 0.0f, 10.0f, -10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -0.075000000000000011f, -0.025000000000000001f, 0.0f, 0.0f, 0.0f, -60.0f);
+const float CF1_2[20] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f);
+const float CF2_2[20] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_2[20] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_2[20] = int[](0, 0, 0, 1, 2, 2, 3, 4, 5, 3, 1, 1, 2, 1, 2, 3, 4, 5, 3, 2);
+float eval_df_base_2(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_2_LEN; ci++) {
+        int t = CTYPE_2[ci];
+        float r = 0.0;
+        if (t == 0) r = CF0_2[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_2[ci]] + corner * NOISE_SLOT_STRIDE[CA1_2[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_2[ci]] + corner * NOISE_SLOT_STRIDE[CA1_2[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_2[ci] == 1) r = spline_eval(CA1_2[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_2[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_2[ci], CF1_2[ci], CF2_2[ci], CF3_2[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]], CF0_2[ci], CF1_2[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]];
+            r = (inp >= CF0_2[ci] && inp < CF1_2[ci]) ? valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA2_2[ci]]] : valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA3_2[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]];
+            float d = ws_scale(int(CF0_2[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_2[ci]] + corner * NOISE_SLOT_STRIDE[CA2_2[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]] + valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA2_2[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]] * valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA2_2[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]], valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA2_2[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA1_2[ci]]], valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[CA2_2[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + 208 + corner * VAL_SLOTS_2 + SLOT_OF_2[rootPos]];
+}
+
+// ---- interp_3 独立解释器（D16：单调用者防驱动强制内联 TDR）----
+const int CLOSURE_3_LEN = 17;
+const int VAL_SLOTS_3 = 6;
+const int CTYPE_3[17] = int[](0, 0, 0, 0, 4, 6, 0, 0, 4, 6, 7, 6, 2, 10, 1, 2, 17);
+const int CA1_3[17] = int[](-1, -1, -1, -1, 36, 2, -1, -1, 55, 7, 3, 6, 7, 12, -1, 23, 14);
+const int CA2_3[17] = int[](-1, -1, -1, -1, 1, 4, -1, -1, 1, 8, 9, 10, -1, -1, -1, -1, 15);
+const int CA3_3[17] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2);
+const float CF0_3[17] = float[](0.1171875f, 4.0f, 0.0f, 1.0f, 0.0f, 0.0f, 10.0f, -10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -60.0f);
+const float CF1_3[17] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f);
+const float CF2_3[17] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_3[17] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_3[17] = int[](0, 0, 0, 1, 2, 3, 2, 3, 4, 5, 3, 1, 1, 2, 1, 2, 3);
+float eval_df_base_3(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_3_LEN; ci++) {
+        int t = CTYPE_3[ci];
+        float r = 0.0;
+        if (t == 0) r = CF0_3[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_3[ci]] + corner * NOISE_SLOT_STRIDE[CA1_3[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_3[ci]] + corner * NOISE_SLOT_STRIDE[CA1_3[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_3[ci] == 1) r = spline_eval(CA1_3[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_3[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_3[ci], CF1_3[ci], CF2_3[ci], CF3_3[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]], CF0_3[ci], CF1_3[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]];
+            r = (inp >= CF0_3[ci] && inp < CF1_3[ci]) ? valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA2_3[ci]]] : valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA3_3[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]];
+            float d = ws_scale(int(CF0_3[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_3[ci]] + corner * NOISE_SLOT_STRIDE[CA2_3[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]] + valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA2_3[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]] * valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA2_3[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]], valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA2_3[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA1_3[ci]]], valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[CA2_3[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + 256 + corner * VAL_SLOTS_3 + SLOT_OF_3[rootPos]];
+}
+
+// ---- interp_4 独立解释器（D16：单调用者防驱动强制内联 TDR）----
+const int CLOSURE_4_LEN = 18;
+const int VAL_SLOTS_4 = 6;
+const int CTYPE_4[18] = int[](0, 0, 0, 0, 4, 6, 7, 0, 0, 4, 6, 7, 6, 2, 10, 1, 2, 17);
+const int CA1_4[18] = int[](-1, -1, -1, -1, 36, 2, 3, -1, -1, 55, 8, 3, 7, 7, 13, -1, 24, 15);
+const int CA2_4[18] = int[](-1, -1, -1, -1, 1, 4, 5, -1, -1, 1, 9, 10, 11, -1, -1, -1, -1, 16);
+const int CA3_4[18] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 2);
+const float CF0_4[18] = float[](0.1171875f, 4.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 10.0f, -10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -60.0f);
+const float CF1_4[18] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 321.0f);
+const float CF2_4[18] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_4[18] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_4[18] = int[](0, 0, 0, 1, 2, 3, 2, 2, 3, 4, 5, 3, 1, 1, 2, 1, 2, 3);
+float eval_df_base_4(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_4_LEN; ci++) {
+        int t = CTYPE_4[ci];
+        float r = 0.0;
+        if (t == 0) r = CF0_4[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_4[ci]] + corner * NOISE_SLOT_STRIDE[CA1_4[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_4[ci]] + corner * NOISE_SLOT_STRIDE[CA1_4[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_4[ci] == 1) r = spline_eval(CA1_4[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_4[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_4[ci], CF1_4[ci], CF2_4[ci], CF3_4[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]], CF0_4[ci], CF1_4[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]];
+            r = (inp >= CF0_4[ci] && inp < CF1_4[ci]) ? valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA2_4[ci]]] : valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA3_4[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]];
+            float d = ws_scale(int(CF0_4[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_4[ci]] + corner * NOISE_SLOT_STRIDE[CA2_4[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]] + valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA2_4[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]] * valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA2_4[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]], valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA2_4[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA1_4[ci]]], valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[CA2_4[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + 304 + corner * VAL_SLOTS_4 + SLOT_OF_4[rootPos]];
+}
+
+
+// ---- 顶层解释器（闭包 21 节点，单调用者 main，区段 0；D16 防驱动强制内联）----
+const int CLOSURE_T_LEN = 21;
+const int CTYPE_T[21] = int[](0, 0, 18, 0, 0, 0, 5, 7, 15, 5, 0, 5, 5, 10, 5, 10, 9, 7, 6, 17, 8);
+const int CA1_T[21] = int[](-1, -1, -1, -1, -1, -1, 0, 0, 7, 1, -1, 2, 3, 12, 4, 14, 13, 5, 11, 9, 8);
+const int CA2_T[21] = int[](-1, -1, -1, -1, -1, -1, -1, 6, -1, -1, -1, -1, -1, -1, -1, -1, 15, 16, 17, 10, 19);
+const int CA3_T[21] = int[](-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 18, -1);
+const float CF0_T[21] = float[](0.64000000000000001f, 0.1171875f, -64.0f, -0.1171875f, -0.078125f, 1.5f, 0.0f, 0.0f, 0.0f, 0.0f, 64.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1000000.0f, 0.0f);
+const float CF1_T[21] = float[](0.0f, 0.0f, -40.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF2_T[21] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float CF3_T[21] = float[](0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const int SLOT_OF_T[21] = int[](0, 1, 1, 1, 1, 1, 2, 3, 0, 2, 3, 4, 5, 6, 5, 7, 5, 6, 1, 4, 1);
+float eval_df(int rootPos, int corner, int sIdx, int ix, int iy, int iz) {
+    for (int ci = 0; ci < CLOSURE_T_LEN; ci++) {
+        int t = CTYPE_T[ci];
+        float r = 0.0;
+        if (t == 5) {
+            if (CA1_T[ci] == 0) r = interp_0(sIdx, ix, iy, iz);
+            else if (CA1_T[ci] == 1) r = interp_1(sIdx, ix, iy, iz);
+            else if (CA1_T[ci] == 2) r = interp_2(sIdx, ix, iy, iz);
+            else if (CA1_T[ci] == 3) r = interp_3(sIdx, ix, iy, iz);
+            else r = interp_4(sIdx, ix, iy, iz);
+            valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[ci]] = r;
+            continue;
+        }
+        if (t == 0) r = CF0_T[ci];
+        else if (t == 1) r = float(iy);
+        else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[CA1_T[ci]] + corner * NOISE_SLOT_STRIDE[CA1_T[ci]], sIdx);
+        else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[CA1_T[ci]] + corner * NOISE_SLOT_STRIDE[CA1_T[ci]], sIdx);
+        else if (t == 4) {
+            if (CA2_T[ci] == 1) r = spline_eval(CA1_T[ci], corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+            else r = spline_eval(CA1_T[ci], corner, sIdx, ix, iy, iz);
+        }
+        else if (t == 18) r = y_clamped_gradient(iy, CF0_T[ci], CF1_T[ci], CF2_T[ci], CF3_T[ci]);
+        else if (t == 10) r = abs(valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]);
+        else if (t == 11) { float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]; r = v * v; }
+        else if (t == 12) { float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]; r = v * v * v; }
+        else if (t == 13) { float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]; r = (v > 0.0 ? v : v * 0.5); }
+        else if (t == 14) { float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]; r = (v > 0.0 ? v : v * 0.25); }
+        else if (t == 15) { float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]]; float c = clamp(v, -1.0, 1.0); r = c / 2.0 - c * c * c / 24.0; }
+        else if (t == 16) r = clamp(valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]], CF0_T[ci], CF1_T[ci]);
+        else if (t == 17) {
+            float inp = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]];
+            r = (inp >= CF0_T[ci] && inp < CF1_T[ci]) ? valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA2_T[ci]]] : valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA3_T[ci]]];
+        }
+        else if (t == 22) {
+            float v = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]];
+            float d = ws_scale(int(CF0_T[ci]), v);
+            r = d * abs(normal_noise(NOISE_SLOT_BASE[CA2_T[ci]] + corner * NOISE_SLOT_STRIDE[CA2_T[ci]], sIdx));
+        }
+        else if (t == 20) r = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]];
+        else if (t == 21) r = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]];
+        else if (t == 6) r = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]] + valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA2_T[ci]]];
+        else if (t == 7) r = valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]] * valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA2_T[ci]]];
+        else if (t == 8) r = min(valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]], valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA2_T[ci]]]);
+        else if (t == 9) r = max(valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA1_T[ci]]], valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[CA2_T[ci]]]);
+        valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[ci]] = r;
+    }
+    return valBuf[PER_SAMPLE * sIdx + SLOT_OF_T[rootPos]];
+}
+
+
+float interp_0(int sIdx, int ix, int iy, int iz) {
+    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;
+    float d000 = eval_df_base_0(133, 0, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d100 = eval_df_base_0(133, 1, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d010 = eval_df_base_0(133, 2, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d110 = eval_df_base_0(133, 3, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d001 = eval_df_base_0(133, 4, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d101 = eval_df_base_0(133, 5, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d011 = eval_df_base_0(133, 6, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d111 = eval_df_base_0(133, 7, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+    return d0 + (d1 - d0) * fz;
+}
+float interp_1(int sIdx, int ix, int iy, int iz) {
+    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;
+    float d000 = eval_df_base_1(20, 0, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d100 = eval_df_base_1(20, 1, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d010 = eval_df_base_1(20, 2, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d110 = eval_df_base_1(20, 3, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d001 = eval_df_base_1(20, 4, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d101 = eval_df_base_1(20, 5, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d011 = eval_df_base_1(20, 6, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d111 = eval_df_base_1(20, 7, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+    return d0 + (d1 - d0) * fz;
+}
+float interp_2(int sIdx, int ix, int iy, int iz) {
+    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;
+    float d000 = eval_df_base_2(19, 0, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d100 = eval_df_base_2(19, 1, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d010 = eval_df_base_2(19, 2, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d110 = eval_df_base_2(19, 3, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d001 = eval_df_base_2(19, 4, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d101 = eval_df_base_2(19, 5, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d011 = eval_df_base_2(19, 6, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d111 = eval_df_base_2(19, 7, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+    return d0 + (d1 - d0) * fz;
+}
+float interp_3(int sIdx, int ix, int iy, int iz) {
+    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;
+    float d000 = eval_df_base_3(16, 0, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d100 = eval_df_base_3(16, 1, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d010 = eval_df_base_3(16, 2, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d110 = eval_df_base_3(16, 3, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d001 = eval_df_base_3(16, 4, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d101 = eval_df_base_3(16, 5, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d011 = eval_df_base_3(16, 6, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d111 = eval_df_base_3(16, 7, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+    return d0 + (d1 - d0) * fz;
+}
+float interp_4(int sIdx, int ix, int iy, int iz) {
+    int chunkX = floorDivP(ix, 16); int chunkZ = floorDivP(iz, 16);
+    int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+    int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+    float fx = float(gx % 4) / 4.0f; float fy = float(gy % 8) / 8.0f; float fz = float(gz % 4) / 4.0f;
+    float d000 = eval_df_base_4(17, 0, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d100 = eval_df_base_4(17, 1, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d010 = eval_df_base_4(17, 2, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d110 = eval_df_base_4(17, 3, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 0) * 4));
+    float d001 = eval_df_base_4(17, 4, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d101 = eval_df_base_4(17, 5, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 0) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d011 = eval_df_base_4(17, 6, sIdx, (chunkX * 16 + (cx + 0) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d111 = eval_df_base_4(17, 7, sIdx, (chunkX * 16 + (cx + 1) * 4), (minY + (cy + 1) * 8), (chunkZ * 16 + (cz + 1) * 4));
+    float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+    float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+    float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+    return d0 + (d1 - d0) * fz;
+}
+
+float eval_density(int sIdx, int ix, int iy, int iz) {
+    float x = float(ix), y = float(iy), z = float(iz);
+    return eval_df(20, 0, sIdx, ix, iy, iz);
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= outBuf.density.length()) return;
+    int ix = coord.coords[idx * 3 + 0];
+    int iy = coord.coords[idx * 3 + 1];
+    int iz = coord.coords[idx * 3 + 2];
+    outBuf.density[idx] = eval_density(int(idx), ix, iy, iz);
+}

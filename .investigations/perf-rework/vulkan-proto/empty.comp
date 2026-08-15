@@ -1,0 +1,12 @@
+#version 450
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; } coord;
+layout(set = 0, binding = 1, std430) buffer PermBuf { uint perm[]; } permBuf;
+layout(set = 0, binding = 2, std430) buffer OriginBuf { double origin[]; } originBuf;
+layout(set = 0, binding = 3, std430) buffer OutBuf { float density[]; } outBuf;
+layout(set = 0, binding = 4, std430) buffer SplitBuf { float splitCoord[]; } splitBuf;
+layout(set = 0, binding = 5, std430) buffer ValBuf { float valBuf[]; };
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    outBuf.density[idx] = 1.0f;
+}

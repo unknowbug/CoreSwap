@@ -1,0 +1,123 @@
+#version 460
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Out { float outVal[]; };
+float f0(float x) { return 0.0 + x * 0.5; }
+float f1(float x) { return 1.0 + x * 0.5; }
+float f2(float x) { return 2.0 + x * 0.5; }
+float f3(float x) { return 3.0 + x * 0.5; }
+float f4(float x) { return 4.0 + x * 0.5; }
+float f5(float x) { return 5.0 + x * 0.5; }
+float f6(float x) { return 6.0 + x * 0.5; }
+float f7(float x) { return 7.0 + x * 0.5; }
+float f8(float x) { return 8.0 + x * 0.5; }
+float f9(float x) { return 9.0 + x * 0.5; }
+float f10(float x) { return 10.0 + x * 0.5; }
+float f11(float x) { return 11.0 + x * 0.5; }
+float f12(float x) { return 12.0 + x * 0.5; }
+float f13(float x) { return 13.0 + x * 0.5; }
+float f14(float x) { return 14.0 + x * 0.5; }
+float f15(float x) { return 15.0 + x * 0.5; }
+float f16(float x) { return 16.0 + x * 0.5; }
+float f17(float x) { return 17.0 + x * 0.5; }
+float f18(float x) { return 18.0 + x * 0.5; }
+float f19(float x) { return 19.0 + x * 0.5; }
+float f20(float x) { return 20.0 + x * 0.5; }
+float f21(float x) { return 21.0 + x * 0.5; }
+float f22(float x) { return 22.0 + x * 0.5; }
+float f23(float x) { return 23.0 + x * 0.5; }
+float f24(float x) { return 24.0 + x * 0.5; }
+float f25(float x) { return 25.0 + x * 0.5; }
+float f26(float x) { return 26.0 + x * 0.5; }
+float f27(float x) { return 27.0 + x * 0.5; }
+float f28(float x) { return 28.0 + x * 0.5; }
+float f29(float x) { return 29.0 + x * 0.5; }
+float f30(float x) { return 30.0 + x * 0.5; }
+float f31(float x) { return 31.0 + x * 0.5; }
+float f32(float x) { return 32.0 + x * 0.5; }
+float f33(float x) { return 33.0 + x * 0.5; }
+float f34(float x) { return 34.0 + x * 0.5; }
+float f35(float x) { return 35.0 + x * 0.5; }
+float f36(float x) { return 36.0 + x * 0.5; }
+float f37(float x) { return 37.0 + x * 0.5; }
+float f38(float x) { return 38.0 + x * 0.5; }
+float f39(float x) { return 39.0 + x * 0.5; }
+float f40(float x) { return 40.0 + x * 0.5; }
+float f41(float x) { return 41.0 + x * 0.5; }
+float f42(float x) { return 42.0 + x * 0.5; }
+float f43(float x) { return 43.0 + x * 0.5; }
+float f44(float x) { return 44.0 + x * 0.5; }
+float f45(float x) { return 45.0 + x * 0.5; }
+float f46(float x) { return 46.0 + x * 0.5; }
+float f47(float x) { return 47.0 + x * 0.5; }
+float f48(float x) { return 48.0 + x * 0.5; }
+float f49(float x) { return 49.0 + x * 0.5; }
+float f50(float x) { return 50.0 + x * 0.5; }
+float f51(float x) { return 51.0 + x * 0.5; }
+float f52(float x) { return 52.0 + x * 0.5; }
+float f53(float x) { return 53.0 + x * 0.5; }
+float f54(float x) { return 54.0 + x * 0.5; }
+float f55(float x) { return 55.0 + x * 0.5; }
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    float x = float(gid) * 0.1;
+    float r = 0.0;
+    switch (int(gid % 56)) {
+    case 0: r = f0(x); break;
+    case 1: r = f1(x); break;
+    case 2: r = f2(x); break;
+    case 3: r = f3(x); break;
+    case 4: r = f4(x); break;
+    case 5: r = f5(x); break;
+    case 6: r = f6(x); break;
+    case 7: r = f7(x); break;
+    case 8: r = f8(x); break;
+    case 9: r = f9(x); break;
+    case 10: r = f10(x); break;
+    case 11: r = f11(x); break;
+    case 12: r = f12(x); break;
+    case 13: r = f13(x); break;
+    case 14: r = f14(x); break;
+    case 15: r = f15(x); break;
+    case 16: r = f16(x); break;
+    case 17: r = f17(x); break;
+    case 18: r = f18(x); break;
+    case 19: r = f19(x); break;
+    case 20: r = f20(x); break;
+    case 21: r = f21(x); break;
+    case 22: r = f22(x); break;
+    case 23: r = f23(x); break;
+    case 24: r = f24(x); break;
+    case 25: r = f25(x); break;
+    case 26: r = f26(x); break;
+    case 27: r = f27(x); break;
+    case 28: r = f28(x); break;
+    case 29: r = f29(x); break;
+    case 30: r = f30(x); break;
+    case 31: r = f31(x); break;
+    case 32: r = f32(x); break;
+    case 33: r = f33(x); break;
+    case 34: r = f34(x); break;
+    case 35: r = f35(x); break;
+    case 36: r = f36(x); break;
+    case 37: r = f37(x); break;
+    case 38: r = f38(x); break;
+    case 39: r = f39(x); break;
+    case 40: r = f40(x); break;
+    case 41: r = f41(x); break;
+    case 42: r = f42(x); break;
+    case 43: r = f43(x); break;
+    case 44: r = f44(x); break;
+    case 45: r = f45(x); break;
+    case 46: r = f46(x); break;
+    case 47: r = f47(x); break;
+    case 48: r = f48(x); break;
+    case 49: r = f49(x); break;
+    case 50: r = f50(x); break;
+    case 51: r = f51(x); break;
+    case 52: r = f52(x); break;
+    case 53: r = f53(x); break;
+    case 54: r = f54(x); break;
+    case 55: r = f55(x); break;
+    }
+    outVal[gid] = r + x;
+}

@@ -1,0 +1,68 @@
+#version 460
+layout(local_size_x = 64) in;
+layout(std430, binding = 0) buffer Out { float outVal[]; };
+
+void main() {
+    uint gid = gl_GlobalInvocationID.x;
+    float x = float(gid) * 0.1;
+    float r = 0.0;
+    switch (int(gid % 56)) {
+    case 0: r = 0.0 + x * 0.5; break;
+    case 1: r = 1.0 + x * 0.5; break;
+    case 2: r = 2.0 + x * 0.5; break;
+    case 3: r = 3.0 + x * 0.5; break;
+    case 4: r = 4.0 + x * 0.5; break;
+    case 5: r = 5.0 + x * 0.5; break;
+    case 6: r = 6.0 + x * 0.5; break;
+    case 7: r = 7.0 + x * 0.5; break;
+    case 8: r = 8.0 + x * 0.5; break;
+    case 9: r = 9.0 + x * 0.5; break;
+    case 10: r = 10.0 + x * 0.5; break;
+    case 11: r = 11.0 + x * 0.5; break;
+    case 12: r = 12.0 + x * 0.5; break;
+    case 13: r = 13.0 + x * 0.5; break;
+    case 14: r = 14.0 + x * 0.5; break;
+    case 15: r = 15.0 + x * 0.5; break;
+    case 16: r = 16.0 + x * 0.5; break;
+    case 17: r = 17.0 + x * 0.5; break;
+    case 18: r = 18.0 + x * 0.5; break;
+    case 19: r = 19.0 + x * 0.5; break;
+    case 20: r = 20.0 + x * 0.5; break;
+    case 21: r = 21.0 + x * 0.5; break;
+    case 22: r = 22.0 + x * 0.5; break;
+    case 23: r = 23.0 + x * 0.5; break;
+    case 24: r = 24.0 + x * 0.5; break;
+    case 25: r = 25.0 + x * 0.5; break;
+    case 26: r = 26.0 + x * 0.5; break;
+    case 27: r = 27.0 + x * 0.5; break;
+    case 28: r = 28.0 + x * 0.5; break;
+    case 29: r = 29.0 + x * 0.5; break;
+    case 30: r = 30.0 + x * 0.5; break;
+    case 31: r = 31.0 + x * 0.5; break;
+    case 32: r = 32.0 + x * 0.5; break;
+    case 33: r = 33.0 + x * 0.5; break;
+    case 34: r = 34.0 + x * 0.5; break;
+    case 35: r = 35.0 + x * 0.5; break;
+    case 36: r = 36.0 + x * 0.5; break;
+    case 37: r = 37.0 + x * 0.5; break;
+    case 38: r = 38.0 + x * 0.5; break;
+    case 39: r = 39.0 + x * 0.5; break;
+    case 40: r = 40.0 + x * 0.5; break;
+    case 41: r = 41.0 + x * 0.5; break;
+    case 42: r = 42.0 + x * 0.5; break;
+    case 43: r = 43.0 + x * 0.5; break;
+    case 44: r = 44.0 + x * 0.5; break;
+    case 45: r = 45.0 + x * 0.5; break;
+    case 46: r = 46.0 + x * 0.5; break;
+    case 47: r = 47.0 + x * 0.5; break;
+    case 48: r = 48.0 + x * 0.5; break;
+    case 49: r = 49.0 + x * 0.5; break;
+    case 50: r = 50.0 + x * 0.5; break;
+    case 51: r = 51.0 + x * 0.5; break;
+    case 52: r = 52.0 + x * 0.5; break;
+    case 53: r = 53.0 + x * 0.5; break;
+    case 54: r = 54.0 + x * 0.5; break;
+    case 55: r = 55.0 + x * 0.5; break;
+    }
+    outVal[gid] = r + x;
+}
