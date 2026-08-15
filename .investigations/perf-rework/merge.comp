@@ -1,0 +1,131 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+#extension GL_EXT_control_flow_attributes : require
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; } coord;
+layout(set = 0, binding = 1, std430) buffer PermBuf { uint perm[]; } permBuf;
+layout(set = 0, binding = 2, std430) buffer OriginBuf { double origin[]; } originBuf;
+layout(set = 0, binding = 3, std430) buffer OutBuf { float density[]; } outBuf;
+layout(set = 0, binding = 4, std430) buffer SplitBuf { float splitCoord[]; } splitBuf;
+layout(set = 0, binding = 5, std430) buffer MidABuf2 { float mid[]; } midA;
+layout(set = 0, binding = 6, std430) buffer MidBBuf2 { float mid[]; } midB;
+const int SPLIT_TOTAL = 6512;
+
+// ===== double 工具（old_blended_noise 用）=====
+const double GRADIENTS[16][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1},
+    { 1,  1,  0}, { 0, -1,  1}, {-1,  1,  0}, { 0, -1, -1}
+};
+double maintainPrecision(double v) { return v - trunc(v / 3.3554432E7 + 0.5) * 3.3554432E7; }
+double perlinFadeD(double v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+double lerpD(double d, double s, double e) { return s + d * (e - s); }
+int mapPermD(int octBase, int v) { return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }
+double gradD(int octBase, int hash, double x, double y, double z) {
+    return GRADIENTS[hash & 15][0] * x + GRADIENTS[hash & 15][1] * y + GRADIENTS[hash & 15][2] * z;
+}
+double pn_sectionD(int octBase, int sx, int sy, int sz, double lx, double ly, double lz, double fadeY) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    double d = gradD(octBase, mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    double e = gradD(octBase, mapPermD(octBase, m + sz),     lx - 1.0, ly,     lz);
+    double f = gradD(octBase, mapPermD(octBase, l + sz),     lx,     ly - 1.0, lz);
+    double g = gradD(octBase, mapPermD(octBase, n + sz),     lx - 1.0, ly - 1.0, lz);
+    double h = gradD(octBase, mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0);
+    double o = gradD(octBase, mapPermD(octBase, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    double p = gradD(octBase, mapPermD(octBase, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    double q = gradD(octBase, mapPermD(octBase, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    double r = perlinFadeD(lx); double s = perlinFadeD(fadeY); double t = perlinFadeD(lz);
+    double x0 = lerpD(r, d, e); double x1 = lerpD(r, f, g);
+    double x2 = lerpD(r, h, o); double x3 = lerpD(r, p, q);
+    double y0 = lerpD(s, x0, x1); double y1 = lerpD(s, x2, x3);
+    return lerpD(t, y0, y1);
+}
+double interp_noise_f64(int octBase, int sIdx, int splitOffset) {
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+    double gx = double(splitBuf.splitCoord[b + 3]); double gy = double(splitBuf.splitCoord[b + 4]); double gz = double(splitBuf.splitCoord[b + 5]);
+    double fy = double(splitBuf.splitCoord[b + 6]);
+    return pn_sectionD(octBase, ix, iy, iz, gx, gy, gz, fy);
+}
+
+// ===== float 工具（NormalNoise/spline/算术 用）=====
+const int minY = -64;
+int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
+float perlinFadeF(float v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+float lerpF(float d, float s, float e) { return s + d * (e - s); }
+float spline_seg(float f, float lo, float span, float nv, float ov, float d0, float d1) {
+    float kd = (f - lo) / span;
+    float p = d0 * span - (ov - nv);
+    float q = -d1 * span + (ov - nv);
+    return (nv + kd * (ov - nv)) + kd * (1.0 - kd) * (p + kd * (q - p));
+}
+float y_clamped_gradient(int y, float fromY, float toY, float fromV, float toV) {
+    float t = clamp((float(y) - fromY) / (toY - fromY), 0.0, 1.0);
+    return fromV + t * (toV - fromV);
+}
+
+// ===== float Perlin（NormalNoise 用）=====
+float gradDotF(int hash, float x, float y, float z) {
+    vec3 g = vec3(float(GRADIENTS[hash & 15][0]), float(GRADIENTS[hash & 15][1]), float(GRADIENTS[hash & 15][2]));
+    return g.x * x + g.y * y + g.z * z;
+}
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0, ly - 1.0, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+// 5 参数 sample（old_blended_noise 用）：读 7 值拆分坐标，float 采样
+float pn_section_f32(int octBase, int sIdx, int splitOffset) {
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int sx = int(splitBuf.splitCoord[b + 0]);
+    int sy = int(splitBuf.splitCoord[b + 1]);
+    int sz = int(splitBuf.splitCoord[b + 2]);
+    float lx = splitBuf.splitCoord[b + 3];
+    float ly = splitBuf.splitCoord[b + 4];
+    float lz = splitBuf.splitCoord[b + 5];
+    float fadeY = splitBuf.splitCoord[b + 6];
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(fadeY); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+
+
+
+float eval_m(int a, int b) { return min(a, b); }
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= outBuf.density.length()) return;
+    outBuf.density[idx] = min(midA.mid[idx], midB.mid[idx]);
+}

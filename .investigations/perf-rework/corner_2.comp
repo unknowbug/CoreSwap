@@ -1,0 +1,695 @@
+#version 450
+#extension GL_ARB_gpu_shader_fp64 : require
+#extension GL_EXT_control_flow_attributes : require
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, std430) buffer CoordBuf { int coords[]; } coord;
+layout(set = 0, binding = 1, std430) buffer PermBuf { uint perm[]; } permBuf;
+layout(set = 0, binding = 2, std430) buffer OriginBuf { double origin[]; } originBuf;
+layout(set = 0, binding = 3, std430) buffer OutBuf { float density[]; } outBuf;
+layout(set = 0, binding = 4, std430) buffer SplitBuf { float splitCoord[]; } splitBuf;
+layout(set = 0, binding = 5, std430) buffer MidCBuf { float mid[]; } midC;
+const int SPLIT_TOTAL = 6512;
+
+// ===== double 工具（old_blended_noise 用）=====
+const double GRADIENTS[16][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1},
+    { 1,  1,  0}, { 0, -1,  1}, {-1,  1,  0}, { 0, -1, -1}
+};
+double maintainPrecision(double v) { return v - trunc(v / 3.3554432E7 + 0.5) * 3.3554432E7; }
+double perlinFadeD(double v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+double lerpD(double d, double s, double e) { return s + d * (e - s); }
+int mapPermD(int octBase, int v) { return int(permBuf.perm[octBase * 256 + uint(v & 255)]); }
+double gradD(int octBase, int hash, double x, double y, double z) {
+    return GRADIENTS[hash & 15][0] * x + GRADIENTS[hash & 15][1] * y + GRADIENTS[hash & 15][2] * z;
+}
+double pn_sectionD(int octBase, int sx, int sy, int sz, double lx, double ly, double lz, double fadeY) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    double d = gradD(octBase, mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    double e = gradD(octBase, mapPermD(octBase, m + sz),     lx - 1.0, ly,     lz);
+    double f = gradD(octBase, mapPermD(octBase, l + sz),     lx,     ly - 1.0, lz);
+    double g = gradD(octBase, mapPermD(octBase, n + sz),     lx - 1.0, ly - 1.0, lz);
+    double h = gradD(octBase, mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0);
+    double o = gradD(octBase, mapPermD(octBase, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    double p = gradD(octBase, mapPermD(octBase, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    double q = gradD(octBase, mapPermD(octBase, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    double r = perlinFadeD(lx); double s = perlinFadeD(fadeY); double t = perlinFadeD(lz);
+    double x0 = lerpD(r, d, e); double x1 = lerpD(r, f, g);
+    double x2 = lerpD(r, h, o); double x3 = lerpD(r, p, q);
+    double y0 = lerpD(s, x0, x1); double y1 = lerpD(s, x2, x3);
+    return lerpD(t, y0, y1);
+}
+double interp_noise_f64(int octBase, int sIdx, int splitOffset) {
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+    double gx = double(splitBuf.splitCoord[b + 3]); double gy = double(splitBuf.splitCoord[b + 4]); double gz = double(splitBuf.splitCoord[b + 5]);
+    double fy = double(splitBuf.splitCoord[b + 6]);
+    return pn_sectionD(octBase, ix, iy, iz, gx, gy, gz, fy);
+}
+
+// ===== float 工具（NormalNoise/spline/算术 用）=====
+const int minY = -64;
+int floorDivP(int a, int b) { int r = a / b; if ((a % b) != 0 && ((a ^ b) < 0)) r--; return r; }
+float perlinFadeF(float v) { return v * v * v * (v * (v * 6.0 - 15.0) + 10.0); }
+float lerpF(float d, float s, float e) { return s + d * (e - s); }
+float spline_seg(float f, float lo, float span, float nv, float ov, float d0, float d1) {
+    float kd = (f - lo) / span;
+    float p = d0 * span - (ov - nv);
+    float q = -d1 * span + (ov - nv);
+    return (nv + kd * (ov - nv)) + kd * (1.0 - kd) * (p + kd * (q - p));
+}
+float y_clamped_gradient(int y, float fromY, float toY, float fromV, float toV) {
+    float t = clamp((float(y) - fromY) / (toY - fromY), 0.0, 1.0);
+    return fromV + t * (toV - fromV);
+}
+
+// ===== float Perlin（NormalNoise 用）=====
+float gradDotF(int hash, float x, float y, float z) {
+    vec3 g = vec3(float(GRADIENTS[hash & 15][0]), float(GRADIENTS[hash & 15][1]), float(GRADIENTS[hash & 15][2]));
+    return g.x * x + g.y * y + g.z * z;
+}
+float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0, ly - 1.0, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0, ly,     lz - 1.0);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0, lz - 1.0);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0, ly - 1.0, lz - 1.0);
+    float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+// 5 参数 sample（old_blended_noise 用）：读 7 值拆分坐标，float 采样
+float pn_section_f32(int octBase, int sIdx, int splitOffset) {
+    int b = sIdx * SPLIT_TOTAL + splitOffset;
+    int sx = int(splitBuf.splitCoord[b + 0]);
+    int sy = int(splitBuf.splitCoord[b + 1]);
+    int sz = int(splitBuf.splitCoord[b + 2]);
+    float lx = splitBuf.splitCoord[b + 3];
+    float ly = splitBuf.splitCoord[b + 4];
+    float lz = splitBuf.splitCoord[b + 5];
+    float fadeY = splitBuf.splitCoord[b + 6];
+    int i = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+    int k = mapPermD(octBase, i + sy); int l = mapPermD(octBase, i + sy + 1);
+    int m = mapPermD(octBase, j + sy); int n = mapPermD(octBase, j + sy + 1);
+    float d = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+    float e = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+    float f = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+    float g = gradDotF(mapPermD(octBase, n + sz),     lx - 1.0f, ly - 1.0f, lz);
+    float h = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+    float o = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+    float p = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+    float q = gradDotF(mapPermD(octBase, n + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+    float r = perlinFadeF(lx); float s = perlinFadeF(fadeY); float t = perlinFadeF(lz);
+    float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+    float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+    float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+    return lerpF(t, y0, y1);
+}
+
+
+float normal_noise_0(int sIdx) {
+    const float amps[9] = float[](1, 1, 2, 2, 2, 1, 1, 1, 1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.50097847358121328);
+    for (int i = 0; i < 9; i++) {
+        int b = sIdx * SPLIT_TOTAL + 0 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(0 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.50097847358121328);
+    for (int i = 0; i < 9; i++) {
+        int b = sIdx * SPLIT_TOTAL + 0 + 6 * 9 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(0 + 9 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.4999999999999998);
+}
+
+float normal_noise_1(int sIdx) {
+    const float amps[5] = float[](1, 1, 0, 1, 1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.5161290322580645);
+    for (int i = 0; i < 5; i++) {
+        int b = sIdx * SPLIT_TOTAL + 108 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(18 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.5161290322580645);
+    for (int i = 0; i < 5; i++) {
+        int b = sIdx * SPLIT_TOTAL + 108 + 6 * 5 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(18 + 5 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.3888888888888888);
+}
+
+float normal_noise_2(int sIdx) {
+    const float amps[6] = float[](1, 2, 1, 0, 0, 0);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.50793650793650791);
+    for (int i = 0; i < 6; i++) {
+        int b = sIdx * SPLIT_TOTAL + 168 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(28 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.50793650793650791);
+    for (int i = 0; i < 6; i++) {
+        int b = sIdx * SPLIT_TOTAL + 168 + 6 * 6 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(28 + 6 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.25);
+}
+
+float normal_noise_29(int sIdx) {
+    const float amps[16] = float[](1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.50000762951094835);
+    for (int i = 0; i < 16; i++) {
+        int b = sIdx * SPLIT_TOTAL + 1712 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(272 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.50000762951094835);
+    for (int i = 0; i < 16; i++) {
+        int b = sIdx * SPLIT_TOTAL + 1712 + 6 * 16 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(272 + 16 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.5686274509803919);
+}
+
+float interp_noise_30(int sIdx) {
+    // interpolation 8 octave（octBase+32..39）
+    float n = 0.0f; float o = 1.0f;
+    for (int q = 0; q < 8; q++) {
+        n += pn_section_f32(304 + 32 + q, sIdx, 1904 + (32 + q) * 7) / o;
+        o /= 2.0f;
+    }
+    float qq = (n / 10.0f + 1.0f) / 2.0f;
+    bool bl = qq >= 1.0f; bool bl2 = qq <= 0.0f;
+    float l = 0.0f; float m = 0.0f; o = 1.0f;
+    for (int r = 0; r < 16; r++) {
+        if (!bl) l += pn_section_f32(304 + r, sIdx, 1904 + r * 7) / o;
+        if (!bl2) m += pn_section_f32(304 + 16 + r, sIdx, 1904 + (16 + r) * 7) / o;
+        o /= 2.0f;
+    }
+    float w = clamp(qq, 0.0f, 1.0f);
+    return (l / 512.0f + w * (m / 512.0f - l / 512.0f)) / 128.0f;
+}
+
+float normal_noise_31(int sIdx) {
+    const float amps[3] = float[](0.40000000000000002, 0.5, 1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.5714285714285714);
+    for (int i = 0; i < 3; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2184 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(344 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.5714285714285714);
+    for (int i = 0; i < 3; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2184 + 6 * 3 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(344 + 3 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.25);
+}
+
+float normal_noise_32(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2220 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(350 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2220 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(350 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_33(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2232 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(352 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2232 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(352 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_34(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2244 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(354 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2244 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(354 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_35(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2256 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(356 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2256 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(356 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_36(int sIdx) {
+    const float amps[9] = float[](0.5, 1, 2, 1, 2, 1, 0, 2, 0);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.50097847358121328);
+    for (int i = 0; i < 9; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2268 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(358 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.50097847358121328);
+    for (int i = 0; i < 9; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2268 + 6 * 9 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(358 + 9 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.4814814814814814);
+}
+
+float normal_noise_37(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2376 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(376 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2376 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(376 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_38(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2388 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(378 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2388 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(378 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_39(int sIdx) {
+    const float amps[2] = float[](1, 1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(0.66666666666666663);
+    for (int i = 0; i < 2; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2400 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(380 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(0.66666666666666663);
+    for (int i = 0; i < 2; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2400 + 6 * 2 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(380 + 2 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(1.1111111111111109);
+}
+
+float normal_noise_40(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2424 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(384 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2424 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(384 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+float normal_noise_41(int sIdx) {
+    const float amps[1] = float[](1);
+    // first sampler（拆分坐标在 splitCoord，CPU 预计算 int32 格点 + float 小数）
+    float d = 0.0f;
+    float f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2436 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(386 + i, ix, iy, iz, gx, gy, gz);
+        d += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    // second sampler（拆分坐标偏移 + 6n）
+    float d2 = 0.0f;
+    f = float(1);
+    for (int i = 0; i < 1; i++) {
+        int b = sIdx * SPLIT_TOTAL + 2436 + 6 * 1 + i * 6;
+        int ix = int(splitBuf.splitCoord[b + 0]); int iy = int(splitBuf.splitCoord[b + 1]); int iz = int(splitBuf.splitCoord[b + 2]);
+        float gx = splitBuf.splitCoord[b + 3]; float gy = splitBuf.splitCoord[b + 4]; float gz = splitBuf.splitCoord[b + 5];
+        float ns = pn_sample3_f32(386 + 1 + i, ix, iy, iz, gx, gy, gz);
+        d2 += amps[i] * ns * f;
+        f /= 2.0f;
+    }
+    return (d + d2) * float(0.83333333333333326);
+}
+
+// ===== spline 数据驱动（B1a：56 函数 → 1 个 spline_eval）=====
+const int SPLINE_NODES = 56;
+
+const float SPLINE_LOCS[245] = float[](-1.1000000000000001f, -1.02f, -0.51000000000000001f, -0.44f, -0.17999999999999999f, -0.16f, -0.14999999999999999f, -0.10000000000000001f, 0.25f, 1.0f, -0.84999999999999998f, -0.69999999999999996f, -0.40000000000000002f, -0.34999999999999998f, -0.10000000000000001f, 0.20000000000000001f, 0.69999999999999996f, -1.0f, 1.0f, -1.0f, 1.0f, -1.0f, -0.75f, -0.65000000000000002f, 0.5954547f, 0.60545470000000001f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -0.84999999999999998f, -0.69999999999999996f, -0.40000000000000002f, -0.34999999999999998f, -0.10000000000000001f, 0.20000000000000001f, 0.69999999999999996f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -0.84999999999999998f, -0.69999999999999996f, -0.40000000000000002f, -0.34999999999999998f, -0.10000000000000001f, 0.20000000000000001f, 0.40000000000000002f, 0.45000000000000001f, 0.55000000000000004f, 0.57999999999999996f, 0.69999999999999996f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, -0.84999999999999998f, -0.69999999999999996f, -0.40000000000000002f, -0.34999999999999998f, -0.10000000000000001f, 0.20000000000000001f, 0.40000000000000002f, 0.45000000000000001f, 0.55000000000000004f, 0.57999999999999996f, 0.69999999999999996f, -1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -1.0f, -0.40000000000000002f, 0.0f, -1.0f, -0.40000000000000002f, 0.0f, 0.40000000000000002f, 1.0f, -0.11f, 0.029999999999999999f, 0.65000000000000002f, -1.0f, -0.78000000000000003f, -0.57750000000000001f, -0.375f, 0.19999998999999999f, 0.44999995999999998f, 1.0f, -0.01f, 0.01f, 0.19999998999999999f, 0.44999995999999998f, 1.0f, -0.01f, 0.01f, -1.0f, -0.78000000000000003f, -0.57750000000000001f, -0.375f, 0.19999998999999999f, 0.44999995999999998f, 1.0f, -0.19f, -0.14999999999999999f, -0.10000000000000001f, 0.029999999999999999f, 0.059999999999999998f, -0.59999999999999998f, -0.5f, -0.34999999999999998f, -0.25f, -0.10000000000000001f, 0.029999999999999999f, 0.34999999999999998f, 0.45000000000000001f, 0.55000000000000004f, 0.62f, -0.20000000000000001f, 0.20000000000000001f, -0.050000000000000003f, 0.050000000000000003f, -0.050000000000000003f, 0.050000000000000003f, -0.90000000000000002f, -0.68999999999999995f, 0.0f, 0.10000000000000001f, -0.59999999999999998f, -0.5f, -0.34999999999999998f, -0.25f, -0.10000000000000001f, 0.029999999999999999f, 0.34999999999999998f, 0.45000000000000001f, 0.55000000000000004f, 0.62f, -0.20000000000000001f, 0.20000000000000001f, -0.90000000000000002f, -0.68999999999999995f, 0.0f, 0.10000000000000001f, -0.59999999999999998f, -0.5f, -0.34999999999999998f, -0.25f, -0.10000000000000001f, 0.029999999999999999f, 0.34999999999999998f, 0.45000000000000001f, 0.55000000000000004f, 0.62f, -0.20000000000000001f, 0.20000000000000001f, -0.90000000000000002f, -0.68999999999999995f, 0.0f, 0.10000000000000001f, -0.59999999999999998f, -0.5f, -0.34999999999999998f, -0.25f, -0.10000000000000001f, 0.029999999999999999f, 0.050000000000000003f, 0.40000000000000002f, 0.45000000000000001f, 0.55000000000000004f, 0.57999999999999996f, -0.20000000000000001f, 0.20000000000000001f, 0.45000000000000001f, 0.69999999999999996f, -0.69999999999999996f, -0.14999999999999999f);
+const float SPLINE_DERS[245] = float[](0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.38940096000000002f, 0.38940096000000002f, 0.37788021999999999f, 0.37788021999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.25345630000000002f, 0.25345630000000002f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0070000009999999996f, 0.5f, 0.0f, 0.0f, 0.10000000000000001f, 0.0070000009999999996f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.059999999999999998f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0070000009999999996f, 0.5f, 0.01f, 0.01f, 0.094000003999999998f, 0.0070000009999999996f, 0.5f, 0.0f, 0.0f, 0.040000000000000001f, 0.049000000000000002f, 0.0f, 0.0f, 0.0f, 0.12f, 0.049000000000000002f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.51382490000000003f, 0.51382490000000003f, 0.0f, 0.43317973999999998f, 0.43317973999999998f, 0.0f, 0.39170509999999997f, 0.39170509999999997f, 0.5f, 0.0f, 0.0f, 0.0f, 0.049000014000000001f, 0.5f, 0.070000000000000007f, 0.070000000000000007f, 0.65800000000000003f, 0.049000014000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.57603689999999996f, 0.57603689999999996f, 0.0f, 0.4608295f, 0.4608295f, 0.5f, 0.0f, 0.0f, 0.0f, 0.070000014999999999f, 0.5f, 0.099999993999999995f, 0.099999993999999995f, 0.93999999999999995f, 0.070000014999999999f, 0.5f, 0.0f, 0.0f, 0.040000000000000001f, 0.049000000000000002f, 0.0f, 0.0f, 0.0f, 0.014999999999999999f, 0.0f, 0.0f, 0.040000000000000001f, 0.049000000000000002f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+const float SPLINE_VAL_F[245] = float[](0.043999999999999997f, -0.22220000000000001f, -0.22220000000000001f, -0.12f, -0.12f, -0.088801859999999996f, 0.69000006000000003f, 0.0f, -0.11576035599999999f, 0.64000009999999996f, 0.0f, -0.22220000000000001f, -0.22220000000000001f, 0.0f, 2.9802322000000001e-08f, 2.9802322000000001e-08f, 0.10000002400000001f, 0.0f, -0.29999999999999999f, 0.050000000000000003f, 0.050000000000000003f, 0.050000000000000003f, 0.060000001999999997f, 0.0f, -0.14999999999999999f, 0.0f, 0.0f, 0.050000000000000003f, 0.060000001999999997f, 0.0f, -0.14999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -0.02f, -0.029999999999999999f, -0.029999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, -0.25f, 0.050000000000000003f, 0.050000000000000003f, 0.050000000000000003f, 0.060000001999999997f, 0.0f, -0.10000000000000001f, 0.001f, 0.0030000000000000001f, 0.050000000000000003f, 0.060000001999999997f, 0.0f, -0.10000000000000001f, 0.01f, 0.01f, 0.029999999999999999f, 0.10000000000000001f, 0.0f, -0.02f, -0.029999999999999999f, -0.029999999999999999f, 0.029999999999999999f, 0.10000000000000001f, 0.0f, 0.0f, 0.20235021f, 0.71617509999999995f, 1.23f, 0.0f, 0.20000000000000001f, 0.44682026000000002f, 0.88f, 0.0f, 0.20000000000000001f, 0.30829495000000001f, 0.70000004999999998f, 0.0f, -0.25f, 0.34999999999999998f, 0.34999999999999998f, 0.34999999999999998f, 0.42000001999999997f, 0.0f, -0.10000000000000001f, 0.0069999998000000001f, 0.021000000000000001f, 0.34999999999999998f, 0.42000001999999997f, 0.0f, 0.0f, 0.0f, -0.10000000000000001f, 0.0f, 0.17000000000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.34792625999999999f, 0.92396310000000004f, 1.5f, 0.0f, 0.20000000000000001f, 0.5391705f, 1.0f, 0.0f, 0.0f, -0.20000000000000001f, 0.5f, 0.5f, 0.5f, 0.59999999999999998f, 0.0f, -0.050000000000000003f, 0.01f, 0.029999999999999999f, 0.5f, 0.59999999999999998f, 0.0f, -0.050000000000000003f, 0.01f, 0.01f, 0.029999999999999999f, 0.10000000000000001f, 0.0f, 0.0f, -0.050000000000000003f, 0.0f, 0.17000000000000001f, 0.0f, 0.0f, 0.0f, -0.02f, 0.01f, 0.01f, 0.029999999999999999f, 0.10000000000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.63f, 0.29999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.315f, 0.14999999999999999f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 3.9500000000000002f, 6.2999999999999998f, 6.25f, 0.0f, 6.2999999999999998f, 2.6699999999999999f, 0.0f, 0.0f, 0.0f, 2.6699999999999999f, 6.2999999999999998f, 0.0f, 0.0f, 6.25f, 6.25f, 6.25f, 0.625f, 0.0f, 0.0f, 0.0f, 6.25f, 0.0f, 6.2999999999999998f, 5.4699999999999998f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.4699999999999998f, 5.4699999999999998f, 5.4699999999999998f, 0.625f, 0.0f, 0.0f, 0.0f, 5.4699999999999998f, 0.0f, 6.2999999999999998f, 5.0800000000000001f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0800000000000001f, 5.0800000000000001f, 5.0800000000000001f, 0.625f, 0.0f, 0.0f, 0.0f, 5.0800000000000001f, 0.0f, 6.2999999999999998f, 4.6900000000000004f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.5600000000000001f, 0.0f, 0.0f, 0.0f, 1.3700000000000001f, 0.0f, 0.0f, 4.6900000000000004f, 0.0f);
+const int SPLINE_VAL_KIND[245] = int[](0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1);
+const int SPLINE_VAL_NODE[245] = int[](-1, -1, -1, -1, -1, -1, -1, 0, -1, -1, 1, -1, -1, -1, -1, -1, -1, 2, -1, -1, -1, -1, -1, 3, -1, -1, -1, -1, -1, 4, -1, -1, -1, -1, -1, 5, -1, -1, -1, -1, -1, 6, 0, 0, 0, 1, 2, -1, -1, -1, -1, -1, 8, -1, -1, -1, -1, -1, 9, -1, -1, -1, -1, -1, 10, -1, -1, -1, -1, -1, 11, 8, -1, -1, -1, 13, -1, -1, -1, 14, -1, -1, -1, 15, -1, -1, -1, -1, -1, 16, -1, -1, -1, -1, -1, 17, 10, 10, -1, 10, -1, 18, 18, 10, 11, 13, -1, -1, -1, 20, -1, -1, -1, 21, 21, -1, -1, -1, -1, -1, 22, -1, -1, -1, -1, -1, 23, -1, -1, -1, -1, -1, 24, 24, -1, 24, -1, 25, 25, 24, -1, -1, -1, -1, -1, 26, 20, -1, -1, -1, -1, -1, 29, 29, -1, -1, -1, -1, 31, 31, 31, -1, 29, -1, 29, 29, 34, 29, 29, -1, 34, -1, -1, -1, 37, -1, -1, 38, 37, 37, -1, -1, 39, 37, -1, -1, -1, -1, 40, 40, 40, -1, 37, -1, -1, 43, 38, 43, 43, 39, 43, -1, -1, -1, -1, 44, 44, 44, -1, 43, -1, -1, 47, 38, 47, 47, 39, 47, -1, -1, -1, -1, 48, 48, 48, -1, 47, -1, -1, 51, 38, 51, 51, 39, 51, 51, -1, 52, 52, 51, -1, 53, 53, -1, 51);
+const int SPLINE_NODE_PACK[280] = int[](2, 2, 17, 17, 5, 2, 2, 19, 19, 8, 2, 6, 21, 21, 11, 2, 5, 27, 27, 18, 2, 5, 32, 32, 24, 2, 5, 37, 37, 30, 2, 5, 42, 42, 36, 1, 7, 10, 10, 5, 2, 5, 54, 54, 47, 2, 5, 59, 59, 53, 2, 5, 64, 64, 59, 2, 5, 69, 69, 65, 1, 7, 47, 47, 44, 2, 3, 85, 85, 72, 2, 3, 88, 88, 76, 2, 3, 91, 91, 80, 2, 5, 94, 94, 84, 2, 5, 99, 99, 90, 2, 3, 104, 104, 98, 1, 11, 74, 74, 72, 2, 3, 118, 118, 106, 2, 3, 121, 121, 110, 2, 5, 124, 124, 115, 2, 5, 129, 129, 121, 2, 5, 134, 134, 127, 2, 3, 139, 139, 134, 2, 5, 142, 142, 140, 1, 11, 107, 107, 106, 0, 10, 0, 0, 0, 3, 2, 157, 157, 150, 2, 3, 154, 154, 148, 3, 2, 162, 162, 156, 2, 3, 159, 159, 154, 1, 4, 150, 150, 148, 2, 3, 168, 168, 163, 1, 4, 164, 164, 163, 0, 3, 147, 147, 147, 3, 2, 186, 186, 172, 3, 2, 188, 188, 175, 3, 2, 190, 190, 180, 3, 2, 194, 194, 186, 2, 2, 192, 192, 185, 1, 10, 176, 176, 172, 3, 2, 206, 206, 193, 3, 2, 210, 210, 203, 2, 2, 208, 208, 202, 1, 10, 196, 196, 193, 3, 2, 222, 222, 210, 3, 2, 226, 226, 220, 2, 2, 224, 224, 219, 1, 10, 212, 212, 210, 3, 2, 239, 239, 227, 2, 2, 241, 241, 235, 2, 2, 243, 243, 239, 1, 11, 228, 228, 227, 0, 5, 171, 171, 171);
+
+float spline_coord(int coordType, int sIdx, int ix, int iy, int iz) {
+    switch (coordType) {
+    case 0: return ((normal_noise_0(sIdx)));
+    case 1: return ((normal_noise_1(sIdx)));
+    case 2: return ((-3.0f * (-0.3333333333333333f + abs((-0.6666666666666666f + abs((normal_noise_2(sIdx))))))));
+    case 3: return ((normal_noise_2(sIdx)));
+    }
+}
+
+// vanilla MathHelper.binarySearch 精确复刻
+int spline_find_range(float x, int locBegin, int n) {
+    int min = 0;
+    int i = n;
+    while (i > 0) {
+        int j = i / 2;
+        int k = min + j;
+        if (x < SPLINE_LOCS[locBegin + k]) { i = j; }
+        else { min = k + 1; i -= j + 1; }
+    }
+    return min - 1;
+}
+
+float spline_hermite(float coord, float lo, float span, float nv, float ov, float d0, float d1) {
+    float kd = (coord - lo) / span;
+    float p = d0 * span - (ov - nv);
+    float q = -d1 * span + (ov - nv);
+    return (nv + kd * (ov - nv)) + kd * (1.0 - kd) * (p + kd * (q - p));
+}
+
+// 单函数数据驱动 spline：显式栈后序求值（GLSL 无递归，D4）
+// 帧栈：node / stage(0=算coord+二分, 1=等v0, 2=等v1完成Hermite) / i / v0 / v1 / outSlot(父帧槽, -1=root)
+// 栈深 ≤ 嵌套层×2+1（实测 ≤4 层 → ≤9），定长 24 安全
+float spline_eval(int rootNode, int sIdx, int ix, int iy, int iz) {
+    int nodeStack[24]; int stageStack[24]; int iStack[24]; int outSlot[24];
+    float v0Stack[24]; float v1Stack[24]; float coordStack[24];
+    int sp = 0;
+    nodeStack[0] = rootNode; stageStack[0] = 0; iStack[0] = 0; outSlot[0] = -1;
+    v0Stack[0] = 0.0; v1Stack[0] = 0.0; coordStack[0] = 0.0;
+    float result = 0.0;
+
+    while (sp >= 0) {
+        int node = nodeStack[sp];
+        int base = node * 5;
+        int coordType = SPLINE_NODE_PACK[base + 0];
+        int n = SPLINE_NODE_PACK[base + 1];
+        int locBegin = SPLINE_NODE_PACK[base + 2];
+        int derBegin = SPLINE_NODE_PACK[base + 3];
+        int valBegin = SPLINE_NODE_PACK[base + 4];
+
+        if (stageStack[sp] == 0) {
+            float coord = spline_coord(coordType, sIdx, ix, iy, iz);
+            coordStack[sp] = coord;
+            int i = spline_find_range(coord, locBegin, n);
+            if (i < 0) {
+                int vk = SPLINE_VAL_KIND[valBegin + 0];
+                float v0 = (vk == 0) ? SPLINE_VAL_F[valBegin + 0] : 0.0;
+                result = v0 + SPLINE_DERS[derBegin + 0] * (coord - SPLINE_LOCS[locBegin + 0]);
+                int ps = outSlot[sp]; sp--;
+                if (ps >= 0) {
+                    if ((ps & 1) == 0) { v0Stack[ps >> 1] = result; } else { v1Stack[ps >> 1] = result; }
+                    stageStack[ps >> 1] = 2;
+                }
+                continue;
+            }
+            if (i >= n - 1) {
+                int vk = SPLINE_VAL_KIND[valBegin + n - 1];
+                float vn = (vk == 0) ? SPLINE_VAL_F[valBegin + n - 1] : 0.0;
+                result = vn + SPLINE_DERS[derBegin + n - 1] * (coord - SPLINE_LOCS[locBegin + n - 1]);
+                int ps = outSlot[sp]; sp--;
+                if (ps >= 0) {
+                    if ((ps & 1) == 0) { v0Stack[ps >> 1] = result; } else { v1Stack[ps >> 1] = result; }
+                    stageStack[ps >> 1] = 2;
+                }
+                continue;
+            }
+            iStack[sp] = i;
+            int vk0 = SPLINE_VAL_KIND[valBegin + i];
+            if (vk0 == 0) {
+                v0Stack[sp] = SPLINE_VAL_F[valBegin + i];
+                stageStack[sp] = 1;
+            } else {
+                stageStack[sp] = 1;
+                sp++;
+                nodeStack[sp] = SPLINE_VAL_NODE[valBegin + i];
+                stageStack[sp] = 0; iStack[sp] = 0;
+                outSlot[sp] = (sp - 1) * 2;
+                v0Stack[sp] = 0.0; v1Stack[sp] = 0.0; coordStack[sp] = 0.0;
+                continue;
+            }
+        }
+        if (stageStack[sp] == 1) {
+            int i = iStack[sp];
+            int vk1 = SPLINE_VAL_KIND[valBegin + i + 1];
+            if (vk1 == 0) {
+                v1Stack[sp] = SPLINE_VAL_F[valBegin + i + 1];
+                stageStack[sp] = 2;
+            } else {
+                stageStack[sp] = 2;
+                sp++;
+                nodeStack[sp] = SPLINE_VAL_NODE[valBegin + i + 1];
+                stageStack[sp] = 0; iStack[sp] = 0;
+                outSlot[sp] = (sp - 1) * 2 + 1;
+                v0Stack[sp] = 0.0; v1Stack[sp] = 0.0; coordStack[sp] = 0.0;
+                continue;
+            }
+        }
+        if (stageStack[sp] == 2) {
+            int i = iStack[sp];
+            float coord = coordStack[sp];
+            float nv = v0Stack[sp];
+            float ov = v1Stack[sp];
+            float span = SPLINE_LOCS[locBegin + i + 1] - SPLINE_LOCS[locBegin + i];
+            result = spline_hermite(coord, SPLINE_LOCS[locBegin + i], span, nv, ov,
+                                    SPLINE_DERS[derBegin + i], SPLINE_DERS[derBegin + i + 1]);
+            int ps = outSlot[sp]; sp--;
+            if (ps >= 0) {
+                if ((ps & 1) == 0) { v0Stack[ps >> 1] = result; } else { v1Stack[ps >> 1] = result; }
+                stageStack[ps >> 1] = 2;
+            }
+            continue;
+        }
+    }
+    return result;
+}
+
+
+float corner_2(int sIdx, int ix, int iy, int iz) {
+    int cy = (iy - minY) / 8;
+    return (0.1171875f + (y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, -40.0f, 0.0f, 1.0f) * (-0.1171875f + (-0.078125f + (y_clamped_gradient((minY + (cy + 1) * 8), 240.0f, 256.0f, 1.0f, 0.0f) * (0.078125f + ((((4.0f * ((((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) > 0.0f ? (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) : (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) * 0.25f)) + interp_noise_30(sIdx)) >= -1000000.0f && ((4.0f * ((((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) > 0.0f ? (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) : (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) * 0.25f)) + interp_noise_30(sIdx)) < 1.5625f) ? min(((4.0f * ((((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) > 0.0f ? (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) : (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) * 0.25f)) + interp_noise_30(sIdx)), (5.0f * min(((0.37f + normal_noise_31(sIdx)) + y_clamped_gradient((minY + (cy + 1) * 8), -10.0f, 30.0f, 0.3f, 0.0f)), (((-0.05f + (-0.05f * normal_noise_32(sIdx))) * (-0.4f + abs(normal_noise_33(sIdx)))) + clamp((max(0.0f, 0.0f) + (-0.0765f + (-0.011499999999999996f * normal_noise_34(sIdx)))), -1.0f, 1.0f))))) : max(min(min(((4.0f * (normal_noise_35(sIdx) * normal_noise_35(sIdx))) + (clamp((0.27f + normal_noise_36(sIdx)), -1.0f, 1.0f) + clamp((1.5f + (-0.64f * ((4.0f * ((((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) > 0.0f ? (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) : (((y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 1.5f, -1.5f) + (((0.0f * (1.0f + (-1.0f * 1.0f))) + ((-0.5037500262260437f + spline_eval(0, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))) * 1.0f)))) + (((0.0f + (1.0f * (-0.0f + spline_eval(29, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2)))))) * (normal_noise_29(sIdx) > 0.0f ? normal_noise_29(sIdx) : normal_noise_29(sIdx) * 0.5f))) * ((10.0f + (1.0f * (-10.0f + spline_eval(37, sIdx, ((ix >> 2) << 2), 0, ((iz >> 2) << 2))))))) * 0.25f)) + interp_noise_30(sIdx)))), 0.0f, 0.5f))), min(((0.37f + normal_noise_31(sIdx)) + y_clamped_gradient((minY + (cy + 1) * 8), -10.0f, 30.0f, 0.3f, 0.0f)), (((-0.05f + (-0.05f * normal_noise_32(sIdx))) * (-0.4f + abs(normal_noise_33(sIdx)))) + clamp((max(0.0f, 0.0f) + (-0.0765f + (-0.011499999999999996f * normal_noise_34(sIdx)))), -1.0f, 1.0f)))), (clamp(max((0.0f + (0.083f * (-0.95f + (-0.35000000000000003f * normal_noise_37(sIdx))))), ((abs(((0.0f + (8.0f * normal_noise_38(sIdx))) + y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 8.0f, -40.0f))) + (-0.95f + (-0.35000000000000003f * normal_noise_37(sIdx)))) * (abs(((0.0f + (8.0f * normal_noise_38(sIdx))) + y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 8.0f, -40.0f))) + (-0.95f + (-0.35000000000000003f * normal_noise_37(sIdx)))) * (abs(((0.0f + (8.0f * normal_noise_38(sIdx))) + y_clamped_gradient((minY + (cy + 1) * 8), -64.0f, 320.0f, 8.0f, -40.0f))) + (-0.95f + (-0.35000000000000003f * normal_noise_37(sIdx)))))), -1.0f, 1.0f) + ((-0.05f + (-0.05f * normal_noise_32(sIdx))) * (-0.4f + abs(normal_noise_33(sIdx)))))), (((((2.0f * normal_noise_39(sIdx)) + (-1.0f + (-1.0f * normal_noise_40(sIdx)))) * ((0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))))) >= -1000000.0f && (((2.0f * normal_noise_39(sIdx)) + (-1.0f + (-1.0f * normal_noise_40(sIdx)))) * ((0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))))) < 0.03f) ? -1000000.0f : (((2.0f * normal_noise_39(sIdx)) + (-1.0f + (-1.0f * normal_noise_40(sIdx)))) * ((0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))) * (0.55f + (0.55f * normal_noise_41(sIdx))))))))))))));
+}
+
+void main() {
+    uint idx = gl_GlobalInvocationID.x;
+    if (idx >= midC.mid.length()) return;
+    int ix = coord.coords[idx * 3 + 0];
+    int iy = coord.coords[idx * 3 + 1];
+    int iz = coord.coords[idx * 3 + 2];
+    midC.mid[idx] = corner_2(int(idx), ix, iy, iz);
+}
