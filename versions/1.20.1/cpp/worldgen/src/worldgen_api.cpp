@@ -716,19 +716,14 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     }
 
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
-    // C1 验证（2026-08-15）：per-thread 复用缓冲——每 chunk 1.2MB 大块堆分配/释放
-    // （densityBuf 786KB + col 393KB）在多线程下撞全局堆锁 + VirtualFree/TLB shootdown。
-    // 改为 thread_local 常驻：chunk 间复用不重新分配（主世界 chunk 尺寸恒定 minY=-64/height=384）。
-    static thread_local BlockColumn tl_col;  // 首次按默认尺寸（-64/384）构造，之后复用内部 blocks
-    BlockColumn& col = tl_col;
+    // C1 已回滚（2026-08-15 晚段）：thread_local 复用缓冲反而慢 9%（单线程 71.68→77.93），
+    // 且多线程反降依旧——恢复每 chunk 分配（C1 排除结论不变，回滚避免单线程退化）
+    BlockColumn col(h->dim.minY, h->dim.worldHeight);
     std::vector<int> heightmap(256, h->dim.minY - 1);
     bool profiling = getenv("WG_PROFILE") != nullptr || getenv("WG_STAGETIMER") != nullptr;
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
-    static thread_local std::vector<double> tl_densityBuf;
-    if ((int)tl_densityBuf.size() < h->dim.worldHeight * 256)
-        tl_densityBuf.resize((size_t)h->dim.worldHeight * 256);
-    std::vector<double>& densityBuf = tl_densityBuf;
+    std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
     // 3a. density（独立循环，便于剖析与后续算法优化）；y 上限 = noiseHeight（下界 128，上方留 air）
     //     Java 语义：CellCache(add(DensityInterpolator(finalDensity), Beardifier)) —— 块级最终密度 =
     //     插值 finalDensity + 结构 Beardifier（若该 chunk 有结构布局输入）
