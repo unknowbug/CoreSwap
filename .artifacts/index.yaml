@@ -278,3 +278,7 @@ entries:
     path: '../.investigations/000-架构设计/架构计划-gpu-block-integration.md'
     kind: plan
     status: candidate
+  - id: 're-code:perf-rework:d25-scheme-c-infeasible'
+    path: '../.investigations/perf-rework/gpu-accel-errors.md#D25'
+    kind: errors
+    status: candidate
