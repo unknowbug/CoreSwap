@@ -733,14 +733,56 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
             beard = &beardLocal;
         }
     }
-    for (int by = 0; by < h->dim.noiseHeight; by++) {
+    // I6：密度阶段 GPU 分支（WG_GPU_FILL=1 且引擎构造成功时）——批量算本 chunk 全部点 finalDensity。
+    // 与 CPU 路径（InterpolatedDF cell 网格插值）同语义（GPU shader = 同一棵 finalDensity 树，e2e 3.128e-07 验证）。
+    // beard（结构密度修正）逐块仍 CPU 加（Beardifier 是块级循环一部分，GPU 化成本高且收益小）。
+    // 分块：fill 内部 buffer = n*splitTotal(8672)*4B，98304 点一次 = 3.4GB（超 RTX4060 8GB 显存）→ 每块 4096 点 = 142MB。
+    const int noiseHeight = h->dim.noiseHeight;
+    const int64_t totalPoints = (int64_t)noiseHeight * 256;  // 98304/chunk（主世界）
+    std::vector<float> gpuDensity;  // GPU 分支读回缓冲（仅 WG_GPU_FILL=1 时分配）
+    bool gpuDensityOk = false;
+#ifdef CORESWAP_GPU_ENABLED
+    if (h->gpu) {
+        const int GPU_BATCH = 4096;
+        gpuDensity.resize((size_t)totalPoints);
+        std::vector<int32_t> coords((size_t)GPU_BATCH * 3);
+        std::vector<float> gpuOut((size_t)GPU_BATCH);
+        bool gpuFailed = false;
+        for (int64_t base = 0; base < totalPoints && !gpuFailed; base += GPU_BATCH) {
+            int64_t cnt = std::min<int64_t>(GPU_BATCH, totalPoints - base);
+            for (int64_t k = 0; k < cnt; k++) {
+                int64_t pi = base + k;
+                int by = (int)(pi / 256);
+                int rem = (int)(pi % 256);
+                int bz = rem / 16, bx = rem % 16;
+                coords[k*3+0] = chunkX * 16 + bx;
+                coords[k*3+1] = h->dim.minY + by;
+                coords[k*3+2] = chunkZ * 16 + bz;
+            }
+            try {
+                h->gpu->fill(coords.data(), (int)cnt, gpuOut.data());
+                std::memcpy(gpuDensity.data() + base, gpuOut.data(), (size_t)cnt * sizeof(float));
+            } catch (const std::exception& e) {
+                std::fprintf(stderr, "fillOneChunkCore: GPU fill failed (%s) — CPU fallback for this chunk\n", e.what());
+                gpuFailed = true;
+            }
+        }
+        gpuDensityOk = !gpuFailed;
+    }
+#endif
+    for (int by = 0; by < noiseHeight; by++) {
         int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
             for (int bx = 0; bx < 16; bx++) {
+                double fd;
                 fpos.x = chunkX * 16 + bx;
                 fpos.y = wy;
                 fpos.z = chunkZ * 16 + bz;
-                double fd = h->finalDensity->sample(fpos);
+                if (gpuDensityOk) {
+                    fd = (double)gpuDensity[(size_t)by * 256 + bz * 16 + bx];
+                } else {
+                    fd = h->finalDensity->sample(fpos);
+                }
                 if (beard) fd += beard->sample(fpos.x, fpos.y, fpos.z);
                 densityBuf[by * 256 + bz * 16 + bx] = fd;
             }

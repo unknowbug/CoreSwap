@@ -266,3 +266,15 @@ entries:
     path: '../knowledge/discovered/algorithm-fingerprints.md#发现14'
     kind: knowledge
     status: confirmed
+  - id: 're-code:perf-rework:d24-block-gpu-negative'
+    path: '../.investigations/perf-rework/gpu-accel-errors.md#D24'
+    kind: errors
+    status: candidate
+  - id: 're-code:perf-rework:d24-fingerprint-15'
+    path: '../knowledge/discovered/algorithm-fingerprints.md#发现15'
+    kind: knowledge
+    status: candidate
+  - id: 're-code:perf-rework:003-block-integration-plan'
+    path: '../.investigations/000-架构设计/架构计划-gpu-block-integration.md'
+    kind: plan
+    status: candidate

@@ -1,0 +1,49 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=680960
+[CORESWAP] crash handler installed
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+wg_create: GPU density engine enabled (WG_GPU_FILL, spv=data\worldgen/../../cpp/worldgen/gpu-assets/final_density.spv)
+blocks file: magic=0x57474232 seed=8576294172403134396 size=6 origin=(720,-432) minY=-64 height=384
+[CORESWAP-CRASH] ============ native crash ============
+[CORESWAP-CRASH] time=20260815-201140 context=wg_fill_blocks_multi/fillOneChunk
+[CORESWAP-CRASH] code=0xC0000005 addr=0x00007FFA80946AB9
+[CORESWAP-CRASH] rw=read 0x0000000000000020
+[CORESWAP-CRASH] RAX=00000089D0051001 RBX=0000000000000000 RCX=00007FFA827B2A80 RDX=0000000000000000
+[CORESWAP-CRASH] data[0x34000]=0x104189480004F7F4 data[0x34001]=0x89104189480004F7
+[CORESWAP-CRASH] module base=0x00007FF7BC140000 (worldgen.dll)
+[CORESWAP-CRASH] RSI=0000020D34E70080 RDI=0000000000000000 RBP=00000089D07FF400 RSP=00000089D07FF210 RIP=00007FFA80946AB9
+[CORESWAP-CRASH] stack-window:
+[CORESWAP-CRASH]   [rsp-64] 0x90C4
+[CORESWAP-CRASH]   [rsp-56] 0x7FFA7FF70F27
+[CORESWAP-CRASH]   [rsp-48] 0x20D34E70080
+[CORESWAP-CRASH]   [rsp-40] 0x3610
+[CORESWAP-CRASH]   [rsp-32] 0x20D369F01E1
+[CORESWAP-CRASH]   [rsp-24] 0x20D369F01D8
+[CORESWAP-CRASH]   [rsp-16] 0x0
+[CORESWAP-CRASH]   [rsp-8] 0x7FFA80946A95
+[CORESWAP-CRASH]   [rsp+0] 0x20D369F0080
+[CORESWAP-CRASH]   [rsp+8] 0x89D07FF400
+[CORESWAP-CRASH]   [rsp+16] 0x20D34E70080
+[CORESWAP-CRASH]   [rsp+24] 0x20D2E0B02E8
+[CORESWAP-CRASH]   [rsp+32] 0x40
+[CORESWAP-CRASH]   [rsp+40] 0x7FF900000000
+[CORESWAP-CRASH]   [rsp+48] 0x20D2E0B1740
+[CORESWAP-CRASH]   [rsp+56] 0x20D2DFB0000
+[CORESWAP-CRASH]   [rsp+64] 0x11
+[CORESWAP-CRASH]   [rsp+72] 0x20D2E0B0CC0
+[CORESWAP-CRASH]   [rsp+80] 0x1000
+[CORESWAP-CRASH] ip=00 44 39 25 EB E6 CE 01 8B 7B 20 74 30 0F 57 C0 
+[CORESWAP-CRASH] stack (StackWalk64):
+  #0 nvtfi.inf_amd64_+0xEB6AB9 vkGetInstanceProcAddr+0x6A5F9
+  #1 nvtfi.inf_amd64_+0xEF0F41 vkGetInstanceProcAddr+0xA4A81
+  #2 block_pro+0x64C82
+  #3 block_pro+0x654FD
+  #4 block_pro+0x588D7
+  #5 block_pro+0x1E763
+  #6 block_pro+0x1C7E2
+  #7 block_pro+0xEF2E
+  #8 ucrtbase.dll+0x2CD30 wcsrchr+0x150
+  #9 KERNEL32.DLL+0x2CCB7 BaseThreadInitThunk+0x17
+  #10 ntdll.dll+0xAAD6C RtlUserThreadStart+0x2C
+[CORESWAP-CRASH] ============ end ============

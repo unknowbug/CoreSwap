@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include <mutex>
 
 struct GpuDensityEngine::Impl {
     CpuBackend backend;             // CPU 拆分 + perm/spline 数据（生成器产出）
@@ -18,6 +19,10 @@ struct GpuDensityEngine::Impl {
     VkDeviceSize permSize = 0;
     std::vector<int32_t> splineNodePack, splineValKind, splineValNode;
     std::vector<float> splineLocs, splineDers, splineValF;
+    // I6/P2-4：fill() 共享 buffer 上传+dispatch 无互斥——worldgen 池 worker 多线程并发调
+    // fillOneChunkCore → 多线程同时 fill() 会驱动层崩溃（block_probe I7 实测 0xC0000005 @ nvtfi）。
+    // 串行化 GPU 访问（正确性优先；吞吐影响后续评估——批量大时锁竞争可接受）。
+    std::mutex fillMtx;
 
     void ensureBuffers(int n);
 };
@@ -100,6 +105,7 @@ GpuDensityEngine::~GpuDensityEngine() {
 
 void GpuDensityEngine::fill(const int32_t* coords, int n, float* out) {
     auto& im = *m;
+    std::lock_guard<std::mutex> lk(im.fillMtx);  // I6/P2-4：串行化 GPU 访问（多线程 fillOneChunkCore 并发）
     im.ensureBuffers(n);
     // CPU 拆分坐标（double 精度 → int32 格点 + float 小数）
     std::vector<float> splitCoord((size_t)n * im.backend.splitTotal);

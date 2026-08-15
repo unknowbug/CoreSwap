@@ -595,6 +595,37 @@
 
 **速查表补充行（追加到现有 D23 行之后；现有 D23 行保留）**：
 | sim 显式栈两坑（D23 补充） | 返回地址（outSlot）被 -1 覆盖 → 深层嵌套完成不回填祖父帧；回填 `stageStack[ps>>1]=2` 覆盖父帧恢复点 → 跳过 v1 求值 → Hermite 用 0。**显式栈「返回地址」与「父帧恢复点」两套状态：压帧各设一次、回填只写数据槽**（GPU while 栈 stage 4/5 直接 outVal 回填无此问题） |
+| GPU 块级生成极慢（D24） | **逐 block GPU 化不可行**：每 block 走完整 finalDensity 树需全量 split 坐标（8672 floats/点），98304 点/chunk → 3.4GB 上传/chunk（分块 4096 = 24 次 × 142MB）→ 24 chunks 11 分钟未完成 vs CPU 2.5 分钟。**GPU 优势在「算得快」，瓶颈在「喂数据」——split 全量上传带宽死局**。正确方向 = GPU 只算网格角点（768/chunk，wg_fill_density 已实现 22-39x）+ CPU 三线性插值到逐 block，非逐 block 完整树。另：多线程并发 fill 驱动层崩溃（0xC0000005 @ nvtfi）→ fill 加 mutex 串行化（P2-4 闭环，正确性解决但性能更劣化） |
+
+## D24. GPU 块级生成（fillOneChunkCore 密度阶段 GPU 化）性能不可行——split 全量上传带宽死局（2026-08-15）
+
+### 现象
+- 立项 003（I6-I8）：让 fillOneChunkCore 密度阶段（16×384×16=98304 点/chunk）走 GPU。
+- **正确性侧**：I6 实现（分块 4096 点 batch fill）→ mutex 修复并发崩溃后**无崩溃**，但 24 chunks（8576 区域）运行 **11 分钟未完成**，被主动终止；CPU 基线同区域 **2.5 分钟**。
+- **吞吐结论**：GPU 块级路径比 CPU **慢 4 倍+**（且未跑完）。
+
+### 根因（带宽死局，非计算慢）
+- GPU shader 求 finalDensity 完整树需要**每个点的全部分解坐标**：`splitTotal=8672` floats/点（CPU 预拆分，double→int32 格点+float 小数）。
+- 逐 block 方案：98304 点/chunk × 8672 × 4B = **3.4GB split 数据/chunk** 需上传 GPU。
+- 分块 4096（显存限制）→ **24 次 dispatch/chunk**，每次 upload **142MB** + readback → 24 chunks × 24 次 = 576 次大上传。
+- **GPU 快在「算」（compute throughput），但这里被「喂数据」（host→device 带宽，PCIe ~16GB/s）完全主导**：142MB/次 × 576 = 82GB 数据搬运 → 分钟级。
+- 对比 wg_fill_density（I5）：768 点/chunk × 8672 × 4 = **27MB/chunk**——GPU 只在「网格角点级」批量才有意义（22-39x）。
+
+### 定位链
+1. I7 首次运行（无 mutex）：`context=wg_fill_blocks_multi/fillOneChunk`，`code=0xC0000005`，栈在 **nvtfi（NVIDIA 驱动）** ——多线程（block_probe 默认 -threads 自适应）并发调 `h->gpu->fill()` → 共享 buffer 上传/dispatch 竞争 → 驱动层崩溃。**P2-4 预言实锤**。
+2. fill() 加 `std::mutex fillMtx` 串行化 → 无崩溃（跑 11 分钟不崩）。
+3. 但性能灾难暴露：CPU 基线 2.5 分钟 vs GPU 11 分钟未完成 → 带宽分析定位「split 全量上传」为瓶颈。
+
+### 修复/方向
+- **D24 不是代码 bug，是方案不可行**：逐 block 完整树 GPU 化在「split 全量上传」架构下无解。
+- **正确方向**（未来若继续）：GPU 只算 InterpolatedDF 网格角点（768 或 1225 点/chunk，wg_fill_density 已验证 22-39x）→ CPU 三线性插值到 98304 逐 block。即「GPU 算网格 + CPU 插值」，不是「GPU 逐 block 完整树」。这需要把 fillOneChunkCore 的密度阶段改为「先 GPU 出网格 → CPU 插值」，工作量中等。
+- **当前状态**：I6 代码保留（WG_GPU_FILL=1 时走 GPU 分支，但默认关闭 = CPU 零退化）；**结论 = GPU 块级加速在逐 block 方案下不可行**，回退 CPU 路径为默认（铁律零退化不受影响）。
+
+### 教训
+1. **GPU 加速要先算「每点喂多少数据」，不是先算「每点算多少」**：split 全量（8672 floats/点）让「每点数据量」成为带宽死局——GPU 批量加速的前提是「单点数据量小 + 点量大」（网格角点 768 点 × 27MB 可行；逐 block 98304 点 × 3.4GB 不可行）。
+2. **吞吐探针（I5 22-39x）证明的是「网格角点批量」**，不能外推到「逐 block」——同引擎、同 shader，采样密度决定可行性（数据量 ∝ 点数）。
+3. **多线程并发 GPU 调用必须加锁**（P2-4）：共享 buffer 上传/dispatch 无互斥 → 驱动层崩溃（不是返回错误，是 0xC0000005）——GPU 资源并发是硬约束，不是「可能有问题」。
+4. **负面结论也是结论**：I6 的「接线」本身正确（无崩溃、逻辑对），但吞吐不可行——记录「为什么不可行」比假装成功有价值（错误优先原则）。
 
 ---
 

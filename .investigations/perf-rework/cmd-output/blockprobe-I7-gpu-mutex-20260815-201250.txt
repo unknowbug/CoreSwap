@@ -1,0 +1,7 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\block_probe.exe size=681984
+[CORESWAP] crash handler installed
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+wg_create: GPU density engine enabled (WG_GPU_FILL, spv=data\worldgen/../../cpp/worldgen/gpu-assets/final_density.spv)
+blocks file: magic=0x57474232 seed=8576294172403134396 size=6 origin=(720,-432) minY=-64 height=384
