@@ -66,6 +66,8 @@ fillOneChunk(cx, cz)（每 chunk）：
 > 发现：2026-08-11 用户实机传送后区块卡很久（vanilla 对照确认），SURFACE 吞吐严重退化。本次 Java 桥并发重写 + C++ CoreSwapPool 改造（perf-rework，RQ-001~005）**已排除为引入源**（stash 对照 + 旧提交对照均慢，见下）；根因为 8/6 优化链遗留的缓存/执行模型失配。
 > **2026-08-12 根因定论**：主因（H2）= FlatCacheDF **单槽 thread_local 缓存** + buildGrid 角点 `i=4`/`j=4` 越界 → 嵌套 spline 的 FlatCache 收到**邻居 chunk key** → 单槽被污染 → 邻居网格重建**递归蔓延 112 chunk**（rebuild 36,252 = **168×** → spline 调用 **20×**）；放大器（H3）= 多线程 thread_local thrashing（单次 ×16）。结论已过 judge 审查（`.investigations/perf-rework/review-rootcause.md`）并经**用户拍板确认**。状态：✅ **修复闭环（2026-08-12 用户验收）**——修复方案（当前 chunk 上下文绑定，与 Java per-chunk 语义对齐）与验证数据见下方「修复方案（已实施并闭环）」/「修复闭环验证」小节；judge 审查：`.investigations/perf-rework/review-fix-delivery.md`（主结论通过，4 项修正已闭环）。
 
+> ⚠️ **2026-08-16 影响标注（H3 ×16 需重新定性）**：本条「放大器（H3）= 多线程 thread_local thrashing（单次 ×16）」的 **×16 基数（mt 27,155ns）在 notify 丢失 bug 活跃期采集**（实际并行度=1，见下方 L97 标注 + `mt-scaling-errors.md` MT2）——H3 结论需修复后重测重新定性；**H2 主因（rebuild 168×）为单线程精确统计，不受影响，保留成立**。
+
 ### 吞吐数据（SURFACE 模式，2026-08-11）
 
 | 场景 | 2026-08-06 基线 | 2026-08-11 实测 | 备注 |
@@ -84,6 +86,8 @@ fillOneChunk(cx, cz)（每 chunk）：
 | spline.sample | — | 338 万次 | 调用量 |
 | FlatCache rebuild | — | **438,092 次 ≈ spline 调用数** | 每次 spline 采样都重建 5×5 网格（缓存命中率≈0） |
 | Cache2D miss | — | **458,281 次** | 列缓存基本全 miss |
+
+> ⚠️ **2026-08-16 影响标注（本表为 WG_PROFILE 计数器，含双污染）**：① **notify bug 污染**——「spline 单次 20,598ns（~21× 退化）」在 notify 丢失 bug 活跃期采集（[A] T>1 实际并行度=1，「多线程 thrashing 环境」实为单 worker + 扩池开销），需修复后重测（`mt-scaling-errors.md` MT2）；② **计时污染（MT4）**——WG_PROFILE/WG_STAGETIMER 每采样点 steady_clock + 原子计数，探针自身开销计入阶段耗时（density 460ms 伪影 = 真实 45ms；本表 density 670-1000ms 同为伪影），spline 单次耗时列不可直接引用。**FlatCache rebuild / Cache2D miss 为纯计数器（无计时语义），不受上述污染，保留**。详见 `mt-scaling-errors.md` MT2/MT4。
 
 ### 对照实验（排除本次改造引入）
 
