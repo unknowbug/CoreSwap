@@ -1,0 +1,4 @@
+# compile_bench: 3 shaders
+[final_density.spv] 101.8s (rc=0)
+[diag\no_old.spv] 51.8s (rc=0)
+[diag\no_spline.spv] 15.2s (rc=0)

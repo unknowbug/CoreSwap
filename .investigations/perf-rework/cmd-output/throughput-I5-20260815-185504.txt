@@ -1,0 +1,15 @@
+[probe] constructing GpuDensityEngine (pipeline one-time)...
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+# throughput GPU vs CPU (final_density, seed 8576294172403134396)
+# chunks | points | CPU(ms) | GPU(ms) | CPU pts/s | GPU pts/s | speedup
+  top diff @ (732,80,-424) gpu=-0.063674234 cpu=-0.063675298
+     1 |     768 | 8058.16 |  362.03 | 95 | 2121 | 22.26x (maxDiff=1.06e-06)
+  top diff @ (768,80,-420) gpu=0.129868433 cpu=0.129865575
+     4 |    3072 | 26867.78 | 1107.65 | 114 | 2773 | 24.26x (maxDiff=2.86e-06)
+  top diff @ (732,72,-408) gpu=0.106298000 cpu=0.106293576
+    16 |   12288 | 155016.56 | 4498.45 | 79 | 2732 | 34.46x (maxDiff=4.42e-06)
+  top diff @ (808,64,-384) gpu=0.035201907 cpu=0.035210165
+    64 |   49152 | 630592.12 | 16051.26 | 78 | 3062 | 39.29x (maxDiff=8.26e-06)
+[done]

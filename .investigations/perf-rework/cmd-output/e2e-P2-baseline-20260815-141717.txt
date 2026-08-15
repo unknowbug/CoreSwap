@@ -1,0 +1,44 @@
+[step] CpuBackend.init done, splitTotal=8672
+[step] coords zCover=0
+[step] dumped splitCoord(8880128) perm(356352) coords(1024)
+[step] split + collectPerm done, N=1024 permSize=356352
+final_density DF built
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[dbg] pipeline created in 74.8s
+[DBG] i=0 pos=(0,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=1 pos=(1,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=2 pos=(2,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=3 pos=(3,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=4 pos=(4,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=5 pos=(5,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=6 pos=(6,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=7 pos=(7,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=8 pos=(8,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=9 pos=(9,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=10 pos=(10,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=11 pos=(11,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=12 pos=(12,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=13 pos=(13,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=14 pos=(14,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=15 pos=(15,-64,0) gpu=0.037482418 cpu=0.037482422 diff=3.755e-09
+[DBG] i=128 pos=(0,-62,0) gpu=0.036994793 cpu=0.036994793 diff=2.686e-10
+[DBG] i=256 pos=(0,-60,0) gpu=0.036507152 cpu=0.036507146 diff=5.967e-09
+[DBG] i=384 pos=(0,-58,0) gpu=0.036019485 cpu=0.036019482 diff=3.543e-09
+[DBG] i=512 pos=(0,-56,0) gpu=0.035531804 cpu=0.035531801 diff=3.403e-09
+[DBG] i=640 pos=(0,-54,0) gpu=0.040212158 cpu=0.040212155 diff=3.045e-09
+[DBG] i=768 pos=(0,-52,0) gpu=0.044890743 cpu=0.044890742 diff=9.565e-10
+[DBG] i=896 pos=(0,-50,0) gpu=0.049567353 cpu=0.049567355 diff=1.814e-09
+[TOP00] i=1004 pos=(44,-49,0) gpu=0.088375703 cpu=0.088375390 diff=3.128e-07
+[TOP01] i=1005 pos=(45,-49,0) gpu=0.078067757 cpu=0.078067489 diff=2.683e-07
+[TOP02] i=940 pos=(44,-50,0) gpu=0.088150628 cpu=0.088150360 diff=2.677e-07
+[TOP03] i=1003 pos=(43,-49,0) gpu=0.091243543 cpu=0.091243304 diff=2.390e-07
+[TOP04] i=941 pos=(45,-50,0) gpu=0.079453394 cpu=0.079453168 diff=2.259e-07
+[TOP05] i=876 pos=(44,-51,0) gpu=0.087925538 cpu=0.087925322 diff=2.167e-07
+[TOP06] i=1006 pos=(46,-49,0) gpu=0.067742936 cpu=0.067742730 diff=2.059e-07
+[TOP07] i=939 pos=(43,-50,0) gpu=0.090493537 cpu=0.090493339 diff=1.980e-07
+[TOP08] i=877 pos=(45,-51,0) gpu=0.080838725 cpu=0.080838537 diff=1.877e-07
+[TOP09] i=942 pos=(46,-50,0) gpu=0.070743933 cpu=0.070743758 diff=1.750e-07
+[TOP10] i=812 pos=(44,-52,0) gpu=0.087700449 cpu=0.087700274 diff=1.749e-07
+[TOP11] i=875 pos=(43,-51,0) gpu=0.089743443 cpu=0.089743271 diff=1.715e-07
+[result] N=1024, final_density 完整树: GPU float vs CPU double: maxDiff=3.128e-07 avgDiff=1.097e-08
+[done]

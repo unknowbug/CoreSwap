@@ -1,0 +1,4 @@
+
+total=1344 mismatch=0
+
+sim vs e2e gpu: n=23 maxDiff=5.721e-09 bad(>1e-4)=0
