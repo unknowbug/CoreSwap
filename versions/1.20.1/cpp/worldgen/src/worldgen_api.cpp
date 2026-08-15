@@ -645,6 +645,10 @@ static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chu
 static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, bool runFeatures, bool storeRegion) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out) return 0;
+    // WG_MTTRACE：多线程串行化定位（2026-08-15）——记录每 chunk 进出时刻，看 8 并行是否时间重叠
+    using namespace std::chrono;
+    const bool mtTrace = getenv("WG_MTTRACE") != nullptr;
+    const int64_t mtEnterMs = mtTrace ? duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count() : 0;
 
     // 2026-08-12 修复：设置当前生成 chunk 上下文（FlatCacheDF 网格绑定，Java per-chunk 实例语义）。
     // RAII 恢复：函数返回（含异常路径）后恢复 INT32_MIN——同线程后续诊断采样（wg_sample_density
@@ -712,12 +716,19 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     }
 
     // 3. fillFromNoise：块级三线性插值 → aquifer → 方块 + heightmap
-    BlockColumn col(h->dim.minY, h->dim.worldHeight);
+    // C1 验证（2026-08-15）：per-thread 复用缓冲——每 chunk 1.2MB 大块堆分配/释放
+    // （densityBuf 786KB + col 393KB）在多线程下撞全局堆锁 + VirtualFree/TLB shootdown。
+    // 改为 thread_local 常驻：chunk 间复用不重新分配（主世界 chunk 尺寸恒定 minY=-64/height=384）。
+    static thread_local BlockColumn tl_col;  // 首次按默认尺寸（-64/384）构造，之后复用内部 blocks
+    BlockColumn& col = tl_col;
     std::vector<int> heightmap(256, h->dim.minY - 1);
     bool profiling = getenv("WG_PROFILE") != nullptr || getenv("WG_STAGETIMER") != nullptr;
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
-    std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
+    static thread_local std::vector<double> tl_densityBuf;
+    if ((int)tl_densityBuf.size() < h->dim.worldHeight * 256)
+        tl_densityBuf.resize((size_t)h->dim.worldHeight * 256);
+    std::vector<double>& densityBuf = tl_densityBuf;
     // 3a. density（独立循环，便于剖析与后续算法优化）；y 上限 = noiseHeight（下界 128，上方留 air）
     //     Java 语义：CellCache(add(DensityInterpolator(finalDensity), Beardifier)) —— 块级最终密度 =
     //     插值 finalDensity + 结构 Beardifier（若该 chunk 有结构布局输入）
@@ -995,6 +1006,12 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     // 5. 输出（维度化：worldHeight 决定 out 大小；overworld 98304 / nether 65536）
     const size_t outCount = (size_t)h->dim.worldHeight * 256;
     std::memcpy(out, col.data().data(), outCount * sizeof(int32_t));
+    if (mtTrace) {
+        int64_t mtExitMs = duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+        std::fprintf(stderr, "[MT] chunk(%d,%d) by=%zu enter=%lld exit=%lld dur=%lld\n",
+                     chunkX, chunkZ, (size_t)GetCurrentThreadId(), mtEnterMs % 1000000,
+                     mtExitMs % 1000000, mtExitMs - mtEnterMs);
+    }
     return (int)outCount;
 }
 
@@ -1044,6 +1061,8 @@ public:
 
     void ensure(int n) {
         std::lock_guard<std::mutex> l(mtx);
+        if (getenv("WG_POOLDBG"))
+            std::fprintf(stderr, "[POOL] ensure(%d) workers=%zu\n", n, workers.size());
         if (n <= (int)workers.size()) return;
         int add = n - (int)workers.size();
         for (int i = 0; i < add; i++) {
@@ -1052,7 +1071,9 @@ public:
                     Task t;
                     {
                         std::unique_lock<std::mutex> l(mtx);
+                        readyCount.fetch_add(1, std::memory_order_relaxed);
                         cvTask.wait(l, [this] { return stop || !tasks.empty(); });
+                        readyCount.fetch_sub(1, std::memory_order_relaxed);
                         if (stop && tasks.empty()) return;
                         t = std::move(tasks.front());
                         tasks.pop();
@@ -1063,6 +1084,13 @@ public:
                         std::fprintf(stderr, "[CORESWAP-EXC] pool task exception: %s\n", e.what());
                     } catch (...) {
                         std::fprintf(stderr, "[CORESWAP-EXC] pool task unknown exception\n");
+                    }
+                    if (getenv("WG_TASKTIME")) {
+                        using namespace std::chrono;
+                        static std::atomic<uint64_t> seq{0};
+                        auto nowms = duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+                        std::fprintf(stderr, "[TASK] id=%d done_by=%zu t=%lld at=%llu\n", t.id,
+                                     (size_t)GetCurrentThreadId(), nowms % 1000000, (long long)seq.fetch_add(1));
                     }
                     int done = t.state->done.fetch_add(1) + 1;
                     if (done >= t.state->total) {
@@ -1082,6 +1110,17 @@ public:
     void run(int count, const std::function<void(int)>& f) {
         if (count <= 0) return;
         if (workers.empty()) ensure(count);
+        // notify 丢失修复（2026-08-15）：补建 worker 可能还没进 cvTask.wait 就收到 notify_all
+        // → 永久等待（tasks 空 + stop false）。入队前等所有 worker 就绪（readyCount == workers.size()）。
+        for (;;) {
+            size_t w;
+            {
+                std::lock_guard<std::mutex> l(mtx);
+                w = workers.size();
+            }
+            if ((size_t)readyCount.load(std::memory_order_relaxed) >= w) break;
+            std::this_thread::yield();
+        }
         auto st = std::make_shared<RunState>();
         st->total = count;
         {
@@ -1127,6 +1166,7 @@ private:
     std::mutex mtx;
     std::condition_variable cvTask;
     bool stop = false;
+    std::atomic<int> readyCount{0};  // 已进入 wait 的 worker 数（notify 丢失修复）
 };
 
 // 线程池停止（定义在 CoreSwapPool 之后；wg_destroy 前向调用）
