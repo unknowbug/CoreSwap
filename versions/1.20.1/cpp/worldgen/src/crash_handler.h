@@ -44,6 +44,18 @@ inline void dumpBytes(FILE* f, const uint8_t* p, int n) {
 inline LONG WINAPI CrashHandler(EXCEPTION_POINTERS* ep) {
     EXCEPTION_RECORD* er = ep->ExceptionRecord;
     CONTEXT* ctx = ep->ContextRecord;
+
+    // 非致命调试异常直接跳过（不做栈回溯）——0x40010006/0x40010007 是 OutputDebugString 的
+    // DBG_PRINTEXCEPTION_C/WIDE_C，正常程序（无调试器）默认忽略并继续。NVIDIA overlay 注入
+    // （nvspcap64/graphics-hook64）在 Vulkan 初始化期间会触发它们；vectored handler 若对这些
+    // 做重量级 StackWalk64 回溯，在异常分发上下文中可能二次崩溃或中断（2026-08-15 GPU 集成
+    // block_probe WG_GPU_FILL=1 实证：Vulkan 初始化被误报崩溃终止）。正确行为 = 原样继续执行。
+    if (er->ExceptionCode == 0x40010006 /* DBG_PRINTEXCEPTION_C */
+        || er->ExceptionCode == 0x40010007 /* DBG_PRINTEXCEPTION_WIDE_C */
+        || er->ExceptionCode == 0x4001000A /* DBG_PRINTEXCEPTION_WIDE_C2 */) {
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+
     FILE* f = stderr;
     time_t now = time(nullptr);
     struct tm tmv;

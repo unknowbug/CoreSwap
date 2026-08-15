@@ -934,12 +934,15 @@ private:
 };
 
 // InterpolatedDF：实例 id 分配（per-instance thread_local 缓存索引）
-std::atomic<int> InterpolatedDF::nextId{0};
-std::atomic<int> InterpolatedDF::instanceCount{0};
-std::atomic<int> Cache2DDF::nextId{0};
-std::atomic<int> Cache2DDF::instanceCount{0};
-std::atomic<int> FlatCacheDF::nextId{0};
-std::atomic<int> FlatCacheDF::instanceCount{0};
+// 2026-08-15 I2 修正：static 定义加 inline（C++17 inline 变量）——原非 inline 定义在多个
+// include density.h 的 TU 下会 LNK2005（worldgen_core 恰好单 TU 持有定义未触发）；GPU 引擎
+// 集成引入第二 TU 后暴露。inline 变量语义与单 TU 完全一致（零运行时影响）。
+inline std::atomic<int> InterpolatedDF::nextId{0};
+inline std::atomic<int> InterpolatedDF::instanceCount{0};
+inline std::atomic<int> Cache2DDF::nextId{0};
+inline std::atomic<int> Cache2DDF::instanceCount{0};
+inline std::atomic<int> FlatCacheDF::nextId{0};
+inline std::atomic<int> FlatCacheDF::instanceCount{0};
 
 } // namespace wg
 

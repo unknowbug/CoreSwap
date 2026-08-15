@@ -40,6 +40,9 @@ static double nowMs() {
 #include "json.h"
 #include "density.h"
 #include "density_builder.h"
+#ifdef CORESWAP_GPU_ENABLED
+#include "gpu_density_engine.h"   // I2：GPU 密度引擎（可选，WG_GPU_FILL=1 启用）
+#endif
 #include "beardifier.h"
 #include "blocks.h"
 #include "biome.h"
@@ -177,6 +180,10 @@ struct WorldgenHandle {
     DimConfig dim;  // 维度配置（通用引擎：minY/worldHeight/noiseHeight/aquifer/biome 参数）
     std::unique_ptr<DensityBuilder> builder;
     DF finalDensity;
+    // I2：GPU 密度引擎（WG_GPU_FILL=1 时 wg_create 构造；nullptr = CPU 路径，零影响）
+#ifdef CORESWAP_GPU_ENABLED
+    std::unique_ptr<GpuDensityEngine> gpu;
+#endif
     // router 分量（biome 采样 + aquifer）
     std::map<std::string, DF> router;
     // 噪声 sampler 表（surface rules + surface builder 用）
@@ -456,6 +463,28 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
                 h->overworldRule = h->surfaceBuilder->buildOverworldRule();
             }
         }
+        // I2：GPU 密度引擎（可选）。env WG_GPU_FILL=1 启用——构造含 Vulkan 初始化 + pipeline 编译
+        // （~70-100s 一次性），wg_fill_density 走 GPU 路径。默认关闭 = CPU 路径（零退化铁律）。
+#ifdef CORESWAP_GPU_ENABLED
+        if (getenv("WG_GPU_FILL")) {
+            // spv 路径：优先 env WG_GPU_SPV（绝对路径），否则相对 wgDir 尝试两处约定位置
+            std::string spvPath;
+            if (const char* envp = getenv("WG_GPU_SPV")) spvPath = envp;
+            else {
+                std::string rel1 = wgDir + "/../../cpp/worldgen/gpu-assets/final_density.spv";
+                std::string rel2 = wgDir + "/../../gpu-assets/final_density.spv";
+                if (std::ifstream(rel1).good()) spvPath = rel1;
+                else if (std::ifstream(rel2).good()) spvPath = rel2;
+            }
+            if (!spvPath.empty() && std::ifstream(spvPath).good()) {
+                h->gpu = std::make_unique<GpuDensityEngine>((uint64_t)seed, spvPath);
+                std::fprintf(stderr, "wg_create: GPU density engine enabled (WG_GPU_FILL, spv=%s)\n", spvPath.c_str());
+            } else {
+                std::fprintf(stderr, "wg_create: WG_GPU_FILL set but final_density.spv missing (%s) — CPU fallback\n",
+                             spvPath.empty() ? "no path" : spvPath.c_str());
+            }
+        }
+#endif
         return h.release();
     } catch (const std::exception& e) {
         std::fprintf(stderr, "wg_create: %s\n", e.what());
@@ -545,6 +574,36 @@ void wg_sample_biome(void* handle, int x, int y, int z, char* out, int outLen) {
 int wg_fill_density(void* handle, int minChunkX, int minChunkZ, int size, double* out) {
     auto* h = static_cast<WorldgenHandle*>(handle);
     if (!h || !out || size <= 0) return 0;
+    // I2：GPU 路径（WG_GPU_FILL=1 时启用）——批量坐标 → GPU kernel → 读回 float，再转 double 输出
+#ifdef CORESWAP_GPU_ENABLED
+    if (h->gpu) {
+        const int nChunks = size * size;
+        const int n = nChunks * POINTS_PER_CHUNK;
+        std::vector<int32_t> coords(3 * n);
+        std::vector<float> gpuOut(n);
+        int idx = 0;
+        for (int cz = 0; cz < size; cz++) {
+            for (int cx = 0; cx < size; cx++) {
+                int chunkX = minChunkX + cx;
+                int chunkZ = minChunkZ + cz;
+                for (int y = 0; y < SY; y++) {
+                    for (int z = 0; z < SZ; z++) {
+                        for (int x = 0; x < SX; x++) {
+                            coords[3*idx+0] = chunkX * 16 + x * XZ_INTERVAL;
+                            coords[3*idx+1] = MIN_Y + y * Y_INTERVAL;
+                            coords[3*idx+2] = chunkZ * 16 + z * XZ_INTERVAL;
+                            idx++;
+                        }
+                    }
+                }
+            }
+        }
+        h->gpu->fill(coords.data(), n, gpuOut.data());
+        for (int i = 0; i < n; i++) out[i] = (double)gpuOut[i];
+        return POINTS_PER_CHUNK;
+    }
+#endif
+    // CPU 路径（默认，零退化）
     NoisePos pos;
     double* p = out;
     for (int cz = 0; cz < size; cz++) {

@@ -19,8 +19,16 @@ find_path(JNI_INCLUDE_DIR jni.h PATHS "$ENV{JAVA_HOME}/include" NO_DEFAULT_PATH 
 find_path(JNI_MD_INCLUDE_DIR jni_md.h PATHS "$ENV{JAVA_HOME}/include/win32" NO_DEFAULT_PATH REQUIRED)
 
 # worldgen 核心静态库（Phase 3 填实现）
-add_library(worldgen_core STATIC src/worldgen.cpp src/md5.cpp src/worldgen_api.cpp include/worldgen.h src/md5.h src/random.h src/xoroshiro.h src/noise.h include/worldgen_api.h)
+add_library(worldgen_core STATIC src/worldgen.cpp src/md5.cpp src/worldgen_api.cpp include/worldgen.h src/md5.h src/random.h src/xoroshiro.h src/noise.h include/worldgen_api.h
+    src/gpu_density_engine.cpp src/gpu_density_engine.h src/vulkan_runtime.h)
 target_include_directories(worldgen_core PUBLIC include src)
+# I2/I3：GPU 密度引擎——Vulkan SDK + 生成器产物（gpu-assets/cpu_backend.h + final_density.spv）
+# 需要 Vulkan SDK（C:\VulkanSDK\1.4.357.0）；未设置 VULKAN_SDK 时跳过 GPU 编译（CPU-only 构建）
+if(DEFINED ENV{VULKAN_SDK})
+    target_include_directories(worldgen_core PRIVATE $ENV{VULKAN_SDK}/Include ${CMAKE_CURRENT_SOURCE_DIR}/gpu-assets)
+    target_link_libraries(worldgen_core PRIVATE $ENV{VULKAN_SDK}/Lib/vulkan-1.lib)
+    target_compile_definitions(worldgen_core PRIVATE CORESWAP_GPU_ENABLED=1)
+endif()
 
 # JNI 桥动态库
 add_library(worldgen_jni SHARED src/jni_bridge.cpp)
