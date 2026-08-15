@@ -330,3 +330,61 @@ InterpolatedDF 网格 x/z 边界角点（gx=0 列 = 左邻 gx=4 列）与相邻 
 - 优化「重复采样」前先拆「每次采样的成本构成」：若某采样点集里只有**首次**采样触发昂贵构建、其余是便宜查表命中，则「减少采样点数量」省不了多少（触发点不随数量减少而消失）——要优化的是「构建触发次数」而非「采样次数」。
 - 边界角点复用类优化的收益上限 = 可跳过的采样里「昂贵采样」的比例，不是「采样总数」的比例。本例 245 角点里只有 1 个（首个）是昂贵构建触发，其余 244 是查表命中 → 收益上限远低于「-36% 采样数」的朴素估算。
 - 通用规律：缓存/预计算类的「重复计算」里，先用计数器区分「首次构建触发（昂贵）」vs「查表命中（便宜）」的占比，再决定是否值得做「去重复」——若昂贵部分不集中在可跳过的边界，去重复收益必然低于按总数比例的估算。
+
+## 发现 #13: GPU 驱动编译时间——编译期常量下标进数据驱动函数 = 常量传播展开陷阱；「编译慢根因结论」有版本域（const 表 vs SSBO）
+
+**发现时间:** 2026-08-15
+**发现者:** worker（G4 A 方案实施 + A5 减法二分）
+**来源定位:** `.investigations/perf-rework/a-plan-ssbo-implementation.md`（A5 节）+ `.investigations/perf-rework/gpu-accel-errors.md` D21/D22 + `.investigations/000-架构设计/架构计划-gpu-spline-fix.md`（001 修订版）；复现数据 `cmd-output/compile_bench-A5-*.txt`
+**置信度:** confirmed（2026-08-15 用户拍板：减法二分证据链 + 3 次实测 67.4/71.4/101.8s 均 <120s 达标 + 正确性逐位一致 maxDiff=3.128e-07 + judge 审查通过）
+**module:** perf
+
+### 观察
+GPU 驱动编译时间（vkCreateComputePipelines 的 SPIR-V→机器码）对「数据驱动函数」的索引形态极度敏感，两个互相关联的通用模式：
+
+1. **编译期常量下标进数据驱动函数 = 常量传播展开陷阱**：spline_coord 的 `switch(coordType)` 使每个 case 内 `NOISE_SLOT_BASE[0]` 成为编译期常量下标 → 常量传播进 normal_noise（数据驱动函数，参数表在 const 数组）→ `NORMAL_PACK` 读取被静态化 → 驱动逐 case 循环展开（单次调用 +37~75s）。对照：eval_df 里 `NOISE_SLOT_BASE[CA1_T[ci]]`（索引完全动态）→ 驱动放弃展开（快）。**同一批数据、同一个求值函数，仅「索引在编译期是否可解析」的差异 → 编译时间 350.6s vs 37.2s（~10×）级差**。
+2. **「编译慢根因结论」有版本域**：D21 在 const 表版实证「动态 node 索引是主因」（固定 node=0 → 903.4→31.0s）；SSBO 化后做同一实验（fixed_node=0）→ 361.0s ≈ full 350.6s（无收益）——**同一个「固定动态索引」实验，const 表版成立、SSBO 版不成立**（SSBO 已把动态索引变成运行时 buffer 读，驱动无从展开，因此固定它也没有额外收益）。
+
+### 证据
+- 减法二分链（DFC_DIAG 诊断开关 + compile_bench 秒级测）：full 350.6s / fixed_node 361.0s（动态 node 索引非 SSBO 版主因）/ coord_const 37.2s（coord 表达式贡献 ~313s）/ coord_slot0 302.3s（排除实例数因素）/ coord_case0 74.8s（1 次 normal_noise 调用 +37s）/ no_spline 17.2s（eval_df 内同函数调用不慢）。
+- 修复验证：coordType 运行时查表（`COORD_SLOT_TABLE[coordType]`）+ fold 特例（`if (coordType == 2)`）后，pipeline 编译 350.6s → 67.4s（e2e 内计时）/ 71.4s（compile_bench 单独）/ 101.8s（第 3 次）——3 次均 <120s；正确性逐位一致（maxDiff=3.128e-07 / avgDiff=1.097e-08，seed 8576294172403134396，N=1024）；fp64 次因自动作废（no_old 只省 ~8.5s——fp64 成本是「与 spline 展开的交互效应」）。
+- 历史对照：const 表版动态 node 索引 903.4s（D21）→ SSBO 版 350.6s → 查表修复 67.4s；spline 子系统 ~885s → ~50s（-94%）。
+
+### 如何利用
+- **排查 GPU 驱动编译慢时，先查「数据驱动/查表函数的所有索引是否运行时不可解析」**——switch/case 把下标常量化、函数参数折叠成常量、const 数组编译期已知下标，都会触发常量传播 + 展开；把下标改成「运行时查表」让驱动无法静态化，是编译时间分水岭。
+- **「固定某索引 / 去掉某子系统的减法二分」是最快定位手段**：一次实验排除一个候选（本次 coord_case0 单次调用定位 +37s），比机制猜测快；配合 DFC_DIAG 类诊断开关 + 秒级编译计时器使用。
+- **根因结论必须声明版本域**：凡是「在某结构版本下成立的编译慢根因」（如动态 node 索引），结构改变后（const 表→SSBO/数据 buffer）**必须重新验证，不能直接复用**——「动态索引」在 const 表里是驱动展开的输入，在 SSBO 里已经是运行时读，同一表述指代完全不同的编译行为。
+- 跨项目通用：任何 GPU compute shader / OpenCL kernel 的驱动编译时间优化（C2ME 类内核分发、pipeline 预编译分发）都适用「索引可解析性」与「版本域」两条检查。
+
+## 发现 #14: 边界外推遇嵌套 value 必须递归（spline 边界分支的「执行不到」类 bug）+ 单域 e2e 验证是盲区制造机
+
+**发现时间:** 2026-08-15
+**发现者:** worker（block_probe 集成立项 I5 吞吐对比 → D23 定位，perf-rework GPU 集成课题）
+**来源定位:** `.investigations/perf-rework/gpu-accel-errors.md` D23 段（含最终合并版）+ `.investigations/perf-rework/i-integration-record.md` + `.investigations/perf-rework/review-003-d23-integration.md`；复现/验证数据 `cmd-output/domain-probe-D23-fixed-20260815.txt` / `cmd-output/e2e-A5-20260815-135509.txt` / `verify_p11_recursive.py`
+**置信度:** confirmed（2026-08-15 用户拍板：GPU+sim 双修 + domain probe 全域 clean + e2e 零回归 maxDiff=3.128e-07 + 显式栈 vs 递归参照 1344 组合 0 mismatch + judge 4 P1 全闭合）
+**module:** re-code（发现于 perf-rework GPU 集成，规律本体为复刻算法正确性 + 验证覆盖方法）
+
+### 观察
+
+GPU 引擎（spline_eval 显式 while 栈）与 CPU 参照（DensityBuilder）在 e2e 验证域（x≤63, y∈[-64,-49], z≤4）逐位一致（maxDiff=3.128e-07），但在域外大坐标 chunk 域系统性错值（(784,160,-408) gpu=0.045 vs cpu=-0.458，量级级差异非浮点舍入）。根因 = **spline_eval 边界外推（coord < loc[0] / coord > loc[n-1]）对端点 value 写成 `(kind==0 ? valF : 0.0f)`——嵌套 value（kind==1）直接返回 0，未递归求值**；vanilla `Spline.apply` L259/261 的边界外推是 `value[0]+der[0]*(x-loc[0])`，端点 value 为嵌套样条时**必须递归求值**。触发条件：spline55 的 coord（continentalness@c0）= 0.060231412 **恰好 > 最后 loc 0.06** → 右边界 → 嵌套 value 返回 0 → 上层链错（参照该点应递归得 factor=4.524）。由此提炼四个跨版本/跨项目通用规律：
+
+1. **边界分支「执行不到」类 bug 指纹**：边界外推（coord 超出 locs 范围）分支只在特定坐标域触发——单域验证（e2e 小域）永远测不到——「逐位一致」只证明**被覆盖的域**；性能/吞吐探针必须顺带做多 chunk/多 cell/多 y 层 diff 抽查。同类还有 C12（range_choice 常数分支吸收误差）——「采样点没覆盖有效路径」的假正确是通用陷阱。
+2. **模拟器与 GPU 同源产物同错**：模拟器复现 GPU 错值（sim=GPU=0.045303285）＝生成器+解释器**共同逻辑 bug**（非 GPU 特有）——定位先做「GPU 特有 vs 共同逻辑」二分（sim 能复现 → 直接排除 GPU kernel/驱动层）；但 sim 只能证明「生成器产物内部一致」，**必须与第三方参照（DensityBuilder）对拍**才能发现生成器级错误。
+3. **显式栈移植的返回地址/恢复点纪律**：显式栈的「返回地址（outSlot）」与「父帧恢复点（stage）」是两套状态——压帧时各设一次，回填时**只写数据槽**；任何「回填时顺带改父帧 stage」的优化破坏等待语义（跳 v1 求值 → Hermite 用 0）。
+4. **对照 vanilla 逐行是最终手段**：Spline.apply 边界外推是递归求值（L259/261），不是取 0——「生成器里留的 stub/简化占位」是语义差头号嫌疑（D17 ws→0.0f 同教训），对照原版逐行才收口。
+
+### 证据
+
+- 决定性单点：(784,160,-408) 修复前 gpu=0.045303289 vs cpu=-0.458333333（diff 5.036e-01）→ 修复后 gpu=-0.458333343（diff 9.9e-9，`cmd-output/domain-probe-D23-fixed-20260815.txt`）
+- 错误域模式：z-scan（y=160 x=784）z=-432..-412 对 / z=-408,-404 错（cz=2/3 格）；y-scan（x=784 z=-408）y=-64 对 / y∈[-56,248] 几乎全错 / y≥256 对（无地形常数分支 -0.02499）——**常数分支层吸收差异 = 假正确**（C12 同款陷阱）
+- 根因证据链：sim 复现 0.045303285（与 GPU 完全一致）→ 排除 GPU kernel 特有；node[54]（roughness@c0）拆分采样 == CpuBackend 直接采样逐位一致（coord 正确）；node[22]/[33] SPLINE 大坐标域算出 0；spline55 数据（locs=[-0.19,-0.15,-0.1,0.03,0.06]）coord=0.060231412 > 0.06 触发右边界
+- 修复验证：e2e maxDiff=3.128e-07 / avgDiff=1.097e-08 与基线逐位一致（零回归，`cmd-output/e2e-A5-20260815-135509.txt`）；显式栈 spline_eval_py vs 递归版 Spline.apply 参照 **1344 组合 0 mismatch**（`verify_p11_recursive.py`，覆盖边界触发域坐标）
+- 候选排除（❌）：H1 角点序 / H2 cell 推导 / H3 split 数值均验证无差；中间误判（「缺 noodle_ridge_b 拆分行」「双索引错位」）被 check_split_base.py + check_two_alloc.py + check_meta_vs_splitbase.py 证伪——**对账必须基于当前生成产物**（旧 comp/spv dump 会误读索引，多花数轮）
+
+### 如何利用
+
+- **验证覆盖设计**：GPU/加速内核接入集成/吞吐探针时，正确性抽查 MUST 覆盖多 chunk（含 chunk 0 外）/多 cell（cy≥1、cz≥2）/多 y 层（含常数分支层——常数分支吸收差异是假正确）；「单域逐位一致」不能作为全域正确性证据
+- **性能/吞吐探针默认带 diff**：只测时间不测正确性 = 只能发现慢不能发现错（本次 16/64 chunks 正是靠附带 diff 抽查才暴露 D23）
+- **「GPU 特有 vs 共同逻辑」二分**：模拟器能复现 → 生成器/解释器共同 bug，先排除 GPU kernel 特有路径，再与第三方参照逐分量对拍（registry 分量探针 getRegistryEntry 采样 factor/sloped/entrances 最快）
+- **显式栈移植**：返回地址与恢复点分离管理——压帧设一次、回填只写数据；边界/特殊路径用显式 stage（等边界 v0/等边界 vn），不重载普通 Hermite 状态
+- **数据驱动树/表（spline 类）的边界语义**：外推端点 value 为嵌套结构时递归求值（vanilla 语义），任何「简化取 0」都是潜伏的域相关 bug——跨版本（1.18/1.19 Spline.java 同构，边界外推同为 `value[0]+der[0]*(x-loc[0])` 递归）同样适用

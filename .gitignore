@@ -40,5 +40,18 @@ versions/1.20.1/java/
 versions/1.20.1/bench/
 # 未开发占位（ai 层未来按需加回）
 versions/1.20.1/cpp/ai/
-# Reasonix 工具元数据
+# Reasonix 工具元数据（已迁移 DSH，保留历史规则）
 .reasonix/
+# DSH 项目级技能根（本地工具链，从 RE-Framework dsh/skills 同步生成，不入库）
+.dsh/
+
+# perf-rework GPU 课题：构建产物 + 中间输出（源码/文档/cmd-output 验证记录/gpu-assets 产物入库）
+__pycache__/
+*.pyc
+.investigations/perf-rework/**/*.spv
+.investigations/perf-rework/vulkan-proto/*.txt
+.investigations/perf-rework/vulkan-proto/*.bin
+.investigations/perf-rework/*.spvasm
+.investigations/perf-rework/*.asm
+.investigations/perf-rework/final_density.spv
+.investigations/perf-rework/*.spv.noinline.spv

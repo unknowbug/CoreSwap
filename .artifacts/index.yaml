@@ -230,3 +230,39 @@ entries:
     path: '../.investigations/perf-rework/review-aae119d.md'
     kind: review
     status: candidate
+  - id: 're-code:perf-rework:g4-aplan-ssbo'
+    path: '../.investigations/perf-rework/a-plan-ssbo-implementation.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:perf-rework:g4-aplan-d22-errors'
+    path: '../.investigations/perf-rework/gpu-accel-errors.md'
+    kind: errors
+    status: confirmed
+  - id: 're-code:perf-rework:g4-fingerprint-13'
+    path: '../knowledge/discovered/algorithm-fingerprints.md'
+    kind: knowledge
+    status: confirmed
+  - id: 're-code:perf-rework:d23-spline-boundary'
+    path: '../.investigations/perf-rework/gpu-accel-errors.md#D23'
+    kind: errors
+    status: confirmed
+  - id: 're-code:perf-rework:i1-i5-gpu-integration'
+    path: '../.investigations/perf-rework/i-integration-record.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:perf-rework:d23-sim-fix'
+    path: '../.investigations/perf-rework/dbg_full_sim.py'
+    kind: patch
+    status: confirmed
+  - id: 're-code:perf-rework:d23-review-003'
+    path: '../.investigations/perf-rework/review-003-d23-integration.md'
+    kind: review
+    status: confirmed
+  - id: 're-code:perf-rework:d23-kb-timewise'
+    path: '../versions/1.20.1/docs/10-timewise-archive.md#2026-08-15晚段'
+    kind: knowledge
+    status: confirmed
+  - id: 're-code:perf-rework:d23-fingerprint-14'
+    path: '../knowledge/discovered/algorithm-fingerprints.md#发现14'
+    kind: knowledge
+    status: confirmed
