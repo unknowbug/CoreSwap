@@ -1,0 +1,7 @@
+worldgen_api.cpp
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(248): warning C4190: 'parseSurfaceCond' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceCond>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceCond>”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(255): warning C4190: 'parseSurfaceRule' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceRule>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceRule>”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(278): warning C4190: 'parseSurfaceCond' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceCond>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceCond>”的声明

@@ -1,0 +1,68 @@
+worldgen_api.cpp
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(248): warning C4190: 'parseSurfaceCond' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceCond>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceCond>”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(255): warning C4190: 'parseSurfaceRule' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceRule>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceRule>”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(278): warning C4190: 'parseSurfaceCond' 已指定 C 链接，但返回了与 C 不兼容的 'std::shared_ptr<wg::SurfaceCond>'
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(1588): note: 参见“std::shared_ptr<wg::SurfaceCond>”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(437): error C3861: “walkDf”: 找不到标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(439): error C2065: “splineNodes”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(439): error C2065: “splineBytes”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(439): error C2065: “splineBytes”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(439): error C2065: “interpGrids”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(337): error C2317: 在行“337”上开始的“try”块没有 catch 处理程序
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(454): error C2065: “router”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(455): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(455): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(459): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(460): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(466): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(466): error C2065: “noiseParams”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(466): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(474): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(474): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(475): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(480): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(480): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(482): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(482): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(486): error C2065: “settings”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(487): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(488): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(489): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(489): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(489): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(488): error C2672: “std::make_unique”: 未找到匹配的重载函数
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(3676): note: 可能是“void std::make_unique(_Types ...)”
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(3670): note: 或    “std::unique_ptr<_Ty,std::default_delete<_Ty>> std::make_unique(const size_t)”
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(488): note: “std::unique_ptr<_Ty,std::default_delete<_Ty>> std::make_unique(const size_t)”: 应输入 1 个参数，却提供了 3 个
+D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory(3665): note: 或    “std::unique_ptr<_Ty,std::default_delete<_Ty>> std::make_unique(_Types ...)”
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(491): error C2065: “settings”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(492): error C2065: “dfNs”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(493): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(493): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): error C2660: “parseSurfaceRule”: 函数不接受 2 个参数
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(255): note: 参见“parseSurfaceRule”的声明
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(496): note: 尝试匹配参数列表“(const wg::JsonValue, bool)”时
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(497): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(499): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(499): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(510): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(511): error C2065: “wgDir”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(516): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(524): error C2065: “h”: 未声明的标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(525): error C2059: 语法错误:“catch”
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(525): error C2143: 语法错误: 缺少“;”(在“{”的前面)
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(525): error C2447: “{”: 缺少函数标题(是否是老式的形式表?)
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1327): error C2059: 语法错误:“}”
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1327): error C2143: 语法错误: 缺少“;”(在“}”的前面)
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1335): error C2143: 语法错误: 缺少“;”(在“{”的前面)
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1335): error C2447: “{”: 缺少函数标题(是否是老式的形式表?)
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1345): error C3861: “carverCache”: 找不到标识符
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1349): error C3536: “it”: 初始化之前无法使用
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1370): error C2119: "<structured binding>": 无法从空的初始值设定项推导 "auto" 的类型
+E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\src\worldgen_api.cpp(1370): error C3617: 结构化绑定的初始值设定项必须是数组或非联合类类型；不允许 "<错误>" 类型
