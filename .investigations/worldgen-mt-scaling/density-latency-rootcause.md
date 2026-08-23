@@ -68,6 +68,14 @@ density 11× 真实（squeeze(InterpolatedDF) 阶段）。候选：
 ### 结论
 density 11×（=每 chunk 并发下慢 9×）**根源 = SplineDF 树遍历（递归 + 虚调用）在并发下的 I-cache/争用放大**。表小（17KB）但递归深（90 节点）+ 195 虚调用。**C2ME 式 DFC 编译直排**（消除树遍历虚调用）是正确优化方向。
 
+## 🔥🔥🔥 DFC 优化方向确认（dfc_gen.py 已有扁平 spline）——收益来源 = 消除嵌套密度树递归，不只是虚调用
+- **SplineDF（当前 production）** 每节点：`locationFunctions[nd.locFn]->sample(pos)`（**虚调用，且 locationFunction 可能是 InterpolatedDF/SplineDF/NoiseDF 深层嵌套**）→ 每节点可能递归进入**整棵 density 树**，指数级膨胀 → spline 单次 15.8μs 高。
+- **DFC spline_eval（dfc_gen.py，GPU shader）**：`spline_coord(ct, corner, sIdx, ix, iy, iz)`（**数据驱动直接算该节点坐标**）+ `spline_find_range`（二分）+ `spline_hermite` + **显式栈后序求值**（L1309，无递归无虚调用）——用 CpuBackend 的 `splineNodePack/splineLocs/splineDers/splineValF/ValKind/ValNode`（扁平表）。
+- **本质差异**：SplineDF 每节点「调 locationFunction（可能递归子树）」→ DFC「直接算该节点坐标（数据驱动）」。**DFC 消除的是「整棵嵌套密度树递归」，不只是单层虚调用**——这是 spline 单次高的根源。
+- **DFC 基础设施已存在**（dfc_gen.py L216-226：DFC 能生成 vanilla 完整 final_density 树 shader + CpuBackend；spline 已收编✅）：spline 扁平表 + 显式栈 spline_eval **GLSL 版已生成**。
+- **优化路径**：把 GLSL 的 spline_eval（显式栈 + 数据驱动）**移植为 C++ 函数**（用 CpuBackend 扁平表），替换 production SplineDF 的虚调用递归——**消除嵌套密度树递归**。
+- **关键验证**：SplineDF 的 locationFunction 是否真是 InterpolatedDF/SplineDF 深层嵌套（若是，DFC 收益大——消除指数递归；若只是 NoiseDF 单层，收益小）。见 MT10（6 SplineDF + 195 locFn，confirm 嵌套存在）。
+
 
 ## 后续（WG_PHASETICK 为可靠工具）
 用 WG_PHASETICK 进一步拆分 density 内部（它可靠），定位 11× 的准确来源（squeeze vs InterpolatedDF grid 访问 vs 共享表）。
