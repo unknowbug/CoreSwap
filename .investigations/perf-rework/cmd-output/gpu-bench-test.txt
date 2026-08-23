@@ -1,0 +1,6 @@
+[CORESWAP] dll=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\build-msvc\bin\bench_chunks.exe size=663552
+[CORESWAP] crash handler installed
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+wg_create: GPU density engine enabled (WG_GPU_FILL, spv=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\gpu-assets\final_density.spv)
+[BENCH] seed=8576294172403134396 chunks=4 (2x2) reps=1 hw_threads=24
