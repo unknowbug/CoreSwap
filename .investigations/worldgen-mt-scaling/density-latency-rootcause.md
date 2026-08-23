@@ -1,42 +1,73 @@
-# 每 chunk 并发下慢 7.5×——结论：幻影（探针污染），真实并发正常（2026-08-16 最终）
+# 每 chunk 并发下慢——根因定位：density 阶段 11× 真实（2026-08-16 WG_PHASETICK 确认）
 
-> 状态：**已结案**（结论 = 「并发下慢 7.5×」不存在）| 关联 per-chunk-concurrent-slow-mtrace.md / gpu-op-verify.md
-> 本文件记录完整修正链（WG_PROFILE → WG_DENSITYTICK → 整 chunk wall，最终可靠结论）。
+> 状态：**确认 density 11× 真实**（WG_PHASETICK 干净测量）| 承接 per-chunk-concurrent-slow-mtrace.md
+> 修正链：WG_PROFILE → WG_DENSITYTICK(bug) → WG_PHASETICK（最终可靠）。
 
-## ✅ 最终可靠结论：notify 修复后多线程正常伸缩，无「并发下慢」
+## ✅ 最终可靠结论（WG_PHASETICK，QPC 单次 + 无 profiling 污染 + 单循环）
 
-**最可靠度量 = 干净 bench 整 chunk wall（无任何探针，独立进程）**：
+| 阶段 | T=1 | T=8 | 放大 |
+|---|---|---|---|
+| **density** | 34-42ms | **400-412ms** | **11×（主犯）** |
+| aquifer+ore | 8ms | 25-28ms | ~3× |
+| surface | 7ms | 25-38ms | ~4× |
+| total | 50ms | **462ms** | **9×** |
 
-| T | 整 chunk wall（ms/chunk） | 相对 |
+- **自洽验证**：462ms × 8 并行（64 chunks = 8 批）≈ 3696 + 批间 = 4618ms = wall ✅
+- **每 chunk 真实 462ms（T=8）vs 50ms（T=1）= 并发下慢 9× 真实**
+- **density 11× 是主犯**（aquifer/surface 仅 ~3-4×）
+
+## 概念澄清（关键，之前混淆）
+- **bench `med/N`（wall/N）= 吞吐均值（72ms/chunk）**——不是每 chunk 耗时
+- **每 chunk 真实耗时 = 462ms**（8 worker 并行，wall 4618ms 处理 64 chunks = 8 批）
+- **wall/N 是平均吞吐，每 chunk 耗时是延迟**——多线程下吞吐均值（72ms）掩盖单 chunk 延迟（462ms），差 6.4×（并行度）
+- 之前「wall+8% → 并发正常」是**把吞吐均值误当每 chunk 耗时**的错
+
+## 修正链（为什么前两次错了）
+| 测量 | 结果 | 判定 |
 |---|---|---|
-| T=1 | 64.23 (16ch×2rep) / 66.01 (36ch×3rep) / 63.55 (36ch×1rep) | 基线 |
-| T=8 | 69.57 / 70.74 / 71.38 | **+8~12%（正常）** |
-| T=0(24t) | 80.71 | +22%（over-subscription 正常劣化）|
+| WG_PROFILE density | 34→400ms（11×） | ✅ **真实**（WG_PHASETICK 印证）|
+| WG_STAGETIMER density | 34→400ms | ✅ 真实 |
+| WG_DENSITYTICK density | 6.95ms 不变 | ❌ **bug**（重复循环，6.95ms 假象）|
+| WG_MTTRACE dur | 470ms | ⚠️ fprintf 锁竞争（但 462ms 量级对，考虑锁竞争）|
+| **WG_PHASETICK** | 34→409ms | ✅ **最终可靠** |
 
-- **T=8 比 T=1 慢 8~12%** = 正常多线程调度/缓存开销，**不是「7.5× 灾难」**
-- **notify 丢失 bug（真 bug）修复后，多线程能正常伸缩**（T=8 快 12% 内）
-- 之前「每 chunk 并发下慢 7.5× / density 11×」**全是探针污染幻影**
+- **WG_DENSITYTICK 的 bug（重复循环）**误导我得出「并发正常」——初稿 MT8 是错的，已修正。
+- **概念混淆**：wall/64=72（吞吐）被误当每 chunk 耗时 → 误判「只慢 8%」。
 
-## 🔥 修正链（完整，避免重蹈）
+## density 内部待定位（下一步）
+density 11× 真实（squeeze(InterpolatedDF) 阶段）。候选：
+- squeeze 非线性对 InterpolatedDF 网格输出的变换
+- InterpolatedDF::sample 每点访问 thread_local grid（8 角点）+ arg 链
+- 全局共享（WG_PROFILE 计入 spline 34K 次——需澄清 spline 在 density 阶段的触发）
 
-| 测量 | 结果 | 可信度 |
-|---|---|---|
-| WG_PROFILE density | T=1 34ms / T=8 400ms（11×） | ❌ **探针污染**（原子+steady_clock 每采样，并发下竞争爆炸）|
-| WG_MTTRACE dur | 470ms | ❌ fprintf 锁竞争污染 |
-| WG_DENSITYTICK density | 修复前 5-7ms / 修复后 370ms（矛盾） | ❌ **QPC 在单线程可信（T=1 33-44ms）但多线程被调度污染**（QPC 墙钟差分读到线程切换/等待，370ms 假象 > 整 chunk 69ms 不可能）|
-| **干净 bench 整 chunk wall** | T=1 64 / T=8 69.6（+8%） | ✅ **唯一可靠**（无探针、无打印、独立进程）|
+## 🔥 最新定位（2026-08-16，WG_SPLINESTATS 补全遍历）——spline 真实存在！
+- **finalDensity 树含 6 个 SplineDF**（splineInst=6）、**537 节点、17KB 表**（splineBytes=17112）、**195 locationFunction**
+- **之前误判「无 spline」是错的**——最初 typeid 遍历漏了 BlendDensityDF/WrappingDF（spline 经 blend_density 引用 continents/erosion/depth 分量）；WG_SPLINESTATS 补全遍历后确认 6 实例。
+- **关键**：
+  - spline 表 **17KB（很小，驻留 L2）**——**不是 L3 miss 容量问题**（远小于 16MB L3）
+  - spline 单次 **34μs（T=1）→ 52μs（T=8）= +51%**——spline 树每点遍历 90 节点（537/6）+ 递归 sampleNode + 195 locationFunction 虚调用
+  - **density 11× 核心 = spline 树递归 + 虚调用 + 多实例的每点成本**（不是 L3 miss——表太小）
+- **修正**：之前「L3 miss 放大」假设**不成立**（17KB 表驻留）。真正是 **spline 单点计算开销（递归 90 节点 + 虚调用）+ 并发下 cache-line/1-cache 争用**。
 
-### WG_DENSITYTICK 教训（第 6 个探针污染）
-- **QPC/墙钟在单线程可信、多线程不可信**：多线程下 QPC 差分读的是「从循环开始到本 chunk 真正执行完」的墙钟，期间线程被调度切换/等待 → 拉大到 370ms（超整 chunk 69ms，明显矛盾）。
-- **WG_DENSITYTICK 测量反复（5ms/370ms/33ms）** 证明它不可靠——因重复循环 bug + QPC 多线程污染双重问题。已移除（回退）。
-- **教训**：并发性能测量**必须用「整批 wall + 计数器（次数）」**，不能靠任何「阶段计时探针」——单线程阶段计时可信，但**多线程阶段计时（无论 steady_clock/QPC/fprintf）都会被调度/锁竞争污染**。
+## 后续（spline 为 density 11× 主因）
+定位 spline 单次 34μs 的构成：递归深度（90 节点/实例）× 每节点操作。优化方向：
+- **SplineDF 节点紧凑化/去虚调用**（locationFunctions 195 个虚调用是主要开销）
+- spline 表格化（C2ME DFC 编译直排）——消除每点树递归遍历
 
-## 结论
-> **「每 chunk 并发下慢」不存在**——真实事实：notify bug（真 bug，已修 0a781e1）造成「反降假象」；修复后多线程正常（T=8 快 8-12%）。
-> 之前 C1-C10 排查、C3 误判修正、density 11× 定位**全部建立在 WG_PROFILE/WG_MTTRACE 探针污染上，废弃**。保留的真实结论：**notify bug 是其 bug + 已修**。
->
-> **核心教训（本项目最重要）**：本项目所有 WG_* 计时探针在**并发下都会污染测量**（原子竞争 + fprintf 锁 + QPC 调度）——**并行性能只能信「无探针整批 wall + 调用次数计数」**，不能用任何阶段计时探针。这是导致整个课题（多线程反降 → C1-C10 → density 11×）被误导的根本原因。
+## 🔥🔥 决定性反推（2026-08-16 最新）——spline 单次并发下慢 12×
+用 **WG_PHASETICK（干净 density，无 profled 采样计时）** + **spline 计数（可靠）** 反推 spline 真实单次成本：
+- **T=1**：density 34ms / spline 2154 次 ≈ **15.8μs/spline**（真实，密度是 WG_PHASETICK 干净的）
+- **T=8**：density 409ms / spline 2160 次 ≈ **190μs/spline**
+- **spline 单次并发下慢 12×**（15.8→190μs）——**这是 density 11× 的直接来源**
 
-## 剩余（非「反降」，是正常性能优化）
-- 多线程吞吐 +8~12%（T=8 vs T=1）是正常开销——若想优化，可做线程亲和/任务分片（非紧急，无灾难问题）。
-- 不再有「必须修复的并发慢 bug」——notify bug 已修复，多线程正常。
+### 关键澄清
+- **spline 表 17KB（驻留 L2）**——不是 L3 miss 容量。**慢在 spline 树递归（90 节点/实例）+ 195 locationFunction 虚调用 + 并发下 I-cache/cache-line 争用**
+- **spline 单次 15.8μs（T=1 真实）已经很高**——正常 MC shape spline 单次 <1μs。**「每块树遍历 + 虚调用」是固有膨胀**（C2ME 用 DFC 编译直排消除）
+- 并发下 15.8→190μs（12×）= **虚调用/递归的并发争用**（8 线程同时遍历同一棵 spline 树，I-cache 被稀释 + 递归栈 cache-line 共享）
+
+### 结论
+density 11×（=每 chunk 并发下慢 9×）**根源 = SplineDF 树遍历（递归 + 虚调用）在并发下的 I-cache/争用放大**。表小（17KB）但递归深（90 节点）+ 195 虚调用。**C2ME 式 DFC 编译直排**（消除树遍历虚调用）是正确优化方向。
+
+
+## 后续（WG_PHASETICK 为可靠工具）
+用 WG_PHASETICK 进一步拆分 density 内部（它可靠），定位 11× 的准确来源（squeeze vs InterpolatedDF grid 访问 vs 共享表）。

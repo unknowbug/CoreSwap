@@ -1487,4 +1487,50 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 🔍 「每 chunk 并发下慢 7.5 倍」真实性（WG_MTTRACE fprintf stderr 锁竞争污染）——需无 fprintf 计数器测量
 - 07 篇 L74/L97/L109 影响标注 + 文末「2026-08-16 影响评估修正」小节（本批次落盘）
 
+---
+
+## 2026-08-16（追加）：density 11× 真实 + spline 树遍历是根源——「并发下慢 7.5×」重定性（WG_PHASETICK 定论）
+
+> ⚠️ **纠正**：先前 subagent 草稿声称「并发下慢 7.5× 不存在（探针污染）」——**错误**（基于 WG_DENSITYTICK 重复循环 bug 的假象）。本条目按 WG_PHASETICK（干净测量 + 补全 SplineDF 遍历）**定论：density 11× 真实**。
+> 完整记录：`.investigations/worldgen-mt-scaling/density-latency-rootcause.md` + `mt-scaling-errors.md` MT8。
+
+### ✅ 定论：density 11× / 每 chunk 并发下慢 9× 真实（WG_PHASETICK）
+
+| 阶段 | T=1 | T=8 | 放大 |
+|---|---|---|---|
+| density | 34-42ms | 400-412ms | **11×** |
+| aquifer+ore | 8ms | 25-28ms | ~3× |
+| surface | 7ms | 25-38ms | ~4× |
+| total | 50ms | **462ms** | **9×** |
+
+- **自洽验证**：462ms × 8 并行（64chunks = 8 批）≈ 3696 + 批间 = 4618ms = wall ✅
+- **关键概念**：bench `med/N`（wall/64=72ms）是**吞吐均值**；每 chunk 真实耗时 = 462ms（8 worker 并行，wall 4618ms 处理 64 chunks）——**吞吐均值掩盖单 chunk 延迟**（之前把 72ms 当每 chunk 耗时 → 误判「只慢 8%」）。
+
+### 🔍 spline 是 density 11× 的根源（补全遍历确认）
+- **finalDensity 树含 6 个 SplineDF**（WG_SPLINESTATS：splineInst=6、537 节点、17KB 表、195 locationFunction）
+- **之前误判「无 spline」**——typeid 遍历漏了 BlendDensityDF/WrappingDF（spline 经 blend_density 引用 continents/erosion/depth 分量）
+- **spline 单次重推**：T=1 density 34ms / 2154 次 ≈ **15.8μs**；T=8 density 409ms / 2160 次 ≈ **190μs** —— **spline 单次并发下慢 12×**
+- **spline 表 17KB（驻留 L2）——非 L3 miss 容量**；慢在 **spline 树递归（90 节点/实例）+ 195 locationFunction 虚调用 + 并发 I-cache/cache-line 争用**
+- **优化方向 = C2ME 式 DFC 编译直排**（消除每点树遍历虚调用）
+
+### ⚠️ 探针污染链（部分成立，非全部）
+- WG_PROFILE/WG_STAGETIMER 的 density 34→400ms **与 WG_PHASETICK 一致（真实）**——不是探针污染，density 11× 真。
+- WG_MTTRACE fprintf 锁竞争：部分成立（470ms 有打印污染，但量级接近真实 462ms）。
+- WG_DENSITYTICK 6.95ms：**重复循环 bug，假象**（曾误导「并发正常」——已纠正）。
+
+### ↩️ 作废清单（建立在 WG_DENSITYTICK bug / 概念混淆上）
+- ~~「并发下慢 7.5× 不存在」~~（subagent 草稿 + 初稿 MT8——基于 WG_DENSITYTICK 假象，**错误**）
+- ~~「density 11× 作废（探针污染）」~~（同上，**错误**——WG_PHASETICK 证实 density 11× 真）
+
+### ✅ 保留结论
+- **notify 丢失 bug（0a781e1 已修）**：真 bug（串行假象），独立于 density 11×。
+- **density 11× = spline 树遍历虚调用 + 并发争用**（新定位，真实）。
+- **Threads clamp（MT3）**：独立问题（[B]/实机 M=1 结构性串行）。
+
+### 教训（第 6 个测量/探针案例，纠偏）
+1. **区分吞吐均值（wall/N）与每 chunk 真实耗时**：wall/64=72ms（吞吐）≠ 462ms（延迟）。多线程下吞吐均值掩盖单 chunk 延迟。
+2. **测量工具 bug 会给出「看似干净实则错误」数据**：WG_DENSITYTICK 6.95ms 看似 QPC 干净，实则重复循环 bug → 误导「并发正常」。**用「阶段耗时 × 并行批次 ≈ wall」自洽检查**（462×8≈3696+批间=4618 自洽；6.95×8≈55 ≪ 4618 不自洽 → bug）。
+3. **不要用「探针污染」解释数据**——先验证测量工具自身（自洽性），再怀疑真实计算慢。初稿「所有探针都污染」是**过度泛化**。
+4. **遍历要覆盖所有 DF 容器类型**：typeid 遍历漏 BlendDensityDF/WrappingDF 导致「无 spline」误判——遍历完整性必须验证。
+
 

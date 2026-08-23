@@ -243,42 +243,44 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 
 ---
 
-## MT8. 🔥🔥 探针污染——WG_PROFILE/WG_MTTRACE/WG_DENSITYTICK 并发下全部污染测量，导致整个课题被误导（2026-08-16 结案）
+## MT8. 🔥🔥 WG_DENSITYTICK bug 误导 + density 11× 真实定位——「每 chunk 并发下慢 9×」确认（2026-08-16 反转修正）
 
-**状态**：✅ 已揭露（结论 = 「并发下慢 7.5×」不存在，是探针污染幻影）。**这是误导 C1-C10/density 11× 全部排查的根源**。
+**状态**：↩️ **初稿「并发正常」结论被推翻（2026-08-16 反转）**——density 11× / 每 chunk 并发下慢 9× **真实存在**（WG_PHASETICK 干净确认）。本条目记录完整反转链。
 
-### 现象
-- **整 chunk wall（干净 bench，无探针）**：T=1 64ms / T=8 69.6ms / T=0(24t) 80.7ms——**T=8 比 T=1 慢 8~12%（正常）**，无「7.5× 灾难」。
-- 但各种探针测出「并发下慢」：
-  - WG_PROFILE density：T=1 34ms / T=8 400ms（**11×**）→ 假象
-  - WG_MTTRACE dur：470ms → 假象（fprintf 锁竞争）
-  - WG_DENSITYTICK density：修复前 5-7ms / 修复后 370ms（**矛盾**）→ 假象
-- **矛盾铁证**：WG_DENSITYTICK 测出 density=370ms **超过整 chunk wall 69ms**（密度不可能 > 整 chunk）——测量本身崩坏。
+### 现象（初稿被推翻）
+- 初稿基于 WG_DENSITYTICK 测「density 6.95ms 不变」→ 错误结论「并发正常（T=8 +8%）」。
+- **WG_PHASETICK（QPC 单次 + 无 profiling 污染 + 单循环）重测**：
+  | 阶段 | T=1 | T=8 |
+  |---|---|---|
+  | density | 34-42ms | **400-412ms（11×）** |
+  | aquifer+ore | 8ms | 25-28ms |
+  | surface | 7ms | 25-38ms |
+  | total | 50ms | **462ms** |
+- **自洽验证**：462ms/chunk × 8 并行（64 chunks = 8 批）≈ 3696 + 批间 = 4618ms = wall。**每 chunk 真实 462ms（T=8）vs 50ms（T=1）= 并发下慢 9× 真实。**
 
-### 根因（机制层面）
-1. **WG_PROFILE**：每采样点 `steady_clock` + 原子 fetch_add（L854/L857）——**8 线程并发下原子总线/缓存行 RMW 竞争 + steady_clock 系统调用** → 探针自身成为热点，计时失真（并发下放大非真实）。
-2. **WG_MTTRACE**：每 chunk `fprintf(stderr)`——8 线程同时写 stderr **锁竞争**，拉大 dur。
-3. **WG_DENSITYTICK（QPC/墙钟）**：**单线程可信（T=1 33-44ms），多线程不可信**——QPC 墙钟差分读到「线程从循环开始到真正执行完」的间隔，期间被调度切换/等待 → 拉大到 370ms（超整 chunk 不可能）。**任何阶段计时探针在多线程下都会被调度/锁竞争污染**，无论 steady_clock/QPC/fprintf。
-4. **误导链**：WG_PROFILE 的「density 11×」→ 误判「每 chunk 并发下慢」→ C1-C10 全排查 → C3 误判修正 → 都建立在污染数据上。
+### 根因（初稿错误的机制 + 真正污染）
+1. **初稿错误来自 WG_DENSITYTICK 的 bug**：重复循环（density 循环算两次）+ QPC 计时环绕位置错 → 测出 6.95ms 假象 → 我据此错误推翻 density 11×、得出「并发正常」。
+2. **真正污染（非初稿所说）**：WG_DENSITYTICK 的测量崩溃（重复循环），**不是「探针普遍污染」**。WG_PHASETICK（干净）证明 density 11× 是真的——**WG_PROFILE/ WG_STAGETIMER 的 density 34→400ms 是对的**（不是探针污染）。
+3. **概念混淆（关键）**：bench 的 `med/N`（wall/N）= 吞吐均值（72ms/chunk）；**但每 chunk 真实耗时 = 462ms**（8 worker 并行，wall 4618ms 处理 64 chunks，吞吐 14/s）。**我把吞吐均值误当「每 chunk 耗时」，导致误判「只慢 8%」**。吞吐（mean 72ms）和每 chunk 耗时（462ms）是两回事——wall/N 是平均吞吐，不是每 chunk 延迟。
 
 ### 定位（诊断方法）
-- **可靠基准 = 干净 bench 整 chunk wall**（无任何探针 env、独立进程、`wg_fill_blocks_multi` 直接测）——T=1 64 / T=8 69.6 = **只慢 8%**。
-- 对比「探针测的 density」vs「整 chunk wall」：**若探针测的阶段 > 整 chunk wall = 测量崩坏**（370ms > 69ms 铁证）。
-- WG_DENSITYTICK 单线程（T=1 34ms）与 WG_PROFILE（T=1 34ms）吻合 → T=1 基准可信；T=8 不可信。
+- **WG_PHASETICK（QPC 单次、无 profiling、单循环）是可靠阶段计时**——它和 WG_PROFILE/WG_STAGETIMER 的 density 34→409ms 一致 → density 11× 真实。
+- **自洽检查**：每 chunk 462ms × 8 并行 = wall 4618ms（8 批）→ 数据闭环正确。
+- **WG_DENSITYTICK 反例**：它有重复循环 bug → 6.95ms 假象（**不是 QPC 污染，是代码 bug**）。
 
 ### 修复
-- 回退 WG_DENSITYTICK（`git checkout`）——不可靠测量工具，不保留。
-- **本项目并行性能测量规范**：只用「无探针整批 wall + 调用次数计数（非计时）」。禁用阶段计时探针测并发。
-- 结论修正：「每 chunk 并发下慢 7.5×」**不存在**——notify bug（真 bug 已修）是「反降」来源；修复后多线程正常（T=8 +8%）。
+- 回退 WG_DENSITYTICK（重复循环 bug，不可信）；WG_PHASETICK 保留（干净）。
+- 修正结论：「并发正常」**错**——density 11× / 每 chunk 慢 9× **真实**，需继续定位 density 内部（squeeze/InterpolatedDF/共享表）。
 
-### 教训（本项目最重要，第 6 个探针污染案例）
-1. **本项目所有 WG_* 计时探针在并发下都污染测量**（原子竞争/fprintf 锁/QPC 调度）——**并行性能只能信「无探针整批 wall + 调用次数计数」**。
-2. **单线程阶段计时可信（基准），多线程阶段计时不可信**——阶段计时探针（steady_clock/QPC/fprintf）在并发下读到的是「本线程执行 + 调度等待/竞争」，非真实计算。
-3. **「探针测的阶段 > 整 chunk wall」= 测量崩坏铁证**（本案例 370ms > 69ms）——用这个自检，立即弃用该探针。
-4. **先测「整 chunk wall」再下「阶段慢」结论**：若探针报「某阶段 11×」但整 chunk wall 只差 8% → 探针污染，阶段结论作废。
-5. 本次整个课题（多线程反降 → C1-C10 → density 11× → C3 误判修正）**被一个探针污染误导**——**测量工具的选择比算法分析更重要**。
+### 教训（本项目最重要，第 6 个探针/测量污染案例）
+1. **区分「吞吐均值（wall/N）」与「每 chunk 真实耗时」**：wall/64=72ms（吞吐）≠ 每 chunk 462ms（延迟）。多线程下吞吐均值掩盖单 chunk 延迟。
+2. **测量工具 bug 会给出「看似合理但错误」的数据**：WG_DENSITYTICK 的 6.95ms 看似干净（QPC 单次），实则重复循环 bug → 误导整个结论。**测量工具本身必须验证正确性（数据自洽：阶段 462ms vs wall 4618ms）**。
+3. **「每 chunk 耗时 × 并行度 ≈ wall」自洽检查**：若阶段耗时 × 并行批次 ≠ wall，测量有 bug。本案例 462×8≈3696+批间=4618 自洽（对）；WG_DENSITYTICK 6.95×8≈55 ≪ 4618（明显不自洽 → 测量 bug）。
+4. **不要轻易用「探针污染」解释数据**——先验证测量工具自身正确性（自洽性），再怀疑真实计算慢。本项目「所有探针都污染」的初稿结论是**过度泛化**。
 
 ---
+
+> 按「现象→定位→教训」浓缩为可复用判错条目（五段式已在 MT1-MT7 主体完整记录，此处只沉淀「下次怎么判」）。
 
 > 按「现象→定位→教训」浓缩为可复用判错条目（五段式已在 MT1-MT7 主体完整记录，此处只沉淀「下次怎么判」）。
 

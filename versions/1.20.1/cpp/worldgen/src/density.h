@@ -825,6 +825,13 @@ public:
     std::vector<int> subIdx;             // 所有节点子节点索引（nodes 下标）
     std::vector<Node> nodes;             // 节点元数据数组
     int root = -1;
+    // WG_SPLINESTATS：表规模统计（nodes/locations/derivatives/subIdx 字节）
+    size_t nodesSize() const { return nodes.size(); }
+    size_t tableBytes() const {
+        return nodes.size() * sizeof(Node) + locations.size() * sizeof(float) +
+               derivatives.size() * sizeof(float) + subIdx.size() * sizeof(int);
+    }
+    size_t locFnSize() const { return locationFunctions.size(); }
 
     SplineDF() = default;
 

@@ -723,6 +723,11 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
     bool profiling = getenv("WG_PROFILE") != nullptr || getenv("WG_STAGETIMER") != nullptr;
     double tA = 0, tB = 0, tC = 0, tD = 0, tE = 0;
     double t0 = profiling ? nowMs() : 0;
+    // WG_PHASETICK：无 profiling 污染的 phase 计时（QPC 单次，不触发 SplineDF 采样计时——WG_STAGETIMER
+    // 会设 wg_profEnabled 导致 density 34→400ms 被 spline 采样计时污染；WG_PHASETICK 独立于 profiling）。
+    LARGE_INTEGER ph0 = {}, phA = {}, phB = {}, phEnd = {}, phFreq = {};
+    const bool phaseTick = getenv("WG_PHASETICK") != nullptr;
+    if (phaseTick) { QueryPerformanceFrequency(&phFreq); QueryPerformanceCounter(&ph0); }
     std::vector<double> densityBuf((size_t)h->dim.worldHeight * 256);
     // 3a. density（独立循环，便于剖析与后续算法优化）；y 上限 = noiseHeight（下界 128，上方留 air）
     //     Java 语义：CellCache(add(DensityInterpolator(finalDensity), Beardifier)) —— 块级最终密度 =
@@ -795,6 +800,7 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
         }
     }
     if (profiling) tA = nowMs();
+    if (phaseTick) QueryPerformanceCounter(&phA);
     // WG_DBDEBUG 诊断：dump 指定列（世界坐标 WG_DBDEBUG_X/Z）的 densityBuf 原始密度（不经 aquifer/surface），
     // 格式对齐 cns 反射 dump（vanilla_density_*_cns.txt：y 递减，%.6f），便于直接 diff 区分 density 错 vs aquifer/surface 错
     if (getenv("WG_DBDEBUG")) {
@@ -923,6 +929,7 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
         }
     }
     if (profiling) tB = nowMs();
+    if (phaseTick) QueryPerformanceCounter(&phB);
 
     // 4. buildSurface
     auto biomeAt = [&](int x, int y, int z) -> std::string {
@@ -983,6 +990,15 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
         double tEnd = nowMs();
         std::fprintf(stderr, "[PROF] chunk(%d,%d): density=%.2fms aquifer+oreVein=%.2fms sh4+surface=%.2fms total=%.2fms\n",
                      chunkX, chunkZ, tA - t0, tB - tA, tEnd - tB, tEnd - t0);
+    }
+    if (phaseTick) {
+        QueryPerformanceCounter(&phEnd);
+        double dd = 1000.0 * (double)(phA.QuadPart - ph0.QuadPart) / (double)phFreq.QuadPart;
+        double da = 1000.0 * (double)(phB.QuadPart - phA.QuadPart) / (double)phFreq.QuadPart;
+        double ds = 1000.0 * (double)(phEnd.QuadPart - phB.QuadPart) / (double)phFreq.QuadPart;
+        double dt = 1000.0 * (double)(phEnd.QuadPart - ph0.QuadPart) / (double)phFreq.QuadPart;
+        std::fprintf(stderr, "[PTICK] chunk(%d,%d): density=%.2fms aquifer+ore=%.2fms surface=%.2fms total=%.2fms by=%zu\n",
+                     chunkX, chunkZ, dd, da, ds, dt, (size_t)GetCurrentThreadId());
     }
 
     // 4.5 FULL 模式：CARVERS（洞穴雕刻）→ FEATURES（装饰层）——Java ChunkStatus 顺序（SURFACE 之后）
