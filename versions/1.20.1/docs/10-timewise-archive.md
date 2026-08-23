@@ -1521,6 +1521,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 ### ↩️ 作废清单（建立在 WG_DENSITYTICK bug / 概念混淆上）
 - ~~「并发下慢 7.5× 不存在」~~（subagent 草稿 + 初稿 MT8——基于 WG_DENSITYTICK 假象，**错误**）
 - ~~「density 11× 作废（探针污染）」~~（同上，**错误**——WG_PHASETICK 证实 density 11× 真）
+- ~~**git 527cade「conclusively rule out per-chunk concurrency slowdown」**~~（错误结论提交，基于 WG_DENSITYTICK 假象 + 吞吐均值/每 chunk 耗时混淆）——**已由 fcbdad1 纠正**（density 11× 真实）。
 
 ### ✅ 保留结论
 - **notify 丢失 bug（0a781e1 已修）**：真 bug（串行假象），独立于 density 11×。

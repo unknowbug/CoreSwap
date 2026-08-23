@@ -270,13 +270,74 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 
 ### 修复
 - 回退 WG_DENSITYTICK（重复循环 bug，不可信）；WG_PHASETICK 保留（干净）。
-- 修正结论：「并发正常」**错**——density 11× / 每 chunk 慢 9× **真实**，需继续定位 density 内部（squeeze/InterpolatedDF/共享表）。
+- 修正结论：「并发正常」**错**——density 11× / 每 chunk 慢 9× **真实**。
+- **进一步定位（已达成，见 MT10）**：density 11× 根源 = **SplineDF 树遍历虚调用**（6 实例、17KB、单次 15.8→190μs、195 locationFunction）——非 squeeze/InterpolatedDF/共享表（这些被排除）。优化方向 = C2ME 式 DFC 编译直排。
 
 ### 教训（本项目最重要，第 6 个探针/测量污染案例）
 1. **区分「吞吐均值（wall/N）」与「每 chunk 真实耗时」**：wall/64=72ms（吞吐）≠ 每 chunk 462ms（延迟）。多线程下吞吐均值掩盖单 chunk 延迟。
 2. **测量工具 bug 会给出「看似合理但错误」的数据**：WG_DENSITYTICK 的 6.95ms 看似干净（QPC 单次），实则重复循环 bug → 误导整个结论。**测量工具本身必须验证正确性（数据自洽：阶段 462ms vs wall 4618ms）**。
 3. **「每 chunk 耗时 × 并行度 ≈ wall」自洽检查**：若阶段耗时 × 并行批次 ≠ wall，测量有 bug。本案例 462×8≈3696+批间=4618 自洽（对）；WG_DENSITYTICK 6.95×8≈55 ≪ 4618（明显不自洽 → 测量 bug）。
 4. **不要轻易用「探针污染」解释数据**——先验证测量工具自身正确性（自洽性），再怀疑真实计算慢。本项目「所有探针都污染」的初稿结论是**过度泛化**。
+5. **判断链多错叠加**：WG_DENSITYTICK 工具 bug（MT9）→ 误判「并发正常」→ 527cade 错误 commit → 又被 WG_PHASETICK 纠正。**工具错误 → 结论错误 → 提交错误**的级联——每一步都可能出错，需回到最底层工具自洽性验证。
+
+---
+
+## MT9. 🔥 WG_DENSITYTICK 重复循环 bug——我写代码引入的测量 bug，误导「并发正常」（↩️已回退）
+
+**状态**：↩️ 已回退（git checkout）。**这是「工具 bug」层错误，独立于 MT8 的「判断错误」层**——先有工具 bug，才导致判断错误。
+
+### 现象
+- 我加 WG_DENSITYTICK（QPC 单次 density 计时）时，edit 引入**重复循环 bug**——density 循环（L779-796）被算了两遍（原循环 + WG_DENSITYTICK 带计时的循环）。
+- 测得 density 6.95ms（T=1）——**看似合理**（QPC 单次 + 无 profled 采样计时），实则是**循环 bug 下的错误值**。
+- 据此我错误得出「density 并发下不变 → **并发正常**」（MT8 初稿 + 527cade commit「排除并发慢」——**均错误**）。
+
+### 根因（机制层面）
+- **edit 时把新循环插入到原 density 循环之后，但没删原循环** → **density 循环执行两次**（每次算完 densityBuf 又覆盖）。
+- 计时环绕方式是「ph0 在循环前、phA 在循环间」——但重复循环导致 QPC 差分读到的是**两个循环的总时间被错误切分** → 6.95ms 假象。
+- **关键**：这个 bug 深藏（6.95ms「看似干净」QPC 单次）——**如果不用自洽检查，无法发现**。
+
+### 定位（诊断方法）
+- **自洽检查**：阶段耗时 × 并行批次 ≈ wall。WG_DENSITYTICK 6.95ms × 8 ≈ 55ms ≪ wall 4618ms（**明显不自洽**）→ 测量 bug。
+- 重跑 WG_PHASETICK（单循环、无 profled）得 density 34→409ms（T=1→T=8）→ 与 WG_PROFILE 一致 → **density 11× 真实**。
+
+### 修复
+- 回退 WG_DENSITYTICK（`git checkout -- worldgen_api.cpp`）——不可信测量工具。
+- **保留** WG_PHASETICK（单循环 + QPC 单次 + 无 profled，自洽验证过）。
+
+### 教训
+1. **写测量/诊断代码时，edit 会引入重复循环**（原结构 + 插入结构并存）——**必须 review 确保只执行一次**。
+2. **测量工具正确性 = 数据自洽**（阶段耗时 × 并行批次 ≈ wall）——不自洽即工具 bug，不是被测对象慢。
+3. **「看似干净（QPC 单次）」≠「正确」**——QPC 单次规避了探针污染，但**代码 bug（重复循环）照样给出错误值**。
+
+---
+
+## MT10. typeid 遍历漏 BlendDensityDF/WrappingDF——误判「spline 不存在」（🔍定位工具缺陷）
+
+**状态**：✅ 已纠正（补全遍历后确认 6 个 SplineDF）。**这是「定位工具不完整」导致的独立误判**。
+
+### 现象
+- 用 typeid 递归遍历 finalDensity 树（WG_DENSITYSTATS）打印 53 个节点，**无 `wg::SplineDF`** → 误判「spline 不在 finalDensity 树」「density 11× 与 spline 无关」。
+- **但 WG_PROFILE spline.sample=34K 次（非零）+ WG_SPLINEDEBUG 刷屏超时**（spline 被大量调用）——与「无 spline」矛盾。
+- 补全遍历（WG_SPLINESTATS，加 BlendDensityDF/WrappingDF 分支）后：**splineInst=6、537 节点、17KB、195 locationFunction**——spline 真实存在！
+
+### 根因（机制层面）
+- **typeid 遍历的 dynamic_cast 分支不完整**——漏了 `BlendDensityDF`（blend_density 的 input）+ `WrappingDF`（wrapped）。
+- spline 藏在这些**包装类**里：final_density = `min(squeeze(mul(interpolated(blend_density(add(...))), ...)))`——`blend_density`/`WrappingDF` 的 arg 引用 continents/erosion/depth 分量（各含 SplineDF）。
+- **遍历若不含这些包装类的 arg 递归，就漏掉它们内的 spline** → 误判「无 spline」。
+
+### 定位（诊断方法）
+- **交叉验证数据矛盾**：WG_PROFILE spline=34K（非零）× typeid 遍历无 SplineDF → 矛盾 → 遍历必然有缺陷。
+- **补全遍历**：加 BlendDensityDF::input / WrappingDF::wrapped / BlendDensityDF 等包装类的递归 → splineInst=6 确认。
+- Python 直接 walk JSON 也证明 final_density 子树**无 `minecraft:spline`**（C++ 构建了 SplineDF 但 JSON 无 spline type——注意：C++ SplineDF 来自**别的 type 映射**，JSON 无 `minecraft:spline` 不代表 C++ 无 SplineDF）。
+
+### 修复
+- 补全 WG_SPLINESTATS 遍历（覆盖所有 DF 包装类）→ 确认 6 SplineDF。
+- 修正「无 spline」误判：spline 真实存在，是 density 11× 根源。
+
+### 教训
+1. **遍历/诊断代码必须覆盖所有可能的容器类型**——漏一个包装类（BlendDensityDF/WrappingDF）就漏掉其子树，导致「无 X」误判。
+2. **用「多个独立证据交叉验证」避免单工具误判**：typeid 遍历（无 spline）× WG_PROFILE 计数（34K spline）矛盾 → 遍历工具不可信，需补全。
+3. **「JSON 无 X type」≠「C++ 无 X」**——C++ 可从 JSON 的其他 type 映射构建 SplineDF（JSON 用 `minecraft:spline` 只在直接声明时；非直接时经包装构建）。
 
 ---
 
@@ -295,6 +356,13 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 8. **架构决策「加了又去掉」必须两端留痕**：去掉时标注旧文档作废 + 时间线补条；用户记忆与代码现状核对用 `git log -S <符号>` 找变更提交，不猜。
 9. **已过 judge + 用户确认的结论也要在根因变更后回查数据来源环境**（MT2：H3 ×16 的 mt 侧数据在 bug 活跃期采集）——环境失效则结论需重新定性，不因「已确认」免疫。
 
+**MT8-10 补充判错经验**（多轮反转链，2026-08-16）：
+10. **区分「吞吐均值（wall/N）」与「每 chunk 真实耗时」**：多线程下 `wall/N` 是平均吞吐，不是每 chunk 延迟——`wall/64=72ms`（吞吐）≠ 462ms（每 chunk 真实）。**并行性能要看「每 chunk 耗时 × 并行度 ≈ wall」是否自洽，不能只看 wall/N 均值**。
+11. **用「数据自洽性」验证测量工具，而非「探针污染」猜**：`阶段耗时 × 并行批次 ≈ wall` 自洽 → 工具对；不自洽（如 6.95×8 ≈ 55 ≪ 4618）→ 工具 bug。**先验证工具，再怀疑真实计算慢**——初稿「所有探针都污染」是过度泛化。
+12. **判断链多错叠加**：工具 bug（WG_DENSITYTICK 重复循环）→ 误判「并发正常」→ 错误 commit（527cade）→ 又被正确工具（WG_PHASETICK）纠正。**每一层都可能错，需回到最底层工具自洽性验证，不能层层叠加推理**。
+13. **遍历/诊断代码覆盖完整性**：typeid/DSTATS 遍历漏 BlendDensityDF/WrappingDF → 误判「无 spline」。**多证据交叉验证**（typeid 遍历 vs WG_PROFILE 计数的矛盾）暴露工具缺陷。
+14. **不要承诺用「探针污染」解释并发数据，先做探针开/关标定**：本项目 WG_* 探针并发下有污染，但**不能默认所有探针都污染**——WG_PHASETICK（QPC 单次）证明 density 11× 真实，是**真计算慢**非污染。
+
 ---
 
 ## 附：错误 → 根因 速查表（一页索引）
@@ -312,5 +380,8 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 | 用户记忆「JNI 层搞过排队」vs 现代码无 runMtx | e388ab4（8/7）加 runMtx 记录在 10 时间线 L567/L1112；6e2c7ea（8/11）per-run 隔离取代 runMtx 只改代码注释、演进链分散长文档无作废标注 → 「加了又去掉」留痕不全（09 篇无此内容，初稿说法已修正） | ✅ 已核对留痕 |
 | scout-map L110「修复后仍反降（T=1 71.40 / T=8 84.24）」vs 8x8 数据（T=1 98.02 / T=8 89.88） | 中间状态（C1 版/计时污染）与最终状态（C1 回滚+notify 修复）混测；单线程基差 +37% 待同机对照 | 🔍 待核（notify-bug-impact §5 #1） |
 | 并发下每 chunk 耗时 7.5 倍增长（WG_MTTRACE 批间 525ms ≈ 8×65ms） | 8 worker 真并行（enter/exit 同批）但每 chunk 并发下慢——fprintf stderr 锁竞争污染待排除；第二阶段课题 | 🔍 待无 fprintf 计数器复测 |
-| **整 chunk wall T=8 比 T=1 慢 8~12%（64→69.6ms）** | **探针污染**：WG_PROFILE density 11× / WG_MTTRACE dur 470ms / WG_DENSITYTICK 370ms（>整chunk 69ms 不可能）全是并发下探针竞争污染；**真实并发正常**（notify 修复后多线程伸缩，T=8 +8%） | ✅ 已揭露（MT8）——「并发下慢 7.5×」不存在 |
-| WG_DENSITYTICK density 测量反复（5ms/370ms/33ms） | **QPC/墙钟多线程被调度污染**（读到线程切换/等待，370ms>69ms 不可能）+ 重复循环 bug——阶段计时探针多线程下全部不可信 | ↩️ 已回退（MT8） |
+| **整 chunk wall T=8 比 T=1 慢 8~12%（64→69.6ms）** | ~~探针污染~~（527cade 错误结论，**已纠**）；**真相 = 吞吐均值（wall/64=72ms）≠ 每 chunk 真实耗时（462ms）**——多线程下吞吐均值掩盖单 chunk 延迟 | 🩹 已纠（fcbdad1：density 11× 真实） |
+| WG_DENSITYTICK density 测量反复（5ms/370ms/33ms） | **重复循环 bug + QPC 调度污染**——阶段计时探针多线程下全部不可信 | ↩️ 已回退（MT9） |
+| **density 11×（34→409ms，WG_PHASETICK 干净）** | **真实**（非探针污染）——spline 树遍历虚调用 + 并发争用；spline 6 实例、17KB、单次 15.8→190μs（12×） | ✅ 真实（MT8/MT10） |
+| spline 单次 15.8μs（T=1）→ 190μs（T=8） | spline 树递归（90 节点/实例）+ 195 locationFunction 虚调用 + 并发 I-cache/cache-line 争用 | 🔍 优化方向 = DFC 直排 |
+| typeid 遍历「无 spline」→ 误判「spline 不在 density」 | typeid 遍历漏 BlendDensityDF/WrappingDF（包装类 arg 未递归）→ spline 经 blend_density 引用分量，6 实例被漏 | 🩹 已纠（MT10，补全遍历 = 6 SplineDF） |
