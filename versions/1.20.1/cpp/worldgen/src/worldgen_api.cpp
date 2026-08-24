@@ -40,6 +40,7 @@ static double nowMs() {
 #include "json.h"
 #include "density.h"
 #include "density_builder.h"
+#include "cpu_backend.h"   // DFC CPU 后端（WG_DFC_CPU=1 门控；gpu-assets，与 gpu_density_engine.cpp 同路径）
 #ifdef CORESWAP_GPU_ENABLED
 #include "gpu_density_engine.h"   // I2：GPU 密度引擎（可选，WG_GPU_FILL=1 启用）
 #endif
@@ -180,10 +181,26 @@ struct WorldgenHandle {
     DimConfig dim;  // 维度配置（通用引擎：minY/worldHeight/noiseHeight/aquifer/biome 参数）
     std::unique_ptr<DensityBuilder> builder;
     DF finalDensity;
+    // WG_SPLINE_FILL=which：只算第 which 个 SplineDF（绕 wrapper 链），production 线程池测 pure spline 并发放大
+    int splineOnlyIdx = -1;
+    // WG_FLAT_TOP：数据驱动化温暖 a 链（min/squeeze/mul 内联，4→2 虚分派），A/B 验证 11× 争用是否随虚分派层数降。
+    // 仅当 finalDensity = min(squeeze(mul(c, InterpolatedDF)), noodle) 结构（overworld 固定顶点）才启用。
+    struct FlatTop {
+        bool enabled = false;
+        double mul_c = 0.0;   // mul(0.64)
+        DF interp;            // InterpolatedDF#1（唯一插值）
+        DF b;                 // min 的 b（noodle）
+        double bmin = 0.0;    // b->minValue()（hoist 出 per-point 循环）
+    } flatTop;
+    DF interpTop;             // finalDensity 顶层的 InterpolatedDF#1（M3 interp-only 探针用，wg_sample_interp）
     // I2：GPU 密度引擎（WG_GPU_FILL=1 时 wg_create 构造；nullptr = CPU 路径，零影响）
 #ifdef CORESWAP_GPU_ENABLED
     std::unique_ptr<GpuDensityEngine> gpu;
 #endif
+    // DFC CPU 后端（WG_DFC_CPU=1 时 wg_create 构造；nullptr = production 路径，零影响）。
+    // 与 GPU 无关（独立门控）：数据驱动直排 + thread_local grid 缓存采样 finalDensity，
+    // 消除 production SplineDF 树递归虚调用带来的并发 11× 争用（WG_DFC_CPU 默认关，DFC 为性能实验路径）。
+    std::unique_ptr<CpuBackend> dfcBackend;
     // router 分量（biome 采样 + aquifer）
     std::map<std::string, DF> router;
     // 噪声 sampler 表（surface rules + surface builder 用）
@@ -399,9 +416,45 @@ void* wg_create(int64_t seed, const char* worldgenDir, const char* settingsName,
         const JsonValue* router = settings.get("noise_router");
         const JsonValue* finalDensity = router->get("final_density");
         h->finalDensity = h->builder->buildNode(*finalDensity);
+        // WG_SPLINE_FILL=which：只算第 which 个 SplineDF（绕 wrapper 链），production 线程池测 pure spline 并发放大。
+        if (const char* sif = getenv("WG_SPLINE_FILL")) h->splineOnlyIdx = std::atoi(sif);
+        // 捕获 finalDensity = min(squeeze(mul(c, InterpolatedDF)), noodle) 顶层的 interp#1（M3 interp-only 探针 + WG_FLAT_TOP 用）。
+        {
+            auto* bin = dynamic_cast<BinaryOperation*>(h->finalDensity.get());
+            if (bin && bin->op == BinOp::MIN) {
+                auto* un = dynamic_cast<UnaryOperation*>(bin->a.get());
+                if (un && un->op == UnaryOp::SQUEEZE) {
+                    auto* lin = dynamic_cast<LinearOperation*>(un->input.get());
+                    if (lin && lin->op == BinOp::MUL) {
+                        h->interpTop = lin->input;   // InterpolatedDF#1（M3 interp-only 采样对象）
+                        h->flatTop.mul_c = lin->c;
+                        h->flatTop.b = bin->b;        // noodle
+                        h->flatTop.bmin = bin->b->minValue();
+                        // WG_FLAT_TOP=1 才启用扁平化（A/B 验证虚分派数）；默认关 = interpTop 仅 M3 探针用。
+                        if (getenv("WG_FLAT_TOP")) {
+                            h->flatTop.enabled = true;
+                            h->flatTop.interp = lin->input;
+                            std::fprintf(stderr, "[FLATTOP] enabled mul_c=%.6f bmin=%.6f\n", lin->c, h->flatTop.bmin);
+                        }
+                    }
+                }
+            }
+            if (getenv("WG_FLAT_TOP") && !h->flatTop.enabled)
+                std::fprintf(stderr, "[FLATTOP] WARN: finalDensity 非 min(squeeze(mul(c,interp)),b) 结构，未启用\n");
+            if (h->interpTop) std::fprintf(stderr, "[INTERPTOP] captured interp#1 for M3 probe\n");
+        }
         if (getenv("WG_PROFILE"))
             std::fprintf(stderr, "[BUILD] InterpolatedDF instances=%d (Java cns has 8)\n",
                          wg::InterpolatedDF::getInstanceCount());
+
+        // DFC CPU 后端（WG_DFC_CPU=1 门控：默认关 → dfcBackend 为空 → 采样走 production finalDensity，零影响）。
+        // init(worldSeed) 复用 seed 构造数据驱动直排（normals/shiftNoises/DF 表），collectPerm(perm) 填充逐位噪声表。
+        // 采样期 perm/normals/DF 表只读 + splitCoord/gridSlots 均 thread_local → CpuBackend 实例可被池 worker 并发复用。
+        if (getenv("WG_DFC_CPU")) {
+            h->dfcBackend = std::make_unique<CpuBackend>();
+            h->dfcBackend->init((uint64_t)seed);
+            h->dfcBackend->collectPerm(h->dfcBackend->perm);
+        }
     
         // ---- 方块层装配 ----
         // router 分量
@@ -508,6 +561,47 @@ double wg_sample_density(void* handle, int x, int y, int z) {
     NoisePos pos;
     pos.x = x; pos.y = y; pos.z = z;
     return h->finalDensity->sample(pos);
+}
+
+// ---- 诊断/探针：直接采样单个 SplineDF（绕过 min/interpolated/blend/mul 等 wrapper 链）----
+// 隔离 ②：finalDensity（wg_sample_density）= wrapper 链 + spline；本入口 = 纯 spline 树（含其自身 locFn 噪声+递归）。
+// 对比两者并发放大比 → 量化 wrapper 链虚调用+寻址对并发放大的贡献。
+int wg_spline_count(void* handle) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    return (h && h->builder) ? h->builder->splineCount() : 0;
+}
+int wg_spline_nodes(void* handle, int which) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !h->builder) return -1;
+    const auto& sp = h->builder->getSplines();
+    if (which < 0 || which >= (int)sp.size()) return -1;
+    return (int)sp[which]->nodesSize();
+}
+double wg_sample_spline(void* handle, int which, int x, int y, int z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !h->builder) return 0.0;
+    const auto& sp = h->builder->getSplines();
+    if (which < 0 || which >= (int)sp.size()) return 0.0;
+    NoisePos pos;
+    pos.x = x; pos.y = y; pos.z = z;
+    return sp[which]->sample(pos);
+}
+
+// 采样 finalDensity 顶层的 InterpolatedDF#1（M3 interp-only 探针）：预建 grid 后只测 grid 命中（8 角点读 + 3 lerp），
+// 排除 noodle/range_choice/怪物树长链。对比 T=1 vs T=8 并发放大 → 判「grid 读 vs 长链依赖」谁主导 11×。
+double wg_sample_interp(void* handle, int x, int y, int z) {
+    auto* h = static_cast<WorldgenHandle*>(handle);
+    if (!h || !h->interpTop) return 0.0;
+    // 设置当前 chunk 上下文（与 fillOneChunkCore CurChunkGuard 一致）：buildGrid 怪物树里 FlatCacheDF/Cache2DDF 的
+    // grid/缓存 key 依赖 g_curChunkX/Z；wg_sample_interp 不设则它们回退 pos>>4 推导，逐点/跨 y 可能反复重建 → 慢（约 1s/点）。
+    // 诊断用途值可牺牲，但需与 production 相同的 g_curChunk 绑定才能复现 production 的 grid 命中语义。
+    const int oldCX = g_curChunkX, oldCZ = g_curChunkZ;
+    g_curChunkX = x >> 4; g_curChunkZ = z >> 4;
+    NoisePos pos;
+    pos.x = x; pos.y = y; pos.z = z;
+    double r = h->interpTop->sample(pos);
+    g_curChunkX = oldCX; g_curChunkZ = oldCZ;
+    return r;
 }
 
 // 采样注册的 density function（分量对比：如 "minecraft:nether/base_3d_noise"）
@@ -781,6 +875,12 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
         gpuDensityOk = !gpuFailed;
     }
 #endif
+    // WG_WARM_GRID：预建 grid（对 chunk 内代表点调 finalDensity->sample 触发 InterpolatedDF 懒建 grid），
+    // 排除 buildGrid 深链虚调用争用，隔离「顶层逐点 wrapper 虚调用」的并发放大（warm vs cold 对照）。
+    if (getenv("WG_WARM_GRID") && !h->dfcBackend && h->splineOnlyIdx < 0) {
+        NoisePos wp; wp.x = chunkX * 16 + 8; wp.y = h->dim.minY + h->dim.noiseHeight / 2; wp.z = chunkZ * 16 + 8;
+        h->finalDensity->sample(wp);
+    }
     for (int by = 0; by < noiseHeight; by++) {
         int wy = h->dim.minY + by;
         for (int bz = 0; bz < 16; bz++) {
@@ -791,8 +891,26 @@ static int fillOneChunkCore(void* handle, int chunkX, int chunkZ, int32_t* out, 
                 fpos.z = chunkZ * 16 + bz;
                 if (gpuDensityOk) {
                     fd = (double)gpuDensity[(size_t)by * 256 + bz * 16 + bx];
+                } else if (h->dfcBackend) {
+                    // WG_DFC_CPU=1：DFC C++ 直排采样（数据驱动 + thread_local grid 缓存，消除并发 11× 争用）。
+                    // sample 返回 float，与 production finalDensity 逐位对齐（maxdiff 9.57e-07）。
+                    fd = (double)h->dfcBackend->sample(fpos.x, fpos.y, fpos.z);
                 } else {
-                    fd = h->finalDensity->sample(fpos);
+                    if (h->splineOnlyIdx >= 0) {
+                        // WG_SPLINE_FILL：绕过 wrapper 链，直接采样第 which 个 SplineDF（pure spline）。
+                        // 探针专用：测 production 线程池下「spline-only fill」并发放大，隔离 wrapper 链贡献。
+                        const auto& sps = h->builder->getSplines();
+                        fd = (h->splineOnlyIdx < (int)sps.size()) ? sps[h->splineOnlyIdx]->sample(fpos) : h->finalDensity->sample(fpos);
+                    } else if (h->flatTop.enabled) {
+                        // WG_FLAT_TOP：数据驱动化温暖 a 链（内联 mul/squeeze/min，去 min/squeeze/mul 3 层虚分派，4→2）。
+                        // 逐位一致（与生产 sample 同算术）：mul=LinearOperation x*c（density.h:71）、
+                        // squeeze=applyUnary(SQUEEZE)（:165 clampD(x,-1,1)/2 - clampD^3/24）、
+                        // min=BinaryOperation MIN da<bmin?da:min(da,b->sample)（:129）。
+                        double da = applyUnary(UnaryOp::SQUEEZE, h->flatTop.mul_c * h->flatTop.interp->sample(fpos));
+                        fd = da < h->flatTop.bmin ? da : std::min(da, h->flatTop.b->sample(fpos));
+                    } else {
+                        fd = h->finalDensity->sample(fpos);
+                    }
                 }
                 if (beard) fd += beard->sample(fpos.x, fpos.y, fpos.z);
                 densityBuf[by * 256 + bz * 16 + bx] = fd;

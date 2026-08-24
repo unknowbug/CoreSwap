@@ -15,6 +15,15 @@ double wg_sample_density(void* handle, int x, int y, int z);
 double wg_sample_named(void* handle, const char* name, int x, int y, int z);
 double wg_sample_noise(void* handle, const char* name, double x, double y, double z);
 
+// 诊断/探针：直接采样第 which 个 SplineDF（绕过 min/interpolated/blend 等 wrapper 链）→ 隔离 ② wrapper 链贡献。
+// which 越界 → 返回 0.0。返回已构建的 SplineDF 总数。
+int wg_spline_count(void* handle);
+int wg_spline_nodes(void* handle, int which);
+double wg_sample_spline(void* handle, int which, int x, int y, int z);
+
+// M3 interp-only 探针：直接采样 finalDensity 顶层 InterpolatedDF#1（预建 grid 后只测 grid 命中）。
+double wg_sample_interp(void* handle, int x, int y, int z);
+
 // 释放句柄
 void wg_destroy(void* handle);
 

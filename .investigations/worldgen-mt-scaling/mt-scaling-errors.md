@@ -365,6 +365,59 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 
 ---
 
+## MT11. 🔥 MVP 决定性对照未复现 11×——微基准与生产负载特征不同，不能直接外推（2026-08-23，兼推翻「放大 MVP 验证 DFC」路径）
+
+**状态**：🔍 已定性（对照实验结论；非 confirmed，待主会话/用户拍板归档）。本条属「错误路径/错误外推」类**方法论错误**，非代码 bug。
+
+### 现象（数据）
+
+MVP 并发线程扫描（`.investigations/perf-rework/vulkan-proto/mvp_spline_eval.cpp`，加线程扫描 + 每样本成本，T=1/2/4/8，100000 点/线程，5 轮取 min）：
+
+```
+per-sample ns:  constRec          explicit(DFC)     virtual
+    T=1            11.7              13.4             13.4
+    T=8             2.1               2.2              2.4
+ concurrency amplification (T=8 vs T=1): constRec=0.2x explicit=0.2x virtual=0.2x
+```
+
+- **MVP spline 采样随线程数完美扩展**（0.2× = 8 线程快 5×），**未复现任何并发退化**；
+- 对比 production 单样本 T=1 15.8μs → T=8 190μs（12×，density 11× 的直接来源）——MVP **完全看不到这个放大**；
+- 这是今日唯一「未复现」证据，且是**决定性**（非「没测到」，而是干净对照后确认 MVP 层面不存在该机制）。
+
+### 根因（为什么 MVP 复现不了）
+
+**微基准与生产负载的结构性差异**（scout 勘探 + 对照实验共同给出）：
+1. **表太小**：MVP 245 元素全驻留 L1/L2 无争用；production 是 537 节点/17KB + 195 散布堆 locFn（指针追逐的基础）。
+2. **locFn 轻量子类**：无真实 shared_ptr 散布堆对象指针追逐（MVP 用 const/连续数组，编译器优化掉虚调用 + 无指针追逐）。
+3. **无「并发读同一批共享对象」压力**：MVP 每线程读独立/驻留数据，不构成「8 线程同读同一批 cache-line 打满 load-store/MSHR」的延迟放大器。
+
+而 production 的 11× 根（**共享内存延迟/指针追逐**：`sampleNode` 长串行依赖链 + 虚调用 + shared_ptr 间接 + 随机读 nodes/locs/ders/subIdx，density.h:876-925）**需要**：真实 195 个散布堆 locFn + 长依赖链 + 8 线程同时读——MVP 三缺一，天然复现不了。
+
+**关键辨析（本条目的核心错误）**：MVP「没复现 11×」**不是**「11× 不真实」的证据——production 的 11× 已由 WG_PHASETICK（干净）独立确证。MVP「没复现」只说明**微基准与生产负载特征不同**，不能把「微基准无放大」外推为「生产无放大」或「机制不存在」。
+
+### 定位（怎么测的 / 怎么诊断出「MVP 路径不通」）
+
+1. **mvp_spline_eval.cpp 决定性对照**：加线程扫描（T=1/2/4/8）+ 每样本成本（100000 点/线程，5 轮取 min），三种形态（constRec / explicit(DFC) / virtual）同测——把「并发放大」从每 chunk 表象剥到「每 spline 采样」的决定性工具（scout 报告 §四 #1 变体 b）。
+2. **scout 静态勘探**（concurrent-density-probe-scout.md，只读）：Tier-1 = 共享内存延迟放大（指针追逐+长链）、Tier-2 = I-cache 争用；明确排除 a-1/b/d/e/c-3（run yield 每批一次 / T=8≤12 物理核无 SMT / 密度循环无锁 / beard null 门控 / 17KB 表广播友好）。**静态本身是资产，但只到「收窄方向」，定论靠对照**。
+3. **conc_density_probe + WG_PHASETICK**：确证 production 的 density 11×（8.4×/9.2×）真实，排除探针污染（「测量/探针污染铁律」）。
+4. **权威 JSON**（`versions/1.20.1/data/worldgen/data/minecraft/worldgen/density_function/overworld/*.json`）：证伪「locationFunction 嵌套 SplineDF」，所有 spline coordinate 为纯噪声，嵌套仅存于 `points[].value` 数据表。
+
+### 修复（暂无代码修复；指出 DFC 非良药 + 路径闭合）
+
+- **暂无代码修复**。
+- **DFC 非良药**：DFC（显式栈）只消除虚调用/递归（~5% 量级），**不针对 11× 根（共享内存延迟/指针追逐）**，故不是 11× 的修复。上一节「DFC 收益天花板 ~5%」在这条 MVP 路径上**既不能证实也不能证伪**——「非良药」方向结论仍成立（机制不匹配，而非仅凭 ~5% 数字）。
+- **「放大 MVP 验证 DFC」路径闭合（❌ 推翻）**：MVP 天然复现不了真实共享内存延迟，任何放大（扩表 + locFn 真递归）都复现不了 → 这条验证路径不可行。若需验证 DFC / 11× 机制，必须回到**真实 production 树**（195 散布堆 locFn + 长链 + 并发读）上做，而非微基准外推。
+
+### 教训
+
+1. **吞吐 vs 延迟分开**：并行性能看「每 chunk 延迟（阶段耗时）」，不是 wall/N 吞吐均值——吞吐正常 ≠ 并发无问题（本课题反复踩，AGENTS.md 已警告）。
+2. **静态排除不够，要干净实验**：scout 静态收窄方向（Tier-1/Tier-2），但「locationFunction 嵌套 SplineDF」是静态 JSON/typeid 误读——定论必须用权威 JSON + 干净探针对照。
+3. **微基准与生产负载特征不同，不能直接外推**：MVP（表小、无真实指针追逐、无共享对象并发压力）复现不了生产共享内存延迟——**MVP「没复现」≠「生产无放大」≠「机制不存在」**。微基准只能验证**算法正确性**（显式栈=递归逐位一致 ✅），不能作为**性能/机制**结论依据。
+4. **先钉主导成本再立项**：DFC 立项基于「消除嵌套密度树递归」（误读），实际主导成本是 shift_noise 噪声计算 + 指针追逐（11× 根）——用权威 JSON 树结构提前证伪「坐标递归」，用对照实验确认 MVP 路径不可行，避免在错误方向投入大工程。
+5. **「未复现」是双刃证据**：验证某假设时，「未复现」可能是（a）假设假 /（b）微基准不具备复现条件。**必须区分两者**——本条是（b）微基准结构差异，不能当（a）用。判定法：先确认微基准包含生产的关键特征（散布堆对象/长链/并发共享读），不含则「未复现」不构成对生产机制的否定。
+
+---
+
 ## 附：错误 → 根因 速查表（一页索引）
 
 | 错误 | 一句话根因 | 状态 |
@@ -383,5 +436,181 @@ C1 验证 A/B（scout-map L73-77）：改造前后同口径对比（T=1/8/22 各
 | **整 chunk wall T=8 比 T=1 慢 8~12%（64→69.6ms）** | ~~探针污染~~（527cade 错误结论，**已纠**）；**真相 = 吞吐均值（wall/64=72ms）≠ 每 chunk 真实耗时（462ms）**——多线程下吞吐均值掩盖单 chunk 延迟 | 🩹 已纠（fcbdad1：density 11× 真实） |
 | WG_DENSITYTICK density 测量反复（5ms/370ms/33ms） | **重复循环 bug + QPC 调度污染**——阶段计时探针多线程下全部不可信 | ↩️ 已回退（MT9） |
 | **density 11×（34→409ms，WG_PHASETICK 干净）** | **真实**（非探针污染）——spline 树遍历虚调用 + 并发争用；spline 6 实例、17KB、单次 15.8→190μs（12×） | ✅ 真实（MT8/MT10） |
-| spline 单次 15.8μs（T=1）→ 190μs（T=8） | spline 树递归（90 节点/实例）+ 195 locationFunction 虚调用 + 并发 I-cache/cache-line 争用 | 🔍 优化方向 = DFC 直排 |
+| spline 单次 15.8μs（T=1）→ 190μs（T=8） | **共享内存延迟/指针追逐**（SplineDF 长串行依赖链 + 195 散布堆 locFn 指针追逐 + 虚调用，非虚调用本身）；DFC 只消虚调用（~5%）不消 11× 根 | 🔍 DFC 非良药（MT11，机制不匹配） |
 | typeid 遍历「无 spline」→ 误判「spline 不在 density」 | typeid 遍历漏 BlendDensityDF/WrappingDF（包装类 arg 未递归）→ spline 经 blend_density 引用分量，6 实例被漏 | 🩹 已纠（MT10，补全遍历 = 6 SplineDF） |
+| MVP 并发线程扫描「未复现」density 11×（每样本 0.2× 完美扩展） | 微基准与生产负载特征不同：MVP 表小（245 元素全驻留 L1/L2 无争用）+ locFn 轻量子类（无 shared_ptr 散布堆指针追逐）+ 无「8 线程同读同一批共享对象」压力 → 复现不了 production 的 11×（共享内存延迟/指针追逐）；MVP「没复现」≠「11× 不真实」（production 11× 已由 WG_PHASETICK 另节确证） | 🔍 已定性（对照实验） |
+
+---
+
+## MT12. 🔥 SERIAL 的 `static_cast<const DensityFunction&>(pool[i]).sample()` = 强制虚调用（SERIAL 从未去虚分派）——A/B 只证「存储非争用」，误以为证了「虚分派非争用」（🔍 已纠正）
+
+### 现象
+- SERIAL A/B 结果：BASE 10.03× / SERIAL 10.25×（放大比持平）。
+- 初读该结果时（叙述层面）把「SERIAL 」当成「已验证 locFn 存储 + 虚分派综合非争用」——但后续 DEVIRT 单独去虚分派（10.05×）几乎无变化，才暴露 SERIAL 自身**根本没去虚分派**。
+
+### 根因（机制层面）
+- `sampleSerialLocFn`（density.h）的 kind-switch 分支写的是：
+  ```cpp
+  case FLAT_CACHE: return static_cast<const DensityFunction&>(flatCachePool[r.index]).sample(pos);
+  ```
+- `static_cast<const DensityFunction&>(obj)` 把**具体类型的实体临时转成基类引用**，再调 `.sample(pos)` —— `sample` 是**虚函数**，经基类引用调用**必然走 vtable 分派**。
+- 所以 SERIAL 只去掉了两样东西：**shared_ptr deref**（不再间接访问）+ **存储连续化**（池实体连续）。**虚分派从未被去掉**（kind-switch 后一视同仁转回基类引用）。
+- 结论链条误读：SERIAL 只隔离了「存储布局（A 类）」的贡献，**没有**隔离「虚分派」的贡献。A/B 只能证明「存储非争用」；「虚分派非争用」是让 DEVIRT（真正去掉基类引用 cast）单独证的。
+
+### 定位
+- 读 `density.h` `sampleSerialLocFn` 源码 → 见 `static_cast<const DensityFunction&>` 三处（FLAT_CACHE/CACHE_2D/BINOP）→ 确认转基类引用调用虚函数。
+- 交叉印证：DEVIRT 改法（去掉 cast、具体类型直接 `.sample()`）放大比 10.05× ≈ BASE 10.32× → 说明虚分派本来就不是 11× 主导 → 反推 SERIAL 的「虚分派未被改动」成立。
+
+### 修复
+- 下一步 DEVIRT 修改：把 `sampleSerialLocFn` 三个 case 的 `static_cast<const DensityFunction&>(pool[i]).sample()` 改为**具体类型直接调 `.sample()`**（by-value 池实体，语义上可 devirtualize，O2）。env `WG_SERIAL_LOCFN=1`（DEVIRT）。
+- 语义：去掉转基类引用 → 编译器能确定静态类型 → 去 vtable 跳转。
+
+### 教训（判错经验）
+1. **「kind-switch + 基类引用调用」≠ 去虚分派**——判断「是否已去虚分派」要盯**`.sample()` 是否经基类引用发起**（`static_cast<const DensityFunction&>` 即虚调用），而不是看有没有 kind-switch。
+2. **A/B 隔离变量要精确到「机制维度」**——「存储布局」与「虚分派」是两类不同的代价；一次 A/B 只能隔离它真正改动的那一类。若 A/B 同时保留了另一个候选（虚调用），其结论不得外推为「那个候选也被测过」。
+3. 复用判错：看到 `static_cast<const Base&>(derived_obj).virtualMethod()` 模式，默认它仍是虚调用。
+
+---
+
+## MT13. 🔥 conc_sample_probe scattered 坐标失真——spline 探针 per-sample 0.44ms（比 production 慢 1000 倍），grid 重建主导（✅ 已修正）
+
+### 现象
+- conc_sample_probe spline 模式初版：per-sample = **440552ns（0.44ms）**——比 production 的 spline 单次（μs 级）慢约 **1000 倍**，完全失真。
+- 修正后（固定同 chunk）：per-sample **4493.5ns**（快 98×），spline 并发放大 1.22×/1.21×。
+
+### 根因（机制层面）
+- spline 的 locFn（ContinentsDF 等 = FlatCacheDF）grid **按 chunk 懒建**（FlatCacheDF/Cache2DDF 的 grid/缓存 key 依赖 `g_curChunkX/Z`）。
+- scattered 坐标 `x=3200+(i*17)%2048` → **跨越 128 个不同的 chunk** → 每个采样点落在不同 chunk → **每换一个 chunk 就触发一次完整 buildGrid（重建 25 点 grid）**。
+- 结果是探针成本被 **grid 重建**主导（每采样一次重建），而非生产路径（同 chunk grid 命中 + 只读）。这不反映生产行为。
+
+### 定位
+- 对比初版 scattered per-sample 0.44ms 与修正后固定同 chunk per-sample 4493.5ns（快 98×）→ 差异来自「是否跨 chunk 重建 grid」。
+- 对照 production `fillOneChunkCore`：是「同 chunk grid 命中」访问模式（fillOneChunkCore 处理单 chunk，所有采样在同一 chunk 坐标域，grid 命中）。→ 探针必须复刻这一访问模式。
+
+### 修复
+- 改 conc_sample_probe 固定 x,z 同 chunk（3200-3215 / 3224-3239）、y 扫 → grid 命中 → per-sample 4493.5ns（可靠）。
+
+### 教训（判错经验）
+1. **探针必须复刻 production 的访问模式**（同 chunk grid 命中），否则测的是「探针自己的失真路径」而非生产路径。
+2. **探针初值要先用「合理性检查」**：per-sample 比 production 慢 1000 倍本身就说明有系统性失真（要么探针 bug，要么访问模式错），应先排查再下结论——不要直接拿失真数据做排除链依据。
+3. 复用判错：凡探针里按坐标懒建缓存的组件（grid/FlatCache/Cache2D），scattered 坐标必触发重建，须固定同 chunk / 复刻生产 chunk 域。
+
+---
+
+## MT14. 🔥 conc_sample_probe(std::thread) ≠ conc_density_probe(wg_worker pool) 线程模型混淆——spline 1.2× 不能独立证明「spline 在 production 下无争用」（⚠️ 已纠正，spline 1.2× 降为辅证）
+
+### 现象
+- conc_sample_probe spline 模式（std::thread）测 spline 并发放大 **1.2×**（接近无争用）。
+- production 全 tree 并发放大 **10.32×**。
+- 两者悬殊 → 一度不严谨地倾向「spline 在 production 下也无争用」。
+
+### 根因（机制层面）
+- **线程模型不同**：conc_sample_probe 用 **std::thread**（每线程独立循环采样）；production 争用（10.32×）发生在 **wg_worker pool**（wg_fill_blocks_multi 填 chunk，CoreSwapPool 队列 + worker）。
+- std::thread 各自独立循环 → 每线程跑自己的数据，**不存在 pool 的任务调度 + 共享队列 + 线程间交互** → std::thread 下多入口都低放大（noise 1.15× / spline 1.2×）。
+- 所以 spline 的 1.2× **无法排除「std::thread 模型本身无争用」的伪影**——这可能是「std::thread 下测什么都低」，而不是「spline 生产无争用」。
+
+### 定位
+- 对比 conc_sample_probe（std::thread 实现）与 conc_density_probe（wg_fill_blocks_multi 填 chunk 实现）→ 确认两者线程模型不同。
+- 交叉证据：全部「低放大」入口（noise 1.15×/spline 1.2×）都来自 std::thread 探针；全部「高放大」（10.32×）来自 production 池 → std::thread 探针自身不放大，问题在模型不一致。
+
+### 修复
+- 设计 WG_SPLINE_FILL（fillOneChunkCore 加 env，density 采样绕 wrapper 直接 `spl[which]->sample(fpos)`），用 **production 线程池**（wg_fill_blocks_multi + conc_density_probe）测 spline 绕 wrapper。
+- 结果：spline-only[2] 1.62×（production 池）→ 确认 spline 在 production 下也几乎无争用（1.62× vs 全 tree 10.32×）。
+
+### 教训（判错经验）
+1. **并发放大对照必须同一线程模型**（生产线程池 vs std::thread 是不同的并发形态）；跨模型对比不可靠。
+2. **不要用「std::thread 探针的低放大」去反推「production 池里的低放大」**——两种模型的争用结构不同（std::thread 独立循环无池调度/共享队列压力）。
+3. 复用判错：任何「并发放大/无争用」结论，先确认它是在 production 同一线程模型（wg_fill_blocks_multi + CoreSwapPool）下测的，还是在独立的 std::thread 微基准下测的（后者仅作辅证）。
+
+---
+
+## MT15. scout 静态误判「buildGrid 深链=91% 主争用」——warm 实测推翻（虚调用数 ≠ 争用贡献）（✅ 已纠正）
+
+### 现象
+- scout（wrapper-buildgrid-structure.md / 83c9d1b0）断言：buildGrid 深链（interp#1 每点重走 18-20 层实虚分派 + spline 递归）= 91% 走 wrapper 链的时间，是 11× 主争用。
+- 但 warm 实测：预建 grid（排除 buildGrid 深链）后仍 **10.10×**（vs cold 10.32×，差 0.22×）→ buildGrid 深链对 11× 争用贡献 **微乎其微（<2%）**。
+
+### 根因（机制层面）
+- scout 用的是**静态虚调用次数**推导争用占比：buildGrid 虚调用深（每点 18-20 层）→ 它「看起来」是大头（17.6K/chunk、含深链下探）。
+- 但**虚调用次数 ≠ 争用贡献**——争用（latency QoS / 延迟排队）本质是**并发下访存排队的放大**，与「单次调用长不长」不直接对应。buildGrid 是**每 chunk 冷路径一次性**（每 chunk 触发 1 次/实例），8 线程各触发自己的 buildGrid 不互相排队摊薄（warm 去它后几乎没有变化）；而**顶层逐点包装**是**每 chunk 98304 点 × 每点（warm 后仍在）**，是真正的 per-point 并发放大面。
+- 静态看「buildGrid 深」≠ 动态争用大；scout 忽略「冷路径一次性 vs 温暖 per-point 重复」的并发放大差异。
+
+### 定位
+- warm/cold 实测（production 模型 conc_density_probe）：cold 10.32× vs warm 10.10×（差 0.22×）→ buildGrid 对 11× 贡献 <2%。
+- 对照 scout 静态断言（buildGrid=91%）→ 静态推断被运行时测量推翻。
+
+### 修复
+- 无代码修复（这是诊断判断修正）。
+- 结论修正：11× 主争用 = **顶层逐点包装**（min/squeeze/mul/interp 每点 98304× 重复）+ 后续收窄到 interp/noodle 采样内部；buildGrid（冷路径）无碍。
+
+### 教训（判错经验）
+1. **静态「虚调用数/深链」推断不能代替运行时争用测量**——争用是并发访存排队现象，与「单次调用深不深」不是一回事；冷路径一次性 vs 温暖 per-point 重复的并发放大差异必须用实测区分。
+2. **判别「争用在哪」要用「单一变量剔除」**（warm 排除 buildGrid / WG_FLAT_TOP 排除顶层包装），不能靠静态结构数推断占比。
+3. 复用判错：凡「xxx 深/虚调用多 → 必是争用大头」的静态断言，都要用「剔除该项的 A/B」验证；剔除后放大比不变即该项非争用。
+
+---
+
+## MT16. wg_sample_density 单点无 grid 缓存——std::thread 20000 点超时（每点 buildGrid 6ms）（🔍 已记录，探针入口需 grid 缓存）
+
+### 现象
+- wg_sample_density（whole tree 单点）用 std::thread 循环 20000 点 → 120s 超时。
+- 原因：每点触发一次整树 buildGrid ≈ 6ms → 20000 点 ≈ 120s。
+
+### 根因（机制层面）
+- `wg_sample_density` 单点采样走整棵 finalDensity 树，每点 `finalDensity->sample(pos)`；InterpolatedDF 首次采样触发 `buildGrid`（懒建 5×49×5=1225 点 grid，每点 arg 下探深链，怪物树 ≈ 27.9ms/次建）。
+- **窗口/入口无 grid 缓存**：每次调用都是「新 chunk、首访」→ 每点重建 grid（无 thread_local grid 命中复用）。
+- 与 production `fillOneChunkCore` 不同：后者对单 chunk 处理所有 98304 点，grid 只建一次（首点），后续点命中复用 → 摊薄到 0.4μs/点。单点入口无此摊薄。
+
+### 定位
+- 超时（120s cap）+ 反推单点 6ms（20000 点 × 6ms ≈ 120s）。
+- 对照 production fillOneChunkCore（同 chunk grid 命中复用）→ 确认走「whole tree 单点无 grid 缓存」路径。
+
+### 修复
+- 改用 WG_SPLINE_FILL（production 模型，绕 wrapper 只测 spline）做严格对照；避免「std::thread 循环 whole-tree 单点」。
+- 探针入口设计：采样 whole tree 必须**先预建 grid / 固定 chunk / 同 chunk grid 命中**，否则失真或超时。
+
+### 教训（判错经验）
+1. **whole-tree 单点采样必须 grid 缓存**（固定 chunk + 预建 grid），否则每点重建 grid → 失真/超时。
+2. **探针入口要复刻 production 的 chunk 内 grid 命中复用**，不能用「每点独立 whole-tree 单点」——那会触发 buildGrid 深链（冷路径），测的是 buildGrid 不是 warm per-point 争用。
+3. 复用判错：凡含 InterpolatedDF/FlatCacheDF/Cache2DDF 懒建缓存的探针，单点采样必建 grid；multi-point 同 chunk 才命中。
+
+---
+
+## MT17. 改生产路径（WG_FLAT_TOP）后没先 block_probe 对拍就下性能结论——须逐位一致才可信（✅ 本项已执行对拍，此为纪律沉淀）
+
+### 现象
+- WG_FLAT_TOP 性能结论（10.55× ≈ 生产 10.32×，「减少虚分派不降 11×」）若**不先逐位对拍**，会建立在「同算术理论上一致」的推断上，无法排除 WG_FLAT_TOP 因改错算术而失效的假象。
+- 本项正确流程已执行：block_probe `-save`（WG_FLAT_TOP=0/1 同参照 `vanilla_8576294172403134396_6_720_-432.blocks`），`out_prod.bin` vs `out_flat.bin` **SHA256 完全一致（identical: True）** → WG_FLAT_TOP 逐位一致。
+
+### 根因（机制层面）
+- WG_FLAT_TOP 是**改写生产采样路径**（把 min/squeeze/mul 扁平化为内联算术），若算术/边界/顺序有一处不同 → 采样值错误 → 性能对比建立在**错误代码**上，结论不可信。
+- 理论上「同算术」可由源码推演，但**浮点顺序/rounding/clamp 边界**（squeeze 的 clampD、min 分支 `da<bmin`）无法仅凭静态推演保证逐位一致——必须实证对拍（Full = block_probe 逐位）。
+- 性能结论若建立在未对拍的改动上，可能得出「改动 A 无效」的实际是「改动 A 改错了」。
+
+### 定位
+- 性能对比前先做正确性对拍：block_probe -save 导出对照 → SHA256 逐位比较。
+- 本项：`out_prod.bin` vs `out_flat.bin` SHA256 identical → 确认一致性后才记录 「WG_FLAT_TOP 逐位一致 + 10.55× ≈ 生产」结论。
+
+### 修复
+- 对 WG_FLAT_TOP 执行 block_probe 对拍（SHA256 identical）→ 确认逐位一致 → 性能结论可信。
+- 教训沉淀为「改生产路径后必须 block_probe 对拍（Full）再下性能结论」的固定纪律。
+
+### 教训（判错经验）
+1. **改生产路径后的性能结论必须先过正确性门（Full = block_probe 逐位对拍）**——性能对比不能建立在未验证正确性的代码上（否则「改动无效」可能是「改动改错了」）。
+2. **理论推演（同算术）≠ 逐位一致**——浮点顺序/rounding/clamp 边界需实证；用 block_probe -save + SHA256 identical 做硬验证。
+3. 复用判错：凡性能 A/B 改动了采样/求值路径，先对拍正确性（SHA256 逐位）再读性能；不改采样路径的纯调度/存储实验（M1 pin 核/serial 池）可不全对拍，但改动求值语义的必须对拍。
+
+---
+
+## 附：本轮新增错误 → 根因 速查表（追加到既有速查表尾部）
+
+| 错误 | 一句话根因 | 状态 |
+|---|---|---|
+| SERIAL 与 BASE 放大比持平（10.25× vs 10.03×），误以为「虚分派已测」 | `static_cast<const DensityFunction&>(pool[i]).sample()` = 转基类引用调虚函数（**强制虚调用**）；SERIAL 只去 shared_ptr deref + 存储连续化，**从未去虚分派** → A/B 只证「存储非争用」 | 🔍 已纠正（DEVIRT 单证虚分派非争用，MT12） |
+| conc_sample_probe spline per-sample 0.44ms（比 production 慢 1000 倍） | spline locFn grid 按 chunk 懒建，scattered 坐标跨 128 chunk → 每换 chunk 重建 grid → grid 重建主导（非生产同 chunk 命中路径） | ✅ 已修正（固定同 chunk，MT13） |
+| spline 1.2×（std::thread）vs production 10.32× 悬殊，一度误断「spline 无争用」 | conc_sample_probe 用 std::thread（独立循环）、conc_density_probe 用 wg_worker pool（填 chunk）——**线程模型不同**；std::thread 下多入口都低放大（noise 1.15×/spline 1.2×） | ⚠️ 已纠正（spline 1.2× 降为辅证；WG_SPLINE_FILL 用 production 池测，MT14） |
+| scout 静态断言「buildGrid 深链=91% 主争用」 | 静态虚调用数（buildGrid 深 18-20 层）推导占比，但**虚调用数 ≠ 争用贡献**；buildGrid 是冷路径每 chunk 一次性（warm 剔除后近乎无变化），顶层逐点（98304 点/次）才是 per-point 并发放大面 | ✅ 已纠正（warm 10.10× ≈ cold 10.32×，MT15） |
+| wg_sample_density std::thread 20000 点 120s 超时 | 单点 whole-tree 采样无 grid 缓存（每点触发 buildGrid ≈6ms）→ 20000 点 ≈120s；与 production 同 chunk grid 命中复用（0.4μs/点）不同 | 🔍 已记录（探针入口需 grid 缓存，MT16） |
+| WG_FLAT_TOP 性能结论可信度 | 改生产采样路径（min/squeeze/mul 扁平化），未对拍前基于「同算术理论一致」不可信；须 block_probe 逐位（SHA256 identical）实证 | ✅ 已对拍（out_prod vs out_flat SHA256 identical，MT17） |
+
+> **主会话应用注意**：①-⑥ 分别编号 MT12-MT17 追加到 `mt-scaling-errors.md` 末尾 + 全局速查表各加一行（见上）。编号不覆盖既有 MT1-MT11。

@@ -186,6 +186,7 @@ public:
         const JsonValue* obj = objIn.isObject() && objIn.get("spline") ? objIn.get("spline") : &objIn;
         auto spline = std::make_shared<SplineDF>();
         spline->root = buildSplineNode(spline, *obj, selfKey);
+        splines.push_back(spline);   // 记录：探针可直接采样单个 SplineDF（绕过 wrapper 链，隔离 ②）
         return spline;
     }
 
@@ -325,6 +326,11 @@ public:
         return it == registry.end() ? nullptr : it->second;
     }
 
+    // 诊断/探针：所有已构建的 SplineDF 实例（buildSpline 时记录；含 registry 文件与 finalDensity）。
+    // 探针用途：直接采样单个 SplineDF（绕过 min/interpolated/blend/mul 等 wrapper 链）→ 隔离 ② wrapper 链虚调用贡献。
+    const std::vector<std::shared_ptr<SplineDF>>& getSplines() const { return splines; }
+    int splineCount() const { return (int)splines.size(); }
+
 private:
     std::shared_ptr<DoublePerlinNoiseSampler> getNoiseSamplerFromObj(const JsonValue& obj) {
         const JsonValue* n = obj.get("noise");
@@ -340,6 +346,7 @@ private:
     std::map<std::string, DF> registry;
     std::map<std::string, std::shared_ptr<LazyRef>> lazyRefs;
     std::map<std::string, std::shared_ptr<DoublePerlinNoiseSampler>> noiseSamplers;
+    std::vector<std::shared_ptr<SplineDF>> splines;   // 所有 SplineDF 实例（探针/诊断用）
 };
 
 } // namespace wg

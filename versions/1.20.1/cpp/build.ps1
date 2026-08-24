@@ -42,7 +42,8 @@ $coreSrcs = @(
 
 # 常见验证工具（exe = obj 名）
 $exes = @("block_probe", "bench_chunks", "noise_probe", "density_probe", "router_probe",
-          "ore_probe", "got_export", "tbands_dump", "chunkrandom_test")
+          "ore_probe", "got_export", "tbands_dump", "chunkrandom_test", "conc_density_probe",
+          "conc_sample_probe")
 
 function Invoke-VcCl {
     param([string]$Extra)

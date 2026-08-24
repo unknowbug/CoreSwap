@@ -819,7 +819,21 @@ public:
         float fixedValue = 0.f;
     };
 
-    std::vector<DF> locationFunctions;   // locationFunction 池（FlatCache/noise 等，共享外部对象）
+    std::vector<DF> locationFunctions;   // locationFunction 池（FlatCache/noise 等，共享外部对象，BASE 模式）
+    // ---- SERIAL 存储（WG_SERIAL_LOCFN=1 启用；A/B 实验：locFn 连续化）----
+    // Plan A：把 locationFunctions 从 vector<DF>（shared_ptr 散布堆）改为「按类型连续池 + 索引」。
+    // 保留：虚调用（经基类引用访问池内实体 sample）+ 直接采样 + cacheId（copy 保留构造期 cacheId，
+    //        registry 去重语义 → 同 cacheId → 同 thread_local slot → grid 每 chunk 恰建 1 次）。
+    // 不改算法：仅 locFn 存储布局变；Hermite 插值/采样递归/派生数学不变（区别于 DFC 数据驱动直排）。
+    enum class LocFnKind : uint8_t { FLAT_CACHE, CACHE_2D, BINOP, OTHER };
+    struct LocFnRef { LocFnKind kind; int32_t index; };
+    bool serialMode = false;                 // WG_SERIAL_LOCFN=1 → SERIAL；默认 0 → BASE（原 vector<DF>）
+    bool dfcNosplit = false;                 // WG_DFC_NOSPLIT=1 →「无 split 直排」：sampleNode 递归→显式栈（去递归），BASE 不变
+    std::vector<LocFnRef> serialRefs;        // 与 BASE locationFunctions 并行（每非叶子节点 1 条）
+    std::vector<FlatCacheDF> flatCachePool;  // flat_cache locFn 连续池（copy，cacheId 保留）
+    std::vector<Cache2DDF> cache2dPool;      // cache_2d locFn 连续池
+    std::vector<BinaryOperation> binopPool;  // add/mul 折叠 locFn 连续池
+    std::vector<DF> otherPool;               // 未枚举类型回退（shared_ptr，保 BASE 行为）
     std::vector<float> locations;        // 所有节点 locations 连续
     std::vector<float> derivatives;      // 所有节点 derivatives 连续
     std::vector<int> subIdx;             // 所有节点子节点索引（nodes 下标）
@@ -831,9 +845,12 @@ public:
         return nodes.size() * sizeof(Node) + locations.size() * sizeof(float) +
                derivatives.size() * sizeof(float) + subIdx.size() * sizeof(int);
     }
-    size_t locFnSize() const { return locationFunctions.size(); }
+    size_t locFnSize() const { return serialMode ? serialRefs.size() : locationFunctions.size(); }
 
-    SplineDF() = default;
+    SplineDF() {
+        serialMode = getenv("WG_SERIAL_LOCFN") != nullptr;   // 构建期读 env（wg_create 单线程，每 SplineDF 含嵌套）
+        dfcNosplit = getenv("WG_DFC_NOSPLIT") != nullptr;    // 去递归（显式栈）无 split 直排实验路径（默认 BASE 递归不变）
+    }
 
     // ---- 构建接口（density_builder 递归填充）----
     int addLeaf(float value) {
@@ -842,8 +859,30 @@ public:
         return (int)nodes.size() - 1;
     }
     int addNode(DF locationFn, int pointCount) {
-        Node nd; nd.locFn = (int)locationFunctions.size();
-        locationFunctions.push_back(std::move(locationFn));
+        Node nd;
+        if (serialMode) {
+            // SERIAL：按类型登记到连续池（copy 保留 cacheId），存 {kind,index}；未枚举类型回退共享指针。
+            LocFnRef ref;
+            if (auto* fc = dynamic_cast<FlatCacheDF*>(locationFn.get())) {
+                flatCachePool.push_back(*fc);   // copy：cacheId/arg 复制，grid 仍在 thread_local slot（cacheId 键）
+                ref.kind = LocFnKind::FLAT_CACHE; ref.index = (int)flatCachePool.size() - 1;
+            } else if (auto* c2 = dynamic_cast<Cache2DDF*>(locationFn.get())) {
+                cache2dPool.push_back(*c2);
+                ref.kind = LocFnKind::CACHE_2D; ref.index = (int)cache2dPool.size() - 1;
+            } else if (auto* bo = dynamic_cast<BinaryOperation*>(locationFn.get())) {
+                binopPool.push_back(*bo);       // copy：内部 a/b 共享指针（refcount），嵌套 SplineDF 由其自建 serial 池
+                ref.kind = LocFnKind::BINOP; ref.index = (int)binopPool.size() - 1;
+            } else {
+                otherPool.push_back(locationFn); // 保留 shared_ptr 所有权（BASE 行为）
+                ref.kind = LocFnKind::OTHER; ref.index = (int)otherPool.size() - 1;
+            }
+            serialRefs.push_back(ref);
+            nd.locFn = (int)serialRefs.size() - 1;
+        } else {
+            // BASE：原 vector<DF>（shared_ptr 散布堆，不连续化）
+            nd.locFn = (int)locationFunctions.size();
+            locationFunctions.push_back(std::move(locationFn));
+        }
         nd.locBegin = (int)locations.size();
         nd.subBegin = (int)subIdx.size();
         nd.n = pointCount;
@@ -860,12 +899,13 @@ public:
         if (wg_profEnabled) {
             wg_profSpline.fetch_add(1, std::memory_order_relaxed);
             auto t0 = std::chrono::steady_clock::now();
-            double r = sampleNode(root, pos);
+            // WG_DFC_NOSPLIT=1：sampleNode 递归→显式栈（去递归）；否则 production 递归（BASE 不变）。
+            double r = dfcNosplit ? sampleNodeStack(root, pos) : sampleNode(root, pos);
             wg_profSplineNs.fetch_add((int64_t)std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - t0).count(), std::memory_order_relaxed);
             return r;
         }
-        return sampleNode(root, pos);
+        return dfcNosplit ? sampleNodeStack(root, pos) : sampleNode(root, pos);
     }
 
     double minValue() const override { return nodeMin(root); }
@@ -876,7 +916,8 @@ private:
     double sampleNode(int nodeId, const NoisePos& pos) const {
         const Node& nd = nodes[nodeId];
         if (nd.n == 0) return (double)nd.fixedValue;   // 叶子：固定值
-        double f = locationFunctions[nd.locFn]->sample(pos);
+        // SERIAL：locFn 经连续池访问（保留虚调用，去 shared_ptr deref）；BASE：原 locationFunctions
+        double f = serialMode ? sampleSerialLocFn(nd.locFn, pos) : locationFunctions[nd.locFn]->sample(pos);
         const float* locs = locations.data() + nd.locBegin;
         const float* ders = derivatives.data() + nd.locBegin;
         const int* subs = subIdx.data() + nd.subBegin;
@@ -910,18 +951,120 @@ private:
             r = lerp(kd, nv, ov) + kd * (1.0 - kd) * lerp(kd, p, q);
         }
         if (wg_splineDebug) {
-            const auto* fc = dynamic_cast<const FlatCacheDF*>(locationFunctions[nd.locFn].get());
-            const auto* cn = dynamic_cast<const Cache2DDF*>(locationFunctions[nd.locFn].get());
+            // SERIAL 下 locationFunctions 为空（locFn 在连续池），仅 !serialMode 才索引它（避免越界）。
+            const auto* fc = !serialMode ? dynamic_cast<const FlatCacheDF*>(locationFunctions[nd.locFn].get()) : nullptr;
+            const auto* cn = !serialMode ? dynamic_cast<const Cache2DDF*>(locationFunctions[nd.locFn].get()) : nullptr;
             std::fprintf(stderr, "[SPLINE] pos=(%d,%d,%d) f=%.9f result=%.9f n=%d locFn=%s%s%s locs=[",
                          pos.x, pos.y, pos.z, f, r, n,
-                         fc ? "FlatCache" : (cn ? "Cache2D" : "other"),
+                         serialMode ? "serial-pool" : (fc ? "FlatCache" : (cn ? "Cache2D" : "other")),
                          fc ? (", cacheId=" + std::to_string(fc->getCacheId())).c_str() : "",
-                         locationFunctions[nd.locFn] == nullptr ? " NULL" : "");
+                         cn ? ", cache2d" : "");
             for (int li = 0; li < n; li++)
                 std::fprintf(stderr, "%.4f%s", locs[li], li + 1 < n ? "," : "");
             std::fprintf(stderr, "]\n");
         }
         return r;
+    }
+
+    // SERIAL：locFn 经「按类型连续池 + 索引」分派。池内 locFn 为实体（非指针），
+    // 直接对【具体类型】池元素调 .sample（去掉 static_cast<const DensityFunction&> 基类引用前缀）——
+    // 静态类型 = 具体类（FlatCacheDF&/Cache2DDF&/BinaryOperation&），动态类型 = 静态类型（值对象），
+    // 编译器可 devirtualize 成直接调用（/O2），去除 locFn 虚分派的 vtable 间接跳转。
+    // 这就是「去虚分派」最小实验：与 SERIAL 原始（static_cast 回基类引用→强制虚调用）对照，隔离虚分派本身对并发放大的贡献。
+    // OTHER 无确定类型 → 回退 shared_ptr->sample（保 BASE 行为）。
+    double sampleSerialLocFn(int idx, const NoisePos& pos) const {
+        const LocFnRef& r = serialRefs[idx];
+        switch (r.kind) {
+            case LocFnKind::FLAT_CACHE:
+                return flatCachePool[r.index].sample(pos);
+            case LocFnKind::CACHE_2D:
+                return cache2dPool[r.index].sample(pos);
+            case LocFnKind::BINOP:
+                return binopPool[r.index].sample(pos);
+            case LocFnKind::OTHER:
+            default:
+                return otherPool[r.index]->sample(pos);
+        }
+    }
+
+    // WG_DFC_NOSPLIT=1 时启用：「无 split 直排」最小实验——只把 sampleNode 的【递归→显式栈】，
+    // production 数据表（nodes/locations/derivatives/subIdx）原样使用，locFn 仍走
+    // locationFunctions[locFn]->sample / sampleSerialLocFn 虚调用（去虚调用是第二步，本路径不改）。
+    // 关键区别于 DFC CpuBackend：本路径【无 split 预拆分】，噪声/F latCache 直接采样（production 同源），
+    // 单点应保持 production 快；目标 = 隔离「递归」本身对并发放大的贡献（对照 BASE 递归）。
+    // 正确性：必须与 sampleNode 逐位一致（maxDiff=0）——逐分支对拍见下方注释。
+    // 栈深：≤ SplineDF 子节点链深（vanilla overworld 实测 ≤4 边，spline-tree-depth-scout.md）；固定 128 帧冗余。
+    // @anchor.idk("SplineDF 显式栈（去递归）与递归 sampleNode 的逐位一致性仅静态对拍（未运行验证）；待主会话 block_probe/fill-compare A/B 实测 maxDiff 后升级 @anchor.test")
+    double sampleNodeStack(int nodeId, const NoisePos& pos) const {
+        struct StackFrame {
+            int node;    // 当前节点（nodes 下标）
+            int stage;   // 0=init；1=middle: child k 已返回，待 push k+1；2=middle: child k+1 已返回，做 Hermite；3=tail: child 已返回，加导数项
+            int k;       // bracket 下标（tail 已归一到 0 或 n-1）
+            double f;    // 本节点 locFn 坐标（驱动二分/Hermite）
+            double v0;   // child k 的 Hermite 下插值（nv）
+        };
+        // 固定栈（去递归）：vanilla 深度 ≤4 → 128 帧远足；超过上限是结构性 bug（见 spline-tree-depth-scout.md）。
+        StackFrame st[128];
+        int sp = 0;
+        double outVal = 0.0;
+        st[sp++] = {nodeId, 0, 0, 0.0, 0.0};
+        while (sp > 0) {
+            StackFrame& fr = st[sp - 1];
+            const Node& nd = nodes[fr.node];
+            if (fr.stage == 0) {
+                // ---- 与递归 sampleNode 开始段逐位同源 ----
+                if (nd.n == 0) { outVal = (double)nd.fixedValue; sp--; continue; }  // 叶子
+                double f = serialMode ? sampleSerialLocFn(nd.locFn, pos) : locationFunctions[nd.locFn]->sample(pos);
+                const float* locs = locations.data() + nd.locBegin;
+                const int* subs = subIdx.data() + nd.subBegin;
+                int lo = 0, hi = nd.n;
+                while (lo < hi) {  // Java: binarySearch(0, n, f < locations[i]) - 1
+                    int mid = (lo + hi) / 2;
+                    if (f < locs[mid]) hi = mid; else lo = mid + 1;
+                }
+                int i = lo - 1;
+                fr.f = f;
+                if (i < 0) {                       // f < locs[0]
+                    fr.k = 0;
+                    fr.stage = 3;                  // tail：等 child subs[0] 返回后加导数项
+                    st[sp++] = {subs[0], 0, 0, 0.0, 0.0};
+                } else if (i == nd.n - 1) {        // f >= locs[n-1]
+                    fr.k = nd.n - 1;
+                    fr.stage = 3;                  // tail：等 child subs[n-1] 返回后加导数项
+                    st[sp++] = {subs[nd.n - 1], 0, 0, 0.0, 0.0};
+                } else {                           // 一般（中间两路）
+                    fr.k = i;
+                    fr.stage = 1;                  // 先取 child k（=subs[i]），再取 k+1
+                    st[sp++] = {subs[i], 0, 0, 0.0, 0.0};
+                }
+            } else if (fr.stage == 3) {
+                // ---- tail：child 已返回（outVal = sampleNode(subs[k])），r = base + d*(f - locs[k]) ----
+                float d = derivatives[nd.locBegin + fr.k];
+                float loc = locations[nd.locBegin + fr.k];
+                outVal += d * (fr.f - loc);
+                sp--;
+            } else if (fr.stage == 1) {
+                // ---- middle：child k 已返回（outVal = nv），存 v0，push child k+1 ----
+                fr.v0 = outVal;
+                fr.stage = 2;
+                st[sp++] = {subIdx[nd.subBegin + fr.k + 1], 0, 0, 0.0, 0.0};
+            } else {  // fr.stage == 2
+                // ---- middle：child k+1 已返回（outVal = ov），Hermite 插值（与递归同式）----
+                double ov = outVal;
+                double nv = fr.v0;
+                const float* locs = locations.data() + nd.locBegin;
+                const float* ders = derivatives.data() + nd.locBegin;
+                int k = fr.k;
+                float g = locs[k], h = locs[k + 1];
+                double kd = (fr.f - g) / (double)(h - g);
+                float l = ders[k], m = ders[k + 1];
+                double p = l * (h - g) - (ov - nv);
+                double q = -m * (h - g) + (ov - nv);
+                outVal = lerp(kd, nv, ov) + kd * (1.0 - kd) * lerp(kd, p, q);
+                sp--;
+            }
+        }
+        return outVal;
     }
 
     double nodeMin(int nodeId) const {
