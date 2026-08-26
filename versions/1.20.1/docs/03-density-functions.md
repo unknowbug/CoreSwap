@@ -102,3 +102,32 @@ sloped_cheese 的核心，`random = split("minecraft:terrain")` 派生，xz/y sc
 ### ❌ 未解（8576 剩余差候选）
 - 8576 剩余 826 块 = **terracotta 带边缘**（y=100-108 地表带，C++ 判 air vs Java terracotta）——est/带数组已排除，疑地表带窗口边界
 - 16 格宽「地貌同构划线」（1.0.12-pre 实测）——疑 FlatCache 网格角点值特定位置差（biome 相关），与 8576 finalDensity 微差（0.006@洞穴）可能同源
+
+---
+
+### Rust 重写 buildNode 对齐 C++（2026-08-24）
+
+✅ **结论**：Rust（WorldgenRust）的 DensityBuilder/buildNode 已与 C++ `density_builder.h`（buildNode）**逐位对齐**：
+
+- **16 个 overworld 密度函数**（10 顶层：`base_3d_noise` / `continents` / `erosion` / `ridges` / `ridges_folded` / `factor` / `offset` / `jaggedness` / `depth` / `sloped_cheese`；+ 6 caves/*：`entrances` / `noodle` / `pillars` / `spaghetti_2d` / `spaghetti_2d_thickness_modulator` / `spaghetti_roughness_function`）× **10 采样点**（共 160 值）+ 各函数 min/max——与 C++ `rust_ref_check` 输出数值**逐位一致（规范化差分 = 0）**。
+- **完整 `noise_router.final_density` 树**（读 overworld.json）10 点 + min/max 与 C++ **逐位一致**（min=-0.45833333, max=0.45833333）。
+- **块级 y-column 填充**（chunk(45,-26) row(8,8)→(728,-408) 列 384 点）与当前 C++ 列参照 **384/384 一致**，maxDiff=3.58e-9。
+- **验证参数**：seed = 8576294172403134396；验证分层 = **Full**（逐位）；对齐基准 = **C++ buildNode**（不含 Beardifier，见域边界）。
+
+👉 Rust 用 **`enum DensityFunction` 数据驱动**（match 分派），等价 C++ 多态虚调用 DF 树——Rust 优势：**无虚调用 / 无指针追逐**。新增 DensityFunction 变体：`ShiftDF` / `ShiftedNoise` / `RangeChoice` / `YClampedGradient` / `WeirdScaled` / `BlendAlpha` / `BlendOffset` / `BlendDensity` / `Wrapping` / `InterpolatedNoise` / `Lazy`。
+
+⚠️ **域/边界（关键，必须写明）**：
+- 对齐基准 = **C++ `density_builder.h` buildNode**，**不含 Beardifier 结构密度修正**（`@anchor.idk` 已声明）。
+- 对拍 buildNode 必须用**当前 C++ 重编译的 `rust_ref_check`** 作参照，**不能沿用 `cpp_density_*` 历史文件**（含 Beardifier，属完整 worldgen 配置；二者在结构附近差 ~0.015）。
+- **vanilla 逐块对齐未做**。
+
+❌ **排除清单**：`-0.45833333` 恒值曾被疑为 bug，经 C++ 互证 = final_density clamp 下界真值，**非 bug**。
+
+⚠️ **对齐过程抓到的 3 个 Rust 对齐 bug（已修）**：
+| 编号 | 内容 |
+|---|---|
+| R2 | ABS/SQUARE `mn = max(0, imin)` |
+| R3 | clamp 读「input」 |
+| R4 | InterpolatedDF min/max 委托 arg |
+
+（详见 `.investigations/rust-density-builder/rust-errors.md` 错误台账 R2/R3/R4。）

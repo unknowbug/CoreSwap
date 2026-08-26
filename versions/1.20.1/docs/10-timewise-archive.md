@@ -1990,3 +1990,43 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - SERIAL A/B：`.investigations/worldgen-mt-scaling/locfn-serialization-ab.md`
 - locFn 非主导勘探：`.investigations/worldgen-mt-scaling/production-contention-scout.md`
 - 错误台账（新增 ①-⑥）：本目录 `draft-mt-errors-11x.md`
+
+---
+
+## 2026-08-24（追加）：Rust worldgen 重写 density_builder 完成 + 逐位对齐 C++ buildNode（✅ 关键里程碑）
+
+> CoreSwap worldgen 正在全量重写为 Rust（WorldgenRust/）。本节记录 `density_builder.rs` 产物：buildNode 全分派 + mn/mx + lazyRef，使 Rust 能把 overworld JSON 构建成密度树，并验证与 C++ `density_builder.h`（rust_ref_check）逐位一致。配套：03 篇「Rust 重写 buildNode 对齐 C++」结论小节 + `.investigations/rust-density-builder/` + `rust-errors.md` 错误台账（R1-R4）。
+
+### ✅ 一、Rust 重写 density_builder 完成 + 对齐 C++（关键里程碑）
+- **16 个 overworld 密度函数**（10 顶层：base_3d_noise/continents/erosion/ridges/ridges_folded/factor/offset/jaggedness/depth/sloped_cheese；+ 6 caves/*：entrances/noodle/pillars/spaghetti_2d/spaghetti_2d_thickness_modulator/spaghetti_roughness_function）× **10 采样点（160 值）** + 各函数 min/max，与 C++ `rust_ref_check` 输出**逐位一致（规范化差分=0）**。
+- **数据驱动实现**：Rust 用 `enum DensityFunction`（match 全分派），等价 C++ 多态虚调用 DF 树（无虚调用/无指针追逐）。新增变体：ShiftDF/ShiftedNoise/RangeChoice/YClampedGradient/WeirdScaled/BlendAlpha/BlendOffset/BlendDensity/Wrapping/InterpolatedNoise/Lazy。
+- **对齐基准**：C++ `density_builder.h` buildNode（不含 Beardifier，见域边界）。
+
+### ✅ 二、noise_params.json 读取（对齐基准从硬编码表切到权威文件，judge P2-e 收口）
+- **对齐基准切换**：噪声参数不再用硬编码表，改为读权威 `noise_params.json`——judge P2-e 收口（对齐基准单一事实源化）。
+- 意义：消除了「参数表与权威 JSON 漂移」这一潜在对齐差异来源（噪声参数是 octave/振幅，漂移会整树错位）。
+
+### ✅ 三、完整 finalDensity 端到端（Rust 构建 noise_router.final_density 整树，与 C++ 逐位）
+- Rust 读 overworld.json 构建 `noise_router.final_density` **整树**，10 点 + min/max 与 C++ **逐位一致**（min=-0.45833333, max=0.45833333）。
+- 验证分层 = **Full**（逐位），seed = 8576294172403134396。
+
+### 🔍→❌→✅ 四、块级 y-column 填充对比参照坑（错误台账 R1——被推翻假说）
+**现象**：块级 y-column 填充（chunk(45,-26) row(8,8)→(728,-408) 列 384 点）与历史参照对比出现差异，一度疑似 Rust bug。
+**根因（机制）**：**参照文件配置错误，非 Rust 代码错**——历史 `cpp_density_*` 参照**含 Beardifier**（属完整 worldgen 配置），而对拍目标 buildNode **不含 Beardifier**；二者在结构附近差 ~0.015。
+**定位（诊断方法）**：经**当前 C++ 重编译的 rust_ref_check** 对拍排除 Rust bug；改用**当前 C++ 列 dump** 作参照。
+**修复**：对齐参照切到当前 C++ 列 dump → **384/384 一致**，maxDiff=3.58e-9。
+**教训（判错经验）**：**跨实现/跨版本对拍必须同时确认「参照的配置语义」与「目标的配置语义」一致**——参照含 Beardifier 而目标不含时，结构附近的差异是配置差，不是实现 bug；「参照错位」应先于「实现 bug」被排除。
+
+**❌ 被推翻假说**：「Rust 插值 / range_choice 在 (-40,240) 有 bug」——**证伪，❌**；真实因 = 参照文件配置（含 Beardifier）。后续对拍一律以当前 C++ 重编译的 rust_ref_check + 当前 C++ 列 dump 为参照，**不再沿用 `cpp_density_*` 历史文件**。
+
+### 🧰 五、工具演进（本轮新增）
+- **rust_ref_check**（C++ 参照，cl 直链）：对外对拍的 C++ 权威参照。
+- **overworld_probe.rs**（Rust 探针）：overworld 密度函数层探针。
+- **finaldensity_probe.rs**（Rust 探针）：final_density 整树端到端探针。
+- **chunkfill_probe.rs**（Rust 探针）：块级 y-column 填充探针。
+
+### 📌 记录指引（知识库归口）
+- 错误台账：`.investigations/rust-density-builder/rust-errors.md`（R1 参照坑五段式 + R2/R3/R4 对齐 bug 五段式）。
+- 结论：03 篇「Rust 重写 buildNode 对齐 C++」小节。
+- 过程：本节 + `.investigations/rust-density-builder/`。
+- **域边界（保持）**：align = C++ buildNode，不含 Beardifier（`@anchor.idk`）；vanilla 逐块对齐未做。
