@@ -17,6 +17,18 @@
 | cpp_fd_out.txt（C++ rust_ref_check final_density 输出） | 2FB002EA014A6AFE9CFB30281A4ACC2D0B6E15B13300429B55DD838697B2C125 |
 | finaldensity_probe.rs（Rust finalDensity 探针源） | BCE718B5350192836353549CD70C423292BB3F9A8983D86A5F3E2ADBAA2E45E2 |
 
+## 冻结文件 v1.2（追加整块网格填充对齐）
+| 文件 | SHA256 |
+|---|---|
+| chunkgrid_out.txt（Rust chunkgrid_probe 输出，2560/2560 maxDiff=2.958e-8） | 354D7DCFCF943DE7B5D6A9965F6FE9C19E8F7F8AA5BB2A8A6F1392E45E6F5C63 |
+| cpp_grid45.txt（C++ rust_ref_check 整块(45,-26)网格参照） | 3C1C84D93174B24A047783D47FBE8B28E7B6CA246A9F916D54BF9BC7D53A0415 |
+| chunkgrid_probe.rs（Rust 整块填充探针源） | 06850EA0EC3DBA83B17370538020A4DC140247111132DBC4BF6E1ED701C06D90 |
+
+## 整块网格填充（2026-08-24，追加）
+- Rust `chunkgrid_probe.rs` 对 chunk(45,-26) 全部 16×16 列 × 10 代表 y（{ -64,-32,0,32,63,96,128,200,256,319 }）采样 finalDensity，与**当前 C++ 参照**（`rust_ref_check` GRID dump `cpp_grid45.txt`）**2560/2560 一致，maxDiff=2.958e-8**（float32 级）。
+- 验证分层 = Full（逐位），对齐基准 = C++ buildNode（不含 Beardifier），seed = 8576294172403134396。
+- 意义：Rust finalDensity 能正确填充**整块密度网格**（16×16 列跨 interpolated cell 边界），D23 跨 cell 正确性在 Rust 侧成立。
+
 ## 复现命令
 ```powershell
 # 1) C++ 参照（cl 直链，MSVC，见 rust_ref_check.cpp 顶部注释；需同一 buildNoiseParams 全表 + md5.cpp）

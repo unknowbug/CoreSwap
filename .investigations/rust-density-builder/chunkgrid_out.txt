@@ -1,0 +1,2 @@
+chunk(45,-26) full grid fill: 2560 points
+matched(<1e-6)=2560/2560  maxDiff=2.958e-8  @(x=720,y=63,z=-404) ref=0.0668401953 got=0.0668402248833519

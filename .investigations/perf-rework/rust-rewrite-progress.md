@@ -105,6 +105,12 @@
 
 **下一步**：full 块填充（16×16×384）+ Beardifier（若需对齐完整 worldgen）后续。
 
+## 2026-08-24 深夜4（full 16×16 整块密度网格填充）
+- ✅ `chunkgrid_probe.rs`（`WorldgenRust/src/bin/`）：对 chunk(45,-26) 全部 16×16 列 × 10 代表 y（{-64,-32,0,32,63,96,128,200,256,319}）采样 finalDensity。
+- 与**当前 C++ 参照**（rust_ref_check GRID dump `cpp_grid45.txt`）**2560/2560 一致，maxDiff=2.958e-8**（float32 级）。
+- 意义：Rust finalDensity 能正确填充**整块密度网格**（跨 interpolated cell 边界），D23 类跨 cell 正确性在 Rust 侧成立。验证分层 = Full（逐位），seed=8576294172403134396。
+- 冻结：`.investigations/rust-density-builder/{chunkgrid_out.txt, cpp_grid45.txt, chunkgrid_probe.rs}`（verification-record.md v1.2）。
+
 ## 2026-08-24 深夜2（noise_params.json 读取，judge P2-e 收口）
 - ✅ `build_noise_params_from_file(path)`：读权威 `versions/1.20.1/data/noise_params.json`（BuiltinNoiseParameters 1.20.1 导出）构建噪声参数表；`DensityBuilder::load_noise_params_file(path)` 覆盖硬编码表。
 - 验证：finaldensity_probe 用文件加载噪声参数后，finalDensity 输出与 C++ 参照**仍数值逐位一致**（硬编码表与权威文件等价，转录风险消除）。
