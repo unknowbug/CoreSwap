@@ -125,6 +125,8 @@ impl DensityBuilder {
     pub fn set_external_loader(&mut self, loader: Box<dyn Fn(&str, &str) -> String>) {
         self.external_loader = Some(loader);
     }
+    // 暴露 randomDeriver（供探针复刻 NoiseConfig 派生链，如 Aquifer "minecraft:aquifer" split）
+    pub fn random_deriver(&self) -> &XoroshiroSplitter { &self.random_deriver }
     // 用 noise_params.json 覆盖硬编码表（对齐基准切到权威文件，judge P2-e）。须在首次 get_noise_sampler 前调用。
     pub fn load_noise_params_file(&mut self, path: &str) -> Result<(), String> {
         self.noise_params = build_noise_params_from_file(path)?;

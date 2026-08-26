@@ -1,0 +1,290 @@
+// aquifer.rs — C++ 1.20.1 AquiferSampler.Impl 移植（块级含水层：决定密度<0 区的 lava/水/空洞）。
+// 独立于 finalDensity 树（块级），不加重结构性复杂。Port of versions/1.20.1/cpp/worldgen/src/aquifer.h。
+// 块 id：AIR=0 WATER=1 LAVA=2；apply 返回 -1 表示 null（保持默认方块/石头）。
+use std::sync::Arc;
+use crate::density::{DensityFunction, NoisePos};
+use crate::xoroshiro::XoroshiroSplitter;
+use crate::xoroshiro::XoroshiroRandom;
+
+pub const AIR: i32 = 0;
+pub const WATER: i32 = 1;
+pub const LAVA: i32 = 2;
+
+fn floor_div(a: i32, b: i32) -> i32 { let r = a / b; if (a % b) != 0 && ((a ^ b) < 0) { r - 1 } else { r } }
+
+#[derive(Clone, Copy)]
+pub struct FluidLevel { pub y: i32, pub block: i32 }
+impl FluidLevel {
+    fn default_level(block_y: i32) -> FluidLevel { if block_y < -54 { FluidLevel { y: -54, block: LAVA } } else { FluidLevel { y: 63, block: WATER } } }
+    fn get_block_state(&self, block_y: i32) -> i32 { if block_y >= self.y { AIR } else { self.block } }
+}
+
+struct MutableDouble { v: f64, has: bool }
+impl MutableDouble { fn new() -> Self { MutableDouble { v: f64::NAN, has: false } } }
+
+// 列缓存（estimateSurfaceHeight）
+const CACHE_DIM: i32 = 32;
+const CACHE_OFF_X: i32 = 12;
+const CACHE_OFF_Z: i32 = 4;
+
+pub struct Aquifer {
+    barrier: Arc<DensityFunction>,
+    fluid_floodedness: Arc<DensityFunction>,
+    fluid_spread: Arc<DensityFunction>,
+    fluid_type: Arc<DensityFunction>,
+    erosion: Arc<DensityFunction>,
+    depth: Arc<DensityFunction>,
+    initial_density: Arc<DensityFunction>,
+    splitter: XoroshiroSplitter,
+    min_y: i32, height: i32,
+    start_x: i32, start_y: i32, start_z: i32,
+    size_x: i32, size_y: i32, size_z: i32,
+    block_positions: Vec<i64>,
+    water_levels: Vec<FluidLevel>,
+    surface_cache: Vec<i32>,
+    cache_cx: i32, cache_cz: i32,
+}
+
+impl Aquifer {
+    pub fn new(
+        barrier: Arc<DensityFunction>, fluid_floodedness: Arc<DensityFunction>, fluid_spread: Arc<DensityFunction>,
+        fluid_type: Arc<DensityFunction>, erosion: Arc<DensityFunction>, depth: Arc<DensityFunction>, initial_density: Arc<DensityFunction>,
+        splitter: XoroshiroSplitter, chunk_start_x: i32, chunk_start_z: i32, min_y: i32, height: i32,
+    ) -> Aquifer {
+        let start_x_l = floor_div(chunk_start_x, 16) - 1;
+        let end_x_l = floor_div(chunk_start_x + 15, 16) + 1;
+        let start_y_l = floor_div(min_y, 12) - 1;
+        let end_y_l = floor_div(min_y + height, 12) + 1;
+        let start_z_l = floor_div(chunk_start_z, 16) - 1;
+        let end_z_l = floor_div(chunk_start_z + 15, 16) + 1;
+        let sx = end_x_l - start_x_l + 1;
+        let sy = end_y_l - start_y_l + 1;
+        let sz = end_z_l - start_z_l + 1;
+        let m = (sx * sy * sz) as usize;
+        Aquifer {
+            barrier, fluid_floodedness, fluid_spread, fluid_type, erosion, depth, initial_density,
+            splitter,
+            min_y, height,
+            start_x: start_x_l, start_y: start_y_l, start_z: start_z_l,
+            size_x: sx, size_y: sy, size_z: sz,
+            block_positions: vec![i64::MAX; m],
+            water_levels: vec![FluidLevel { y: i32::MAX, block: AIR }; m],
+            surface_cache: vec![i32::MIN; (CACHE_DIM * CACHE_DIM) as usize],
+            cache_cx: floor_div(chunk_start_x, 16),
+            cache_cz: floor_div(chunk_start_z, 16),
+        }
+    }
+
+    fn index(&self, x: i32, y: i32, z: i32) -> usize {
+        let i = x - self.start_x; let j = y - self.start_y; let k = z - self.start_z;
+        ((j * self.size_z + k) * self.size_x + i) as usize
+    }
+    fn pack(x: i32, y: i32, z: i32) -> i64 {
+        let l = (((x as u32 & 0x3FFFFFF) as u64) << 38)
+              | (((y as u32 & 0xFFF) as u64) << 26)
+              | ((z as u32 & 0x3FFFFFF) as u64);
+        l as i64
+    }
+    fn unpack_x(l: i64) -> i32 { (l >> 38) as i32 }
+    fn unpack_y(l: i64) -> i32 {
+        let y12 = (l >> 26) & 0xFFF;
+        let y12 = if y12 & 0x800 != 0 { y12 | !0xFFF } else { y12 };
+        y12 as i32
+    }
+    fn unpack_z(l: i64) -> i32 {
+        let z26 = l & 0x3FFFFFF;
+        let z26 = if z26 & 0x2000000 != 0 { z26 | !0x3FFFFFF } else { z26 };
+        z26 as i32
+    }
+
+    fn get_block_pos(&mut self, x: i32, y: i32, z: i32) -> i64 {
+        let aa = self.index(x, y, z);
+        let ab = self.block_positions[aa];
+        if ab != i64::MAX { return ab; }
+        let mut random: XoroshiroRandom = self.splitter.split_xyz(x, y, z);
+        let rx = random.next_int_bound(10);
+        let ry = random.next_int_bound(9);
+        let rz = random.next_int_bound(10);
+        let nb = Self::pack(x * 16 + rx, y * 12 + ry, z * 16 + rz);
+        self.block_positions[aa] = nb;
+        nb
+    }
+
+    fn max_distance(i: i32, a: i32) -> f64 { 1.0 - (a - i).abs() as f64 / 25.0 }
+
+    pub fn apply(&mut self, block_x: i32, block_y: i32, block_z: i32, density: f64) -> i32 {
+        if density > 0.0 { return -1; }
+        let mut fluid_block;
+        let mut fluid_y;
+        if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
+        if fluid_block == LAVA { return fluid_block; }
+
+        let l = floor_div(block_x - 5, 16);
+        let m = floor_div(block_y + 1, 12);
+        let n = floor_div(block_z - 5, 16);
+        let mut o = i32::MAX; let mut p = i32::MAX; let mut q = i32::MAX;
+        let mut r: i64 = 0; let mut s: i64 = 0; let mut t: i64 = 0;
+        for u in 0..=1 { for v in -1..=1 { for w in 0..=1 {
+            let x = l + u; let y = m + v; let z = n + w;
+            let ab = self.get_block_pos(x, y, z);
+            let ad = Self::unpack_x(ab) - block_x;
+            let ae = Self::unpack_y(ab) - block_y;
+            let af = Self::unpack_z(ab) - block_z;
+            let ag = ad*ad + ae*ae + af*af;
+            if o >= ag { t = s; s = r; r = ab; q = p; p = o; o = ag; }
+            else if p >= ag { t = s; s = ab; q = p; p = ag; }
+            else if q >= ag { t = ab; q = ag; }
+        }}}
+
+        let fl2 = self.get_water_level_at(r);
+        let d = Self::max_distance(o, p);
+        let bs = fl2.get_block_state(block_y);
+        if d <= 0.0 { return bs; }
+        if bs == WATER && self.get_fluid_level(block_x, block_y - 1, block_z).get_block_state(block_y - 1) == LAVA { return bs; }
+
+        let fl3 = self.get_water_level_at(s);
+        let mut md = MutableDouble::new();
+        let e = d * self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl3);
+        if density + e > 0.0 { return -1; }
+
+        let fl4 = self.get_water_level_at(t);
+        let f = Self::max_distance(o, q);
+        if f > 0.0 {
+            let g = d * f * self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl4);
+            if density + g > 0.0 { return -1; }
+        }
+        let g2 = Self::max_distance(p, q);
+        if g2 > 0.0 {
+            let h = d * g2 * self.calculate_density(block_x, block_y, block_z, &mut md, fl3, fl4);
+            if density + h > 0.0 { return -1; }
+        }
+        bs
+    }
+
+    pub fn estimate_surface_height(&mut self, block_x: i32, block_z: i32) -> i32 {
+        let bx = (block_x >> 2) << 2; let bz = (block_z >> 2) << 2;
+        let ix = (bx >> 2) - self.cache_cx * 4 + CACHE_OFF_X;
+        let iz = (bz >> 2) - self.cache_cz * 4 + CACHE_OFF_Z;
+        let (in_c, ci) = (ix >= 0 && ix < CACHE_DIM && iz >= 0 && iz < CACHE_DIM, (ix * CACHE_DIM + iz) as usize);
+        if in_c { let cached = self.surface_cache[ci]; if cached != i32::MIN { return cached; } }
+        let mut val = i32::MAX;
+        let mut l = self.min_y + self.height;
+        while l >= self.min_y {
+            if self.initial_density.sample(&NoisePos { x: bx, y: l, z: bz }) > 0.390625 { val = l; break; }
+            l -= 8;
+        }
+        if in_c { self.surface_cache[ci] = val; }
+        val
+    }
+
+    fn calculate_density(&self, block_x: i32, block_y: i32, block_z: i32, md: &mut MutableDouble, fl: FluidLevel, fl2: FluidLevel) -> f64 {
+        let bs = fl.get_block_state(block_y);
+        let bs2 = fl2.get_block_state(block_y);
+        let lava_water = (bs == LAVA && bs2 == WATER) || (bs == WATER && bs2 == LAVA);
+        if !lava_water {
+            let j = (fl.y - fl2.y).abs();
+            if j == 0 { return 0.0; }
+            let d = 0.5 * (fl.y + fl2.y) as f64;
+            let e = block_y as f64 + 0.5 - d;
+            let f = j as f64 / 2.0;
+            let o = f - e.abs();
+            let qq = if e > 0.0 { let pp = 0.0 + o; if pp > 0.0 { pp / 1.5 } else { pp / 2.5 } }
+                     else { let pp = 3.0 + o; if pp > 0.0 { pp / 3.0 } else { pp / 10.0 } };
+            let rr = if !(qq < -2.0) && !(qq > 2.0) {
+                if !md.has { let pos = NoisePos { x: block_x, y: block_y, z: block_z }; let tv = self.barrier.sample(&pos); md.v = tv; md.has = true; tv } else { md.v }
+            } else { 0.0 };
+            return 2.0 * (rr + qq);
+        }
+        2.0
+    }
+
+    fn get_water_level_at(&mut self, pos: i64) -> FluidLevel {
+        let i = Self::unpack_x(pos); let j = Self::unpack_y(pos); let k = Self::unpack_z(pos);
+        let bx = floor_div(i, 16); let by = floor_div(j, 12); let bz = floor_div(k, 16);
+        let o = self.index(bx, by, bz);
+        let fl = self.water_levels[o];
+        if fl.y != i32::MAX { return fl; }
+        let nf = self.get_fluid_level(i, j, k);
+        self.water_levels[o] = nf;
+        nf
+    }
+
+    fn get_fluid_level(&mut self, block_x: i32, block_y: i32, block_z: i32) -> FluidLevel {
+        const OFFSETS: [[i32; 2]; 13] = [[0,0],[-2,-1],[-1,-1],[0,-1],[1,-1],[-3,0],[-2,0],[-1,0],[1,0],[-2,1],[-1,1],[0,1],[1,1]];
+        let default_fl = FluidLevel::default_level(block_y);
+        let mut i = i32::MAX;
+        let j = block_y + 12;
+        let k = block_y - 12;
+        let mut bl = false;
+        for off in &OFFSETS {
+            let l = block_x + off[0] * 16;
+            let mm = block_z + off[1] * 16;
+            let n = self.estimate_surface_height(l, mm);
+            let o = n + 8;
+            let bl2 = off[0] == 0 && off[1] == 0;
+            if bl2 && k > o { return default_fl; }
+            let bl3 = j > o;
+            if bl3 || bl2 {
+                let fl2 = FluidLevel::default_level(o);
+                if fl2.get_block_state(o) != AIR {
+                    if bl2 { bl = true; }
+                    if bl3 { return fl2; }
+                }
+            }
+            i = i.min(n);
+        }
+        let p = self.get_fluid_block_y(block_x, block_y, block_z, &default_fl, i, bl);
+        FluidLevel { y: p, block: self.get_fluid_block_state(block_x, block_y, block_z, &default_fl, p) }
+    }
+
+    fn get_fluid_block_y(&self, block_x: i32, block_y: i32, block_z: i32, default_fl: &FluidLevel, surface_height_estimate: i32, bl: bool) -> i32 {
+        let pos = NoisePos { x: block_x, y: block_y, z: block_z };
+        let (mut d, mut e): (f64, f64);
+        if self.erosion.sample(&pos) < -0.225f32 as f64 && self.depth.sample(&pos) > 0.9f32 as f64 {
+            d = -1.0; e = -1.0;
+        } else {
+            let ii = surface_height_estimate + 8 - block_y;
+            let f = if bl { lerp_clamp2(ii as f64, 0.0, 64.0, 1.0, 0.0) } else { 0.0 };
+            let g = clamp(self.fluid_floodedness.sample(&pos), -1.0, 1.0);
+            let h = map2(f, 1.0, 0.0, -0.3, 0.8);
+            let kk = map2(f, 1.0, 0.0, -0.8, 0.4);
+            d = g - kk; e = g - h;
+        }
+        if e > 0.0 { default_fl.y }
+        else if d > 0.0 { self.get_noise_based_fluid_level(block_x, block_y, block_z, surface_height_estimate) }
+        else { -32512 }
+    }
+
+    fn get_noise_based_fluid_level(&self, block_x: i32, block_y: i32, block_z: i32, surface_height_estimate: i32) -> i32 {
+        let k = floor_div(block_x, 16);
+        let l = floor_div(block_y, 40);
+        let m = floor_div(block_z, 16);
+        let n = l * 40 + 20;
+        let pos = NoisePos { x: k, y: l, z: m };
+        let d = self.fluid_spread.sample(&pos) * 10.0;
+        let p = round_down_to_multiple(d, 3);
+        let q = n + p;
+        surface_height_estimate.min(q)
+    }
+
+    fn get_fluid_block_state(&self, block_x: i32, block_y: i32, block_z: i32, default_fl: &FluidLevel, fluid_level: i32) -> i32 {
+        let mut state = default_fl.block;
+        if fluid_level <= -10 && fluid_level != -32512 && state != LAVA {
+            let k = floor_div(block_x, 64);
+            let l = floor_div(block_y, 40);
+            let m = floor_div(block_z, 64);
+            let pos = NoisePos { x: k, y: l, z: m };
+            let d = self.fluid_type.sample(&pos);
+            if d.abs() > 0.3 { state = LAVA; }
+        }
+        state
+    }
+}
+
+fn clamp(v: f64, lo: f64, hi: f64) -> f64 { if v < lo { lo } else if v > hi { hi } else { v } }
+fn lerp_clamp2(value: f64, a: f64, b: f64, c: f64, d: f64) -> f64 {
+    let t = ((value - a) / (b - a)).clamp(0.0, 1.0);
+    c + t * (d - c)
+}
+fn map2(value: f64, fs: f64, fe: f64, ts: f64, te: f64) -> f64 { lerp_clamp2(value, fs, fe, ts, te) }
+fn round_down_to_multiple(d: f64, mult: i32) -> i32 { (d / mult as f64).floor() as i32 * mult }
