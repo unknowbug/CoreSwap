@@ -93,3 +93,8 @@
 
 ## 相关文档
 rust-rewrite-decision.md / rust-rewrite-plan.md / rust-porting-notes.md / rust-mlp-validation.md / rust-install-guide.md。
+
+## 2026-08-24 深夜2（noise_params.json 读取，judge P2-e 收口）
+- ✅ `build_noise_params_from_file(path)`：读权威 `versions/1.20.1/data/noise_params.json`（BuiltinNoiseParameters 1.20.1 导出）构建噪声参数表；`DensityBuilder::load_noise_params_file(path)` 覆盖硬编码表。
+- 验证：finaldensity_probe 用文件加载噪声参数后，finalDensity 输出与 C++ 参照**仍数值逐位一致**（硬编码表与权威文件等价，转录风险消除）。
+- 意义：对齐基准从硬编码表切到权威 `noise_params.json`（judge P2-e）——两端不再共享"可能写错"的硬编码表。

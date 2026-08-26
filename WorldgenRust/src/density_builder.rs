@@ -78,6 +78,29 @@ pub fn build_noise_params() -> HashMap<String, NoiseParameters> {
     m
 }
 
+// 从 `noise_params.json`（权威 BuiltinNoiseParameters 1.20.1 导出）加载噪声参数表——对齐基准从硬编码表切到文件（judge P2-e）。
+// 格式：{"minecraft:<key>": {"firstOctave": <int>, "amplitudes": [<f64>,...]}, ...}
+pub fn build_noise_params_from_file(path: &str) -> Result<HashMap<String, NoiseParameters>, String> {
+    let text = std::fs::read_to_string(path).map_err(|e| format!("read {}: {}", path, e))?;
+    let v = crate::json::parse(&text).map_err(|e| format!("parse {}: {}", path, e))?;
+    let mut m = HashMap::new();
+    if let JsonValue::Object(entries) = v {
+        for (k, v) in entries {
+            let oct = v.get("firstOctave").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32;
+            let mut amps = Vec::new();
+            if let Some(a) = v.get("amplitudes") {
+                if let JsonValue::Array(arr) = a {
+                    for x in arr { amps.push(x.as_f64().unwrap_or(1.0)); }
+                }
+            }
+            m.insert(k.clone(), NoiseParameters { first_octave: oct, amplitudes: amps });
+        }
+    } else {
+        return Err("noise_params.json root not object".into());
+    }
+    Ok(m)
+}
+
 // DensityBuilder：seed -> randomDeriver(Splitter)，noise sampler 懒建（split(key)），registry（lazyRef 懒引用）
 pub struct DensityBuilder {
     #[allow(dead_code)] seed: u64,
@@ -101,6 +124,11 @@ impl DensityBuilder {
     }
     pub fn set_external_loader(&mut self, loader: Box<dyn Fn(&str, &str) -> String>) {
         self.external_loader = Some(loader);
+    }
+    // 用 noise_params.json 覆盖硬编码表（对齐基准切到权威文件，judge P2-e）。须在首次 get_noise_sampler 前调用。
+    pub fn load_noise_params_file(&mut self, path: &str) -> Result<(), String> {
+        self.noise_params = build_noise_params_from_file(path)?;
+        Ok(())
     }
     pub fn get_noise_sampler(&mut self, key: &str) -> Rc<DoublePerlinNoiseSampler> {
         if let Some(s) = self.noise_samplers.get(key) { return s.clone(); }

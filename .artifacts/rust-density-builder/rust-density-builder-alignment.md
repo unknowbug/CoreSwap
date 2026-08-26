@@ -47,5 +47,6 @@ WorldgenRust 的 DensityBuilder/buildNode 现已**逐位对齐 C++ `density_buil
 
 ## 域/边界
 
-- 仅验证 density == C++ buildNode（overworld 16 DF）。未做：full finalDensity（noise_router）端到端、与 Java vanilla blocks 逐块对齐、多线程/性能、Rc<RefCell>→Arc 生产化、noise_params.json 文件读取。
+- 仅验证 density == C++ buildNode（overworld 16 DF + full finalDensity）。未做：vanilla 逐块对齐（block_probe/ref density 数据）、多线程/性能、`Rc<RefCell>→Arc/thread_local` 生产化。
+- ✅ noise_params 已从硬编码表切到权威 `noise_params.json`（`load_noise_params_file`），消除两端共享硬编码表的转录风险（judge P2-e 收口）；file-loaded 后 finalDensity 仍与 C++ 数值逐位一致。
 - `old_blended_noise` 已对齐（base_3d_noise min/max == ±87.5515 与 C++ 一致）。
