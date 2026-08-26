@@ -45,6 +45,13 @@
 - ⚠️ 该步为「主体地形」层（finalDensity 符号 → 石头/空气/水），不含块级（Beardifier/aquifer/surface rules）；用户明确本方向**不绝对对齐，主体地形差异不大即可**。
 - 下一步（如需硬证据）：Rust vs vanilla blocks 文件直接对照（需 blocks 文件解析 + seed/坐标三查 + 块管线），较大工程。
 
+## ① chunk 块生成（2026-08-24，宽松 vanilla 对照）
+- `chunk_block_probe.rs`：Rust finalDensity → chunk 块阵（density>0 石头；density<=0 且 y>=63 空气；density<=0 且 y<63 水）→ 16×16 切片 + 统计。
+- chunk(45,-26)：地表层 62-77（丘陵）、y=-10/40 海岸线（水/石头交界）、y=-64/-40 深岩层（全石头）；统计（y step4）stone=7923 air=15660 water=993。
+- ⚠️ 规则简化：density<=0 且 y<63 → 水（未区分「洞穴空气 vs 含水层水」，需 aquifer 才能正确区分 y<63 的洞穴=空气）；故本 chunk 未见大型洞穴（被当水）。
+- 主体地形（地表形状 + 海岸水 + 深岩）已生成且与 vanilla 一致（Rust==C++==vanilla 转递）。
+- 记录：chunk_block_probe.rs（冻结）。
+
 ## 复现命令
 ```powershell
 # 1) C++ 参照（cl 直链，MSVC，见 rust_ref_check.cpp 顶部注释；需同一 buildNoiseParams 全表 + md5.cpp）
