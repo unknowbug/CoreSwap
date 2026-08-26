@@ -127,6 +127,19 @@ int main() {
             line += buf;
         }
         std::printf("%s  min=%.8f max=%.8f\n", line.c_str(), tree->minValue(), tree->maxValue());
+        // 抽样 (728,-408) 列（cpp_density_8576_45_-26_b8_8 参照；确认当前 C++ 与该参照是否一致）
+        int cpts[6][3] = {{728,-64,-408},{728,-40,-408},{728,-8,-408},{728,0,-408},{728,120,-408},{728,319,-408}};
+        std::string cline = "col728";
+        for (auto& p : cpts) { NoisePos pos{p[0],p[1],p[2]}; char b[160]; std::snprintf(b,sizeof b," (%d,%d,%d)=%.8f",p[0],p[1],p[2],tree->sample(pos)); cline += b; }
+        std::printf("%s\n", cline.c_str());
+        // 整列 dump (728,-408) 到 stdout（供 chunkfill_probe 对比当前 C++）
+        for (int y=-64; y<=319; y++) { NoisePos pos{728,y,-408}; std::printf("COL %d %.10f\n", y, tree->sample(pos)); }
+        // 整块网格 dump：chunk(45,-26) 全部 16x16 列 × 10 个代表 y（覆盖 interpolated cell 网格 + 关键层）
+        int ys[10] = {-64,-32,0,32,63,96,128,200,256,319};
+        for (int bx=0; bx<16; bx++) for (int bz=0; bz<16; bz++) {
+            int gx = 45*16+bx, gz = -26*16+bz;
+            for (int y : ys) { NoisePos pos{gx,y,gz}; std::printf("GRID %d %d %d %.10f\n", gx, gz, y, tree->sample(pos)); }
+        }
     }
     return 0;
 }
