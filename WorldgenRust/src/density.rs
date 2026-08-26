@@ -82,6 +82,8 @@ pub struct SplineData {
     pub sub_idx: Vec<i32>,
     pub loc_fns: Vec<Arc<DensityFunction>>,
     pub root: i32,
+    pub min_val: f64,
+    pub max_val: f64,
 }
 impl SplineData {
     fn sample_node(&self, node_id: i32, pos: &NoisePos) -> f64 {
@@ -121,7 +123,7 @@ impl SplineData {
         }
         r
     }
-    fn node_min(&self, node_id: i32) -> f64 {
+    pub fn node_min(&self, node_id: i32) -> f64 {
         let nd = &self.nodes[node_id as usize];
         if nd.n == 0 { return nd.fixed_value as f64; }
         let subs = &self.sub_idx[nd.sub_begin as usize..];
@@ -129,7 +131,7 @@ impl SplineData {
         for k in 0..nd.n as usize { m = m.min(self.node_min(subs[k])); }
         m
     }
-    fn node_max(&self, node_id: i32) -> f64 {
+    pub fn node_max(&self, node_id: i32) -> f64 {
         let nd = &self.nodes[node_id as usize];
         if nd.n == 0 { return nd.fixed_value as f64; }
         let subs = &self.sub_idx[nd.sub_begin as usize..];
@@ -228,11 +230,14 @@ pub struct InterpolatedData {
     pub min_y: i32,
     pub height: i32,
     pub id: u32,
+    pub mn: f64,
+    pub mx: f64,
 }
 impl InterpolatedData {
     pub fn new(arg: Arc<DensityFunction>, min_y: i32, height: i32) -> Self {
         let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
-        InterpolatedData { arg, min_y, height, id }
+        let mn = arg.min_value(); let mx = arg.max_value();
+        InterpolatedData { arg, min_y, height, id, mn, mx }
     }
     // 每线程缓存槽（Box 保证节点 id 的 slot 地址稳定；slot_ptr 释放 HashMap 借用，仅持 slot RefCell 借用）
     #[inline]
@@ -313,11 +318,12 @@ thread_local! {
     static C2D_CACHE: RefCell<HashMap<u32, Box<RefCell<Cache2DSlot>>>> = RefCell::new(HashMap::new());
 }
 #[derive(Clone)]
-pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32 }
+pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
 impl Cache2DData {
     pub fn new(arg: Arc<DensityFunction>) -> Self {
         let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
-        Cache2DData { arg, id }
+        let mn = arg.min_value(); let mx = arg.max_value();
+        Cache2DData { arg, id, mn, mx }
     }
     #[inline]
     fn slot_ptr(&self) -> *const RefCell<Cache2DSlot> {
@@ -350,11 +356,12 @@ thread_local! {
     static FLAT_CACHE: RefCell<HashMap<u32, Box<RefCell<FlatSlot>>>> = RefCell::new(HashMap::new());
 }
 #[derive(Clone)]
-pub struct FlatCacheData { pub arg: Arc<DensityFunction>, pub id: u32 }
+pub struct FlatCacheData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
 impl FlatCacheData {
     pub fn new(arg: Arc<DensityFunction>) -> Self {
         let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
-        FlatCacheData { arg, id }
+        let mn = arg.min_value(); let mx = arg.max_value();
+        FlatCacheData { arg, id, mn, mx }
     }
     #[inline]
     fn slot_ptr(&self) -> *const RefCell<FlatSlot> {
@@ -490,10 +497,10 @@ impl DensityFunction {
             DensityFunction::BinaryOp { mn, .. } => *mn,
             DensityFunction::UnaryOp { mn, .. } => *mn,
             DensityFunction::Clamp { mn, .. } => *mn,
-            DensityFunction::Spline(s) => s.node_min(s.root),
-            DensityFunction::Interpolated(id) => id.arg.min_value(),
-            DensityFunction::Cache2D(c) => c.arg.min_value(),
-            DensityFunction::FlatCache(f) => f.arg.min_value(),
+            DensityFunction::Spline(s) => s.min_val,
+            DensityFunction::Interpolated(id) => id.mn,
+            DensityFunction::Cache2D(c) => c.mn,
+            DensityFunction::FlatCache(f) => f.mn,
             DensityFunction::ShiftDF { noise, .. } => -noise.get_max_value() * 4.0,
             DensityFunction::ShiftedNoise { noise, .. } => -noise.get_max_value(),
             DensityFunction::RangeChoice { in_range, out_of_range, .. } => in_range.min_value().min(out_of_range.min_value()),
@@ -518,10 +525,10 @@ impl DensityFunction {
             DensityFunction::BinaryOp { mx, .. } => *mx,
             DensityFunction::UnaryOp { mx, .. } => *mx,
             DensityFunction::Clamp { mx, .. } => *mx,
-            DensityFunction::Spline(s) => s.node_max(s.root),
-            DensityFunction::Interpolated(id) => id.arg.max_value(),
-            DensityFunction::Cache2D(c) => c.arg.max_value(),
-            DensityFunction::FlatCache(f) => f.arg.max_value(),
+            DensityFunction::Spline(s) => s.max_val,
+            DensityFunction::Interpolated(id) => id.mx,
+            DensityFunction::Cache2D(c) => c.mx,
+            DensityFunction::FlatCache(f) => f.mx,
             DensityFunction::ShiftDF { noise, .. } => noise.get_max_value() * 4.0,
             DensityFunction::ShiftedNoise { noise, .. } => noise.get_max_value(),
             DensityFunction::RangeChoice { in_range, out_of_range, .. } => in_range.max_value().max(out_of_range.max_value()),

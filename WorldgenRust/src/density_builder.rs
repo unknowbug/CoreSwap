@@ -388,7 +388,13 @@ impl SplineBuilder {
     fn add_leaf(&mut self, value: f32) -> i32 { self.nodes.push(SplineNode { loc_fn: -1, loc_begin: 0, sub_begin: 0, n: 0, fixed_value: value }); (self.nodes.len() - 1) as i32 }
     fn add_node(&mut self, loc_fn: Arc<DensityFunction>, n: i32) -> i32 { let lb = self.locations.len() as i32; let sb = self.sub_idx.len() as i32; let lfi = self.loc_fns.len() as i32; self.loc_fns.push(loc_fn); self.nodes.push(SplineNode { loc_fn: lfi, loc_begin: lb, sub_begin: sb, n, fixed_value: 0.0 }); (self.nodes.len() - 1) as i32 }
     fn add_point(&mut self, loc: f32, deriv: f32, child: i32) { self.locations.push(loc); self.derivatives.push(deriv); self.sub_idx.push(child); }
-    fn finish(self, root: i32) -> SplineData { SplineData { nodes: self.nodes, locations: self.locations, derivatives: self.derivatives, sub_idx: self.sub_idx, loc_fns: self.loc_fns, root } }
+    fn finish(self, root: i32) -> SplineData {
+        let mut s = SplineData { nodes: self.nodes, locations: self.locations, derivatives: self.derivatives, sub_idx: self.sub_idx, loc_fns: self.loc_fns, root, min_val: 0.0, max_val: 0.0 };
+        // 缓存 min/max（O(1) 查询，避免 BinaryOp 每点递归 node_min/node_max）
+        s.min_val = s.node_min(root);
+        s.max_val = s.node_max(root);
+        s
+    }
 }
 
 // 便捷：无 registry / seed 的 build_node（顶层 finalDensity 用）
