@@ -122,6 +122,14 @@
 - **意义**：Rust `Arc` 共享树 + `thread_local` 缓存**避免了 C++ 并发 11×/每 chunk 延迟随线程暴涨的 cache-line 争用**——Rust 加线程反而加速（5.5×），体现「Rust 并发安全 + 无争用」。对比：C++ 多线程并发曾让单 chunk 密度延迟 42→391ms（9.2× 变慢）。
 - 验证分层 = Full（逐位），对齐基准 = C++ buildNode（无 Beardifier）。冻结：`.investigations/rust-density-builder/{mt_probe_out.txt, mt_probe.rs}`（verification-record.md v1.3）。
 
+## 2026-08-24 深夜7（架构：通道化/直排；S0 通道分析定界）
+
+> 状态：📊 架构 `rust-density-channel-arch.md`（借 SteelMC 框架 + 以逐位对齐为准绳）；S0 通道分析完成。
+> **S0 关键洞察（建设性反对，调整计划）**：finalDensity 树有 **5 个 Interpolated 通道**——**ch#9 = 巨型地形内层（整棵深递归表达式）**，ch#10-13 = 4 个 noodle 小通道 `rc(ycg noise)`。**瓶颈 = ch#9 巨型内层在 1225 个 grid 角点各深递归求值 ~430ms/ chunk**。**通道化（S1）只合并 5 grid → 1 共享网格，不降低 ch#9 深递归成本**；**真正 win = S2（数据驱动扁平表 + 显式栈直排，让巨型表达式求值不再深递归）**。
+
+- S0 探针：`WorldgenRust/src/bin/channel_probe.rs`（DFS 遍历树收集 Interpolated 标记 + 内层构成）。
+- **计划调整**：优先 S2（扁平表/显式栈直排，直接砍 ch#9 深递归）→ 再 S3 ColumnCache → S1 通道化（结构合并）→ S4 SIMD（逐位验证才上）。S0 已确认通道数 = 5（1 地形 + 4 noodle；SteelMC 期望 8 = +3 vein，vein 在独立 router 不在 finalDensity，故 5 合理）。
+
 ## 2026-08-24 深夜6（性能基线 profiler：瓶颈定位）
 
 > 状态：📊 基线测定（release，seed 8576294172403134396，chunk(45,-26)）。
