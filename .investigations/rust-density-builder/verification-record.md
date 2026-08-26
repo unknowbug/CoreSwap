@@ -35,10 +35,15 @@
 - mt_probe.rs 共享 `Arc<DensityFunction>` 树，N 线程各 fill 不同 chunk：**release T=1/2/4/8 = 4343/2861/1470/788ms（T=8 加速 5.51×），mismatch=0/8**（各线程结果与单线程逐位一致）。
 - 对齐基准 = C++ buildNode（无 Beardifier）；seed=8576294172403134396。回归：finalDensity/chunkgrid 在 Arc 重构后仍逐位（2560/2560、finalDensity 与 C++ identical）。
 
-## 整块网格填充（2026-08-24，追加）
-- Rust `chunkgrid_probe.rs` 对 chunk(45,-26) 全部 16×16 列 × 10 代表 y（{ -64,-32,0,32,63,96,128,200,256,319 }）采样 finalDensity，与**当前 C++ 参照**（`rust_ref_check` GRID dump `cpp_grid45.txt`）**2560/2560 一致，maxDiff=2.958e-8**（float32 级）。
+## 整块网格填充（2026-08-24，追加）- Rust `chunkgrid_probe.rs` 对 chunk(45,-26) 全部 16×16 列 × 10 代表 y（{ -64,-32,0,32,63,96,128,200,256,319 }）采样 finalDensity，与**当前 C++ 参照**（`rust_ref_check` GRID dump `cpp_grid45.txt`）**2560/2560 一致，maxDiff=2.958e-8**（float32 级）。
 - 验证分层 = Full（逐位），对齐基准 = C++ buildNode（不含 Beardifier），seed = 8576294172403134396。
 - 意义：Rust finalDensity 能正确填充**整块密度网格**（16×16 列跨 interpolated cell 边界），D23 跨 cell 正确性在 Rust 侧成立。
+
+## 主体地形对齐（2026-08-24，宽松判据：非逐位）
+- **Rust finalDensity == C++ buildNode**（2560/2560 逐位）→ **主体地形转递一致**（C++ 已验证 vs vanilla 8576/3200 主体一致）。
+- 可视化：`terrain_map_probe.rs`（Rust finalDensity → 每列地表高度，自顶首个 density>0）。chunk(45,-27) 高 67-73（缓坡）；chunk(45,-26) 62-77（隆起丘陵）——合理的原版主地形。
+- ⚠️ 该步为「主体地形」层（finalDensity 符号 → 石头/空气/水），不含块级（Beardifier/aquifer/surface rules）；用户明确本方向**不绝对对齐，主体地形差异不大即可**。
+- 下一步（如需硬证据）：Rust vs vanilla blocks 文件直接对照（需 blocks 文件解析 + seed/坐标三查 + 块管线），较大工程。
 
 ## 复现命令
 ```powershell
