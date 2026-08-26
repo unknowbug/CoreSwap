@@ -91,10 +91,24 @@
 2. 生产化（`Rc<RefCell>` → `Arc`/`thread_local`，多线程缓存并发安全）；
 3. `noise_params.json` 读取（对齐基准从硬编码表切到文件）。
 
-## 相关文档
-rust-rewrite-decision.md / rust-rewrite-plan.md / rust-porting-notes.md / rust-mlp-validation.md / rust-install-guide.md。
+## 2026-08-24 深夜3（Rust 块级 y-column 填充引擎 + 关键参照坑）
+
+> 状态：✅ Rust `chunkfill_probe.rs` 对 chunk(45,-26) row(8,8) 即 (728,-408) 全列 384 点采样 finalDensity，与**当前 C++ 参照列** 384/384 一致，maxDiff=3.58e-9（float32 级）。
+
+**已完成且编译通过**：
+- `chunkfill_probe.rs`（`WorldgenRust/src/bin/`）：构建 finalDensity → 对 (728,-408) 列 y=-64..319 逐点采样 → 与参照对比（matched/maxDiff）。
+
+**关键参照坑（错误优先留痕，请勿重踩）**：
+- ❌ **`cpp_density_8576_45_-26_b8_8.txt` 是过期/含 Beardifier 的参照，不可作 buildNode 参照**。用它对 Rust 对拍出 256/384、maxDiff=0.015 @y=-8 —— 但**当前 C++ `rust_ref_check` 在同点 (728,-8,-408)=-0.00232305，与 Rust 一致**。根因：`cpp_density_*` 文件是**完整 C++ worldgen（含 Beardifier 结构密度修正）**输出；而 `density_builder.h` buildNode（=Rust、=rust_ref_check）**不含 Beardifier**（`@anchor.idk`("结构 Beardifier 密度修正未实现…")）。结构附近（如 (728,-8,-408) 邻近 (784,-160,-408) 结构区）二者差 ~0.015。
+- ✅ **正确参照 = 当前 C++ 构建的 `rust_ref_check` 列 dump**（`cpp_col728.txt`，COL y val 格式）——384/384 一致。
+- 教训：对拍 buildNode 一致性必须用**当前 C++ 重新构建的参照**（rust_ref_check），不能沿用 `cpp_density_*` 历史文件（含 Beardifier，属不同密度配置）。
+
+**下一步**：full 块填充（16×16×384）+ Beardifier（若需对齐完整 worldgen）后续。
 
 ## 2026-08-24 深夜2（noise_params.json 读取，judge P2-e 收口）
 - ✅ `build_noise_params_from_file(path)`：读权威 `versions/1.20.1/data/noise_params.json`（BuiltinNoiseParameters 1.20.1 导出）构建噪声参数表；`DensityBuilder::load_noise_params_file(path)` 覆盖硬编码表。
 - 验证：finaldensity_probe 用文件加载噪声参数后，finalDensity 输出与 C++ 参照**仍数值逐位一致**（硬编码表与权威文件等价，转录风险消除）。
 - 意义：对齐基准从硬编码表切到权威 `noise_params.json`（judge P2-e）——两端不再共享"可能写错"的硬编码表。
+
+## 相关文档
+rust-rewrite-decision.md / rust-rewrite-plan.md / rust-porting-notes.md / rust-mlp-validation.md / rust-install-guide.md。
