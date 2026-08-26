@@ -1,0 +1,14 @@
+// WorldgenRust — CoreSwap worldgen Rust 重写（Phase 1 骨架）
+// 目标：把 C++ worldgen（density/spline/terrain，逆向 Java）移植为 Rust（enum 数据驱动 + 软流 MLP）。
+pub mod noise;             // DoublePerlinNoiseSampler / Octave / Perlin + perm
+pub mod density;           // DF 树（InterpolatedDF/SplineDF/FlatCacheDF/Cache2DDF/NoiseDF/...）
+pub mod density_builder;   // worldgen JSON -> DF 树
+pub mod spline;            // SplineDF（data-driven 表 + 采样，可软流）
+pub mod terrain;           // finalDensity 构建 + fill 逻辑
+pub mod api;               // wg_create/fill/sample 等价（C ABI 导出）
+pub mod json;              // worldgen JSON 解析
+pub mod verif;             // 验证：ref 数据加载 + 逐位对比
+pub mod md5;               // MD5（create_xoroshiro_seed_str 的 string 种子）
+pub mod xoroshiro;         // XoroshiroRandom + Xoroshiro128PlusPlus + Splitter（随机源）
+
+pub fn version() -> &'static str { "0.1.0" }

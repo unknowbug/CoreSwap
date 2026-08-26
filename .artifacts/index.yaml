@@ -2,6 +2,10 @@ schema_version: 1
 project: CoreSwap
 module: re-code
 entries:
+  - id: 're-code:rust-density-builder:alignment'
+    path: 'rust-density-builder/rust-density-builder-alignment.md'
+    kind: analysis
+    status: candidate
   - id: 're-code:8576-finaldensity:beardifier-analysis'
     path: '8576-finaldensity/beardifier-analysis.md'
     kind: analysis
