@@ -42,8 +42,8 @@ knowledge/discovered/vulkan-gpu-programming.md
 protocol/
 scripts/
 
-# CoreSwap 迁移补充：Java 探针工程留在 MC 只读，不入 CoreSwap 工作区
-versions/1.20.1/java/
+# CoreSwap 迁移补充：Java 探针工程 2026-08-24 迁回 CoreSwap（曾错误地留在 MC 只读不入工作区，致找不回来；现迁移+源码入库）
+# versions/1.20.1/java/
 versions/1.20.1/bench/
 # 未开发占位（ai 层未来按需加回）
 versions/1.20.1/cpp/ai/
@@ -69,3 +69,10 @@ __pycache__/
 
 # external reference clones (read-only)
 .investigations/reference/
+
+# MC probe project build/cache (migrated from E:\PYTHON\MC)
+versions/1.20.1/java/build/
+versions/1.20.1/java/.gradle/
+versions/1.20.1/java/run/
+versions/1.20.1/java/data/
+
