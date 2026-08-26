@@ -11,6 +11,9 @@ use crate::noise::OctavePerlinNoiseSampler;
 
 // 缓存节点 id 分配（生产化：缓存改 thread_local，节点需稳定 id）
 static NEXT_CACHE_ID: AtomicU32 = AtomicU32::new(0);
+// 诊断：build_grid 的 arg 采样总次数（定位交替插值嵌套递归网格构建膨胀）
+#[doc(hidden)]
+pub static GRID_ARG_SAMPLES: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BinOp { Add, Mul, Min, Max }
@@ -253,6 +256,7 @@ impl InterpolatedData {
                     let pz = chunk_z * 16 + iz * CELL_Z;
                     let pos = NoisePos { x: px, y: py, z: pz };
                     grid[((iy * gz + iz) * gx + ix) as usize] = self.arg.sample(&pos);
+                    GRID_ARG_SAMPLES.fetch_add(1, Ordering::Relaxed);
                 }
             }
         }

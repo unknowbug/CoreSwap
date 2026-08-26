@@ -122,6 +122,21 @@
 - **意义**：Rust `Arc` 共享树 + `thread_local` 缓存**避免了 C++ 并发 11×/每 chunk 延迟随线程暴涨的 cache-line 争用**——Rust 加线程反而加速（5.5×），体现「Rust 并发安全 + 无争用」。对比：C++ 多线程并发曾让单 chunk 密度延迟 42→391ms（9.2× 变慢）。
 - 验证分层 = Full（逐位），对齐基准 = C++ buildNode（无 Beardifier）。冻结：`.investigations/rust-density-builder/{mt_probe_out.txt, mt_probe.rs}`（verification-record.md v1.3）。
 
+## 2026-08-24 深夜6（性能基线 profiler：瓶颈定位）
+
+> 状态：📊 基线测定（release，seed 8576294172403134396，chunk(45,-26)）。
+> **结论：稳态每点采样很快（0.07μs），瓶颈 = Interpolated grid 构建（420ms/chunk）——finalDensity 树含 ~5 个嵌套 interpolated 节点，每 chunk 触发 5 次 5×49×5=1225 点 grid 构建（共 6125 次 arg.sample）。**
+
+- **fresh chunk fill（含 grid 构建 + 采样）= 428.6ms；cached fill（纯采样）= 1.8ms（0.074μs/pt）**。
+- grid 构建成本 = 426.8ms（dominant）；稳态每点 = 0.074μs（快于 C++ 0.4μs）。
+- `build_grid` arg.sample 总调用 = 6125 = 5×1225 → **5 个 interpolated grid 构建/ chunk**（嵌套）。
+- 叶子实测：base_3d_noise 0.8μs/pt、sloped_cheese 0.9μs/pt、caves/entrances 0.6μs/pt、factor/caves-noodle ~0.1μs（大量变化点位，防 const-fold）。
+- 探针：perf_probe2（fresh vs cached 拆分）、perf_probe3（叶子/变化点）、perf_probe4（grid arg.sample 计数，GRID_ARG_SAMPLES 诊断计数器）。
+
+**意义**：性能问题不在逐点采样（已很快），而在 **Interpolated grid 构建**这一每 chunk 固定成本（5 嵌套 interpolated）。优化方向候选：① 缓存 min/max（Spline/Interpolated 递归，若 BinaryOp 每点调用即是大头）② grid 构建减重/嵌套扁平化（DFC 思路）③ 软流 MLP 摊薄深链。**下一步：先测「是否 min_value/max_value 每点递归」这一最便宜假说**（若成立，缓存即可大幅提速）。
+
+**⚠️ 训诫**：此前 mt_probe 的「~237μs/pt」是**误导**（把 grid 构建摊销进每点）；正确拆分 = fresh vs cached。perf_probe v1「0.1μs/pt」同样不可靠（同一固定点被 LLVM 常数折叠/LICM）。**测多线程/性能必须用变化点位 + fresh-vs-cached 拆分**。
+
 ## 2026-08-24 深夜2（noise_params.json 读取，judge P2-e 收口）
 - ✅ `build_noise_params_from_file(path)`：读权威 `versions/1.20.1/data/noise_params.json`（BuiltinNoiseParameters 1.20.1 导出）构建噪声参数表；`DensityBuilder::load_noise_params_file(path)` 覆盖硬编码表。
 - 验证：finaldensity_probe 用文件加载噪声参数后，finalDensity 输出与 C++ 参照**仍数值逐位一致**（硬编码表与权威文件等价，转录风险消除）。
