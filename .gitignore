@@ -64,3 +64,8 @@ __pycache__/
 .investigations/perf-rework/vulkan-proto/*.asm
 .investigations/perf-rework/final_density.spv
 .investigations/perf-rework/*.spv.noinline.spv
+
+# external reference clones (read-only).investigations/reference/
+
+# external reference clones (read-only)
+.investigations/reference/
