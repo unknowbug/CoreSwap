@@ -2,9 +2,9 @@
 // 对齐 C++ density_builder.h：DensityBuilder(seed, noiseParams) -> randomDeriver = XoroshiroRandom(seed).nextSplitter()
 //                    getNoiseSampler(key) = randomDeriver.split(key) -> DoublePerlinNoiseSampler(rnd, noiseParams[key])
 //                    buildNode(type 分派) / buildSpline(SplineData) / resolveRef(registry 懒引用)
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::Mutex;
 use crate::density::*;
 use crate::json::JsonValue;
 use crate::noise::DoublePerlinNoiseSampler;
@@ -106,9 +106,9 @@ pub struct DensityBuilder {
     #[allow(dead_code)] seed: u64,
     noise_params: HashMap<String, NoiseParameters>,
     random_deriver: XoroshiroSplitter,
-    noise_samplers: HashMap<String, Rc<DoublePerlinNoiseSampler>>,
-    registry: HashMap<String, Rc<DensityFunction>>,
-    lazy_refs: HashMap<String, Rc<RefCell<Option<Rc<DensityFunction>>>>>,
+    noise_samplers: HashMap<String, Arc<DoublePerlinNoiseSampler>>,
+    registry: HashMap<String, Arc<DensityFunction>>,
+    lazy_refs: HashMap<String, Arc<Mutex<Option<Arc<DensityFunction>>>>>,
     // 惰性加载器：(fullRef, shortName) -> JSON 文本（外部设置，用于按需加载 registry 引用）
     external_loader: Option<Box<dyn Fn(&str, &str) -> String>>,
     #[allow(dead_code)] min_y: i32,
@@ -130,62 +130,62 @@ impl DensityBuilder {
         self.noise_params = build_noise_params_from_file(path)?;
         Ok(())
     }
-    pub fn get_noise_sampler(&mut self, key: &str) -> Rc<DoublePerlinNoiseSampler> {
+    pub fn get_noise_sampler(&mut self, key: &str) -> Arc<DoublePerlinNoiseSampler> {
         if let Some(s) = self.noise_samplers.get(key) { return s.clone(); }
         let params = self.noise_params.get(key).cloned().ok_or_else(|| "unknown noise params".to_string()).expect("noise params");
         let mut rnd = self.random_deriver.split_str(key);
-        let sampler = Rc::new(crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, &params));
+        let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, &params));
         self.noise_samplers.insert(key.to_string(), sampler.clone());
         sampler
     }
     // getNoiseSamplerFromObj（C++ L335-339）：obj.noise .str() -> getNoiseSampler
-    fn get_noise_sampler_from_obj(&mut self, obj: &JsonValue) -> Rc<DoublePerlinNoiseSampler> {
+    fn get_noise_sampler_from_obj(&mut self, obj: &JsonValue) -> Arc<DoublePerlinNoiseSampler> {
         let n = obj.get("noise").ok_or("noise field missing").expect("noise field missing");
         self.get_noise_sampler(&n.as_str().unwrap_or("").to_string())
     }
-    pub fn register_function(&mut self, key: &str, df: Rc<DensityFunction>) {
+    pub fn register_function(&mut self, key: &str, df: Arc<DensityFunction>) {
         // 若已有 lazyRef/占位（循环引用），填充其 target（对齐 C++ registerFunction L285-297）
         if let Some(old) = self.registry.get(key) {
             if let DensityFunction::Lazy { target } = &**old {
-                *target.borrow_mut() = Some(df.clone());
+                *target.lock().unwrap() = Some(df.clone());
             }
         }
         self.registry.insert(key.to_string(), df.clone());
         for (k, lr) in &self.lazy_refs {
-            if k == key && lr.borrow().is_none() {
-                *lr.borrow_mut() = Some(df.clone());
+            if k == key && lr.lock().unwrap().is_none() {
+                *lr.lock().unwrap() = Some(df.clone());
             }
         }
     }
     pub fn new_lazy_ref(&mut self, key: &str) {
-        self.lazy_refs.insert(key.to_string(), Rc::new(RefCell::new(None)));
+        self.lazy_refs.insert(key.to_string(), Arc::new(Mutex::new(None)));
     }
     // 解析 registry 引用（"minecraft:overworld/xxx" 等），对齐 C++ resolveRef L221-263
-    pub fn resolve_ref(&mut self, key: &str) -> Rc<DensityFunction> {
+    pub fn resolve_ref(&mut self, key: &str) -> Arc<DensityFunction> {
         if let Some(s) = self.registry.get(key) { return s.clone(); }
         if key == "minecraft:shift_x" {
             let ns = self.get_noise_sampler("minecraft:offset");
             let df = DensityFunction::Wrapping { input: Box::new(DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftA }) };
-            let rc = Rc::new(df);
+            let rc = Arc::new(df);
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
         if key == "minecraft:shift_z" {
             let ns = self.get_noise_sampler("minecraft:offset");
             let df = DensityFunction::Wrapping { input: Box::new(DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftB }) };
-            let rc = Rc::new(df);
+            let rc = Arc::new(df);
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
         if key == "minecraft:y" {
             // y = yClampedGradient(minY, maxY, minY, maxY)（恒等 y 映射，overworld -64..320）
             let df = DensityFunction::YClampedGradient { from_y: -64, to_y: 320, from_value: -64.0, to_value: 320.0 };
-            let rc = Rc::new(df);
+            let rc = Arc::new(df);
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
         if key == "minecraft:zero" {
-            let rc = Rc::new(DensityFunction::Constant { value: 0.0 });
+            let rc = Arc::new(DensityFunction::Constant { value: 0.0 });
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
@@ -193,16 +193,16 @@ impl DensityBuilder {
         if key.starts_with("minecraft:overworld/") && self.external_loader.is_some() {
             let name = key["minecraft:overworld/".len()..].to_string();
             // 循环引用保护：先注册 LazyRef 占位，加载期间若再引用 ref 会命中占位（对齐 C++ L252-253）
-            let placeholder = Rc::new(DensityFunction::Lazy { target: Rc::new(RefCell::new(None)) });
+            let placeholder = Arc::new(DensityFunction::Lazy { target: Arc::new(Mutex::new(None)) });
             self.registry.insert(key.to_string(), placeholder.clone());
             let json_text = (self.external_loader.as_ref().unwrap())(key, &name);
             if !json_text.trim().is_empty() {
                 let root = crate::json::parse(&json_text).map_err(|_| key.to_string()).unwrap_or(JsonValue::Null);
                 let df = self.build_node(&root).unwrap_or_else(|e| panic!("resolve {} failed: {}", key, e));
                 if let DensityFunction::Lazy { target } = &*placeholder {
-                    *target.borrow_mut() = Some(Rc::new(df.clone()));
+                    *target.lock().unwrap() = Some(Arc::new(df.clone()));
                 }
-                let rc = Rc::new(df);
+                let rc = Arc::new(df);
                 self.registry.insert(key.to_string(), rc.clone());
                 return rc;
             }
@@ -271,10 +271,10 @@ impl DensityBuilder {
             "minecraft:quarter_negative" => { let i = self.build_node(self.arg(v, "argument"))?; self.un(UnaryOp::QuarterNegative, i) }
             "minecraft:squeeze" => { let i = self.build_node(self.arg(v, "argument"))?; self.un(UnaryOp::Squeeze, i) }
             "minecraft:clamp" => { let i = self.build_node(self.arg(v, "input"))?; let mn = v.get("min").and_then(|x| x.as_f64()).unwrap_or(0.0); let mx = v.get("max").and_then(|x| x.as_f64()).unwrap_or(0.0); DensityFunction::Clamp { input: Box::new(i), mn, mx } }
-            "minecraft:interpolated" => { let inner = Rc::new(self.build_node(self.arg(v, "argument"))?); let min_y = v.get("min_y").and_then(|x| x.as_f64()).unwrap_or(self.min_y as f64) as i32; let height = v.get("height").and_then(|x| x.as_f64()).unwrap_or(self.noise_height as f64) as i32; DensityFunction::Interpolated(InterpolatedData::new(inner, min_y, height)) }
+            "minecraft:interpolated" => { let inner = Arc::new(self.build_node(self.arg(v, "argument"))?); let min_y = v.get("min_y").and_then(|x| x.as_f64()).unwrap_or(self.min_y as f64) as i32; let height = v.get("height").and_then(|x| x.as_f64()).unwrap_or(self.noise_height as f64) as i32; DensityFunction::Interpolated(InterpolatedData::new(inner, min_y, height)) }
             // 2D/3D 缓存不做（性能优化），但 cache_all_in_cell/cache_once 纯委托包装（对齐 C++ WrappingDF L644-652）
-            "minecraft:flat_cache" => DensityFunction::FlatCache(FlatCacheData::new(Rc::new(self.build_node(self.arg(v, "argument"))?))),
-            "minecraft:cache_2d" => DensityFunction::Cache2D(Cache2DData::new(Rc::new(self.build_node(self.arg(v, "argument"))?))),
+            "minecraft:flat_cache" => DensityFunction::FlatCache(FlatCacheData::new(Arc::new(self.build_node(self.arg(v, "argument"))?))),
+            "minecraft:cache_2d" => DensityFunction::Cache2D(Cache2DData::new(Arc::new(self.build_node(self.arg(v, "argument"))?))),
             "minecraft:cache_once" | "minecraft:cache_all_in_cell" => DensityFunction::Wrapping { input: Box::new(self.build_node(self.arg(v, "argument"))?) },
             "minecraft:spline" => self.build_spline(v)?,
             "minecraft:noise" => {
@@ -375,18 +375,18 @@ impl DensityBuilder {
             }
         }
         let coord = obj.get("coordinate").ok_or("spline coordinate")?;
-        let loc_fn = Rc::new(b.build_node(coord)?);
+        let loc_fn = Arc::new(b.build_node(coord)?);
         let node_id = sb.add_node(loc_fn, n);
         for i in 0..n as usize { sb.add_point(locs[i], ders[i], child_ids[i]); }
         Ok(node_id)
     }
 }
 
-pub struct SplineBuilder { nodes: Vec<SplineNode>, locations: Vec<f32>, derivatives: Vec<f32>, sub_idx: Vec<i32>, loc_fns: Vec<Rc<DensityFunction>> }
+pub struct SplineBuilder { nodes: Vec<SplineNode>, locations: Vec<f32>, derivatives: Vec<f32>, sub_idx: Vec<i32>, loc_fns: Vec<Arc<DensityFunction>> }
 impl SplineBuilder {
     fn new() -> Self { SplineBuilder { nodes: Vec::new(), locations: Vec::new(), derivatives: Vec::new(), sub_idx: Vec::new(), loc_fns: Vec::new() } }
     fn add_leaf(&mut self, value: f32) -> i32 { self.nodes.push(SplineNode { loc_fn: -1, loc_begin: 0, sub_begin: 0, n: 0, fixed_value: value }); (self.nodes.len() - 1) as i32 }
-    fn add_node(&mut self, loc_fn: Rc<DensityFunction>, n: i32) -> i32 { let lb = self.locations.len() as i32; let sb = self.sub_idx.len() as i32; let lfi = self.loc_fns.len() as i32; self.loc_fns.push(loc_fn); self.nodes.push(SplineNode { loc_fn: lfi, loc_begin: lb, sub_begin: sb, n, fixed_value: 0.0 }); (self.nodes.len() - 1) as i32 }
+    fn add_node(&mut self, loc_fn: Arc<DensityFunction>, n: i32) -> i32 { let lb = self.locations.len() as i32; let sb = self.sub_idx.len() as i32; let lfi = self.loc_fns.len() as i32; self.loc_fns.push(loc_fn); self.nodes.push(SplineNode { loc_fn: lfi, loc_begin: lb, sub_begin: sb, n, fixed_value: 0.0 }); (self.nodes.len() - 1) as i32 }
     fn add_point(&mut self, loc: f32, deriv: f32, child: i32) { self.locations.push(loc); self.derivatives.push(deriv); self.sub_idx.push(child); }
     fn finish(self, root: i32) -> SplineData { SplineData { nodes: self.nodes, locations: self.locations, derivatives: self.derivatives, sub_idx: self.sub_idx, loc_fns: self.loc_fns, root } }
 }

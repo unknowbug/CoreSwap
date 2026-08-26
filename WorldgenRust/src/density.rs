@@ -2,9 +2,15 @@
 // Phase 3 第 1 波：基础 op；第 2 波：SplineDF（Hermite）+ InterpolatedDF（grid 懒建缓存）。
 // 逐位对齐 C++ density.h（Hermite BK-001 / InterpolatedDF 4x4x8 cell 插值）。
 use std::cell::RefCell;
-use std::rc::Rc;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 use crate::noise::DoublePerlinNoiseSampler;
 use crate::noise::OctavePerlinNoiseSampler;
+
+// 缓存节点 id 分配（生产化：缓存改 thread_local，节点需稳定 id）
+static NEXT_CACHE_ID: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BinOp { Add, Mul, Min, Max }
@@ -71,7 +77,7 @@ pub struct SplineData {
     pub locations: Vec<f32>,
     pub derivatives: Vec<f32>,
     pub sub_idx: Vec<i32>,
-    pub loc_fns: Vec<Rc<DensityFunction>>,
+    pub loc_fns: Vec<Arc<DensityFunction>>,
     pub root: i32,
 }
 impl SplineData {
@@ -135,9 +141,9 @@ fn lerp64(d: f64, s: f64, e: f64) -> f64 { s + d * (e - s) }
 // 三个 OctavePerlinNoiseSampler（lower/upper/interpolation），均藏于 Rc（DensityFunction 需 Clone）。
 #[derive(Clone)]
 pub struct InterpolatedNoiseData {
-    pub lower: Rc<OctavePerlinNoiseSampler>,
-    pub upper: Rc<OctavePerlinNoiseSampler>,
-    pub interpolation: Rc<OctavePerlinNoiseSampler>,
+    pub lower: Arc<OctavePerlinNoiseSampler>,
+    pub upper: Arc<OctavePerlinNoiseSampler>,
+    pub interpolation: Arc<OctavePerlinNoiseSampler>,
     pub xz_scale: f64,
     pub y_scale: f64,
     pub xz_factor: f64,
@@ -153,7 +159,7 @@ impl InterpolatedNoiseData {
         let scaled_xz_scale = (684.412 as f32) as f64 * xz_scale; // Java: 684.412F
         let scaled_y_scale = (684.412 as f32) as f64 * y_scale;
         let max_val = lower.method_40556(scaled_y_scale);
-        InterpolatedNoiseData { lower: Rc::new(lower), upper: Rc::new(upper), interpolation: Rc::new(interpolation),
+        InterpolatedNoiseData { lower: Arc::new(lower), upper: Arc::new(upper), interpolation: Arc::new(interpolation),
                                xz_scale, y_scale, xz_factor, y_factor, smear_scale_multiplier, scaled_xz_scale, scaled_y_scale, max_val }
     }
     // 对齐 C++ sampleImpl L411-473
@@ -206,20 +212,33 @@ impl InterpolatedNoiseData {
     }
 }
 
-// ---- InterpolatedDF 数据（grid 懒建缓存——Rust 用 RefCell 单线程；生产多线程改 thread_local）----
+// ---- InterpolatedDF 数据（grid 懒建缓存——生产化：thread_local 每线程缓存，跨线程共享树无 cache-line 争用）----
 const CELL_X: i32 = 4; const CELL_Y: i32 = 8; const CELL_Z: i32 = 4;
 #[derive(Clone)]
 pub struct InterpSlot { pub key: i64, pub grid: Vec<f64> }
+thread_local! {
+    static INTERP_CACHE: RefCell<HashMap<u32, Box<RefCell<InterpSlot>>>> = RefCell::new(HashMap::new());
+}
 #[derive(Clone)]
 pub struct InterpolatedData {
-    pub arg: Rc<DensityFunction>,
+    pub arg: Arc<DensityFunction>,
     pub min_y: i32,
     pub height: i32,
-    pub cache: Rc<RefCell<InterpSlot>>,
+    pub id: u32,
 }
 impl InterpolatedData {
-    pub fn new(arg: Rc<DensityFunction>, min_y: i32, height: i32) -> Self {
-        InterpolatedData { arg, min_y, height, cache: Rc::new(RefCell::new(InterpSlot { key: i64::MIN, grid: Vec::new() })) }
+    pub fn new(arg: Arc<DensityFunction>, min_y: i32, height: i32) -> Self {
+        let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+        InterpolatedData { arg, min_y, height, id }
+    }
+    // 每线程缓存槽（Box 保证节点 id 的 slot 地址稳定；slot_ptr 释放 HashMap 借用，仅持 slot RefCell 借用）
+    #[inline]
+    fn slot_ptr(&self) -> *const RefCell<InterpSlot> {
+        INTERP_CACHE.with(|m| {
+            let mut m = m.borrow_mut();
+            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(InterpSlot { key: i64::MIN, grid: Vec::new() })));
+            &**e as *const RefCell<InterpSlot>
+        })
     }
     fn build_grid(&self, chunk_x: i32, chunk_z: i32) -> Vec<f64> {
         let gx = 16 / CELL_X + 1;
@@ -243,16 +262,12 @@ impl InterpolatedData {
         let chunk_x = floor_div(pos.x, 16);
         let chunk_z = floor_div(pos.z, 16);
         let key = (((chunk_x as u64) << 32) ^ (chunk_z as u32 as u64)) as i64;
-        let mut slot = self.cache.borrow_mut();
+        let ptr = self.slot_ptr();
+        let slot = unsafe { &*ptr };
+        let mut slot = slot.borrow_mut();
         if slot.key != key {
             slot.key = key;
-            let g = self.build_grid(chunk_x, chunk_z);
-            let gx = 16 / CELL_X + 1;
-            let gy = self.height / CELL_Y + 1;
-            let gz = 16 / CELL_Z + 1;
-            slot.grid = vec![0.0f64; (gx * gy * gz) as usize];
-            // 复制 build_grid 到 slot.grid（避免 borrow 冲突）
-            for i in 0..g.len().min(slot.grid.len()) { slot.grid[i] = g[i]; }
+            slot.grid = self.build_grid(chunk_x, chunk_z);
         }
         let gx = 16 / CELL_X + 1;
         let gy = self.height / CELL_Y + 1;
@@ -286,19 +301,33 @@ impl InterpolatedData {
     }
 }
 
-// ---- Cache2DDF（16 槽 LRU，y 无关 2D 缓存——C++ L661-719）----
+// ---- Cache2DDF（16 槽 LRU，y 无关 2D 缓存——生产化 thread_local 每线程）----
 const CACHE2D_CAP: usize = 16;
 #[derive(Clone)]
 pub struct Cache2DSlot { keys: [i64; 16], values: [f64; 16], stamps: [u64; 16], tick: u64 }
+thread_local! {
+    static C2D_CACHE: RefCell<HashMap<u32, Box<RefCell<Cache2DSlot>>>> = RefCell::new(HashMap::new());
+}
 #[derive(Clone)]
-pub struct Cache2DData { pub arg: Rc<DensityFunction>, pub cache: Rc<RefCell<Cache2DSlot>> }
+pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32 }
 impl Cache2DData {
-    pub fn new(arg: Rc<DensityFunction>) -> Self {
-        Cache2DData { arg, cache: Rc::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; 16], values: [0.0; 16], stamps: [0; 16], tick: 0 })) }
+    pub fn new(arg: Arc<DensityFunction>) -> Self {
+        let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+        Cache2DData { arg, id }
+    }
+    #[inline]
+    fn slot_ptr(&self) -> *const RefCell<Cache2DSlot> {
+        C2D_CACHE.with(|m| {
+            let mut m = m.borrow_mut();
+            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; 16], values: [0.0; 16], stamps: [0; 16], tick: 0 })));
+            &**e as *const RefCell<Cache2DSlot>
+        })
     }
     pub fn sample(&self, pos: &NoisePos) -> f64 {
         let key = ((((pos.x as u32) as u64) << 32) ^ (pos.z as u32 as u64)) as i64;
-        let mut slot = self.cache.borrow_mut();
+        let ptr = self.slot_ptr();
+        let slot = unsafe { &*ptr };
+        let mut slot = slot.borrow_mut();
         for i in 0..CACHE2D_CAP {
             if slot.keys[i] == key { slot.stamps[i] = slot.tick; slot.tick += 1; return slot.values[i]; }
         }
@@ -309,21 +338,35 @@ impl Cache2DData {
         v
     }
 }
-// ---- FlatCacheDF（5x5 网格，chunk 级，y 无关——C++ L734-804）----
+// ---- FlatCacheDF（5x5 网格，chunk 级，y 无关——生产化 thread_local 每线程）----
 const FLAT_GRID: usize = 5;
 #[derive(Clone)]
 pub struct FlatSlot { key: i64, cx: i32, cz: i32, grid: [f64; 25] }
+thread_local! {
+    static FLAT_CACHE: RefCell<HashMap<u32, Box<RefCell<FlatSlot>>>> = RefCell::new(HashMap::new());
+}
 #[derive(Clone)]
-pub struct FlatCacheData { pub arg: Rc<DensityFunction>, pub cache: Rc<RefCell<FlatSlot>> }
+pub struct FlatCacheData { pub arg: Arc<DensityFunction>, pub id: u32 }
 impl FlatCacheData {
-    pub fn new(arg: Rc<DensityFunction>) -> Self {
-        FlatCacheData { arg, cache: Rc::new(RefCell::new(FlatSlot { key: i64::MIN, cx: 0, cz: 0, grid: [0.0; 25] })) }
+    pub fn new(arg: Arc<DensityFunction>) -> Self {
+        let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+        FlatCacheData { arg, id }
+    }
+    #[inline]
+    fn slot_ptr(&self) -> *const RefCell<FlatSlot> {
+        FLAT_CACHE.with(|m| {
+            let mut m = m.borrow_mut();
+            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(FlatSlot { key: i64::MIN, cx: 0, cz: 0, grid: [0.0; 25] })));
+            &**e as *const RefCell<FlatSlot>
+        })
     }
     pub fn sample(&self, pos: &NoisePos) -> f64 {
         // key = chunk（POC 用 pos>>4；生产 fill 设 g_cur_chunk thread_local 对齐 Java startBiomeX）
         let cx = pos.x >> 4; let cz = pos.z >> 4;
         let key = ((((cx as u32) as u64) << 32) ^ (cz as u32 as u64)) as i64;
-        let mut slot = self.cache.borrow_mut();
+        let ptr = self.slot_ptr();
+        let slot = unsafe { &*ptr };
+        let mut slot = slot.borrow_mut();
         if slot.key != key {
             slot.key = key; slot.cx = cx; slot.cz = cz;
             Self::build_grid(&self.arg, slot.cx, slot.cz, &mut slot.grid);
@@ -335,7 +378,7 @@ impl FlatCacheData {
         }
         self.arg.sample(pos)
     }
-    fn build_grid(arg: &Rc<DensityFunction>, chunk_x: i32, chunk_z: i32, grid: &mut [f64; 25]) {
+    fn build_grid(arg: &Arc<DensityFunction>, chunk_x: i32, chunk_z: i32, grid: &mut [f64; 25]) {
         grid.fill(0.0);
         for i in 0..FLAT_GRID {
             let px = (chunk_x * 4 + i as i32) * 4;
@@ -350,7 +393,7 @@ impl FlatCacheData {
 #[derive(Clone)]
 pub enum DensityFunction {
     Constant { value: f64 },
-    Noise { noise: Rc<DoublePerlinNoiseSampler>, xz_scale: f64, y_scale: f64, mn: f64, mx: f64 },
+    Noise { noise: Arc<DoublePerlinNoiseSampler>, xz_scale: f64, y_scale: f64, mn: f64, mx: f64 },
     LinearOp { op: BinOp, input: Box<DensityFunction>, c: f64, mn: f64, mx: f64 },
     BinaryOp { op: BinOp, a: Box<DensityFunction>, b: Box<DensityFunction>, mn: f64, mx: f64 },
     UnaryOp { op: UnaryOp, input: Box<DensityFunction>, mn: f64, mx: f64 },
@@ -359,17 +402,17 @@ pub enum DensityFunction {
     Interpolated(InterpolatedData),
     Cache2D(Cache2DData),
     FlatCache(FlatCacheData),
-    ShiftDF { noise: Rc<DoublePerlinNoiseSampler>, mode: ShiftMode },
-    ShiftedNoise { shift_x: Box<DensityFunction>, shift_y: Box<DensityFunction>, shift_z: Box<DensityFunction>, xz_scale: f64, y_scale: f64, noise: Rc<DoublePerlinNoiseSampler> },
+    ShiftDF { noise: Arc<DoublePerlinNoiseSampler>, mode: ShiftMode },
+    ShiftedNoise { shift_x: Box<DensityFunction>, shift_y: Box<DensityFunction>, shift_z: Box<DensityFunction>, xz_scale: f64, y_scale: f64, noise: Arc<DoublePerlinNoiseSampler> },
     RangeChoice { input: Box<DensityFunction>, min_inclusive: f64, max_exclusive: f64, in_range: Box<DensityFunction>, out_of_range: Box<DensityFunction> },
     YClampedGradient { from_y: i32, to_y: i32, from_value: f64, to_value: f64 },
-    WeirdScaled { input: Box<DensityFunction>, noise: Rc<DoublePerlinNoiseSampler>, rarity: WeirdRarity },
+    WeirdScaled { input: Box<DensityFunction>, noise: Arc<DoublePerlinNoiseSampler>, rarity: WeirdRarity },
     BlendAlpha,
     BlendOffset,
     BlendDensity { input: Box<DensityFunction> },
     Wrapping { input: Box<DensityFunction> },
     InterpolatedNoise(InterpolatedNoiseData),
-    Lazy { target: Rc<RefCell<Option<Rc<DensityFunction>>>> },
+    Lazy { target: Arc<Mutex<Option<Arc<DensityFunction>>>> },
 }
 
 impl DensityFunction {
@@ -430,7 +473,7 @@ impl DensityFunction {
             DensityFunction::Wrapping { input } => input.sample(pos),
             DensityFunction::InterpolatedNoise(nd) => nd.sample(pos),
             DensityFunction::Lazy { target } => {
-                let t = target.borrow();
+                let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.sample(pos) } else { 0.0 }
             }
         }
@@ -458,7 +501,7 @@ impl DensityFunction {
             DensityFunction::Wrapping { input } => input.min_value(),
             DensityFunction::InterpolatedNoise(nd) => -nd.max_val,
             DensityFunction::Lazy { target } => {
-                let t = target.borrow();
+                let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.min_value() } else { f64::NEG_INFINITY }
             }
         }
@@ -489,7 +532,7 @@ impl DensityFunction {
             DensityFunction::Wrapping { input } => input.max_value(),
             DensityFunction::InterpolatedNoise(nd) => nd.max_val,
             DensityFunction::Lazy { target } => {
-                let t = target.borrow();
+                let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.max_value() } else { f64::INFINITY }
             }
         }

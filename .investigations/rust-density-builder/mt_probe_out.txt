@@ -1,0 +1,6 @@
+     Running `target\release\mt_probe.exe`
+seq sum[0]=-2272.3681 (reference)
+T=1 threads: wall=4343.04ms  mismatch=0/8
+T=2 threads: wall=2860.95ms  mismatch=0/8
+T=4 threads: wall=1469.56ms  mismatch=0/8
+T=8 threads: wall=787.84ms  mismatch=0/8

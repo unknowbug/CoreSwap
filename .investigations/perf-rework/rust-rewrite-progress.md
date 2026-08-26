@@ -111,6 +111,17 @@
 - 意义：Rust finalDensity 能正确填充**整块密度网格**（跨 interpolated cell 边界），D23 类跨 cell 正确性在 Rust 侧成立。验证分层 = Full（逐位），seed=8576294172403134396。
 - 冻结：`.investigations/rust-density-builder/{chunkgrid_out.txt, cpp_grid45.txt, chunkgrid_probe.rs}`（verification-record.md v1.2）。
 
+## 2026-08-24 深夜5（生产化：Rc→Arc + thread_local 缓存，多线程采样无缓存争用）
+
+> 状态：✅ Rust 密度树改为 **Arc 跨线程共享 + thread_local 每线程缓存**，多线程采样**结果与单线程一致（mismatch=0）且并发扩展（无 11× 争用）**。
+
+- **density.rs**：`Rc<DensityFunction>`→`Arc<DensityFunction>`；`Rc<DoublePerlinNoiseSampler>`→`Arc<...>`；Interpolated/Cache2D/FlatCache 的 `Rc<RefCell<slot>>`→**thread_local 每线程缓存**（`HashMap<u32, Box<RefCell<slot>>>`，按节点 id + chunk key，Box 保证 slot 地址稳定；avoid RefCell 重入 panic via slot_ptr 释放 HashMap 借用）；`Lazy` 用 `Arc<Mutex<Option<Arc<DensityFunction>>>>`（Send+Sync）。
+- **density_builder.rs**：`Rc`→`Arc`（noise_samplers/registry/lazy_refs/树节点/SplineBuilder.loc_fns）。
+- **mt_probe.rs**（新）：共享 `Arc<DensityFunction>` 树，N 线程各 fill 不同 chunk（16×16 列 × y step8 = 2048 点/chunk），验证结果一致 + 测墙钟。
+- **实测（release）**：seed 8576294172403134396，8 chunk；T=1/2/4/8 = **4343/2861/1470/788ms**，**T=8 加速 5.51×**，**mismatch=0/8**（各线程结果与单线程逐位一致）。
+- **意义**：Rust `Arc` 共享树 + `thread_local` 缓存**避免了 C++ 并发 11×/每 chunk 延迟随线程暴涨的 cache-line 争用**——Rust 加线程反而加速（5.5×），体现「Rust 并发安全 + 无争用」。对比：C++ 多线程并发曾让单 chunk 密度延迟 42→391ms（9.2× 变慢）。
+- 验证分层 = Full（逐位），对齐基准 = C++ buildNode（无 Beardifier）。冻结：`.investigations/rust-density-builder/{mt_probe_out.txt, mt_probe.rs}`（verification-record.md v1.3）。
+
 ## 2026-08-24 深夜2（noise_params.json 读取，judge P2-e 收口）
 - ✅ `build_noise_params_from_file(path)`：读权威 `versions/1.20.1/data/noise_params.json`（BuiltinNoiseParameters 1.20.1 导出）构建噪声参数表；`DensityBuilder::load_noise_params_file(path)` 覆盖硬编码表。
 - 验证：finaldensity_probe 用文件加载噪声参数后，finalDensity 输出与 C++ 参照**仍数值逐位一致**（硬编码表与权威文件等价，转录风险消除）。

@@ -24,6 +24,17 @@
 | cpp_grid45.txt（C++ rust_ref_check 整块(45,-26)网格参照） | 3C1C84D93174B24A047783D47FBE8B28E7B6CA246A9F916D54BF9BC7D53A0415 |
 | chunkgrid_probe.rs（Rust 整块填充探针源） | 06850EA0EC3DBA83B17370538020A4DC140247111132DBC4BF6E1ED701C06D90 |
 
+## 冻结文件 v1.3（追加多线程生产化对齐）
+| 文件 | SHA256 |
+|---|---|
+| mt_probe_out.txt（Rust mt_probe release 输出，T=8 加速 5.51× mismatch=0/8） | A4717E1CA334BA85D3D536471D9A1F6912562CE9F6ECFFAD12FC80C8F306F7FE |
+| mt_probe.rs（Rust 多线程探针源） | 382F217F7B5504F9B4E23EF88F0B13EC307E92776B416989F7D9844ADE25A76A |
+
+## 多线程生产化（2026-08-24）
+- 密度树 `Rc`→`Arc`（Send+Sync 跨线程共享）+ Interpolated/Cache2D/FlatCache 缓存 `Rc<RefCell>`→**thread_local** 每线程缓存（avoid C++ 11× 的 cache-line 争用）；`Lazy`→`Arc<Mutex>`。
+- mt_probe.rs 共享 `Arc<DensityFunction>` 树，N 线程各 fill 不同 chunk：**release T=1/2/4/8 = 4343/2861/1470/788ms（T=8 加速 5.51×），mismatch=0/8**（各线程结果与单线程逐位一致）。
+- 对齐基准 = C++ buildNode（无 Beardifier）；seed=8576294172403134396。回归：finalDensity/chunkgrid 在 Arc 重构后仍逐位（2560/2560、finalDensity 与 C++ identical）。
+
 ## 整块网格填充（2026-08-24，追加）
 - Rust `chunkgrid_probe.rs` 对 chunk(45,-26) 全部 16×16 列 × 10 代表 y（{ -64,-32,0,32,63,96,128,200,256,319 }）采样 finalDensity，与**当前 C++ 参照**（`rust_ref_check` GRID dump `cpp_grid45.txt`）**2560/2560 一致，maxDiff=2.958e-8**（float32 级）。
 - 验证分层 = Full（逐位），对齐基准 = C++ buildNode（不含 Beardifier），seed = 8576294172403134396。
