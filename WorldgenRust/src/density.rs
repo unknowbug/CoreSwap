@@ -222,7 +222,10 @@ const CELL_X: i32 = 4; const CELL_Y: i32 = 8; const CELL_Z: i32 = 4;
 #[derive(Clone)]
 pub struct InterpSlot { pub key: i64, pub grid: Vec<f64> }
 thread_local! {
-    static INTERP_CACHE: RefCell<HashMap<u32, Box<RefCell<InterpSlot>>>> = RefCell::new(HashMap::new());
+    // 性能（2026-08-27 profile：5.68μs/pt vs C++ 0.5μs 的主因 = 每 sample 的 HashMap entry 查找 + TLS 重入）：
+    // HashMap<u32, Box<RefCell<Slot>>> → Vec<Box<RefCell<Slot>>> 按 cacheId 直接下标（id 递增唯一），
+    // slot_ptr 一次取出后循环内复用，消除每次 sample 的 hash/entry 开销。
+    static INTERP_CACHE: RefCell<Vec<Option<Box<RefCell<InterpSlot>>>>> = RefCell::new(Vec::new());
 }
 #[derive(Clone)]
 pub struct InterpolatedData {
@@ -239,12 +242,13 @@ impl InterpolatedData {
         let mn = arg.min_value(); let mx = arg.max_value();
         InterpolatedData { arg, min_y, height, id, mn, mx }
     }
-    // 每线程缓存槽（Box 保证节点 id 的 slot 地址稳定；slot_ptr 释放 HashMap 借用，仅持 slot RefCell 借用）
+    // 每线程缓存槽（Box 保证节点 id 的 slot 地址稳定；slot_ptr 释放 Vec 借用，仅持 slot RefCell 借用）
     #[inline]
     fn slot_ptr(&self) -> *const RefCell<InterpSlot> {
         INTERP_CACHE.with(|m| {
             let mut m = m.borrow_mut();
-            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(InterpSlot { key: i64::MIN, grid: Vec::new() })));
+            if m.len() <= self.id as usize { m.resize(self.id as usize + 1, None); }
+            let e = m[self.id as usize].get_or_insert_with(|| Box::new(RefCell::new(InterpSlot { key: i64::MIN, grid: Vec::new() })));
             &**e as *const RefCell<InterpSlot>
         })
     }
@@ -311,11 +315,12 @@ impl InterpolatedData {
 }
 
 // ---- Cache2DDF（16 槽 LRU，y 无关 2D 缓存——生产化 thread_local 每线程）----
-const CACHE2D_CAP: usize = 16;
+const CACHE2D_CAP: usize = 256;
 #[derive(Clone)]
-pub struct Cache2DSlot { keys: [i64; 16], values: [f64; 16], stamps: [u64; 16], tick: u64 }
+pub struct Cache2DSlot { keys: [i64; CACHE2D_CAP], values: [f64; CACHE2D_CAP], stamps: [u64; CACHE2D_CAP], tick: u64 }
 thread_local! {
-    static C2D_CACHE: RefCell<HashMap<u32, Box<RefCell<Cache2DSlot>>>> = RefCell::new(HashMap::new());
+    // 性能：HashMap → Vec 直接下标（同 INTERP_CACHE，消除每 sample 的 hash/entry 开销）
+    static C2D_CACHE: RefCell<Vec<Option<Box<RefCell<Cache2DSlot>>>>> = RefCell::new(Vec::new());
 }
 #[derive(Clone)]
 pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
@@ -329,7 +334,8 @@ impl Cache2DData {
     fn slot_ptr(&self) -> *const RefCell<Cache2DSlot> {
         C2D_CACHE.with(|m| {
             let mut m = m.borrow_mut();
-            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; 16], values: [0.0; 16], stamps: [0; 16], tick: 0 })));
+            if m.len() <= self.id as usize { m.resize(self.id as usize + 1, None); }
+            let e = m[self.id as usize].get_or_insert_with(|| Box::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; CACHE2D_CAP], values: [0.0; CACHE2D_CAP], stamps: [0; CACHE2D_CAP], tick: 0 })));
             &**e as *const RefCell<Cache2DSlot>
         })
     }
@@ -353,7 +359,8 @@ const FLAT_GRID: usize = 5;
 #[derive(Clone)]
 pub struct FlatSlot { key: i64, cx: i32, cz: i32, grid: [f64; 25] }
 thread_local! {
-    static FLAT_CACHE: RefCell<HashMap<u32, Box<RefCell<FlatSlot>>>> = RefCell::new(HashMap::new());
+    // 性能：HashMap → Vec 直接下标（同 INTERP_CACHE）
+    static FLAT_CACHE: RefCell<Vec<Option<Box<RefCell<FlatSlot>>>>> = RefCell::new(Vec::new());
 }
 #[derive(Clone)]
 pub struct FlatCacheData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
@@ -367,7 +374,8 @@ impl FlatCacheData {
     fn slot_ptr(&self) -> *const RefCell<FlatSlot> {
         FLAT_CACHE.with(|m| {
             let mut m = m.borrow_mut();
-            let e = m.entry(self.id).or_insert_with(|| Box::new(RefCell::new(FlatSlot { key: i64::MIN, cx: 0, cz: 0, grid: [0.0; 25] })));
+            if m.len() <= self.id as usize { m.resize(self.id as usize + 1, None); }
+            let e = m[self.id as usize].get_or_insert_with(|| Box::new(RefCell::new(FlatSlot { key: i64::MIN, cx: 0, cz: 0, grid: [0.0; 25] })));
             &**e as *const RefCell<FlatSlot>
         })
     }
