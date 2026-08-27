@@ -271,17 +271,6 @@ impl InterpolatedData {
         }
         grid
     }
-    // chunk 级预填：fill_chunk 开头调用，预建当前 chunk 的 grid，之后 chunk 内采样全命中
-    fn prefill(&self, chunk_x: i32, chunk_z: i32) {
-        let key = (((chunk_x as u64) << 32) ^ (chunk_z as u32 as u64)) as i64;
-        let ptr = self.slot_ptr();
-        let slot = unsafe { &*ptr };
-        let mut slot = slot.borrow_mut();
-        if slot.key != key {
-            slot.key = key;
-            slot.grid = self.build_grid(chunk_x, chunk_z);
-        }
-    }
     fn sample(&self, pos: &NoisePos) -> f64 {
         let chunk_x = floor_div(pos.x, 16);
         let chunk_z = floor_div(pos.z, 16);
@@ -350,30 +339,6 @@ impl Cache2DData {
             &**e as *const RefCell<Cache2DSlot>
         })
     }
-    // chunk 级预填：预填 chunk 内所有 (x,z) 坐标（16×16=256，正好填满 CACHE2D_CAP），
-    // 之后 chunk 内采样全命中，消除跨 chunk LRU 打穿
-    fn prefill(&self, chunk_x: i32, chunk_z: i32) {
-        let ptr = self.slot_ptr();
-        let slot = unsafe { &*ptr };
-        let mut slot = slot.borrow_mut();
-        for lz in 0..16 {
-            for lx in 0..16 {
-                let x = chunk_x * 16 + lx;
-                let z = chunk_z * 16 + lz;
-                let key = ((((x as u32) as u64) << 32) ^ (z as u32 as u64)) as i64;
-                let mut found = false;
-                for i in 0..CACHE2D_CAP {
-                    if slot.keys[i] == key { slot.stamps[i] = slot.tick; slot.tick += 1; found = true; break; }
-                }
-                if !found {
-                    let v = self.arg.sample(&NoisePos { x, y: 0, z });
-                    let mut idx = 0;
-                    for i in 1..CACHE2D_CAP { if slot.stamps[i] < slot.stamps[idx] { idx = i; } }
-                    slot.keys[idx] = key; slot.values[idx] = v; slot.stamps[idx] = slot.tick; slot.tick += 1;
-                }
-            }
-        }
-    }
     pub fn sample(&self, pos: &NoisePos) -> f64 {
         let key = ((((pos.x as u32) as u64) << 32) ^ (pos.z as u32 as u64)) as i64;
         let ptr = self.slot_ptr();
@@ -413,17 +378,6 @@ impl FlatCacheData {
             let e = m[self.id as usize].get_or_insert_with(|| Box::new(RefCell::new(FlatSlot { key: i64::MIN, cx: 0, cz: 0, grid: [0.0; 25] })));
             &**e as *const RefCell<FlatSlot>
         })
-    }
-    // chunk 级预填：确保当前 chunk 的 5x5 grid 已建
-    fn prefill(&self, chunk_x: i32, chunk_z: i32) {
-        let key = ((((chunk_x as u32) as u64) << 32) ^ (chunk_z as u32 as u64)) as i64;
-        let ptr = self.slot_ptr();
-        let slot = unsafe { &*ptr };
-        let mut slot = slot.borrow_mut();
-        if slot.key != key {
-            slot.key = key; slot.cx = chunk_x; slot.cz = chunk_z;
-            Self::build_grid(&self.arg, slot.cx, slot.cz, &mut slot.grid);
-        }
     }
     pub fn sample(&self, pos: &NoisePos) -> f64 {
         // key = chunk（POC 用 pos>>4；生产 fill 设 g_cur_chunk thread_local 对齐 Java startBiomeX）
@@ -481,38 +435,6 @@ pub enum DensityFunction {
 }
 
 impl DensityFunction {
-    // chunk 级预填：递归遍历树，对每个 Interpolated/Cache2D/FlatCache 节点预填当前 chunk 的 grid。
-    // fill_chunk 开头调用一次，之后 chunk 内采样全命中（消除跨 chunk 缓存失效）。
-    pub fn prefill_chunk(&self, chunk_x: i32, chunk_z: i32) {
-        match self {
-            DensityFunction::LinearOp { input, .. } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::BinaryOp { a, b, .. } => { a.prefill_chunk(chunk_x, chunk_z); b.prefill_chunk(chunk_x, chunk_z); }
-            DensityFunction::UnaryOp { input, .. } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::Clamp { input, .. } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::Spline(s) => { for f in &s.loc_fns { f.prefill_chunk(chunk_x, chunk_z); } }
-            DensityFunction::Interpolated(id) => id.prefill(chunk_x, chunk_z),
-            DensityFunction::Cache2D(c) => c.prefill(chunk_x, chunk_z),
-            DensityFunction::FlatCache(f) => f.prefill(chunk_x, chunk_z),
-            DensityFunction::ShiftedNoise { shift_x, shift_y, shift_z, .. } => {
-                shift_x.prefill_chunk(chunk_x, chunk_z);
-                shift_y.prefill_chunk(chunk_x, chunk_z);
-                shift_z.prefill_chunk(chunk_x, chunk_z);
-            }
-            DensityFunction::RangeChoice { input, in_range, out_of_range, .. } => {
-                input.prefill_chunk(chunk_x, chunk_z);
-                in_range.prefill_chunk(chunk_x, chunk_z);
-                out_of_range.prefill_chunk(chunk_x, chunk_z);
-            }
-            DensityFunction::WeirdScaled { input, .. } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::BlendDensity { input } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::Wrapping { input } => input.prefill_chunk(chunk_x, chunk_z),
-            DensityFunction::Lazy { target } => {
-                let t = target.lock().unwrap();
-                if let Some(t) = t.as_ref() { t.prefill_chunk(chunk_x, chunk_z); }
-            }
-            _ => {}
-        }
-    }
     pub fn sample(&self, pos: &NoisePos) -> f64 {
         match self {
             DensityFunction::Constant { value } => *value,
