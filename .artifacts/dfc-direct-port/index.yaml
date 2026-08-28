@@ -1,0 +1,35 @@
+# DFC 直排方向评估（draft · 暂缓关闭）
+
+> 状态：**draft**（judge 审查后不升 candidate/confirmed，不写结论性 docs）
+> 审查：`.investigations/dfc-direct-port/review-001-dfc-direction-closed.md`
+> 结论：**DFC 直排方向关闭不合理（证据不足），暂缓关闭**，需补验证。
+
+## 背景
+
+CoreSwap Rust worldgen 性能优化。尝试 DFC 直排（density 树摊平消除运行时递归），初步结论「对 Rust 无意义，方向关闭」。judge 审查发现证据不足。
+
+## judge 审查发现（三源核对）
+
+1. **方案 B 实验不可核实**：spline 显式栈 fillbench 36.70 vs 34.68ms 无提交/无回退/无输出记录（数字全仓 0 命中）。不得声称「已回退」。
+2. **perf_quant 纯树测量有缺陷**：单 chunk 缓存命中 + Interpolated grid 构建摊薄（踩 4635170 已文档化的坑「amortized grid build into per-point」）。6.4× 管线开销不干净。
+3. **C++ 热点前提已证伪**：C++ 侧 2026-08-23 DEVIRT 实验证明虚调用非 11× 元凶（10.05× vs 10.32×）。perf_quant 结论基于已证伪前提。
+4. **产物契约违规**：无 artifact、无 cmd-output 落盘。
+
+## 需补验证（judge 建议）
+
+- fresh-vs-cached 分离重测纯树（区分 grid 构建 vs 稳态）
+- 同 chunk 数对比（纯树 vs 管线）
+- fillprofile 量化组件（aquifer/biome/surface 各占多少）
+- **Rust 多线程/冷缓存并发争用**（C++ 11× 课题核心，Rust 侧完全未做）
+
+## 已补产物
+
+- `cmd-output/perf_quant.txt`：perf_quant 输出落盘（0.05 vs 0.34 us/pt，6.2×）
+- 本 index.yaml
+
+## 待办
+
+- 补方案 B 实验记录（若真跑过）
+- fresh-vs-cached 重测
+- 组件量化
+- Rust 多线程并发测
