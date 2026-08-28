@@ -30,6 +30,7 @@ fn main() {
     // 每 8 chunk 采一个点（biome 尺度足够），扫 ±256 chunk
     let mut found: Vec<(i32, i32, String)> = Vec::new();
     let mut badlands_found: Vec<(i32, i32, String)> = Vec::new();
+    let mut eroded_found: Vec<(i32, i32, String)> = Vec::new();
     let mut biome_hist: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     for cz in (-256..256).step_by(8) {
         for cx in (-256..256).step_by(8) {
@@ -43,6 +44,9 @@ fn main() {
             if b.contains("badlands") && badlands_found.len() < 10 {
                 badlands_found.push((cx, cz, b.clone()));
             }
+            if b.contains("eroded_badlands") && eroded_found.len() < 10 {
+                eroded_found.push((cx, cz, b.clone()));
+            }
         }
     }
     println!("biome_scan ±256 chunk (4096x4096 blocks), step 8 chunk:");
@@ -53,6 +57,10 @@ fn main() {
     println!("  badlands (non-desert) found: {}", badlands_found.len());
     for (cx, cz, b) in &badlands_found {
         println!("  BADLANDS chunk({},{}) biome={}", cx, cz, b);
+    }
+    println!("  eroded_badlands found: {}", eroded_found.len());
+    for (cx, cz, b) in &eroded_found {
+        println!("  ERODED chunk({},{}) biome={}", cx, cz, b);
     }
     println!("  biome histogram (top):");
     let mut items: Vec<_> = biome_hist.iter().collect();

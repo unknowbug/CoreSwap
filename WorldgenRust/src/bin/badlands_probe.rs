@@ -49,9 +49,9 @@ fn main() {
     let splitter = db.random_deriver().split_str("minecraft:aquifer").next_splitter();
 
     for key in ["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset",
-                "minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:calcite",
-                "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice", "minecraft:ice",
-                "minecraft:surface_swamp"] {
+                "minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:badlands_pillar_roof",
+                "minecraft:calcite", "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice",
+                "minecraft:ice", "minecraft:surface_swamp"] {
         let _ = db.get_noise_sampler(key);
     }
 
@@ -69,11 +69,11 @@ fn main() {
     let water = blocks.id("minecraft:water");
     let lava_id = blocks.id("minecraft:lava");
 
-    // 扫描 badlands 所在区域（biome_scan 定位 chunk(-112,-232) 附近）
+    // 扫描 eroded_badlands 所在区域（eroded_diag 定位 chunk(-480,-1024) 附近）
     let mut terracotta_count = 0;
     let mut badlands_chunks = 0;
     let mut terracotta_examples: Vec<(i32, i32, i32, i32, String)> = Vec::new();
-    for cz in -240..-220 { for cx in -120..-100 {
+    for cz in -1030..-1010 { for cx in -490..-470 {
         // 先看 biome（快速判断是否 badlands/desert）
         let bp = NoisePos { x: (cx*16)>>2<<2, y: 0, z: (cz*16)>>2<<2 };
         let b = biomesrc.biome(&bp);
