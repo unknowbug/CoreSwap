@@ -667,3 +667,26 @@ scout 访存分析（interp-memory-access.md，dcf85758）确证：interp grid �
 - `.investigations/worldgen-mt-scaling/wrapper-buildgrid-structure.md` / `topwrapper-sample-logic.md`（scout 结构）
 - `.investigations/worldgen-mt-scaling/density-latency-rootcause.md`（历史 11× 机制 + DFC 作废）
 - `.investigations/worldgen-mt-scaling/mt-scaling-errors.md`（错误台账本体；新增 ①-⑥ 见 `knowledge-drafts/draft-mt-errors-11x.md`）
+
+## 2026-08-29 Rust CARVERS 阶段移植（WorldgenRust，commit bf3d851）
+
+> Rust 全量重写 worldgen 的 CARVERS 阶段（洞穴雕刻）。把 C++ `carver.h`（661 行，CaveCarver+RavineCarver）移植到 Rust。语义要点与 C++ 完全一致（见上方 Phase 2 的 C++ 根因），此处只记 Rust 移植新增/复用的关键语义。
+
+### Rust 移植关键语义（高价值，与 C++ 同源）
+
+- **CheckedRandom 内部递归**：`CaveCarver::carveTunnels` / `RavineCarver::carveRavine` 内部 `Random.create(seed)` = **48 位 LCG（CheckedRandom）**，非 Xoroshiro（C++ 2026-08-10 已知根因，Rust 移植必须同样用 `CheckedRandom::new(seed)`）。可复用判据：MC 里 `Random.create(seed)` 默认实现是 `new CheckedRandom(seed)`（48 位 LCG），**不是** Xoroshiro——凡看到 `Random.create(...)` 派生内部随机源，先确认是 LCG 而非 Xoroshiro。
+- **mathSin/mathCos 查表**：MC `MathHelper.sin/cos` 是 **65536 项 SINE_TABLE 查表**（`table[(int)(value * 10430.378F) & 65535]`），**不是** `std::sin`。`mathCos(value) = table[(int)(value * 10430.378F + 16384.0F) & 65535]`。任何用 `std::sin`/`f64::sin` 替代的实现都会在长循环里累积漂移（111 步漂移数格）。
+- **carveTunnels 里 `(float)Math.PI` 全程 float**：`d = 1.5 + mathSin(3.1415927F * j / branchCount) * width`——`(float)Math.PI = 3.1415927F`（float π），不是 double π。float π 与 double π 在查表索引上差 1 位 → 漂移累积。
+- **setCarverSeed 派生**：`setSeed(worldSeed); l=nextLong(); m=nextLong(); n=chunkX*l ^ chunkZ*m ^ worldSeed; setSeed(n)`。`nextLong()` = `(long)next(32) << 32 + next(32)`（**有符号拼接**，MC-239059：j<0 时高 32 位被 0xFFFFFFFF 填充，非无符号位拼接）。
+- **CarvingMask 索引**：`index = (x & 15) | ((z & 15) << 4) | ((y - bottomY) << 8)`，256*height 位集。
+- **carveRegion 两套坐标**：洞穴中心 x/y/z 用**邻域 chunk**（chunkX/chunkZ 参数仅用于范围判断）；carveRegion 写方块用 **targetChunkX/Z（当前 chunk）**——两套坐标易混。
+- **getState**：`y <= lavaLevel.getY(minY+8=-56)` → lava；否则 `aquifer.apply(pos, 0.0)`（density=0.0）。replaceable tag `#minecraft:overworld_carver_replaceables`（**含 water！**）。
+
+### Rust 移植验证（candidate · Partial）
+
+- 对拍 vanilla FULL 参照 `vanilla_-8248318472910187742_4_-288_-256_FULL.bak.blocks`（seed=-8248318472910187742，4x4 origin -288,-256）：
+  - 无 carver（surface-only）：match=95.41%，nonAir=86.89%
+  - 有 carver：match=95.61%，nonAir=86.34%，Rust carved=8430，vanilla carved=6428，挖洞重合 **90.88%**（5842/6428）
+  - Rust carver 挖洞 0 块在地表以上（正确，carver 只挖地下）
+- 验证记录：`.investigations/carver-port/cmd-output/carver_probe.txt`（一次性数值，不写 docs）
+- 错误台账：`.investigations/carver-port/carver-errors.md`（C1-C4，Rust 移植 C++ 的借用/所有权典型坑）

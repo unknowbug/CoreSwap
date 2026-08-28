@@ -2030,3 +2030,23 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 结论：03 篇「Rust 重写 buildNode 对齐 C++」小节。
 - 过程：本节 + `.investigations/rust-density-builder/`。
 - **域边界（保持）**：align = C++ buildNode，不含 Beardifier（`@anchor.idk`）；vanilla 逐块对齐未做。
+
+---
+
+## 2026-08-29 Rust CARVERS 阶段移植（✅ 已结案）
+
+**背景**：Rust 全量重写 worldgen 的 CARVERS 阶段（洞穴雕刻）。把 C++ carver.h（661 行，CaveCarver+RavineCarver）移植到 Rust（commit bf3d851）。
+
+**过程**：
+- 新增 chunkrandom.rs（CheckedRandom 48 位 LCG + ChunkRandom CHECKED/XOROSHIRO 分派 + setCarverSeed）
+- 新增 carver.rs（CarvingMask、YOffset/HeightProvider/FloatProvider、CarverConfig/Cave/Ravine、CaveCarver/RavineCarver、ConfiguredCarver、mathSin/mathCos 查表）
+- iome.rs 新增 load_carvers（biome/*.json carvers.air）+ biome_pick_cell（8 邻域 jitter）
+- carver_probe.rs 接入块级管线（fill_chunk + build_surface 后 17×17 邻域）
+
+**验证**（对拍 vanilla FULL 参照，seed=-8248318472910187742，4x4 origin -288,-256）：
+- 无 carver：match=95.41%；有 carver：match=95.61%，挖洞重合 **90.88%**（5842/6428），0 块挖到地表以上
+- 结论：Rust carver 挖洞位置与 vanilla 高度重合，功能完整
+
+**错误台账**：.investigations/carver-port/carver-errors.md（C1-C4，Rust 移植 C++ 的借用/所有权典型坑：E0499 裸指针聚合、E0384 mut 按需、E0502 move 闭包、E0382 &self）
+
+**归口**：07 篇「Rust CARVERS 阶段移植」小节 + 02 篇「CheckedRandom/ChunkRandom」小节。

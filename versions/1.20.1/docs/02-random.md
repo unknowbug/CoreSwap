@@ -93,3 +93,15 @@ uint64_t hi = big-endian(h[8..15]);
 
 ### ❌ 已排除
 - **684.412f 精度**：模拟 Java `(double)(float)684.412` 后主世界 100% 无变化
+
+## 2026-08-29 CheckedRandom / ChunkRandom（CARVERS 阶段，Rust 移植 chunkrandom.rs）
+
+> CARVERS 阶段用 `ChunkRandom`（基类 `CheckedRandom`，48 位 LCG），与 FEATURES 阶段（基类 `Xoroshiro128PlusPlus`）不同。Rust 移植 `WorldgenRust/src/chunkrandom.rs`。
+
+- **CheckedRandom（48 位 LCG）**：`java.util.Random` 算法。`seed = (seed * 25214903917 + 11) & (1<<48)-1`；`next(bits) = (int)(seed >> (48-bits))`。
+- **ChunkRandom.next(bits) 按基类分派**：基类 CheckedRandom → `lcg.next(bits)`（LCG）；基类 Xoroshiro → `(int)(baseRandom.nextLong() >>> 64-bits)`（高 bits 位）。
+- **setCarverSeed(worldSeed, chunkX, chunkZ)**：`setSeed(worldSeed); l=nextLong(); m=nextLong(); n=chunkX*l ^ chunkZ*m ^ worldSeed; setSeed(n)`。
+- **nextLong() 有符号拼接（MC-239059）**：`(long)next(32) << 32 + next(32)`——i/j 都是 int 符号扩展后做有符号加法，j<0 时高 32 位被 0xFFFFFFFF 填充，**非无符号位拼接**。
+- **nextInt(bound)**：幂 2 用 `(int)((long)bound * next(31) >> 31)`；非幂 2 用 do-while 拒绝采样 `i % bound`（Java int 回绕，无符号模拟防 UB）。
+- **nextDouble()**：`((long)next(26) << 27 + next(27)) * 1.110223E-16F`——long * float 是 float 乘法（精度截断），结果提升回 double，用 float 模拟。
+- **可复用判据**：MC 里 `Random.create(seed)` 默认实现是 `new CheckedRandom(seed)`（48 位 LCG），**不是** Xoroshiro——凡看到 `Random.create(...)` 派生内部随机源，先确认是 LCG 而非 Xoroshiro（carveTunnels/carveRavine 内部递归即此）。
