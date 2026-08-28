@@ -2050,3 +2050,33 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 **错误台账**：.investigations/carver-port/carver-errors.md（C1-C4，Rust 移植 C++ 的借用/所有权典型坑：E0499 裸指针聚合、E0384 mut 按需、E0502 move 闭包、E0382 &self）
 
 **归口**：07 篇「Rust CARVERS 阶段移植」小节 + 02 篇「CheckedRandom/ChunkRandom」小节。
+
+---
+
+## 2026-08-29 Rust worldgen 作为 mod 运行（✅ 关键里程碑）
+
+> CoreSwap worldgen 全量重写为 Rust（WorldgenRust/）后，把 Rust 块级管线作为 Minecraft mod 运行。三层链路：**Rust cdylib（C ABI）→ C++ JNI 桥（worldgen.dll）→ mod 加载（Java_wg_CppWorldgen_*）**。配套：07 篇「Rust worldgen 作为 mod 运行」结论小节 + .investigations/rust-mod-load/ + ust-mod-errors.md 错误台账（M1-M4）。
+
+### ✅ 一、Rust 块级管线封装 + C ABI（关键里程碑）
+- worldgen_handle.rs：WorldgenHandle::create + ill_chunk_blocks（fill_chunk 宏观 → BlockColumn → build_surface → carver 17×17 邻域）。
+- pi.rs：C ABI 导出 wg_create/wg_destroy/wg_fill_blocks_multi/wg_set_beardifier/wg_clear_beardifier/wg_density_*；Cargo.toml crate-type = ["cdylib", "rlib"]。
+- wg_fill_blocks_multi 当前**串行生成**（裸指针跨线程 Send 问题，错误台账 M2）。
+
+### ✅ 二、C++ JNI 桥（rust_jni_bridge.cpp → worldgen.dll）
+- 加载 Rust WorldgenRust.dll（LoadLibrary + GetProcAddress 取 wg_*），导出 Java_wg_CppWorldgen_init/destroy/fillBlocks/setBeardifier/fillDensity/densityParams 六个 JNI 函数。
+- JNI 桥 = **薄转发层**（JNI 数组 ↔ C 指针转换 + 调 wg_*），与 C++ jni_bridge.cpp 同构。
+
+### ✅ 三、验证（三层递进）
+- dll_test.c：wg_* 导出 OK（C ABI 层）。
+- jni_dll_test.c：6 个 JNI 函数导出 OK（JNI 桥层）。
+- handle_probe：WorldgenHandle vs vanilla 95.54%。
+- **JniProbe（最终验证）**：JNI 加载 Rust dll 生成 64 chunks，match=**93.76%**（y=64..319 100%，地下 71-90%）——air 区 100% 证明桥接正确，地下差异来自 worldgen 已知边界（carver/FEATURE/Beardifier），非 JNI 桥引入。
+
+### 🧰 四、工具演进（本轮新增）
+- dll_test.c（C ABI 导出验证）、jni_dll_test.c（JNI 导出验证）、handle_probe.rs（WorldgenHandle 块级管线验证）、JniProbe（JNI 全链路验证）。
+
+### 📌 记录指引（知识库归口）
+- 错误台账：.investigations/rust-mod-load/rust-mod-errors.md（M1-M4 五段式）。
+- 结论：07 篇「Rust worldgen 作为 mod 运行」小节。
+- 过程：本节 + .investigations/rust-mod-load/。
+- **域边界（保持）**：验证分层 = Partial（JNI 加载 Rust dll 对比 vanilla FULL 参照）；Rust 块级管线不含 Beardifier（@anchor.idk）；wg_fill_density 暂未实现（返回 0）。

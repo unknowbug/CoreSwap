@@ -690,3 +690,58 @@ scout 访存分析（interp-memory-access.md，dcf85758）确证：interp grid �
   - Rust carver 挖洞 0 块在地表以上（正确，carver 只挖地下）
 - 验证记录：`.investigations/carver-port/cmd-output/carver_probe.txt`（一次性数值，不写 docs）
 - 错误台账：`.investigations/carver-port/carver-errors.md`（C1-C4，Rust 移植 C++ 的借用/所有权典型坑）
+
+## 2026-08-29 Rust worldgen 作为 mod 运行（关键里程碑）
+
+> Rust 全量重写 worldgen 后，把 Rust 块级管线作为 Minecraft mod 运行。三层链路：**Rust cdylib（C ABI）→ C++ JNI 桥（worldgen.dll）→ mod 加载（Java_wg_CppWorldgen_*）**。
+
+### 架构（三层链路）
+
+`
+Rust WorldgenRust.dll（cdylib，导出 wg_* C ABI）
+  ↑ LoadLibrary + GetProcAddress
+C++ rust_jni_bridge.cpp → worldgen.dll（导出 Java_wg_CppWorldgen_* JNI 函数）
+  ↑ JNI
+Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityParams）
+`
+
+- **Rust 侧**：worldgen_handle.rs（WorldgenHandle::create + fill_chunk_blocks，fill_chunk 宏观 → BlockColumn → build_surface → carver 17×17 邻域）+ pi.rs（C ABI 导出 wg_*）。Cargo.toml crate-type = ["cdylib", "rlib"]。
+- **C++ JNI 桥**：ust_jni_bridge.cpp 加载 WorldgenRust.dll（LoadLibrary + GetProcAddress），导出 6 个 Java_wg_CppWorldgen_* 函数。JNI 桥 = **薄转发层**（JNI 数组 ↔ C 指针转换 + 调 wg_*），与 C++ jni_bridge.cpp 同构。
+- **mod 加载**：Java 侧 JNI 调用 init/fillBlocks/setBeardifier/densityParams，与 C++ worldgen.dll 加载路径同构。
+
+### 验证（三层递进，Partial 分层）
+
+| 验证 | 结果 |
+|---|---|
+| dll_test.c（C ABI 导出） | wg_* 导出 OK |
+| jni_dll_test.c（JNI 导出） | 6 个 JNI 函数导出 OK |
+| handle_probe（WorldgenHandle vs vanilla） | 95.54% |
+| **JniProbe（JNI 加载 Rust dll 生成 64 chunks）** | **match=93.76%**（y=64..319 100%，地下 71-90%） |
+
+- **可复用判据**：「air 区 100% + 地下带 70-90%」签名 = 桥接正确 + 地下差异来自 worldgen 已知边界（carver 剩余差异 / FEATURE 范围外 / Beardifier 结构区），**非 JNI 桥引入**。与「air 区吻合 + ground 带全错 = 参照/种子配置错」签名互补。
+- **逐层验证**：先证 C ABI（dll_test）→ 再证 JNI 导出（jni_dll_test）→ 最后全链路（JniProbe）——任一层失败先修该层，不跨层猜。
+
+### 关键语义（可复用）
+
+- Rust edition 2024 的 C ABI 导出：#[no_mangle] 需 #[unsafe(no_mangle)]。
+- 裸指针跨线程 Send：*mut i32 不实现 Send，edition 2024 下 SendPtr 包装不生效，改串行生成。
+- gradle 需 danger-full-access（native-platform.dll 加载）。
+- MSVC 编译含中文的 UTF-8 源文件需 /utf-8（code page 936 错解）。
+
+### 域/边界
+
+- 验证分层 = **Partial**（JNI 加载 Rust dll 对比 vanilla FULL 参照，非逐位 Full）。
+- Rust 块级管线不含 Beardifier 结构密度修正（@anchor.idk 已知边界）。
+- 地下带差异（y<64 71-90%）与 C++ worldgen 已知边界同源，非 JNI 桥引入。
+- wg_fill_density 当前返回 0（Rust 侧暂未实现完整 density 网格，fillDensity 用）——已知未实现项。
+
+### 排除清单
+
+- ❌ 「JNI 桥有 bug」——air 区（y=64..319）100% 吻合证明桥接数据传递正确。
+- ❌ 「Rust cdylib C ABI 导出失败」——dll_test 验证 wg_* 导出 OK。
+- ❌ 「JNI 桥导出失败」——jni_dll_test 验证 6 个 Java_wg_CppWorldgen_* 导出 OK。
+
+### 记录指引
+
+- 错误台账：.investigations/rust-mod-load/rust-mod-errors.md（M1-M4 五段式）。
+- 验证记录：.investigations/rust-mod-load/cmd-output/jniprobe_rust.txt。
