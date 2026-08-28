@@ -1,0 +1,140 @@
+warning: unused import: `std::collections::HashMap`
+ --> src\density.rs:5:5
+  |
+5 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+ --> src\biome.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:117:13
+    |
+117 |         let mut fluid_block;
+    |             ----^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:118:13
+    |
+118 |         let mut fluid_y;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable `fluid_y` is assigned to, but never used
+   --> src\aquifer.rs:118:13
+    |
+118 |         let mut fluid_y;
+    |             ^^^^^^^^^^^
+    |
+    = note: consider using `_fluid_y` instead
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `fluid_y` is never read
+   --> src\aquifer.rs:119:93
+    |
+119 |         if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
+    |                                                                                             ^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `fluid_y` is never read
+   --> src\aquifer.rs:119:48
+    |
+119 |         if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
+    |                                                ^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:242:14
+    |
+242 |         let (mut d, mut e): (f64, f64);
+    |              ----^
+    |              |
+    |              help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:242:21
+    |
+242 |         let (mut d, mut e): (f64, f64);
+    |                     ----^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: field `first_octave` is never read
+  --> src\noise.rs:98:5
+   |
+96 | pub struct OctavePerlinNoiseSampler {
+   |            ------------------------ field in this struct
+97 |     octave_samplers: Vec<Option<PerlinNoiseSampler>>,
+98 |     first_octave: i32,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `size_y` is never read
+  --> src\aquifer.rs:41:18
+   |
+30 | pub struct Aquifer {
+   |            ------- field in this struct
+...
+41 |     size_x: i32, size_y: i32, size_z: i32,
+   |                  ^^^^^^
+
+warning: struct `VeinType` is never constructed
+  --> src\ore_vein.rs:14:8
+   |
+14 | struct VeinType { ore: i32, raw_ore_block: i32, stone: i32, min_y: i32, max_y: i32 }
+   |        ^^^^^^^^
+
+warning: constant `NPARAMS` is never used
+  --> src\biome.rs:11:7
+   |
+11 | const NPARAMS: usize = 6;
+   |       ^^^^^^^
+
+warning: field `height` is never read
+  --> src\blocks.rs:60:5
+   |
+58 | pub struct BlockColumn {
+   |            ----------- field in this struct
+59 |     min_y: i32,
+60 |     height: i32,
+   |     ^^^^^^
+
+warning: crate `WorldgenRust` should have a snake case name
+  |
+  = help: convert the identifier to snake case: `worldgen_rust`
+  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: `WorldgenRust` (lib) generated 15 warnings (run `cargo fix --lib -p WorldgenRust` to apply 6 suggestions)
+   Compiling WorldgenRust v0.1.0 (E:\PYTHON\CoreSwap\WorldgenRust)
+warning: unused variable: `e`
+  --> src\bin\biome_breakdown.rs:18:48
+   |
+18 |         fs::read_to_string(&p).unwrap_or_else(|e| panic!("\n[LOADFAIL] {}", p.display()))
+   |                                                ^ help: if this is intentional, prefix it with an underscore: `_e`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: `WorldgenRust` (bin "biome_breakdown") generated 1 warning (run `cargo fix --bin "biome_breakdown" -p WorldgenRust` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 0.43s
+     Running `target\release\biome_breakdown.exe`
+  temperature    0.443 us/pt
+  vegetation     0.445 us/pt
+  continents     0.015 us/pt
+  erosion        0.013 us/pt
+  depth          0.016 us/pt
+  ridges         0.012 us/pt
+biome_breakdown done (hotspot = highest us/pt)
