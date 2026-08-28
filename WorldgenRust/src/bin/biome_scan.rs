@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 
 fn main() {
-    let seed: i64 = -2032795982907864146;
+    let seed: i64 = -8248318472910187742;
     let mut db = DensityBuilder::new(seed as u64, -64, 384i32);
     db.load_noise_params_file("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\noise_params.json").unwrap();
     let df_dir = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen\\density_function\\overworld";

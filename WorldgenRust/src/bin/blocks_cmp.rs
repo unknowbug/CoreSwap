@@ -26,7 +26,7 @@ fn be32(b: &[u8], i: &mut usize) -> i32 { let v = i32::from_be_bytes(b[*i..*i+4]
 fn be64(b: &[u8], i: &mut usize) -> i64 { let v = i64::from_be_bytes(b[*i..*i+8].try_into().unwrap()); *i += 8; v }
 
 fn main() {
-    let seed: i64 = -2032795982907864146;
+    let seed: i64 = -8248318472910187742;
     let mut db = DensityBuilder::new(seed as u64, -64, 384i32);
     db.load_noise_params_file("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\noise_params.json").unwrap();
     let df_dir = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen\\density_function\\overworld";
@@ -73,8 +73,8 @@ fn main() {
     let water = blocks.id("minecraft:water");
     let lava_id = blocks.id("minecraft:lava");
 
-    // 读 vanilla .blocks
-    let path = "E:\\PYTHON\\MC\\data\\vanilla_-2032795982907864146_4_0_0.blocks";
+    // 读 vanilla .blocks（badlands 区，-8248 种子 8x8 origin 2688,-3072）
+    let path = "E:\\python\\MC\\data\\vanilla_-8248318472910187742_8_2688_-3072.blocks";
     let bd = fs::read(path).unwrap();
     let mut i = 0usize;
     let magic = be32(&bd, &mut i); let vseed = be64(&bd, &mut i); let size = be32(&bd, &mut i);
