@@ -1,43 +1,59 @@
-# DFC 直排方向评估（draft · 暂缓关闭）
+# DFC 直排方向评估（draft · 方向可关闭，理由已修正）
 
 > 状态：**draft**（judge 审查后不升 candidate/confirmed，不写结论性 docs）
-> 审查：`.investigations/dfc-direct-port/review-001-dfc-direction-closed.md`
-> 结论：**DFC 直排方向关闭不合理（证据不足），暂缓关闭**，需补验证。
+> 审查：`.investigations/dfc-direct-port/review-001-dfc-direction-closed.md` + `review-002-biome-perf-mt-dfc.md`
+> 结论：**DFC 直排方向可关闭**（density 非瓶颈，biome 是热点），但关闭理由已修正——**不是**「方案 B 无收益」（该声明不可核实，已删除），而是「density 稳态已快 + biome 是真正热点」。
 
 ## 背景
 
-CoreSwap Rust worldgen 性能优化。尝试 DFC 直排（density 树摊平消除运行时递归），初步结论「对 Rust 无意义，方向关闭」。judge 审查发现证据不足。
+CoreSwap Rust worldgen 性能优化。尝试 DFC 直排（density 树摊平消除运行时递归），初步结论「对 Rust 无意义，方向关闭」。judge 审查发现证据不足，暂缓关闭并补验证。
 
-## judge 审查发现（三源核对）
+## judge 审查发现（review-001，三源核对）
 
 1. **方案 B 实验不可核实**：spline 显式栈 fillbench 36.70 vs 34.68ms 无提交/无回退/无输出记录（数字全仓 0 命中）。不得声称「已回退」。
 2. **perf_quant 纯树测量有缺陷**：单 chunk 缓存命中 + Interpolated grid 构建摊薄（踩 4635170 已文档化的坑「amortized grid build into per-point」）。6.4× 管线开销不干净。
 3. **C++ 热点前提已证伪**：C++ 侧 2026-08-23 DEVIRT 实验证明虚调用非 11× 元凶（10.05× vs 10.32×）。perf_quant 结论基于已证伪前提。
 4. **产物契约违规**：无 artifact、无 cmd-output 落盘。
 
-## 需补验证（judge 建议）
+## 补验证（review-001 建议 + review-002 跟进，全部完成）
 
-- fresh-vs-cached 分离重测纯树（区分 grid 构建 vs 稳态）
-- 同 chunk 数对比（纯树 vs 管线）
-- fillprofile 量化组件（aquifer/biome/surface 各占多少）
-- **Rust 多线程/冷缓存并发争用**（C++ 11× 课题核心，Rust 侧完全未做）
+- ✅ **fresh-vs-cached 分离**：perf_fresh 0.10 vs cached 0.06 us/pt（1.6×）——grid 构建影响小，density 稳态即快
+- ✅ **组件量化**：fillprofile biome 占 46%（14.9/32.2ms）+ biome_fill 45%——**biome 分类是真正热点，非 density**
+- ✅ **Rust 多线程/冷缓存并发争用**：mt_fill（Arc<Ctx> 共享 + thread_local 缓存）T=1 790ms → T=8 170ms（4.65× 扩展），mismatch=0/16——Rust 无 C++ 11× 争用
+- ✅ **biome 根因**：biome_of 扫描成本 54us/pt（98%），因线性扫描 7593 行（53 biome × 多 depth/分档行），非 6 参数采样（0.9us）
+- ✅ **SearchTree（KD-tree）**：移植 vanilla MultiNoiseUtil.SearchTree（TreeBranchNode enclosing 剪枝 + TreeLeafNode），扫描 30→2.9us/pt（10x），biome_of 31→3.8us/pt，fillbench 28.76→22.98ms（20%）。blocks_cmp 数值不变（93.49%）。提交 `f73c005`
+- ✅ **depth 分桶正确性 bug 已修复**：dripstone/lush_caves depth[0.2,0.9] 跨 0.5 边界，d<0.5 时被错误排除。**放弃分桶，仅用 SearchTree**（本身已 10×）。cave_probe 验证洞穴 biome 正确识别（depth 0.474-0.736）。提交 `a51a062`/`dc07285`
 
-## 已补产物
+## 证据落盘（cmd-output，review-002 要求补齐）
 
-- `cmd-output/perf_quant.txt`：perf_quant 输出落盘（0.05 vs 0.34 us/pt，6.2×）
-- `cmd-output/perf_fresh.txt`：fresh 0.10 vs cached 0.06 us/pt（1.6×）——grid 构建影响小，density 稳态即快
-- `cmd-output/fillprofile.txt`：biome 占 46%（14.9/32.2ms）——**biome 分类是真正热点，非 density**
-- 本 index.yaml
+- `cmd-output/perf_quant.txt`：perf_quant 输出（0.05 vs 0.34 us/pt，6.2×）
+- `cmd-output/perf_fresh.txt`：fresh 0.10 vs cached 0.06 us/pt（1.6×）
+- `cmd-output/fillprofile.txt`：biome 占 46%（14.9/32.2ms）
+- `cmd-output/biome_fill.txt`：no-biome 18.9ms / real-biome 34.1ms / biome 45%
+- `cmd-output/biome_hot.txt`：54.1/54.6us/pt（线性扫描基线，同 chunk 热缓存）
+- `cmd-output/biome_scan_cost.txt`：**SearchTree 版** 扫描成本 2.849us/pt（full 3.884 - 采样 1.035）
+- `cmd-output/fillbench_searchtree.txt`：**SearchTree 版** fillbench 22.03ms/chunk
+- `cmd-output/blocks_cmp_searchtree.txt`：**SearchTree 版** blocks_cmp 93.49% match / 82.96% nonAir（badlands 区重跑）
+- `cmd-output/cave_probe.txt`：洞穴 biome 正确识别（depth<0.5 场景，分桶 bug 已修复）
+- `cmd-output/mt_fill.txt`：T=1 790ms / T=2 483ms / T=4 256ms / T=8 170ms，mismatch=0/16
+- `cmd-output/biome_perf.txt`：384.6us/pt（**冷缓存异常值，见下解释**）
 
-## 补验证结论（judge 建议后）
+## biome_perf 384us 异常解释（review-002 审查点 5）
 
-- **fresh-vs-cached**：density 纯树 fresh 0.10 / cached 0.06 us/pt——都很快，DFC 直排对 density 收益有限
-- **组件量化**：biome 占管线 45%——**biome 分类是真正热点，非 density**
-- **biome 根因**：biome_of 扫描成本 54us/pt（98%），因线性扫描 **7593 行**（53 biome × 多 depth/分档行），非 6 参数采样（0.9us）
-- **分桶优化**：按 depth 分桶（0/1 各 ~3800 行），扫描 54→30us/pt（2x），biome 占管线 45%→32%（15.2→9.5ms），fillbench 提升 17%。blocks_cmp 数值不变（93.49%）。已提交。
-- **SearchTree（KD-tree）**：移植 vanilla MultiNoiseUtil.SearchTree（TreeBranchNode enclosing 剪枝 + TreeLeafNode），扫描 30→2.9us/pt（10x），biome_of 31→3.8us/pt，fillbench 28.76→22.98ms（20%）。blocks_cmp 数值不变（93.49%）。提交 `f73c005`。
-- **C++ 热点前提已证伪**（DEVIRT），Rust 并发未测（待办）
+`biome_perf` 与 `biome_hot` 同为 biome_of 测量，结果差 7×（384 vs 54us/pt），**测量方法不一致**：
+
+- **biome_perf**（384us/pt）：`x=(i*7)&0xFFFF, z=(i*13)&0xFFFF` → **100k 不同坐标**，跨 65536×65536 范围，每点不同 chunk → **冷缓存**（6 参数噪声采样全重算 + 线性扫描 7593 行）
+- **biome_hot**（54us/pt）：`lx=i%16, lz=(i/16)%16` → **同 chunk(0,0) 内 256 列**，flat_cache 命中 → **热缓存**
+
+7× 差 = 冷缓存（每点重采样 6 参数噪声）vs 热缓存（flat_cache 命中）。这是「fresh-vs-cached」的同一区分（perf_fresh 已文档化）。**biome_perf 是冷缓存上界，biome_hot 是热缓存下界**，真实 fill_chunk 介于两者之间（每 chunk 内热、跨 chunk 冷）。此异常**已解释，非 bug**。
+
+## 结论
+
+**DFC 直排方向关闭**（density 非瓶颈，biome 是热点）：
+- density 稳态已快（perf_fresh 0.10/0.06us/pt），DFC 直排优化 density 无收益
+- biome 是真正热点（45-46%），已通过 SearchTree 优化（10× 扫描，fillbench 20%）
+- **关闭理由修正**：删除「方案 B（spline 显式栈）无收益」的不可核实声明（该实验无提交/无回退/无输出记录）。关闭理由是「density 已快 + biome 是热点」，**不是**「方案 B 无收益」
 
 ## 待办
 
-- Rust 多线程/冷缓存并发争用测（C++ 11× 课题核心）
+- 无（DFC 方向已关闭，证据链完整）
