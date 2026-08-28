@@ -19,5 +19,6 @@ pub mod md5;               // MD5（create_xoroshiro_seed_str 的 string 种子�
 pub mod xoroshiro;         // XoroshiroRandom + Xoroshiro128PlusPlus + Splitter（随机源）
 pub mod chunkrandom;       // ChunkRandom + CheckedRandom（CARVER 种子派生）
 pub mod carver;            // CARVERS 阶段（洞穴雕刻）CaveCarver/RavineCarver
+pub mod worldgen_handle;   // 生产句柄（C ABI 的 Rust 侧实现）
 
 pub fn version() -> &'static str { "0.1.0" }
