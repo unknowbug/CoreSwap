@@ -186,9 +186,11 @@ impl Beardifier {
                     have_chunk = true;
                 }
                 "piece" => {
+                    // 格式：piece <minX> <minY> <minZ> <maxX> <maxY> <maxZ> <terrain 0-3> <groundLevelDelta>
+                    // "piece" 已消费，parts 剩 8 个数：v[0..5]=box, v[6]=terrain, v[7]=groundLevelDelta
                     let v: Vec<i32> = parts.filter_map(|s| s.parse().ok()).collect();
-                    if v.len() >= 9 {
-                        let terrain = match v[7] {
+                    if v.len() >= 8 {
+                        let terrain = match v[6] {
                             1 => TerrainAdaptation::Bury,
                             2 => TerrainAdaptation::BeardThin,
                             3 => TerrainAdaptation::BeardBox,
@@ -197,7 +199,7 @@ impl Beardifier {
                         cur.pieces.push(BeardPiece {
                             min_x: v[0], min_y: v[1], min_z: v[2],
                             max_x: v[3], max_y: v[4], max_z: v[5],
-                            terrain, ground_level_delta: v[8],
+                            terrain, ground_level_delta: v[7],
                         });
                     }
                 }
