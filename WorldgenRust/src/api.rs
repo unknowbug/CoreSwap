@@ -37,7 +37,8 @@ pub extern "C" fn wg_destroy(handle: *mut c_void) {
 
 // 完整区块生成（方块层）：count 个 chunk，outs[i] = int[16*16*384]（vanilla raw block id）
 // threads: 并行线程数；0 或负 = 自适应。返回 count。
-// 注：当前串行生成（Rust thread_local 缓存 + 只读树并发安全，后续可加线程池）。
+// 并行生成：每个线程算一个 chunk 的 Vec<i32>（闭包只捕获 Arc<handle> + 坐标，不捕获裸指针），
+// 主线程把结果拷回 outs 裸指针——避免裸指针跨线程 Send（错误台账 M2）。
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
                                         chunk_xs: *const c_int, chunk_zs: *const c_int,
@@ -50,9 +51,18 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
     let out_ptrs = unsafe { std::slice::from_raw_parts(outs, count) };
     let block_count = (16 * 16 * HEIGHT) as usize;
 
-    // 串行生成（先保证正确性，多线程后续加）
-    for i in 0..count {
-        let blocks = h.fill_chunk_blocks(cxs[i], czs[i]);
+    // 并行生成：每线程算一个 chunk 的 Vec<i32>（Arc<&handle> Send，坐标 Copy）
+    let h_arc = std::sync::Arc::new(h);
+    let handles: Vec<_> = (0..count).map(|i| {
+        let h = h_arc.clone();
+        let cx = cxs[i];
+        let cz = czs[i];
+        std::thread::spawn(move || (cx, cz, h.fill_chunk_blocks(cx, cz)))
+    }).collect();
+
+    // 主线程收集结果写回裸指针（顺序固定，保证确定性与 C++ 一致）
+    for (i, jh) in handles.into_iter().enumerate() {
+        let (_cx, _cz, blocks) = jh.join().unwrap_or((-1, -1, vec![0; block_count]));
         let dst = unsafe { std::slice::from_raw_parts_mut(out_ptrs[i], block_count) };
         dst.copy_from_slice(&blocks[..block_count]);
     }
