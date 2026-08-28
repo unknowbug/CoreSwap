@@ -32,10 +32,12 @@ CoreSwap Rust worldgen 性能优化。尝试 DFC 直排（density 树摊平消�
 ## 补验证结论（judge 建议后）
 
 - **fresh-vs-cached**：density 纯树 fresh 0.10 / cached 0.06 us/pt——都很快，DFC 直排对 density 收益有限
-- **组件量化**：biome 占管线 46%——**性能优化应转向 biome 分类**（MultiNoise 最近邻线性扫描 ~64 biome，可优化为 SearchTree/分层）
+- **组件量化**：biome 占管线 45%——**biome 分类是真正热点，非 density**
+- **biome 根因**：biome_of 扫描成本 54us/pt（98%），因线性扫描 **7593 行**（53 biome × 多 depth/分档行），非 6 参数采样（0.9us）
+- **分桶优化**：按 depth 分桶（0/1 各 ~3800 行），扫描 54→30us/pt（2x），biome 占管线 45%→32%（15.2→9.5ms），fillbench 提升 17%。blocks_cmp 数值不变（93.49%）。已提交。
 - **C++ 热点前提已证伪**（DEVIRT），Rust 并发未测（待办）
 
 ## 待办
 
+- **SearchTree（KD-tree，vanilla 方案）**：biome 扫描 30us→~1us（O(log n)），biome 成本 9.5ms→~0.3ms，fillbench 再降 ~30%。大工程但值得。
 - Rust 多线程/冷缓存并发争用测（C++ 11× 课题核心）
-- biome 分类优化（SearchTree/分层，替代线性扫描）
