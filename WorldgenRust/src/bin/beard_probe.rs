@@ -44,6 +44,28 @@ fn main() {
     assert!((bury - 0.1667).abs() < 0.01, "BURY-only sample should be ~0.1667, got {bury}");
     println!("  => BURY contribution positive & correct");
 
+    // 2b. BEARD_THIN / BEARD_BOX 分支验证（judge MUST：原自检未覆盖）
+    // BEARD_THIN box: getStructureWeight(m,q,n,p)*0.8，q=p
+    let thin_content = "chunk 0 0\npiece 0 60 0 20 80 20 2 0\n";
+    let tmp4 = std::path::PathBuf::from("beard_probe_thin.txt");
+    std::fs::write(&tmp4, thin_content).unwrap();
+    let p4 = Beardifier::from_file(tmp4.to_str().unwrap()).unwrap();
+    let b4 = &p4[0].2;
+    let thin = b4.sample(10, 70, 10); // box 内: m=n=0, p=10, q=10
+    println!("sample(10,70,10) BEARD_THIN box = {:.6} (expect small, getStructureWeight*0.8)", thin);
+    assert!(thin != 0.0, "BEARD_THIN branch should contribute nonzero");
+
+    // BEARD_BOX box: getStructureWeight(m,q,n,p)*0.8，q = max(0,max(o-y,y-maxY))
+    let box_content = "chunk 0 0\npiece 0 60 0 20 80 20 3 0\n";
+    let tmp5 = std::path::PathBuf::from("beard_probe_box.txt");
+    std::fs::write(&tmp5, box_content).unwrap();
+    let p5 = Beardifier::from_file(tmp5.to_str().unwrap()).unwrap();
+    let b5 = &p5[0].2;
+    let bbox = b5.sample(10, 70, 10); // box 内: q = max(0,max(60-70,70-80))=0, p=10
+    println!("sample(10,70,10) BEARD_BOX box = {:.6} (expect nonzero, getStructureWeight*0.8)", bbox);
+    assert!(bbox != 0.0, "BEARD_BOX branch should contribute nonzero");
+    println!("  => BEARD_THIN/BEARD_BOX branches execute & produce nonzero");
+
     // 3. 权重表随距离衰减：box 内 vs 远离 box（但离 junction 近）应不同
     let far_y = b.sample(10, 40, 10); // y=40 距 box(60) 上很远，dy=-20
     println!("sample(10,40,10) above-ish = {:.6}", far_y);
