@@ -127,6 +127,8 @@ impl DensityBuilder {
     }
     // 暴露 randomDeriver（供探针复刻 NoiseConfig 派生链，如 Aquifer "minecraft:aquifer" split）
     pub fn random_deriver(&self) -> &XoroshiroSplitter { &self.random_deriver }
+    // 暴露 noise_samplers（供 SurfaceBuilder 等消费；须先 get_noise_sampler 惰性创建所需 noise）
+    pub fn noise_samplers(&self) -> &HashMap<String, Arc<DoublePerlinNoiseSampler>> { &self.noise_samplers }
     // 用 noise_params.json 覆盖硬编码表（对齐基准切到权威文件，judge P2-e）。须在首次 get_noise_sampler 前调用。
     pub fn load_noise_params_file(&mut self, path: &str) -> Result<(), String> {
         self.noise_params = build_noise_params_from_file(path)?;

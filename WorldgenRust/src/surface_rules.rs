@@ -16,6 +16,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::blocks::{BlockColumn, BlockId, BlockRegistry};
 use crate::noise::DoublePerlinNoiseSampler;
@@ -238,7 +239,7 @@ pub struct SurfaceContext<'a> {
     pub fluid_height: i32,
     pub biome_id: String,
     pub biome_temp: f64,
-    pub noise_samplers: &'a HashMap<String, DoublePerlinNoiseSampler>,
+    pub noise_samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
     pub splitter: &'a XoroshiroSplitter,
     pub initial_density_at: Option<&'a dyn Fn(i32, i32, i32) -> f64>,
     pub terracotta_bands_getter: Option<&'a dyn Fn(i32, i32, i32) -> i32>,
@@ -255,7 +256,7 @@ pub struct SurfaceContext<'a> {
 impl<'a> SurfaceContext<'a> {
     // 便捷构造：初始化核心字段 + 缓存（引用字段由调用方 struct literal 填充，见 build_surface）
     pub fn new(
-        noise_samplers: &'a HashMap<String, DoublePerlinNoiseSampler>,
+        noise_samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
         splitter: &'a XoroshiroSplitter,
         world_min_y: i32,
         world_height: i32,
@@ -362,7 +363,7 @@ impl<'a> SurfaceContext<'a> {
 
 // ========== SurfaceBuilder（对齐 C++ surface.h L345-483）==========
 pub struct SurfaceBuilder<'a> {
-    samplers: &'a HashMap<String, DoublePerlinNoiseSampler>,
+    samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
     splitter: &'a XoroshiroSplitter,
     #[allow(dead_code)] // 保留 API 对齐（placeIceberg 未移植，暂未使用）
     sea_level: i32,
@@ -372,7 +373,7 @@ pub struct SurfaceBuilder<'a> {
 
 impl<'a> SurfaceBuilder<'a> {
     pub fn new(
-        samplers: &'a HashMap<String, DoublePerlinNoiseSampler>,
+        samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
         splitter: &'a XoroshiroSplitter,
         sea_level: i32,
         blocks: &'a BlockRegistry,
@@ -422,7 +423,7 @@ impl<'a> SurfaceBuilder<'a> {
     }
 
     fn get_noise(&self, key: &str) -> &DoublePerlinNoiseSampler {
-        self.samplers.get(key).expect("missing noise sampler")
+        self.samplers.get(key).expect("missing noise sampler").as_ref()
     }
 
     // 对齐 C++ L378-391 sampleRunDepth（surfaceDepth 列缓存）
