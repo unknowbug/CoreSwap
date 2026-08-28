@@ -105,6 +105,7 @@ fn main() {
     let mut rust_carved = 0u64; // Rust carver 实际挖掉的块数（surface 后 rock → carver 后 air）
     let mut rust_carved_match = 0u64; // Rust 挖的洞中，vanilla 也是 air（挖洞重合）
     let mut vanilla_carved = 0u64; // vanilla 挖的洞（vanilla air 且 surface-only Rust 是 rock）
+    let mut rust_carved_above_surface = 0u64; // Rust 挖的洞中，y >= 地表（异常，carver 不应挖地表以上）
     for _c in 0..(size*size) {
         let cx = be32(&bd, &mut i); let cz = be32(&bd, &mut i);
         let mut vanilla = vec![0i32; bpc];
@@ -207,6 +208,8 @@ fn main() {
             if pre_carve[k] != 0 && got == 0 {
                 rust_carved += 1;
                 if vanilla[k] == 0 { rust_carved_match += 1; }
+                // 检查是否挖到地表以上（异常）
+                if y >= heightmap[(lz*16+lx) as usize] { rust_carved_above_surface += 1; }
             }
             // vanilla 挖的洞：vanilla air 且 surface-only Rust 是 rock（即 carver 应挖的洞）
             if vanilla[k] == 0 && pre_carve[k] != 0 { vanilla_carved += 1; }
@@ -214,4 +217,5 @@ fn main() {
     }
     println!("Rust(surface+carver) vs vanilla FULL: match={}/{} ({:.2}%)  nonAir={}/{} ({:.2}%)", match_t, total, 100.0*match_t as f64/total as f64, mnair, tnair, if tnair>0 {100.0*mnair as f64/tnair as f64} else {0.0});
     println!("Rust carved: {} (match vanilla air {})  vanilla carved: {}  overlap: {:.2}%", rust_carved, rust_carved_match, vanilla_carved, if vanilla_carved>0 {100.0*rust_carved_match as f64/vanilla_carved as f64} else {0.0});
+    println!("Rust carved above surface (anomaly): {}", rust_carved_above_surface);
 }
