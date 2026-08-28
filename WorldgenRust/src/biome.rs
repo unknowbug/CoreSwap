@@ -173,9 +173,10 @@ fn enclosing(sub: &[SearchTreeNode]) -> Vec<[f64; 2]> {
 
 #[derive(Clone)]
 pub struct BiomeClassifier {
-    // 按 depth 分桶（depth 0/1 各 ~3800 行），每桶一个 SearchTree
-    tree_depth0: SearchTreeNode,
-    tree_depth1: SearchTreeNode,
+    // 单个 SearchTree（KD-tree）。judge review-002：depth 分桶有正确性 bug
+    // （dripstone/lush_caves depth=[0.2,0.9] 中点 0.55 进 depth1，但采样 d<0.5 走 depth0 被排除），
+    // 放弃分桶仅用 SearchTree（本身已 10×）。
+    tree: SearchTreeNode,
 }
 
 fn read_box(v: &JsonValue) -> [f64; 2] {
@@ -190,8 +191,7 @@ impl BiomeClassifier {
     pub fn load(path: &str) -> Self {
         let txt = fs::read_to_string(path).expect("biome_params.json");
         let arr = json_parse(&txt).expect("parse biome_params").as_array().cloned().unwrap_or_default();
-        let mut rows_depth0 = Vec::new();
-        let mut rows_depth1 = Vec::new();
+        let mut rows = Vec::new();
         for e in arr {
             let biome = e.get("biome").and_then(|b| b.as_str()).unwrap_or("").to_string();
             let params = e.get("parameters");
@@ -200,14 +200,10 @@ impl BiomeClassifier {
                 ranges.push(params.map(|p| read_box(&p.get(key).unwrap_or(&JsonValue::Null))).unwrap_or([f64::NAN; 2]));
             }
             let offset = params.and_then(|p| p.get("offset")).and_then(|o| o.as_f64()).unwrap_or(0.0);
-            // depth 分桶：depth range 中点 < 0.5 → depth0，否则 depth1
-            let depth_mid = (ranges[4][0] + ranges[4][1]) / 2.0;
-            let entry = BiomeEntry { biome, ranges, offset };
-            if depth_mid < 0.5 { rows_depth0.push(entry); } else { rows_depth1.push(entry); }
+            rows.push(BiomeEntry { biome, ranges, offset });
         }
-        let tree_depth0 = build_search_tree(&rows_depth0);
-        let tree_depth1 = build_search_tree(&rows_depth1);
-        BiomeClassifier { tree_depth0, tree_depth1 }
+        let tree = build_search_tree(&rows);
+        BiomeClassifier { tree }
     }
 
     // 对齐 vanilla ParameterRange.getDistance：点不在 [min,max] 内则到最近边界距离，否则 0
@@ -219,17 +215,15 @@ impl BiomeClassifier {
     }
 
     // 对齐 vanilla NoiseHypercube.getSquaredDistance：6 维平方距离 + offset²，找最近邻
-    // 优化：按 depth 分桶 + SearchTree（KD-tree 剪枝）
+    // 优化：SearchTree（KD-tree 剪枝）
     pub fn biome_of(&self, tempf: &DensityFunction, humf: &DensityFunction, contf: &DensityFunction,
         erof: &DensityFunction, depthf: &DensityFunction, weirdf: &DensityFunction, pos: &NoisePos) -> String {
         let t = tempf.sample(pos); let h = humf.sample(pos); let c = contf.sample(pos);
         let e = erof.sample(pos); let d = depthf.sample(pos); let w = weirdf.sample(pos);
         let vals = [t, h, c, e, d, w, 0.0]; // 7 维（offset 采样点=0）
-        // 选 depth 桶
-        let tree = if d < 0.5 { &self.tree_depth0 } else { &self.tree_depth1 };
         let mut best_dist = f64::INFINITY;
         let mut best = "minecraft:plains".to_string();
-        tree.get_resulting_node(&vals, &mut best_dist, &mut best);
+        self.tree.get_resulting_node(&vals, &mut best_dist, &mut best);
         best
     }
 }
