@@ -105,7 +105,17 @@ fn main() {
             *col.at_mut(lx, y, lz) = id;
         }}}
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
-        let surface_heights4 = vec![heightmap[0], heightmap[15], heightmap[15*16], heightmap[15*16+15]];
+        // 真实 estimateSurfaceHeight 4 角：从顶向下扫描 initial_density > 0.390625（间隔 8）
+        let est_at = |x: i32, z: i32| -> i32 {
+            let mut est = i32::MAX;
+            for y in (min_y..min_y + height).rev().step_by(8) {
+                if init.sample(&NoisePos { x, y, z }) > 0.390625 { est = y; break; }
+            }
+            est
+        };
+        let surface_heights4 = vec![
+            est_at(cx*16, cz*16), est_at(cx*16+15, cz*16), est_at(cx*16, cz*16+15), est_at(cx*16+15, cz*16+15),
+        ];
         let biome_at = |x: i32, y: i32, z: i32| -> String {
             let bp = NoisePos { x: (x>>2)<<2, y: (y>>2)<<2, z: (z>>2)<<2 };
             biomesrc.biome(&bp)
