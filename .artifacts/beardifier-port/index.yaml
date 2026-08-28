@@ -1,0 +1,32 @@
+# Beardifier Rust 移植交付（candidate · 结构级对齐 verified / 逐位对齐 unverified）
+
+> 交付：`ad887e6`（beardifier.rs 移植 + 集成 fill_chunk + beard file 加载器）、`9d6960c`（修 piece 索引 + 自检探针）
+> 状态：**candidate（结构级）** — 不得升 confirmed（需真实 Java 逐位对拍后由人类拍板）
+> 验证分层：**Partial**（静态结构对齐 + 自洽自检；未做逐位 Full 对拍）
+> 审查：subagent judge（三源核对：git 提交 + 代码 + 自检输出；参考 C++ beardifier.h/worldgen_api.cpp/block_probe.cpp）
+
+## 审查结论（judge）
+
+| 项 | 结论 | 说明 |
+|---|---|---|
+| 算法对齐 | 通过（结构级） | powf 字面量 / fast_inv_sqrt 位操作 / 表索引 / sample 四分支 与 C++ beardifier.h 逐行一致 |
+| 集成 | 通过 | d = dense.sample → d += beard.sample → aqua.classify(d)，对齐 worldgen_api.cpp L912→915→916；surface top 用含 beard 的 d |
+| 加载器 piece 索引 | 通过 | 9d6960c 修正后 v[6]=terrain, v[7]=groundDelta，对齐 block_probe.cpp:61-64 |
+| powf 逐位风险 | 存疑（未验证） | MSVC CRT pow ≠ Java fdlibm pow 最后 ULP；经 as f32 边界条目可能差 1 ULP |
+| 自检覆盖 | 有问题 | 只验 BURY clampedMap；junction 仅重合点容差 0.01；BEARD_THIN/BEARD_BOX 未触达；未用真实 Java dump 对拍 |
+| fill_chunk 签名 | 通过 | 3 调用点均传 None；mt_probe/perf_probe2 是局部同名函数不受影响 |
+
+## MUST / SHOULD 待办
+
+- **[MUST-验证] powf 权重表逐位**：真实含 terrain_adaptation 的 Java 探针 dump 对拍（第二步）——待办
+- **[MUST-验证] BEARD_THIN/BEARD_BOX 分支**：✅ 已完成（7a39c10），beard_probe 补 thin/box 样例（-0.000575 / -0.556886，符合 getStructureWeight*0.8 语义）
+- **[SHOULD-修复] 自检输出落盘**：写 .investigations 回归记录——待办
+- **[SHOULD-标注] 验证分层**：交付显式声明 Partial + 依据——本文件已标注
+
+## 自检证据（beard_probe，9d6960c 后通过）
+
+- from_file 解析：1 chunk 1 piece 1 junction ✓
+- BURY piece-only sample(10,70,10) = 0.166667（手算 clampedMap 5/6）✓
+- BURY+junction sample = -0.111721（junction getStructureWeight 负贡献）✓
+- 远处 sample = 0.0 ✓
+- 空 chunk 识别 ✓

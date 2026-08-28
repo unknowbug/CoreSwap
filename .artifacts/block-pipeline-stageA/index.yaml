@@ -1,0 +1,34 @@
+# ③ 块管线阶段 A + ④ 交叉验证交付（candidate · 验证分层 Partial）
+
+> 交付：`7891bf4`（BlockId）、`e11a21d`（surface_rules.rs）、`3da23b7`（build_surface 接入）、`c9f417c`（grass_probe）、`76935e9`（blocks_cmp）
+> 状态：**candidate** — 不得升 confirmed（需完整 Java 对拍 + biome 温度表/est 简化修正后由人类拍板）
+> 验证分层：**Partial**（结构对齐 + 自洽自检 + 交叉验证；biome 温度表/est 有简化）
+
+## 交付内容
+
+- **BlockId 注册表**（blocks.rs）：BlockRegistry 从 blocks.json 加载 id↔name + BlockColumn 存储
+- **surface_rules.rs**（1277 行）：SurfaceCond 枚举（11 类）+ SurfaceRule 枚举（4 类）+ SurfaceContext + build_overworld_rule 规则树 + build_surface 引擎 + biome 温度表
+- **build_surface 接入**：fill_chunk 宏观 BlockKind → BlockColumn → build_surface 应用 surface rules
+
+## 修正的 C++ bug（对照 Java 核实，见 surface-rules-errors.md）
+
+1. HoleCond 用错字段（stoneDepthAbove 扫描计数器 → 应 surface_depth=sampleRunDepth 噪声）
+2. surfaceNoiseThreshold 未除 8.25（Java 是 min/8.25）
+3. SteepCond 索引转置（heightmap 是 z*16+x，C++ 读 x*16+z）
+4. apply_material_rule_single 留 surface_depth=0（应设 sample_run_depth）
+
+## 验证证据
+
+- **grass_probe**：col(0,0) top=98 = grass_block(8)+dirt(9)，surface rules 完整生效
+- **blocks_cmp**：Rust 完整块管线 vs vanilla 97.80% match / 93.65% nonAir（对比宏观 98.06%/94.44%）
+
+## 已知简化（验证缺口）
+
+- **biome 温度表**：blocks_cmp 用 biome_temp=0.5 简化（TempCond <0.15 分支可能不准）
+- **surface_heights4**：用 surface_height 4 角简化（非 estimateSurfaceHeight 4 角）
+- **Beardifier powf 逐位**：未验证（需 Java 对拍）
+
+## 待办
+
+- 完整 Java 对拍（biome 温度表 + est 修正）
+- 阶段 B（terracottaBands/badlands pillar，需特定 biome 区域）
