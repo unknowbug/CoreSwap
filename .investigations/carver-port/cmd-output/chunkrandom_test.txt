@@ -1,0 +1,13 @@
+[OK] cr.next(32)#1 = -1045225129
+[OK] cr.next(32)#2 = 1084206043
+[OK] cr.nextLong#1 = -3933948616470016951
+[OK] cr.nextLong#2 = -518819946905544879
+[OK] cr.nextInt(10)#1 = 4
+[OK] cr.nextInt(10)#2 = 6
+[OK] carver nextFloat bits = 0x3F0FBCF0
+[OK] carver nextInt(16)#1 = 12
+[OK] carver nextInt(16)#2 = 11
+[OK] carver nextInt(16)#3 = 2
+[OK] carver2 nextFloat bits = 0x3F0FBCF0
+[OK] carver2 nextLong = -3711936206981428316
+=== ALL PASS (failures=0) ===
