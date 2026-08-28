@@ -29,6 +29,7 @@ fn main() {
 
     // 每 8 chunk 采一个点（biome 尺度足够），扫 ±256 chunk
     let mut found: Vec<(i32, i32, String)> = Vec::new();
+    let mut badlands_found: Vec<(i32, i32, String)> = Vec::new();
     let mut biome_hist: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
     for cz in (-256..256).step_by(8) {
         for cx in (-256..256).step_by(8) {
@@ -37,7 +38,10 @@ fn main() {
             let b = bc.biome_of(&t, &h, &c, &e, &d, &w, &bp);
             *biome_hist.entry(b.clone()).or_insert(0) += 1;
             if (b.contains("badlands") || b.contains("desert")) && found.len() < 10 {
-                found.push((cx, cz, b));
+                found.push((cx, cz, b.clone()));
+            }
+            if b.contains("badlands") && badlands_found.len() < 10 {
+                badlands_found.push((cx, cz, b.clone()));
             }
         }
     }
@@ -45,6 +49,10 @@ fn main() {
     println!("  badlands/desert found: {}", found.len());
     for (cx, cz, b) in &found {
         println!("  chunk({},{}) biome={}", cx, cz, b);
+    }
+    println!("  badlands (non-desert) found: {}", badlands_found.len());
+    for (cx, cz, b) in &badlands_found {
+        println!("  BADLANDS chunk({},{}) biome={}", cx, cz, b);
     }
     println!("  biome histogram (top):");
     let mut items: Vec<_> = biome_hist.iter().collect();
