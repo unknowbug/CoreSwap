@@ -30,10 +30,12 @@ try {
     # -PcppReplace=true → -Dcpp.replace=1（启用 CppBridge）
     # -PcppLib → -Dcpp.worldgen.lib（加载 Rust JNI 桥 worldgen.dll）
     # -PcppWorldgenDir → -Dcpp.worldgen.dir（worldgen 数据目录）
+    # 注意：gradle 是 gradle.bat，PowerShell 传含反斜杠路径的 -P 参数必须加引号，
+    #       否则变量展开后路径被批处理处理成字面量（如 $rustJni）。
     gradle runClient `
         -PcppReplace=true `
-        -PcppLib=$rustJni `
-        -PcppWorldgenDir=$worldgenDir
+        "-PcppLib=$rustJni" `
+        "-PcppWorldgenDir=$worldgenDir"
 }
 finally {
     Pop-Location

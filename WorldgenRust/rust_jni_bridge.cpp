@@ -57,6 +57,7 @@ static bool loadRustDll() {
         fprintf(stderr, "[RUST-JNI] missing wg_* exports\n");
         return false;
     }
+    fprintf(stderr, "[RUST-JNI] Rust worldgen.dll bridge loaded (WorldgenRust.dll attached)\n");
     return true;
 }
 
