@@ -7,6 +7,7 @@ pub mod aquifer;           // 块级含水层（AquiferSampler.Impl 移植）—
 pub mod surface;           // SurfaceBuilder/MaterialRules 深带规则（bedrock/deepslate/tuff）——v1 深带替换
 pub mod ore_vein;          // OreVeinSampler 矿脉（铜/铁，含 tuff/deepslate_*_ore/raw_*）
 pub mod biome;             // 宏观 biome 分类（MultiNoise 近似：biome_params 盒包含）
+pub mod blocks;             // 方块 ID 注册表 + 区块方块存储（BlockColumn）
 pub mod beardifier;         // StructureWeightSampler（Beardifier）结构密度修正（对齐 C++ beardifier.h）
 pub mod spline;            // SplineDF（data-driven 表 + 采样，可软流）
 pub mod terrain;           // finalDensity 构建 + fill 逻辑
