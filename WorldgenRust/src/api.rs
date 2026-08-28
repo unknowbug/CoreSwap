@@ -12,6 +12,18 @@ const MIN_Y: i32 = -64;
 const HEIGHT: i32 = 384;
 const POINTS_PER_CHUNK: i32 = (16 / XZ_INTERVAL) * (HEIGHT / Y_INTERVAL) * (16 / XZ_INTERVAL);
 
+// 输出指针 Send 包装：闭包调用 write() 方法（而非访问 .0 字段）写自己线程的 out，
+// 避免编译器穿透字段访问导致裸指针跨线程 Send 报错（错误台账 M2）。
+// 每个线程写不同的 out 指针，无数据竞争（wg_fill_blocks_multi 保证）。
+struct SendOut(*mut c_int);
+unsafe impl Send for SendOut {}
+impl SendOut {
+    #[inline]
+    fn write(&self, data: &[c_int]) {
+        unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), self.0, data.len()); }
+    }
+}
+
 // 创建 worldgen 句柄：一次 seed 初始化（构建全部 noise samplers + density 树 + biome + surface）。
 // worldgenDir: vanilla worldgen JSON 数据目录（含 data/minecraft/worldgen/...）
 // 失败返回 NULL
@@ -37,8 +49,8 @@ pub extern "C" fn wg_destroy(handle: *mut c_void) {
 
 // 完整区块生成（方块层）：count 个 chunk，outs[i] = int[16*16*384]（vanilla raw block id）
 // threads: 并行线程数；0 或负 = 自适应。返回 count。
-// 并行生成：每个线程算一个 chunk 的 Vec<i32>（闭包只捕获 Arc<handle> + 坐标，不捕获裸指针），
-// 主线程把结果拷回 outs 裸指针——避免裸指针跨线程 Send（错误台账 M2）。
+// 纯粹多线程：每线程直接写自己的 out 指针（SendOut.write 方法，不捕获裸指针字段），
+// 无串行收集。确定性由「每线程算固定 chunk + 写固定 out」保证。
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
                                         chunk_xs: *const c_int, chunk_zs: *const c_int,
@@ -51,21 +63,19 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
     let out_ptrs = unsafe { std::slice::from_raw_parts(outs, count) };
     let block_count = (16 * 16 * HEIGHT) as usize;
 
-    // 并行生成：每线程算一个 chunk 的 Vec<i32>（Arc<&handle> Send，坐标 Copy）
+    // 每线程直接写自己的 out（SendOut 包装裸指针，write 方法写）。闭包捕获 Arc<&handle> + SendOut + 坐标。
     let h_arc = std::sync::Arc::new(h);
     let handles: Vec<_> = (0..count).map(|i| {
         let h = h_arc.clone();
         let cx = cxs[i];
         let cz = czs[i];
-        std::thread::spawn(move || (cx, cz, h.fill_chunk_blocks(cx, cz)))
+        let out = SendOut(out_ptrs[i]);
+        std::thread::spawn(move || {
+            let blocks = h.fill_chunk_blocks(cx, cz);
+            out.write(&blocks[..block_count]);
+        })
     }).collect();
-
-    // 主线程收集结果写回裸指针（顺序固定，保证确定性与 C++ 一致）
-    for (i, jh) in handles.into_iter().enumerate() {
-        let (_cx, _cz, blocks) = jh.join().unwrap_or((-1, -1, vec![0; block_count]));
-        let dst = unsafe { std::slice::from_raw_parts_mut(out_ptrs[i], block_count) };
-        dst.copy_from_slice(&blocks[..block_count]);
-    }
+    for h in handles { let _ = h.join(); }
     count as c_int
 }
 
