@@ -53,7 +53,7 @@ fn main() {
     let b4 = &p4[0].2;
     let thin = b4.sample(10, 70, 10); // box 内: m=n=0, p=10, q=10
     println!("sample(10,70,10) BEARD_THIN box = {:.6} (expect small, getStructureWeight*0.8)", thin);
-    assert!(thin != 0.0, "BEARD_THIN branch should contribute nonzero");
+    assert!((thin - (-0.000575)).abs() < 0.0001, "BEARD_THIN should be ~-0.000575, got {thin}");
 
     // BEARD_BOX box: getStructureWeight(m,q,n,p)*0.8，q = max(0,max(o-y,y-maxY))
     let box_content = "chunk 0 0\npiece 0 60 0 20 80 20 3 0\n";
@@ -63,7 +63,7 @@ fn main() {
     let b5 = &p5[0].2;
     let bbox = b5.sample(10, 70, 10); // box 内: q = max(0,max(60-70,70-80))=0, p=10
     println!("sample(10,70,10) BEARD_BOX box = {:.6} (expect nonzero, getStructureWeight*0.8)", bbox);
-    assert!(bbox != 0.0, "BEARD_BOX branch should contribute nonzero");
+    assert!((bbox - (-0.556886)).abs() < 0.001, "BEARD_BOX should be ~-0.556886, got {bbox}");
     println!("  => BEARD_THIN/BEARD_BOX branches execute & produce nonzero");
 
     // 3. 权重表随距离衰减：box 内 vs 远离 box（但离 junction 近）应不同

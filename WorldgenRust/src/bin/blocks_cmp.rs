@@ -110,7 +110,7 @@ fn main() {
             let bp = NoisePos { x: (x>>2)<<2, y: (y>>2)<<2, z: (z>>2)<<2 };
             biomesrc.biome(&bp)
         };
-        let biome_temp = |_id: &str| -> f64 { 0.5 };
+        let biome_temp = |id: &str| -> f64 { WorldgenRust::surface_rules::biome_temperature(id) };
         let initial_density_at = |x: i32, y: i32, z: i32| -> f64 { init.sample(&NoisePos { x, y, z }) };
         sb.build_surface(&mut col, &rule, cx*16, cz*16, &heightmap, &surface_heights4,
                          &biome_at, &|x,y,z| ((x as i64)<<32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
