@@ -1,0 +1,152 @@
+   Compiling WorldgenRust v0.1.0 (E:\PYTHON\CoreSwap\WorldgenRust)
+warning: unused import: `std::collections::HashMap`
+ --> src\density.rs:5:5
+  |
+5 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::sync::Arc`
+ --> src\biome.rs:8:5
+  |
+8 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:117:13
+    |
+117 |         let mut fluid_block;
+    |             ----^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:118:13
+    |
+118 |         let mut fluid_y;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable `fluid_y` is assigned to, but never used
+   --> src\aquifer.rs:118:13
+    |
+118 |         let mut fluid_y;
+    |             ^^^^^^^^^^^
+    |
+    = note: consider using `_fluid_y` instead
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `fluid_y` is never read
+   --> src\aquifer.rs:119:93
+    |
+119 |         if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
+    |                                                                                             ^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: value assigned to `fluid_y` is never read
+   --> src\aquifer.rs:119:48
+    |
+119 |         if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
+    |                                                ^^^^^^^^^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:242:14
+    |
+242 |         let (mut d, mut e): (f64, f64);
+    |              ----^
+    |              |
+    |              help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> src\aquifer.rs:242:21
+    |
+242 |         let (mut d, mut e): (f64, f64);
+    |                     ----^
+    |                     |
+    |                     help: remove this `mut`
+
+warning: field `first_octave` is never read
+  --> src\noise.rs:98:5
+   |
+96 | pub struct OctavePerlinNoiseSampler {
+   |            ------------------------ field in this struct
+97 |     octave_samplers: Vec<Option<PerlinNoiseSampler>>,
+98 |     first_octave: i32,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `size_y` is never read
+  --> src\aquifer.rs:41:18
+   |
+30 | pub struct Aquifer {
+   |            ------- field in this struct
+...
+41 |     size_x: i32, size_y: i32, size_z: i32,
+   |                  ^^^^^^
+
+warning: struct `VeinType` is never constructed
+  --> src\ore_vein.rs:14:8
+   |
+14 | struct VeinType { ore: i32, raw_ore_block: i32, stone: i32, min_y: i32, max_y: i32 }
+   |        ^^^^^^^^
+
+warning: associated function `range_distance` is never used
+   --> src\biome.rs:215:8
+    |
+189 | impl BiomeClassifier {
+    | -------------------- associated function in this implementation
+...
+215 |     fn range_distance(noise: f64, range: &[f64; 2]) -> f64 {
+    |        ^^^^^^^^^^^^^^
+
+warning: field `height` is never read
+  --> src\blocks.rs:60:5
+   |
+58 | pub struct BlockColumn {
+   |            ----------- field in this struct
+59 |     min_y: i32,
+60 |     height: i32,
+   |     ^^^^^^
+
+warning: crate `WorldgenRust` should have a snake case name
+  |
+  = help: convert the identifier to snake case: `worldgen_rust`
+  = note: `#[warn(non_snake_case)]` (part of `#[warn(nonstandard_style)]`) on by default
+
+warning: `WorldgenRust` (lib) generated 15 warnings (run `cargo fix --lib -p WorldgenRust` to apply 6 suggestions)
+warning: unused variable: `e`
+  --> src\bin\mt_fill.rs:37:48
+   |
+37 |         fs::read_to_string(&p).unwrap_or_else(|e| panic!("\n[LOADFAIL] {}", p.display()))
+   |                                                ^ help: if this is intentional, prefix it with an underscore: `_e`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> src\bin\mt_fill.rs:63:9
+   |
+63 |     let mut aq = Aquifer::new(ctx.barrier.clone(), ctx.flooded.clone(), ctx.spread.clone(), ctx.lava.clone(), ctx.erosion.clone(), c...
+   |         ----^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: `WorldgenRust` (bin "mt_fill") generated 2 warnings (run `cargo fix --bin "mt_fill" -p WorldgenRust` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 2.71s
+     Running `target\release\mt_fill.exe`
+seq rock[0]=29123 (reference)
+T=1 threads: wall=790.88ms  mismatch=0/16
+T=2 threads: wall=483.03ms  mismatch=0/16
+T=4 threads: wall=256.23ms  mismatch=0/16
+T=8 threads: wall=170.57ms  mismatch=0/16
+mt_fill done (full pipeline incl biome SearchTree; check scaling + consistency)

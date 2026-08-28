@@ -21,6 +21,7 @@ struct BiomeEntry {
 
 // ===== SearchTree（KD-tree，对齐 vanilla MultiNoiseUtil.SearchTree）=====
 // 7 维（6 参数 + offset）。TreeBranchNode 存 enclosing 范围，getResultingNode 用子树距离剪枝。
+#[derive(Clone)]
 enum SearchTreeNode {
     Branch { params: Vec<[f64; 2]>, sub: Vec<SearchTreeNode> },
     Leaf { params: Vec<[f64; 2]>, value: String },
@@ -170,6 +171,7 @@ fn enclosing(sub: &[SearchTreeNode]) -> Vec<[f64; 2]> {
     params
 }
 
+#[derive(Clone)]
 pub struct BiomeClassifier {
     // 按 depth 分桶（depth 0/1 各 ~3800 行），每桶一个 SearchTree
     tree_depth0: SearchTreeNode,
