@@ -177,6 +177,8 @@ pub struct BiomeClassifier {
     // （dripstone/lush_caves depth=[0.2,0.9] 中点 0.55 进 depth1，但采样 d<0.5 走 depth0 被排除），
     // 放弃分桶仅用 SearchTree（本身已 10×）。
     tree: SearchTreeNode,
+    // biome id → carvers.air 列表（从 biome/*.json 加载，CARVERS 阶段用）
+    carvers: std::collections::HashMap<String, Vec<String>>,
 }
 
 fn read_box(v: &JsonValue) -> [f64; 2] {
@@ -185,6 +187,72 @@ fn read_box(v: &JsonValue) -> [f64; 2] {
         for (i, x) in a.iter().enumerate() { if i < 2 { if let Some(n) = x.as_f64() { r[i] = n; } } }
         r
     } else { [f64::NAN; 2] }
+}
+
+// ===== BiomeAccess.getBiome 8 邻域选点（对齐 C++ biome.h biomePickCell）=====
+// SeedMixer.mixSeed（1.20.1 无符号回绕语义）
+fn mix_seed(seed: i64, salt: i64) -> i64 {
+    let s = seed as u64;
+    let v = s.wrapping_mul(s.wrapping_mul(6364136223846793005u64).wrapping_add(1442695040888963407u64));
+    (v.wrapping_add(salt as u64)) as i64
+}
+
+// method_38108：floorMod(l >> 24, 1024) / 1024.0，然后 (d - 0.5) * 0.9
+fn biome_jitter(l: i64) -> f64 {
+    let shifted = l >> 24;
+    let mut fm = shifted % 1024;
+    if fm < 0 { fm += 1024; }
+    let d = fm as f64 / 1024.0;
+    (d - 0.5) * 0.9
+}
+
+// method_38106(seed, q, r, s, d, e, f)：8 邻域候选点到 block 的哈希扰动距离
+fn biome_cell_distance(seed: i64, q: i32, r: i32, s: i32, d: f64, e: f64, f: f64) -> f64 {
+    let mut m = mix_seed(seed, q as i64);
+    m = mix_seed(m, r as i64);
+    m = mix_seed(m, s as i64);
+    m = mix_seed(m, q as i64);
+    m = mix_seed(m, r as i64);
+    m = mix_seed(m, s as i64);
+    let g = biome_jitter(m);
+    m = mix_seed(m, seed);
+    let h = biome_jitter(m);
+    m = mix_seed(m, seed);
+    let n = biome_jitter(m);
+    (f + n) * (f + n) + (e + h) * (e + h) + (d + g) * (d + g)
+}
+
+// BiomeAccess.getBiome(BlockPos) 的选点：block 坐标 → 选中的 biome 坐标 (px, py, pz)
+// 等价 Java：i=x-2, j=y-2, k=z-2; l=i>>2...；8 邻域取最近扰动点
+pub fn biome_pick_cell(access_seed: i64, block_x: i32, block_y: i32, block_z: i32) -> (i32, i32, i32) {
+    let i = block_x - 2;
+    let j = block_y - 2;
+    let k = block_z - 2;
+    let l = i >> 2;
+    let m = j >> 2;
+    let n = k >> 2;
+    let d = (i & 3) as f64 / 4.0;
+    let e = (j & 3) as f64 / 4.0;
+    let f = (k & 3) as f64 / 4.0;
+    let mut o = 0;
+    let mut best = 1e300;
+    for p in 0..8 {
+        let bl = (p & 4) == 0;
+        let bl2 = (p & 2) == 0;
+        let bl3 = (p & 1) == 0;
+        let q = if bl { l } else { l + 1 };
+        let r = if bl2 { m } else { m + 1 };
+        let s = if bl3 { n } else { n + 1 };
+        let h = if bl { d } else { d - 1.0 };
+        let t = if bl2 { e } else { e - 1.0 };
+        let u = if bl3 { f } else { f - 1.0 };
+        let v = biome_cell_distance(access_seed, q, r, s, h, t, u);
+        if best > v { o = p; best = v; }
+    }
+    let px = if (o & 4) == 0 { l } else { l + 1 };
+    let py = if (o & 2) == 0 { m } else { m + 1 };
+    let pz = if (o & 1) == 0 { n } else { n + 1 };
+    (px, py, pz)
 }
 
 impl BiomeClassifier {
@@ -203,7 +271,52 @@ impl BiomeClassifier {
             rows.push(BiomeEntry { biome, ranges, offset });
         }
         let tree = build_search_tree(&rows);
-        BiomeClassifier { tree }
+        BiomeClassifier { tree, carvers: std::collections::HashMap::new() }
+    }
+
+    // 从 biome/*.json 加载 carvers.air（CARVERS 阶段用）。biome id "minecraft:plains" → plains.json。
+    // 缺失/解析失败跳过（记 stderr）。返回加载的 biome 数（唯一 biome id）。
+    pub fn load_carvers(&mut self, biome_dir: &str) -> usize {
+        let mut count = 0;
+        // 收集所有 biome id（从 SearchTree 叶子遍历，去重）
+        let mut ids = Vec::new();
+        self.collect_biome_ids(&self.tree, &mut ids);
+        ids.sort();
+        ids.dedup();
+        for id in ids {
+            let name = if let Some(stripped) = id.strip_prefix("minecraft:") { stripped } else { &id };
+            let path = format!("{}/{}.json", biome_dir, name);
+            let txt = match fs::read_to_string(&path) {
+                Ok(t) => t,
+                Err(_) => { eprintln!("biome: no settings file {} (skip)", path); continue; }
+            };
+            let root = match json_parse(&txt) { Ok(r) => r, Err(_) => { eprintln!("biome: parse {} failed (skip)", path); continue; } };
+            let mut carvers = Vec::new();
+            if let Some(carvers_node) = root.get("carvers") {
+                if let Some(air) = carvers_node.get("air") {
+                    if let Some(arr) = air.as_array() {
+                        for c in arr { if let Some(s) = c.as_str() { carvers.push(s.to_string()); } }
+                    }
+                }
+            }
+            if !carvers.is_empty() {
+                self.carvers.insert(id.clone(), carvers);
+                count += 1;
+            }
+        }
+        count
+    }
+
+    fn collect_biome_ids(&self, node: &SearchTreeNode, out: &mut Vec<String>) {
+        match node {
+            SearchTreeNode::Leaf { value, .. } => out.push(value.clone()),
+            SearchTreeNode::Branch { sub, .. } => { for c in sub { self.collect_biome_ids(c, out); } }
+        }
+    }
+
+    // CARVERS 阶段：取 biome 的 carvers.air 列表（无则空）
+    pub fn carvers_for(&self, biome: &str) -> &[String] {
+        self.carvers.get(biome).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     // 对齐 vanilla ParameterRange.getDistance：点不在 [min,max] 内则到最近边界距离，否则 0
