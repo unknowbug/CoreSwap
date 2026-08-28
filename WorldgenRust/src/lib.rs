@@ -5,6 +5,7 @@ pub mod density;           // DF 树（InterpolatedDF/SplineDF/FlatCacheDF/Cache
 pub mod density_builder;   // worldgen JSON -> DF 树
 pub mod aquifer;           // 块级含水层（AquiferSampler.Impl 移植）——密度<0 区的 lava/水/空洞
 pub mod surface;           // SurfaceBuilder/MaterialRules 深带规则（bedrock/deepslate/tuff）——v1 深带替换
+pub mod surface_rules;     // vanilla surface rules 完整移植（条件/规则/规则树/buildSurface 引擎）
 pub mod ore_vein;          // OreVeinSampler 矿脉（铜/铁，含 tuff/deepslate_*_ore/raw_*）
 pub mod biome;             // 宏观 biome 分类（MultiNoise 近似：biome_params 盒包含）
 pub mod blocks;             // 方块 ID 注册表 + 区块方块存储（BlockColumn）
