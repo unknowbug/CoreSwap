@@ -1,0 +1,15 @@
+
+=== 诊断代码热路径污染清理（2026-08-29，用户提醒「断点污染」坑）===
+诊断代码在热路径每点执行导致性能退化（61.5 -> 44.9ms，27% 退化）：
+
+| 污染点 | 位置 | 每点执行 | 清理后 |
+|---|---|---|---|
+| AQPROF_ENABLED.load(Relaxed) | aquifer.apply | 98304 次/chunk atomic load | 移除 |
+| Instant::now() x3 | terrain.fill_chunk | 98304 次/chunk | 移除 |
+| std::env::var("WG_SKIP_AQUIFER") | terrain.classify | 98304 次/chunk env 查询 | 移到 chunk 级 |
+| std::env::var("WG_SKIP_OREVEIN") | worldgen_handle 矿脉循环 | 每 rock 点 env 查询 | 移到 chunk 级 |
+
+性能恢复：61.5ms -> 44.9ms（median，region 200,200 单线程）。
+教训：诊断代码（env 查询/atomic/Instant::now）绝不能放热路径每点执行——即使 env 门控关闭，
+env 查询/atomic load 本身就有开销。诊断门控必须 chunk 级判断一次，或编译期 feature gate。
+（与 AGENTS.md「测量/探针污染铁律」同族，本次是「诊断代码本身污染」而非「计时探针污染」）

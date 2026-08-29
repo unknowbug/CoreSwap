@@ -315,7 +315,9 @@ impl WorldgenHandle {
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
             cx * 16, cz * 16, min_y, height);
         // aquifers_enabled=false（下界）→ VanillaAquifer.enabled=false，classify 跳过真实 aquifer（无 water/lava）
-        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled };
+        // WG_SKIP_AQUIFER（诊断）chunk 级判断一次（避免每点 env 查询污染热路径）
+        let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
+        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
         let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());
@@ -323,6 +325,8 @@ impl WorldgenHandle {
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
         //    ore_vein：rock 处按矿脉分布替换为铜/铁矿脉块（aquifer 无 fluid 的 rock）
         let mut col = BlockColumn::new(min_y, height);
+        // WG_SKIP_OREVEIN（诊断）chunk 级判断一次（避免每点 env 查询污染热路径）
+        let skip_orevein = std::env::var("WG_SKIP_OREVEIN").is_ok();
         for lz in 0..16 { for lx in 0..16 { for ly in 0..height {
             let y = min_y + ly;
             let kind = cd.blocks[(lx + lz * 16 + ly * 256) as usize];
@@ -335,7 +339,7 @@ impl WorldgenHandle {
                 crate::terrain::BlockKind::Lava => lava_id,
             };
             // 矿脉（只替换 rock 处的深部块，且 ore_vein.apply 返回非 -1）
-            if kind == crate::terrain::BlockKind::Rock && std::env::var("WG_SKIP_OREVEIN").is_err() {
+            if kind == crate::terrain::BlockKind::Rock && !skip_orevein {
                 let vein = self.ore_vein.apply(wx, y, wz);
                 if vein >= 0 { id = vein; }
             }

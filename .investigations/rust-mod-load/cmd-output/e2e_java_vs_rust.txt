@@ -1,0 +1,13 @@
+
+=== 端到端对比：Rust vs Java（精确，region 200,200，单线程，2026-08-29）===
+- Java 原版（WorldGenBench FULL 含树花植被，充分预热 JIT）：
+  稳定后 chunk 5-24ms，中位数 ~8-9ms/chunk（排除第1个 298ms 冷启动）
+- Rust（fill_chunk_blocks 无树花，清理诊断污染后）：median 44.9ms/chunk
+
+结论：Rust 比 Java 慢 ~5 倍（44.9 vs 8-9ms）！
+
+重大修正：之前「Java 60ms」是 JIT 未热的错误基准（那次测量未充分预热）。
+实际 Java 充分预热后 FULL 生成只要 ~8-9ms。Rust 44.9ms 慢 5 倍。
+
+这印证用户「积累性差异」担忧：之前用错误 Java 基准（60ms）误判 Rust 达标，
+实际 Java 只要 8-9ms，Rust 远未达标。端到端对比必须用充分预热的 Java 基准。
