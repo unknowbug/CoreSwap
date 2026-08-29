@@ -83,3 +83,34 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 
 - 01 架构映射（C++ 引擎结构）、08 版本迁移方法论（跨版本流程）
 - 主世界 1.20.1 排查：01-08 各篇末尾「2026-08-08 已验证结论」+ [10-timewise-archive.md](10-timewise-archive.md)（完整时间线归档）
+
+## 七、Rust 世界参数化（2026-08-29，对齐 C++ wg_create 多世界方向）
+
+\WorldgenHandle::create(seed, wg_dir)\（overworld 便捷入口）拆出通用入口 \create_for_dim(seed, wg_dir, settings_name, biome_params_file, world_height)\——支持任意维度加载，对齐 C++ \wg_create\ 多世界方向。
+
+**参数化维度（非硬编码 overworld）**：
+- \settings_name\：\
+oise_settings/<settings_name>.json\（overworld / nether / end / mod 维度文件名）
+- **dfNs** = settings_name 去 ".json"：决定 \density_function/<dfNs>/\ 目录 + \esolve_ref\ 命名空间前缀 \minecraft:<df_ns>/\（\DensityBuilder.set_df_ns\；修复 M1——惰性加载前缀原硬编码 \minecraft:overworld/\）
+- **维度参数从 settings 读**：\min_y\ / \
+oise.height\ / \sea_level\ / \quifers_enabled\（非硬编码 overworld 的 -64/384/63/true）
+- \iome_params_file\：维度 biome 参数（overworld \iome_params.json\ / nether \iome_params_nether.json\ / mod 自定义）
+- \world_height\：世界高度（overworld 384 / nether 256 / mod 按定义；0 = 从 noise.height 兜底，对齐 C++ \worldHeight>0?worldHeight:noiseHeight\）
+
+**surface_rule 数据驱动（\SurfaceBuilder::parse_surface_rule\）**：
+- overworld：保留已验证的代码规则（\uild_overworld_rule\）
+- 非 overworld：用 \settings.surface_rule\ JSON 数据驱动（支持 sequence / condition / block + 各 cond：not / biome / y_above / stone_depth / noise_threshold / hole / steep / water / temperature / surface）——mod 维度无需改代码
+- 对齐 C++ 方向：surface_rule 从 JSON 尾部读（数据驱动），主世界保留代码规则
+
+**aquifers_enabled=false（下界）→ VanillaAquifer.enabled=false**：
+- \classify\ 跳过真实 aquifer（无 water/lava），返回 Air（修复 M2——加 \nabled\ 字段破坏全部 struct-literal 构造点，用 \VanillaAquifer::new(aq)\ 收口）
+
+**验证结果**：
+- nether：\create_for_dim(seed, wg_dir, "nether.json", "biome_params_nether.json", 256)\ 加载成功（min_y=0 / height=256）+ 生成 chunk(0,0) 56307 非空气块
+- overworld 回归：\eatures_probe\ match 95.40% 不变
+- mod 维度（如暮色森林）：数据文件放 wgDir 对应路径（\
+oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome params），settings_name 指向即可加载
+
+**数据驱动边界更新**：详见 \WorldgenRust/data-driven-boundary.md\「多世界参数化」章节。AGENTS.md「数据驱动架构铁律」含本多世界方向（用户拍板）。
+
+**错误台账**：\.investigations/multiworld-port/multiworld-errors.md\（M1 前缀硬编码 / M2 字段连锁）。

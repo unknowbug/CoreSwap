@@ -2136,3 +2136,25 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 错误台账：.investigations/rust-mod-load/functional-errors.md（F1-F3 五段式 + 速查表）。
 - 结论：07 篇「Rust worldgen 整体功能实现」小节（中价值简记 + 低价值对齐快照）。
 - 过程：本节 + .investigations/rust-mod-load/。
+
+---
+
+## 2026-08-29 Rust 多世界参数化（🔍 框架参数化完成）
+
+> Rust WorldgenHandle 多世界参数化，对齐 C++ wg_create。从「定死 overworld」到「任意维度加载」（含 MOD 维度如暮色森林）。AGENTS.md 写入「数据驱动架构铁律」（含多世界方向，用户拍板）。
+
+### ✅ 一、create_for_dim 维度参数化
+- create_for_dim(seed, wg_dir, settings_name, biome_params_file, world_height) 支持任意维度
+- dfNs = settings_name 去 .json → density_function/<dfNs>/ + resolve_ref 前缀（set_df_ns，修复 M1 前缀硬编码）
+- 维度参数（min_y/height/sea_level/aquifers_enabled）从 settings 读
+- SurfaceBuilder::parse_surface_rule JSON 数据驱动（非 overworld surface_rule）
+- aquifers_enabled=false（下界）→ VanillaAquifer.enabled=false（修复 M2 字段连锁）
+
+### 🧪 二、验证
+- nether：加载成功（min_y=0/height=256）+ chunk(0,0) 56307 非空气块
+- overworld 回归 95.40% 不变
+
+### 📌 记录指引
+- 结论：09 篇「七、Rust 世界参数化」+ WorldgenRust/data-driven-boundary.md 多世界章节。
+- 错误台账：.investigations/multiworld-port/multiworld-errors.md（M1/M2 五段式）。
+- **遗留**：fill_chunk_blocks 的 carver/features/ore_vein 仍是主世界逻辑，nether/MOD 维度的生成逻辑差异化（暮色森林接入时精化）。
