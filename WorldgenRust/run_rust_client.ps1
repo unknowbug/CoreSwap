@@ -1,7 +1,7 @@
 # run_rust_client.ps1 — 用 Rust worldgen 作为 mod 运行 Minecraft 客户端
 # 多线程版 Rust dll（wg_fill_blocks_multi 并行，14.26ms/chunk）。
 # 用法：pwsh run_rust_client.ps1
-# 注意：需图形环境（Minecraft 客户端窗口）；gradle 需 danger-full-access（native-platform.dll）。
+# 注意：需图形环境（Minecraft 客户端窗口）；gradle home 在 CoreSwap（免提权，不再需 danger-full-access）。
 
 $ErrorActionPreference = "Stop"
 
@@ -10,6 +10,7 @@ $rustDir = "E:\PYTHON\CoreSwap\WorldgenRust\rust-dll"
 $rustJni = Join-Path $rustDir "worldgen.dll"       # C++ JNI 桥（导出 Java_wg_CppWorldgen_*）
 $rustCore = Join-Path $rustDir "WorldgenRust.dll"  # Rust cdylib（导出 wg_* C ABI）
 $worldgenDir = "E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen"  # worldgen JSON 数据目录
+$runJava = "E:\PYTHON\CoreSwap\runtime\1.20.1\java"  # 验证运行环境（gradle mod 工程）
 
 # 校验 dll 存在
 foreach ($d in @($rustJni, $rustCore)) {
@@ -18,9 +19,11 @@ foreach ($d in @($rustJni, $rustCore)) {
 
 # 设置 Rust dll 环境变量（JNI 桥 LoadLibrary 找不到 WorldgenRust.dll 时回退）
 $env:CPP_RUST_LIB = $rustCore
+# gradle home 指向 CoreSwap（native-platform/依赖缓存在内，沙箱免提权）
+$env:GRADLE_USER_HOME = "E:\PYTHON\CoreSwap\.gradle"
 
-# 切到 mod 工程
-Push-Location "E:\PYTHON\MC\versions\1.20.1\java"
+# 切到 mod 工程（runtime）
+Push-Location $runJava
 try {
     Write-Host "=== 运行 Rust worldgen Minecraft 客户端 ===" -ForegroundColor Cyan
     Write-Host "JNI 桥: $rustJni"

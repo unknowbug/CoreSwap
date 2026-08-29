@@ -1,0 +1,21 @@
+
+=== 对齐样本量的公平对比（大样本，2026-08-29）===
+Rust 全管线(400chunks, 单线程, 无树花): 45.48ms/chunk
+Java FULL(256chunks, 含树花一切): ~55ms/chunk
+=> Rust 全管线反而比 Java FULL 快 ~1.2 倍！
+
+宏观专项:
+Rust 宏观(density+aquifer, 400chunks): 34.66ms/chunk
+Java 宏观(NOISE, 256chunks): ~23-25ms/chunk
+=> Rust 宏观慢 ~1.4-1.5 倍（aquifer 有真实差距）
+
+重大结论反转：
+- 之前「Rust 慢 5 倍」基于 Java 8-9ms = 缓存假象（16 chunks 小样本 + 相邻 chunk 缓存低估），不成立
+- 真实：Rust 全管线 45.48ms < Java FULL 55ms（Rust 更快，尽管 Rust 无树花做更少工作）
+- 但宏观专项 Rust 34.66 > Java 23-25（aquifer 慢 ~1.4-1.5 倍，需优化）
+- 后续阶段（carver/features）Rust 应比 Java 更省（Java FULL 的宏观 25 + 后续 ~30ms）
+
+教训（强烈）：
+- 基准必须大样本 + 排除缓存/冷启动 chunk
+- 小样本 + 相邻 chunk 缓存会严重低估 Java 真实生成成本（8-9 vs 55ms，6 倍误差）
+- 「积累性差异」担忧的根源 = 基准不可靠，须先锚定真实 Java 基准

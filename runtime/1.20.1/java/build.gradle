@@ -51,12 +51,13 @@ loom {
             def benchSize = project.findProperty('benchSize') ?: '8'
             def benchOriginX = project.findProperty('benchOriginX') ?: '200'
             def benchOriginZ = project.findProperty('benchOriginZ') ?: '200'
-            def benchOut = project.findProperty('benchOut') ?: 'E:/python/MC/data'
+            def benchOut = project.findProperty('benchOut') ?: 'E:/PYTHON/CoreSwap/versions/1.20.1/data'
             run.vmArg "-Dbench.seed=${benchSeed}"
             run.vmArg "-Dbench.size=${benchSize}"
             run.vmArg "-Dbench.originX=${benchOriginX}"
             run.vmArg "-Dbench.originZ=${benchOriginZ}"
             run.vmArg "-Dbench.out=${benchOut}"
+            if (project.findProperty('benchMacroTime') != null) run.vmArg "-Dbench.macroTime=true"
             if (project.findProperty('probeCount') != null) run.vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
             if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
             if (project.findProperty('routerEsh') != null) run.vmArg "-Drouter.esh=true"

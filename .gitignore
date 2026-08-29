@@ -70,9 +70,11 @@ __pycache__/
 # external reference clones (read-only)
 .investigations/reference/
 
-# MC probe project build/cache (migrated from E:\PYTHON\MC)
-versions/1.20.1/java/build/
-versions/1.20.1/java/.gradle/
-versions/1.20.1/java/run/
-versions/1.20.1/java/data/
+# MC probe project build/cache (migrated from E:\PYTHON\MC; runtime env in runtime/)
+runtime/1.20.1/java/build/
+runtime/1.20.1/java/.gradle/
+runtime/1.20.1/java/run/
+runtime/1.20.1/java/data/
+# gradle user home (dependency cache, copied into workspace for sandbox-free gradle)
+.gradle/
 

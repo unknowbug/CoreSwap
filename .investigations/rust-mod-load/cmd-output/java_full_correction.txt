@@ -1,0 +1,16 @@
+
+=== 重大修正：Java FULL 8-9ms 是小样本缓存假象，真实 55ms！===
+- Java FULL 大样本（256 chunks, region 200,200）：稳定 chunk 54-57ms, avg=51.7(含冷启动), min=2ms(缓存) max=1006ms(冷启动)
+- 之前 Java FULL 8-9ms = 16 chunks 小样本 + 相邻 chunk 缓存/顺序生成假象（严重低估）
+
+修正后真实对比（大样本）：
+- Java FULL(256chunks): ~55ms/chunk
+- Java 宏观 NOISE(256chunks): ~23-25ms/chunk (avg 25.4)
+- Rust 宏观(400chunks): 34.66ms/chunk -> 比 Java 宏观慢 ~1.4-1.5 倍
+- Rust fill_chunk_blocks(16chunks): 44.9ms（小样本，需拉大对齐）
+
+结论修正：
+- 之前「Rust 慢 5 倍」= Java 8-9ms 是缓存假象（错误基准），不成立
+- Rust 宏观 34.66 vs Java 宏观 23-25 = 慢 ~1.4-1.5 倍（aquifer 有差距但远小于 5 倍）
+- Rust fill_chunk_blocks 44.9ms(16chunks) vs Java FULL 55ms(256chunks) => Rust 可能反而快（需对齐样本量确认）
+- 教训延续：基准必须大样本 + 排除缓存/冷启动，小样本 + 相邻缓存是「积累性差异」根源之一

@@ -1,0 +1,13 @@
+
+=== Java vs Rust 宏观(density+aquifer)大样本对比（region 200,200，2026-08-29）===
+- Rust 宏观(400 chunks, 单线程)：34.66ms/chunk；aquifer 增量 ~21.5ms/chunk
+- Java 宏观(NOISE status, 256 chunks)：avg=25.4ms, 稳定 chunk 20-27ms(中位~23-24), min=0ms(缓存) max=438ms(冷启动)
+
+矛盾：Java 宏观(NOISE) ~23-25ms > Java FULL(之前测 8-9ms)？！
+- 之前 FULL 8-9ms 是顺序相邻 chunk（Java chunk 缓存/blending 让后续块快），可能低估
+- NOISE status 单测更接近真实宏观（含结构/biome 初始化）
+=> 需澄清 Java FULL 8-9ms 是否可靠（可能被相邻缓存低估），或 NOISE 测量含额外开销
+
+若 Java 宏观 ~23-25ms 真实，则 Rust 宏观 34.66ms 仅慢 ~1.4-1.5 倍（非 5 倍）
+若 Java FULL 8-9ms 真实，则 Rust 宏观 34.66ms 慢 ~4-5 倍
+=> 端到端对比基准需重新确认（此前 FULL 8-9ms 可能不是公平基准）

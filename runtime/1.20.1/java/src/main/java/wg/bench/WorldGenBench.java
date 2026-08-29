@@ -89,12 +89,15 @@ public class WorldGenBench {
                     int wx = originX + cx;
                     int wz = originZ + cz;
                     ChunkPos pos = new ChunkPos(wx, wz);
+                    boolean macroTime = System.getProperty("bench.macroTime") != null;
+                    ChunkStatus status = macroTime ? ChunkStatus.NOISE : ChunkStatus.FULL;
+                    String statusName = macroTime ? "MACRO(NOISE)" : "FULL";
                     long t0 = System.nanoTime();
-                    Chunk chunk = world.getChunk(wx, wz, ChunkStatus.FULL, true);
+                    Chunk chunk = world.getChunk(wx, wz, status, true);
                     long t1 = System.nanoTime();
                     long ms = (t1 - t0) / 1_000_000;
                     chunkTimesMs.add(ms);
-                    System.out.println("[WorldGenBench] chunk (" + wx + "," + wz + ") FULL in " + ms + " ms");
+                    System.out.println("[WorldGenBench] chunk (" + wx + "," + wz + ") " + statusName + " in " + ms + " ms");
 
                     // 导出 finalDensity 采样：直接用最小 NoisePos 逐点采样
                     // 注意：必须用 noiseConfig.getNoiseRouter()（已注入 sampler），
