@@ -364,23 +364,41 @@ impl WorldgenHandle {
         };
         let mut mask = CarvingMask::new(height, min_y);
         let mut chunk_random = ChunkRandom::checked();
+        let carver_diag = std::env::var("WG_CARVERDIAG").is_ok();
+        let diag_t0 = std::time::Instant::now();
+        let mut t_biome = 0.0f64;
+        let mut t_carve = 0.0f64;
+        let mut n_neighbor = 0;
+        let mut n_carve = 0;
         for j in -8..=8 {
             for k in -8..=8 {
                 let cx2 = cx + j; let cz2 = cz + k;
+                let ab = std::time::Instant::now();
                 let biome_id = biome_at_no_jitter(cx2, cz2);
                 let carvers = self.biomesrc.bc.carvers_for(&biome_id).to_vec();
+                t_biome += ab.elapsed().as_secs_f64();
                 let mut l = 0;
+                n_neighbor += 1;
                 for carver_id in &carvers {
                     let cc = self.get_carver(carver_id);
                     if cc.is_none() { l += 1; continue; }
                     let cc = cc.unwrap();
                     chunk_random.set_carver_seed(self.seed + l, cx2, cz2);
                     if cc.should_carve(&mut chunk_random) {
+                        let ac = std::time::Instant::now();
                         cc.carve(&mut ctx, col, &biome_at_jitter, &mut chunk_random, cx2, cz2, cx, cz, &mut mask);
+                        t_carve += ac.elapsed().as_secs_f64();
+                        n_carve += 1;
                     }
                     l += 1;
                 }
             }
+        }
+        if carver_diag {
+            eprintln!("[CARVERDIAG] chunk({},{}) neighbors={} carve_calls={} t_biome={:.1}ms t_carve={:.1}ms total={:.1}ms other={:.1}ms",
+                cx, cz, n_neighbor, n_carve, t_biome * 1e3, t_carve * 1e3,
+                diag_t0.elapsed().as_secs_f64() * 1e3,
+                (diag_t0.elapsed().as_secs_f64() - t_biome - t_carve) * 1e3);
         }
     }
 

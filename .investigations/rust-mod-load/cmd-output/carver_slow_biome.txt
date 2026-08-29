@@ -1,0 +1,11 @@
+
+=== carver 慢点精确定位（CARVERDIAG，region 200,200）===
+carver 总耗时 ~80-100ms/chunk，其中：
+- t_biome（289 个邻域的 biome_at_no_jitter 采样）：73-82ms（~90%）
+- t_carve（实际洞穴雕刻）：1-23ms（小头）
+- other：0.1ms
+
+根因：apply_carvers 每 chunk 对 289 个邻域各采样 6 个 router DF（tempf/humf/contf/erof/depthf/weirdf，无缓存 density 树），每次 ~0.27ms，累积 ~78ms。
+注：biome_scan_cost 显示 6 参数采样 ~1us/pt + SearchTree 2.85us/pt——但 apply_carvers 上下文无缓存导致 ~0.27ms/次（慢 ~70 倍）。
+
+优化方向：① 缓存 17x17 邻域的 router DF 采样 ② 减少邻域数（Java 可能只判洞穴中心近的）③ 优化 6 个 DF 采样缓存。
