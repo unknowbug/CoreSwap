@@ -1,0 +1,13 @@
+
+=== transpiler vs 运行时 grid 构建对比（2026-08-29）===
+- 运行时 Interpolated grid 构建: 8.14ms/chunk（冷 14.03 - 热 5.88）
+- transpiler cell grid 构建: 43ms/chunk（慢 5 倍）
+
+关键：transpiler cell grid 构建比运行时 Interpolated grid 构建慢 5 倍
+- 两者都是「采样 inner 在 cell corners」
+- 可能 transpiler 采样更多（5 channels 完整树 vs 运行时 inner）
+- 或 transpiler 无缓存（每 chunk 重建），运行时 Interpolated 有 chunk 缓存
+
+下一步：
+- 确认 transpiler fill_cell_corner_densities 采样量（5 channels 完整树 vs 运行时 inner）
+- 优化 cell grid 构建（减少采样量 / 缓存）
