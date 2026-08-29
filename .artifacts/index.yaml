@@ -398,3 +398,58 @@ entries:
     status: candidate
     # 结论摘要：2026-08-23/24 的 11× 争用定位完整过程时间线草稿（DFC 失败定论→locFn A/B→递归→虚分派→wrapper 链隔离→warm→WG_FLAT_TOP→latency QoS 收敛→M3 探针 bug），
     # 每步含为什么+数据+教训，状态标注 ✅/❌/🔍。主会话应用后并入 versions/1.20.1/docs/10-timewise-archive.md。
+
+  # === macro-layer-scout（Rust 宏观采样重构 + 性能定位）2026-08-30，status: candidate，judge 已审计 ===
+  - id: 're-code:macro-layer-scout:topness'
+    path: '../.investigations/macro-layer-scout/macro-layer-topness.md'
+    kind: analysis
+    status: candidate
+    # 宏观采样真正顶层 = NoiseChunk::fill cell grid；6 个疑似上层（blending/StaticCache2D/Beardifier/aquifer/dim settings/ColumnCache）全部确认非采样层。reader 级可靠（judge ①✅）。
+
+  - id: 're-code:macro-layer-scout:map-semantics'
+    path: '../.investigations/macro-layer-scout/macro-layer-map.md'
+    kind: analysis
+    status: candidate
+    # Java/SteelMC = 单层宏观网格 multi-channel SoA（inner corners + outer combine）；Rust = 每 interp 独立自持缓存 + 逐点整树；叠加 -> 52x 雪崩。正确方向 = multi-channel 竖切。
+
+  - id: 're-code:macro-layer-scout:multichannel-refactor'
+    path: '../versions/1.20.1/docs/07-block-pipeline.md#2026-08-30-Rust-宏观采样重构multi-channel-竖切-性能定位'
+    kind: analysis
+    status: candidate
+    # multi-channel 竖切（final_density -> 5 channels：1 BlendDensity + 4 RangeChoice noodle，Interpolated->ReadChannel 全替换）diff0（n=54 局部）。⚠️ 生产 fill_chunk 未接线（探针层验证完成）。
+
+  - id: 're-code:macro-layer-scout:shiftdf-cache'
+    path: '../.investigations/macro-layer-scout/cmd-output/shift_y_confirmed.txt'
+    kind: evidence
+    status: candidate
+    # ShiftDF Cache2D（ShiftA/B y 独立可靠：708/708 含负Y+多列）；plain Shift 保守不缓存（修复 M1 y=0 偏离）。features_probe 95.40% 保持。
+
+  - id: 're-code:macro-layer-scout:perf-loc-chain'
+    path: '../.investigations/macro-layer-scout/cmd-output/tree_vs_noise.txt'
+    kind: analysis
+    status: candidate
+    # ch#0 corners 3.34ms 里 noise 采样 2.97ms(89%)、树遍历 0.38ms(11%)——noise 非树遍历；全管线 noise AVX 仅 -1% -> noise 非全管线瓶颈。
+
+  - id: 're-code:macro-layer-scout:aquifer-gap'
+    path: '../.investigations/macro-layer-scout/cmd-output/noise_avx_eval.txt'
+    kind: analysis
+    status: candidate
+    # 宏观 aquifer 是相对 Java 待优化差距（Rust 全管线 45.48 < Java 55 反快；宏观 34.66 > Java 23-25，慢 ~1.4-1.5x）。⚠️ 21.5ms 为宏观子集减法 Partial 快照。
+
+  - id: 're-code:macro-layer-scout:noise-avx-correction'
+    path: '../.investigations/macro-layer-scout/multichannel-errors.md#M2'
+    kind: errors
+    status: candidate
+    # noise AVX「1.36x」归因不实——sample_section_avx 未接线死代码 + 非真 SIMD；实为 auto-vec。全管线 -1% 方向可靠。
+
+  - id: 're-code:macro-layer-scout:errors-m1-m2'
+    path: '../.investigations/macro-layer-scout/multichannel-errors.md'
+    kind: errors
+    status: candidate
+    # 错误台账 M1/M2 五段式：① ShiftDF 缓存 plain Shift y=0 偏离参考；② noise AVX 归因不实。含速查表。
+
+  - id: 're-code:macro-layer-scout:review-audit'
+    path: '../.investigations/macro-layer-scout/review-audit-conclusion-chain.md'
+    kind: review
+    status: candidate
+    # judge 审计意见：结论链主干正确、方向合理，3 处修正（产物落盘/ShiftDF/noise AVX）+ aquifer 减法限定。整体 candidate 非 confirmed。
