@@ -1,0 +1,15 @@
+
+=== get_block_pos 命中分析（aquifer_bp_probe，2026-08-29）===
+- get_block_pos calls: 791004/chunk（~8 次/点，非 18——3x3 邻域 18 cell 但很多提前返回/共享）
+- miss: 273/chunk（0.0%）—— block_positions 缓存命中率 ~100%
+- miss 触发 split_xyz+random 很少
+
+关键：
+- get_block_pos 命中率高（~100%），成本 = index+数组访问（便宜）
+- 3x3 邻域 2.62ms 主要是 18 次 unpack+距离计算+if（纯算术），非 get_block_pos 采样
+- get_water_level_at 也命中率高（99.8%）
+
+结论：aquifer apply 固定开销 ~9ms 是主要成本，但都是必要的逐点计算
+（3x3 距离 + 分支 + max_distance + 函数调用 + unpack + 数组访问）
+- 优化空间有限（微观：减少分支/算术/函数调用）
+- 全管线 aquifer 14.6ms（34%），apply 固定开销 ~9ms 是主要

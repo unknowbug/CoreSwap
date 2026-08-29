@@ -36,6 +36,19 @@ pub fn aquifer_wl_count_reset() -> [usize; 2] {
     WL_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
 }
 
+// WG_AQUIFERBP（单线程诊断）：统计 get_block_pos 调用次数 + miss 次数（miss 触发 split_xyz+random）
+static BP_WATCH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+thread_local! {
+    static BP_COUNT: std::cell::RefCell<[usize; 2]> = std::cell::RefCell::new([0, 0]); // [calls, miss]
+}
+pub fn aquifer_bp_watch(on: bool) {
+    BP_WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
+    if on { BP_COUNT.with(|c| *c.borrow_mut() = [0, 0]); }
+}
+pub fn aquifer_bp_count_reset() -> [usize; 2] {
+    BP_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
+}
+
 #[derive(Clone, Copy)]
 pub struct FluidLevel { pub y: i32, pub block: i32 }
 impl FluidLevel {
@@ -187,9 +200,11 @@ impl Aquifer {
     }
 
     fn get_block_pos(&mut self, x: i32, y: i32, z: i32) -> i64 {
+        if BP_WATCH.load(std::sync::atomic::Ordering::Relaxed) { BP_COUNT.with(|c| c.borrow_mut()[0] += 1); }
         let aa = self.index(x, y, z);
         let ab = self.block_positions[aa];
         if ab != i64::MAX { return ab; }
+        if BP_WATCH.load(std::sync::atomic::Ordering::Relaxed) { BP_COUNT.with(|c| c.borrow_mut()[1] += 1); }
         let mut random: XoroshiroRandom = self.splitter.split_xyz(x, y, z);
         let rx = random.next_int_bound(10);
         let ry = random.next_int_bound(9);
