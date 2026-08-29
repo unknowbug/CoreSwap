@@ -42,8 +42,9 @@ impl PerlinNoiseSampler {
     }
     #[inline] pub fn map(&self, input: i32) -> u8 { self.permutation[(input & 0xFF) as usize] & 0xFF }
 
-    // AVX 实验：sample_section 的 8 个 grad dot 用 __m256d 向量化（grad 查表标量，dot 算术 SIMD）。
-    // 仅在 enable_avx 时用（bench 对比）；生产仍走标量 sample_section。
+    // AVX：sample_section 的 8 个 grad dot 用 __m256d 向量化（grad 查表标量，dot 算术 SIMD）。
+    // 8 个 grad 的系数模式固定：x=[lx,lx-1,lx,lx-1, lx,lx-1,lx,lx-1], y=[ly,ly,ly-1,ly-1, ly,ly,ly-1,ly-1],
+    // z=[lz,lz,lz,lz, lz-1,lz-1,lz-1,lz-1]。用 2 个 __m256d（前4+后4）并行 dot。
     #[cfg(target_arch = "x86_64")]
     pub fn sample_section_avx(&self, sx: i32, sy: i32, sz: i32, lx: f64, ly: f64, lz: f64, fade_y: f64) -> f64 {
         #[cfg(target_feature = "avx")]
@@ -55,36 +56,37 @@ impl PerlinNoiseSampler {
             let l = self.map(i + sy + 1) as i32;
             let m = self.map(j + sy) as i32;
             let n = self.map(j + sy + 1) as i32;
-            // 8 个 grad hash
             let h0 = self.map(k + sz) as i32; let h1 = self.map(m + sz) as i32;
             let h2 = self.map(l + sz) as i32; let h3 = self.map(n + sz) as i32;
             let h4 = self.map(k + sz + 1) as i32; let h5 = self.map(m + sz + 1) as i32;
             let h6 = self.map(l + sz + 1) as i32; let h7 = self.map(n + sz + 1) as i32;
-            let hashes = [h0, h1, h2, h3, h4, h5, h6, h7];
-            // 8 个 grad 的 (gx, gy, gz)
-            let mut gx = [0f64; 8]; let mut gy = [0f64; 8]; let mut gz = [0f64; 8];
-            for a in 0..8 {
-                let g = GRADIENTS[(hashes[a] & 15) as usize];
-                gx[a] = g[0] as f64; gy[a] = g[1] as f64; gz[a] = g[2] as f64;
-            }
-            // 8 个 grad 的 dot(gx*sx + gy*sy + gz*sz) 用 __m256d 并行（两个 4-lane）
-            // 注意各 grad 的系数 (lx/ly/lz) 按 grad 索引不同（0-3 用 (lx,ly,lz)，4-7 用 (lx-1,ly,lz-1) 等）
-            let vx = _mm256_set_pd(lx, lx, lx, lx); // 反向（set 高位-低位）——用 set1
-            let vx = _mm256_set1_pd(lx);
-            let vy = _mm256_set1_pd(ly);
-            let vz = _mm256_set1_pd(lz);
-            let _ = vx;
-            // 简化：先标量算 8 个 grad 值（查表已标量，dot 先不 SIMD 以便正确性验证）
-            // 这里仅测「查表后 dot 的 SIMD 潜力」——先用标量 dot 跑通流程
-            let g0 = dot3(&GRADIENTS[(h0 & 15) as usize], lx, ly, lz);
-            let g1 = dot3(&GRADIENTS[(h1 & 15) as usize], lx - 1.0, ly, lz);
-            let g2 = dot3(&GRADIENTS[(h2 & 15) as usize], lx, ly - 1.0, lz);
-            let g3 = dot3(&GRADIENTS[(h3 & 15) as usize], lx - 1.0, ly - 1.0, lz);
-            let g4 = dot3(&GRADIENTS[(h4 & 15) as usize], lx, ly, lz - 1.0);
-            let g5 = dot3(&GRADIENTS[(h5 & 15) as usize], lx - 1.0, ly, lz - 1.0);
-            let g6 = dot3(&GRADIENTS[(h6 & 15) as usize], lx, ly - 1.0, lz - 1.0);
-            let g7 = dot3(&GRADIENTS[(h7 & 15) as usize], lx - 1.0, ly - 1.0, lz - 1.0);
-            let _ = (vx, vy, vz);
+            // 8 个 grad 的 (gx, gy, gz)（标量查表）
+            let g0 = GRADIENTS[(h0 & 15) as usize]; let g1 = GRADIENTS[(h1 & 15) as usize];
+            let g2 = GRADIENTS[(h2 & 15) as usize]; let g3 = GRADIENTS[(h3 & 15) as usize];
+            let g4 = GRADIENTS[(h4 & 15) as usize]; let g5 = GRADIENTS[(h5 & 15) as usize];
+            let g6 = GRADIENTS[(h6 & 15) as usize]; let g7 = GRADIENTS[(h7 & 15) as usize];
+            // 前 4 个 grad 的 dot（grad0-3）：x 系数 [lx,lx-1,lx,lx-1], y [ly,ly,ly-1,ly-1], z [lz,lz,lz,lz]
+            let gx_lo = _mm256_set_pd(g3[0] as f64, g2[0] as f64, g1[0] as f64, g0[0] as f64);
+            let gy_lo = _mm256_set_pd(g3[1] as f64, g2[1] as f64, g1[1] as f64, g0[1] as f64);
+            let gz_lo = _mm256_set_pd(g3[2] as f64, g2[2] as f64, g1[2] as f64, g0[2] as f64);
+            let cx_lo = _mm256_set_pd(lx - 1.0, lx, lx - 1.0, lx);
+            let cy_lo = _mm256_set_pd(ly - 1.0, ly - 1.0, ly, ly);
+            let cz_lo = _mm256_set1_pd(lz);
+            let dot_lo = _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(gx_lo, cx_lo), _mm256_mul_pd(gy_lo, cy_lo)), _mm256_mul_pd(gz_lo, cz_lo));
+            // 后 4 个 grad 的 dot（grad4-7）：x [lx,lx-1,lx,lx-1], y [ly,ly,ly-1,ly-1], z [lz-1,lz-1,lz-1,lz-1]
+            let gx_hi = _mm256_set_pd(g7[0] as f64, g6[0] as f64, g5[0] as f64, g4[0] as f64);
+            let gy_hi = _mm256_set_pd(g7[1] as f64, g6[1] as f64, g5[1] as f64, g4[1] as f64);
+            let gz_hi = _mm256_set_pd(g7[2] as f64, g6[2] as f64, g5[2] as f64, g4[2] as f64);
+            let cx_hi = _mm256_set_pd(lx - 1.0, lx, lx - 1.0, lx);
+            let cy_hi = _mm256_set_pd(ly - 1.0, ly - 1.0, ly, ly);
+            let cz_hi = _mm256_set1_pd(lz - 1.0);
+            let dot_hi = _mm256_add_pd(_mm256_add_pd(_mm256_mul_pd(gx_hi, cx_hi), _mm256_mul_pd(gy_hi, cy_hi)), _mm256_mul_pd(gz_hi, cz_hi));
+            // 提取 8 个 dot 值
+            let mut lo = [0f64; 4]; let mut hi = [0f64; 4];
+            _mm256_storeu_pd(lo.as_mut_ptr(), dot_lo);
+            _mm256_storeu_pd(hi.as_mut_ptr(), dot_hi);
+            let g0 = lo[0]; let g1 = lo[1]; let g2 = lo[2]; let g3 = lo[3];
+            let g4 = hi[0]; let g5 = hi[1]; let g6 = hi[2]; let g7 = hi[3];
             let r = perlin_fade(lx); let s = perlin_fade(fade_y); let t = perlin_fade(lz);
             let x0 = lerp(r, g0, g1); let x1 = lerp(r, g2, g3);
             let x2 = lerp(r, g4, g5); let x3 = lerp(r, g6, g7);
@@ -112,7 +114,10 @@ impl PerlinNoiseSampler {
         } else {
             n = 0.0;
         }
-        self.sample_section(i, j, k, g, h - n, l, h)
+        #[cfg(target_feature = "avx")]
+        { self.sample_section_avx(i, j, k, g, h - n, l, h) }
+        #[cfg(not(target_feature = "avx"))]
+        { self.sample_section(i, j, k, g, h - n, l, h) }
     }
     fn sample_section(&self, sx: i32, sy: i32, sz: i32, lx: f64, ly: f64, lz: f64, fade_y: f64) -> f64 {
         let i = self.map(sx) as i32;

@@ -1,0 +1,13 @@
+
+=== 真 AVX sample_section 结果（2026-08-29，修正死代码归因）===
+- 实现：sample_section_avx 真 __m256d dot（8 grad 用 2 个 __m256d 并行 dot），接线到 sample_ys（target_feature=avx 时）
+- Perlin 采样: 26.56 -> 22.95ns (快 1.16x)（真 AVX dot；比 auto-vec 19.55 略慢，因 set/store 开销）
+- 对齐: features_probe 95.40% 保持
+- 全管线 400 chunks: 45.47 -> 44.00ms (-3.2%)
+
+结论：真 AVX 全管线 -3.2%（比 auto-vec -1% 略好），但收益仍小
+- 确认 noise 非全管线瓶颈（即使真 AVX 也 -3.2%）
+- aquifer 才是大头（21.5ms 相对 Java 差距）
+- 真 AVX 是正确实现（非死代码），对齐保持；但整体收益小，不值得优先
+
+状态：真 AVX 已实现 + 接线（target_feature=avx 门控），默认关（不开 avx）
