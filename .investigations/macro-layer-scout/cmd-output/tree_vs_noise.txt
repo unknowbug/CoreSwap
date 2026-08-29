@@ -1,0 +1,16 @@
+
+=== 关键修正：ch#0 慢主因 = noise 采样（89%），非树遍历（11%）===
+tree_vs_noise_breakdown：
+- ch#0 完整 corners 采样: 3.34ms/chunk
+- ch#0 去 noise(noise=0): 0.38ms/chunk
+- noise 采样贡献: 2.97ms (89%)；树遍历贡献: 0.38ms (11%)
+
+修正：之前「树解释器是大头」判断错误。真正大头 = noise 采样（3D Perlin：Noise/ShiftedNoise/InterpolatedNoise/WeirdScaled）
+- ShiftDF 缓存只降 0.2ms 因为 ShiftDF 只是 noise 一部分（708 shift），主 noise（ShiftedNoise 354 个主 noise + Noise 29 + InterpolatedNoise 3）才是大头
+
+方向修正：
+- DFC 编译（扁平数组）只优化树遍历 11%，收益有限
+- 真正要优化 = noise 采样（89%，3D Perlin SIMD/批量）
+- vulkan DFC 当时也做了 GPU noise（GLSL noise 函数）——noise 才是关键，不是树编译
+
+下一步：评估 noise 采样优化（SIMD 3D Perlin / 批量），而非 DFC 树编译

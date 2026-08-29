@@ -1,0 +1,9 @@
+
+=== 关键里程碑记录（2026-08-29）===
+1. 顶层确认（macro-layer-topness.md）：宏观采样真正顶层 = NoiseChunk::fill cell grid，之上无采样机制层
+2. multi-channel 竖切正确性：diff 0（macrolize + DensityMacroSampler）
+3. ShiftDF 缓存：y 无关（offset noise 只依赖 xz）→ Cache2D，对齐保持 95.40%，ch#0 3.60->3.41ms
+4. 关键判断：ch#0 corners 采样 3.41ms 主要是【树解释器开销】（3677 节点 match/递归遍历），不只 noise 采样
+
+根本瓶颈假设（待确认）：Rust density 慢 = 运行时解释树（每 sample 递归 match），Java/SteelMC 用 build-time 编译（transpiler → native specialized 代码）
+=> 方向：DFC 编译路线（把密度树编译成 native，避免解释）——关联 vulkan DFC 历史
