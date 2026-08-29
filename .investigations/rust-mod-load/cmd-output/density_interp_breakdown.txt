@@ -1,0 +1,17 @@
+
+=== density 采样成本分解（density_interp_breakdown，2026-08-29）===
+- 冷采样(含 interpolated grid 构建): 14.99ms/chunk
+- 预热后(cache hit 纯插值+组合): 6.27ms/chunk
+=> grid 构建贡献: ~8.7ms/chunk（58%，比插值还多）
+=> 逐点插值+组合: 6.27ms/chunk
+
+关键判断：
+- fill_chunk density 慢主因 = interpolated grid 构建（每 chunk 首次 8.7ms），非逐点插值
+- 5 个 interpolated 各 build_grid(~1225 corner) = ~6125 次 arg 采样
+- SIMD 插值优化的是 6.27ms 部分（收益有限 ~3ms）
+- grid 构建优化（减少 arg 采样/复用）才是大头（8.7ms）
+
+Java/SteelMC 也每 chunk 构建 slices（cell corners 采样所有 channel），但用 SIMD 4-Y 批处理采样，
+grid 构建更高效。Rust 逐点标量采样 arg → grid 构建慢。
+
+下一步优化方向：grid 构建的 arg 采样优化（SIMD 批量采样 / channel 复用），而非仅 SIMD 插值。
