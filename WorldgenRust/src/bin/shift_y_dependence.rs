@@ -1,7 +1,7 @@
 // shift_y_dependence.rs — 测 ShiftDF 的 y 依赖（能否 Cache2D 缓存）。
 // 遍历 ch#0 树找 ShiftDF，测同 xz 不同 y 的值差异。若差异小 → y 独立可缓存。
 use std::sync::Arc;
-use WorldgenRust::density::{DensityFunction, NoisePos, macrolize_channels};
+use WorldgenRust::density::{DensityFunction, NoisePos, ShiftMode, macrolize_channels};
 use WorldgenRust::density_builder::DensityBuilder;
 use WorldgenRust::json::parse;
 
@@ -38,14 +38,48 @@ fn main() {
     let (channels, _) = macrolize_channels(&tree);
     let mut sh = Vec::new();
     find_shiftdfs(&channels[0], &mut sh);
-    println!("ch#0 ShiftDF 节点数: {}", sh.len());
-    // 取前 5 个 ShiftDF，测 y 依赖（同 xz，y=0..320 step 8）
-    for (idx, sdf) in sh.iter().take(5).enumerate() {
+    println!("ch#0 ShiftDF 节点数: {} (mode: Shift/ShiftA/ShiftB 分布)", sh.len());
+    // 统计 mode 分布
+    let (mut n_shift, mut n_a, mut n_b) = (0, 0, 0);
+    for s in &sh {
+        if let DensityFunction::ShiftDF { mode, .. } = s {
+            match mode { WorldgenRust::density::ShiftMode::Shift => n_shift+=1, WorldgenRust::density::ShiftMode::ShiftA=>n_a+=1, WorldgenRust::density::ShiftMode::ShiftB=>n_b+=1 }
+        }
+    }
+    println!("  Shift={} ShiftA={} ShiftB={}", n_shift, n_a, n_b);
+    // 测每个 ShiftDF 的 y 独立性（多列 + 含负Y）
+    let mut y_dep_count = 0;
+    for (idx, sdf) in sh.iter().enumerate() {
         let (x, z) = (-288i32*16+4, -256i32*16+4);
+        // 同 xz，y 从 -64 到 320（含负Y），步 8
         let mut vals = Vec::new();
-        for y in (0..320).step_by(8) { vals.push(sdf.sample(&NoisePos{x, y, z})); }
-        let maxd = (0..vals.len()-1).map(|i| (vals[i+1]-vals[i]).abs()).fold(0.0f64, f64::max);
-        let total = vals.iter().map(|v| v.abs()).sum::<f64>();
-        println!("  ShiftDF#{} y=0..320 max_delta={:.4} total={:.4} y_range_impact={:.2}%", idx, maxd, total, maxd/(total+1e-9)*100.0);
+        for y in (-64..320).step_by(8) { vals.push(sdf.sample(&NoisePos{x, y, z})); }
+        let mut maxd = 0.0f64;
+        for i in 0..vals.len()-1 { let d = (vals[i+1]-vals[i]).abs(); if d > maxd { maxd = d; } }
+        if maxd > 1e-9 { y_dep_count += 1; }
+        // 换 3 个列再确认
+        if maxd <= 1e-9 {
+            for (dx, dz) in [(8i32,8),(12,4),(0,0)] {
+                let x2 = x + dx; let z2 = z + dz;
+                let mut vals2 = Vec::new();
+                for y in (-64..320).step_by(8) { vals2.push(sdf.sample(&NoisePos{x:x2,y,z:z2})); }
+                for i in 0..vals2.len()-1 { let dd = (vals2[i+1]-vals2[i]).abs(); if dd > maxd { maxd = dd; } }
+            }
+            if maxd > 1e-9 { y_dep_count += 1; }
+        }
+        if idx < 3 || maxd > 1e-9 {
+            println!("  ShiftDF#{} mode={:?} y_dep(max_delta={:.5})", idx, sdf.mode_label(), maxd);
+        }
+    }
+    println!("y 独立(全部列 y_delta<=1e-9): {} / {} 节点", sh.len() - y_dep_count, sh.len());
+}
+
+// helper：label mode
+trait ModeLabel { fn mode_label(&self) -> String; }
+impl ModeLabel for WorldgenRust::density::DensityFunction {
+    fn mode_label(&self) -> String {
+        if let DensityFunction::ShiftDF { mode, .. } = self {
+            match mode { ShiftMode::Shift => "Shift".into(), ShiftMode::ShiftA => "ShiftA".into(), ShiftMode::ShiftB => "ShiftB".into() }
+        } else { "?".to_string() }
     }
 }

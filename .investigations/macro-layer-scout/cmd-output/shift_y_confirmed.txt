@@ -1,0 +1,9 @@
+
+=== ShiftDF y 独立性补测确认（增强探针，2026-08-29）===
+- 覆盖 ch#0 全部 708 个 ShiftDF（非仅前 5）+ 含负Y(-64..320) + 每节点 4 列 (4,4)/(8,8)/(12,4)/(0,0)
+- 结果：708/708 全部 y 独立（各列 y 变化 max_delta=0）
+- mode 分布：ShiftA + ShiftB（overworld 无 plain Shift，确认 judge 判断）
+- ShiftA/B 缓存安全（y 独立可靠）
+- plain Shift 已保守修正为不缓存（用实际 y，保持参考语义）
+
+结论：ShiftDF Cache2D 正确（overworld 场景），features_probe 95.40% 保持。
