@@ -59,8 +59,8 @@ pub struct WorldgenHandle {
     splitter: XoroshiroSplitter,
     // 矿脉（ore vein）sampler（density 后 aquifer 无 fluid 时决定矿脉块，只读 &self 并发安全）
     ore_vein: crate::ore_vein::OreVeinSampler,
-    // beardifier 缓存（per-chunk）——未接入生成管线，保留（set 时写）
-    beardifiers: Mutex<HashMap<(i32, i32), Beardifier>>,
+    // beardifier 缓存（per-chunk，CppBridge set_beardifier 写，fill 读——RwLock 读并发无争用）
+    beardifiers: std::sync::RwLock<HashMap<(i32, i32), Beardifier>>,
     // carver 缓存（创建时预加载，运行只读无锁）
     carver_cache: HashMap<String, ConfiguredCarver>,
     // FEATURES 缓存（创建时从所有 biome features 预加载，运行只读无锁）
@@ -182,7 +182,7 @@ impl WorldgenHandle {
             blocks: blocks_leaked,
             splitter,
             ore_vein,
-            beardifiers: Mutex::new(HashMap::new()),
+            beardifiers: std::sync::RwLock::new(HashMap::new()),
             carver_cache,
             feature_cache,
             feature_indexer,
@@ -214,11 +214,11 @@ impl WorldgenHandle {
                 source_x: j[0], source_ground_y: j[1], source_z: j[2],
             });
         }
-        self.beardifiers.lock().unwrap().insert((chunk_x, chunk_z), b);
+        self.beardifiers.write().unwrap().insert((chunk_x, chunk_z), b);
     }
 
     pub fn clear_beardifier(&self) {
-        self.beardifiers.lock().unwrap().clear();
+        self.beardifiers.write().unwrap().clear();
     }
 
     // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver。
@@ -238,7 +238,9 @@ impl WorldgenHandle {
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
             cx * 16, cz * 16, min_y, height);
         let mut va = VanillaAquifer { aq };
-        let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, None);
+        // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
+        let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
+        let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());
 
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
         //    ore_vein：rock 处按矿脉分布替换为铜/铁矿脉块（aquifer 无 fluid 的 rock）
