@@ -1,0 +1,16 @@
+
+=== fill_chunk 分段剖面（WG_FILLCHUNK_PROFILE 单线程，region 200,200，2026-08-29）===
+| 段 | 耗时 | 占比 |
+|---|---|---|
+| classify(aquifer.aq.apply) | 16-40ms | 43-64% (最大头) |
+| dense(tree.sample) | ~14ms | 23-36% |
+| loop overhead | ~7ms | 11-19% |
+| biome(256列) | ~1ms | 2% |
+| beard | 0 | 无结构 |
+
+关键修正：
+- fill_chunk 最大头 = classify(aquifer)，非 density（dense 仅 14ms）
+- 之前「density 29.8ms」= WG_SKIP_AQUIFER 跳过 classify 后的数字，误导
+- Aquifer.apply 每点做液面网格+邻居采样，98304 点 x每次 = 真实最大 CPU
+
+优化候选：Aquifer.apply 缓存（液面网格）/减少每点计算。dense 14ms 次之。
