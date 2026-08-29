@@ -308,4 +308,6 @@ impl NoiseSet {
             None => 0.0, // 未注册 noise（MVP 占位）
         }
     }
+    // old_blended_noise（InterpolatedNoise）：MVP 占位（未实现 InterpolatedNoise 采样）
+    pub fn sample_blended_noise(&self, _x: f64, _y: f64, _z: f64) -> f64 { 0.0 }
 }

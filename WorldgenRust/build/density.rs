@@ -15,6 +15,10 @@ pub fn build_final_density() -> String {
     let df_dir = format!("{}/density_function/overworld", wg_dir);
     let mut registry: HashMap<String, JsonValue> = HashMap::new();
     collect_json(&df_dir, &mut registry);
+    // debug：打印 registry keys（确认 caves/ 子目录）
+    let mut keys: Vec<_> = registry.keys().cloned().collect();
+    keys.sort();
+    println!("cargo:warning=[transpiler] registry keys ({}): {:?}", keys.len(), keys);
     // 生成 compute_final_density 函数
     let mut ctx = GenCtx { registry: &registry, out: String::new(), indent: 0 };
     let expr = ctx.gen_expr(fd);
@@ -27,16 +31,21 @@ pub fn build_final_density() -> String {
 
 // 递归收集 density_function JSON（key = 相对路径，如 "sloped_cheese" / "caves/noodle"）
 fn collect_json(dir: &str, registry: &mut HashMap<String, JsonValue>) {
+    collect_json_prefix(dir, "", registry);
+}
+fn collect_json_prefix(dir: &str, prefix: &str, registry: &mut HashMap<String, JsonValue>) {
     if let Ok(entries) = std::fs::read_dir(dir) {
         for e in entries.flatten() {
             let p = e.path();
             if p.is_dir() {
-                collect_json(&p.to_string_lossy(), registry);
+                let sub = p.file_name().unwrap().to_string_lossy().to_string();
+                let new_prefix = if prefix.is_empty() { sub } else { format!("{}/{}", prefix, sub) };
+                collect_json_prefix(&p.to_string_lossy(), &new_prefix, registry);
             } else if p.extension().is_some_and(|x| x == "json") {
-                let rel = p.strip_prefix(dir).unwrap().to_string_lossy().to_string();
-                let name = rel.trim_end_matches(".json").replace('\\', "/");
+                let name = p.file_stem().unwrap().to_string_lossy().to_string();
+                let key = if prefix.is_empty() { name } else { format!("{}/{}", prefix, name) };
                 if let Ok(text) = std::fs::read_to_string(&p) {
-                    if let Ok(v) = parse(&text) { registry.insert(name, v); }
+                    if let Ok(v) = parse(&text) { registry.insert(key, v); }
                 }
             }
         }
@@ -59,6 +68,8 @@ impl<'a> GenCtx<'a> {
                 if n.fract() == 0.0 { format!("{}f64", n) } else { format!("{}", n) }
             }
             JsonValue::String(s) => {
+                // 特殊：minecraft:y 引用（spline location 用 y 坐标）
+                if s == "minecraft:y" { return "y".to_string(); }
                 // reference：resolve 到 registry 里的函数（去掉 minecraft:overworld/ 前缀）
                 let name = s.trim_start_matches("minecraft:overworld/").trim_start_matches("minecraft:");
                 if let Some(df) = self.registry.get(name) {
@@ -90,9 +101,25 @@ impl<'a> GenCtx<'a> {
                         let b = self.gen_expr(v.get("argument2").unwrap_or(&JsonValue::Number(0.0)));
                         format!("(({}).max({}))", a, b)
                     }
+                    "minecraft:abs" => {
+                        let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        format!("({}).abs()", a)
+                    }
                     "minecraft:square" => {
                         let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
                         format!("{{ let v = {}; v * v }}", a)
+                    }
+                    "minecraft:cube" => {
+                        let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        format!("{{ let v = {}; v * v * v }}", a)
+                    }
+                    "minecraft:half_negative" => {
+                        let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        format!("(-0.5 * ({}))", a)
+                    }
+                    "minecraft:quarter_negative" => {
+                        let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        format!("(-0.25 * ({}))", a)
                     }
                     "minecraft:squeeze" => {
                         let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
@@ -102,7 +129,7 @@ impl<'a> GenCtx<'a> {
                         let a = self.gen_expr(v.get("input").unwrap_or(&JsonValue::Number(0.0)));
                         let mn = v.get("min").and_then(|x| x.as_f64()).unwrap_or(0.0);
                         let mx = v.get("max").and_then(|x| x.as_f64()).unwrap_or(0.0);
-                        format!("(({}).clamp({}, {}))", a, mn, mx)
+                        format!("(({}).clamp({}f64, {}f64))", a, mn, mx)
                     }
                     "minecraft:y_clamped_gradient" => {
                         let fy = v.get("from_y").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32;
@@ -116,14 +143,43 @@ impl<'a> GenCtx<'a> {
                         let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
                         let xz = v.get("xz_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
                         let ys = v.get("y_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
-                        format!("noises.sample_noise(\"{}\", x * {}, y * {}, z * {})", noise_id, xz, ys, xz)
+                        format!("noises.sample_noise(\"{}\", x * {}f64, y * {}f64, z * {}f64)", noise_id, xz, ys, xz)
+                    }
+                    "minecraft:shifted_noise" => {
+                        let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
+                        let xz = v.get("xz_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
+                        let ys = v.get("y_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
+                        let sx = self.gen_expr(v.get("shift_x").unwrap_or(&JsonValue::Number(0.0)));
+                        let sy = self.gen_expr(v.get("shift_y").unwrap_or(&JsonValue::Number(0.0)));
+                        let sz = self.gen_expr(v.get("shift_z").unwrap_or(&JsonValue::Number(0.0)));
+                        format!("noises.sample_noise(\"{}\", x * {}f64 + ({}), y * {}f64 + ({}), z * {}f64 + ({}))", noise_id, xz, sx, ys, sy, xz, sz)
+                    }
+                    "minecraft:shift_a" => {
+                        let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
+                        format!("noises.sample_noise(\"{}\", x * 0.25, 0.0, z * 0.25) * 4.0", noise_id)
+                    }
+                    "minecraft:shift_b" => {
+                        let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
+                        format!("noises.sample_noise(\"{}\", z * 0.25, x * 0.25, 0.0) * 4.0", noise_id)
+                    }
+                    "minecraft:shift" => {
+                        let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
+                        format!("noises.sample_noise(\"{}\", x * 0.25, y * 0.25, z * 0.25) * 4.0", noise_id)
                     }
                     "minecraft:interpolated" => {
                         // MVP：interpolated 直接内联 inner（不做 channel 竖切，先验证链路）
                         let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
                         a
                     }
+                    "minecraft:y" => "y".to_string(),
                     "minecraft:blend_density" => {
+                        let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        a
+                    }
+                    "minecraft:blend_alpha" => "1.0".to_string(),
+                    "minecraft:blend_offset" => "0.0".to_string(),
+                    "minecraft:flat_cache" | "minecraft:cache_2d" | "minecraft:cache_once" | "minecraft:cache_all_in_cell" => {
+                        // 缓存包装：直接内联 inner（MVP 不做缓存，语义等价）
                         let a = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
                         a
                     }
@@ -131,14 +187,78 @@ impl<'a> GenCtx<'a> {
                         let input = self.gen_expr(v.get("input").unwrap_or(&JsonValue::Number(0.0)));
                         let mn = v.get("min_inclusive").and_then(|x| x.as_f64()).unwrap_or(0.0);
                         let mx = v.get("max_exclusive").and_then(|x| x.as_f64()).unwrap_or(0.0);
-                        let ir = self.gen_expr(v.get("in_range").unwrap_or(&JsonValue::Number(0.0)));
-                        let orr = self.gen_expr(v.get("out_of_range").unwrap_or(&JsonValue::Number(0.0)));
+                        let ir = self.gen_expr(v.get("when_in_range").unwrap_or(&JsonValue::Number(0.0)));
+                        let orr = self.gen_expr(v.get("when_out_of_range").unwrap_or(&JsonValue::Number(0.0)));
                         format!("{{ let v = {}; if v >= {}f64 && v < {}f64 {{ {} }} else {{ {} }} }}", input, mn, mx, ir, orr)
                     }
-                    _ => format!("0.0 /* unhandled type {} */", t),
+                    "minecraft:weird_scaled_sampler" => {
+                        let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
+                        let input = self.gen_expr(v.get("input").unwrap_or(&JsonValue::Number(0.0)));
+                        let rv = v.get("rarity_value_mapper").and_then(|x| x.as_str());
+                        let mult = if rv == Some("type_2") { 3.0 } else { 2.0 };
+                        format!("{{ let d = {}; let s = d * {}f64; s * noises.sample_noise(\"{}\", x / s, y / s, z / s).abs() }}", input, mult, noise_id)
+                    }
+                    "minecraft:spline" => self.gen_spline(v),
+                    "minecraft:old_blended_noise" => {
+                        // InterpolatedNoise：运行时从 noises 对象采样（blended_noise）
+                        format!("noises.sample_blended_noise(x, y, z)")
+                    }
+                    _ => {
+                        // debug：打印未处理类型（含空 type）
+                        if t.is_empty() {
+                            println!("cargo:warning=[transpiler] empty-type node: {:?}", v);
+                        }
+                        format!("0.0 /* unhandled type {} */", t)
+                    }
                 }
             }
             _ => "0.0".to_string(),
         }
+    }
+    // spline：内联 if/else 区间链（Hermite，对齐 spline_eval）
+    fn gen_spline(&mut self, v: &JsonValue) -> String {
+        let spline = v.get("spline").unwrap_or(v);
+        let points = match spline.get("points").and_then(|x| x.as_array()) {
+            Some(p) => p,
+            None => return "0.0".to_string(),
+        };
+        if points.is_empty() { return "0.0".to_string(); }
+        // spline 输入坐标：location 若是 "minecraft:y" 引用 → 用 y（spline 的 x 轴是 y）
+        let coord = match spline.get("coordinate").and_then(|x| x.as_str()) {
+            Some("minecraft:y") => "y",
+            _ => "y", // 默认 y（terrain spline）
+        };
+        // 生成 if/else 链：每个点一个区间 arm
+        let mut arms = String::new();
+        for (i, p) in points.iter().enumerate() {
+            let loc = p.get("location").and_then(|x| x.as_f64()).unwrap_or(0.0);
+            let der = p.get("derivative").and_then(|x| x.as_f64()).unwrap_or(0.0);
+            let val = self.gen_spline_value(p.get("value").unwrap_or(&JsonValue::Number(0.0)));
+            if i == 0 {
+                // 第一个点：x <= loc 用该点值
+                arms.push_str(&format!("if __coord <= {}f64 {{ {} }}", loc, val));
+            } else {
+                // 中间点：Hermite 插值（用 prev 和当前）
+                let prev_val = self.gen_spline_value(points[i-1].get("value").unwrap_or(&JsonValue::Number(0.0)));
+                let prev_der = points[i-1].get("derivative").and_then(|x| x.as_f64()).unwrap_or(0.0);
+                let prev_loc = points[i-1].get("location").and_then(|x| x.as_f64()).unwrap_or(0.0);
+                arms.push_str(&format!(
+                    " else if __coord <= {}f64 {{ let __t = (__coord - {}f64) / ({}f64 - {}f64); let __h = {}f64 - {}f64; let __a = {}f64 * __h - ({} - {}); let __b = -{}f64 * __h + ({} - {}); let __lerp_y = {} + __t * ({} - {}); let __lerp_ab = __a + __t * (__b - __a); __lerp_y + __t * (1.0 - __t) * __lerp_ab }}",
+                    loc, prev_loc, loc, prev_loc, loc, prev_loc, prev_der, val, prev_val, der, val, prev_val, prev_val, val, prev_val
+                ));
+            }
+        }
+        // 最后一个点之后：用最后一个点值
+        let last_val = self.gen_spline_value(points.last().unwrap().get("value").unwrap_or(&JsonValue::Number(0.0)));
+        format!("{{ let __coord = {}; {} else {{ {} }} }}", coord, arms, last_val)
+    }
+    // spline 的 value：嵌套 spline（无 type 的对象，有 points）→ 递归 gen_spline；否则 gen_expr
+    fn gen_spline_value(&mut self, v: &JsonValue) -> String {
+        if let JsonValue::Object(_) = v {
+            if v.get("points").is_some() && v.get("type").is_none() {
+                return self.gen_spline(v);
+            }
+        }
+        self.gen_expr(v)
     }
 }
