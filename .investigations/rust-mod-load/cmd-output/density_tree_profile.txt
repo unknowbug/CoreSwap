@@ -1,0 +1,16 @@
+
+=== finalDensity 树结构分析（density_tree_profile，2026-08-29）===
+TOTAL 3710 nodes（无指数级膨胀，Spline 仅 9，C++ SplineDF 递归问题在 Rust 不存在）
+
+Wrapping 727 | ShiftDF 708 | LinearOp 636 | UnaryOp 395 | FlatCache 363
+Constant 360 | ShiftedNoise 354 | BinaryOp 63 | Noise 33 | Cache2D 9
+Spline 9 | Interpolated 5 | RangeChoice 7 | WeirdScaled 5 | YClampedGradient 12
+
+关键洞察：
+- Wrapping(727) + ShiftDF(708) 占 ~40% —— 大量 shift/委托包装节点
+- ShiftedNoise 354 个，每个采样需 3 个 shift（shift_x/y/z）
+- Cache2D 仅 9 个 —— shift 可能未缓存 → 每次 density 采样重复算 offset 噪声（Java 用 Cache2D 缓存 shift）
+- Interpolated 仅 5 个 —— Java 外层 Interpolated 网格缓存（4x4x8 cell）未充分覆盖
+
+density 慢(29.8ms) 潜在根源：shift 噪声重复采样（未缓存）+ 委托包装间接调用。
+优化候选：① 给关键 shift 加 Cache2D ② 外层 Interpolated 网格缓存

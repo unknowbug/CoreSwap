@@ -1,0 +1,25 @@
+
+=== density 优化方向修正（density_interp_bench，2026-08-29）===
+- 裸 finalDensity 采样：6.4ms/chunk（0.065us/pt）—— density 采样本身并不慢！
+- 包 Interpolated(4x4x8 网格)：632ms/chunk（100x 慢）+ 采样 44% 差异（三线性插值近似破坏对齐）
+=> Interpolated 优化方向错误（慢 + 破坏正确性），放弃。
+
+结论修正：之前 base 细分测的「纯 density 29.8ms」= fill_chunk 里除 tree.sample 外的其他开销
+（surface_height 计算 + biome 判定 + aquifer 等），不是纯采样。
+真正慢点 = fill_chunk 的 biome/surface_height 处理，非 density 树采样。
+需重新定位 fill_chunk 内部慢点（biome 判定 / surface_height / aquifer）。
+
+=== judge 修正（追加，2026-08-29，审查推翻 density 方向修正 candidate 的部分结论）===
+审查结论（review-density-candidate.md）：
+1. 「Interpolated 慢 100x」= 双层污染假象（final_density 树内部已含 minecraft:interpolated，
+   外层再包一层 = 双层，内层 mesh 跨 chunk 雪崩重建 291x）
+   -> 撤销「Interpolated 放弃」；单层 Interpolated 对 SplineDF 加速 70x（83.74ms -> 1.19ms），是密度优化正解。
+2. base「density 29.8ms」非纯采样成立，但 density 真实成本 ~14ms/chunk（内部 Interpolated 网格首建主导），
+   仍是 fill_chunk 最大单项（14/31.4 ~ 45%）。「其他」仅 ~17ms。
+3. WG_SKIP_AQUIFER 无法分离纯采样（fill_chunk 仍做 beard/classify/biome）。
+
+状态：candidate 修正（Interpolated 方向保留为优化正解 + fill_chunk 精确定性剖面）。
+下一步（judge 建议）：
+  ① 单层 Interpolated 生产化验证（跨 chunk 网格复用降 14ms 首建）
+  ② fill_chunk 分段计时（dense.sample/beard/classify/biome/循环，单线程 WG 门控）
+  ③ 评估是否用 Interpolated/DFC 直排
