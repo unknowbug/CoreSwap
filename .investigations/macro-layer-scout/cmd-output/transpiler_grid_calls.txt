@@ -1,0 +1,17 @@
+
+=== transpiler cell grid 构建采样量确认（2026-08-29）===
+- transpiler cell grid 构建: 41.79ms/chunk, corners=1225（fill 调用次数）
+- 运行时 Interpolated grid 构建: 8.14ms/chunk
+
+关键：两者都是 1225 corners（采样量相同），但 transpiler 慢 5 倍
+- 差异不是采样量，而是单次 fill 调用成本
+- transpiler 单次 fill 34μs（cell grid 构建内，缓存冷）vs transpiler_fill_cost 测的 7μs（连续调用，缓存热）
+- 运行时 Interpolated grid 构建 6.6μs/corner（有缓存复用）
+
+结论：transpiler 慢主因 = cell grid 构建无缓存（每 corner 采样 5 channels 完整树，缓存冷）
+- 运行时 Interpolated 有缓存复用（noise 采样等）
+- 需要缓存优化（noise 采样复用 / cell grid 复用）
+
+下一步：
+- transpiler 加缓存（noise 采样复用 / cell grid 复用）
+- 或确认 transpiler build-time 编译优势是否被无缓存抵消
