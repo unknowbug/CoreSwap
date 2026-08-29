@@ -96,7 +96,7 @@ fn main() {
 
         // Rust 阶段 A 管线 + Beardifier
         let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, min_y, height);
-        let mut va = VanillaAquifer { aq };
+        let mut va = VanillaAquifer::new(aq);
         let beard = beard_map.get(&(cx, cz));
         let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, min_y, height, beard);
         let mut col = BlockColumn::new(min_y, height);

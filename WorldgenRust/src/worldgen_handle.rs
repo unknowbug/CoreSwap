@@ -39,6 +39,7 @@ pub struct WorldgenHandle {
     pub seed: i64,
     pub min_y: i32,
     pub height: i32,
+    pub aquifers_enabled: bool, // from noise_settings <settings>.aquifers_enabled（下界 false 跳过 aquifer）
     // density 树
     tree: Arc<DensityFunction>,       // final_density
     barrier: Arc<DensityFunction>,
@@ -221,7 +222,7 @@ impl WorldgenHandle {
         let uniform_carver_list = biomesrc.bc.uniform_carver_list();
 
         Some(WorldgenHandle {
-            seed, min_y, height,
+            seed, min_y, height, aquifers_enabled,
             tree, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
@@ -313,7 +314,8 @@ impl WorldgenHandle {
             self.barrier.clone(), self.flooded.clone(), self.spread.clone(), self.lava.clone(),
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
             cx * 16, cz * 16, min_y, height);
-        let mut va = VanillaAquifer { aq };
+        // aquifers_enabled=false（下界）→ VanillaAquifer.enabled=false，classify 跳过真实 aquifer（无 water/lava）
+        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
         let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());

@@ -53,14 +53,14 @@ fn main() {
     // 预热
     for c in 0..2i32 {
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), c*16, 0, -64, 384i32);
-        let mut va = VanillaAquifer { aq };
+        let mut va = VanillaAquifer::new(aq);
         let _ = fill_chunk(&dense, &mut va, &nob, c, 0, -64, 384i32, None);
     }
     // A: no-biome（纯 density+aquifer）
     let t0 = Instant::now();
     for c in 0..n_chunks {
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), (c as i32)*16, 0, -64, 384i32);
-        let mut va = VanillaAquifer { aq };
+        let mut va = VanillaAquifer::new(aq);
         let cd = fill_chunk(&dense, &mut va, &nob, c as i32, 0, -64, 384i32, None);
         std::hint::black_box(&cd);
     }
@@ -69,7 +69,7 @@ fn main() {
     let t1 = Instant::now();
     for c in 0..n_chunks {
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), (c as i32)*16, 0, -64, 384i32);
-        let mut va = VanillaAquifer { aq };
+        let mut va = VanillaAquifer::new(aq);
         let cd = fill_chunk(&dense, &mut va, &real, c as i32, 0, -64, 384i32, None);
         std::hint::black_box(&cd);
     }

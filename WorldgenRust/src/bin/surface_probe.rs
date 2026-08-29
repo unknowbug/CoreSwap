@@ -64,7 +64,7 @@ fn main() {
     let (cx, cz) = (0i32, 0i32);
     let dense = VanillaDensity { df: &tree };
     let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
-    let mut va = VanillaAquifer { aq };
+    let mut va = VanillaAquifer::new(aq);
     let bc = BiomeClassifier::load("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\biome_params.json");
     let biomesrc = MacroBiome { bc, tempf: t_temp, humf: t_hum, contf: t_cont, erof: t_ero, depthf: t_dep, weirdf: t_wei };
     let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);

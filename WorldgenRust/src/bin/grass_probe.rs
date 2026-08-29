@@ -72,7 +72,7 @@ fn main() {
     let mut land_found = 0;
     for cz in -4..4 { for cx in -4..4 {
         let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
-        let mut va = VanillaAquifer { aq };
+        let mut va = VanillaAquifer::new(aq);
         let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
 
         let mut col = BlockColumn::new(-64, 384);

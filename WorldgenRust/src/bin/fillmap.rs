@@ -57,7 +57,7 @@ fn main() {
         let mut row = String::new();
         for cx in -7..=3 {
             let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384);
-            let mut vaaq = VanillaAquifer { aq };
+            let mut vaaq = VanillaAquifer::new(aq);
             let cd = fill_chunk(&dense, &mut vaaq, &biomesrc, cx, cz, -64, 384, None);
             // 宏观地形：每 chunk 取表面高度平均（湖面=water 会低）
             let mut hs=0i64; let mut cnt=0i64; let mut water=0i64;
@@ -82,7 +82,7 @@ fn main() {
         let mut row = String::new();
         for cx in -7..=3 {
             let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384);
-            let mut vaaq = VanillaAquifer { aq };
+            let mut vaaq = VanillaAquifer::new(aq);
             let cd = fill_chunk(&dense, &mut vaaq, &biomesrc, cx, cz, -64, 384, None);
             // 取该 chunk biome 标签（多数列）
             let mut map: std::collections::HashMap<String,u32> = std::collections::HashMap::new();
