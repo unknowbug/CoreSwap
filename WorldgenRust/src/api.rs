@@ -17,11 +17,33 @@ pub fn density_y_interval() -> i32 { Y_INTERVAL }
 pub fn density_height() -> i32 { HEIGHT }
 pub fn density_min_y() -> i32 { MIN_Y }
 
+// 自适应线程数：实测确定（bench_threads，144 chunks）——
+//   物理核-2（本机 12-2=10）最优 > 全物理核(12) > 逻辑核(22/24, SMT 超线程不利)
+// 物理核 ≈ available_parallelism()(逻辑核) / 2（SMT=2 假设，本机 24/2=12）
+// 留 2 核给 OS/其他任务（避免调度中断/缓存/内存带宽饱和）
+fn adaptive_threads(param_threads: i32, count: usize) -> usize {
+    // 显式 env 覆盖（CORESWAP_THREADS，对齐 C++）
+    if let Ok(env) = std::env::var("CORESWAP_THREADS") {
+        if let Ok(t) = env.parse::<i32>() { if t > 0 { return (t as usize).min(count).max(1); } }
+    }
+    let threads = if param_threads > 0 {
+        param_threads as usize // 显式指定
+    } else {
+        // 自适应：物理核-2
+        let logical = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+        let physical = (logical / 2).max(1); // SMT=2 假设 -> 物理核（本机 24/2=12）
+        let t = physical.saturating_sub(2).max(1); // 留 2 核
+        t
+    };
+    threads.min(count).max(1) // clamp 到任务数
+}
+
 // 输出指针 Send 包装：闭包调用 write() 方法（而非访问 .0 字段）写自己线程的 out，
 // 避免编译器穿透字段访问导致裸指针跨线程 Send 报错（错误台账 M2）。
-// 每个线程写不同的 out 指针，无数据竞争（wg_fill_blocks_multi 保证）。
+// 每个 chunk 一个 out 指针，各线程对不同 chunk 写（索引区分），无数据竞争。
 struct SendOut(*mut c_int);
 unsafe impl Send for SendOut {}
+unsafe impl Sync for SendOut {}
 impl SendOut {
     #[inline]
     fn write(&self, data: &[c_int]) {
@@ -53,13 +75,13 @@ pub extern "C" fn wg_destroy(handle: *mut c_void) {
 }
 
 // 完整区块生成（方块层）：count 个 chunk，outs[i] = int[16*16*384]（vanilla raw block id）
-// threads: 并行线程数；0 或负 = 自适应。返回 count。
-// 纯粹多线程：每线程直接写自己的 out 指针（SendOut.write 方法，不捕获裸指针字段），
-// 无串行收集。确定性由「每线程算固定 chunk + 写固定 out」保证。
+// threads: 并行线程数；0 或负 = 自适应（物理核-2，实测最优）。返回 count。
+// 自适应多线程：按核数分块（threads 个 scoped 线程交错处理 count chunks），线程数受控，
+// 不是「每 chunk 一个线程」。确定性由「每 chunk 算固定 chunk + 写固定 out」保证。
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
                                         chunk_xs: *const c_int, chunk_zs: *const c_int,
-                                        outs: *const *mut c_int, count: c_int, _threads: c_int) -> c_int {
+                                        outs: *const *mut c_int, count: c_int, threads: c_int) -> c_int {
     if handle.is_null() || count <= 0 { return 0; }
     let h = unsafe { &*(handle as *const WorldgenHandle) };
     let count = count as usize;
@@ -67,20 +89,28 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
     let czs = unsafe { std::slice::from_raw_parts(chunk_zs, count) };
     let out_ptrs = unsafe { std::slice::from_raw_parts(outs, count) };
     let block_count = (16 * 16 * HEIGHT) as usize;
+    let nthreads = adaptive_threads(threads, count);
 
-    // 每线程直接写自己的 out（SendOut 包装裸指针，write 方法写）。闭包捕获 Arc<&handle> + SendOut + 坐标。
     let h_arc = std::sync::Arc::new(h);
-    let handles: Vec<_> = (0..count).map(|i| {
-        let h = h_arc.clone();
-        let cx = cxs[i];
-        let cz = czs[i];
-        let out = SendOut(out_ptrs[i]);
-        std::thread::spawn(move || {
-            let blocks = h.fill_chunk_blocks(cx, cz);
-            out.write(&blocks[..block_count]);
-        })
-    }).collect();
-    for h in handles { let _ = h.join(); }
+    // 把 out 指针包成 SendOut（每个 chunk 一个），Arc 共享，闭包按索引写各自的 out（Write 方法，非 .0 字段）
+    let outs_arc = std::sync::Arc::new((0..count).map(|i| SendOut(out_ptrs[i])).collect::<Vec<_>>());
+    // 分块：nthreads 个 scoped 线程，每个交错处理 {t, t+n, t+2n, ...} chunks
+    std::thread::scope(|s| {
+        for t in 0..nthreads {
+            let h = h_arc.clone();
+            let cxs = cxs;
+            let czs = czs;
+            let outs = outs_arc.clone();
+            s.spawn(move || {
+                let mut i = t;
+                while i < count {
+                    let blocks = h.fill_chunk_blocks(cxs[i], czs[i]);
+                    outs[i].write(&blocks[..block_count]);
+                    i += nthreads;
+                }
+            });
+        }
+    });
     count as c_int
 }
 
