@@ -1,0 +1,16 @@
+
+=== ch#0 terrain 树分析（ch0_tree_analysis，2026-08-29）===
+total 3677 节点：
+- ShiftDF 708 + ShiftedNoise 354 = 噪声 shift 相关 ~1062 节点（~30%）
+- Wrapping 727（shift 委托包装）
+- FlatCache 363、LinearOp 632、UnaryOp 392、Constant 355
+- Noise 29 + WeirdScaled 5 + InterpolatedNoise 3 = 其他噪声
+- Spline 9、Cache2D 9
+
+关键：shift 噪声（ShiftDF/ShiftedNoise ~1062 节点）是 corners 采样主要计算成本
+- 每 corner 树遍历要 ~1000 次 shift 采样（每个 ShiftedNoise 3 个 shift）
+- ShiftDF 采样 offset 噪声（3D Perlin，含 y）
+- Java shift 用 offset 噪声，宏观网格缓存；Rust ShiftDF 每次 3D 采样未缓存
+
+潜在优化：shift 缓存（若 y 依赖弱）或批量采样（SIMD）
+但需验证 shift y 独立性与正确性
