@@ -293,3 +293,19 @@ impl DoublePerlinNoiseSampler {
         (self.first_sampler.sample(x, y, z) + self.second_sampler.sample(d, e, f)) * self.amplitude
     }
 }
+
+// ---- NoiseSet（build-time 编译的 compute_* 函数用）：按 id 存 noise，sample_noise 采样 ----
+// MVP：HashMap 存 DoublePerlinNoiseSampler，sample_noise 按 id 查表采样。
+pub struct NoiseSet {
+    noises: std::collections::HashMap<String, DoublePerlinNoiseSampler>,
+}
+impl NoiseSet {
+    pub fn new() -> Self { Self { noises: std::collections::HashMap::new() } }
+    pub fn insert(&mut self, id: &str, noise: DoublePerlinNoiseSampler) { self.noises.insert(id.to_string(), noise); }
+    pub fn sample_noise(&self, id: &str, x: f64, y: f64, z: f64) -> f64 {
+        match self.noises.get(id) {
+            Some(n) => n.sample(x, y, z),
+            None => 0.0, // 未注册 noise（MVP 占位）
+        }
+    }
+}

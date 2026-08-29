@@ -24,4 +24,8 @@ pub mod placement;         // FEATURES 阶段调度（IntProvider + PlacementMod
 pub mod feature;           // FEATURES 阶段 Feature 类（Ore/Disk/Spring/FreezeTop/UnderwaterMagma）
 pub mod feature_loader;    // FEATURES 阶段数据加载 + 调度（ConfiguredFeature + PlacedFeatureIndexer）
 
+// build-time 编译的 density 函数（build.rs transpiler 生成，MVP）
+#[path = "generated/vanilla_density_functions.rs"]
+pub mod generated_density;
+
 pub fn version() -> &'static str { "0.1.0" }
