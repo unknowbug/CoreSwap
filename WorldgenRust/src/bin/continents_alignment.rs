@@ -38,7 +38,7 @@ fn main() {
         for z in [4i32, 8, 12] { for x in [4i32, 8, 12] {
             let wx = cx*16+x; let wz = cz*16+z;
             let a = tree.sample(&NoisePos{x:wx,y,z:wz});
-            let b = compute_continents(&noises, wx as f64, y as f64, wz as f64);
+            let b = compute_continents(&noises, &[], wx as f64, y as f64, wz as f64);
             let d = (a-b).abs();
             if d > max_diff { max_diff = d; }
             n += 1;
