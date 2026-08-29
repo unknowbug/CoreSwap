@@ -42,6 +42,8 @@ pub struct WorldgenHandle {
     pub aquifers_enabled: bool, // from noise_settings <settings>.aquifers_enabled（下界 false 跳过 aquifer）
     // density 树
     tree: Arc<DensityFunction>,       // final_density
+    // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
+    macro_sampler: crate::terrain::DensityMacroSampler,
     barrier: Arc<DensityFunction>,
     flooded: Arc<DensityFunction>,
     spread: Arc<DensityFunction>,
@@ -136,6 +138,8 @@ impl WorldgenHandle {
 
         // 3. router DF 树
         let tree = Arc::new(db.build_node(router.get("final_density")?).ok()?);
+        // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
+        let macro_sampler = crate::terrain::DensityMacroSampler::new(&tree, min_y, height);
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
         let flooded = Arc::new(db.build_node(router.get("fluid_level_floodedness")?).ok()?);
         let spread = Arc::new(db.build_node(router.get("fluid_level_spread")?).ok()?);
@@ -223,7 +227,7 @@ impl WorldgenHandle {
 
         Some(WorldgenHandle {
             seed, min_y, height, aquifers_enabled,
-            tree, barrier, flooded, spread, lava, erosion, depth, init,
+            tree, macro_sampler, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
             splitter,
@@ -309,7 +313,8 @@ impl WorldgenHandle {
         let lava_id = self.blocks.id("minecraft:lava");
 
         // 1. fill_chunk（宏观：density + aquifer 分类）
-        let dense = VanillaDensity { df: &self.tree };
+        // multi-channel 宏观采样器（cell grid 采样 density，对齐 Java NoiseChunk；thread_local slices 缓存每 chunk 重建一次）
+        let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
         let mut aq = crate::aquifer::Aquifer::new(
             self.barrier.clone(), self.flooded.clone(), self.spread.clone(), self.lava.clone(),
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
@@ -320,7 +325,7 @@ impl WorldgenHandle {
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());
+        let cd = fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());
 
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
         //    ore_vein：rock 处按矿脉分布替换为铜/铁矿脉块（aquifer 无 fluid 的 rock）

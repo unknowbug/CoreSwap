@@ -1,0 +1,16 @@
+
+=== multi-channel 生产接线结果（2026-08-29）===
+- 实现：DensityMacroSampler 移到 terrain.rs（实现 DensitySource + thread_local slices 缓存），WorldgenHandle 存 macro_sampler，fill_chunk_blocks 用它采样 density
+- 对齐：features_probe 95.40% 保持（接线正确）
+- 全管线 400 chunks：42.7 -> 47.03ms（反而慢 ~10%）
+
+原因：
+- thread_local slices 缓存每点访问（MACRO_SLICE_CACHE.with 每点 98304 次）+ borrow 开销
+- slices 构建（每 chunk 采样所有 channels 在 corners）比逐点采样 density 树贵（标量）
+- 与探针一致：标量 multi-channel 不省（8.83 vs 6.43）
+
+结论：multi-channel 生产接线正确（对齐保持），但标量慢（thread_local 每点访问 + slices 构建）
+- 需要 SIMD/ColumnCache 才有收益
+- 或优化 thread_local 访问（fill_chunk 直接构建 slices + 块级插值，不用 DensitySource trait）
+
+状态：接线完成（正确性保持），性能未提升（标量慢）

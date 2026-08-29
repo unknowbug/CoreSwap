@@ -6,7 +6,91 @@
 // Beardifier：fill 时对每个块密度加结构 Beardifier 修正（add(finalDensity, Beardifier) CellCache 语义）。
 
 use crate::beardifier::Beardifier;
-use crate::density::{DensityFunction, NoisePos};
+use crate::density::{DensityFunction, NoisePos, macrolize_channels};
+use std::cell::RefCell;
+use std::sync::Arc;
+
+// ---- 生产版 multi-channel 宏观采样器（对齐 SteelMC/Java NoiseChunk，正确性 diff0 已验证）----
+// 竖切：macrolize final_density → channels（每个 Interpolated inner）+ combine（外层操作树，Interpolated→ReadChannel）。
+// 对 chunk 的 4x4x8 cell corners 采样所有 channels（~1225×Nch 次），块级三线性插值 + combine。
+// 避免「采样整树」→ 内部 Interpolated 雪崩（channels 是纯 inner，无嵌套）。
+// thread_local slices 缓存（每 chunk 重建一次，块级 O(1) 插值）。
+pub struct DensityMacroSampler {
+    channels: Vec<Arc<DensityFunction>>,
+    combine: DensityFunction,
+    min_y: i32, height: i32,
+    cell_w: i32, cell_h: i32,
+    gx: usize, gy: usize, gz: usize,
+}
+thread_local! {
+    static MACRO_SLICE_CACHE: RefCell<(i64, Vec<f64>)> = RefCell::new((i64::MIN, Vec::new()));
+}
+impl DensityMacroSampler {
+    pub fn new(tree: &DensityFunction, min_y: i32, height: i32) -> Self {
+        let (channels, combine) = macrolize_channels(tree);
+        Self { channels, combine, min_y, height, cell_w: 4, cell_h: 8,
+            gx: (16/4+1) as usize, gy: (height/8+1) as usize, gz: (16/4+1) as usize }
+    }
+    fn build_slices(&self, cx: i32, cz: i32) -> Vec<f64> {
+        let nch = self.channels.len();
+        let mut slices = vec![0.0f64; self.gx * self.gy * self.gz * nch];
+        for ix in 0..self.gx {
+            for iz in 0..self.gz {
+                for iy in 0..self.gy {
+                    let px = cx*16 + ix as i32 * self.cell_w;
+                    let py = self.min_y + iy as i32 * self.cell_h;
+                    let pz = cz*16 + iz as i32 * self.cell_w;
+                    let pos = NoisePos { x: px, y: py, z: pz };
+                    for ch in 0..nch {
+                        slices[((iy*self.gz + iz)*self.gx + ix)*nch + ch] = self.channels[ch].sample(&pos);
+                    }
+                }
+            }
+        }
+        slices
+    }
+    #[inline]
+    fn sample_interp(&self, slices: &[f64], pos: &NoisePos) -> f64 {
+        let gx = self.gx as i32; let gy = self.gy as i32; let gz = self.gz as i32;
+        let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
+        let gxx = pos.x - chunk_x*16; let gzz = pos.z - chunk_z*16; let gyy = pos.y - self.min_y;
+        let mut cx = gxx / self.cell_w; let mut cy = gyy / self.cell_h; let mut cz = gzz / self.cell_w;
+        cx = cx.clamp(0, gx-2); cy = cy.clamp(0, gy-2); cz = cz.clamp(0, gz-2);
+        let fx = (gxx % self.cell_w) as f64 / self.cell_w as f64;
+        let fy = (gyy % self.cell_h) as f64 / self.cell_h as f64;
+        let fz = (gzz % self.cell_w) as f64 / self.cell_w as f64;
+        let nch = self.channels.len();
+        let at = |dx: i32, dy: i32, dz: i32, ch: usize| -> f64 {
+            let cell_idx = ((cy+dy)*gz + (cz+dz))*gx + (cx+dx);
+            slices[cell_idx as usize * nch + ch]
+        };
+        let mut interp = vec![0.0f64; nch];
+        for ch in 0..nch {
+            let d000=at(0,0,0,ch); let d100=at(1,0,0,ch); let d010=at(0,1,0,ch); let d110=at(1,1,0,ch);
+            let d001=at(0,0,1,ch); let d101=at(1,0,1,ch); let d011=at(0,1,1,ch); let d111=at(1,1,1,ch);
+            let d00=d000+(d100-d000)*fx; let d10=d010+(d110-d010)*fx;
+            let d01=d001+(d101-d001)*fx; let d11=d011+(d111-d011)*fx;
+            let d0=d00+(d10-d00)*fy; let d1=d01+(d11-d01)*fy;
+            interp[ch] = d0 + (d1 - d0)*fz;
+        }
+        self.combine.sample_combine(pos, &interp)
+    }
+}
+impl DensitySource for DensityMacroSampler {
+    fn sample(&self, pos: &NoisePos) -> f64 {
+        let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
+        let key = ((chunk_x as i64) << 32) ^ (chunk_z as u32 as i64);
+        // thread_local slices 缓存：with 内 borrow + sample_interp（避免 RefMut 跨 with 生命周期）
+        MACRO_SLICE_CACHE.with(|c| {
+            let mut c = c.borrow_mut();
+            if c.0 != key {
+                c.0 = key;
+                c.1 = self.build_slices(chunk_x, chunk_z);
+            }
+            self.sample_interp(&c.1, pos)
+        })
+    }
+}
 
 // ---- 宏观 cell 网格采样器（对齐 Java NoiseChunk：cell corners 采样 + 三线性插值，非逐 block 采样）----
 // Java 宏观：对每个 Interpolated 在 cell corners（4x4x8 网格点）采样一次 + 块级三线性插值。
