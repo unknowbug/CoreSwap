@@ -432,30 +432,43 @@ pub enum DensityFunction {
     Wrapping { input: Box<DensityFunction> },
     InterpolatedNoise(InterpolatedNoiseData),
     Lazy { target: Arc<Mutex<Option<Arc<DensityFunction>>>> },
+    // multi-channel 竖切：combine 模式读已插值 channel 值（对齐 SteelMC `interpolated[idx]`）。
+    // mn/mx = 对应 channel inner 的边界（块级 combine 外层操作短路判断用）。
+    ReadChannel { ch: usize, mn: f64, mx: f64 },
 }
 
 impl DensityFunction {
     pub fn sample(&self, pos: &NoisePos) -> f64 {
+        self.sample_ctx(pos, &[])
+    }
+    // combine 模式（multi-channel 竖切）：ReadChannel 读 interp[ch]（对已插值 channel 值），其他节点正常采样。
+    // 外层操作树在块级对已插值 channel 应用（对齐 SteelMC `combine_interpolated` + `interpolated[idx]`）。
+    pub fn sample_combine(&self, pos: &NoisePos, interp: &[f64]) -> f64 {
+        self.sample_ctx(pos, interp)
+    }
+    #[inline]
+    fn sample_ctx(&self, pos: &NoisePos, interp: &[f64]) -> f64 {
         match self {
+            DensityFunction::ReadChannel { ch, .. } => interp[*ch],
             DensityFunction::Constant { value } => *value,
             DensityFunction::Noise { noise, xz_scale, y_scale, .. } => {
                 noise.sample(pos.x as f64 * xz_scale, pos.y as f64 * y_scale, pos.z as f64 * xz_scale)
             }
             DensityFunction::LinearOp { op, input, c, .. } => {
-                let x = input.sample(pos);
+                let x = input.sample_ctx(pos, interp);
                 match op { BinOp::Add => x + c, BinOp::Mul => x * c, _ => x }
             }
             DensityFunction::BinaryOp { op, a, b, .. } => {
-                let da = a.sample(pos);
+                let da = a.sample_ctx(pos, interp);
                 match op {
-                    BinOp::Add => da + b.sample(pos),
-                    BinOp::Mul => if da == 0.0 { 0.0 } else { da * b.sample(pos) },
-                    BinOp::Min => if da < b.min_value() { da } else { da.min(b.sample(pos)) },
-                    BinOp::Max => { let bmax = b.max_value(); let bv = b.sample(pos); if da > bmax { da } else { da.max(bv) } }
+                    BinOp::Add => da + b.sample_ctx(pos, interp),
+                    BinOp::Mul => if da == 0.0 { 0.0 } else { da * b.sample_ctx(pos, interp) },
+                    BinOp::Min => if da < b.min_value() { da } else { da.min(b.sample_ctx(pos, interp)) },
+                    BinOp::Max => { let bmax = b.max_value(); let bv = b.sample_ctx(pos, interp); if da > bmax { da } else { da.max(bv) } }
                 }
             }
-            DensityFunction::UnaryOp { op, input, .. } => apply_unary(*op, input.sample(pos)),
-            DensityFunction::Clamp { input, mn, mx } => clamp_d(input.sample(pos), *mn, *mx),
+            DensityFunction::UnaryOp { op, input, .. } => apply_unary(*op, input.sample_ctx(pos, interp)),
+            DensityFunction::Clamp { input, mn, mx } => clamp_d(input.sample_ctx(pos, interp), *mn, *mx),
             DensityFunction::Spline(s) => s.sample_node(s.root, pos),
             DensityFunction::Interpolated(id) => id.sample(pos),
             DensityFunction::Cache2D(c) => c.sample(pos),
@@ -470,30 +483,30 @@ impl DensityFunction {
                 noise.sample(x * 0.25, y * 0.25, z * 0.25) * 4.0
             }
             DensityFunction::ShiftedNoise { shift_x, shift_y, shift_z, xz_scale, y_scale, noise } => {
-                let d = pos.x as f64 * xz_scale + shift_x.sample(pos);
-                let e = pos.y as f64 * y_scale + shift_y.sample(pos);
-                let f = pos.z as f64 * xz_scale + shift_z.sample(pos);
+                let d = pos.x as f64 * xz_scale + shift_x.sample_ctx(pos, interp);
+                let e = pos.y as f64 * y_scale + shift_y.sample_ctx(pos, interp);
+                let f = pos.z as f64 * xz_scale + shift_z.sample_ctx(pos, interp);
                 noise.sample(d, e, f)
             }
             DensityFunction::RangeChoice { input, min_inclusive, max_exclusive, in_range, out_of_range } => {
-                let d = input.sample(pos);
-                if *min_inclusive <= d && d < *max_exclusive { in_range.sample(pos) } else { out_of_range.sample(pos) }
+                let d = input.sample_ctx(pos, interp);
+                if *min_inclusive <= d && d < *max_exclusive { in_range.sample_ctx(pos, interp) } else { out_of_range.sample_ctx(pos, interp) }
             }
             DensityFunction::YClampedGradient { from_y, to_y, from_value, to_value } => {
                 YClampedGradient::clamped_map(pos.y as f64, *from_y, *to_y, *from_value, *to_value)
             }
             DensityFunction::WeirdScaled { input, noise, rarity } => {
-                let d = WeirdScaled::scale_value(*rarity, input.sample(pos));
+                let d = WeirdScaled::scale_value(*rarity, input.sample_ctx(pos, interp));
                 d * noise.sample(pos.x as f64 / d, pos.y as f64 / d, pos.z as f64 / d).abs()
             }
             DensityFunction::BlendAlpha => 1.0,
             DensityFunction::BlendOffset => 0.0,
-            DensityFunction::BlendDensity { input } => input.sample(pos),
-            DensityFunction::Wrapping { input } => input.sample(pos),
+            DensityFunction::BlendDensity { input } => input.sample_ctx(pos, interp),
+            DensityFunction::Wrapping { input } => input.sample_ctx(pos, interp),
             DensityFunction::InterpolatedNoise(nd) => nd.sample(pos),
             DensityFunction::Lazy { target } => {
                 let t = target.lock().unwrap();
-                if let Some(t) = t.as_ref() { t.sample(pos) } else { 0.0 }
+                if let Some(t) = t.as_ref() { t.sample_ctx(pos, interp) } else { 0.0 }
             }
         }
     }
@@ -523,6 +536,7 @@ impl DensityFunction {
                 let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.min_value() } else { f64::NEG_INFINITY }
             }
+            DensityFunction::ReadChannel { mn, .. } => *mn,
         }
     }
     pub fn max_value(&self) -> f64 {
@@ -554,6 +568,90 @@ impl DensityFunction {
                 let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.max_value() } else { f64::INFINITY }
             }
+            DensityFunction::ReadChannel { mx, .. } => *mx,
         }
+    }
+}
+
+/// multi-channel 竖切（对齐 SteelMC/Java NoiseChunk）：
+/// 遍历 density 树（DFS），收集所有 `Interpolated` 的内层 arg 为独立 channel，
+/// 并把树中 `Interpolated` 节点替换为 `ReadChannel{ch}`（combine 模式读已插值 channel 值）。
+/// 返回 `(channels, combine_root)`：channels 在 cell corners 采样一次；combine_root 块级应用外层操作。
+pub fn macrolize_channels(root: &DensityFunction) -> (Vec<Arc<DensityFunction>>, DensityFunction) {
+    let mut channels: Vec<Arc<DensityFunction>> = Vec::new();
+    let combine = macrolize_into(root, &mut channels);
+    (channels, combine)
+}
+
+// 递归转换（DFS 分配 channel；Interpolated → ReadChannel；其余 clone + 递归）
+fn macrolize_into(df: &DensityFunction, channels: &mut Vec<Arc<DensityFunction>>) -> DensityFunction {
+    match df {
+        DensityFunction::Interpolated(id) => {
+            // 分配 channel：收集 inner arg
+            let ch = channels.len();
+            channels.push(id.arg.clone());
+            DensityFunction::ReadChannel { ch, mn: id.mn, mx: id.mx }
+        }
+        DensityFunction::Constant { value } => DensityFunction::Constant { value: *value },
+        DensityFunction::Noise { noise, xz_scale, y_scale, mn, mx } =>
+            DensityFunction::Noise { noise: noise.clone(), xz_scale: *xz_scale, y_scale: *y_scale, mn: *mn, mx: *mx },
+        DensityFunction::LinearOp { op, input, c, mn, mx } =>
+            DensityFunction::LinearOp { op: *op, input: Box::new(macrolize_into(input, channels)), c: *c, mn: *mn, mx: *mx },
+        DensityFunction::BinaryOp { op, a, b, mn, mx } =>
+            DensityFunction::BinaryOp { op: *op, a: Box::new(macrolize_into(a, channels)), b: Box::new(macrolize_into(b, channels)), mn: *mn, mx: *mx },
+        DensityFunction::UnaryOp { op, input, mn, mx } =>
+            DensityFunction::UnaryOp { op: *op, input: Box::new(macrolize_into(input, channels)), mn: *mn, mx: *mx },
+        DensityFunction::Clamp { input, mn, mx } =>
+            DensityFunction::Clamp { input: Box::new(macrolize_into(input, channels)), mn: *mn, mx: *mx },
+        DensityFunction::Spline(s) => {
+            // Spline 的 loc_fns 递归（loc_fns 可能含 Interpolated/其他）
+            let loc_fns = s.loc_fns.iter().map(|f| Arc::new(macrolize_into(f, channels))).collect::<Vec<_>>();
+            let mut ndata = s.clone();
+            ndata.loc_fns = loc_fns;
+            DensityFunction::Spline(ndata)
+        }
+        DensityFunction::Cache2D(c) =>
+            DensityFunction::Cache2D(Cache2DData::new(Arc::new(macrolize_into(&c.arg, channels)))),
+        DensityFunction::FlatCache(f) =>
+            DensityFunction::FlatCache(FlatCacheData::new(Arc::new(macrolize_into(&f.arg, channels)))),
+        DensityFunction::ShiftDF { noise, mode } => DensityFunction::ShiftDF { noise: noise.clone(), mode: *mode },
+        DensityFunction::ShiftedNoise { shift_x, shift_y, shift_z, xz_scale, y_scale, noise } =>
+            DensityFunction::ShiftedNoise {
+                shift_x: Box::new(macrolize_into(shift_x, channels)),
+                shift_y: Box::new(macrolize_into(shift_y, channels)),
+                shift_z: Box::new(macrolize_into(shift_z, channels)),
+                xz_scale: *xz_scale, y_scale: *y_scale,
+                noise: noise.clone(),
+            },
+        DensityFunction::RangeChoice { input, min_inclusive, max_exclusive, in_range, out_of_range } =>
+            DensityFunction::RangeChoice {
+                input: Box::new(macrolize_into(input, channels)),
+                min_inclusive: *min_inclusive, max_exclusive: *max_exclusive,
+                in_range: Box::new(macrolize_into(in_range, channels)),
+                out_of_range: Box::new(macrolize_into(out_of_range, channels)),
+            },
+        DensityFunction::YClampedGradient { from_y, to_y, from_value, to_value } =>
+            DensityFunction::YClampedGradient { from_y: *from_y, to_y: *to_y, from_value: *from_value, to_value: *to_value },
+        DensityFunction::WeirdScaled { input, noise, rarity } =>
+            DensityFunction::WeirdScaled { input: Box::new(macrolize_into(input, channels)), noise: noise.clone(), rarity: *rarity },
+        DensityFunction::BlendAlpha => DensityFunction::BlendAlpha,
+        DensityFunction::BlendOffset => DensityFunction::BlendOffset,
+        DensityFunction::BlendDensity { input } =>
+            DensityFunction::BlendDensity { input: Box::new(macrolize_into(input, channels)) },
+        DensityFunction::Wrapping { input } =>
+            DensityFunction::Wrapping { input: Box::new(macrolize_into(input, channels)) },
+        DensityFunction::InterpolatedNoise(nd) => DensityFunction::InterpolatedNoise(nd.clone()),
+        DensityFunction::Lazy { target } => {
+            // Lazy 内部可能含 Interpolated；递归 target（若已解析）
+            let t = target.lock().unwrap();
+            match t.as_ref() {
+                Some(inner) => {
+                    let conv = macrolize_into(inner, channels);
+                    DensityFunction::Lazy { target: Arc::new(Mutex::new(Some(Arc::new(conv)))) }
+                }
+                None => DensityFunction::Lazy { target: target.clone() },
+            }
+        }
+        DensityFunction::ReadChannel { ch, mn, mx } => DensityFunction::ReadChannel { ch: *ch, mn: *mn, mx: *mx },
     }
 }
