@@ -1,0 +1,15 @@
+
+=== transpiler 性能验证（2026-08-29）===
+- 运行时解释 final_density.sample: 6.11ms/chunk
+- transpiler compute_final_density(cell grid 插值): 43.09ms/chunk（慢 7 倍）
+- transpiler 每点精确 channel: 3787ms（慢 600 倍，无缓存）
+
+性能未达原因：
+1. transpiler cell grid 构建（fill_cell_corner_densities 采样 5 channels 完整树）慢
+2. NoiseSet 用 HashMap 查表（sample_noise 每次 HashMap.get）——比运行时直接字段访问慢
+3. transpiler 生成的是「每点精确采样」（无缓存），运行时 Interpolated 有 chunk 缓存
+
+下一步：
+- NoiseSet 优化（直接字段/数组，非 HashMap）
+- cell grid 构建优化
+- 或确认 transpiler 的 build-time 编译优势（消除 enum match）是否被 HashMap/cell grid 开销抵消
