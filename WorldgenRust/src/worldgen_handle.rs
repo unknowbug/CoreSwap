@@ -63,6 +63,8 @@ pub struct WorldgenHandle {
     beardifiers: std::sync::RwLock<HashMap<(i32, i32), Beardifier>>,
     // carver 缓存（创建时预加载，运行只读无锁）
     carver_cache: HashMap<String, ConfiguredCarver>,
+    // SteelMC uniform_carver_biome 优化：若所有 biome carvers 统一，apply_carvers 跳过 289 次 biome 采样
+    uniform_carver_list: Option<Vec<String>>,
     // FEATURES 缓存（创建时从所有 biome features 预加载，运行只读无锁）
     feature_cache: crate::feature_loader::FeatureCache,
     // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建，构建后只读——&self 共享并发安全，不需锁）
@@ -175,6 +177,9 @@ impl WorldgenHandle {
         let mut feature_cache = crate::feature_loader::FeatureCache::new();
         feature_cache.preload_all(&wg_dir, &feature_ids, blocks_leaked);
 
+        // SteelMC uniform_carver_biome 优化：若所有 biome carvers 统一，apply_carvers 跳过 289 次 biome 采样
+        let uniform_carver_list = biomesrc.bc.uniform_carver_list();
+
         Some(WorldgenHandle {
             seed, min_y, height,
             tree, barrier, flooded, spread, lava, erosion, depth, init,
@@ -184,6 +189,7 @@ impl WorldgenHandle {
             ore_vein,
             beardifiers: std::sync::RwLock::new(HashMap::new()),
             carver_cache,
+            uniform_carver_list,
             feature_cache,
             feature_indexer,
             wg_dir,
@@ -364,6 +370,28 @@ impl WorldgenHandle {
         };
         let mut mask = CarvingMask::new(height, min_y);
         let mut chunk_random = ChunkRandom::checked();
+        // SteelMC uniform_carver_biome 优化：若所有 biome carvers 统一，跳过 289 次 biome 采样，
+        // 直接用统一 carver 列表（overworld 统一为 [canyon,cave,cave_extra]）。
+        if let Some(uniform) = &self.uniform_carver_list {
+            for j in -8..=8 {
+                for k in -8..=8 {
+                    let cx2 = cx + j; let cz2 = cz + k;
+                    let mut l = 0;
+                    for carver_id in uniform {
+                        let cc = self.get_carver(carver_id);
+                        if cc.is_none() { l += 1; continue; }
+                        let cc = cc.unwrap();
+                        chunk_random.set_carver_seed(self.seed + l, cx2, cz2);
+                        if cc.should_carve(&mut chunk_random) {
+                            cc.carve(&mut ctx, col, &biome_at_jitter, &mut chunk_random, cx2, cz2, cx, cz, &mut mask);
+                        }
+                        l += 1;
+                    }
+                }
+            }
+            return;
+        }
+
         let carver_diag = std::env::var("WG_CARVERDIAG").is_ok();
         let diag_t0 = std::time::Instant::now();
         let mut t_biome = 0.0f64;

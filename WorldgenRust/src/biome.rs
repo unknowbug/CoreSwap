@@ -321,6 +321,22 @@ impl BiomeClassifier {
         self.carvers.get(biome).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
+    // SteelMC uniform_carver_biome 优化：若所有已加载 biome 的 carvers 列表统一，返回该列表，
+    // 则 apply_carvers 可跳过 289 次 biome 采样（overworld 统一为 [canyon,cave,cave_extra]）。
+    // 不统一（下界/末地混合）→ None，回退 vanilla per-source 查找。
+    pub fn uniform_carver_list(&self) -> Option<Vec<String>> {
+        let mut uniform: Option<Vec<String>> = None;
+        for v in self.carvers.values() {
+            match &uniform {
+                None => uniform = Some(v.clone()),
+                Some(u) => {
+                    if u != v { return None; }
+                }
+            }
+        }
+        uniform
+    }
+
     // 从 biome/*.json 加载 features（FEATURES 阶段用）。features[step][] 分层列表。
     // 缺失/解析失败跳过。返回加载的 biome 数（唯一 biome id）。
     pub fn load_features(&mut self, biome_dir: &str) -> usize {

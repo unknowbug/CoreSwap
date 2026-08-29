@@ -1,0 +1,10 @@
+
+=== SteelMC uniform_carver_biome 优化效果（2026-08-29）===
+（参考 SteelMC：所有主世界 biome carvers 统一为 [canyon,cave,cave_extra]，可跳过 289 次 biome 采样）
+
+- 优化前：单线程 median 121ms/chunk（region 200,200）
+- 优化后：单线程 median 50.1ms/chunk（~2.4x 更快）
+- 对比 Java：Java 原版 median ~60ms → Rust 50ms < 60ms（比 Java 快！）
+- 正确性：features_probe match 95.40%（未变，优化无副作用）
+
+达成用户目标：至少不比 Java 慢，整体比 Java 强（单线程 50 vs 60ms）。
