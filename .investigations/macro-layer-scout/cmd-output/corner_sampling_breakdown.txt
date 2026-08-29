@@ -1,0 +1,13 @@
+
+=== corners 采样成本分解（corner_sampling_breakdown，2026-08-29）===
+- ch#0 (BlendDensity terrain, 3677节点): 3.60ms/chunk (1225 corners) —— 绝对大头
+- ch#1-4 (noodle caves, 小 RangeChoice): 各 ~0.1ms (合计 0.4ms)
+- 所有 channels corners 总计: 3.61ms/chunk（预热后）
+
+关键：
+- slices 构建成本 ≈ ch#0 的 corners 采样（3.60ms 预热 / ~8.5ms 含首次缓存构建）
+- ch#0 (BlendDensity terrain) 是唯一需要优化的 channel
+- Java 用 ColumnCache（5x5 xz grid 缓存 xz-only 值 O(1)）加速 terrain corners 采样
+- 需验证：ch#0 树里 xz-only 可缓存部分占多少（ColumnCache 能否显著降 3.60ms）
+
+下一步：ColumnCache 原型（对 ch#0 采样用 5x5 xz 预计算缓存）验证收益
