@@ -1,0 +1,13 @@
+
+=== 重大发现：ShiftDF 完全 y 独立（可 Cache2D）===
+实测（shift_y_dependence）：ch#0 的 708 个 ShiftDF，同 xz 不同 y(0..320) 采样值 max_delta=0.0000，y_range_impact=0.00%
+=> ShiftDF (offset noise) 值只依赖 (x,z)，完全 y 无关
+
+优化机会：
+- corners 采样：708 ShiftDF × 1225 corners = ~86 万次 shift 采样
+- Cache2D 后：25 xz × 708 = 1.8 万次（~48 倍省）
+- 显著降 ch#0 corners 采样（3.60ms）
+
+注意：ShiftDF.sample 用 noise.sample(x*0.25, y*0.25, z*0.25)（含 y），但 offset noise 实际 y 无关（可能 noise y 频率 0 / y 用 0）——需确认机制但 y 无关实测可靠。
+
+下一步：实现 ShiftDF Cache2D（xz-keyed y 无关缓存），验证性能 + 对齐不变。
