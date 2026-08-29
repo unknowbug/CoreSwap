@@ -34,6 +34,8 @@ pub struct VanillaAquifer { pub aq: crate::aquifer::Aquifer }
 impl AquiferSource for VanillaAquifer {
     fn classify(&mut self, x: i32, y: i32, z: i32, d: f64) -> BlockKind {
         if d > 0.0 { return BlockKind::Rock; }
+        // WG_SKIP_AQUIFER（诊断）：跳过真实 aquifer，直接 Air——分离 density-only vs density+aquifer 成本
+        if std::env::var("WG_SKIP_AQUIFER").is_ok() { return BlockKind::Air; }
         match self.aq.apply(x, y, z, d) { 1 => BlockKind::Water, 2 => BlockKind::Lava, _ => BlockKind::Air }
     }
 }

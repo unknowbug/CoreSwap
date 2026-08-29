@@ -321,8 +321,10 @@ impl WorldgenHandle {
         };
         let biome_temp = |id: &str| -> f64 { crate::surface_rules::biome_temperature(id) };
         let initial_density_at = |x: i32, y: i32, z: i32| -> f64 { self.init.sample(&NoisePos { x, y, z }) };
-        self.sb.build_surface(&mut col, &self.rule, cx * 16, cz * 16, &heightmap, &surface_heights4,
-                              &biome_at, &|x, y, z| ((x as i64) << 32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
+        if std::env::var("WG_SKIP_SURFACE").is_err() {
+            self.sb.build_surface(&mut col, &self.rule, cx * 16, cz * 16, &heightmap, &surface_heights4,
+                                  &biome_at, &|x, y, z| ((x as i64) << 32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
+        }
 
         // 4. carver（洞穴雕刻，17×17 邻域）
         if std::env::var("WG_SKIP_CARVER").is_err() {

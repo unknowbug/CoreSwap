@@ -1,0 +1,16 @@
+
+=== base 三段细分（region 200,200，16 chunks，单线程 median）===
+| 阶段 | median | 增量 |
+|---|---|---|
+| 纯 density（finalDensity 采样） | 29.8ms | 基线 |
+| +aquifer（含水层 classify） | 40.3ms | +10.5ms |
+| +surface+ore_vein（base） | 44.7ms | +4.4ms |
+| 完整管线（+carver+features） | 58.6ms | +13.9ms |
+
+关键：
+- density 是 base 大头（29.8/44.7 = 67%）
+- aquifer +10.5ms, surface+ore_vein +4.4ms
+- carver+features +13.9ms（uniform_carver 优化后 carver 已大幅降）
+- 注意完整管线 58.6 vs 早前 49ms 有波动（需多次取中位）
+
+剩余性能大头 = density(29.8ms) > carver+features(13.9ms) > aquifer(10.5ms) > surface(4.4ms)
