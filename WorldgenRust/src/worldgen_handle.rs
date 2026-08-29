@@ -357,6 +357,24 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let mut placed_count = 0;
+
+        // OCEAN_FLOOR_WG 高度图：每列从顶向下扫，跳过 air/water/lava，取第一个固体 y（海底/地表）。
+        // Ore/disk/spring 用 getOceanFloorTopY 判断放置位置（Java OCEAN_FLOOR_WG 构建于 carver 前）。
+        let mut ocean_floor = vec![min_y - 1; 256];
+        let air_id = self.blocks.id("minecraft:air");
+        let water_id = self.blocks.id("minecraft:water");
+        let lava_id = self.blocks.id("minecraft:lava");
+        for lz in 0..16 {
+            for lx in 0..16 {
+                for wy in (min_y..min_y + height).rev() {
+                    let b = col.at(lx, wy, lz);
+                    if b != air_id && b != water_id && b != lava_id {
+                        ocean_floor[(lz * 16 + lx) as usize] = wy;
+                        break;
+                    }
+                }
+            }
+        }
         // biomeAtNoJitter：chunk 角采样（无 jitter）
         let biome_at_no_jitter = |cx2: i32, cz2: i32| -> String {
             let bp = NoisePos { x: cx2 * 16, y: 0, z: cz2 * 16 };
@@ -419,7 +437,7 @@ impl WorldgenHandle {
                     chunk_start_z: cz * 16,
                     min_y, height,
                     blocks: self.blocks,
-                    ocean_floor: None,
+                    ocean_floor: Some(&ocean_floor),
                     world_surface: Some(heightmap),
                     region_col_at: None,
                     pending_cross: None,
