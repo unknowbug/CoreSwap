@@ -1,0 +1,9 @@
+
+=== transpiler 核心对齐验证（continents，2026-08-29）===
+- compute_continents vs 运行时 continents: max_diff=0.0088（~0.9%，小）
+- continents 无 interpolated（纯 noise + spline）——确认 transpiler 核心 noise/spline 正确
+- 小差异可能来自 spline f32 精度（运行时 SplineData 用 f32，transpiler 用 f64）
+
+结论：transpiler 核心正确，final_density 差异（0.43）主要来自 interpolated 竖切未做
+- transpiler 直接内联 inner（精确）vs 运行时 cell grid 插值（近似）
+- 下一步：transpiler 实现 interpolated 竖切（channel）对齐 Java 宏观
