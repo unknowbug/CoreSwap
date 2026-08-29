@@ -2192,3 +2192,10 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 错误台账：.investigations/perf-e2e/perf-e2e-errors.md（P1-P3 五段式 + 速查表）。
 - 结论：07 篇「Rust worldgen 端到端性能定位」小节。
 - 域边界：端到端数字 = Partial 快照；优化方向（aquifer barrier 缓存 / 单层 Interpolated / DFC）= candidate 待立项验证。
+
+##### ✅ 五-b、aquifer 内部精确无污染定位（2026-08-29，修正污染态构成）
+- **barrier.sample 实测仅 0.1%**（346/393216 = 每 chunk ~86 次）——「barrier 是 aquifer 大头 / 加 Cache2D 缓存」方向被计数类硬证据推翻（错误方向，见 perf-e2e-errors.md P4）。
+- **无污染精确构成**（diag 方法）：get_fluid_level 3.84ms（22%）+ get_block_pos 2.57ms（14%）+ get_water_level_at 小 + calculate_density fluid ~0ms → 合计可解释 ~6.4ms，**剩余 ~11ms 未解释 = apply 每点 98304 次调用固定开销**。
+- **根本洞察**：Java 宏观 Interpolated 网格（~1225 交点）vs Rust 逐点 98304 次 → 采样差 ~80×（density 段）。
+- **❌ 方向修正（judge 否决「宏观网格采样对齐」）**：judge 审查（eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——真正最大成本是 **aquifer（Java 同样逐块不插值，网格覆盖不到）**；「宏观网格采样」不立项。
+- **✅ 更优方向（judge 收益排序）**：① aquifer 每点开销优化（最大头）② 单层 Interpolated 应用于纯 SplineDF 子树（70× 实测）③ DFC 直排。

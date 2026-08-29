@@ -810,9 +810,31 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - **calculate_density 是 aquifer 内部最大头**：barrier.sample（1 个 3D Noise 节点，无 Cache2D 缓存）+ fluid 逻辑 + 最多 3 次调用。
 
-### 优化方向（candidate）
+### 无污染 aquifer 内部精确定位（diag 方法，2026-08-29）——修正上述污染态构成
 
-1. **aquifer 的 barrier.sample 跨点缓存 / 减少 calculate_density 3 次调用 / fluid 逻辑优化**——aquifer 是 base 内最大单头（17.5ms，60%）。
+> ⚠️ **修正**：下表取代上节「aquifer 内部 profile（4 chunks）」的污染态读数。早前「calculate_density 52% = barrier.sample 无 Cache2D」是污染/粗糙归因（把 barrier.sample + fluid/提前返回混记），已被计数类硬证据推翻（见 perf-e2e-errors.md P4）；该小节历史读数保留但勿再引用为当前构成。
+
+| aquifer 内部部分 | 耗时/chunk | 占比/备注 |
+|---|---|---|
+| get_fluid_level（含 estimate_surface_height） | 3.84ms | 22% |
+| get_block_pos（3×3 邻域 18 次/点） | 2.57ms | 14% |
+| calculate_density（fluid 逻辑） | ~0ms | **barrier.sample 仅 0.1%（346/393216），走提前返回几乎不触发** |
+| get_water_level_at | ~0.9ms（污染态） | 小 |
+| **合计可解释** | **~6.4ms** | — |
+| **剩余 ~11ms（未解释）** | = apply 每点 98304 次调用的固定开销（函数调用 + 3×3 距离计算 + 分支 + 数组访问） |
+
+- **barrier.sample 几乎为 0（0.1%）**——「barrier 加 Cache2D 缓存」方向已被实测推翻（错误方向，见 P4）。
+- **aquifer 慢的根本** = apply 每点 98304 次调用的累积成本（~11ms 固定开销）+ get_fluid_level/get_block_pos（~36%），不是 barrier 采样。
+
+### 根本洞察：Java 宏观网格采样 vs Rust 逐点采样（~80× 差）
+
+- **Java**：宏观用 Interpolated 网格缓存（~1225 网格交点 + 三线性插值），aquifer/density 采样次数大幅减少。
+- **Rust**：逐点采样（98304 点/chunk）——采样次数比 Java 多 ~80×（1225 vs 98304），这是 Java 8-9ms vs Rust 44.9ms 慢 5 倍的根本。
+- 早前「外层网格采样探针」实测 2000ms 是探针实现缺陷（走 internal interpolated 雪崩重建，P1 教训），不是方向错误；正确对齐 Java 网格架构（避免雪崩）是正解方向。
+
+### 优化方向（candidate，修正）
+
+1. **（修正，替代原「barrier 加 Cache2D」）fill_chunk 宏观采样对齐 Java Interpolated 网格架构**（~1225 网格点 + 三线性插值，降采样次数约 80×）——直接消除 apply 每点 98304 次的固定开销。需正确实现避免跨 chunk 雪崩重建（P1 教训），且对齐 MC「本就该插值」的语义。
 2. **density**：单层 Interpolated 对 SplineDF 实测加速 70×（judge 已验证），是密度优化正解；需单层生产化验证。
 3. **carver / surface**：相对小头，后置。
 
