@@ -6,6 +6,7 @@ use WorldgenRust::density::{DensityFunction, NoisePos};
 use WorldgenRust::aquifer::Aquifer;
 use WorldgenRust::ore_vein::OreVeinSampler;
 use WorldgenRust::surface::apply_deep_rules;
+use WorldgenRust::blocks::BlockRegistry;
 use WorldgenRust::json::parse;
 use std::fs;
 use std::path::PathBuf;
@@ -34,7 +35,9 @@ fn main() {
     let (vein_toggle, vein_ridged, vein_gap) = (b("vein_toggle"), b("vein_ridged"), b("vein_gap"));
     let splitter = db.random_deriver().split_str("minecraft:aquifer").next_splitter();
     let vein_splitter = db.random_deriver().split_str("minecraft:ore").next_splitter();
-    let mut ore = OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, vein_splitter);
+    let blocks_json = fs::read_to_string("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\blocks.json").unwrap();
+    let blocks = BlockRegistry::load_from_json(&blocks_json).expect("blocks.json");
+    let mut ore = OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, vein_splitter, &blocks);
 
     let path = "E:\\PYTHON\\MC\\data\\vanilla_-2032795982907864146_4_0_0.blocks";
     let bd = fs::read(path).unwrap();

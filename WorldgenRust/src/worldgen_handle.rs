@@ -126,7 +126,7 @@ impl WorldgenHandle {
         let vein_ridged = Arc::new(db.build_node(router.get("vein_ridged")?).ok()?);
         let vein_gap = Arc::new(db.build_node(router.get("vein_gap")?).ok()?);
         let ore_splitter = db.random_deriver().split_str("minecraft:ore").next_splitter();
-        let ore_vein = crate::ore_vein::OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, ore_splitter);
+        // ore_vein 延后到 blocks 加载后构建（block id 需 BlockRegistry 解析，数据驱动）
 
         // 4. noise samplers（surface rules 用）
         for key in ["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset",
@@ -152,6 +152,8 @@ impl WorldgenHandle {
         let samplers = Box::leak(Box::new(db.noise_samplers().clone()));
         let splitter = Box::leak(Box::new(db.random_deriver().clone()));
         let blocks_leaked = Box::leak(Box::new(blocks));
+        // ore_vein（block id 从 BlockRegistry 解析，数据驱动——跨版本换 blocks.json 即可）
+        let ore_vein = crate::ore_vein::OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, ore_splitter, blocks_leaked);
         let sb = SurfaceBuilder::new(samplers, splitter, 63, blocks_leaked);
         let rule = sb.build_overworld_rule();
 
