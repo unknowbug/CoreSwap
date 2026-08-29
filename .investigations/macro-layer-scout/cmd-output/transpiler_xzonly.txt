@@ -1,0 +1,12 @@
+
+=== transpiler xz-only noise 发现（2026-08-29）===
+- transpiler 生成代码里 8 个 noise 是 xz-only（y*0）：cave_cheese/cave_entrance/continentalness/erosion/jagged/pillar/ridge/spaghetti_2d_elevation
+- 这些 noise 在 cell grid 构建（1225 corners）里，同 xz 不同 y 的 corner（49 个 y）重复采样
+- 可缓存：每 xz 采样一次，同 xz 不同 y 复用（~49 倍省）
+
+关键：xz-only noise 缓存是 transpiler 缓存优化的关键
+- 从 1225×8 降到 25×8（~49 倍省）
+- 对齐运行时 Interpolated 的 FlatCache 缓存
+
+下一步：
+- 实现 xz-only noise 缓存（transpiler 生成缓存逻辑 + 运行时缓存状态）
