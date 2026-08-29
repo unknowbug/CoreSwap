@@ -1,0 +1,29 @@
+
+=== multi-channel 重构进展记录（2026-08-29，五段式要点）===
+
+【现象】
+- 目标：让 fill_chunk density 采样持平 Java（Java 宏观 23-25ms，Rust 宏观 34.66ms，density 慢 ~1.4x）
+- 方向：multi-channel 竖切（对齐 SteelMC/Java NoiseChunk）
+
+【根因】
+- Rust fill_chunk 逐点采样整棵 final_density 树（98304 次），内部 5 个 Interpolated 独立自持 chunk 网格缓存
+- 「外层采样整树」与「内部独立缓存」冲突 → 52x 雪崩（WG_MACROGRID 实验）
+- density 慢主因 = interpolated grid 构建（每 chunk 8.7ms）+ 逐点插值+组合（6.27ms）
+
+【定位/验证】
+- macrolize 竖切：final_density → 5 channels（1 BlendDensity terrain + 4 RangeChoice noodle），combine 树 Interpolated→ReadChannel 全部替换
+- channels inner 全部「纯」（无嵌套 → 可独立采样不雪崩）
+- DensityMacroSampler（multi-channel）：正确性 PERFECT（vs 原始 final_density 平均差异 0.000000，n=54）
+- 标量 multi-channel：slices 构建 8.52ms + trilerp 0.3ms = 8.83ms vs 逐点 6.43ms（不省）
+
+【修复/方向】
+- multi-channel 竖切重构正确（diff 0），但标量不省
+- std::simd（portable_simd）在 Rust 1.98 stable 不可用（需 nightly/intrinsics）
+- 块级 trilerp SIMD 收益小（0.3ms）；真正瓶颈 = corners 采样（slices 构建 8.52ms，采 density 树难 SIMD）
+- Java 快的关键 = ColumnCache（5x5 grid 缓存 xz 噪声值 O(1)）+ 批量 corners 采样（fill_cell_corner_densities_4x SIMD）
+- 下一步：实现 ColumnCache + 批量采样（降 corners 采样成本）
+
+【教训】
+- 标量 multi-channel 结构正确但性能不省——结构与性能分离
+- SIMD 收益要盯「真正的瓶颈」（corners 采样），不是顺手的（trilerp）
+- ColumnCache（批量缓存噪声）是 Java 宏观高效关键，不只是 SIMD
