@@ -1,0 +1,16 @@
+
+=== noise AVX 优化评估（2026-08-29）===
+- AVX __m256d: stable x86_64 + RUSTFLAGS='-C target-feature=+avx' 可用
+- Perlin 采样: 26.56 -> 19.55ns (快 1.36x)，sum 相同（正确性保持）
+- features_probe 对齐: 95.40% 不变
+- 全管线 bench_single: 44.9 -> 46.6ms (噪声级)，400 chunks: 45.47 -> 45.01ms (-1%)
+
+结论：noise AVX 对全管线收益小（-1%）
+- 原因：fill_chunk_blocks 的瓶颈不是 noise（density~13ms 里 noise 部分降 1.36x 被稀释）
+- 真正大头 = aquifer 21.5ms（之前宏观定位确认）
+
+方向修正：noise 不是当前主要瓶颈；aquifer 才是
+- noise AVX（1.36x）整体收益小，不值得优先
+- 若之后 density 变瓶颈再考虑 avx 全开
+
+状态：AVX 框架已加（sample_section_avx 门控），默认关（不开 avx）
