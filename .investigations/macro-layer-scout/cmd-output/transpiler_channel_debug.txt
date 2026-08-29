@@ -1,0 +1,9 @@
+
+=== transpiler 竖切调试（2026-08-29）===
+- 每点精确 channel（fill_cell_corner_densities 每点调用）vs 竖切插值：都 max_diff=0.44
+- 说明差异不是插值（每点精确 = 竖切插值结果相同）
+- 差异来自 channel inner 采样（transpiler fill_cell_corner_densities vs 运行时 Interpolated inner）
+
+下一步：
+- 确认 channel inner 采样差异（transpiler ch#0 BlendDensity vs 运行时 Interpolated inner）
+- 可能 transpiler 的 channel inner 生成有 bug（如 blend_density/old_blended_noise 语义）
