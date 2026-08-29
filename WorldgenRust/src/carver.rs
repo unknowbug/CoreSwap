@@ -59,18 +59,18 @@ impl CarvingMask {
 
 // ===== providers（YOffset / HeightProvider / FloatProvider 最小移植）=====
 #[derive(Clone, Copy)]
-enum YOffsetKind { Fixed, AboveBottom, BelowTop }
+pub enum YOffsetKind { Fixed, AboveBottom, BelowTop }
 #[derive(Clone, Copy)]
-struct YOffset { kind: YOffsetKind, value: i32 }
+pub struct YOffset { pub kind: YOffsetKind, pub value: i32 }
 impl YOffset {
-    fn get_y(&self, min_y: i32, height: i32) -> i32 {
+    pub fn get_y(&self, min_y: i32, height: i32) -> i32 {
         match self.kind {
             YOffsetKind::Fixed => self.value,
             YOffsetKind::AboveBottom => min_y + self.value,
             YOffsetKind::BelowTop => min_y + height - 1 - self.value,
         }
     }
-    fn parse(v: Option<&JsonValue>) -> YOffset {
+    pub fn parse(v: Option<&JsonValue>) -> YOffset {
         let mut y = YOffset { kind: YOffsetKind::Fixed, value: 0 };
         if let Some(v) = v {
             if let Some(a) = v.get("absolute") { y.kind = YOffsetKind::Fixed; y.value = a.as_f64().unwrap_or(0.0) as i32; }
@@ -83,16 +83,16 @@ impl YOffset {
 
 // HeightProvider：uniform（min/max YOffset）——carver 用（Java UniformHeightProvider）
 #[derive(Clone, Copy)]
-struct HeightProvider { min_offset: YOffset, max_offset: YOffset }
+pub struct HeightProvider { pub min_offset: YOffset, pub max_offset: YOffset }
 impl HeightProvider {
-    fn get(&self, r: &mut ChunkRandom, min_y: i32, height: i32) -> i32 {
+    pub fn get(&self, r: &mut ChunkRandom, min_y: i32, height: i32) -> i32 {
         let i = self.min_offset.get_y(min_y, height);
         let j = self.max_offset.get_y(min_y, height);
         if i == j { return i; }
         // MathHelper.nextBetween(random, i, j) = random.nextInt(j-i+1) + i（ChunkRandom CHECKED 基类）
         r.next_int_bound(j - i + 1) + i
     }
-    fn parse(v: Option<&JsonValue>) -> HeightProvider {
+    pub fn parse(v: Option<&JsonValue>) -> HeightProvider {
         let mut hp = HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 } };
         if let Some(v) = v {
             if v.as_object().is_some() && v.get("min_inclusive").is_some() && v.get("max_inclusive").is_some() {

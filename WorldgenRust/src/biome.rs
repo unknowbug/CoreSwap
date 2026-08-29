@@ -179,6 +179,8 @@ pub struct BiomeClassifier {
     tree: SearchTreeNode,
     // biome id → carvers.air 列表（从 biome/*.json 加载，CARVERS 阶段用）
     carvers: std::collections::HashMap<String, Vec<String>>,
+    // biome id → features 列表（features[step][]，从 biome/*.json 加载，FEATURES 阶段用）
+    features: std::collections::HashMap<String, Vec<Vec<String>>>,
 }
 
 fn read_box(v: &JsonValue) -> [f64; 2] {
@@ -271,7 +273,7 @@ impl BiomeClassifier {
             rows.push(BiomeEntry { biome, ranges, offset });
         }
         let tree = build_search_tree(&rows);
-        BiomeClassifier { tree, carvers: std::collections::HashMap::new() }
+        BiomeClassifier { tree, carvers: std::collections::HashMap::new(), features: std::collections::HashMap::new() }
     }
 
     // 从 biome/*.json 加载 carvers.air（CARVERS 阶段用）。biome id "minecraft:plains" → plains.json。
@@ -317,6 +319,52 @@ impl BiomeClassifier {
     // CARVERS 阶段：取 biome 的 carvers.air 列表（无则空）
     pub fn carvers_for(&self, biome: &str) -> &[String] {
         self.carvers.get(biome).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    // 从 biome/*.json 加载 features（FEATURES 阶段用）。features[step][] 分层列表。
+    // 缺失/解析失败跳过。返回加载的 biome 数（唯一 biome id）。
+    pub fn load_features(&mut self, biome_dir: &str) -> usize {
+        let mut count = 0;
+        let mut ids = Vec::new();
+        self.collect_biome_ids(&self.tree, &mut ids);
+        ids.sort();
+        ids.dedup();
+        for id in ids {
+            let name = if let Some(stripped) = id.strip_prefix("minecraft:") { stripped } else { &id };
+            let path = format!("{}/{}.json", biome_dir, name);
+            let txt = match fs::read_to_string(&path) {
+                Ok(t) => t,
+                Err(_) => { continue; }
+            };
+            let root = match json_parse(&txt) { Ok(r) => r, Err(_) => { continue; } };
+            let mut features: Vec<Vec<String>> = Vec::new();
+            if let Some(features_node) = root.get("features") {
+                if let Some(arr) = features_node.as_array() {
+                    for step in arr {
+                        let mut step_list = Vec::new();
+                        if let Some(step_arr) = step.as_array() {
+                            for f in step_arr { if let Some(s) = f.as_str() { step_list.push(s.to_string()); } }
+                        }
+                        features.push(step_list);
+                    }
+                }
+            }
+            if !features.is_empty() {
+                self.features.insert(id.clone(), features);
+                count += 1;
+            }
+        }
+        count
+    }
+
+    // FEATURES 阶段：取 biome 的 features 列表（features[step][]，无则空）
+    pub fn features_for(&self, biome: &str) -> &[Vec<String>] {
+        self.features.get(biome).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    // 返回所有 biome 的 features 列表（PlacedFeatureIndexer 构建用）
+    pub fn all_features_lists(&self) -> Vec<Vec<Vec<String>>> {
+        self.features.values().cloned().collect()
     }
 
     // 对齐 vanilla ParameterRange.getDistance：点不在 [min,max] 内则到最近边界距离，否则 0

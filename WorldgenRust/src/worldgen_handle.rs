@@ -61,6 +61,10 @@ pub struct WorldgenHandle {
     beardifiers: Mutex<HashMap<(i32, i32), Beardifier>>,
     // carver 缓存（按 id）
     carver_cache: Mutex<HashMap<String, ConfiguredCarver>>,
+    // FEATURES 缓存（placed/configured feature 懒加载）
+    feature_cache: Mutex<crate::feature_loader::FeatureCache>,
+    // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建）
+    feature_indexer: std::sync::Mutex<crate::feature_loader::PlacedFeatureIndexer>,
     // 数据目录
     wg_dir: String,
 }
@@ -127,11 +131,12 @@ impl WorldgenHandle {
         let blocks_json = std::fs::read_to_string(&blocks_path).ok()?;
         let blocks = BlockRegistry::load_from_json(&blocks_json)?;
 
-        // 6. biome classifier + carvers
+        // 6. biome classifier + carvers + features
         let biome_params_path = format!("{}/../biome_params.json", wg_dir);
         let mut bc = BiomeClassifier::load(&biome_params_path);
         let biome_dir = format!("{}/data/minecraft/worldgen/biome", wg_dir);
         let _n = bc.load_carvers(&biome_dir);
+        let _nf = bc.load_features(&biome_dir);
 
         // 7. surface builder（Box::leak 让引用长期存活）
         let samplers = Box::leak(Box::new(db.noise_samplers().clone()));
@@ -143,6 +148,12 @@ impl WorldgenHandle {
         let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf };
         let splitter = db.random_deriver().clone();
 
+        // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建）
+        // p 值 = lastIndex（feature 在所有 biome features 中的最后出现索引），不是 featureIndex！
+        let all_biome_features = biomesrc.bc.all_features_lists();
+        let mut feature_indexer = crate::feature_loader::PlacedFeatureIndexer::new();
+        feature_indexer.build(&all_biome_features);
+
         Some(WorldgenHandle {
             seed, min_y, height,
             tree, barrier, flooded, spread, lava, erosion, depth, init,
@@ -151,6 +162,8 @@ impl WorldgenHandle {
             splitter,
             beardifiers: Mutex::new(HashMap::new()),
             carver_cache: Mutex::new(HashMap::new()),
+            feature_cache: Mutex::new(crate::feature_loader::FeatureCache::new()),
+            feature_indexer: std::sync::Mutex::new(feature_indexer),
             wg_dir,
         })
     }
@@ -221,6 +234,9 @@ impl WorldgenHandle {
 
         // 3. build_surface（具体 block id：grass/sand/terracotta 等）
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
+        if std::env::var("WG_FEATURELOG").is_ok() && cx == -18 && cz == -16 {
+            eprintln!("[FEATURE] heightmap sample: col(0,0)={} col(8,8)={} col(15,15)={}", heightmap[0], heightmap[8*16+8], heightmap[15*16+15]);
+        }
         let est_at = |x: i32, z: i32| -> i32 {
             let mut est = i32::MAX;
             for y in (min_y..min_y + height).rev().step_by(8) {
@@ -243,6 +259,15 @@ impl WorldgenHandle {
 
         // 4. carver（洞穴雕刻，17×17 邻域）
         self.apply_carvers(&mut col, cx, cz, &mut va.aq, &biome_at);
+
+        // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
+        let skip_features = std::env::var("WG_SKIP_FEATURES").is_ok();
+        if !skip_features {
+            let n_features = self.apply_features(&mut col, cx, cz, &heightmap, &biome_at);
+            if std::env::var("WG_FEATURELOG").is_ok() {
+                eprintln!("[FEATURE] chunk({},{}) placed {} blocks", cx, cz, n_features);
+            }
+        }
 
         col.data().to_vec()
     }
@@ -308,5 +333,107 @@ impl WorldgenHandle {
         let cc = ConfiguredCarver::parse(&root, &self.blocks);
         cache.insert(id.to_string(), cc.clone());
         Some(cc)
+    }
+
+    // FEATURES 阶段：装饰层（矿石/disk/spring/freeze_top/underwater_magma）。
+    // 对齐 C++ applyCarversAndFeatures 的 FEATURES 部分（worldgen_api.cpp L1584-1674）。
+    // 简化：set = 当前 chunk biome（Java 是 3×3 chunk 所有 biome section）；structure 部分跳过。
+    // 返回放置的方块数（诊断用）。
+    fn apply_features(&self, col: &mut BlockColumn, cx: i32, cz: i32,
+                       heightmap: &[i32],
+                       biome_at: &dyn Fn(i32, i32, i32) -> String) -> usize {
+        let min_y = self.min_y;
+        let height = self.height;
+        let mut placed_count = 0;
+        // biomeAtNoJitter：chunk 角采样（无 jitter）
+        let biome_at_no_jitter = |cx2: i32, cz2: i32| -> String {
+            let bp = NoisePos { x: cx2 * 16, y: 0, z: cz2 * 16 };
+            self.biomesrc.biome(&bp)
+        };
+        // biomeAtJitter：8 邻域 jitter（posToBiome 用）
+        let biome_at_jitter = |x: i32, y: i32, z: i32| -> String {
+            let (px, py, pz) = crate::biome::biome_pick_cell(self.seed, x, y, z);
+            let bp = NoisePos { x: px << 2, y: py << 2, z: pz << 2 };
+            self.biomesrc.biome(&bp)
+        };
+        let biome_temp = |id: &str| -> f64 { crate::surface_rules::biome_temperature(id) };
+
+        // 当前 chunk biome
+        let cur_biome_id = biome_at_no_jitter(cx, cz);
+        let cur_features = self.biomesrc.bc.features_for(&cur_biome_id).to_vec();
+        if cur_features.is_empty() { return 0; }
+
+        // ChunkRandom(Xoroshiro base)（generateFeatures 用，与 carver 的 CHECKED 不同！）
+        let mut feat_random = ChunkRandom::xoroshiro();
+        // setPopulationSeed(worldSeed, blockX, blockZ)
+        let population_seed = feat_random.set_population_seed(self.seed, cx * 16, cz * 16);
+        let max_step = cur_features.len();
+
+        // 用全局 PlacedFeatureIndexer（Java 语义：p = lastIndex 在所有 biome features 中）
+        let indexer = self.feature_indexer.lock().unwrap();
+
+        for k in 0..max_step {
+            let int_set = indexer.int_set_for(&cur_features, k as i32);
+            for p in int_set {
+                // p = lastIndex → featureId = stepFeatures[k][p]
+                if k >= indexer.step_features.len() { continue; }
+                let step_list = &indexer.step_features[k];
+                if p < 0 || p as usize >= step_list.len() { continue; }
+                let fid = step_list[p as usize].clone();
+                feat_random.set_decorator_seed(population_seed, p, k as i32);
+                if std::env::var("WG_FEATURELOG").is_ok() {
+                    eprintln!("[FEATURE] chunk({},{}) step={} p={} fid={}", cx, cz, k, p, fid);
+                }
+                // PlacedFeature.generate（懒加载 placed_feature JSON）
+                let pf = {
+                    let mut cache = self.feature_cache.lock().unwrap();
+                    cache.get_placed(&self.wg_dir, &fid, self.blocks).cloned()
+                };
+                let pf = match pf { Some(pf) => pf, None => continue };
+                // FeaturePlacementContext
+                let fctx = crate::placement::FeaturePlacementContext {
+                    biome_at: Some(biome_at),
+                    ocean_floor: None,
+                    world_surface: Some(heightmap),
+                    min_y, height,
+                    pos_to_biome: Some(&biome_at_jitter),
+                    chunk_start_x: cx * 16,
+                    chunk_start_z: cz * 16,
+                    block_at: None,
+                };
+                // OreFeatureContext（不持有 random，由 generate_configured 传入）
+                let mut octx = crate::feature::OreFeatureContext {
+                    col,
+                    origin_x: 0, origin_y: 0, origin_z: 0,
+                    chunk_start_x: cx * 16,
+                    chunk_start_z: cz * 16,
+                    min_y, height,
+                    blocks: self.blocks,
+                    ocean_floor: None,
+                    world_surface: Some(heightmap),
+                    region_col_at: None,
+                    pending_cross: None,
+                };
+                // ConfiguredFeature 分发
+                let cf = {
+                    let mut cache = self.feature_cache.lock().unwrap();
+                    cache.get_configured(&self.wg_dir, &pf.configured_feature, self.blocks).cloned()
+                };
+                let cf = match cf { Some(cf) => cf, None => continue };
+                let biome_temp_f = biome_temp(&cur_biome_id) as f32;
+                let generate_configured = |_fctx: &crate::placement::FeaturePlacementContext, random: &mut ChunkRandom, gx: i32, gy: i32, gz: i32| -> bool {
+                    let r = crate::feature_loader::generate_configured(&cf, &fctx, &mut octx, random, gx, gy, gz, biome_temp_f, 0.5);
+                    if r {
+                        placed_count += 1;
+                        if std::env::var("WG_FEATURELOG").is_ok() {
+                            eprintln!("[FEATURE] fid={} placed at ({},{},{})", cf.id, gx, gy, gz);
+                        }
+                    }
+                    r
+                };
+                pf.generate(&fctx, &mut feat_random, cx * 16, min_y, cz * 16, generate_configured);
+            }
+        }
+        placed_count
     }
 }

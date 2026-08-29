@@ -20,5 +20,8 @@ pub mod xoroshiro;         // XoroshiroRandom + Xoroshiro128PlusPlus + Splitter�
 pub mod chunkrandom;       // ChunkRandom + CheckedRandom（CARVER 种子派生）
 pub mod carver;            // CARVERS 阶段（洞穴雕刻）CaveCarver/RavineCarver
 pub mod worldgen_handle;   // 生产句柄（C ABI 的 Rust 侧实现）
+pub mod placement;         // FEATURES 阶段调度（IntProvider + PlacementModifier + PlacedFeature）
+pub mod feature;           // FEATURES 阶段 Feature 类（Ore/Disk/Spring/FreezeTop/UnderwaterMagma）
+pub mod feature_loader;    // FEATURES 阶段数据加载 + 调度（ConfiguredFeature + PlacedFeatureIndexer）
 
 pub fn version() -> &'static str { "0.1.0" }
