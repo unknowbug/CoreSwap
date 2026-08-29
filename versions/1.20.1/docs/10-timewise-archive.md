@@ -2080,3 +2080,30 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 结论：07 篇「Rust worldgen 作为 mod 运行」小节。
 - 过程：本节 + .investigations/rust-mod-load/。
 - **域边界（保持）**：验证分层 = Partial（JNI 加载 Rust dll 对比 vanilla FULL 参照）；Rust 块级管线不含 Beardifier（@anchor.idk）；wg_fill_density 暂未实现（返回 0）。
+
+---
+
+## 2026-08-29 FEATURES 阶段移植到 Rust（🔍 功能完成，ore 位置待对齐）
+
+> Rust 把 C++ FEATURES 阶段（feature.h/placement.h/feature_loader.h）移植到 WorldgenRust/src/{placement,feature,feature_loader}.rs（提交 6934ea4）。装饰层（Ore/Disk/Spring/FreezeTop/UnderwaterMagma）。配套：11 篇「FEATURES 阶段 Rust 移植」+ .investigations/features-port/ + eatures-errors.md 错误台账（F-1~F-3）。
+
+### ✅ 一、FEATURES 移植（功能完成）
+- placement.rs（IntProvider + 10 PlacementModifier + PlacedFeature.generate 深度优先）
+- eature.rs（RuleTest + OreFeature 3D 矿脉 + ScatteredOre/Disk/Spring/FreezeTop/UnderwaterMagma）
+- eature_loader.rs（ConfiguredFeature + PlacedFeatureIndexer + FeatureCache 懒加载）
+- iome.rs（load_features + all_features_lists）
+- worldgen_handle.rs（apply_features 接入，populationSeed + setDecoratorSeed + PlacedFeature.generate）
+
+### 🔍 二、验证（ore 位置待对齐，未闭合）
+- features_probe vs vanilla FULL：match≈95.50%（无 features 95.54% 略降 0.04%）
+- **ore 放置位置与 vanilla 仅 1/13 匹配**——populationSeed/setDecoratorSeed 随机序列与 Java 不完全一致，**待对齐**（下次先对照 index/p/step 分量）
+- freeze_top_layer 因温度 >=0 不冻结（无影响）
+
+### 🧰 三、工具/错误台账
+- eatures_probe.rs（对拍）、check_features.py（对比放置位置与 vanilla）
+- 错误台账：.investigations/features-port/features-errors.md（F-1 随机源双重借用 / F-2 嵌套 fn 无法捕获 FnMut / F-3 Indexer 单 biome 构建 p 值错）
+
+### 📌 记录指引
+- 结论：11 篇「FEATURES 阶段 Rust 移植」。
+- 过程：本节 + .investigations/features-port/。
+- **域边界（保持）**：ore 位置 1/13 是未闭合已知问题非结论；树花植被范围外；邻域 chunk 方块读取简化。

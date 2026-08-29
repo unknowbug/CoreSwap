@@ -20,6 +20,7 @@
 | 8 | [版本迁移方法论](08-version-migration.md) | diff 流程 + 工具链 + 已知坑 |
 | 9 | [多维度通用引擎](09-multi-dimension.md) | 参数化密度引擎 / 下界 / 数据驱动任意维度 |
 | 10 | [排查时间线](10-timewise-archive.md) | 2026-08-06 起的完整排查过程（被推翻的假说/工具演进，按日期追加） |
+| 11 | [FEATURES 阶段（装饰层）Rust 移植](11-features-stage.md) | world/gen/feature + placementmodifier（Ore/Disk/Spring/FreezeTop/UnderwaterMagma） |
 
 ## 状态（2026-08-06）
 
