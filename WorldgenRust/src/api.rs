@@ -12,6 +12,11 @@ const MIN_Y: i32 = -64;
 const HEIGHT: i32 = 384;
 const POINTS_PER_CHUNK: i32 = (16 / XZ_INTERVAL) * (HEIGHT / Y_INTERVAL) * (16 / XZ_INTERVAL);
 
+pub fn density_xz_interval() -> i32 { XZ_INTERVAL }
+pub fn density_y_interval() -> i32 { Y_INTERVAL }
+pub fn density_height() -> i32 { HEIGHT }
+pub fn density_min_y() -> i32 { MIN_Y }
+
 // 输出指针 Send 包装：闭包调用 write() 方法（而非访问 .0 字段）写自己线程的 out，
 // 避免编译器穿透字段访问导致裸指针跨线程 Send 报错（错误台账 M2）。
 // 每个线程写不同的 out 指针，无数据竞争（wg_fill_blocks_multi 保证）。
@@ -117,7 +122,15 @@ pub extern "C" fn wg_height(_h: *mut c_void) -> c_int { HEIGHT }
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_density_points_per_chunk(_h: *mut c_void) -> c_int { POINTS_PER_CHUNK }
 
-// 密度场批量求值（fillDensity 用；Rust 侧暂未实现完整 density 网格，返回 0）
+// 密度场批量求值（fillDensity 用）：size×size chunks 的 finalDensity 网格采样
 #[unsafe(no_mangle)]
-pub extern "C" fn wg_fill_density(_h: *mut c_void, _min_chunk_x: c_int, _min_chunk_z: c_int,
-                                  _size: c_int, _out: *mut f64) -> c_int { 0 }
+pub extern "C" fn wg_fill_density(handle: *mut c_void, min_chunk_x: c_int, min_chunk_z: c_int,
+                                  size: c_int, out: *mut f64) -> c_int {
+    if handle.is_null() || out.is_null() || size <= 0 { return 0; }
+    let h = unsafe { &*(handle as *const WorldgenHandle) };
+    let points = h.fill_density(min_chunk_x, min_chunk_z, size);
+    let n = points.len();
+    let dst = unsafe { std::slice::from_raw_parts_mut(out, n) };
+    dst.copy_from_slice(&points);
+    POINTS_PER_CHUNK
+}

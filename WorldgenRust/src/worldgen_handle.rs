@@ -221,6 +221,36 @@ impl WorldgenHandle {
         self.beardifiers.write().unwrap().clear();
     }
 
+    // finalDensity 网格采样（wg_fill_density / fillDensity 用）：
+    // size×size chunks，每 chunk POINTS_PER_CHUNK 点（XZ_INTERVAL/Y_INTERVAL 网格），chunk-major。
+    pub fn fill_density(&self, min_chunk_x: i32, min_chunk_z: i32, size: i32) -> Vec<f64> {
+        let xz = crate::api::density_xz_interval();
+        let yi = crate::api::density_y_interval();
+        let sy = (self.height / yi); // HEIGHT/y_interval
+        let sx = (16 / xz) as usize;
+        let sz = sx;
+        let mut out = Vec::new();
+        for cz in 0..size {
+            for cx in 0..size {
+                let chunk_x = min_chunk_x + cx;
+                let chunk_z = min_chunk_z + cz;
+                for y in 0..sy {
+                    for z in 0..sz as i32 {
+                        for x in 0..sx as i32 {
+                            let pos = NoisePos {
+                                x: chunk_x * 16 + x * xz,
+                                z: chunk_z * 16 + z * xz,
+                                y: self.min_y + y * yi,
+                            };
+                            out.push(self.tree.sample(&pos));
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+
     // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver。
     // 返回 16*16*height 的 vanilla raw block id（索引 (y-min_y)*256 + z*16 + x）。
     pub fn fill_chunk_blocks(&self, cx: i32, cz: i32) -> Vec<BlockId> {
