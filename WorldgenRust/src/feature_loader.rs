@@ -187,6 +187,44 @@ impl FeatureCache {
         self.configured.insert(id.to_string(), cf);
         self.configured.get(id)
     }
+
+    // 预加载所有 placed_feature + 其引用的 configured_feature（创建时调用，之后只读无锁）。
+    // placed_ids: 需要预加载的 placed_feature 全集（来自 all_feature_ids）。
+    pub fn preload_all(&mut self, wg_dir: &str, placed_ids: &[String], blocks: &BlockRegistry) {
+        for id in placed_ids {
+            if self.placed.contains_key(id) { continue; }
+            let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
+            let path = format!("{}/data/minecraft/worldgen/placed_feature/{}.json", wg_dir, name);
+            let Ok(txt) = std::fs::read_to_string(&path) else { continue };
+            let Ok(root) = crate::json::parse(&txt) else { continue };
+            let mut pf = PlacedFeature {
+                id: id.to_string(),
+                modifiers: Vec::new(),
+                configured_feature: root.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
+                step: 0,
+                global_index: -1,
+            };
+            if let Some(mods) = root.get("placement") {
+                if let Some(arr) = mods.as_array() {
+                    for m in arr {
+                        if let Some(pm) = PlacementModifier::parse(m, blocks) {
+                            pf.modifiers.push(pm);
+                        }
+                    }
+                }
+            }
+            // 预加载引用的 configured_feature
+            let cname = if let Some(s) = pf.configured_feature.strip_prefix("minecraft:") { s } else { &pf.configured_feature };
+            let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+            if let Ok(ctxt) = std::fs::read_to_string(&cpath) {
+                if let Ok(croot) = crate::json::parse(&ctxt) {
+                    let cf = ConfiguredFeature::parse(&pf.configured_feature, &croot, blocks);
+                    self.configured.insert(pf.configured_feature.clone(), cf);
+                }
+            }
+            self.placed.insert(id.to_string(), pf);
+        }
+    }
 }
 
 // 生成分发（ConfiguredFeature.generate → Feature.generate）

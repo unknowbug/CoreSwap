@@ -57,14 +57,14 @@ pub struct WorldgenHandle {
     blocks: &'static BlockRegistry,
     // aquifer splitter
     splitter: XoroshiroSplitter,
-    // beardifier 缓存（per-chunk）
+    // beardifier 缓存（per-chunk）——未接入生成管线，保留（set 时写）
     beardifiers: Mutex<HashMap<(i32, i32), Beardifier>>,
-    // carver 缓存（按 id）
-    carver_cache: Mutex<HashMap<String, ConfiguredCarver>>,
-    // FEATURES 缓存（placed/configured feature 懒加载）
-    feature_cache: Mutex<crate::feature_loader::FeatureCache>,
-    // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建）
-    feature_indexer: std::sync::Mutex<crate::feature_loader::PlacedFeatureIndexer>,
+    // carver 缓存（创建时预加载，运行只读无锁）
+    carver_cache: HashMap<String, ConfiguredCarver>,
+    // FEATURES 缓存（创建时从所有 biome features 预加载，运行只读无锁）
+    feature_cache: crate::feature_loader::FeatureCache,
+    // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建，构建后只读——&self 共享并发安全，不需锁）
+    feature_indexer: crate::feature_loader::PlacedFeatureIndexer,
     // 数据目录
     wg_dir: String,
 }
@@ -154,6 +154,19 @@ impl WorldgenHandle {
         let mut feature_indexer = crate::feature_loader::PlacedFeatureIndexer::new();
         feature_indexer.build(&all_biome_features);
 
+        // 预加载 carver（数量少，创建时一次性加载，运行时只读无锁）
+        let mut carver_cache = HashMap::new();
+        for cid in biomesrc.bc.all_carver_ids() {
+            if let Some(cc) = Self::load_carver(&wg_dir, blocks_leaked, &cid) {
+                carver_cache.insert(cid.clone(), cc);
+            }
+        }
+
+        // 预加载 feature（从所有 biome features 的唯一 placed_feature，创建时一次性加载，运行时只读无锁）
+        let feature_ids = biomesrc.bc.all_feature_ids();
+        let mut feature_cache = crate::feature_loader::FeatureCache::new();
+        feature_cache.preload_all(&wg_dir, &feature_ids, blocks_leaked);
+
         Some(WorldgenHandle {
             seed, min_y, height,
             tree, barrier, flooded, spread, lava, erosion, depth, init,
@@ -161,9 +174,9 @@ impl WorldgenHandle {
             blocks: blocks_leaked,
             splitter,
             beardifiers: Mutex::new(HashMap::new()),
-            carver_cache: Mutex::new(HashMap::new()),
-            feature_cache: Mutex::new(crate::feature_loader::FeatureCache::new()),
-            feature_indexer: std::sync::Mutex::new(feature_indexer),
+            carver_cache,
+            feature_cache,
+            feature_indexer,
             wg_dir,
         })
     }
@@ -320,16 +333,18 @@ impl WorldgenHandle {
         }
     }
 
-    fn get_carver(&self, id: &str) -> Option<ConfiguredCarver> {
-        let mut cache = self.carver_cache.lock().unwrap();
-        if let Some(c) = cache.get(id) { return Some(c.clone()); }
+    // 预加载 carver JSON（创建时调用）
+    fn load_carver(wg_dir: &str, blocks: &BlockRegistry, id: &str) -> Option<ConfiguredCarver> {
         let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
-        let path = format!("{}/data/minecraft/worldgen/configured_carver/{}.json", self.wg_dir, name);
+        let path = format!("{}/data/minecraft/worldgen/configured_carver/{}.json", wg_dir, name);
         let txt = std::fs::read_to_string(&path).ok()?;
         let root = parse(&txt).ok()?;
-        let cc = ConfiguredCarver::parse(&root, &self.blocks);
-        cache.insert(id.to_string(), cc.clone());
-        Some(cc)
+        Some(ConfiguredCarver::parse(&root, blocks))
+    }
+
+    // 取 carver（创建时已预加载，运行只读无锁）
+    fn get_carver(&self, id: &str) -> Option<ConfiguredCarver> {
+        self.carver_cache.get(id).cloned()
     }
 
     // FEATURES 阶段：装饰层（矿石/disk/spring/freeze_top/underwater_magma）。
@@ -367,7 +382,8 @@ impl WorldgenHandle {
         let max_step = cur_features.len();
 
         // 用全局 PlacedFeatureIndexer（Java 语义：p = lastIndex 在所有 biome features 中）
-        let indexer = self.feature_indexer.lock().unwrap();
+        // 构建后只读，&self 共享并发安全（无锁）
+        let indexer = &self.feature_indexer;
 
         for k in 0..max_step {
             let int_set = indexer.int_set_for(&cur_features, k as i32);
@@ -381,11 +397,8 @@ impl WorldgenHandle {
                 if std::env::var("WG_FEATURELOG").is_ok() {
                     eprintln!("[FEATURE] chunk({},{}) step={} p={} fid={}", cx, cz, k, p, fid);
                 }
-                // PlacedFeature.generate（懒加载 placed_feature JSON）
-                let pf = {
-                    let mut cache = self.feature_cache.lock().unwrap();
-                    cache.get_placed(&self.wg_dir, &fid, self.blocks).cloned()
-                };
+                // PlacedFeature（创建时已预加载，运行只读无锁）
+                let pf = self.feature_cache.placed.get(&fid).cloned();
                 let pf = match pf { Some(pf) => pf, None => continue };
                 // FeaturePlacementContext
                 let fctx = crate::placement::FeaturePlacementContext {
@@ -411,11 +424,8 @@ impl WorldgenHandle {
                     region_col_at: None,
                     pending_cross: None,
                 };
-                // ConfiguredFeature 分发
-                let cf = {
-                    let mut cache = self.feature_cache.lock().unwrap();
-                    cache.get_configured(&self.wg_dir, &pf.configured_feature, self.blocks).cloned()
-                };
+                // ConfiguredFeature（创建时已预加载，运行只读无锁）
+                let cf = self.feature_cache.configured.get(&pf.configured_feature).cloned();
                 let cf = match cf { Some(cf) => cf, None => continue };
                 let biome_temp_f = biome_temp(&cur_biome_id) as f32;
                 let generate_configured = |_fctx: &crate::placement::FeaturePlacementContext, random: &mut ChunkRandom, gx: i32, gy: i32, gz: i32| -> bool {

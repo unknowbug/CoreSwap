@@ -367,6 +367,30 @@ impl BiomeClassifier {
         self.features.values().cloned().collect()
     }
 
+    // 返回所有 unique carver id（预加载 carver 用）
+    pub fn all_carver_ids(&self) -> Vec<String> {
+        let mut ids = Vec::new();
+        for v in self.carvers.values() {
+            for c in v {
+                if !ids.contains(c) { ids.push(c.clone()); }
+            }
+        }
+        ids
+    }
+
+    // 返回所有 unique placed_feature id（预加载 feature 用）
+    pub fn all_feature_ids(&self) -> Vec<String> {
+        let mut ids = Vec::new();
+        for v in self.features.values() {
+            for step in v {
+                for f in step {
+                    if !ids.contains(f) { ids.push(f.clone()); }
+                }
+            }
+        }
+        ids
+    }
+
     // 对齐 vanilla ParameterRange.getDistance：点不在 [min,max] 内则到最近边界距离，否则 0
     #[inline]
     fn range_distance(noise: f64, range: &[f64; 2]) -> f64 {
