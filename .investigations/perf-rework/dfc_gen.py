@@ -1538,13 +1538,15 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
             return f'shiftNoises.at("{key}").sample(({az}) * 0.25, ({ax}) * 0.25, 0.0) * 4.0'
         return f'shiftNoises.at("{key}").sample(({ax}) * 0.25, ({ay}) * 0.25, ({az}) * 0.25) * 4.0'   # shift
 
-    def _gen_split_lines(self, df, cx, cy, cz):
-        """递归生成拆分代码行（在 cx/cy/cz int 坐标上下文重放 noise 坐标链）"""
+    def _gen_split_lines(self, df, cx, cy, cz, corner0_only=False):
+        """递归生成拆分代码行（在 cx/cy/cz int 坐标上下文重放 noise 坐标链）。
+        corner0_only=True：interpolated 分支只展开角点 0（不展开 8 角点）——供 sample() 在 grid
+        缓存命中时只算顶层非 interp 所需的 @c0 拆分（interp 走 grid），避免每点整树 split。"""
         lines = []
         if isinstance(df, str):
             if df in ("minecraft:y", "minecraft:zero", "minecraft:shift_x", "minecraft:shift_z"):
                 return lines
-            return self._gen_split_lines(self.resolve_ref(df), cx, cy, cz)
+            return self._gen_split_lines(self.resolve_ref(df), cx, cy, cz, corner0_only=corner0_only)
         if isinstance(df, (int, float)):
             return lines
         t = df.get("type", "")
@@ -1554,11 +1556,11 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
         if "coordinate" in df and "points" in df:
             # spline（含 nested {coordinate,points}）：遍历 coordinate（含坐标噪声）
             # 修复 D14：spline coordinate 噪声（continentalness/erosion/ridge）必须生成 split 行
-            lines += self._gen_split_lines(df["coordinate"], cx, cy, cz)
+            lines += self._gen_split_lines(df["coordinate"], cx, cy, cz, corner0_only=corner0_only)
             for p in df.get("points", []):
                 v = p.get("value")
                 if isinstance(v, dict) and "coordinate" in v and "points" in v:
-                    lines += self._gen_split_lines(v, cx, cy, cz)   # nested spline 递归
+                    lines += self._gen_split_lines(v, cx, cy, cz, corner0_only=corner0_only)   # nested spline 递归
             return lines
         if t in ("minecraft:noise", "minecraft:shifted_noise"):
             key = df.get("noise", "") + self.noise_key_suffix
@@ -1601,19 +1603,19 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
             lines.append(f"        int _chunkX = floorDiv({cx}, 16); int _chunkZ = floorDiv({cz}, 16);")
             lines.append(f"        int _gx = ({cx}) - _chunkX * 16; int _gy = ({cy}) - minY; int _gz = ({cz}) - _chunkZ * 16;")
             lines.append("        int _cx = _gx / 4; int _cy = _gy / 8; int _cz = _gz / 4;")
-            for c in range(8):
+            for c in (range(1) if corner0_only else range(8)):
                 dx, dy, dz = c & 1, (c >> 1) & 1, (c >> 2) & 1
                 ax = f"(_chunkX * 16 + (_cx + {dx}) * 4)"
                 ay = f"(minY + (_cy + {dy}) * 8)"
                 az = f"(_chunkZ * 16 + (_cz + {dz}) * 4)"
                 old_suffix = self.noise_key_suffix
                 self.noise_key_suffix = f"@c{c}"
-                lines += self._gen_split_lines(df.get("argument", df.get("input", 0.0)), ax, ay, az)
+                lines += self._gen_split_lines(df.get("argument", df.get("input", 0.0)), ax, ay, az, corner0_only=corner0_only)
                 self.noise_key_suffix = old_suffix
             lines.append("    }")
         elif t == "minecraft:weird_scaled_sampler":
             # D17: rarity 输入 split（正常坐标）+ ws 噪声 split（/d 坐标，d = ws_scale(rarity, 输入值)）
-            lines += self._gen_split_lines(df.get("input", 0.0), cx, cy, cz)
+            lines += self._gen_split_lines(df.get("input", 0.0), cx, cy, cz, corner0_only=corner0_only)
             ws_key = df.get("noise", "") + ":ws" + self.noise_key_suffix
             if ws_key not in self.split_visited:
                 self.split_visited.add(ws_key)
@@ -1626,7 +1628,7 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
         else:
             for key in ("argument", "argument1", "argument2", "input", "when_in_range", "when_out_of_range"):
                 if key in df:
-                    lines += self._gen_split_lines(df[key], cx, cy, cz)
+                    lines += self._gen_split_lines(df[key], cx, cy, cz, corner0_only=corner0_only)
         return lines
 
     def _ws_rarity_cpp(self, df, cx, cy, cz):
@@ -1653,11 +1655,15 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
         shift_noises = manifest["shift_noises"]
 
         # old_blended 实例（收集 + 分配 octBase/splitBase，与 gen_shader 一致）
+        # DFC 采样扩展：同步填充 normal_meta/old_meta（与 gen_shader 的 _normal_func/_old_blended_func 同源）
+        self.normal_meta = []
+        self.old_meta = []
         old_blendeds = []
         octBase = 0
         splitBase = 0
-        for kind, params in self.noise_instances:
+        for idx, (kind, params) in enumerate(self.noise_instances):
             if kind == "old_blended":
+                self._old_blended_func(idx, params, octBase, splitBase)
                 old_blendeds.append({"params": params, "octBase": octBase, "splitBase": splitBase})
                 self.old_split_base[params["_key"]] = splitBase
                 self.old_vec_index[params["_key"]] = len(old_blendeds) - 1
@@ -1665,6 +1671,7 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
                 splitBase += 7 * 40
             elif kind == "normal":
                 n = len(params.get("amplitudes", [1.0]))
+                self._normal_func(idx, params, octBase, splitBase)
                 self.normal_split_base[params["_key"]] = splitBase
                 self.normal_vec_index[params["_key"]] = len(self.normal_vec_index)
                 octBase += 2 * n
@@ -1691,6 +1698,12 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
 
         self.split_visited.clear()
         split_lines = self._gen_split_lines(root_df, "x", "y", "z")
+
+        # 顶层（角点 0 仅）拆分：sample() 在 grid 缓存命中时只喂非 interp 所需的最小拆分
+        # （interp 走 grid），避免每点整树 split()。corner0_only 复用同一次 _gen_split_lines 遍历，
+        # 但 interpolated 分支只展开角点 0（@c0）→ 行数 = 全量 split 的 1/8。
+        self.split_visited.clear()
+        split_top_lines = self._gen_split_lines(root_df, "x", "y", "z", corner0_only=True)
 
         # D19: perSample（valBuf 每采样点槽数）——e2e 分配 valBuf 的依据，防硬编码陈旧越界
         layout = self._compute_val_layout()
@@ -1722,12 +1735,17 @@ const int NOISE_SLOT_STRIDE[{n_slots}] = int[]({slot_strides});
     std::vector<int> splineValNode = {{{{{", ".join(str(x) for x in self.spline_ssbo_val_node)}}}}};
 """
 
+        # DFC CPU 采样函数块（A 数据表 + B 采样函数 + C 缓冲成员）——插入 CpuBackend struct
+        sampling_code = self.gen_cpu_sampling()
+
         return f"""// 自动生成（DFC CPU 后端），勿手改
 #pragma once
 #include <vector>
 #include <map>
 #include <string>
 #include <cmath>
+#include <cstdint>
+#include <algorithm>
 #include "noise.h"
 #include "xoroshiro.h"
 #include "density.h"
@@ -1828,6 +1846,15 @@ struct CpuBackend {{
 {chr(10).join(split_lines)}
     }}
 
+    // 顶层（角点 0 仅）拆分：只算 grid 缓存命中时 eval_density 非 interp 路径读的 @c0 实例
+    // （顶层 spline 坐标 + interp delegate 的 @c0 节点）。interp 的 8 角点三线性已由 grid 缓存覆盖，
+    // 无需在当前点重算 —— 行数为整树 split() 的 1/8，显著降低每点 split 开销。
+    // 正确性：corner 恒 0（与 split() 的同 cell 角点 0 坐标一致，见 buildInterpGrid);
+    // buildInterpGrid 内部的 splitCoord.swap(saved) 会还原本函数填入的 @c0 值，非 interp 路径读数一致。
+    void splitTop(int x, int y, int z, float* out) {{
+{chr(10).join(split_top_lines)}
+    }}
+
     void collectPerm(std::vector<uint32_t>& perm) {{
         perm.assign((size_t)permSize, 0);
         for (int i = 0; i < (int)oldBlendeds.size(); i++) {{
@@ -1851,8 +1878,693 @@ struct CpuBackend {{
             }}
         }}
     }}
+{sampling_code}
 }};
 """
+
+    def gen_cpu_sampling(self):
+        """生成 C++ 采样函数块（A 数据表 + B 采样函数 + C 缓冲成员），返回插入 CpuBackend struct 的字符串。
+
+        形态 A：简化 node 数组（val[i]=节点索引），参照 dbg_full_sim.py 的 eval_df/eval_df_base 逐行翻译；
+        spline_eval 用 mvp_spline_eval.cpp 的 stage 模型（GLSL 直译），保留 D23 边界嵌套递归到 v0/v1 子帧。
+        红线：COORD_SLOT_TABLE 运行时查表（勿 switch）、normal_noise persistence 每 octave /2、
+        interp_noise 双早停（!bl / !bl2 独立）、pn_section_f32 y-fade 用 fadeY、floorDiv 负坐标、
+        mapPermD v&255、GRADIENTS double→float、minY=-64。
+        """
+        nodes = self.df_nodes
+        if not nodes:
+            return ""
+        n_nodes = len(nodes)
+        top_root = n_nodes - 1       # 形态 A：根节点 = df_nodes 最后一个（后序）
+
+        def flit(x):
+            s = format(float(x), '.17g')
+            if '.' not in s and 'e' not in s and 'E' not in s:
+                s += '.0'
+            return s + 'f'
+
+        # ---- A 数据表：DF 节点数组（形态 A，直接 node 索引做 val 下标）----
+        df_type = ", ".join(str(n["type"]) for n in nodes)
+        df_a1 = ", ".join(str(n["a1"]) for n in nodes)
+        df_a2 = ", ".join(str(n["a2"]) for n in nodes)
+        df_a3 = ", ".join(str(n["a3"]) for n in nodes)
+        df_f0 = ", ".join(flit(n["f0"]) for n in nodes)
+        df_f1 = ", ".join(flit(n["f1"]) for n in nodes)
+        df_f2 = ", ".join(flit(n["f2"]) for n in nodes)
+        df_f3 = ", ".join(flit(n["f3"]) for n in nodes)
+
+        # ---- closure 数据（镜像 eval_df_glsl 的闭包，D25：消除额外 interp delegate 死计算）----
+        # eval_df_base(k) 只遍历 interp k 的 delegate 闭包（非全 DF_NODES=163）；eval_df(顶层) 只遍历
+        # top closure（~21 节点）。关闭包内核 = 从 interp_roots[k]/顶层根可达的节点子集。闭包数组逐
+        # interp 扁平拼接（CLOSURE_OFF/LEN/ROOT_POS 选取），每节点在闭包内用线性槽（CLOSURE_SLOT 映射
+        # 闭包内索引，与 GLSL SLOT_OF_N 一致）；子节点引用 a1/a2/a3 由 map_a 重映射为闭包内位置。
+        # 正确性红线：闭包节点集 / SLOT 映射必须与 _compute_val_layout 严格一致（漏/多 = 破坏对齐）。
+        layout = self._compute_val_layout()
+        read_fields = layout["read_fields"]
+        closures = layout["closures"]       # [(closure, pos, slot, peak), ...] 逐 interp
+        top_closure = layout["top_closure"]
+        top_pos = layout["top_pos"]
+        top_slot = layout["top_slot"]
+        top_peak = layout["top_peak"]
+        cls_off, cls_len, cls_peak, cls_root_pos, max_peak = [], [], [], [], 0
+        cls_type, cls_a1, cls_a2, cls_a3 = [], [], [], []
+        cls_f0, cls_f1, cls_f2, cls_f3 = [], [], [], []
+        cls_slot = []
+        acc = 0
+        def _map_a(cur_pos, t, v, f):
+            if v >= 0 and v in cur_pos and f in read_fields.get(t, ()):
+                return cur_pos[v]
+            return v
+        for k, (closure, pos, slot, peak) in enumerate(closures):
+            cls_off.append(acc); cls_len.append(len(closure)); cls_peak.append(peak)
+            max_peak = max(max_peak, peak)
+            root = self.interp_roots[k] if k < len(self.interp_roots) else (closure[0] if closure else -1)
+            cls_root_pos.append(pos[root] if root in pos else 0)
+            for ci, i in enumerate(closure):
+                n = nodes[i]; t = n["type"]
+                cls_type.append(t)
+                cls_a1.append(_map_a(pos, t, n["a1"], "a1"))
+                cls_a2.append(_map_a(pos, t, n["a2"], "a2"))
+                cls_a3.append(_map_a(pos, t, n["a3"], "a3"))
+                cls_f0.append(flit(n["f0"])); cls_f1.append(flit(n["f1"]))
+                cls_f2.append(flit(n["f2"])); cls_f3.append(flit(n["f3"]))
+                cls_slot.append(slot[ci])
+            acc += len(closure)
+        if not closures:
+            # 防御：无 interp（实际 final_density 恒有 5 个，仅保证生成数组非空可编译）
+            cls_off = [0]; cls_len = [0]; cls_peak = [1]; cls_root_pos = [0]; max_peak = 1
+            cls_type = cls_a1 = cls_a2 = cls_a3 = cls_slot = [0]
+            cls_f0 = cls_f1 = cls_f2 = cls_f3 = [flit(0.0)]
+        cls_total = len(cls_type)
+        # 顶层闭包（eval_df 序贯求值，含 DF_INTERP 分支）
+        top_type, top_a1, top_a2, top_a3 = [], [], [], []
+        top_f0, top_f1, top_f2, top_f3 = [], [], [], []
+        top_slot_flat = []
+        for ci, i in enumerate(top_closure):
+            n = nodes[i]; t = n["type"]
+            top_type.append(t)
+            top_a1.append(_map_a(top_pos, t, n["a1"], "a1"))
+            top_a2.append(_map_a(top_pos, t, n["a2"], "a2"))
+            top_a3.append(_map_a(top_pos, t, n["a3"], "a3"))
+            top_f0.append(flit(n["f0"])); top_f1.append(flit(n["f1"]))
+            top_f2.append(flit(n["f2"])); top_f3.append(flit(n["f3"]))
+            top_slot_flat.append(top_slot[ci])
+        top_len = len(top_closure)
+        if top_len == 0:
+            # 防御：顶层闭包不可能为空（root 自身），保持数组非空
+            top_type = top_a1 = top_a2 = top_a3 = top_slot_flat = [0]
+            top_f0 = top_f1 = top_f2 = top_f3 = [flit(0.0)]
+        top_root_pos = self.top_root_pos
+
+        # ---- A 数据表：噪声 slot 表（_noise_slot_table_glsl 镜像）----
+        ns_bases = ", ".join(str(s["base"]) for s in self.noise_slots) if self.noise_slots else "0"
+        ns_strides = ", ".join(str(s["stride"]) for s in self.noise_slots) if self.noise_slots else "0"
+        n_slots = len(self.noise_slots)
+
+        # ---- A 数据表：COORD_SLOT_TABLE + 每 coordType fold（A5：运行时查表 + if(coordType) fold，勿 switch）----
+        import re as _re
+        coord_slots, coord_folds, coord_ok = [], [], True
+        for ct, expr in enumerate(self.spline_coords):
+            m = _re.search(r'normal_noise\(NOISE_SLOT_BASE\[(\d+)\] \+ corner \* NOISE_SLOT_STRIDE\[\d+\], sIdx\)', expr)
+            if not m:
+                coord_ok = False   # 非标准形态 → 回退（理论上不出现）
+                break
+            coord_slots.append(int(m.group(1)))
+            coord_folds.append(expr.replace(m.group(0), 'v'))
+        coord_src = ", ".join(str(x) for x in coord_slots) if (coord_ok and coord_slots) else "0"
+        n_coord = len(self.spline_coords)
+        coord_fold_lines = "\n".join(
+            f"        if (coordType == {ct}) v = {fold.replace('abs(', 'std::fabs(')};"
+            for ct, fold in enumerate(coord_folds)) if coord_ok else "        // （coord fold 非标准形态，回退恒等）"
+
+        # ---- A 数据表：NORMAL 参数（_normal_noise_glsl 镜像）----
+        n_inst = len(self.noise_instances)
+        meta_by_idx = {m["idx"]: m for m in self.normal_meta}
+        pack, pack_f, amps_all, amp_off = [], [], [], [0] * n_inst
+        for idx in range(n_inst):
+            m = meta_by_idx.get(idx)
+            if m:
+                pack += [m["n"], m["octBase"], m["splitBase"]]
+                pack_f += [m["persistence"], m["amplitude"]]
+                amp_off[idx] = len(amps_all)
+                amps_all.extend(m["amps"])
+            else:
+                pack += [0, 0, 0]
+                pack_f += [0.0, 0.0]
+                amp_off[idx] = len(amps_all)
+
+        # ---- A 数据表：OLD 参数（_old_blended_glsl 镜像）----
+        old_by_idx = {m["idx"]: m for m in self.old_meta}
+        pack_old = []
+        for idx in range(n_inst):
+            m = old_by_idx.get(idx)
+            if m:
+                pack_old += [m["octBase"], m["splitBase"]]
+            else:
+                pack_old += [0, 0]
+
+        # ---- A 数据表：interp 根节点索引（形态 A 用 node 索引，勿混淆 GLSL 的闭包 slot 位置）----
+        interp_roots_src = ", ".join(str(r) for r in self.interp_roots) if self.interp_roots else "0"
+        n_interp = len(self.interp_roots) if self.interp_roots else 1
+        # path C：gridKey 默认 INT64_MIN（未构建哨兵——避免首次命中 chunk(0,0) 的 key==0 而跳过构建）
+        grid_key_init = ", ".join(["INT64_MIN"] * n_interp)
+
+        # ===== A 数据表（static constexpr 镜像 GLSL const；C++17 inline）=====
+        tables = f"""    // ===== DFC CPU 采样函数（无虚调用直排求值；形态 A：val[i]=节点索引）=====
+    // C 运行时缓冲（采样函数读；由 split()/collectPerm() 填充）
+    // splitCoord 必须 per-thread（buildInterpGrid 的 swap 与采样线程共享实例成员会冲突）；static + inline（multi-TU LNK2005）。
+    inline static thread_local std::vector<float> splitCoord;
+    std::vector<uint32_t> perm;
+
+    // ---- A 数据表（镜像 GLSL const，C++17 inline）----
+    static constexpr double GRADIENTS[16][3] = {{
+        {{ 1,  1,  0}}, {{-1,  1,  0}}, {{ 1, -1,  0}}, {{-1, -1,  0}},
+        {{ 1,  0,  1}}, {{-1,  0,  1}}, {{ 1,  0, -1}}, {{-1,  0, -1}},
+        {{ 0,  1,  1}}, {{ 0, -1,  1}}, {{ 0,  1, -1}}, {{ 0, -1, -1}},
+        {{ 1,  1,  0}}, {{ 0, -1,  1}}, {{-1,  1,  0}}, {{ 0, -1, -1}}
+    }};
+    static const int DF_NODES = {n_nodes};
+    static constexpr int DF_TYPE[{n_nodes}] = {{{df_type}}};
+    static constexpr int DF_A1[{n_nodes}] = {{{df_a1}}};
+    static constexpr int DF_A2[{n_nodes}] = {{{df_a2}}};
+    static constexpr int DF_A3[{n_nodes}] = {{{df_a3}}};
+    static constexpr float DF_F0[{n_nodes}] = {{{df_f0}}};
+    static constexpr float DF_F1[{n_nodes}] = {{{df_f1}}};
+    static constexpr float DF_F2[{n_nodes}] = {{{df_f2}}};
+    static constexpr float DF_F3[{n_nodes}] = {{{df_f3}}};
+    static const int TOP_ROOT = {top_root};          // 形态 A：根节点索引 = DF_NODES-1
+    static const int N_INTERP = {n_interp};
+    static constexpr int INTERP_ROOTS[{n_interp}] = {{{interp_roots_src}}};   // 每 interp 的 delegate 根节点索引
+    static constexpr int NOISE_SLOT_COUNT = {n_slots};
+    static constexpr int NOISE_SLOT_BASE[{n_slots if n_slots else 1}] = {{{ns_bases}}};
+    static constexpr int NOISE_SLOT_STRIDE[{n_slots if n_slots else 1}] = {{{ns_strides}}};
+    static constexpr int COORD_SLOT_TABLE[{n_coord if n_coord else 1}] = {{{coord_src}}};
+    static const int NORMAL_INSTANCES = {n_inst};
+    static constexpr int NORMAL_PACK[{len(pack)}] = {{{", ".join(str(x) for x in pack)}}};
+    static constexpr float NORMAL_PACK_F[{len(pack_f)}] = {{{", ".join(flit(x) for x in pack_f)}}};
+    static constexpr float NORMAL_AMPS[{len(amps_all)}] = {{{", ".join(flit(x) for x in amps_all)}}};
+    static constexpr int NORMAL_AMP_OFF[{len(amp_off)}] = {{{", ".join(str(x) for x in amp_off)}}};
+    static const int OLD_INSTANCES = {n_inst};
+    static constexpr int OLD_PACK[{len(pack_old)}] = {{{", ".join(str(x) for x in pack_old)}}};
+
+    // ---- DFC 闭包（每 interp delegate + 顶层；D25：各用闭包子集，消除孤儿 delegate 死计算）----
+    // 逐 interp 扁平拼接：CLOSURE_OFF[k]/CLOSURE_LEN[k]/CLOSURE_ROOT_POS[k] 选取第 k 个 interp 的闭包，
+    // CLOSURE_VAL_SLOTS[k] = 该闭包的 val 槽数（liveness 峰值），CLOSURE_MAX_SLOTS = 全闭包最大槽数
+    // （eval_df_base 的 val[] 上界）。闭包内节点用线性槽（CLOSURE_SLOT 映射闭包内位置→槽）；子节点
+    // a1/a2/a3 已是闭包内位置（map_a）。顶层闭包（eval_df 用）单独 CLOSURE_T/TOP_* 系列。数据与
+    // eval_df_glsl 的 CTYPE_N/CAx_N/CFx_N/SLOT_OF_N + CTYPE_T/... 严格同源（同一 _compute_val_layout）。
+    static const int N_CLOSURE = {n_interp};
+    static constexpr int CLOSURE_OFF[{n_interp}] = {{{", ".join(str(x) for x in cls_off)}}};
+    static constexpr int CLOSURE_LEN[{n_interp}] = {{{", ".join(str(x) for x in cls_len)}}};
+    static constexpr int CLOSURE_VAL_SLOTS[{n_interp}] = {{{", ".join(str(x) for x in cls_peak)}}};
+    static constexpr int CLOSURE_ROOT_POS[{n_interp}] = {{{", ".join(str(x) for x in cls_root_pos)}}};
+    static const int CLOSURE_MAX_SLOTS = {max_peak};
+    static constexpr int CLOSURE_TYPE[{cls_total}] = {{{", ".join(str(x) for x in cls_type)}}};
+    static constexpr int CLOSURE_A1[{cls_total}] = {{{", ".join(str(x) for x in cls_a1)}}};
+    static constexpr int CLOSURE_A2[{cls_total}] = {{{", ".join(str(x) for x in cls_a2)}}};
+    static constexpr int CLOSURE_A3[{cls_total}] = {{{", ".join(str(x) for x in cls_a3)}}};
+    static constexpr float CLOSURE_F0[{cls_total}] = {{{", ".join(cls_f0)}}};
+    static constexpr float CLOSURE_F1[{cls_total}] = {{{", ".join(cls_f1)}}};
+    static constexpr float CLOSURE_F2[{cls_total}] = {{{", ".join(cls_f2)}}};
+    static constexpr float CLOSURE_F3[{cls_total}] = {{{", ".join(cls_f3)}}};
+    static constexpr int CLOSURE_SLOT[{cls_total}] = {{{", ".join(str(x) for x in cls_slot)}}};
+    static const int TOP_CLOSURE_LEN = {top_len};
+    static const int VAL_SLOTS_TOP = {top_peak};
+    static const int TOP_ROOT_POS = {top_root_pos};
+    static constexpr int TOP_TYPE[{top_len}] = {{{", ".join(str(x) for x in top_type)}}};
+    static constexpr int TOP_A1[{top_len}] = {{{", ".join(str(x) for x in top_a1)}}};
+    static constexpr int TOP_A2[{top_len}] = {{{", ".join(str(x) for x in top_a2)}}};
+    static constexpr int TOP_A3[{top_len}] = {{{", ".join(str(x) for x in top_a3)}}};
+    static constexpr float TOP_F0[{top_len}] = {{{", ".join(top_f0)}}};
+    static constexpr float TOP_F1[{top_len}] = {{{", ".join(top_f1)}}};
+    static constexpr float TOP_F2[{top_len}] = {{{", ".join(top_f2)}}};
+    static constexpr float TOP_F3[{top_len}] = {{{", ".join(top_f3)}}};
+    static constexpr int TOP_SLOT[{top_len}] = {{{", ".join(str(x) for x in top_slot_flat)}}};
+"""
+
+        # ===== B 采样函数 =====
+        funcs = r"""    // ---- 原语（float32 语义；CpuBackend.ws_scale 为 double 版，此处 float 版区分）----
+    static float ws_scaleF(int kind, float v) {
+        if (kind == 1) {
+            if (v < -0.75f) return 0.5f;
+            if (v < -0.5f) return 0.75f;
+            if (v < 0.5f) return 1.0f;
+            return v < 0.75f ? 2.0f : 3.0f;
+        }
+        if (v < -0.5f) return 0.75f;
+        if (v < 0.0f) return 1.0f;
+        return v < 0.5f ? 1.5f : 2.0f;
+    }
+    int mapPermD(int octBase, int v) { return (int)perm[(size_t)octBase * 256 + (v & 255)]; }
+    static float perlinFadeF(float v) { return v * v * v * (v * (v * 6.0f - 15.0f) + 10.0f); }
+    static float lerpF(float d, float s, float e) { return s + d * (e - s); }
+    float gradDotF(int hash, float x, float y, float z) {
+        float gx = (float)GRADIENTS[hash & 15][0];
+        float gy = (float)GRADIENTS[hash & 15][1];
+        float gz = (float)GRADIENTS[hash & 15][2];
+        return gx * x + gy * y + gz * z;
+    }
+    float pn_sample3_f32(int octBase, int sx, int sy, int sz, float lx, float ly, float lz) {
+        int i0 = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+        int k = mapPermD(octBase, i0 + sy); int l = mapPermD(octBase, i0 + sy + 1);
+        int m = mapPermD(octBase, j + sy); int nn = mapPermD(octBase, j + sy + 1);
+        float d  = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+        float e  = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+        float f  = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+        float g  = gradDotF(mapPermD(octBase, nn + sz),    lx - 1.0f, ly - 1.0f, lz);
+        float h  = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+        float o  = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+        float p  = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+        float q  = gradDotF(mapPermD(octBase, nn + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+        float r = perlinFadeF(lx); float s = perlinFadeF(ly); float t = perlinFadeF(lz);
+        float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+        float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+        float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+        return lerpF(t, y0, y1);
+    }
+    // old_blended 5 参数 sample：读 7 值拆分坐标 [ix,iy,iz,gx,gy(h-n),gz,fadeY(h)]，y-fade 用 fadeY（第 7 值）
+    float pn_section_f32(int octBase, int sIdx, int splitOffset) {
+        int b = sIdx * splitTotal + splitOffset;
+        int sx = (int)splitCoord[b + 0];
+        int sy = (int)splitCoord[b + 1];
+        int sz = (int)splitCoord[b + 2];
+        float lx = splitCoord[b + 3];
+        float ly = splitCoord[b + 4];
+        float lz = splitCoord[b + 5];
+        float fadeY = splitCoord[b + 6];
+        int i0 = mapPermD(octBase, sx); int j = mapPermD(octBase, sx + 1);
+        int k = mapPermD(octBase, i0 + sy); int l = mapPermD(octBase, i0 + sy + 1);
+        int m = mapPermD(octBase, j + sy); int nn = mapPermD(octBase, j + sy + 1);
+        float d  = gradDotF(mapPermD(octBase, k + sz),     lx,     ly,     lz);
+        float e  = gradDotF(mapPermD(octBase, m + sz),     lx - 1.0f, ly,     lz);
+        float f  = gradDotF(mapPermD(octBase, l + sz),     lx,     ly - 1.0f, lz);
+        float g  = gradDotF(mapPermD(octBase, nn + sz),    lx - 1.0f, ly - 1.0f, lz);
+        float h  = gradDotF(mapPermD(octBase, k + sz + 1), lx,     ly,     lz - 1.0f);
+        float o  = gradDotF(mapPermD(octBase, m + sz + 1), lx - 1.0f, ly,     lz - 1.0f);
+        float p  = gradDotF(mapPermD(octBase, l + sz + 1), lx,     ly - 1.0f, lz - 1.0f);
+        float q  = gradDotF(mapPermD(octBase, nn + sz + 1), lx - 1.0f, ly - 1.0f, lz - 1.0f);
+        float r = perlinFadeF(lx); float s = perlinFadeF(fadeY); float t = perlinFadeF(lz);
+        float x0 = lerpF(r, d, e); float x1 = lerpF(r, f, g);
+        float x2 = lerpF(r, h, o); float x3 = lerpF(r, p, q);
+        float y0 = lerpF(s, x0, x1); float y1 = lerpF(s, x2, x3);
+        return lerpF(t, y0, y1);
+    }
+    float y_clamped_gradient(int y, float fromY, float toY, float fromV, float toV) {
+        if (toY == fromY) return 0.0f;
+        float t = std::min(1.0f, std::max(0.0f, ((float)y - fromY) / (toY - fromY)));
+        return fromV + t * (toV - fromV);
+    }
+
+    // ---- 数据驱动噪声（读取 A 表 + splitCoord + perm）----
+    float normal_noise(int noiseIdx, int sIdx) {
+        int b3 = noiseIdx * 3;
+        int n = NORMAL_PACK[b3 + 0];
+        int octBase = NORMAL_PACK[b3 + 1];
+        int splitBase = NORMAL_PACK[b3 + 2];
+        float persistence = NORMAL_PACK_F[noiseIdx * 2 + 0];
+        float amplitude = NORMAL_PACK_F[noiseIdx * 2 + 1];
+        int ampOff = NORMAL_AMP_OFF[noiseIdx];
+        float d = 0.0f; float f = persistence;
+        for (int i = 0; i < n; i++) {
+            int b = sIdx * splitTotal + splitBase + i * 6;
+            int ix = (int)splitCoord[b + 0]; int iy = (int)splitCoord[b + 1]; int iz = (int)splitCoord[b + 2];
+            float gx = splitCoord[b + 3]; float gy = splitCoord[b + 4]; float gz = splitCoord[b + 5];
+            float ns = pn_sample3_f32(octBase + i, ix, iy, iz, gx, gy, gz);
+            d += NORMAL_AMPS[ampOff + i] * ns * f;
+            f /= 2.0f;   // persistence 每 octave /2（红线）
+        }
+        float d2 = 0.0f; f = persistence;
+        for (int i = 0; i < n; i++) {
+            int b = sIdx * splitTotal + splitBase + 6 * n + i * 6;
+            int ix = (int)splitCoord[b + 0]; int iy = (int)splitCoord[b + 1]; int iz = (int)splitCoord[b + 2];
+            float gx = splitCoord[b + 3]; float gy = splitCoord[b + 4]; float gz = splitCoord[b + 5];
+            float ns = pn_sample3_f32(octBase + n + i, ix, iy, iz, gx, gy, gz);
+            d2 += NORMAL_AMPS[ampOff + i] * ns * f;
+            f /= 2.0f;
+        }
+        return (d + d2) * amplitude;
+    }
+    float interp_noise(int idx, int sIdx) {
+        int octBase = OLD_PACK[idx * 2 + 0];
+        int splitBase = OLD_PACK[idx * 2 + 1];
+        float n = 0.0f; float o = 1.0f;
+        for (int q = 0; q < 8; q++) {
+            n += pn_section_f32(octBase + 32 + q, sIdx, splitBase + (32 + q) * 7) / o;
+            o /= 2.0f;
+        }
+        float qq = (n / 10.0f + 1.0f) / 2.0f;
+        bool bl = qq >= 1.0f; bool bl2 = qq <= 0.0f;
+        float l = 0.0f; float mm = 0.0f; o = 1.0f;
+        for (int r = 0; r < 16; r++) {
+            if (!bl) l += pn_section_f32(octBase + r, sIdx, splitBase + r * 7) / o;         // 独立早停 1
+            if (!bl2) mm += pn_section_f32(octBase + 16 + r, sIdx, splitBase + (16 + r) * 7) / o;   // 独立早停 2
+            o /= 2.0f;   // 除法每圈执行（红线）
+        }
+        float w = std::min(1.0f, std::max(0.0f, qq));
+        return (l / 512.0f + w * (mm / 512.0f - l / 512.0f)) / 128.0f;
+    }
+
+    // ---- spline（数据驱动表 + 显式栈 stage 机；D23 边界嵌套递归到 v0/v1 子帧）----
+    float spline_coord(int coordType, int corner, int sIdx, int ix, int iy, int iz) {
+        int slot = COORD_SLOT_TABLE[coordType];
+        float v = normal_noise(NOISE_SLOT_BASE[slot] + corner * NOISE_SLOT_STRIDE[slot], sIdx);
+{coord_fold_lines}
+        return v;
+    }
+    int spline_find_range(float x, int locBegin, int n) {
+        int mn = 0; int i = n;
+        while (i > 0) {
+            int j = i / 2; int k = mn + j;
+            if (x < splineLocs[locBegin + k]) { i = j; }
+            else { mn = k + 1; i -= j + 1; }
+        }
+        return mn - 1;
+    }
+    float spline_hermite(float coord, float lo, float span, float nv, float ov, float d0, float d1) {
+        float kd = (coord - lo) / span;
+        float p = d0 * span - (ov - nv);
+        float q = -d1 * span + (ov - nv);
+        return (nv + kd * (ov - nv)) + kd * (1.0f - kd) * (p + kd * (q - p));
+    }
+    float spline_eval(int rootNode, int corner, int sIdx, int ix, int iy, int iz) {
+        int st_node[64]; int st_i[64]; int st_stage[64];
+        float st_coord[64]; float st_v0[64]; float st_v1[64];
+        int sp = 0;
+        st_node[0] = rootNode; st_stage[0] = 0; sp = 1;
+        float outVal = 0.0f;
+        while (sp > 0) {
+            int f = sp - 1;
+            int node = st_node[f];
+            int p = node * 5;
+            int ct = splineNodePack[p + 0];
+            int n = splineNodePack[p + 1];
+            int locB = splineNodePack[p + 2];
+            int derB = splineNodePack[p + 3];
+            int valB = splineNodePack[p + 4];
+            if (st_stage[f] == 0) {
+                float coord = spline_coord(ct, corner, sIdx, ix, iy, iz);
+                int i = spline_find_range(coord, locB, n);
+                st_coord[f] = coord; st_i[f] = i;
+                if (i < 0) {
+                    // D23：左边界外推遇嵌套 value 必须递归求值（非 0.0）
+                    if (splineValKind[valB] == 0) {
+                        outVal = splineValF[valB] + splineDers[derB] * (coord - splineLocs[locB]);
+                        sp--;
+                    } else {
+                        st_stage[f] = 4;   // 等边界 v0 子帧回填
+                        st_node[sp] = splineValNode[valB]; st_stage[sp] = 0; sp++;
+                    }
+                } else if (i >= n - 1) {
+                    // D23：右边界外推
+                    if (splineValKind[valB + n - 1] == 0) {
+                        outVal = splineValF[valB + n - 1] + splineDers[derB + n - 1] * (coord - splineLocs[locB + n - 1]);
+                        sp--;
+                    } else {
+                        st_stage[f] = 5;   // 等边界 vn 子帧回填
+                        st_node[sp] = splineValNode[valB + n - 1]; st_stage[sp] = 0; sp++;
+                    }
+                } else {
+                    st_stage[f] = 1;
+                    if (splineValKind[valB + i] == 0) {
+                        st_v0[f] = splineValF[valB + i];
+                        st_stage[f] = 2;
+                        if (splineValKind[valB + i + 1] == 0) {
+                            st_v1[f] = splineValF[valB + i + 1];
+                            float lo = splineLocs[locB + i];
+                            outVal = spline_hermite(coord, lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+                            sp--;
+                        } else {
+                            st_stage[f] = 3;
+                            st_node[sp] = splineValNode[valB + i + 1]; st_stage[sp] = 0; sp++;
+                        }
+                    } else {
+                        st_node[sp] = splineValNode[valB + i]; st_stage[sp] = 0; sp++;
+                    }
+                }
+            } else if (st_stage[f] == 4) {
+                // D23：边界 v0 子帧回填 → 左侧外推
+                float coord = st_coord[f];
+                outVal += splineDers[derB] * (coord - splineLocs[locB]);
+                sp--;
+            } else if (st_stage[f] == 5) {
+                // D23：边界 vn 子帧回填 → 右侧外推
+                float coord = st_coord[f];
+                outVal += splineDers[derB + n - 1] * (coord - splineLocs[locB + n - 1]);
+                sp--;
+            } else if (st_stage[f] == 1) {
+                // 等 v0 子帧回填
+                st_v0[f] = outVal;
+                st_stage[f] = 2;
+                int i = st_i[f];
+                if (splineValKind[valB + i + 1] == 0) {
+                    st_v1[f] = splineValF[valB + i + 1];
+                    float lo = splineLocs[locB + i];
+                    outVal = spline_hermite(st_coord[f], lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+                    sp--;
+                } else {
+                    st_stage[f] = 3;
+                    st_node[sp] = splineValNode[valB + i + 1]; st_stage[sp] = 0; sp++;
+                }
+            } else if (st_stage[f] == 2) {
+                // 瞬态（v0 子帧回填后 v1 也齐）：完成 Hermite
+                st_v1[f] = outVal;
+                int i = st_i[f];
+                float lo = splineLocs[locB + i];
+                outVal = spline_hermite(st_coord[f], lo, splineLocs[locB + i + 1] - lo, st_v0[f], st_v1[f], splineDers[derB + i], splineDers[derB + i + 1]);
+                sp--;
+            } else if (st_stage[f] == 3) {
+                // 等 v1 子帧回填 → Hermite 完成
+                float v1 = outVal;
+                int i = st_i[f];
+                float lo = splineLocs[locB + i];
+                outVal = spline_hermite(st_coord[f], lo, splineLocs[locB + i + 1] - lo, st_v0[f], v1, splineDers[derB + i], splineDers[derB + i + 1]);
+                sp--;
+            }
+        }
+        return outVal;
+    }
+
+    // ---- grid 缓存（path C：每 interp 每 chunk 的 5×49×5 去重网格 + 三线性）----
+    // thread_local（方案 i，对齐 production density.h tlSlots）：per-thread GridSlot 缓冲按 interpIdx 索引。
+    // GridSlot 含 key + grid + edgeCX/CZ + edgeCol（gx=4 列，跨 chunk 复用）。static 成员加 inline（multi-TU LNK2005 教训）。
+    struct GridSlot {
+        int64_t key = INT64_MIN;
+        float grid[49][5][5];
+        int edgeCX = INT32_MIN, edgeCZ = INT32_MIN;
+        float edgeCol[49][5];
+    };
+    static inline std::vector<GridSlot>& gridSlots() {
+        static thread_local std::vector<GridSlot> slots;
+        if (slots.size() < (size_t)N_INTERP) slots.resize((size_t)N_INTERP);
+        return slots;
+    }
+
+    // 构建某 interp 在某 chunk 的网格。关键正确性（勿违）：eval_df_base 的取值绑定 sIdx 的
+    // split 位置（非实参坐标），故每个网格节点必须用「该节点的 split」求值。grid 节点 (gx,gy,gz)
+    // 恰在 4/8 网格线上，是 cell (gx,gy,gz) 的 (dx,dy,dz)=(0,0,0) 角点 → corner 恒 0（split(节点坐标)
+    // 生成节点自身 split）。节点值唯一性已证：verif_grid_cache_correctness.md；用单实例 corner=0 等价
+    // production arg->sample(nodePos)。
+    // 优化：① per-cell split 去重（方案 a，不改生成器接口/布局翻转）——网格节点是其 cell 的 (0,0,0) 角点，
+    //   故逐 interior cell 调一次 split(cell 角点坐标) 即得该 cell corner0 节点值，无需像旧实现那样按节点整树重算；
+    //   单 splitCoord 缓冲逐 cell 复用（corner=0 下 per-cell 槽无跨节点共享，存 768×splitTotal 属冗余存储）。
+    // ② edgeCol——gx=4 列 == 右邻 chunk 的 gx=0 列（x 相同），存 gx=4 列供右邻复用其 gx=0 列（~20% 节点免算）。
+    // 注意：buildInterpGrid 会覆盖 splitCoord，需还原外层 eval_df 的非 interp 路径（block 位置）split。
+    void buildInterpGrid(int interpIdx, int chunkX, int chunkZ) {
+        GridSlot& s = gridSlots()[interpIdx];
+        std::vector<float> saved = splitCoord;   // 保留外层 (block 位置) 的 split（反 interp 路径）
+        if ((size_t)splitCoord.size() < (size_t)splitTotal) splitCoord.assign((size_t)splitTotal, 0.0f);
+
+        // edgeCol 复用条件：左邻 chunk (chunkX-1,chunkZ) 已建 → 本 chunk 的 gx=0 列 == 左邻 gx=4 列（x 相同）。
+        // 严格左邻标记 + 复用才拷贝；否则退回全建（正确性优先）。
+        const bool reuseLeft = (s.edgeCX == chunkX - 1 && s.edgeCZ == chunkZ);
+        if (reuseLeft) {
+            for (int gy = 0; gy < 49; gy++)
+                for (int gz = 0; gz < 5; gz++)
+                    s.grid[gy][gz][0] = s.edgeCol[gy][gz];
+        }
+
+        // per-cell split 去重（corner=0）：interior cell (cx,cy,cz) 的 (0,0,0) 角点 = 网格节点 (cx,cy,cz)。
+        // 逐 cell 算一次 split(cell 角点坐标) → 该 cell 8 角点展开，corner=0 即节点自身。gx=0 列若已从 edgeCol 复用则跳过。
+        for (int gy = 0; gy < 48; gy++) {
+            for (int gz = 0; gz < 4; gz++) {
+                for (int gx = 0; gx < 4; gx++) {
+                    if (gx == 0 && reuseLeft) continue;   // 已从 edgeCol 复用
+                    int nx = chunkX * 16 + gx * 4;
+                    int ny = minY + gy * 8;
+                    int nz = chunkZ * 16 + gz * 4;
+                    split(nx, ny, nz, splitCoord.data());     // 该 cell 的 8 角点展开（corner=0 = 节点自身）
+                    s.grid[gy][gz][gx] = eval_df_base(interpIdx, 0, 0, nx, ny, nz);
+                }
+            }
+        }
+        // 边界列/行：gx=4、gz=4、gy=48（跨 chunk/维度 cell 的 (0,0,0) 角点，直接 split 求值）。
+        for (int gy = 0; gy < 49; gy++) {
+            for (int gz = 0; gz < 5; gz++) {
+                for (int gx = 0; gx < 5; gx++) {
+                    if (gx < 4 && gy < 48 && gz < 4) continue;   // interior（已由 per-cell/edgeCol 填充）
+                    if (gx == 0 && reuseLeft) continue;          // 已从 edgeCol 复用
+                    int nx = chunkX * 16 + gx * 4;
+                    int ny = minY + gy * 8;
+                    int nz = chunkZ * 16 + gz * 4;
+                    split(nx, ny, nz, splitCoord.data());
+                    s.grid[gy][gz][gx] = eval_df_base(interpIdx, 0, 0, nx, ny, nz);
+                }
+            }
+        }
+        splitCoord.swap(saved);    // 还原（grid 值已存入 s.grid，无需保留节点 split；swap 免 <utility> 依赖）
+
+        // 存 edgeCol（gx=4 列）供右邻 chunk (chunkX+1,...) 复用其 gx=0 列；edgeCol 存网格节点原始值（未三线性）。
+        s.edgeCX = chunkX; s.edgeCZ = chunkZ;
+        for (int gy = 0; gy < 49; gy++)
+            for (int gz = 0; gz < 5; gz++)
+                s.edgeCol[gy][gz] = s.grid[gy][gz][4];
+        s.key = ((int64_t)chunkX << 32) | (chunkZ & 0xFFFFFFFFLL);
+    }
+
+    // 用 grid 缓存三线性采样 interp（先支持 sIdx=0 单点/整 chunk；sIdx 批量语义后续对齐，
+    // sIdx!=0 由 interp_N 回退原 8 角点重算）。三线性逻辑与现有 interp_N 一致。
+    float sampleInterpGrid(int interpIdx, int ix, int iy, int iz) {
+        int chunkX = floorDiv(ix, 16); int chunkZ = floorDiv(iz, 16);
+        int64_t key = ((int64_t)chunkX << 32) | (chunkZ & 0xFFFFFFFFLL);
+        GridSlot& s = gridSlots()[interpIdx];
+        if (s.key != key) buildInterpGrid(interpIdx, chunkX, chunkZ);
+        int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+        int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+        float fx = (float)(gx % 4) / 4.0f; float fy = (float)(gy % 8) / 8.0f; float fz = (float)(gz % 4) / 4.0f;
+        float d000 = s.grid[cy + 0][cz + 0][cx + 0];
+        float d100 = s.grid[cy + 0][cz + 0][cx + 1];
+        float d010 = s.grid[cy + 1][cz + 0][cx + 0];
+        float d110 = s.grid[cy + 1][cz + 0][cx + 1];
+        float d001 = s.grid[cy + 0][cz + 1][cx + 0];
+        float d101 = s.grid[cy + 0][cz + 1][cx + 1];
+        float d011 = s.grid[cy + 1][cz + 1][cx + 0];
+        float d111 = s.grid[cy + 1][cz + 1][cx + 1];
+        float d00 = d000 + (d100 - d000) * fx; float d10 = d010 + (d110 - d010) * fx;
+        float d01 = d001 + (d101 - d001) * fx; float d11 = d011 + (d111 - d011) * fx;
+        float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+        return d0 + (d1 - d0) * fz;
+    }
+
+    // ---- 解释器（D25：每 interp 只遍历自身 delegate 闭包，消除其他 interp 的 dead delegate 计算）----
+    // 闭包数组（CLOSURE_*）由 gen 从 _compute_val_layout 导出，与 GLSL CTYPE_N/CAx_N/CFx_N/SLOT_OF_N 同源。
+    // val[k] = 闭包内线性槽（CLOSURE_SLOT 映射闭包内位置→槽）；子节点 a1/a2/a3 已是闭包内位置。
+    float eval_df_base(int interpIdx, int corner, int sIdx, int ix, int iy, int iz) {
+        float val[CLOSURE_MAX_SLOTS];
+        int base = CLOSURE_OFF[interpIdx];
+        int len = CLOSURE_LEN[interpIdx];
+        for (int ci = 0; ci < len; ci++) {
+            int gi = base + ci;
+            int t = CLOSURE_TYPE[gi];
+            int a1 = CLOSURE_A1[gi]; int a2 = CLOSURE_A2[gi]; int a3 = CLOSURE_A3[gi];
+            float f0 = CLOSURE_F0[gi]; float f1 = CLOSURE_F1[gi]; float f2 = CLOSURE_F2[gi]; float f3 = CLOSURE_F3[gi];
+            float r = 0.0f;
+            if (t == 0) r = f0;                                            // DF_CONSTANT
+            else if (t == 1) r = (float)iy;                               // DF_Y
+            else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[a1] + corner * NOISE_SLOT_STRIDE[a1], sIdx);  // DF_NOISE/DF_SHIFTED_NOISE
+            else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[a1] + corner * NOISE_SLOT_STRIDE[a1], sIdx);            // DF_OLD_BLENDED
+            else if (t == 4) {                                            // DF_SPLINE
+                if (a2 == 1) r = spline_eval(a1, corner, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+                else r = spline_eval(a1, corner, sIdx, ix, iy, iz);
+            }
+            else if (t == 18) r = y_clamped_gradient(iy, f0, f1, f2, f3); // DF_Y_CLAMPED
+            else if (t == 10) r = std::fabs(val[CLOSURE_SLOT[base + a1]]);          // DF_ABS
+            else if (t == 11) { float v = val[CLOSURE_SLOT[base + a1]]; r = v * v; }           // DF_SQUARE
+            else if (t == 12) { float v = val[CLOSURE_SLOT[base + a1]]; r = v * v * v; }       // DF_CUBE
+            else if (t == 13) { float v = val[CLOSURE_SLOT[base + a1]]; r = (v > 0.0f ? v : v * 0.5f); }    // DF_HALF_NEG
+            else if (t == 14) { float v = val[CLOSURE_SLOT[base + a1]]; r = (v > 0.0f ? v : v * 0.25f); }   // DF_QUARTER_NEG
+            else if (t == 15) { float v = val[CLOSURE_SLOT[base + a1]]; float c = (v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v)); r = c / 2.0f - c * c * c / 24.0f; }  // DF_SQUEEZE
+            else if (t == 16) r = (val[CLOSURE_SLOT[base + a1]] > f1 ? f1 : (val[CLOSURE_SLOT[base + a1]] < f0 ? f0 : val[CLOSURE_SLOT[base + a1]]));  // DF_CLAMP
+            else if (t == 17) { float inp = val[CLOSURE_SLOT[base + a1]]; r = (inp >= f0 && inp < f1) ? val[CLOSURE_SLOT[base + a2]] : val[CLOSURE_SLOT[base + a3]]; }  // DF_RANGE_CHOICE
+            else if (t == 22) { float v = val[CLOSURE_SLOT[base + a1]]; float d = ws_scaleF((int)f0, v); r = d * std::fabs(normal_noise(NOISE_SLOT_BASE[a2] + corner * NOISE_SLOT_STRIDE[a2], sIdx)); }  // DF_WEIRD
+            else if (t == 20 || t == 21) r = val[CLOSURE_SLOT[base + a1]];                     // DF_BLEND_DENSITY/DF_FLAT_CACHE
+            else if (t == 6) r = val[CLOSURE_SLOT[base + a1]] + val[CLOSURE_SLOT[base + a2]]; // DF_ADD
+            else if (t == 7) r = val[CLOSURE_SLOT[base + a1]] * val[CLOSURE_SLOT[base + a2]]; // DF_MUL
+            else if (t == 8) r = std::min(val[CLOSURE_SLOT[base + a1]], val[CLOSURE_SLOT[base + a2]]);  // DF_MIN
+            else if (t == 9) r = std::max(val[CLOSURE_SLOT[base + a1]], val[CLOSURE_SLOT[base + a2]]);  // DF_MAX
+            else r = 0.0f;                                                // DF_INTERP(5)：delegate 树不含，防御 0
+            val[CLOSURE_SLOT[base + ci]] = r;
+        }
+        return val[CLOSURE_SLOT[base + CLOSURE_ROOT_POS[interpIdx]]];
+    }
+    float interp_N(int interpIdx, int sIdx, int ix, int iy, int iz) {
+        if (sIdx == 0) return sampleInterpGrid(interpIdx, ix, iy, iz);   // path C：grid 缓存（sIdx=0）
+        int chunkX = floorDiv(ix, 16); int chunkZ = floorDiv(iz, 16);
+        int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
+        int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
+        float fx = (float)(gx % 4) / 4.0f; float fy = (float)(gy % 8) / 8.0f; float fz = (float)(gz % 4) / 4.0f;
+        float d[8];
+        for (int c = 0; c < 8; c++) {
+            int dx = c & 1; int dy = (c >> 1) & 1; int dz = (c >> 2) & 1;
+            int ax = chunkX * 16 + (cx + dx) * 4;
+            int ay = minY + (cy + dy) * 8;
+            int az = chunkZ * 16 + (cz + dz) * 4;
+            d[c] = eval_df_base(interpIdx, c, sIdx, ax, ay, az);
+        }
+        float d00 = d[0] + (d[1] - d[0]) * fx; float d10 = d[2] + (d[3] - d[2]) * fx;
+        float d01 = d[4] + (d[5] - d[4]) * fx; float d11 = d[6] + (d[7] - d[6]) * fx;
+        float d0 = d00 + (d10 - d00) * fy; float d1 = d01 + (d11 - d01) * fy;
+        return d0 + (d1 - d0) * fz;
+    }
+    float eval_df(int sIdx, int ix, int iy, int iz) {
+        float val[VAL_SLOTS_TOP];
+        for (int ci = 0; ci < TOP_CLOSURE_LEN; ci++) {
+            int t = TOP_TYPE[ci];
+            int a1 = TOP_A1[ci]; int a2 = TOP_A2[ci]; int a3 = TOP_A3[ci];
+            float f0 = TOP_F0[ci]; float f1 = TOP_F1[ci]; float f2 = TOP_F2[ci]; float f3 = TOP_F3[ci];
+            float r = 0.0f;
+            if (t == 5) { r = interp_N(a1, sIdx, ix, iy, iz); val[TOP_SLOT[ci]] = r; continue; }   // DF_INTERP → interp_N
+            if (t == 0) r = f0;
+            else if (t == 1) r = (float)iy;
+            else if (t == 2 || t == 19) r = normal_noise(NOISE_SLOT_BASE[a1], sIdx);    // corner=0
+            else if (t == 3) r = interp_noise(NOISE_SLOT_BASE[a1], sIdx);
+            else if (t == 4) {
+                if (a2 == 1) r = spline_eval(a1, 0, sIdx, (ix >> 2) << 2, 0, (iz >> 2) << 2);
+                else r = spline_eval(a1, 0, sIdx, ix, iy, iz);
+            }
+            else if (t == 18) r = y_clamped_gradient(iy, f0, f1, f2, f3);
+            else if (t == 10) r = std::fabs(val[TOP_SLOT[a1]]);
+            else if (t == 11) { float v = val[TOP_SLOT[a1]]; r = v * v; }
+            else if (t == 12) { float v = val[TOP_SLOT[a1]]; r = v * v * v; }
+            else if (t == 13) { float v = val[TOP_SLOT[a1]]; r = (v > 0.0f ? v : v * 0.5f); }
+            else if (t == 14) { float v = val[TOP_SLOT[a1]]; r = (v > 0.0f ? v : v * 0.25f); }
+            else if (t == 15) { float v = val[TOP_SLOT[a1]]; float c = (v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v)); r = c / 2.0f - c * c * c / 24.0f; }
+            else if (t == 16) r = (val[TOP_SLOT[a1]] > f1 ? f1 : (val[TOP_SLOT[a1]] < f0 ? f0 : val[TOP_SLOT[a1]]));
+            else if (t == 17) { float inp = val[TOP_SLOT[a1]]; r = (inp >= f0 && inp < f1) ? val[TOP_SLOT[a2]] : val[TOP_SLOT[a3]]; }
+            else if (t == 22) { float v = val[TOP_SLOT[a1]]; float d = ws_scaleF((int)f0, v); r = d * std::fabs(normal_noise(NOISE_SLOT_BASE[a2], sIdx)); }
+            else if (t == 20 || t == 21) r = val[TOP_SLOT[a1]];
+            else if (t == 6) r = val[TOP_SLOT[a1]] + val[TOP_SLOT[a2]];
+            else if (t == 7) r = val[TOP_SLOT[a1]] * val[TOP_SLOT[a2]];
+            else if (t == 8) r = std::min(val[TOP_SLOT[a1]], val[TOP_SLOT[a2]]);
+            else if (t == 9) r = std::max(val[TOP_SLOT[a1]], val[TOP_SLOT[a2]]);
+            val[TOP_SLOT[ci]] = r;
+        }
+        return val[TOP_SLOT[TOP_ROOT_POS]];
+    }
+    float eval_density(int sIdx, int ix, int iy, int iz) {
+        return eval_df(sIdx, ix, iy, iz);
+    }
+
+    // ---- 便捷入口：单点采样（prepare splitCoord + eval_density sIdx=0）----
+    void prepare(int x, int y, int z) {
+        splitCoord.assign((size_t)splitTotal, 0.0f);
+        split(x, y, z, splitCoord.data());
+    }
+    float sample(int x, int y, int z) {
+        if ((size_t)splitCoord.size() < (size_t)splitTotal) splitCoord.assign((size_t)splitTotal, 0.0f);
+        // grid 命中（同 chunk）时 interp 走 grid，非 interp 只读 @c0 → splitTop（整树 split 的 1/8），
+        // 避免每点整树 split()。splitTop 只覆盖 interp delegate 的 @c0 + 顶层 spline 坐标；这是
+        // eval_density(sIdx=0) 非 interp 路径所需的全部 split（见 gen_cpu 的 splitTop 注释）。
+        // grid miss 时 buildInterpGrid 内部仍用全量 split() 建网格并把 splitCoord.swap(saved) 还原为
+        // 本行的 splitTop 结果，@c0 非 interp 读值保持不变。
+        splitTop(x, y, z, splitCoord.data());
+        return eval_density(0, x, y, z);
+    }
+"""
+
+        funcs = funcs.replace("{coord_fold_lines}", coord_fold_lines)
+        funcs = funcs.replace("{grid_key_init}", grid_key_init)
+
+        return tables + funcs
 
     def _old_blended_func(self, idx, p, octBase, splitBase):
         # CPU 预拆分 5 参数 sample（7 值/octave），GPU 纯 float 采样 + float 累加（无 fp64）

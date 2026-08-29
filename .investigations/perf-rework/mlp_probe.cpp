@@ -16,7 +16,7 @@ static double wall() { using namespace std::chrono; return duration<double, std:
 int main(int argc, char** argv) {
     int N = argc >= 2 ? atoi(argv[1]) : 200000;
     int mode = argc >= 3 ? atoi(argv[2]) : 2;   // 1=seq; 2=soft4; 3=soft8
-    const size_t SZ = 4u * 1024 * 1024;          // 4MB 数组（超 L2，模拟 L2/LLC 访存延迟）
+    const size_t SZ = 32u * 1024 * 1024;         // 32MB 数组（超 L3 16.5MB，模拟 production 真实 DRAM 访存 miss）
     std::vector<double> a(SZ); for (size_t i = 0; i < SZ; i++) a[i] = i * 0.001;
     std::vector<double> b(SZ); for (size_t i = 0; i < SZ; i++) b[i] = (i * 3) % 103 * 0.01;
     // 伪随机索引（cache miss，贴近生产访存延迟放大）
