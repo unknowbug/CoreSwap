@@ -15,6 +15,12 @@ static NEXT_CACHE_ID: AtomicU32 = AtomicU32::new(0);
 #[doc(hidden)]
 pub static GRID_ARG_SAMPLES: AtomicU32 = AtomicU32::new(0);
 
+/// ShiftDF（offset noise shift）构造：分配缓存 id（y 无关 Cache2D 缓存）。
+pub fn shift_df(noise: Arc<DoublePerlinNoiseSampler>, mode: ShiftMode) -> DensityFunction {
+    let id = NEXT_CACHE_ID.fetch_add(1, Ordering::Relaxed);
+    DensityFunction::ShiftDF { noise, mode, id }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BinOp { Add, Mul, Min, Max }
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -362,6 +368,12 @@ thread_local! {
     // 性能：HashMap → Vec 直接下标（同 INTERP_CACHE）
     static FLAT_CACHE: RefCell<Vec<Option<Box<RefCell<FlatSlot>>>>> = RefCell::new(Vec::new());
 }
+// ShiftDF（offset noise，实测 y 无关）：按 (cx,cz) 缓存单值（y 无关 → Cache2D 语义）
+#[derive(Clone)]
+pub struct ShiftSlot { cx: i32, cz: i32, value: f64 }
+thread_local! {
+    static SHIFT_CACHE: RefCell<Vec<Option<Box<RefCell<ShiftSlot>>>>> = RefCell::new(Vec::new());
+}
 #[derive(Clone)]
 pub struct FlatCacheData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
 impl FlatCacheData {
@@ -421,7 +433,7 @@ pub enum DensityFunction {
     Interpolated(InterpolatedData),
     Cache2D(Cache2DData),
     FlatCache(FlatCacheData),
-    ShiftDF { noise: Arc<DoublePerlinNoiseSampler>, mode: ShiftMode },
+    ShiftDF { noise: Arc<DoublePerlinNoiseSampler>, mode: ShiftMode, id: u32 },
     ShiftedNoise { shift_x: Box<DensityFunction>, shift_y: Box<DensityFunction>, shift_z: Box<DensityFunction>, xz_scale: f64, y_scale: f64, noise: Arc<DoublePerlinNoiseSampler> },
     RangeChoice { input: Box<DensityFunction>, min_inclusive: f64, max_exclusive: f64, in_range: Box<DensityFunction>, out_of_range: Box<DensityFunction> },
     YClampedGradient { from_y: i32, to_y: i32, from_value: f64, to_value: f64 },
@@ -473,14 +485,26 @@ impl DensityFunction {
             DensityFunction::Interpolated(id) => id.sample(pos),
             DensityFunction::Cache2D(c) => c.sample(pos),
             DensityFunction::FlatCache(f) => f.sample(pos),
-            DensityFunction::ShiftDF { noise, mode } => {
-                let (mut x, mut y, mut z) = (pos.x as f64, pos.y as f64, pos.z as f64);
-                match mode {
-                    ShiftMode::Shift => {}
-                    ShiftMode::ShiftA => { y = 0.0; }
-                    ShiftMode::ShiftB => { x = pos.z as f64; y = pos.x as f64; z = 0.0; }
-                }
-                noise.sample(x * 0.25, y * 0.25, z * 0.25) * 4.0
+            DensityFunction::ShiftDF { noise, mode, id } => {
+                // ShiftDF 实测 y 无关（offset noise 只依赖 xz）→ 按 (x, z) 缓存（Cache2D 语义）
+                // key 用实际采样坐标：Shift/ShiftA 用 (x,z)；ShiftB 用 (z,x)。同 xz 不同 y 的 corners 命中。
+                let (key_x, key_z, mut x, mut y, mut z) = match mode {
+                    ShiftMode::ShiftB => (pos.z, pos.x, pos.z as f64, pos.x as f64, 0.0),
+                    _ => (pos.x, pos.z, pos.x as f64, { 0.0 }, pos.z as f64),
+                };
+                let key = ((key_x as i64) << 32) ^ (key_z as u32 as i64);
+                SHIFT_CACHE.with(|m| {
+                    let mut m = m.borrow_mut();
+                    if m.len() <= *id as usize { m.resize(*id as usize + 1, None); }
+                    let slot = m[*id as usize].get_or_insert_with(|| Box::new(RefCell::new(ShiftSlot { cx: 0, cz: 0, value: 0.0 })));
+                    let mut slot = slot.borrow_mut();
+                    if slot.cx != key_x || slot.cz != key_z {
+                        slot.cx = key_x; slot.cz = key_z;
+                        // ShiftB 已在 match 设置 x/y/z；Shift/ShiftA 走 y=0（实测 y 无关）
+                        slot.value = noise.sample(x * 0.25, y * 0.25, z * 0.25) * 4.0;
+                    }
+                    slot.value
+                })
             }
             DensityFunction::ShiftedNoise { shift_x, shift_y, shift_z, xz_scale, y_scale, noise } => {
                 let d = pos.x as f64 * xz_scale + shift_x.sample_ctx(pos, interp);
@@ -614,7 +638,7 @@ fn macrolize_into(df: &DensityFunction, channels: &mut Vec<Arc<DensityFunction>>
             DensityFunction::Cache2D(Cache2DData::new(Arc::new(macrolize_into(&c.arg, channels)))),
         DensityFunction::FlatCache(f) =>
             DensityFunction::FlatCache(FlatCacheData::new(Arc::new(macrolize_into(&f.arg, channels)))),
-        DensityFunction::ShiftDF { noise, mode } => DensityFunction::ShiftDF { noise: noise.clone(), mode: *mode },
+        DensityFunction::ShiftDF { noise, mode, id } => DensityFunction::ShiftDF { noise: noise.clone(), mode: *mode, id: *id },
         DensityFunction::ShiftedNoise { shift_x, shift_y, shift_z, xz_scale, y_scale, noise } =>
             DensityFunction::ShiftedNoise {
                 shift_x: Box::new(macrolize_into(shift_x, channels)),

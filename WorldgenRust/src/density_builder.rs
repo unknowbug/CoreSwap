@@ -175,14 +175,14 @@ impl DensityBuilder {
         if let Some(s) = self.registry.get(key) { return s.clone(); }
         if key == "minecraft:shift_x" {
             let ns = self.get_noise_sampler("minecraft:offset");
-            let df = DensityFunction::Wrapping { input: Box::new(DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftA }) };
+            let df = DensityFunction::Wrapping { input: Box::new(crate::density::shift_df(ns, ShiftMode::ShiftA)) };
             let rc = Arc::new(df);
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
         if key == "minecraft:shift_z" {
             let ns = self.get_noise_sampler("minecraft:offset");
-            let df = DensityFunction::Wrapping { input: Box::new(DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftB }) };
+            let df = DensityFunction::Wrapping { input: Box::new(crate::density::shift_df(ns, ShiftMode::ShiftB)) };
             let rc = Arc::new(df);
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
@@ -306,9 +306,9 @@ impl DensityBuilder {
                 let sz = self.opt_shift(v, "shift_z")?;
                 DensityFunction::ShiftedNoise { shift_x: Box::new(sx), shift_y: Box::new(sy), shift_z: Box::new(sz), xz_scale: xz, y_scale: y, noise: ns }
             }
-            "minecraft:shift_a" => { let ns = self.get_noise_sampler_from_obj(v); DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftA } }
-            "minecraft:shift_b" => { let ns = self.get_noise_sampler_from_obj(v); DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::ShiftB } }
-            "minecraft:shift" => { let ns = self.get_noise_sampler_from_obj(v); DensityFunction::ShiftDF { noise: ns, mode: ShiftMode::Shift } }
+            "minecraft:shift_a" => { let ns = self.get_noise_sampler_from_obj(v); crate::density::shift_df(ns, ShiftMode::ShiftA) }
+            "minecraft:shift_b" => { let ns = self.get_noise_sampler_from_obj(v); crate::density::shift_df(ns, ShiftMode::ShiftB) }
+            "minecraft:shift" => { let ns = self.get_noise_sampler_from_obj(v); crate::density::shift_df(ns, ShiftMode::Shift) }
             "minecraft:range_choice" => {
                 let input = self.build_node(self.arg(v, "input"))?;
                 let mn = v.get("min_inclusive").and_then(|x| x.as_f64()).unwrap_or(0.0);
