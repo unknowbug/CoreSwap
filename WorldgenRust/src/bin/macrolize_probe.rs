@@ -30,6 +30,13 @@ fn main() {
     let n_readch = count_readch(&combine);
     println!("combine 树残留 Interpolated: {}; ReadChannel: {} (期望 0 / >=1)", n_interp_left, n_readch);
 
+    // 验证 channels 的 inner 是否「纯」（无嵌套 Interpolated / 无 ReadChannel → 可独立 corners 采样不雪崩）
+    for (i, ch) in channels.iter().enumerate() {
+        let ci = count_interp(ch);
+        let cr = count_readch(ch);
+        println!("  ch#{} inner 残留 Interpolated: {}, 残留 ReadChannel: {} (期望 0/0 = 纯, 可独立采样)", i, ci, cr);
+    }
+
     // 简单数值 sanity：ReadChannel 用固定 channel 值，combine 应产出确定值
     let pos = WorldgenRust::density::NoisePos { x: -288*16+4, y: 4, z: -256*16+4 };
     let interp: Vec<f64> = (0..channels.len()).map(|i| i as f64 * 0.01).collect();
