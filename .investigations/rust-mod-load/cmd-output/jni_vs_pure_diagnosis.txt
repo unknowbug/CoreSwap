@@ -1,0 +1,9 @@
+
+=== JNI vs 纯 Rust vs Java 诊断（2026-08-29）===
+- JniProbe（JNI 多线程全并行）：14ms/chunk（JNI 数据传递开销小，不是主瓶颈）
+  - 注：Rust wg_fill_blocks_multi 忽略 threads 参数总全并行（JniProbe threads=1 无效）
+- pipeline_bench_single（纯 Rust 单线程）：121ms/chunk（median，region 200,200）
+- Java WorldGenBench（单线程 FULL）：~60ms/chunk（median）
+结论：问题不在 JNI（JNI 多线程很快），而在 Rust 纯管线单线程慢（121 vs 60）。
+用户实机"慢"场景 = 区块加载单线程/小批量 → 暴露 Rust 单线程 121ms。
+Rust 内部 carver 占 72%（-288 区域 12 个 chunk 测，需在实机区域 200,200 确认）。
