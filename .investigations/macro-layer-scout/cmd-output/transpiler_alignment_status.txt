@@ -1,0 +1,16 @@
+
+=== build-time transpiler 完整实现 + CSE 成果（2026-08-29）===
+- 22 节点类型全实现 + references 全 resolve + 嵌套 spline + CSE
+- CSE：15MB -> 107KB 生成代码（812 spline_helper），编译通过
+- 对齐验证（transpiler_alignment）：max_diff=0.43（未对齐）
+
+对齐未达原因（待处理）：
+1. noise 注册/seed 派生可能仍不对（transpiler vs 运行时）
+2. old_blended_noise（InterpolatedNoise）未实现（sample_blended_noise 返回 0）——sloped_cheese 内部有
+3. interpolated 竖切（channel）未做（transpiler 直接内联 inner）
+
+下一步：
+- 实现 old_blended_noise（InterpolatedNoise 采样）
+- 确认 noise 注册/seed 派生
+- interpolated 竖切（channel）
+- 对齐验证（features_probe）
