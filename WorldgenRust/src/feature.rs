@@ -544,9 +544,6 @@ impl FreezeTopLayerFeature {
     // 需要 biome 温度（<0 且降水 SNOW 才冻结）——C++ BiomeEntry 简化：temperature/rainfall 参数
     pub fn generate(&self, ctx: &mut OreFeatureContext, biome_temp: f32, _biome_rainfall: f32, _random: &mut ChunkRandom) -> bool {
         let snowy = biome_temp < 0.0; // canSetSnow 主条件（precipitation==SNOW 由温度近似）
-        if std::env::var("WG_FEATURELOG").is_ok() {
-            eprintln!("[FROZEN] biome_temp={} snowy={}", biome_temp, snowy);
-        }
         if !snowy { return true; }       // -288 冷洋不冻结——直接返回
         let ice_id = ctx.blocks.id("minecraft:ice");
         let snow_id = ctx.blocks.id("minecraft:snow_block");
@@ -556,9 +553,6 @@ impl FreezeTopLayerFeature {
                 let wz = ctx.chunk_start_z + lz;
                 // 用 WORLD_SURFACE_WG（海面）而非 OCEAN_FLOOR_WG（海底）——vanilla FreezeTopLayer 冻结海面
                 let top_y = ctx.get_world_surface_top_y(wx, wz);
-                if std::env::var("WG_FEATURELOG").is_ok() && lx == 0 && lz == 0 {
-                    eprintln!("[FROZEN] csx={} csz={} wx={} wz={} top_y={}", ctx.chunk_start_x, ctx.chunk_start_z, wx, wz, top_y);
-                }
                 if top_y < ctx.min_y { continue; }
                 // canSetIce(world, top.down())：top.down 是水/空气且可放冰
                 ctx.set_block(wx, top_y - 1, wz, ice_id);

@@ -234,9 +234,6 @@ impl WorldgenHandle {
 
         // 3. build_surface（具体 block id：grass/sand/terracotta 等）
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
-        if std::env::var("WG_FEATURELOG").is_ok() && cx == -18 && cz == -16 {
-            eprintln!("[FEATURE] heightmap sample: col(0,0)={} col(8,8)={} col(15,15)={}", heightmap[0], heightmap[8*16+8], heightmap[15*16+15]);
-        }
         let est_at = |x: i32, z: i32| -> i32 {
             let mut est = i32::MAX;
             for y in (min_y..min_y + height).rev().step_by(8) {
