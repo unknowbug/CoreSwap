@@ -1,0 +1,15 @@
+
+=== Aquifer.apply 内部精确分类（aquifer_internal_profile，region 200,200，4 chunks，2026-08-29）===
+| 部分 | 耗时/chunk | 占比 |
+|---|---|---|
+| calculate_density | 19.68ms | 52% (最大头) |
+| get_block_pos(3x3 邻域) | 5.30ms | 14% |
+| get_water_level_at | 0.89ms | 2% |
+| apply 总 | 38.02ms | 占 wall 48% |
+
+关键：
+- calculate_density 是 aquifer 最大头（52%），含 barrier.sample（md 缓存 1 次/apply）+ fluid level 逻辑 + 最多 3 次调用
+- get_block_pos 有 block_positions 缓存但 18 次/点仍 5.3ms
+- barrier 单独采样 ~5.94ms；calculate_density 19.68ms 含 3 次调用 + 算术/分支
+
+优化候选：calculate_density 的 barrier.sample 跨点缓存 / 减少 3 次调用 / fluid 逻辑优化

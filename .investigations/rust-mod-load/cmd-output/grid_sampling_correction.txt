@@ -1,0 +1,16 @@
+
+=== 网格缓存采样方向验证（grid_sampling_bench，2026-08-29）===
+- 逐点采样(Rust当前): 6.37ms/chunk
+- Java式网格采样(先采样 4x4x8 网格交点 ~1225 点,再三线性插值): 2030ms/chunk (320x 慢!)
+=> 网格采样方向在 Rust 当前实现下不可行（2000ms）。
+
+原因：网格交点采样走 internal interpolated 的 chunk 网格构建，交点跨 chunk 边界
+反复触发 chunk 网格重建 + 三线性插值开销。
+
+关键修正：
+1. final_density 裸逐点采样只要 6.37ms（不慢）——fill_chunk 里 dense 12ms 需另查
+2. 真正核心 = aquifer 17.5ms（calculate_density: barrier.sample + fluid 逻辑 + 最多3次调用）
+3. 不能靠「外层网格采样」提速，需深入 aquifer 本身
+
+下一步：精确无污染测 aquifer 内部（barrier.sample vs fluid 逻辑 vs 3x3 邻域），
+找出 calculate_density 里真正贵的部分。

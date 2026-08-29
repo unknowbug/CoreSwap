@@ -2158,3 +2158,37 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 结论：09 篇「七、Rust 世界参数化」+ WorldgenRust/data-driven-boundary.md 多世界章节。
 - 错误台账：.investigations/multiworld-port/multiworld-errors.md（M1/M2 五段式）。
 - **遗留**：fill_chunk_blocks 的 carver/features/ore_vein 仍是主世界逻辑，nether/MOD 维度的生成逻辑差异化（暮色森林接入时精化）。
+
+---
+
+## 2026-08-29 Rust worldgen 端到端性能定位（aquifer 最大头，慢 Java 5 倍）
+
+> 承接 07 篇「Rust worldgen 端到端性能定位」小节 + .investigations/perf-e2e/ + perf-e2e-errors.md 错误台账（P1-P3）。
+
+### 🔍 一、density 方向修正（11f478f，judge 推翻）
+- density_tree_profile：finalDensity 3710 节点（无指数膨胀，Spline 仅 9）。
+- 原判「Interpolated 632ms → 放弃」被 judge 推翻：632ms 是双层 Interpolated 污染（内层 mesh 跨 chunk 雪崩重建 291×）。
+- judge 实测单层 Interpolated 对 SplineDF = 70× 加速（83.74→1.19ms），Interpolated 是密度优化正解。
+
+### 🔍 二、fill_chunk 内部定位（597e8d5）
+- classify(aquifer) 43-64% 是 fill_chunk 最大头（有污染但相对占比可信）。
+
+### ❌ 三、诊断代码热路径污染（P2，d9ff1e2）
+- AQPROF atomic / Instant::now ×3 / env::var 每点执行（98304 次/chunk）→ 27% 退化（61.5→44.9ms），用户提醒「断点污染」坑后迁移到 chunk 级门控。
+
+### ❌ 四、端到端基准重大修正（P3）
+- 早期「Java 60ms」是 JIT 未热错误基准 → 误判 Rust 达标（「积累性差异」担忧）。
+- 充分预热后 Java FULL 只要 ~8-9ms/chunk，Rust 44.9ms 慢 ~5 倍。
+
+### ✅ 五、无污染重定位（本轮）
+- base（fill_chunk+surface）29.4ms：aquifer 增量 ~17.5ms（60%）> density ~12ms > carver 14ms > surface ~4ms。
+- 一个 aquifer（17.5ms）就比 Java 全部（8-9ms）慢 2 倍——优化应聚焦 aquifer。
+- aquifer 内部：calculate_density 52%（barrier.sample 无 Cache2D 缓存 + fluid 逻辑）、get_block_pos 3×3 邻域 14%、get_water_level_at 2%。
+
+### 🧰 六、铁律沉淀（用户拍板）
+- AGENTS.md 新增「端到端性能对比铁律」（必须端到端对比充分预热的 Java；诊断代码不能放热路径每点执行）。
+
+### 📌 记录指引
+- 错误台账：.investigations/perf-e2e/perf-e2e-errors.md（P1-P3 五段式 + 速查表）。
+- 结论：07 篇「Rust worldgen 端到端性能定位」小节。
+- 域边界：端到端数字 = Partial 快照；优化方向（aquifer barrier 缓存 / 单层 Interpolated / DFC）= candidate 待立项验证。

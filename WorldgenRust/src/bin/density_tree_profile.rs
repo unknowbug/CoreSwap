@@ -61,7 +61,10 @@ fn main() {
     }));
     let settings = parse(&std::fs::read_to_string(format!("{}/data/minecraft/worldgen/noise_settings/overworld.json", wg_dir)).unwrap()).unwrap();
     let router = settings.get("noise_router").unwrap();
-    let tree: Arc<DensityFunction> = Arc::new(db.build_node(router.get("final_density").unwrap()).ok().unwrap());
+    // 支持测任意 router DF（默认 final_density，可用 env DENSITY_TREE_KEY 指定）
+    let key = std::env::var("DENSITY_TREE_KEY").unwrap_or_else(|_| "final_density".to_string());
+    let tree: Arc<DensityFunction> = Arc::new(db.build_node(router.get(key.as_str()).unwrap()).ok().unwrap());
+    println!("=== {} tree node counts ===", key);
     let mut counters = HashMap::new();
     count(&tree, &mut counters);
     let mut items: Vec<_> = counters.into_iter().collect();

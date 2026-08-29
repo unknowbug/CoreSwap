@@ -781,3 +781,41 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - Beardifier 接入后探针无 beard 数据 → 对齐率不变（探针场景无结构区）。
 - 错误台账：.investigations/rust-mod-load/functional-errors.md（F1-F3 五段式 + 速查表）。
 - 对齐快照：.investigations/rust-mod-load/cmd-output/pipeline_alignment.txt。
+
+## 2026-08-29 Rust worldgen 端到端性能定位（aquifer 是最大头，整体慢 Java 5 倍）
+
+> 背景：Rust 全量重写 worldgen（WorldgenRust/）功能链闭合后进入性能定位。本小节记性能定位结论与优化方向（中价值）；错误链条（双层 Interpolated 污染 / 诊断热路径污染 / Java 基准未热）见 .investigations/perf-e2e/perf-e2e-errors.md（P1-P3）。
+
+### 端到端对比（Java 充分预热）
+
+- **Java 原版（WorldGenBench FULL 含树花植被，充分预热 JIT）**：稳定后 ~8-9ms/chunk（排除首个冷启动）。
+- **Rust（fill_chunk_blocks 无树花，清理诊断污染后）**：44.9ms/chunk → **慢 ~5 倍**。
+- ⚠️ 早期「Java 60ms」是 JIT 未热的错误基准，据此误判 Rust 达标；真实 Java 只要 8-9ms。**端到端必须对比充分预热的 Java**（AGENTS.md「端到端性能对比铁律」）。
+
+### 无污染重定位：fill_chunk+surface base 29.4ms 内部构成（region 200,200 单线程）
+
+| 组成部分 | 增量 | 占比/备注 |
+|---|---|---|
+| **aquifer（含水层 classify）** | **~17.5ms** | **60%（最大头）** |
+| density（finalDensity 采样，含内部 Interpolated 网格首建） | ~12ms | 次大头 |
+| carver / surface | ~14 / 4ms | carver 属完整管线阶段 |
+
+### aquifer 内部 profile（4 chunks）
+
+| 部分 | 耗时/chunk | 占比 |
+|---|---|---|
+| **calculate_density** | 19.68ms | **52%（最大头）** |
+| get_block_pos（3×3 邻域） | 5.30ms | 14% |
+| get_water_level_at | 0.89ms | 2% |
+
+- **calculate_density 是 aquifer 内部最大头**：barrier.sample（1 个 3D Noise 节点，无 Cache2D 缓存）+ fluid 逻辑 + 最多 3 次调用。
+
+### 优化方向（candidate）
+
+1. **aquifer 的 barrier.sample 跨点缓存 / 减少 calculate_density 3 次调用 / fluid 逻辑优化**——aquifer 是 base 内最大单头（17.5ms，60%）。
+2. **density**：单层 Interpolated 对 SplineDF 实测加速 70×（judge 已验证），是密度优化正解；需单层生产化验证。
+3. **carver / surface**：相对小头，后置。
+
+### 域/边界
+
+- 验证分层 = Partial；数值为当前快照，随优化变化。端到端必须用充分预热的 Java 基准。
