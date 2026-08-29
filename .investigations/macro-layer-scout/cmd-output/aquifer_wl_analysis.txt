@@ -1,0 +1,14 @@
+
+=== get_water_level_at 调用/命中分析（aquifer_wl_probe，2026-08-29）===
+- get_water_level_at calls: 107561/chunk（~1.1 次/点，非 3 次——apply 里 r/s/t 但很多点提前返回）
+- miss: 163/chunk（0.2%）—— water_levels 缓存命中率 99.8%
+- miss 触发 get_fluid_level 很少（163/chunk）
+
+关键：
+- get_water_level_at 命中率高（99.8%），成本 = unpack+index+数组访问（便宜）
+- 不是主要优化点（命中时便宜）
+- aquifer apply 15ms 剩余 ~5-6ms = apply 固定开销（每点 98304 次调用：函数调用+分支+3x3 距离计算+unpack+max_distance）
+
+优化方向：
+- apply 固定开销（~5-6ms/98304 点 = ~55ns/点）—— 3x3 距离计算(18次 unpack+距离+if) + 分支
+- 3x3 邻域 2.62ms + get_water_level_at 3.38ms 是主要可解释部分

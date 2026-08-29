@@ -23,6 +23,19 @@ pub fn aquifer_barrier_count_reset() -> usize {
     BARRIER_COUNT.swap(0, std::sync::atomic::Ordering::Relaxed)
 }
 
+// WG_AQUIFERWL（单线程诊断）：统计 get_water_level_at 调用次数 + miss 次数（miss 触发 get_fluid_level）
+static WL_WATCH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+thread_local! {
+    static WL_COUNT: std::cell::RefCell<[usize; 2]> = std::cell::RefCell::new([0, 0]); // [calls, miss]
+}
+pub fn aquifer_wl_watch(on: bool) {
+    WL_WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
+    if on { WL_COUNT.with(|c| *c.borrow_mut() = [0, 0]); }
+}
+pub fn aquifer_wl_count_reset() -> [usize; 2] {
+    WL_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
+}
+
 #[derive(Clone, Copy)]
 pub struct FluidLevel { pub y: i32, pub block: i32 }
 impl FluidLevel {
@@ -278,11 +291,13 @@ impl Aquifer {
     }
 
     fn get_water_level_at(&mut self, pos: i64) -> FluidLevel {
+        if WL_WATCH.load(std::sync::atomic::Ordering::Relaxed) { WL_COUNT.with(|c| c.borrow_mut()[0] += 1); }
         let i = Self::unpack_x(pos); let j = Self::unpack_y(pos); let k = Self::unpack_z(pos);
         let bx = floor_div(i, 16); let by = floor_div(j, 12); let bz = floor_div(k, 16);
         let o = self.index(bx, by, bz);
         let fl = self.water_levels[o];
         if fl.y != i32::MAX { return fl; }
+        if WL_WATCH.load(std::sync::atomic::Ordering::Relaxed) { WL_COUNT.with(|c| c.borrow_mut()[1] += 1); }
         let nf = self.get_fluid_level(i, j, k);
         self.water_levels[o] = nf;
         nf
