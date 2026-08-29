@@ -287,7 +287,7 @@ impl WorldgenHandle {
                 crate::terrain::BlockKind::Lava => lava_id,
             };
             // 矿脉（只替换 rock 处的深部块，且 ore_vein.apply 返回非 -1）
-            if kind == crate::terrain::BlockKind::Rock {
+            if kind == crate::terrain::BlockKind::Rock && std::env::var("WG_SKIP_OREVEIN").is_err() {
                 let vein = self.ore_vein.apply(wx, y, wz);
                 if vein >= 0 { id = vein; }
             }
@@ -317,7 +317,9 @@ impl WorldgenHandle {
                               &biome_at, &|x, y, z| ((x as i64) << 32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
 
         // 4. carver（洞穴雕刻，17×17 邻域）
-        self.apply_carvers(&mut col, cx, cz, &mut va.aq, &biome_at);
+        if std::env::var("WG_SKIP_CARVER").is_err() {
+            self.apply_carvers(&mut col, cx, cz, &mut va.aq, &biome_at);
+        }
 
         // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
         let skip_features = std::env::var("WG_SKIP_FEATURES").is_ok();

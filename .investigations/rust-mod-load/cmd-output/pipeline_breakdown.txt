@@ -1,0 +1,10 @@
+=== 完整管线组件量化（pipeline_breakdown，2026-08-29）===
+(seed=-8248318472910187742, 8 chunks -288..-285 / -256..-253)
+
+- 完整管线: per-chunk=201.02ms
+- 无 ore_vein: per-chunk=206.23ms  (ore_vein 增量 ~0)
+- 无 carver:  per-chunk=56.74ms    (carver 增量 ~144ms = 72%！)
+- 无 features: per-chunk=205.52ms  (features 增量 ~0)
+
+结论：carver（洞穴雕刻 17x17 邻域）是完整管线最大瓶颈（~144ms/chunk，72%）。
+ore_vein / features 增量极小（~0）。

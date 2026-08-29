@@ -1,0 +1,5 @@
+
+完整管线基准：density+aquifer+ore_vein+surface+carver+features
+单线程 16 chunks: wall=3337.6ms per-chunk=208.60ms
+thread::scope 64 chunks: wall=1427.9ms per-chunk=22.31ms (全并行)
+
