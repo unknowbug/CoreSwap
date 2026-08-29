@@ -1,0 +1,12 @@
+
+=== transpiler fill 缓存冷 vs 热（2026-08-29）===
+- transpiler fill 单次(缓存冷, 不同 corner): 35μs
+- transpiler fill 单次(缓存热, 连续调用): 7μs
+- 缓存冷慢 5 倍
+
+关键：transpiler cell grid 构建（不同 corner，缓存冷）单次 35μs
+- 运行时 Interpolated grid 构建 6.6μs/corner（有缓存复用）
+- transpiler 无缓存（每 corner 采样 5 channels 完整树）
+
+结论：transpiler 慢主因 = cell grid 构建无缓存（缓存冷 35μs vs 运行时 6.6μs）
+- 需要缓存优化（noise 采样复用 / cell grid 复用）
