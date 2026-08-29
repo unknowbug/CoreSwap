@@ -1,0 +1,8 @@
+=== Java 原版性能基准（WorldGenBench，2026-08-29）===
+(seed=-8248318472910187742, 4x4 chunks origin(200,200), FULL 状态生成含树花植被)
+- 第1 chunk(冷启动/JIT): 1604ms
+- 稳定后 chunk: 98,50,51,55,78,53,54,51,85,64,55,67 ~ avg 78ms（含树花）
+- total=2780ms avg=173.75ms（含冷启动）
+- 排除冷启动后稳定 avg≈78ms/chunk
+
+注：最终标准=对比 Java（用户明确）。Rust pipeline_bench 单线程 201ms/chunk 比 Java 慢（需公平对比确认）。

@@ -1,0 +1,7 @@
+
+=== 公平对比：Rust vs Java（同区域 200,200，单线程，排除冷启动）===
+- Rust（pipeline_bench_single）：median 121ms/chunk，range 103-134ms（无树花植被）
+- Java（WorldGenBench FULL 含树花）：中位数 ~60ms/chunk（稳定值 50-98 排序中位数）
+结论：同区域单线程下 Rust 比 Java 慢约 2 倍。
+注意：Java FULL 含树花植被（工作更多）却比 Rust（无树花）快 → Rust 管线实现有性能差距。
+Rust 内部：carver 占 72%（144ms/201ms）。需深挖为什么 Rust 少做却慢。
