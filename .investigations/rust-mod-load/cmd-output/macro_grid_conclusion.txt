@@ -1,0 +1,18 @@
+
+=== 宏观网格实验：直接采样 final_density 触发内部 interpolated 雪崩（2026-08-29）===
+- MacroGrid.build 对 chunk 4x4x8 cell corners(~1225) 采样 final_density + 块级三线性插值
+- 实测：2230ms/chunk vs 逐点 42.81ms = 52x 慢！
+
+根因：cell corners 采样 final_density 时，内部 Interpolated 节点按 chunk key 缓存网格，
+corners 覆盖 chunk 边界(x=16/z=16/y 边界)触发相邻 chunk 网格反复清空重建 → 雪崩。
+与之前「外层包 Interpolated 2359ms」同因（内部已有 interpolated + 外层宏观采样冲突）。
+
+Java 正确做法（SteelMC noise_chunk.rs）：
+- "Each Interpolated marker gets its own independent channel"（multi-interpolator system）
+- 不是采样整个 final_density 树，而是每个 interpolated 独立 channel 在 cell corners 采样一次，
+  组合部分也在 corners 采样，整体块级插值 —— 只有"一层"宏观网格，无嵌套独立 chunk 缓存
+
+Rust 现状：InterpolatedData 有独立 chunk 缓存 + fill_chunk 逐点调 final_density 树(98304 次)。
+与宏观层冲突（雪崩）。正确方向 = 重构为 multi-channel（宏观统一一层，去掉内部 interpolated 独立 chunk 缓存）。
+
+状态：MacroGrid 已实现但默认关闭（WG_MACROGRID 显式）；记录为候选方向（需 multi-channel 深度重构）。

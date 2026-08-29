@@ -1,0 +1,23 @@
+
+=== 关键发现：Rust 宏观缺 cell 网格采样（Java/SteelMC 有）——density 慢的可能根因（2026-08-29）===
+
+证据（SteelMC noise_chunk.rs 头注释，对齐 Java 的权威参考实现）：
+"NoiseChunk: cell-based terrain density evaluation with trilinear interpolation."
+"Vanilla wraps density functions with Interpolated markers. Only the inner functions (arguments to Interpolated)
+ are evaluated at cell corners; the rest use trilinear interpolation."
+"Each Interpolated marker gets its own independent channel."（multi-interpolator system）
+
+含义：
+- Java 宏观：对每个 Interpolated marker 在 cell corners（4x4x8 网格点）采样一次，块级三线性插值
+- Rust 当前：fill_chunk 对每 block（98304 次）真采样 final_density.sample，无宏观 cell 网格插值
+=> Rust density 宏观慢（13.14ms vs 推断 Java ~5ms）的可能根因 = 缺 macro cell 网格采样
+
+之前网格探针 2359ms 雪崩的原因：
+- 给 final_density 外层再包 Interpolated = 多层嵌套（内部已有的 interpolated + 外层新包）→ 雪崩
+- Java 正确做法 = 每个 interpolated 独立 channel，cell corners 采样一次，不嵌套外层
+
+验证数据：
+- Rust 逐 block density 采样：7.83ms/chunk（macro_grid_density_bench）
+- 外层包 Interpolated：2359ms（雪崩，错误做法）
+
+状态：candidate（有 SteelMC 源码注释支撑，非断言）。用户直觉「宏观网格是大头」有据。
