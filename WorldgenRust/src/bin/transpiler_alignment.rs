@@ -22,7 +22,7 @@ fn main() {
     let router = settings.get("noise_router").unwrap();
     let tree = db.build_node(router.get("final_density").unwrap()).ok().unwrap();
 
-    // 构建 NoiseSet（注册所有 noise）——从 noise_params 表创建，每个 noise 用其 id 派生 seed（对齐 get_noise_sampler）
+    // 构建 NoiseSet（注册所有 noise）——noise_params 表 key 已带 minecraft: 前缀，seed 派生用完整 id（对齐 get_noise_sampler）
     let mut noises = NoiseSet::new();
     let params = WorldgenRust::density_builder::build_noise_params_from_file(&format!("{}/../noise_params.json", wg_dir)).unwrap();
     for (id, p) in &params {
@@ -30,27 +30,34 @@ fn main() {
         let sampler = WorldgenRust::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
         noises.insert(id, sampler);
     }
-    // 也注册带 minecraft: 前缀的（transpiler 用 "minecraft:jagged" 等）
-    let params2 = params.clone();
-    for (id, p) in &params2 {
-        let mut rnd = db.random_deriver().split_str(id);
-        let sampler = WorldgenRust::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
-        noises.insert(&format!("minecraft:{}", id), sampler);
-    }
+    // 创建 old_blended_noise（InterpolatedNoiseData，对齐 density_builder L339-352）
+    let mut rnd = db.random_deriver().split_str("minecraft:terrain");
+    let amp_l = WorldgenRust::noise::OctavePerlinNoiseSampler::range_closed_amplitudes(-15, 0);
+    let lower = WorldgenRust::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -15, &amp_l);
+    let upper = WorldgenRust::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -15, &amp_l);
+    let amp_i = WorldgenRust::noise::OctavePerlinNoiseSampler::range_closed_amplitudes(-7, 0);
+    let interp = WorldgenRust::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -7, &amp_i);
+    let bn = WorldgenRust::density::InterpolatedNoiseData::new(lower, upper, interp, 0.25, 0.125, 80.0, 160.0, 8.0);
+    noises.set_blended_noise(bn);
 
     // 对比多个点
     let cx = -288; let cz = -256;
-    let mut max_diff = 0.0f64; let mut n = 0;
+    // 先测单个 noise（jagged）transpiler vs 运行时
+    let n_jagged = noises.sample_noise("minecraft:jagged", (cx*16+4) as f64 * 1500.0, 0.0, (cz*16+4) as f64 * 1500.0);
+    let rnd_jagged = db.get_noise_sampler("minecraft:jagged");
+    let r_jagged = rnd_jagged.sample((cx*16+4) as f64 * 1500.0, 0.0, (cz*16+4) as f64 * 1500.0);
+    println!("jagged noise: transpiler={:.6} runtime={:.6} diff={:.6}", n_jagged, r_jagged, (n_jagged-r_jagged).abs());
+    let mut max_diff = 0.0f64; let mut n = 0; let mut max_pt = (0i32, 0i32, 0i32);
     for y in [-64i32, 0, 64, 128, 200, 300] {
         for z in [4i32, 8, 12] { for x in [4i32, 8, 12] {
             let wx = cx*16+x; let wz = cz*16+z;
             let a = tree.sample(&NoisePos{x:wx,y,z:wz});
             let b = compute_final_density(&noises, wx as f64, y as f64, wz as f64);
             let d = (a-b).abs();
-            if d > max_diff { max_diff = d; }
+            if d > max_diff { max_diff = d; max_pt = (wx, y, wz); }
+            if d > 0.01 { println!("  diff={:.4} at ({},{},{}) transpiler={:.4} runtime={:.4}", d, wx, y, wz, b, a); }
             n += 1;
         }}
     }
-    println!("compute_final_density vs 运行时 final_density: max_diff={:.6} (n={})", max_diff, n);
-    println!("(注意：NoiseSet 空，noise 采样返回 0——若 max_diff 大，是 noise 未注册，非 transpiler 错)");
+    println!("compute_final_density vs 运行时 final_density: max_diff={:.6} at {:?} (n={})", max_diff, max_pt, n);
 }

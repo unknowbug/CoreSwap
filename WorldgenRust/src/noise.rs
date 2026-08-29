@@ -298,16 +298,23 @@ impl DoublePerlinNoiseSampler {
 // MVP：HashMap 存 DoublePerlinNoiseSampler，sample_noise 按 id 查表采样。
 pub struct NoiseSet {
     noises: std::collections::HashMap<String, DoublePerlinNoiseSampler>,
+    blended_noise: Option<crate::density::InterpolatedNoiseData>,
 }
 impl NoiseSet {
-    pub fn new() -> Self { Self { noises: std::collections::HashMap::new() } }
+    pub fn new() -> Self { Self { noises: std::collections::HashMap::new(), blended_noise: None } }
     pub fn insert(&mut self, id: &str, noise: DoublePerlinNoiseSampler) { self.noises.insert(id.to_string(), noise); }
+    pub fn set_blended_noise(&mut self, bn: crate::density::InterpolatedNoiseData) { self.blended_noise = Some(bn); }
     pub fn sample_noise(&self, id: &str, x: f64, y: f64, z: f64) -> f64 {
         match self.noises.get(id) {
             Some(n) => n.sample(x, y, z),
             None => 0.0, // 未注册 noise（MVP 占位）
         }
     }
-    // old_blended_noise（InterpolatedNoise）：MVP 占位（未实现 InterpolatedNoise 采样）
-    pub fn sample_blended_noise(&self, _x: f64, _y: f64, _z: f64) -> f64 { 0.0 }
+    // old_blended_noise（InterpolatedNoise）：用 blended_noise 采样
+    pub fn sample_blended_noise(&self, x: f64, y: f64, z: f64) -> f64 {
+        match &self.blended_noise {
+            Some(bn) => bn.sample(&crate::density::NoisePos { x: x as i32, y: y as i32, z: z as i32 }),
+            None => 0.0,
+        }
+    }
 }

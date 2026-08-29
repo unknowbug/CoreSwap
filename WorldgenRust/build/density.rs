@@ -235,20 +235,24 @@ impl<'a> GenCtx<'a> {
             None => return "0.0".to_string(),
         };
         if points.is_empty() { return "0.0".to_string(); }
-        // spline 输入坐标：location 若是 "minecraft:y" 引用 → 用 y（spline 的 x 轴是 y）
+        // spline 输入坐标：coordinate 是引用（如 minecraft:overworld/erosion）→ 用 gen_expr 生成；minecraft:y → y
         let coord = match spline.get("coordinate").and_then(|x| x.as_str()) {
-            Some("minecraft:y") => "y",
-            _ => "y", // 默认 y（terrain spline）
+            Some("minecraft:y") => "y".to_string(),
+            Some(c) if c.starts_with("minecraft:") => self.gen_expr(&JsonValue::String(c.to_string())),
+            _ => "y".to_string(), // 默认 y（terrain spline）
         };
-        // 生成 if/else 链：每个点一个区间 arm
+        // 生成 if/else 链：每个点一个区间 arm（对齐运行时 sample_node：边界外推）
         let mut arms = String::new();
         for (i, p) in points.iter().enumerate() {
             let loc = p.get("location").and_then(|x| x.as_f64()).unwrap_or(0.0);
             let der = p.get("derivative").and_then(|x| x.as_f64()).unwrap_or(0.0);
             let val = self.gen_spline_value(p.get("value").unwrap_or(&JsonValue::Number(0.0)));
             if i == 0 {
-                // 第一个点：x <= loc 用该点值
-                arms.push_str(&format!("if __coord <= {}f64 {{ {} }}", loc, val));
+                // 第一个点之前：外推 base + d*(f - loc)（对齐运行时 i<0）
+                let first_val = val.clone();
+                let first_der = der;
+                let first_loc = loc;
+                arms.push_str(&format!("if __coord <= {}f64 {{ {} + {}f64 * (__coord - {}f64) }}", first_loc, first_val, first_der, first_loc));
             } else {
                 // 中间点：Hermite 插值（用 prev 和当前）
                 let prev_val = self.gen_spline_value(points[i-1].get("value").unwrap_or(&JsonValue::Number(0.0)));
@@ -260,9 +264,12 @@ impl<'a> GenCtx<'a> {
                 ));
             }
         }
-        // 最后一个点之后：用最后一个点值
-        let last_val = self.gen_spline_value(points.last().unwrap().get("value").unwrap_or(&JsonValue::Number(0.0)));
-        format!("{{ let __coord = {}; {} else {{ {} }} }}", coord, arms, last_val)
+        // 最后一个点之后：外推 base + d*(f - loc)（对齐运行时 i==n-1）
+        let last = points.last().unwrap();
+        let last_val = self.gen_spline_value(last.get("value").unwrap_or(&JsonValue::Number(0.0)));
+        let last_der = last.get("derivative").and_then(|x| x.as_f64()).unwrap_or(0.0);
+        let last_loc = last.get("location").and_then(|x| x.as_f64()).unwrap_or(0.0);
+        format!("{{ let __coord = {}; {} else {{ {} + {}f64 * (__coord - {}f64) }} }}", coord, arms, last_val, last_der, last_loc)
     }
     // spline 的 value：嵌套 spline（无 type 的对象，有 points）→ 提取为 helper 函数（CSE 去重）；否则 gen_expr
     fn gen_spline_value(&mut self, v: &JsonValue) -> String {

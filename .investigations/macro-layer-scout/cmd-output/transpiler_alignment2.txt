@@ -1,0 +1,14 @@
+
+=== transpiler 对齐验证状态（2026-08-29）===
+- noise 采样对齐（jagged diff=0.000000，seed 派生用完整 id）
+- old_blended_noise 实现（InterpolatedNoiseData 采样）
+- spline coord 修复（coordinate 引用）+ 边界外推修复
+- 但 compute_final_density vs 运行时 max_diff=0.43（y=64 时 0.33）
+
+差异来源判断：
+- transpiler 的 interpolated 直接内联 inner（每点精确采样）
+- 运行时 Interpolated 用 cell grid 插值（近似）
+- 差异 = 运行时插值 vs transpiler 精确
+
+下一步：transpiler 实现 interpolated 竖切（channel）——在 cell corners 采样 inner + 块级插值（对齐 Java 宏观）
+- 这是 transpiler 对齐 Java 宏观的关键（当前直接内联是精确，非插值）
