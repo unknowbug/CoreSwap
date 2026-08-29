@@ -932,6 +932,105 @@ impl<'a> SurfaceBuilder<'a> {
         SurfaceRule::Seq(final_rules)
     }
 
+    // ========== JSON surface_rule 数据驱动解析（多世界/非 overworld，对齐 C++ worldgen_api.cpp L263-343）==========
+    // 任意维度的 surface_rule 从 noise_settings/<settings>.json 的 surface_rule 读，映射到 SurfaceRule/SurfaceCond。
+    // 支持节点：rule = minecraft:sequence / condition / block；cond = not / biome / y_above / stone_depth /
+    //          noise_threshold / vertical_gradient / hole / steep / water / temperature / surface。
+    // 未支持节点 → 返回 None（调用方回退 overworld 规则 / 报错）。
+    fn parse_anchor_abs_y(a: &crate::json::JsonValue, min_y: i32, height: i32) -> i32 {
+        if let Some(v) = a.get("absolute") { return v.as_f64().unwrap_or(0.0) as i32; }
+        if let Some(v) = a.get("above_bottom") { return min_y + v.as_f64().unwrap_or(0.0) as i32; }
+        if let Some(v) = a.get("below_top") { return min_y + height - v.as_f64().unwrap_or(0.0) as i32; }
+        0
+    }
+    pub fn parse_surface_rule(&self, j: &crate::json::JsonValue, min_y: i32, height: i32) -> Option<SurfaceRule> {
+        let type_name = j.as_str().map(|s| s.to_string())
+            .or_else(|| j.get("type").and_then(|t| t.as_str()).map(|s| s.to_string())).unwrap_or_default();
+        if type_name.contains("sequence") {
+            let mut rules = Vec::new();
+            if let Some(seq) = j.get("sequence") {
+                if let Some(arr) = seq.as_array() {
+                    for r in arr {
+                        if let Some(rr) = self.parse_surface_rule(r, min_y, height) { rules.push(rr); }
+                    }
+                }
+            }
+            return Some(SurfaceRule::Seq(rules));
+        }
+        if type_name.contains("condition") {
+            if let Some(c) = j.get("if_true") {
+                let cond = self.parse_surface_cond(c, min_y, height)?;
+                let rule = j.get("then_run").and_then(|r| self.parse_surface_rule(r, min_y, height));
+                return Some(SurfaceRule::Cond { cond, rule: Box::new(rule.unwrap_or(SurfaceRule::Block(0))) });
+            }
+        }
+        if type_name.contains("block") {
+            if let Some(rs) = j.get("result_state") {
+                if let Some(n) = rs.get("Name") {
+                    return Some(SurfaceRule::Block(self.blocks.id(n.as_str().unwrap_or(""))));
+                }
+            }
+        }
+        None
+    }
+    fn parse_surface_cond(&self, j: &crate::json::JsonValue, min_y: i32, height: i32) -> Option<SurfaceCond> {
+        let type_name = j.as_str().map(|s| s.to_string())
+            .or_else(|| j.get("type").and_then(|t| t.as_str()).map(|s| s.to_string())).unwrap_or_default();
+        if type_name.contains("not") {
+            if let Some(inv) = j.get("invert") {
+                return Some(SurfaceCond::Not(Box::new(self.parse_surface_cond(inv, min_y, height)?)));
+            }
+        }
+        if type_name.contains("biome") {
+            let mut biomes = Vec::new();
+            if let Some(b) = j.get("biome_is") {
+                if let Some(arr) = b.as_array() {
+                    for x in arr { if let Some(s) = x.as_str() { biomes.push(s.to_string()); } }
+                }
+            }
+            return Some(SurfaceCond::Biome { biomes });
+        }
+        if type_name.contains("y_above") {
+            if let Some(a) = j.get("anchor") {
+                let anchor_y = Self::parse_anchor_abs_y(a, min_y, height);
+                let add_stone_depth = j.get("add_stone_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false);
+                return Some(SurfaceCond::AboveY { anchor_y, mult: 0, add_stone_depth });
+            }
+        }
+        if type_name.contains("stone_depth") {
+            return Some(SurfaceCond::StoneDepth {
+                offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                add_surface_depth: j.get("add_surface_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false),
+                secondary_depth_range: j.get("secondary_depth_range").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                ceiling: j.get("surface_type").and_then(|x| x.as_str()).map(|s| s == "ceiling").unwrap_or(false),
+            });
+        }
+        if type_name.contains("noise_threshold") {
+            let min_th = j.get("min_threshold").and_then(|x| x.as_f64()).unwrap_or(-1.7e308);
+            let max_th = j.get("max_threshold").and_then(|x| x.as_f64()).unwrap_or(1.7e308);
+            let noise_key = j.get("noise").and_then(|n| n.as_str()).unwrap_or("").to_string();
+            return Some(SurfaceCond::NoiseThreshold { noise_key, min_th, max_th });
+        }
+        if type_name.contains("vertical_gradient") {
+            let name = j.get("random_name").and_then(|n| n.as_str()).unwrap_or("").to_string();
+            let true_y = j.get("true_at_and_below").map(|a| Self::parse_anchor_abs_y(a, min_y, height)).unwrap_or(0);
+            let false_y = j.get("false_at_and_above").map(|a| Self::parse_anchor_abs_y(a, min_y, height)).unwrap_or(0);
+            return Some(SurfaceCond::VerticalGradient { name, true_y, false_y });
+        }
+        if type_name.contains("hole") { return Some(SurfaceCond::Hole); }
+        if type_name.contains("steep") { return Some(SurfaceCond::Steep); }
+        if type_name.contains("water") {
+            return Some(SurfaceCond::Water {
+                offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                mult: 0,
+                add_stone_depth: j.get("add_stone_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false),
+            });
+        }
+        if type_name.contains("temperature") { return Some(SurfaceCond::Temp); }
+        if type_name.contains("surface") { return Some(SurfaceCond::SurfaceCondC); }
+        None
+    }
+
     // ========== buildSurface 引擎（对齐 C++ L685-811 / Java SurfaceBuilder.buildSurface）==========
     pub fn build_surface(
         &self,

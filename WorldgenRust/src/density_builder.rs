@@ -111,6 +111,8 @@ pub struct DensityBuilder {
     lazy_refs: HashMap<String, Arc<Mutex<Option<Arc<DensityFunction>>>>>,
     // 惰性加载器：(fullRef, shortName) -> JSON 文本（外部设置，用于按需加载 registry 引用）
     external_loader: Option<Box<dyn Fn(&str, &str) -> String>>,
+    // 维度命名空间（multi-world）：决定惰性加载 ref 前缀 "minecraft:<df_ns>/"，默认 overworld
+    df_ns: String,
     #[allow(dead_code)] min_y: i32,
     #[allow(dead_code)] noise_height: i32,
 }
@@ -120,10 +122,14 @@ impl DensityBuilder {
         let noise_params = build_noise_params();
         let mut base = XoroshiroRandom::new(seed);
         let random_deriver = base.next_splitter();
-        DensityBuilder { seed, noise_params, random_deriver, noise_samplers: HashMap::new(), registry: HashMap::new(), lazy_refs: HashMap::new(), external_loader: None, min_y, noise_height }
+        DensityBuilder { seed, noise_params, random_deriver, noise_samplers: HashMap::new(), registry: HashMap::new(), lazy_refs: HashMap::new(), external_loader: None, df_ns: "overworld".to_string(), min_y, noise_height }
     }
     pub fn set_external_loader(&mut self, loader: Box<dyn Fn(&str, &str) -> String>) {
         self.external_loader = Some(loader);
+    }
+    // 设置维度命名空间（multi-world）：决定惰性加载 ref 前缀 "minecraft:<df_ns>/"
+    pub fn set_df_ns(&mut self, df_ns: &str) {
+        self.df_ns = df_ns.to_string();
     }
     // 暴露 randomDeriver（供探针复刻 NoiseConfig 派生链，如 Aquifer "minecraft:aquifer" split）
     pub fn random_deriver(&self) -> &XoroshiroSplitter { &self.random_deriver }
@@ -193,9 +199,10 @@ impl DensityBuilder {
             self.registry.insert(key.to_string(), rc.clone());
             return rc;
         }
-        // 惰性按需加载：minecraft:overworld/<name>
-        if key.starts_with("minecraft:overworld/") && self.external_loader.is_some() {
-            let name = key["minecraft:overworld/".len()..].to_string();
+        // 惰性按需加载：minecraft:<df_ns>/<name>（multi-world，df_ns 决定命名空间）
+        let prefix = format!("minecraft:{}/", self.df_ns);
+        if key.starts_with(&prefix) && self.external_loader.is_some() {
+            let name = key[prefix.len()..].to_string();
             // 循环引用保护：先注册 LazyRef 占位，加载期间若再引用 ref 会命中占位（对齐 C++ L252-253）
             let placeholder = Arc::new(DensityFunction::Lazy { target: Arc::new(Mutex::new(None)) });
             self.registry.insert(key.to_string(), placeholder.clone());

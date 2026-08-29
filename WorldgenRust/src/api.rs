@@ -56,12 +56,19 @@ impl SendOut {
 // 失败返回 NULL
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_create(seed: i64, worldgen_dir: *const c_char,
-                            _settings_name: *const c_char,
-                            _biome_params_file: *const c_char,
-                            _world_height: c_int) -> *mut c_void {
+                            settings_name: *const c_char,
+                            biome_params_file: *const c_char,
+                            world_height: c_int) -> *mut c_void {
     if worldgen_dir.is_null() { return std::ptr::null_mut(); }
     let dir = unsafe { std::ffi::CStr::from_ptr(worldgen_dir) }.to_string_lossy().into_owned();
-    match WorldgenHandle::create(seed, &dir) {
+    // 维度参数（multi-world）：nil → overworld 默认；否则用 create_for_dim 加载任意维度
+    let sn = if settings_name.is_null() { "overworld.json" } else {
+        unsafe { std::ffi::CStr::from_ptr(settings_name) }.to_string_lossy().into_owned().leak()
+    };
+    let bp = if biome_params_file.is_null() { "biome_params.json" } else {
+        unsafe { std::ffi::CStr::from_ptr(biome_params_file) }.to_string_lossy().into_owned().leak()
+    };
+    match WorldgenHandle::create_for_dim(seed, &dir, sn, bp, world_height) {
         Some(h) => Box::into_raw(Box::new(h)) as *mut c_void,
         None => std::ptr::null_mut(),
     }

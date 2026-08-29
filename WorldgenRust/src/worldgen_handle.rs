@@ -74,37 +74,64 @@ pub struct WorldgenHandle {
 }
 
 impl WorldgenHandle {
-    // 从 worldgen_dir 构建句柄。worldgen_dir 指向含 data/minecraft/worldgen/... 的目录。
-    // 数据文件约定（对齐 C++ wg_create）：
-    //   <dir>/data/minecraft/worldgen/noise_settings/overworld.json
-    //   <dir>/data/minecraft/worldgen/density_function/overworld/*.json
-    //   <dir>/../noise_params.json
-    //   <dir>/../biome_params.json
-    //   <dir>/../blocks.json
+    // 便捷入口：overworld 默认维度（保留既有 probe 调用兼容）。
     pub fn create(seed: i64, worldgen_dir: &str) -> Option<WorldgenHandle> {
-        let wg_dir = worldgen_dir.to_string();
-        let min_y = -64;
-        let height = 384;
+        Self::create_for_dim(seed, worldgen_dir, "overworld.json", "biome_params.json", 384)
+    }
 
-        // 1. DensityBuilder（noise_params + density_function 目录）
-        let mut db = DensityBuilder::new(seed as u64, min_y, height);
+    // 从 worldgen_dir 构建句柄（**多世界参数化**，对齐 C++ wg_create）。
+    // worldgen_dir 指向含 data/minecraft/worldgen/... 的目录。
+    // 参数：
+    //   settings_name   : noise_settings/<settings_name>.json（"overworld.json" / "nether.json" / mod 维度文件名）
+    //                     settings 里的 noise_router 决定 density_function/<dfNs>/ 目录（dfNs = settings_name 去 .json）
+    //   biome_params_file: biome 参数文件（overworld 用 biome_params.json，nether 用 biome_params_nether.json，mod 维度自定义）
+    //   world_height    : 世界高度（维度定义；overworld 384 / nether 256 / mod 维度按定义；0 = 从 noise.height 兜底）
+    // 数据文件约定：
+    //   <dir>/data/minecraft/worldgen/noise_settings/<settings_name>.json
+    //   <dir>/data/minecraft/worldgen/density_function/<dfNs>/*.json
+    //   <dir>/../noise_params.json
+    //   <dir>/../<biome_params_file>
+    //   <dir>/../blocks.json
+    pub fn create_for_dim(seed: i64, worldgen_dir: &str,
+                          settings_name: &str, biome_params_file: &str,
+                          world_height: i32) -> Option<WorldgenHandle> {
+        let wg_dir = worldgen_dir.to_string();
+        // dfNs = settings_name 去 ".json"（决定 density_function namespace/目录）
+        let df_ns = if settings_name.ends_with(".json") {
+            &settings_name[..settings_name.len() - 5]
+        } else { settings_name }.to_string();
+
+        // 2. noise_settings（先读维度参数：min_y/height/aquifers_enabled）
+        let settings_path = format!("{}/data/minecraft/worldgen/noise_settings/{}.json", wg_dir, df_ns);
+        let settings_txt = std::fs::read_to_string(&settings_path).ok()?;
+        let settings = parse(&settings_txt).ok()?;
+        // 维度参数从 settings 读（非硬编码 overworld -64/384）
+        let mut min_y = -64;
+        let mut noise_height = 384;
+        let mut aquifers_enabled = true;
+        if let Some(noise) = settings.get("noise") {
+            if let Some(m) = noise.get("min_y") { min_y = m.as_f64().unwrap_or(-64.0) as i32; }
+            if let Some(h) = noise.get("height") { noise_height = h.as_f64().unwrap_or(384.0) as i32; }
+        }
+        if let Some(aq) = settings.get("aquifers_enabled") { aquifers_enabled = aq.as_f64().map(|x| x != 0.0).unwrap_or(true); }
+        // 世界高度：Java 传（维度定义）；兜底 = 噪声高度（对齐 C++ worldHeight>0 ? worldHeight : noiseHeight）
+        let height = if world_height > 0 { world_height } else { noise_height };
+        let router = settings.get("noise_router")?;
+
+        // 1. DensityBuilder（dfNs 参数化：external_loader 读 <dfNs>/ 目录 + resolve_ref 用 dfNs 前缀）
+        let mut db = DensityBuilder::new(seed as u64, min_y, noise_height);
+        db.set_df_ns(&df_ns);
         let noise_params_path = format!("{}/../noise_params.json", wg_dir);
         if db.load_noise_params_file(&noise_params_path).is_err() {
             eprintln!("wg_create: cannot load {}", noise_params_path);
             return None;
         }
-        let df_dir = format!("{}/data/minecraft/worldgen/density_function/overworld", wg_dir);
+        let df_dir = format!("{}/data/minecraft/worldgen/density_function/{}", wg_dir, df_ns);
         let df_dir2 = df_dir.clone();
         db.set_external_loader(Box::new(move |_f: &str, name: &str| -> String {
             let p = format!("{}/{}.json", df_dir2, name);
             std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("\n[LOADFAIL] {}: {}", p, e))
         }));
-
-        // 2. noise_settings（router）
-        let settings_path = format!("{}/data/minecraft/worldgen/noise_settings/overworld.json", wg_dir);
-        let settings_txt = std::fs::read_to_string(&settings_path).ok()?;
-        let settings = parse(&settings_txt).ok()?;
-        let router = settings.get("noise_router")?;
 
         // 3. router DF 树
         let tree = Arc::new(db.build_node(router.get("final_density")?).ok()?);
@@ -141,8 +168,8 @@ impl WorldgenHandle {
         let blocks_json = std::fs::read_to_string(&blocks_path).ok()?;
         let blocks = BlockRegistry::load_from_json(&blocks_json)?;
 
-        // 6. biome classifier + carvers + features
-        let biome_params_path = format!("{}/../biome_params.json", wg_dir);
+        // 6. biome classifier + carvers + features（维度参数化：biome_params_file 决定 biome 参数）
+        let biome_params_path = format!("{}/../{}", wg_dir, biome_params_file);
         let mut bc = BiomeClassifier::load(&biome_params_path);
         let biome_dir = format!("{}/data/minecraft/worldgen/biome", wg_dir);
         let _n = bc.load_carvers(&biome_dir);
@@ -154,8 +181,19 @@ impl WorldgenHandle {
         let blocks_leaked = Box::leak(Box::new(blocks));
         // ore_vein（block id 从 BlockRegistry 解析，数据驱动——跨版本换 blocks.json 即可）
         let ore_vein = crate::ore_vein::OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, ore_splitter, blocks_leaked);
-        let sb = SurfaceBuilder::new(samplers, splitter, 63, blocks_leaked);
-        let rule = sb.build_overworld_rule();
+        // sea_level 从 settings 读（主世界 63 / 下界 32 / mod 维度按定义）
+        let sea_level = settings.get("sea_level").and_then(|s| s.as_f64()).unwrap_or(63.0) as i32;
+        let sb = SurfaceBuilder::new(samplers, splitter, sea_level, blocks_leaked);
+        // surface_rule：overworld 用已验证的代码规则；其他维度用 settings.surface_rule JSON 数据驱动（对齐 C++）
+        let df_ns2 = df_ns.clone();
+        let rule = if df_ns2 == "overworld" {
+            sb.build_overworld_rule()
+        } else {
+            match settings.get("surface_rule") {
+                Some(sr) => sb.parse_surface_rule(&sr, min_y, height).unwrap_or_else(|| sb.build_overworld_rule()),
+                None => sb.build_overworld_rule(),
+            }
+        };
 
         let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf };
         let splitter = db.random_deriver().clone();
