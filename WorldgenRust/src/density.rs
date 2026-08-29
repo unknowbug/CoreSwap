@@ -486,22 +486,43 @@ impl DensityFunction {
             DensityFunction::Cache2D(c) => c.sample(pos),
             DensityFunction::FlatCache(f) => f.sample(pos),
             DensityFunction::ShiftDF { noise, mode, id } => {
-                // ShiftDF 实测 y 无关（offset noise 只依赖 xz）→ 按 (x, z) 缓存（Cache2D 语义）
-                // key 用实际采样坐标：Shift/ShiftA 用 (x,z)；ShiftB 用 (z,x)。同 xz 不同 y 的 corners 命中。
-                let (key_x, key_z, mut x, mut y, mut z) = match mode {
-                    ShiftMode::ShiftB => (pos.z, pos.x, pos.z as f64, pos.x as f64, 0.0),
-                    _ => (pos.x, pos.z, pos.x as f64, { 0.0 }, pos.z as f64),
+                // ShiftA/ShiftB 明确 y 无关（ShiftA 弃 y；ShiftB x/z 互换）。缓存按 (x,z)。
+                // plain Shift（mode=Shift）用实际 y——不缓存（C++/Java 参考 Shift 用实际 y；无 y 无关证据）。
+                let y_val = match mode {
+                    ShiftMode::Shift => {
+                        // 无缓存：直接用实际 y 采样（保持参考语义）
+                        return noise.sample(pos.x as f64 * 0.25, pos.y as f64 * 0.25, pos.z as f64 * 0.25) * 4.0;
+                    }
+                    ShiftMode::ShiftA => 0.0,
+                    ShiftMode::ShiftB => {
+                        // ShiftB：x=pos.z, y=pos.x, z=0
+                        let key_x = pos.z; let key_z = pos.x;
+                        // 缓存 key (z,x)
+                        let key = ((key_x as i64) << 32) ^ (key_z as u32 as i64);
+                        return SHIFT_CACHE.with(|m| {
+                            let mut m = m.borrow_mut();
+                            if m.len() <= *id as usize { m.resize(*id as usize + 1, None); }
+                            let slot = m[*id as usize].get_or_insert_with(|| Box::new(RefCell::new(ShiftSlot { cx: 0, cz: 0, value: 0.0 })));
+                            let mut slot = slot.borrow_mut();
+                            if slot.cx != key_x || slot.cz != key_z {
+                                slot.cx = key_x; slot.cz = key_z;
+                                slot.value = noise.sample(pos.z as f64 * 0.25, pos.x as f64 * 0.25, 0.0) * 4.0;
+                            }
+                            slot.value
+                        });
+                    }
                 };
-                let key = ((key_x as i64) << 32) ^ (key_z as u32 as i64);
+                // ShiftA：缓存按 (x,z)，y=0
+                let key = ((pos.x as i64) << 32) ^ (pos.z as u32 as i64);
+                let _ = y_val;
                 SHIFT_CACHE.with(|m| {
                     let mut m = m.borrow_mut();
                     if m.len() <= *id as usize { m.resize(*id as usize + 1, None); }
                     let slot = m[*id as usize].get_or_insert_with(|| Box::new(RefCell::new(ShiftSlot { cx: 0, cz: 0, value: 0.0 })));
                     let mut slot = slot.borrow_mut();
-                    if slot.cx != key_x || slot.cz != key_z {
-                        slot.cx = key_x; slot.cz = key_z;
-                        // ShiftB 已在 match 设置 x/y/z；Shift/ShiftA 走 y=0（实测 y 无关）
-                        slot.value = noise.sample(x * 0.25, y * 0.25, z * 0.25) * 4.0;
+                    if slot.cx != pos.x || slot.cz != pos.z {
+                        slot.cx = pos.x; slot.cz = pos.z;
+                        slot.value = noise.sample(pos.x as f64 * 0.25, 0.0, pos.z as f64 * 0.25) * 4.0;
                     }
                     slot.value
                 })
