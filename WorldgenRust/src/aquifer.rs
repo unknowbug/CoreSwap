@@ -139,6 +139,24 @@ impl Aquifer {
         t0.elapsed().as_secs_f64()
     }
 
+    // 诊断（无热路径污染）：测 get_water_level_at 成本（apply 每点 r/s/t 3 次调用）。
+    pub fn diag_waterlevel_cost(&mut self, cx: i32, cz: i32, rounds: usize) -> f64 {
+        let t0 = std::time::Instant::now();
+        for _r in 0..rounds {
+            for y in self.min_y..self.min_y + self.height {
+                for z in 0..16 { for x in 0..16 {
+                    // 模拟 apply 的 r/s/t 3 次 get_water_level_at（用 pack 的 cell pos）
+                    let l = floor_div(cx*16 + x - 5, 16);
+                    let m = floor_div(y + 1, 12);
+                    let n = floor_div(cz*16 + z - 5, 16);
+                    let ab = self.get_block_pos(l, m, n);
+                    let _ = self.get_water_level_at(ab);
+                }}
+            }
+        }
+        t0.elapsed().as_secs_f64()
+    }
+
     // 诊断（无热路径污染）：测 calculate_density 的 fluid 逻辑成本（模拟 1 次/点，barrier 采样已证明 ~0）。
     pub fn diag_caldensity_logic_cost(&mut self, cx: i32, cz: i32, rounds: usize) -> f64 {
         use crate::aquifer::MutableDouble;

@@ -1,0 +1,15 @@
+
+=== Aquifer.apply 无污染精确分解（aquifer_apply_breakdown，2026-08-29）===
+- 3x3 邻域 get_block_pos+距离: 2.62ms (17%)
+- get_fluid_level(全调用上界): 3.65ms
+- calculate_density(fluid logic): 0.00ms
+- get_water_level_at(1次/点): 3.38ms —— apply 里每点 3 次(r/s/t) → 主要成本之一
+- apply 完整(逐点 d<=0): 15.05ms
+- 可解释: 9.65ms; 剩余(固定开销+分支+get_water_level_at 3次): 5.40ms
+
+关键：
+- get_water_level_at 每点 3 次(r/s/t)，water_levels 缓存命中率高则便宜，miss 触发 get_fluid_level(贵)
+- 优化候选：get_water_level_at 缓存/减少调用；get_fluid_level 复用
+- 3x3 邻域 2.62ms 是固定开销之一
+
+下一步：确认 get_water_level_at 在 apply 的实际调用次数+命中率，决定优化方向
