@@ -42,3 +42,16 @@
 - **block id 一律数据驱动**（经 `blocks.id` 或从 JSON config 解析），不硬编码数字
 - **版本相关无数据源的 tag 展开**：代码硬编码但**集中管理 + 注释标注升级点**
 - 算法/流程与版本无关的部分保持代码（不数据驱动）
+
+## 多世界参数化（2026-08-29，对齐 C++ wg_create）
+
+`WorldgenHandle::create_for_dim(seed, wg_dir, settings_name, biome_params_file, world_height)` 支持任意维度：
+- **settings_name**：`noise_settings/<settings_name>.json`（overworld / nether / end / mod 维度）
+- **dfNs** = settings_name 去 ".json"，决定 `density_function/<dfNs>/` 目录 + resolve_ref 命名空间前缀（DensityBuilder.set_df_ns）
+- **维度参数**从 settings 读：min_y / noise.height / sea_level / aquifers_enabled（非硬编码 overworld -64/384/63/true）
+- **biome_params_file**：维度 biome 参数（overworld biome_params.json / nether biome_params_nether.json / mod 自定义）
+- **surface_rule**：overworld 用代码规则（已验证）；其他维度用 settings.surface_rule JSON 数据驱动（`SurfaceBuilder::parse_surface_rule`，支持 sequence/condition/block + all conds）
+- **aquifers_enabled=false**（下界）→ VanillaAquifer.enabled=false，classify 跳过真实 aquifer（无 water/lava）
+- **mod 维度（如暮色森林）**：数据文件放 wgDir 对应路径（noise_settings/<mod_dim>.json + density_function/<mod_dim>/*.json + 对应 biome params），settings_name 指向即可加载
+- **便捷入口** `create(seed, wg_dir)` = create_for_dim(seed, wg_dir, "overworld.json", "biome_params.json", 384)（overworld 兼容既有调用）
+- 已验证：nether 加载（min_y=0）+ 生成 chunk；overworld 回归 95.40%
