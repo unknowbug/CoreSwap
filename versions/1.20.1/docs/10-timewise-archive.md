@@ -2199,3 +2199,30 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - **根本洞察**：Java 宏观 Interpolated 网格（~1225 交点）vs Rust 逐点 98304 次 → 采样差 ~80×（density 段）。
 - **❌ 方向修正（judge 否决「宏观网格采样对齐」）**：judge 审查（eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——真正最大成本是 **aquifer（Java 同样逐块不插值，网格覆盖不到）**；「宏观网格采样」不立项。
 - **✅ 更优方向（judge 收益排序）**：① aquifer 每点开销优化（最大头）② 单层 Interpolated 应用于纯 SplineDF 子树（70× 实测）③ DFC 直排。
+
+---
+
+## 2026-08-29 运行环境迁移到 CoreSwap（免提权）+ Rust/Java 性能基准真正确认（大样本推翻「慢 5 倍」）
+
+> 承接 07 篇「Rust worldgen 端到端性能定位」小节修正 + .investigations/perf-e2e/ + perf-e2e-errors.md（P1-P5，本次新增 P5）。
+
+### ✅ 一、运行环境迁移到 CoreSwap（免提权，b2b9bea + 50ba9a4）
+- 原运行环境在 MC 侧（E:\PYTHON\MC\versions\1.20.1\java），每次 gradle 运行需 danger-full-access 提权（native-platform.dll 在 C:\Users\NDark\.gradle 外部）。
+- 迁移三步：
+  1. git mv versions/1.20.1/java → runtime/1.20.1/java（验证 client 独立 runtime，与数据/参考 versions 分离）。
+  2. gradle home C:\Users\NDark\.gradle（2.6GB）→ CoreSwap\.gradle（robocopy 秒级），native-platform.dll + 依赖缓存在工作区内。
+  3. GRADLE_USER_HOME=CoreSwap\.gradle → gradle classes 编译 + runServer 启动 + bench 探针全免提权。
+- bench.out 默认改 CoreSwap；.gitignore 更新；run_rust_client.ps1 设 $runJava=runtime\1.20.1\java + GRADLE_USER_HOME。
+- 原理：gradle home 放工作区 → native-platform.dll + 依赖缓存在沙箱可见区内 → 免提权。
+
+### 🔄 二、端到端基准重大修正（P5，推翻「慢 5 倍」）
+- 早前「Java FULL 8-9ms → Rust 慢 5 倍」是小样本（16 chunks）+ 相邻 chunk 缓存假象，与 P3（JIT 未热）同族——基准不可靠连续两次。
+- 大样本修正（region 200,200）：Java FULL ≈ 55ms/chunk；Java 宏观 NOISE ≈ 23-25ms；Rust 宏观 34.66ms；Rust 全管线 45.48ms。
+- ✅ Rust 全管线 45.48 < Java FULL 55 → Rust 反快 ~1.2 倍（「慢 5 倍」不成立）；但宏观专项 Rust 34.66 > Java 23-25 → aquifer 慢 ~1.4-1.5 倍（真差距需优化）。
+- ❌ 早前「Rust 慢 5 倍」条目（下方旧 2026-08-29 条目）标注被大样本修正推翻。
+
+### 📌 记录指引
+- 错误台账：perf-e2e-errors.md P5（大样本缓存假象）。
+- 结论：07 篇端到端小节修正（Rust 反快 / aquifer 宏观慢需优化）。
+- 通用模式：knowledge/discovered/build-tooling.md「发现 #4」（gradle home 放工作区免提权）。
+- 域边界：数字 = Partial 快照（随优化变化）；aquifer 宏观优化 = candidate 待立项。

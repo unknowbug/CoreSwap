@@ -782,15 +782,33 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - 错误台账：.investigations/rust-mod-load/functional-errors.md（F1-F3 五段式 + 速查表）。
 - 对齐快照：.investigations/rust-mod-load/cmd-output/pipeline_alignment.txt。
 
-## 2026-08-29 Rust worldgen 端到端性能定位（aquifer 是最大头，整体慢 Java 5 倍）
+## 2026-08-29 Rust worldgen 端到端性能定位（大样本修正：Rust 全管线反快；aquifer 宏观仍慢需优化）
 
-> 背景：Rust 全量重写 worldgen（WorldgenRust/）功能链闭合后进入性能定位。本小节记性能定位结论与优化方向（中价值）；错误链条（双层 Interpolated 污染 / 诊断热路径污染 / Java 基准未热）见 .investigations/perf-e2e/perf-e2e-errors.md（P1-P3）。
+> 背景：Rust 全量重写 worldgen（WorldgenRust/）功能链闭合后进入性能定位。本小节记性能定位结论与优化方向（中价值）；错误链条（双层 Interpolated 污染 / 诊断热路径污染 / Java 基准未热与缓存假象）见 `.investigations/perf-e2e/perf-e2e-errors.md`（P1-P5）。
+> ⚠️ **本小节含重大修正**：早前「Rust 慢 Java 5 倍」结论（下方【历史快照】）基于「Java 8-9ms」错误基准，被大样本推翻。
 
-### 端到端对比（Java 充分预热）
+### 端到端修正对比（大样本，region 200,200，2026-08-29）
 
-- **Java 原版（WorldGenBench FULL 含树花植被，充分预热 JIT）**：稳定后 ~8-9ms/chunk（排除首个冷启动）。
-- **Rust（fill_chunk_blocks 无树花，清理诊断污染后）**：44.9ms/chunk → **慢 ~5 倍**。
-- ⚠️ 早期「Java 60ms」是 JIT 未热的错误基准，据此误判 Rust 达标；真实 Java 只要 8-9ms。**端到端必须对比充分预热的 Java**（AGENTS.md「端到端性能对比铁律」）。
+- **Java FULL（256 chunks，含树花一切，充分预热）**：≈ **55ms/chunk**（稳定 54-57ms，avg 51.7 含冷启动）。
+- **Java 宏观 NOISE（256 chunks）**：≈ **23-25ms/chunk**（avg 25.4，稳定 20-27ms）。
+- **Rust 全管线（400 chunks，无树花）**：**45.48ms/chunk**。
+- **Rust 宏观（400 chunks，density+aquifer）**：**34.66ms/chunk**（aquifer 增量 ~21.5ms）。
+- ✅ **修正结论**：**Rust 全管线 45.48ms < Java FULL 55ms → Rust 反而快 ~1.2 倍**（尽管 Rust 无树花做更少工作）。「Rust 慢 5 倍」不成立。
+- ⚠️ **但宏观专项 Rust 34.66 > Java 23-25 → aquifer 慢 ~1.4-1.5 倍**（真实差距，需优化）。
+- 后续阶段（carver/features）Rust 应比 Java 更省（Java FULL 的宏观 ~25 + 后续 ~30ms）。
+
+### 域/边界
+
+- 验证分层 = Partial；数值为当前快照，随优化变化。端到端对比必须充分预热 Java + **大样本排除缓存/冷启动**（P5 教训，AGENTS.md 铁律）。
+
+---
+
+### 【历史快照 · 已被大样本推翻，勿再引用为当前结论】端到端对比（早期小样本）
+
+> 早前结论，被 P5 推翻，保留作历史排除清单：
+- ❌「Java 原版稳定 8-9ms/chunk」——16 chunks 小样本 + 相邻 chunk 缓存假象，真实 55ms（6 倍低估，见 P5）。
+- ❌「Rust 44.9ms 慢 Java 5 倍」——基于错误基准的错误结论，已被大样本修正推翻。
+- ⚠️「Java 60ms 是 JIT 未热错误基准」这一半仍成立（P3）；但「真实 Java 只有 8-9ms」这一半错误（P5 修正为 55ms）。
 
 ### 无污染重定位：fill_chunk+surface base 29.4ms 内部构成（region 200,200 单线程）
 
@@ -829,7 +847,8 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 ### 根本洞察：Java 宏观网格采样 vs Rust 逐点采样（~80× 差）
 
 - **Java**：宏观用 Interpolated 网格缓存（~1225 网格交点 + 三线性插值），aquifer/density 采样次数大幅减少。
-- **Rust**：逐点采样（98304 点/chunk）——采样次数比 Java 多 ~80×（1225 vs 98304），这是 Java 8-9ms vs Rust 44.9ms 慢 5 倍的根本。
+- **Rust**：逐点采样（98304 点/chunk）——采样次数比 Java 多 ~80×（1225 vs 98304），主要影响 density 段。
+- ⚠️ **归因修正（P5）**：早前「~80× 采样差 = Rust 慢 5 倍的根本」基于错误的「Java 8-9ms」基准，不成立。大样本修正后 **Rust 全管线反快 Java ~1.2 倍**；真实待优化点是 **aquifer 宏观（Rust 34.66 > Java 23-25ms，慢 ~1.4 倍）**——aquifer 是逐块独立采样器（Java 同样不插值），网格采样不覆盖，方向见下方优化方向。
 - 早前「外层网格采样探针」实测 2000ms 是探针实现缺陷（走 internal interpolated 雪崩重建，P1 教训），不是方向错误；正确对齐 Java 网格架构（避免雪崩）是正解方向。
 
 ### 优化方向（candidate，修正）
