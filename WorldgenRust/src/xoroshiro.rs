@@ -107,6 +107,7 @@ impl XoroshiroRandom {
     }
 }
 
+#[derive(Clone)]
 pub struct XoroshiroSplitter { seed_lo: u64, seed_hi: u64 }
 impl XoroshiroSplitter {
     pub fn split_xyz(&self, x: i32, y: i32, z: i32) -> XoroshiroRandom {

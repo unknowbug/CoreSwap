@@ -44,5 +44,30 @@ fn main() {
     else { println!("[FAIL] carver2 nextFloat bits = 0x{:08X} (want 0x{:08X})", f2u(nf2), f2u(0.5614767)); failures += 1; }
     check!("carver2 nextLong", crc2.next_long(), -3711936206981428316);
 
+    // === ChunkRandom(Xoroshiro base) setPopulationSeed/setDecoratorSeed ===
+    // C++ 参照（chunkrandom_test.cpp）：worldSeed, blockX=720*16, blockZ=-432*16
+    let mut crx = ChunkRandom::xoroshiro();
+    let pop = crx.set_population_seed(world_seed, 720 * 16, -432 * 16);
+    check!("populationSeed", pop, -3665859634238804548);
+    check!("afterPop.nextLong#1", crx.next_long(), -7508349385403582096);
+    check!("afterPop.nextLong#2", crx.next_long(), -5481884486643468655);
+    check!("afterPop.nextInt(256)", crx.next_int_bound(256) as i64, 7);
+    let nfd = crx.next_float();
+    if f2u(nfd) == f2u(0.49389488) { println!("[OK] afterPop.nextFloat bits = 0x{:08X}", f2u(nfd)); }
+    else { println!("[FAIL] afterPop.nextFloat bits = 0x{:08X} (want 0x{:08X})", f2u(nfd), f2u(0.49389488)); failures += 1; }
+    // setDecoratorSeed(step, index)
+    let mut deco = ChunkRandom::xoroshiro();
+    deco.set_population_seed(world_seed, 720 * 16, -432 * 16);
+    deco.set_decorator_seed(pop, 0, 0);
+    check!("deco(0,0).nextLong", deco.next_long(), -7508349385403582096);
+    let mut deco1 = ChunkRandom::xoroshiro();
+    deco1.set_population_seed(world_seed, 720 * 16, -432 * 16);
+    deco1.set_decorator_seed(pop, 1, 0);
+    check!("deco(1,0).nextLong", deco1.next_long(), -3766154493263439697);
+    let mut deco2 = ChunkRandom::xoroshiro();
+    deco2.set_population_seed(world_seed, 720 * 16, -432 * 16);
+    deco2.set_decorator_seed(pop, 2, 0);
+    check!("deco(2,0).nextLong", deco2.next_long(), 1940938260340561462);
+
     println!("=== {} (failures={}) ===", if failures == 0 { "ALL PASS" } else { "FAILED" }, failures);
 }
