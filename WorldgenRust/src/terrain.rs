@@ -90,6 +90,11 @@ impl DensitySource for DensityMacroSampler {
             self.sample_interp(&c.1, pos)
         })
     }
+    // 每 chunk 构建 slices 一次（避免 thread_local 每点访问）
+    fn sample_chunk(&self, cx: i32, cz: i32, _min_y: i32, _height: i32) -> Option<ChunkDensity> {
+        let slices = self.build_slices(cx, cz);
+        Some(ChunkDensity { sampler: self, slices })
+    }
 }
 
 // ---- 宏观 cell 网格采样器（对齐 Java NoiseChunk：cell corners 采样 + 三线性插值，非逐 block 采样）----
@@ -165,6 +170,17 @@ pub enum BlockKind { Air, Rock, Water, Lava }
 // ---- 抽象源（MOD 扩展点：可注入替代实现）----
 pub trait DensitySource {
     fn sample(&self, pos: &NoisePos) -> f64;
+    // 每 chunk 构建宏观采样（DensityMacroSampler 实现；默认 None = 逐点）。避免 thread_local 每点访问。
+    fn sample_chunk(&self, cx: i32, cz: i32, min_y: i32, height: i32) -> Option<ChunkDensity> { None }
+}
+// 每 chunk 的宏观采样结果（slices 已构建，块级 O(1) 插值）
+pub struct ChunkDensity<'a> {
+    sampler: &'a DensityMacroSampler,
+    slices: Vec<f64>,
+}
+impl<'a> ChunkDensity<'a> {
+    #[inline]
+    pub fn sample(&self, pos: &NoisePos) -> f64 { self.sampler.sample_interp(&self.slices, pos) }
 }
 pub trait AquiferSource {
     // d = density 值；返回该块的水/岩/空气/岩浆分类（宏观）
@@ -215,16 +231,9 @@ pub fn fill_chunk<D: DensitySource, A: AquiferSource, B: BiomeSource>(
         blocks: vec![BlockKind::Air; (16*16*height) as usize],
         biome: vec!["".to_string(); 256],
     };
-    // 宏观 cell 网格采样（对齐 Java NoiseChunk）：cell corners 采样 final_density + 块级三线性插值。
-    // ⚠️ 实验性：直接对 final_density 采样 corners 会触发内部 interpolated 雪崩（52x 慢，见 macro_grid 记录）。
-    // 默认逐点（WG_MACROGRID 显式启用）；正确方向 = Java multi-channel（每个 interpolated 独立 corners 采样，见记录）。
-    let use_macro_grid = std::env::var("WG_MACROGRID").is_ok();
-    let grid = if use_macro_grid {
-        let dense_ref = |p: &NoisePos| dense.sample(p);
-        Some(MacroGrid::build(&dense_ref, cx, cz, min_y, height))
-    } else {
-        None
-    };
+    // 每 chunk 构建宏观采样（DensityMacroSampler 支持 multi-channel cell grid；否则 None = 逐点）。
+    // 避免 thread_local 每点访问（对齐 Java NoiseChunk cell grid 语义）。
+    let chunk_density = dense.sample_chunk(cx, cz, min_y, height);
     // 单遍逐列：自顶向下，一次树求值（或宏观网格插值）同时完成 surface 高度 + 块分类（省 50% 采样）
     for lz in 0..16 {
         for lx in 0..16 {
@@ -233,7 +242,7 @@ pub fn fill_chunk<D: DensitySource, A: AquiferSource, B: BiomeSource>(
             for ly in (0..height).rev() {
                 let y = min_y + ly;
                 // density：宏观网格插值（快）或逐点采样（回退/对齐风险时）
-                let d0 = match &grid { Some(g) => g.sample(x, y, z), None => dense.sample(&NoisePos{x,y,z}) };
+                let d0 = match &chunk_density { Some(cd) => cd.sample(&NoisePos{x,y,z}), None => dense.sample(&NoisePos{x,y,z}) };
                 // Beardifier：块级加结构密度修正（CellCache add(finalDensity, Beardifier)）
                 let mut d = d0;
                 if let Some(b) = beard { d += b.sample(x, y, z); }

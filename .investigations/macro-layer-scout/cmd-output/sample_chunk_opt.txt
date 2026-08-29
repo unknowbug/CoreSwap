@@ -1,0 +1,10 @@
+
+=== sample_chunk 优化（避免 thread_local 每点访问）结果（2026-08-29）===
+- 实现：DensitySource::sample_chunk（每 chunk 构建 slices 一次）+ ChunkDensity（块级插值）；fill_chunk 用 sample_chunk
+- 对齐：95.40% 保持
+- 全管线 400 chunks：47.03(thread_local) -> 46.60ms（略降），但仍比逐点 42.7ms 慢 ~4ms
+
+原因：slices 构建（每 chunk 采样 5 channels x 1225 corners）比逐点采样 density 树贵（标量 multi-channel 固有成本）
+- sample_chunk 优化了 thread_local 访问，但 slices 构建仍是主要成本
+
+结论：标量 multi-channel 不省（slices 构建贵）；需要 SIMD/ColumnCache（步骤 2）才有收益
