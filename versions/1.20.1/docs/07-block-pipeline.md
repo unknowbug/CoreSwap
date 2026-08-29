@@ -745,3 +745,39 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - 错误台账：.investigations/rust-mod-load/rust-mod-errors.md（M1-M4 五段式）。
 - 验证记录：.investigations/rust-mod-load/cmd-output/jniprobe_rust.txt。
+
+## 2026-08-29 Rust worldgen 整体功能实现（功能链路闭合 + 生成路径零锁）
+
+> Rust worldgen 从「块级管线跑通（mod-run）」推进到「FEATURES 功能真正接进生成管线 + 生成路径零锁」。用户明确「先整体功能实现 + 跑测试记录对齐程度，不纠结为什么没对齐」。
+
+### 功能链路闭合（提交映射）
+
+| 提交 | 功能 | 错误 |
+|---|---|---|
+| ed59f50 | 锁清理（生成路径零锁） | 中价值 |
+| 09d85e8 | OCEAN_FLOOR_WG 高度图（ocean_floor: None→Some） | F2 |
+| 79daf17 | ore_vein 矿脉接入（apply 改 &self 只读） | F1 |
+| a6a53f7 | Beardifier 接入（RwLock 写读分离） | F3 |
+| 4ac3a00 | wg_fill_density（finalDensity 网格采样） | — |
+
+### 功能验证（对齐快照，用户指示只记录不纠结）
+
+| 验证 | 结果 |
+|---|---|
+| features_probe（完整管线） | match **95.40%** / nonAir 85.84% |
+| vein_probe（矿脉） | 2295 矿脉块（1849 铜 + 19 生铜 + 427 深板岩铁） |
+| fill_density_probe | 3072 点全部非零 |
+
+### 关键设计语义（可复用）
+
+**「并发生成路径零锁」三件套**（详见 unctional-errors.md F1-F3）：
+- ① &mut 方法体实际只读 → 改 &self（签名谎报可变性 = 隐性锁来源）
+- ② Option 高度图 None → 还原 Java 哨兵回退（getOceanFloorTopY 返回 min_y-1）
+- ③ 「低频写 + 高频并发读」用 RwLock（读共享无争用）；持锁跨度最小化（读出来 clone 释放）
+
+### 域/边界
+
+- 验证分层 = Partial；对齐率 95.40% 为当前快照，用户指示只记录不展开差异。
+- Beardifier 接入后探针无 beard 数据 → 对齐率不变（探针场景无结构区）。
+- 错误台账：.investigations/rust-mod-load/functional-errors.md（F1-F3 五段式 + 速查表）。
+- 对齐快照：.investigations/rust-mod-load/cmd-output/pipeline_alignment.txt。

@@ -2107,3 +2107,32 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 结论：11 篇「FEATURES 阶段 Rust 移植」。
 - 过程：本节 + .investigations/features-port/。
 - **域边界（保持）**：ore 位置 1/13 是未闭合已知问题非结论；树花植被范围外；邻域 chunk 方块读取简化。
+
+---
+
+## 2026-08-29 Rust worldgen 整体功能实现（✅ 关键里程碑）
+
+> 从「Rust 块级管线跑通（mod-run）」推进到「FEATURES 功能真正接进生成管线 + 生成路径零锁」。用户明确「先整体功能实现 + 跑测试记录对齐程度，不纠结为什么没对齐」。配套：07 篇「Rust worldgen 整体功能实现」小节 + .investigations/rust-mod-load/ + unctional-errors.md 错误台账（F1-F3）。
+
+### ✅ 一、功能链路完整接入（功能闭环）
+- 09d85e8 补 **OCEAN_FLOOR_WG** 高度图（ocean_floor: None→Some）——水下 ore/disk/spring 按海底放置（F2）。
+- 79daf17 接入 **ore_vein 矿脉**（vein_toggle/ridged/gap + split("minecraft:ore")；pply 改 &self 只读，F1）。
+- a6a53f7 接入 **Beardifier**（eardifiers Mutex→RwLock，写读分离；fill 读 clone 不持锁，F3）。
+- 4ac3a00 实现 **wg_fill_density**（finalDensity 网格采样，fillDensity API）。
+
+### ✅ 二、生成路径零锁（perf 优化）
+- ed59f50：feature_indexer/carver_cache/feature_cache 全部预加载只读共享；生成路径（fill_chunk_blocks）零锁。
+
+### 🧪 三、功能验证（对齐快照，用户指示只记录）
+- features_probe：**match 95.40%** / nonAir 85.84%（整体快照）。
+- vein_probe：2295 矿脉块（1849 铜 + 19 生铜 + 427 深板岩铁）。
+- fill_density_probe：3072 点全部非零。
+- **对齐率只记录不纠结**（用户指令）：数值一次性，不展开差异，排查参考 .investigations/rust-mod-load/cmd-output/。
+
+### 🧰 四、工具演进（本轮新增）
+- ein_probe.rs（矿脉接入验证）、ill_density_probe.rs（finalDensity 网格采样验证）、features_probe（完整管线对齐快照）。
+
+### 📌 记录指引（知识库归口）
+- 错误台账：.investigations/rust-mod-load/functional-errors.md（F1-F3 五段式 + 速查表）。
+- 结论：07 篇「Rust worldgen 整体功能实现」小节（中价值简记 + 低价值对齐快照）。
+- 过程：本节 + .investigations/rust-mod-load/。
