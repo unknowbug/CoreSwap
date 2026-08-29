@@ -36,7 +36,8 @@ impl OreVeinSampler {
     }
 
     // 返回矿脉块 id；不适用返回 -1
-    pub fn apply(&mut self, x: i32, y: i32, z: i32) -> i32 {
+    // &self（只读：density 采样 + splitter.split_xyz 均 &self）——无需锁，并发安全
+    pub fn apply(&self, x: i32, y: i32, z: i32) -> i32 {
         // 无损预检查：y 范围外（copper[0,50] ∪ iron[-60,-8]）同 Java 返回 -1
         if y < -60 || y > 50 { return -1; }
         let pos = NoisePos { x, y, z };

@@ -57,6 +57,8 @@ pub struct WorldgenHandle {
     blocks: &'static BlockRegistry,
     // aquifer splitter
     splitter: XoroshiroSplitter,
+    // 矿脉（ore vein）sampler（density 后 aquifer 无 fluid 时决定矿脉块，只读 &self 并发安全）
+    ore_vein: crate::ore_vein::OreVeinSampler,
     // beardifier 缓存（per-chunk）——未接入生成管线，保留（set 时写）
     beardifiers: Mutex<HashMap<(i32, i32), Beardifier>>,
     // carver 缓存（创建时预加载，运行只读无锁）
@@ -117,6 +119,12 @@ impl WorldgenHandle {
         let erof = Arc::new(db.build_node(router.get("erosion")?).ok()?);
         let depthf = Arc::new(db.build_node(router.get("depth")?).ok()?);
         let weirdf = Arc::new(db.build_node(router.get("ridges")?).ok()?);
+        // 矿脉（ore vein）组件
+        let vein_toggle = Arc::new(db.build_node(router.get("vein_toggle")?).ok()?);
+        let vein_ridged = Arc::new(db.build_node(router.get("vein_ridged")?).ok()?);
+        let vein_gap = Arc::new(db.build_node(router.get("vein_gap")?).ok()?);
+        let ore_splitter = db.random_deriver().split_str("minecraft:ore").next_splitter();
+        let ore_vein = crate::ore_vein::OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, ore_splitter);
 
         // 4. noise samplers（surface rules 用）
         for key in ["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset",
@@ -173,6 +181,7 @@ impl WorldgenHandle {
             biomesrc, sb, rule,
             blocks: blocks_leaked,
             splitter,
+            ore_vein,
             beardifiers: Mutex::new(HashMap::new()),
             carver_cache,
             feature_cache,
@@ -232,16 +241,24 @@ impl WorldgenHandle {
         let cd = fill_chunk(&dense, &mut va, &self.biomesrc, cx, cz, min_y, height, None);
 
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
+        //    ore_vein：rock 处按矿脉分布替换为铜/铁矿脉块（aquifer 无 fluid 的 rock）
         let mut col = BlockColumn::new(min_y, height);
         for lz in 0..16 { for lx in 0..16 { for ly in 0..height {
             let y = min_y + ly;
             let kind = cd.blocks[(lx + lz * 16 + ly * 256) as usize];
-            let id = match kind {
+            let wx = cx * 16 + lx;
+            let wz = cz * 16 + lz;
+            let mut id = match kind {
                 crate::terrain::BlockKind::Air => air,
                 crate::terrain::BlockKind::Rock => stone,
                 crate::terrain::BlockKind::Water => water,
                 crate::terrain::BlockKind::Lava => lava_id,
             };
+            // 矿脉（只替换 rock 处的深部块，且 ore_vein.apply 返回非 -1）
+            if kind == crate::terrain::BlockKind::Rock {
+                let vein = self.ore_vein.apply(wx, y, wz);
+                if vein >= 0 { id = vein; }
+            }
             *col.at_mut(lx, y, lz) = id;
         }}}
 
