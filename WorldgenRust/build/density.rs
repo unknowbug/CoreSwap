@@ -166,11 +166,15 @@ impl<'a> GenCtx<'a> {
                         format!("crate::density::YClampedGradient::clamped_map(y, {}, {}, {}f64, {}f64)", fy, ty, fv, tv)
                     }
                     "minecraft:noise" => {
-                        // noise：运行时从 noises 对象采样
+                        // noise：运行时从 noises 对象采样。y_scale==0 → xz-only（可缓存，同 xz 不同 y 复用）
                         let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");
                         let xz = v.get("xz_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
                         let ys = v.get("y_scale").and_then(|x| x.as_f64()).unwrap_or(1.0);
-                        format!("noises.sample_noise(\"{}\", x * {}f64, y * {}f64, z * {}f64)", noise_id, xz, ys, xz)
+                        if ys == 0.0 {
+                            format!("noises.sample_noise_xz(\"{}\", x * {}f64, z * {}f64)", noise_id, xz, xz)
+                        } else {
+                            format!("noises.sample_noise(\"{}\", x * {}f64, y * {}f64, z * {}f64)", noise_id, xz, ys, xz)
+                        }
                     }
                     "minecraft:shifted_noise" => {
                         let noise_id = v.get("noise").and_then(|x| x.as_str()).unwrap_or("");

@@ -296,6 +296,10 @@ impl DoublePerlinNoiseSampler {
 
 // ---- NoiseSet（build-time 编译的 compute_* 函数用）：按 id 存 noise，sample_noise 采样 ----
 // 优化：数组存储 + 预计算索引（HashMap 只在注册时查，采样时数组 O(1) 访问，消除每次 HashMap.get）。
+thread_local! {
+    // xz-only noise 缓存（keyed by (id, x, z)，同 xz 不同 y 复用）
+    static XZ_NOISE_CACHE: std::cell::RefCell<(String, u64, u64, f64)> = std::cell::RefCell::new((String::new(), 0, 0, 0.0));
+}
 pub struct NoiseSet {
     noises: Vec<Option<DoublePerlinNoiseSampler>>,
     index: std::collections::HashMap<String, usize>,
@@ -318,6 +322,25 @@ impl NoiseSet {
             },
             None => 0.0, // 未注册 noise
         }
+    }
+    // xz-only noise（y*0）：缓存每 xz 采样一次，同 xz 不同 y 复用（对齐 FlatCache）
+    pub fn sample_noise_xz(&self, id: &str, x: f64, z: f64) -> f64 {
+        // thread_local 缓存：keyed by (id, x, z)，同 xz 不同 y 复用
+        let xb = x.to_bits(); let zb = z.to_bits();
+        XZ_NOISE_CACHE.with(|c| {
+            let mut c = c.borrow_mut();
+            if c.0 != id || c.1 != xb || c.2 != zb {
+                c.0 = id.to_string(); c.1 = xb; c.2 = zb;
+                c.3 = match self.index.get(id) {
+                    Some(&idx) => match &self.noises[idx] {
+                        Some(n) => n.sample(x, 0.0, z),
+                        None => 0.0,
+                    },
+                    None => 0.0,
+                };
+            }
+            c.3
+        })
     }
     // old_blended_noise（InterpolatedNoise）：用 blended_noise 采样
     pub fn sample_blended_noise(&self, x: f64, y: f64, z: f64) -> f64 {

@@ -1,0 +1,12 @@
+
+=== transpiler xz-only 缓存结果（2026-08-29）===
+- xz-only noise 缓存（sample_noise_xz thread_local）实现后：性能没变（41.53ms）
+- 4 个 xz-only noise 缓存后没降——xz-only noise 不是主要瓶颈
+
+关键：transpiler cell grid 构建（41.53ms）主要成本不是 xz-only noise
+- 是 ch#0（BlendDensity terrain）的 3D noise + spline（每 corner 采样完整树）
+- 运行时 Interpolated grid 构建（8.14ms）有缓存复用
+
+下一步：
+- 确认 ch#0 的 3D noise/spline 采样 vs 运行时 Interpolated inner
+- 或确认 transpiler build-time 编译优势是否被完整树采样抵消
