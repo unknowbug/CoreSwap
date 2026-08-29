@@ -59,7 +59,9 @@ impl RuleTest {
     }
 }
 
-// 常见 tag 展开（server jar 权威，1.20.1）——按需补充
+// 常见 tag 展开（server jar 权威，1.20.1）——按需补充。
+// 数据驱动边界：tag 无独立数据源（不在 worldgen dir），故代码硬编码。跨版本时：
+// 核对 server jar data/minecraft/tags/blocks/<tag>.json 更新展开（block 名经 blocks.id 解析，blocks.json 已数据驱动）。
 pub fn expand_tag(blocks: &BlockRegistry, tag: &str, out: &mut Vec<BlockId>) {
     let mut add = |n: &str| out.push(blocks.id(n));
     match tag {
