@@ -1,0 +1,16 @@
+=== Rust worldgen fill_chunk_blocks 整体管线对齐快照 ===
+(seed=-8248318472910187742, 4x4 origin -288,-256, vanilla FULL 参照)
+功能阶段：density + aquifer + ore_vein + build_surface + carver + features
+
+- 无 features（含 ore_vein+carver）：对齐率见 handle_probe
+- 有 features（完整管线）：
+WorldgenHandle(+features) vs vanilla FULL: match=1500532/1572864 (95.40%)  nonAir=430125/501102 (85.84%)
+- ore_vein 功能：铜矿 1849 + 生铜 19 + 深板岩铁矿 427 = 2295 矿脉块（vein_probe）
+
+=== 整体功能实现对齐快照（2026-08-29）===
+功能链路：density + aquifer + ore_vein + build_surface + carver + features + Beardifier(接入)
+- features_probe（完整管线）vs vanilla FULL：match=95.40% / nonAir=85.84%
+- vein_probe：2295 矿脉块（1849 铜 + 19 生铜 + 427 深板岩铁）——功能正常
+- fill_density_probe：3072 点全非零——功能正常
+- Beardifier、wg_fill_density 已接入（功能完整）
+注：对齐率只记录不纠结（用户指示）；完整记录见 functional-errors.md
