@@ -1,0 +1,16 @@
+
+=== transpiler vs 运行时单次采样对比（2026-08-29）===
+- 运行时 final_density.sample 单次(热, 缓存命中): 171ns
+- transpiler fill_cell_corner_densities 单次(5 channels 完整树): 7μs（慢 40 倍）
+
+关键：transpiler 单次 fill 比运行时热采样慢 40 倍
+- transpiler fill_cell_corner_densities 采样 5 channels 完整树（每 corner，7μs）
+- 运行时热采样（缓存命中，171ns）——Interpolated 每 chunk 建 grid 一次 + 块级插值
+
+transpiler cell grid 构建 43ms vs 运行时 grid 构建 8.14ms（慢 5 倍）
+- 可能 transpiler 采样更多（5 channels 完整树 vs 运行时 inner）
+- 或 transpiler 无缓存（每 chunk 重建），运行时 Interpolated 有 chunk 缓存
+
+下一步：
+- 确认 transpiler cell grid 构建采样量（corners 数）
+- 优化 cell grid 构建（减少采样量 / 缓存）
