@@ -1,0 +1,15 @@
+
+=== transpiler 竖切实现状态（2026-08-29）===
+- interpolated 竖切：gen_expr 遇到 interpolated → 分配 channel + 生成 interpolated[ch] 引用
+- 生成 fill_cell_corner_densities_<name>（cell corners 采样 channel inner）+ compute_<name>(interpolated)
+- 编译通过
+- 对齐：compute_final_density(竖切) vs 运行时 max_diff=0.44（未改善）
+
+对齐未达原因（待调试）：
+1. 竖切 cell grid 采样/插值可能不对（探针的 cell grid 构建 vs 运行时）
+2. 或差异来源不是 interpolated（其他 transpiler bug）
+3. 需确认：竖切正确性（transpiler 竖切 vs 运行时 Interpolated cell grid）
+
+下一步：
+- 确认竖切正确性（fill_cell_corner_densities 输出 vs 运行时 Interpolated cell grid）
+- 或二分定位差异来源
