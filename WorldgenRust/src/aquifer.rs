@@ -12,6 +12,17 @@ pub const LAVA: i32 = 2;
 
 fn floor_div(a: i32, b: i32) -> i32 { let r = a / b; if (a % b) != 0 && ((a ^ b) < 0) { r - 1 } else { r } }
 
+// WG_AQUIFERCOUNT（单线程诊断，门控关时零开销）：统计 calculate_density 里 barrier.sample 调用次数
+static BARRIER_WATCH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static BARRIER_COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+pub fn aquifer_barrier_watch(on: bool) {
+    BARRIER_WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
+    if on { BARRIER_COUNT.store(0, std::sync::atomic::Ordering::Relaxed); }
+}
+pub fn aquifer_barrier_count_reset() -> usize {
+    BARRIER_COUNT.swap(0, std::sync::atomic::Ordering::Relaxed)
+}
+
 #[derive(Clone, Copy)]
 pub struct FluidLevel { pub y: i32, pub block: i32 }
 impl FluidLevel {
@@ -95,6 +106,53 @@ impl Aquifer {
         let z26 = l & 0x3FFFFFF;
         let z26 = if z26 & 0x2000000 != 0 { z26 | !0x3FFFFFF } else { z26 };
         z26 as i32
+    }
+
+    // 诊断（无热路径污染）：测 3×3 邻域 get_block_pos 循环的成本。rounds 次，每次模拟 apply 的 3×3 邻域。
+    pub fn diag_blockpos_cost(&mut self, cx: i32, cz: i32, rounds: usize) -> f64 {
+        let t0 = std::time::Instant::now();
+        for _r in 0..rounds {
+            for y in self.min_y..self.min_y + self.height {
+                for z in 0..16 { for x in 0..16 {
+                    let l = floor_div(cx*16 + x - 5, 16);
+                    let m = floor_div(y + 1, 12);
+                    let n = floor_div(cz*16 + z - 5, 16);
+                    for u in 0..=1 { for v in -1..=1 { for w in 0..=1 {
+                        let _ = self.get_block_pos(l + u, m + v, n + w);
+                    }}}
+                }}
+            }
+        }
+        t0.elapsed().as_secs_f64()
+    }
+
+    // 诊断（无热路径污染）：测 get_fluid_level 循环成本（含 estimate_surface_height + fluid_type 采样）。
+    pub fn diag_fluidlevel_cost(&mut self, cx: i32, cz: i32, rounds: usize) -> f64 {
+        let t0 = std::time::Instant::now();
+        for _r in 0..rounds {
+            for y in self.min_y..self.min_y + self.height {
+                for z in 0..16 { for x in 0..16 {
+                    let _ = self.get_fluid_level(cx*16 + x, y, cz*16 + z);
+                }}
+            }
+        }
+        t0.elapsed().as_secs_f64()
+    }
+
+    // 诊断（无热路径污染）：测 calculate_density 的 fluid 逻辑成本（模拟 1 次/点，barrier 采样已证明 ~0）。
+    pub fn diag_caldensity_logic_cost(&mut self, cx: i32, cz: i32, rounds: usize) -> f64 {
+        use crate::aquifer::MutableDouble;
+        let t0 = std::time::Instant::now();
+        for _r in 0..rounds {
+            for y in self.min_y..self.min_y + self.height {
+                for z in 0..16 { for x in 0..16 {
+                    let mut md = MutableDouble::new();
+                    let fl1 = FluidLevel { y: 63, block: WATER };
+                    let _ = self.calculate_density(cx*16 + x, y, cz*16 + z, &mut md, fl1, fl1);
+                }}
+            }
+        }
+        t0.elapsed().as_secs_f64()
     }
 
     fn get_block_pos(&mut self, x: i32, y: i32, z: i32) -> i64 {
@@ -191,7 +249,10 @@ impl Aquifer {
             let qq = if e > 0.0 { let pp = 0.0 + o; if pp > 0.0 { pp / 1.5 } else { pp / 2.5 } }
                      else { let pp = 3.0 + o; if pp > 0.0 { pp / 3.0 } else { pp / 10.0 } };
             let rr = if !(qq < -2.0) && !(qq > 2.0) {
-                if !md.has { let pos = NoisePos { x: block_x, y: block_y, z: block_z }; let tv = self.barrier.sample(&pos); md.v = tv; md.has = true; tv } else { md.v }
+                if !md.has {
+                    if BARRIER_WATCH.load(std::sync::atomic::Ordering::Relaxed) { BARRIER_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+                    let pos = NoisePos { x: block_x, y: block_y, z: block_z }; let tv = self.barrier.sample(&pos); md.v = tv; md.has = true; tv
+                } else { md.v }
             } else { 0.0 };
             return 2.0 * (rr + qq);
         }

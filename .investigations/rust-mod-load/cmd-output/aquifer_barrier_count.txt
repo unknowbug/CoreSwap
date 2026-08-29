@@ -1,0 +1,10 @@
+
+=== aquifer barrier 采样计数（aquifer_barrier_probe，2026-08-29）===
+barrier.sample 调用：346 次 / 4 chunks / 393216 点 = 0.1%（每 chunk ~86 次）
+
+关键修正：barrier.sample 几乎不调用（0.1%）——barrier 不是 aquifer 大头！
+之前「barrier 加 Cache2D 缓存」优化方向错误（barrier 采样本就很少）。
+
+calculate_density 大多走提前返回（lava_water / j==0 -> 0.0），barrier 不采样。
+aquifer 17.5ms 真实大头需重查：候选 = get_block_pos(3x3 邻域 18次/点) / fluid level 判断 / estimate_surface_height。
+早前 aquifer 内部 profile(calculate_density 52%)是污染态，barrier 占比需修正。

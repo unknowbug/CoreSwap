@@ -1,0 +1,19 @@
+
+=== aquifer 内部无污染精确定位（diag 方法，2026-08-29）===
+| 部分 | 耗时/chunk | 占比 |
+|---|---|---|
+| get_fluid_level (含 estimate_surface_height) | 3.84ms | 22% |
+| get_block_pos (3x3 邻域 18次/点) | 2.57ms | 14% |
+| calculate_density (fluid logic) | ~0ms | barrier ~0 + 走提前返回 |
+| get_water_level_at | ~0.9ms(污染态) | 小 |
+
+合计可解释 ~6.4ms，aquifer 总 17.5ms —— 剩余 ~11ms 未解释！
+
+根因洞察：
+- calculate_density 的 barrier.sample 仅 0.1%（346 次/393216 点），非大头
+- get_block_pos/get_fluid_level 各占 ~15-20%
+- 剩余 ~11ms = apply 每点 98304 次调用的固定开销（函数调用+3x3距离计算+分支+数组访问）
+
+核心结论：aquifer 慢 = 每点 98304 次 apply 调用的累积成本。
+Java 宏观用 Interpolated 网格大幅减少 aquifer/density 采样次数（~1225 网格点 vs 98304 逐点），
+这就是 Java 8-9ms vs Rust 44.9ms 慢 5 倍的根本。
