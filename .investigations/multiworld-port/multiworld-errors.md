@@ -223,7 +223,38 @@
 ---
 
 
+
 ---
+
+## M8. Hole 条件「历史误判翻转」：当年注释声称「C++ 用错字段」，worker 源码核对证明 **C++ 才是对的**（JSON 布尔修复后顺带定案）
+
+### 现象
+- multiworld 收尾轮，worker 静态核对 nether surface 规则链时发现：Rust `surface_rules.rs` `SurfaceCond::Hole => ctx.surface_depth <= 0`，且注释**主动声称**「对齐 Java runDepth=sampleRunDepth 噪声；不照抄 C++ L251 的 `stoneDepthAbove <= 0`（C++ 用错字段，bug）」——即当年**有意**选择了与 C++ 不同的字段。
+- nether 82.69% 阶段该条件的实际影响小（修后仅 +0.03pp），但「注释指导后人远离正确实现」的误导性是主要风险。
+
+### 根因（机制）
+- Java `MaterialRules.HoleMaterialCondition`（yarn `hole()`）：`return this.context.stoneDepthAbove <= 0;`——用的是 `initVerticalContext` 第一参的**垂直扫描 stoneDepthAbove**。
+- C++ `surface.h` L251 `stoneDepthAbove <= 0` **与 Java 一致**。
+- Rust 当年却用了 `surface_depth`（`sampleRunDepth(x,z)` 2D 噪声），并在注释中断言 C++ 是 bug——**对 Java 源码的核对当年没有做或做错了**，凭「名字像 runDepth」的直觉下了反转结论。
+- `hole` 参与的规则：nether 熔岩 lake 判定、nether_wastes soul_sand/gravel 门控、overworld 水湖/熔岩湖边缘（`not(hole)` 门控）。
+
+### 定位（怎么发现的）
+- 非 hole 专项排查发现：multiworld 收尾轮 worker 做 nether surface 规则链静态核对时（M6 修复后的基岩/表面残差诊断），顺手核对 Java `HoleMaterialCondition` 源码 → 与 Rust 注释声称的语义矛盾 → 逐行确认 Java 用 `stoneDepthAbove`。
+- 证据：`.investigations/multiworld-port/analysis-nether-bedrock-misalignment.md` §C（worker 源码核对）+ Java `MaterialRules.HoleMaterialCondition` 源码。
+
+### 修复
+- `surface_rules.rs`：`SurfaceCond::Hole => ctx.stone_depth_above <= 0`（对齐 Java/C++），注释更正。
+- 修后：nether 82.69% → **82.72%**（微升，hole 在 nether 门控面小）；overworld 95.40% 零回归（hole 参与 badlands/湖缘，改动在 FULL 口径噪声内）。
+
+### 教训（可复用判错经验）
+- **「注释声称对齐 Java 但给出与 C++ 不同的语义」= 高危信号**：两个移植实现语义不同时，必有一错——正确动作是**当场读 Java 源码裁决**，而不是写注释为自己这边辩护。本条注释不但没触发核对，还主动把正确实现（C++）标记成 bug，误导持续至今。
+- **历史误判的残留载体是注释，不是产物**：产物错会被测试抓，注释错只会在下一次「照注释实现」时复发——审查移植代码时，**对 Java 语义的断言注释要与源码抽查**，优先级高于对实现的抽查。
+- **微小的差异也可能是语义分歧的暴露点**（+0.03pp 修正确认方向），不要因「影响小」跳过语义核对。
+
+### 速查表追加 1 行
+| 现象/信号 | 根因 | 判错要点 |
+|---|---|---|
+| Rust Hole 用 surface_depth，注释称「C++ 用错字段是 bug」（M8） | 历史误判翻转：Java `HoleMaterialCondition = stoneDepthAbove <= 0`，C++ L251 正确，Rust 当年用 runDepth 噪声且注释反指 C++ 为 bug；修后 nether 82.72%/overworld 零变化 | **两个移植实现语义冲突 = 必有一错，当场读 Java 源码裁决**；「注释声称对齐 Java」不等于核对过——对语义断言注释的源码抽查优先于实现抽查 |
 
 ## 附：错误 → 根因 速查表（一页索引）
 
@@ -237,3 +268,4 @@
 | nether 卡 74.04%、y32..63 带 7.9% 不动、legacy_random_source 零效果（M6） | `nether.json` 的 `false` 是 JSON 布尔；Rust 走 `as_f64()`（只匹配 Number，Bool 恒 None）→ `unwrap_or(true)` 默认值静默生效 → 下界被错误启用真实含水层（6.7 万块水 vs vanilla air）。同款坑：legacy_random_source、requires_block_below | **「optional 读取 + unwrap_or 默认值」会把「字段类型不匹配」静默吞成默认行为**——默认值必须显式断言类型/打日志验证「读到的是什么」；多配置字段同时零效果 = 先查共同解析层；判错路径：混淆对直方图 → skip 二分 → 分支条件反推 → 才下钻解析层 | | 下界熔岩分布与 vanilla 残差（M7） | `aquifers_enabled=false` 时 vanilla 用 `AquiferSampler.seaLevel()` 匿名实现：density≤0 → `y < sea_level ? lava : air`（严格 <，无噪声）；buildSurface 跳过流体格（SurfaceBuilder L136）。docs/09 旧猜测均证实 | **「开关关闭 ≠ 机制消失」**——false 分支是切换到简化实现而非跳过，移植前必读 false 分支实际源码；机制定论以源码逐条证据落盘（analysis-nether-lava-mechanism.md），猜测→验证闭环 |
 
 | 下界熔岩分布与 vanilla 残差（M7） | `aquifers_enabled=false` 时 vanilla 用 `AquiferSampler.seaLevel()` 匿名实现：density≤0 → `y < sea_level ? lava : air`（严格 <，无噪声）；buildSurface 跳过流体格（SurfaceBuilder L136）。docs/09 旧猜测均证实 | **「开关关闭 ≠ 机制消失」**——false 分支是切换到简化实现而非跳过，移植前必读 false 分支实际源码；机制定论以源码逐条证据落盘（analysis-nether-lava-mechanism.md），猜测→验证闭环 |
+
