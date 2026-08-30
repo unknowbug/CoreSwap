@@ -42,6 +42,7 @@ impl PerlinNoiseSampler {
         PerlinNoiseSampler { origin_x, origin_y, origin_z, permutation }
     }
     #[inline] pub fn map(&self, input: i32) -> u8 { self.permutation[(input & 0xFF) as usize] & 0xFF }
+    pub fn origin(&self) -> (f64, f64, f64) { (self.origin_x, self.origin_y, self.origin_z) }
 
     // AVX：sample_section 的 8 个 grad dot 用 __m256d 向量化（grad 查表标量，dot 算术 SIMD）。
     // 8 个 grad 的系数模式固定：x=[lx,lx-1,lx,lx-1, lx,lx-1,lx,lx-1], y=[ly,ly,ly-1,ly-1, ly,ly,ly-1,ly-1],
@@ -376,6 +377,7 @@ impl NoiseSet {
         }
     }
 }
+
 
 
 

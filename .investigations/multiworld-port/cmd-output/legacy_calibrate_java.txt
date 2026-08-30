@@ -1,0 +1,191 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.13/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Caught exception: Couldn't open current thread, error = 5
+Exception in thread "File watcher server" net.rubygrapefruit.platform.NativeException: Couldn't open current thread, error = 5
+	at org.gradle.fileevents.internal.AbstractNativeFileEventFunctions$NativeFileWatcher.initializeRunLoop0(Native Method)
+	at org.gradle.fileevents.internal.AbstractNativeFileEventFunctions$NativeFileWatcher.initializeRunLoop(AbstractNativeFileEventFunctions.java:25)
+	at org.gradle.fileevents.internal.AbstractFileEventFunctions$AbstractFileWatcher$1.run(AbstractFileEventFunctions.java:151)
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[23:43:49] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.20.1 with Fabric Loader 0.15.11
+[23:43:49] [main/INFO] (FabricLoader) Loading 46 mods:
+	- coreswap 1.20.1-1.0.19-beta
+	- fabric-api 0.92.0+1.20.1
+	- fabric-api-base 0.4.31+1802ada577
+	- fabric-api-lookup-api-v1 1.6.36+1802ada577
+	- fabric-biome-api-v1 13.0.13+1802ada577
+	- fabric-block-api-v1 1.0.11+1802ada577
+	- fabric-block-view-api-v2 1.0.1+1802ada577
+	- fabric-command-api-v1 1.2.34+f71b366f77
+	- fabric-command-api-v2 2.2.13+1802ada577
+	- fabric-commands-v0 0.2.51+df3654b377
+	- fabric-containers-v0 0.1.64+df3654b377
+	- fabric-content-registries-v0 4.0.11+1802ada577
+	- fabric-convention-tags-v1 1.5.5+1802ada577
+	- fabric-crash-report-info-v1 0.2.19+1802ada577
+	- fabric-data-attachment-api-v1 1.0.0+de0fd6d177
+	- fabric-data-generation-api-v1 12.3.4+1802ada577
+	- fabric-dimensions-v1 2.1.54+1802ada577
+	- fabric-entity-events-v1 1.6.0+1c78457f77
+	- fabric-events-interaction-v0 0.6.2+1802ada577
+	- fabric-events-lifecycle-v0 0.2.63+df3654b377
+	- fabric-game-rule-api-v1 1.0.40+1802ada577
+	- fabric-gametest-api-v1 1.2.13+1802ada577
+	- fabric-item-api-v1 2.1.28+1802ada577
+	- fabric-item-group-api-v1 4.0.12+1802ada577
+	- fabric-lifecycle-events-v1 2.2.22+1802ada577
+	- fabric-loot-api-v2 1.2.1+1802ada577
+	- fabric-loot-tables-v1 1.1.45+9e7660c677
+	- fabric-message-api-v1 5.1.9+1802ada577
+	- fabric-mining-level-api-v1 2.1.50+1802ada577
+	- fabric-networking-api-v1 1.3.11+1802ada577
+	- fabric-networking-v0 0.3.51+df3654b377
+	- fabric-object-builder-api-v1 11.1.3+1802ada577
+	- fabric-particles-v1 1.1.2+1802ada577
+	- fabric-recipe-api-v1 1.0.21+1802ada577
+	- fabric-registry-sync-v0 2.3.3+1802ada577
+	- fabric-rendering-data-attachment-v1 0.3.37+92a0d36777
+	- fabric-rendering-fluids-v1 3.0.28+1802ada577
+	- fabric-resource-conditions-api-v1 2.3.8+1802ada577
+	- fabric-resource-loader-v0 0.11.10+1802ada577
+	- fabric-screen-handler-api-v1 1.3.30+1802ada577
+	- fabric-transfer-api-v1 3.3.4+1802ada577
+	- fabric-transitive-access-wideners-v1 4.3.1+1802ada577
+	- fabricloader 0.15.11
+	- java 17
+	- minecraft 1.20.1
+	- mixinextras 0.3.5
+[23:43:50] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.5 Source=file:/E:/PYTHON/CoreSwap/.gradle/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.13.3+mixin.0.8.5/9527e6b0d2449408958fd1302594dc65ec5ade9c/sponge-mixin-0.13.3+mixin.0.8.5.jar Service=Knot/Fabric Env=SERVER
+[23:43:50] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[23:43:50] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_16
+[23:43:50] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[23:43:51] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.3.5).
+[23:43:53] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[23:43:54] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[23:43:54] [main/WARN] (WmiQueryHandler) COM exception querying Win32_VideoController, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[23:43:54] [main/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[23:44:08] [main/INFO] (Minecraft) Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[23:44:11] [main/INFO] (Minecraft) Loaded 7 recipes
+[23:44:12] [main/INFO] (Minecraft) Loaded 1271 advancements
+[23:44:12] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 64 new biomes in 3.372 ms
+[23:44:12] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.20.1
+[23:44:12] [Server thread/INFO] (Minecraft) Loading properties
+[23:44:12] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[23:44:12] [Server thread/INFO] (Minecraft) Generating keypair
+[23:44:12] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[23:44:13] [Server thread/INFO] (Minecraft) Using default channel type
+[23:44:13] [Server thread/INFO] (Minecraft) Preparing level "world"
+[23:44:15] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[23:44:18] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-2/INFO] (Minecraft) Preparing spawn area: 0%
+[23:44:18] [Worker-Main-1/INFO] (Minecraft) Preparing spawn area: 13%
+[23:44:19] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 75%
+[23:44:19] [Server thread/INFO] (Minecraft) Time elapsed: 4212 ms
+[23:44:19] [Server thread/INFO] (Minecraft) Done (5.786s)! For help, type "help"
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=-2032795982907864146 worldgenDir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen enabled=true
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=C:\Users\NDark\AppData\Local\Temp\dsh-Oe5iyB\coreswap-native\worldgen.dll size=1725952 sha256=d80ac380850a61d2...
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initNether seed=-2032795982907864146 enabled=true
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S1] -1155484576 -723955400 1033096058 -1690734402 -1557280266 1327362106 -1930858313 502539523 
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S1L] -4962768465676381896 4437113781045784766 -6688467811848818630 -8292973307042192125 
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S1D] 0.7309677601 0.2405364215 0.6374174356 
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S2] octave0: origin=(133.816944,197.472387,128.375667)
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S2] octave1: origin=(201.369381,194.971181,149.071286)
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CAL-S3] DoublePerlin legacy sample:
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (5,1,0) -> 0.128812
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (12,1,0) -> 0.143525
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (10,1,1) -> 0.140658
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (14,1,2) -> 0.149834
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (7,1,3) -> 0.136552
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (11,1,3) -> 0.145022
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (5,1,4) -> 0.133199
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (8,1,4) -> 0.139823
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (2,1,5) -> 0.127336
+[23:44:19] [Server thread/INFO] (Minecraft) [STDOUT]: (6,1,5) -> 0.136505
+[23:44:20] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise(nether) intercepted chunk(-1,0)
+
+thread '<unnamed>' (62704) panicked at src\api.rs:115:42:
+range end index 98304 out of range for slice of length 65536
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (60512) panicked at src\api.rs:105:5:
+a scoped thread panicked
+
+thread '<unnamed>' (60512) panicked at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\panicking.rs:225:5:
+panic in a function that cannot unwind
+stack backtrace:
+   0:     0x7ffa3971e5e9 - <unknown>
+   1:     0x7ffa3972c921 - <unknown>
+   2:     0x7ffa39721244 - <unknown>
+   3:     0x7ffa39716c55 - <unknown>
+   4:     0x7ffa39719c2a - <unknown>
+   5:     0x7ffa3971a003 - <unknown>
+   6:     0x7ffa39716d64 - <unknown>
+   7:     0x7ffa3971622f - <unknown>
+   8:     0x7ffa3971710e - <unknown>
+   9:     0x7ffa3973d1b7 - <unknown>
+  10:     0x7ffa3973d131 - <unknown>
+  11:     0x7ffa3973d2ea - <unknown>
+  12:     0x7ffa396d5881 - <unknown>
+  13:     0x7ffb7fd3f540 - <unknown>
+  14:     0x7ffb7fd33a86 - <unknown>
+  15:     0x7ffb7fd3ea14 - <unknown>
+  16:     0x7ffb7fd32c94 - <unknown>
+  17:     0x7ffb7fd3f351 - <unknown>
+  18:     0x7ffc814a4b3f - <unknown>
+  19:     0x7ffc81382103 - <unknown>
+  20:     0x7ffb7fd3eeda - <unknown>
+  21:     0x7ffb7fd318e5 - <unknown>
+  22:     0x7ffb7fd31d00 - <unknown>
+  23:     0x7ffb7fd32d90 - <unknown>
+  24:     0x7ffb7fd3f351 - <unknown>
+  25:     0x7ffc814a4abf - <unknown>
+  26:     0x7ffc81385e97 - <unknown>
+  27:     0x7ffc813cd011 - <unknown>
+  28:     0x7ffc7e9c187a - <unknown>
+  29:     0x7ffb7fd35267 - <unknown>
+  30:     0x7ffa3972143d - <unknown>
+  31:     0x7ffa39721315 - <unknown>
+  32:     0x7ffa39716ebf - <unknown>
+  33:     0x7ffa3971a07e - <unknown>
+  34:     0x7ffa39716d64 - <unknown>
+  35:     0x7ffa3971622f - <unknown>
+  36:     0x7ffa3971710e - <unknown>
+  37:     0x7ffa3973d33d - <unknown>
+  38:     0x7ffa396d5471 - <unknown>
+  39:     0x7ffa396e1deb - <unknown>
+  40:     0x7ffa396c9400 - <unknown>
+  41:      0x1930745d6e1 - <unknown>
+thread caused non-unwinding panic. aborting.
+
+> Task :runServer FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':runServer'.
+> Process 'command 'E:\PYTHON\MC\tools\jdk17\jdk-17.0.20+8\bin\java.exe'' finished with non-zero exit value -1073740791
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 52s
+6 actionable tasks: 1 executed, 5 up-to-date
