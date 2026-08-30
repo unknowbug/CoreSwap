@@ -1,0 +1,7 @@
+channels = 5
+channels[0]: Interpolated残留=0 (全: BinaryOp=60 BlendAlpha=12 BlendDensity=1 BlendOffset=3 Cache2D=9 Clamp=5 Constant=355 FlatCache=363 InterpolatedNoise=3 LinearOp=632 Noise=29 RangeChoice=2 ShiftDF=708 ShiftedNoise=354 Spline=9 UnaryOp=392 WeirdScaled=5 Wrapping=727 YClampedGradient=8)
+channels[1]: Interpolated残留=0 (全: Constant=1 Noise=1 RangeChoice=1 YClampedGradient=1)
+channels[2]: Interpolated残留=0 (全: Constant=1 LinearOp=2 Noise=1 RangeChoice=1 YClampedGradient=1)
+channels[3]: Interpolated残留=0 (全: Constant=1 Noise=1 RangeChoice=1 YClampedGradient=1)
+channels[4]: Interpolated残留=0 (全: Constant=1 Noise=1 RangeChoice=1 YClampedGradient=1)
+combine: BinaryOp=3 Constant=1 LinearOp=2 RangeChoice=1 ReadChannel=5 UnaryOp=3
