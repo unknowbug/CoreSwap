@@ -258,6 +258,29 @@
 
 
 
+
+---
+
+## M9. legacy climate visitor 固定种子特例：逐语义正确移植后净效果为负（82.72% → 77.01%）——env 门控回退保留
+
+### 现象
+- WG_LEGACY_CLIMATE=1 启用 legacy climate visitor 特例（temperature/vegetation 固定种子 CheckedRandom(0)/(2)、offset 恒 0、blended CheckedRandom(0)）后 nether **82.72% → 77.01%**（y32..63 暴跌 65.78→22.37）；y96..127 61.03→65.64、y64..95 55.17→55.51 微升；nonAir 63.3→70.5 提升。
+
+### 根因（机制）
+- visitor 替换改变 climate 噪声 → biome 判定改变 → nether 3D 表面规则涂布（biome 条件 x5）连锁变化。
+- **Rust 的 biome 判定本身仍是 nether_wastes 误判**（soul_sand 诊断，M10 链条）→ 正确的 climate × 误判的 biome = 涂布结果更差（负相关抵消）。
+
+### 定位（诊断方法）
+- 特例态消融（WG_LEGACY_CLIMATE=1 + WG_BIOMEDUMP=1）：t=+0.127~+0.150（**符号已对**——确认 legacy climate visitor 就是 biome 输入的真实机制）但 humidity ≈-0.01 vs Java -0.1533 → OctavePerlin createLegacy 构造/采样语义未对齐（yarn OctavePerlinNoiseSampler.java 已入档，静态核对为下轮开工点）。
+
+### 修复
+- 特例已实现并保留（env 门控默认关）：get_noise_sampler 特例（temperature/vegetation）+ old_blended_noise legacy 分支（CheckedRandom(0) 替代 split("terrain")）。
+
+### 教训（可复用判错经验）
+- **逐语义正确 ≠ 整体正确**——visitor 替换是全局耦合改动（climate→biome→表面三层连锁），必须消融验证子项而非直接看总分。
+- env 门控回退 = 保留已实现工作 + 维持最佳默认态的标准做法。
+- 净负结果不是白做——澄清了「legacy 下界的 worldSeed 无关性」疑点与 biome 采样的耦合关系。
+
 ## M10. 三层对拍校准：LCG/blended 全对齐，缺口隔离到 OctavePerlin createLegacy（humidity≈0 vs Java -0.16）
 
 ### 现象
