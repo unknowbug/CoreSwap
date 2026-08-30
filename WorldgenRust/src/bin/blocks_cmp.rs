@@ -91,7 +91,7 @@ fn main() {
         // Rust 阶段 A 管线：fill_chunk 宏观 → BlockColumn → build_surface 具体 block id
         let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, min_y, height);
         let mut va = VanillaAquifer::new(aq);
-        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, min_y, height, None);
+        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, min_y, height, None, 384);
         let mut col = BlockColumn::new(min_y, height);
         for lz in 0..16 { for lx in 0..16 { for ly in 0..height {
             let y = min_y + ly;
@@ -137,3 +137,4 @@ fn main() {
     }
     println!("Rust(surface rules) vs vanilla: match={}/{} ({:.2}%)  nonAir={}/{} ({:.2}%)", match_t, total, 100.0*match_t as f64/total as f64, mnair, tnair, if tnair>0 {100.0*mnair as f64/tnair as f64} else {0.0});
 }
+

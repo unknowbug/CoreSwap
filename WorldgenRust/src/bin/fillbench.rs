@@ -57,7 +57,7 @@ fn main() {
         let cx = 0 + (c % 2); let cz = 0 + c / 2;
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
         let mut va = VanillaAquifer::new(aq);
-        let _ = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
+        let _ = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None, 384);
     }
     let s0 = GRID_ARG_SAMPLES.load(std::sync::atomic::Ordering::Relaxed);
     let t0 = Instant::now();
@@ -65,7 +65,7 @@ fn main() {
         let cx = 0 + (c % 4) as i32; let cz = 0 + (c / 4) as i32;
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
         let mut va = VanillaAquifer::new(aq);
-        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
+        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None, 384);
         std::hint::black_box(&cd);
     }
     let wall = t0.elapsed();
@@ -76,3 +76,4 @@ fn main() {
     // 粗分解：surface 扫描(每列 ~384 次采样) vs blocks 全量(98k 采样)
     println!("理论: surface 扫描 ≈ 256 列 × ~平均160次 = ~41k 采样; blocks 全量 = {} 采样/chunk", 16*16*384i32);
 }
+

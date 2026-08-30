@@ -68,14 +68,14 @@ fn main() {
     for c in 0..2 {
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), 0, 0, -64, 384i32);
         let mut va = VanillaAquifer::new(aq);
-        let _ = fill_chunk(&dense, &mut va, &biomesrc, 0, 0, -64, 384i32, None);
+        let _ = fill_chunk(&dense, &mut va, &biomesrc, 0, 0, -64, 384i32, None, 384);
     }
     let t1 = Instant::now();
     for c in 0..n_chunks {
         let cx = 0 + (c % 4) as i32; let cz = 0 + (c / 4) as i32;
         let mut aq = Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
         let mut va = VanillaAquifer::new(aq);
-        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
+        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None, 384);
         std::hint::black_box(&cd);
     }
     let t_fill = t1.elapsed().as_secs_f64()*1e6/(n_chunks as f64*98304.0);

@@ -75,7 +75,7 @@ fn main() {
     for cz in -4..4 { for cx in -4..4 {
         let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, -64, 384i32);
         let mut va = VanillaAquifer::new(aq);
-        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
+        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None, 384);
 
         let mut col = BlockColumn::new(-64, 384);
         for lz in 0..16 { for lx in 0..16 { for ly in 0..384 {
@@ -119,3 +119,4 @@ fn main() {
     }
     println!("terracotta_probe done (terracotta bands should appear in badlands/desert-ish y bands)");
 }
+

@@ -62,7 +62,7 @@ fn fill_one(ctx: &Ctx, cx: i32, cz: i32) -> i64 {
     let dense = VanillaDensity { df: &ctx.tree };
     let mut aq = Aquifer::new(ctx.barrier.clone(), ctx.flooded.clone(), ctx.spread.clone(), ctx.lava.clone(), ctx.erosion.clone(), ctx.depth.clone(), ctx.init.clone(), ctx.splitter.clone(), cx*16, cz*16, -64, 384i32);
     let mut va = VanillaAquifer::new(aq);
-    let cd = fill_chunk(&dense, &mut va, &ctx.biomesrc, cx, cz, -64, 384i32, None);
+    let cd = fill_chunk(&dense, &mut va, &ctx.biomesrc, cx, cz, -64, 384i32, None, 384);
     // 返回块分类计数（代表 chunk 特征）
     let mut rock = 0i64;
     for b in &cd.blocks { if *b == WorldgenRust::terrain::BlockKind::Rock { rock += 1; } }
@@ -103,3 +103,4 @@ fn main() {
     }
     println!("mt_fill done (full pipeline incl biome SearchTree; check scaling + consistency)");
 }
+

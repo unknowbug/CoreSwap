@@ -20,6 +20,9 @@ import java.nio.file.Path;
 public final class CppBridge {
     private static volatile long handle;
     public static volatile boolean enabled;
+    // 多世界（2026-08-30）：nether 维度句柄（min_y=0/height=256，nether.json + biome_params_nether.json）
+    private static volatile long netherHandle;
+    public static volatile boolean netherEnabled;
     private static final boolean DEBUG = System.getProperty("cpp.debug") != null;
     // 方块注册表缓存（RQ-005）：进程级静态，vanilla 注册表运行期冻结。
     // null = 未查过 registry（不能填 AIR：st==null 判断会永远 false 导致全写空气——历史根因）；
@@ -95,14 +98,38 @@ public final class CppBridge {
         }
     }
 
+    /** 多世界：初始化 nether 维度句柄（失败不阻断主世界）。在 init 之后调用。 */
+    public static void initNether(long seed) {
+        try {
+            String dir = System.getProperty("cpp.worldgen.dir");
+            if (dir == null) dir = extractWorldgenDir();
+            long h = CppWorldgen.initDim(seed, dir, "nether.json", "biome_params_nether.json", 256);
+            netherHandle = h;
+            netherEnabled = h != 0;
+            System.out.println("[CppBridge] initNether seed=" + seed + " enabled=" + netherEnabled);
+        } catch (Throwable t) {
+            System.out.println("[CppBridge] initNether failed: " + t);
+        }
+    }
+
+    public static boolean netherActive() { return netherEnabled && netherHandle != 0; }
+
     /**
      * 喂 Beardifier（StructureWeightSampler）输入到 C++：在 populateNoise 拦截处、fillChunk 之前调用。
      * 用 vanilla createStructureWeightSampler 构造（结构与 Java 同源），反射提取 piece/junction 列表，
      * 序列化 int[] 传给 wg_set_beardifier。失败时降级：不喂数据（Beardifier=0，与现状一致），不阻断生成。
      */
     public static void feedBeardifier(Chunk chunk, net.minecraft.world.gen.StructureAccessor structures) {
-        long h = handle;
-        if (!enabled || h == 0) return;
+        feedBeardifier(handle, chunk, structures);
+    }
+
+    /** nether 维度版（netherHandle） */
+    public static void feedBeardifierNether(Chunk chunk, net.minecraft.world.gen.StructureAccessor structures) {
+        feedBeardifier(netherHandle, chunk, structures);
+    }
+
+    private static void feedBeardifier(long h, Chunk chunk, net.minecraft.world.gen.StructureAccessor structures) {
+        if (h == 0) return;
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         try {
             net.minecraft.world.gen.StructureWeightSampler sws =
@@ -184,20 +211,48 @@ public final class CppBridge {
         else if (nz < 1000)
             System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
         try {
-            writeChunk(chunk, cx, cz, buf);
+            writeChunk(chunk, cx, cz, buf, 384);
         } catch (Throwable t) {
             System.out.println("[CppBridge] DIAG write threw chunk(" + cx + "," + cz + "): " + t);
         }
     }
 
+    // nether 维度：min_y=0/height=256（buffer 16*16*256），netherHandle 分派
+    private static final ThreadLocal<int[]> BUF_NETHER =
+            ThreadLocal.withInitial(() -> new int[16 * 16 * 256]);
+
+    public static void fillChunkNether(Chunk chunk) {
+        long h = netherHandle;  // 本地快照
+        if (!netherEnabled || h == 0) return;
+        int cx = chunk.getPos().x, cz = chunk.getPos().z;
+        int[] buf = BUF_NETHER.get();
+        int got = 0;
+        try {
+            got = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz},
+                    new int[][]{buf}, THREADS);
+        } catch (Throwable t) {
+            System.out.println("[CppBridge] DIAG fillBlocks(nether) threw chunk(" + cx + "," + cz + "): " + t);
+            return;
+        }
+        if (got != 1) {
+            System.out.println("[CppBridge] DIAG fillBlocks(nether) got=" + got + " chunk(" + cx + "," + cz + ")");
+            return;
+        }
+        try {
+            writeChunk(chunk, cx, cz, buf, 256);
+        } catch (Throwable t) {
+            System.out.println("[CppBridge] DIAG write(nether) threw chunk(" + cx + "," + cz + "): " + t);
+        }
+    }
+
     // 直写 PalettedContainer（跳过 chunk.setBlockState 的 heightmap/blockEntity 开销）
-    // Chunk.getSection(int) 参数是 0-based section index（0..23 = 世界 y -64..319）
-    // 抽出独立方法便于 try-catch：写入异常 = chunk 保持空气 → 后续结构悬浮半空
-    private static void writeChunk(Chunk chunk, int cx, int cz, int[] buf) {
-        net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[24];
-        // 1.20.1 Chunk.getSection(int) 是 0-based 索引（0..23 = y -64..319）——已验证（getSection(-4) 越界）
-        for (int secIdx = 0; secIdx < 24; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
-        for (int by = 0; by < 384; by++) {
+    // 泛化维度（2026-08-30 多世界）：height 参数（overworld 384/24 sections；nether 256/16 sections）。
+    // Chunk.getSection(int) 是 0-based 索引（相对维度 bottomY；buf[0] = y=min_y=bottomY）。
+    private static void writeChunk(Chunk chunk, int cx, int cz, int[] buf, int height) {
+        int secCount = height / 16;
+        net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[secCount];
+        for (int secIdx = 0; secIdx < secCount; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
+        for (int by = 0; by < height; by++) {
             net.minecraft.world.chunk.ChunkSection sec = sections[by >> 4];
             int sy = by & 15;
             for (int z = 0; z < 16; z++) {
@@ -233,6 +288,8 @@ public final class CppBridge {
         // （防止「保存并退出」时异步 chunk 生成还在 fillBlocks 里用已释放句柄 → use-after-free）
         enabled = false;
         handle = 0;
+        netherEnabled = false;
+        netherHandle = 0;
     }
 
     // 分量对照探针：用 vanilla NoiseConfig 的 density function registry 采样指定坐标的分量
@@ -291,7 +348,10 @@ public final class CppBridge {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             long h = handle;
             handle = 0;
+            long hn = netherHandle;
+            netherHandle = 0;
             if (h != 0) CppWorldgen.destroy(h);
+            if (hn != 0) CppWorldgen.destroy(hn);
         }, "coreswap-destroy"));
     }
 }

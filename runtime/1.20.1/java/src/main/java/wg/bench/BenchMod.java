@@ -28,6 +28,8 @@ public class BenchMod implements ModInitializer {
             boolean active = replace || !anyProbe;  // 显式探针参数才跑探针，否则默认启用 CoreSwap
             if (active) {
                 wg.bench.CppBridge.init(server.getOverworld().getSeed());
+                // 多世界（2026-08-30）：nether 维度句柄（失败不阻断主世界）
+                wg.bench.CppBridge.initNether(server.getOverworld().getSeed());
             }
             if (System.getProperty("biome.probe") != null) {
                 BiomeParamProbe.run(server);

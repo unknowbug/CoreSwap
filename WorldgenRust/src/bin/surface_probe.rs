@@ -67,7 +67,7 @@ fn main() {
     let mut va = VanillaAquifer::new(aq);
     let bc = BiomeClassifier::load("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\biome_params.json");
     let biomesrc = MacroBiome { bc, tempf: t_temp, humf: t_hum, contf: t_cont, erof: t_ero, depthf: t_dep, weirdf: t_wei };
-    let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None);
+    let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, -64, 384i32, None, 384);
 
     // BlockKind → block id
     let stone = blocks.id("minecraft:stone");
@@ -121,3 +121,4 @@ fn main() {
     }
     println!("surface_probe done (build_surface ran; verify top blocks are grass/sand not stone)");
 }
+

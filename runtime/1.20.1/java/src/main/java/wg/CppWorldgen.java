@@ -39,6 +39,9 @@ public final class CppWorldgen {
     /** 创建 worldgen 句柄（seed + worldgen JSON 数据目录） */
     public static native long init(long seed, String worldgenDir);
 
+    /** 多世界：按维度创建句柄（settingsName 如 "nether.json"；biomeParamsFile 如 "biome_params_nether.json"；worldHeight 维度世界高度） */
+    public static native long initDim(long seed, String worldgenDir, String settingsName, String biomeParamsFile, int worldHeight);
+
     /** 释放句柄 */
     public static native void destroy(long handle);
 

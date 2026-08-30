@@ -34,6 +34,27 @@ pub extern "system" fn Java_wg_CppWorldgen_init<'frame>(
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }
 
+// 多世界：按维度创建句柄（seed + 目录 + settings 名 + biome 参数文件 + 世界高度）。
+// Java 侧：initDim(seed, dir, "nether.json", "biome_params_nether.json", 256)。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_initDim<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, seed: jlong, worldgen_dir: JString,
+    settings_name: JString, biome_params_file: JString, world_height: jint,
+) -> jlong {
+    unowned_env
+        .with_env(|env| -> Result<jlong, Error> {
+            let dir = env.get_string(&worldgen_dir)?.to_string();
+            let settings = env.get_string(&settings_name)?.to_string();
+            let biome_params = env.get_string(&biome_params_file)?.to_string();
+            let c_dir = std::ffi::CString::new(dir).map_err(|_| Error::JavaException)?;
+            let c_settings = std::ffi::CString::new(settings).map_err(|_| Error::JavaException)?;
+            let c_biome = std::ffi::CString::new(biome_params).map_err(|_| Error::JavaException)?;
+            let h = wg_create(seed, c_dir.as_ptr(), c_settings.as_ptr(), c_biome.as_ptr(), world_height);
+            Ok(h as jlong)
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
 // 释放句柄
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_wg_CppWorldgen_destroy<'frame>(

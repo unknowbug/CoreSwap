@@ -1,0 +1,12 @@
+=== Phase C：MOD 游戏内 nether 接管验证（rust_nether_test4.log 摘录，2026-08-30）===
+命令: gradle runServer（无探针参数，BenchMod active=true 默认启用）
+[19:50:22] Done (3.991s)! For help, type "help"
+[19:50:23] [CppBridge] init seed=-2032795982907864146 ... （overworld 句柄）
+[19:50:23] [CppBridge] initNether seed=-2032795982907864146 enabled=true   ← initDim 新 JNI 通路 OK
+[19:50:23] [Mixin] populateNoise(nether) intercepted chunk(-1,-1)          ← 下界 chunk 经 Rust 句柄生成
+说明:
+- 主世界拦截行本次无（spawn 区块已由先前 run 生成，无新 chunk → 不触发 populateNoise；非回归）
+- forceload stdin 注入经 gradle.bat 未生效（仅启动期一个 nether chunk 被世界初始化触发）——
+  视觉/完整下界验证由用户客户端经传送门实测（DLL/桥/Mixin 链路已机械验证）
+- 修复记录: processResources inputs.file 加 dll 路径（UP-TO-DATE 跳过 doFirst 同步 → 旧 dll
+  initDim UnsatisfiedLinkError 根因）; resources/tmp 陈旧 dll 清理后同步恢复

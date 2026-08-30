@@ -115,7 +115,7 @@ fn main() {
         // Rust 阶段 A 管线：fill_chunk 宏观 → BlockColumn → build_surface 具体 block id
         let mut aq = WorldgenRust::aquifer::Aquifer::new(barrier.clone(), flooded.clone(), spread.clone(), lava.clone(), erosion.clone(), depth.clone(), init.clone(), splitter.clone(), cx*16, cz*16, min_y, height);
         let mut va = VanillaAquifer::new(aq);
-        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, min_y, height, None);
+        let cd = fill_chunk(&dense, &mut va, &biomesrc, cx, cz, min_y, height, None, 384);
         let mut col = BlockColumn::new(min_y, height);
         for lz in 0..16 { for lx in 0..16 { for ly in 0..height {
             let y = min_y + ly;
@@ -219,3 +219,4 @@ fn main() {
     println!("Rust carved: {} (match vanilla air {})  vanilla carved: {}  overlap: {:.2}%", rust_carved, rust_carved_match, vanilla_carved, if vanilla_carved>0 {100.0*rust_carved_match as f64/vanilla_carved as f64} else {0.0});
     println!("Rust carved above surface (anomaly): {}", rust_carved_above_surface);
 }
+

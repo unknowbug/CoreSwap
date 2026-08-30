@@ -22,6 +22,9 @@ dependencies {
 
 processResources {
     inputs.property "version", project.version
+    // ⚠️ dll 是任务输入：Rust dll 重编后强制 processResources 重跑（否则 UP-TO-DATE 跳过 doFirst 同步，
+    //   jar/resources 里永远是旧 dll——2026-08-30 initDim UnsatisfiedLinkError 根因）
+    inputs.file 'E:/PYTHON/CoreSwap/WorldgenRust/target/release/WorldgenRust.dll'
     filesMatching("fabric.mod.json") {
         expand "version": project.version
     }

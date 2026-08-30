@@ -20,6 +20,23 @@ import wg.bench.CppBridge;
 @Mixin(NoiseChunkGenerator.class)
 public abstract class NoiseChunkGeneratorMixin {
 
+    // 末地保护：End 也走 NoiseChunkGenerator 且形状同为 min_y=0/height=256，
+    // 用 biomeSource（父类 ChunkGenerator 字段，@Shadow 够不到 → 缓存反射）区分 TheEndBiomeSource
+    private static volatile java.lang.reflect.Field wgBiomeSourceField;
+
+    private boolean wgIsEnd() {
+        try {
+            if (wgBiomeSourceField == null) {
+                java.lang.reflect.Field f = net.minecraft.world.gen.chunk.ChunkGenerator.class.getDeclaredField("biomeSource");
+                f.setAccessible(true);
+                wgBiomeSourceField = f;
+            }
+            return wgBiomeSourceField.get(this) instanceof net.minecraft.world.biome.source.TheEndBiomeSource;
+        } catch (Throwable t) {
+            return false;  // 反射失败 → 不排除（保持旧行为，nether 形状拦截仍成立）
+        }
+    }
+
     // NOISE 阶段：整块 C++ 生成（方块 + 高度图），跳过 Java 的 density/aquifer/oreVein
     @Inject(method = "populateNoise(Ljava/util/concurrent/Executor;"
             + "Lnet/minecraft/world/gen/chunk/Blender;"
@@ -36,21 +53,32 @@ public abstract class NoiseChunkGeneratorMixin {
         if (System.getProperty("comp.probe") != null && !CppBridge.didCompProbe()) {
             CppBridge.compProbe(noiseConfig);
         }
-        // 只拦截主世界：主世界特征 = minY=-64 + height=384（下界 minY=0/256、末地 TheEndGenerator 不在此类、多数维度 mod 高度不同）
-        // 注意：极端情况下维度 mod 若用 NoiseChunkGenerator 且同为主世界高度，会被误拦——后续可加 -Dcoreswap.dimensions 白名单
-        if (CppBridge.enabled
-                && chunk.getHeightLimitView().getBottomY() == -64
-                && chunk.getHeightLimitView().getHeight() == 384) {
+        if (!CppBridge.enabled) return;
+        boolean overworld = chunk.getHeightLimitView().getBottomY() == -64
+                && chunk.getHeightLimitView().getHeight() == 384;
+        boolean netherShape = chunk.getHeightLimitView().getBottomY() == 0
+                && chunk.getHeightLimitView().getHeight() == 256;
+        // 主世界：minY=-64 + height=384
+        if (overworld) {
             System.out.println("[Mixin] populateNoise intercepted chunk(" + chunk.getPos().x + "," + chunk.getPos().z + ")");
             // Beardifier：vanilla 在 doFill 内构造 StructureWeightSampler（结构与 Java 同源），
             // populateNoise 拦截后 vanilla 流程被跳过 → 必须在此喂 C++（结构与 Java 同源、时机一致）
             CppBridge.feedBeardifier(chunk, structureAccessor);
             CppBridge.fillChunk(chunk);
             cir.setReturnValue(java.util.concurrent.CompletableFuture.completedFuture(chunk));
+            return;
+        }
+        // 下界（多世界 2026-08-30）：minY=0 + height=256 且 nether 句柄就绪（末地同形状 → biomeSource 排除）
+        if (netherShape && !wgIsEnd() && CppBridge.netherActive()) {
+            System.out.println("[Mixin] populateNoise(nether) intercepted chunk(" + chunk.getPos().x + "," + chunk.getPos().z + ")");
+            CppBridge.feedBeardifierNether(chunk, structureAccessor);
+            CppBridge.fillChunkNether(chunk);
+            cir.setReturnValue(java.util.concurrent.CompletableFuture.completedFuture(chunk));
         }
     }
 
-    // SURFACE 阶段：C++ 已生成表面（surface rules 在 wg_fill_blocks 内部），跳过 Java 实现
+    // SURFACE 阶段：C++ 已生成表面（surface rules 在 wg_fill_blocks 内部），跳过 Java 实现。
+    // 只对已接管的维度 cancel（主世界 / nether 接管时），末地等其他维度放行 vanilla。
     @Inject(method = "buildSurface(Lnet/minecraft/world/ChunkRegion;"
             + "Lnet/minecraft/world/gen/StructureAccessor;"
             + "Lnet/minecraft/world/gen/noise/NoiseConfig;"
@@ -58,7 +86,12 @@ public abstract class NoiseChunkGeneratorMixin {
             at = @At("HEAD"), cancellable = true)
     private void wgBuildSurface(ChunkRegion region, StructureAccessor structures,
                                 NoiseConfig noiseConfig, Chunk chunk, CallbackInfo ci) {
-        if (CppBridge.enabled) {
+        if (!CppBridge.enabled) return;
+        boolean overworld = chunk.getHeightLimitView().getBottomY() == -64
+                && chunk.getHeightLimitView().getHeight() == 384;
+        boolean netherShape = chunk.getHeightLimitView().getBottomY() == 0
+                && chunk.getHeightLimitView().getHeight() == 256;
+        if (overworld || (netherShape && !wgIsEnd() && CppBridge.netherActive())) {
             System.out.println("[Mixin] buildSurface skipped chunk(" + chunk.getPos().x + "," + chunk.getPos().z + ")");
             ci.cancel();
         }
