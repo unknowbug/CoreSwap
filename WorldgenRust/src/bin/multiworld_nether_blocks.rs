@@ -83,8 +83,8 @@ let mut total = 0u64; let mut match_t = 0u64; let mut tnair = 0u64; let mut mnai
                     if let (Some(bc), Some(trees)) = (&bc, &trees) {
                         let pos = NP2 { x: cx * 16 + xx, y: min_y + yy, z: cz * 16 + zz };
                         let g = |k2: &str| trees.get(k2).unwrap().as_ref();
-                        let name = bc.biome_of(g("temperature"), g("vegetation"), g("continents"), g("erosion"), g("depth"), g("ridges"), &pos);
-                        println!("[BIOME] ({},{},{}) -> {} (want id{})", pos.x, pos.y, pos.z, name, want);
+                                                let (name, dist, vals) = bc.biome_of_debug(g("temperature"), g("vegetation"), g("continents"), g("erosion"), g("depth"), g("ridges"), &pos);
+                        println!("[BIOME] ({},{},{}) -> {} dist={:.4} 6dim=[t{:.3} h{:.3} c{:.3} e{:.3} d{:.3} w{:.3}] (want id{})", pos.x, pos.y, pos.z, name, dist, vals[0], vals[1], vals[2], vals[3], vals[4], vals[5], want);
                     }
                 }
             }
@@ -143,3 +143,4 @@ fn settings2_ok_legacy(wg_dir: &str) -> bool {
     let s = parse2(&std::fs::read_to_string(&p).unwrap()).unwrap();
     s.get("legacy_random_source").and_then(|v| v.as_bool()).unwrap_or(false)
 }
+

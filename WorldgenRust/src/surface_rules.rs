@@ -952,7 +952,10 @@ impl<'a> SurfaceBuilder<'a> {
             if let Some(seq) = j.get("sequence") {
                 if let Some(arr) = seq.as_array() {
                     for r in arr {
-                        if let Some(rr) = self.parse_surface_rule(r, min_y, height) { rules.push(rr); }
+                        match self.parse_surface_rule(r, min_y, height) {
+                            Some(rr) => rules.push(rr),
+                            None => eprintln!("[SURFACE-WARN] sequence 条目解析失败（类型={:?}），已跳过", r.get("type").and_then(|t| t.as_str()).unwrap_or("<cond>"))
+                        }
                     }
                 }
             }
@@ -960,8 +963,9 @@ impl<'a> SurfaceBuilder<'a> {
         }
         if type_name.contains("condition") {
             if let Some(c) = j.get("if_true") {
-                let cond = self.parse_surface_cond(c, min_y, height)?;
+                let cond = match self.parse_surface_cond(c, min_y, height) { Some(cc) => cc, None => { eprintln!("[SURFACE-WARN] condition if_true 解析失败（类型={:?}），整条分支跳过", c.get("type").and_then(|t| t.as_str()).unwrap_or("<cond>")); return None; } };
                 let rule = j.get("then_run").and_then(|r| self.parse_surface_rule(r, min_y, height));
+                                if rule.is_none() { eprintln!("[SURFACE-WARN] then_run 解析失败，回退 Block(0)（写 air id）"); }
                 return Some(SurfaceRule::Cond { cond, rule: Box::new(rule.unwrap_or(SurfaceRule::Block(0))) });
             }
         }
@@ -1377,6 +1381,7 @@ pub fn biome_temperature(biome_id: &str) -> f64 {
 //   - SurfaceBuilder::build_surface ↔ C++ L685-811（逐列扫描 + pillar + 规则应用）
 //   - SurfaceBuilder::place_badlands_pillar ↔ C++ L813-850
 //   - biome_temperature ↔ C++ biomeTemp 用法（TempCond < 0.15）
+
 
 
 

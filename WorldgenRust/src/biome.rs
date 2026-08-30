@@ -429,4 +429,18 @@ impl BiomeClassifier {
         self.tree.get_resulting_node(&vals, &mut best_dist, &mut best);
         best
     }
+
+    /// 诊断：同 biome_of，但额外返回判定距离与 6 维采样值（biome 分类精度排查用，非热路径）
+    pub fn biome_of_debug(&self, tempf: &DensityFunction, humf: &DensityFunction, contf: &DensityFunction,
+        erof: &DensityFunction, depthf: &DensityFunction, weirdf: &DensityFunction, pos: &NoisePos)
+        -> (String, f64, [f64; 6]) {
+        let t = tempf.sample(pos); let h = humf.sample(pos); let c = contf.sample(pos);
+        let e = erof.sample(pos); let d = depthf.sample(pos); let w = weirdf.sample(pos);
+        let vals = [t, h, c, e, d, w, 0.0];
+        let mut best_dist = f64::INFINITY;
+        let mut best = "minecraft:plains".to_string();
+        self.tree.get_resulting_node(&vals, &mut best_dist, &mut best);
+        (best, best_dist, [t, h, c, e, d, w])
+    }
 }
+
