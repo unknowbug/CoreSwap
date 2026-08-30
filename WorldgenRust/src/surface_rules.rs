@@ -96,9 +96,9 @@ impl SurfaceCond {
                 let d = noise_threshold_sample(ctx, noise_key);
                 d >= *min_th && d <= *max_th
             }
-            // ⚠️ 关键决策：HoleCond 用 ctx.surface_depth（= sampleRunDepth，对齐 Java runDepth=sampleRunDepth 噪声）
-            // 不照抄 C++ L251 的 `stoneDepthAbove <= 0`（C++ 用错字段，bug）
-            SurfaceCond::Hole => ctx.surface_depth <= 0,
+            // M6 附记修正（2026-08-30）：Java HoleCondition = stoneDepthAbove <= 0（worker 逐行核对
+            // yarn 源码）。当年注释称「C++ L251 用错字段」系误判——C++ 才是对的，此处曾用 runDepth 噪声。
+            SurfaceCond::Hole => ctx.stone_depth_above <= 0,
             // C++ L252-261 SteepCond
             // ⚠️ 关键决策：C++ 读 `hm[i*16+j]`（i=x,j=z）= hm[x*16+z]，但 heightmap 填充为 z*16+x（worldgen_api.cpp L1045），
             // 是转置 bug。Java SteepSlopePredicate 读 sampleHeightmap(x, z±1)/(x±1, z)。此处按 Java 修正。
@@ -1377,6 +1377,7 @@ pub fn biome_temperature(biome_id: &str) -> f64 {
 //   - SurfaceBuilder::build_surface ↔ C++ L685-811（逐列扫描 + pillar + 规则应用）
 //   - SurfaceBuilder::place_badlands_pillar ↔ C++ L813-850
 //   - biome_temperature ↔ C++ biomeTemp 用法（TempCond < 0.15）
+
 
 
 
