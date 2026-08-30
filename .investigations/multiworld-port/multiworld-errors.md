@@ -299,6 +299,15 @@
 ## 速查表追加 1 行（插表末）
 
 ---
+
+### M10 补遗：第二轮对拍（blended 逐 octave + router 矛盾隔离，2026-08-30 深夜）
+
+- **blended Octave 对拍（一致 ✓）**：Rust `new_legacy(LegacyRandom(0), -15, [1×16])` 的 16 个 Octave origin 与 Java `createLegacy(CheckedRandom(0), -15, [1×16])` 逐值一致（按消耗序；打印序差为 getOctave 映射方向）；blended 采样 y=1/y=52 与 Java 一致到 ~6e-6（f32 噪声级）。**blended（old_blended_noise）排除出 nether 密度形状差来源**。
+- **S1/S3 复核**：LCG next(32)×8/nextLong/nextDouble 逐位一致；DoublePerlin createLegacy(CheckedRandom(0),(-7,[1,1])) @ 10 坐标一致到 ~5e-6。
+- **矛盾收窄**：router.temperature/vegetation 直采（Java +0.0775/-0.1533 @ (12,1,0)）与「同构造直线采样」（Rust +0.1435/-0.010、Java CAL-S3 0.143525 ✓ 双方一致）**不一致** → 差异不在噪声构造层，在 **router 装配链**（temperature 的 ShiftedNoise 包装：shift_a/shift_b 的 offsetNoise 装配源 + wrapper 层 + visitor 时序）。
+- 证据：`legacy_calibrate_rust_v3.txt` / `legacy_calibrate_java_oct.log` / `biome6cal3.log`（cmd-output/）。
+- **下轮专项**：读 NoiseConfig.java 全文（已入档）的 shift_a/shift_b offsetNoise 装配链 + wrapper 层 + visitor 时序，定位 router.temperature 与直线特例构造的装配差异。5e-6 级残差按 f32 口径视为一致（两侧同走 f32 乘法路径）。
+
 ## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
 |---|---|---|
