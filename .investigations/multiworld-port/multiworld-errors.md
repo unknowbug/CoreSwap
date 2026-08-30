@@ -314,3 +314,4 @@
 
 
 | legacy climate 启用后 t 符号对但 humidity ≈0 vs Java -0.16，总分 82.72→77.01（M10） | 四层对拍（S1 LCG 逐位一致 / S2 Octave 构造一致 / S3 DoublePerlin 采样 ~6e-6 一致 / S4 router 消融 humidity 缺口）隔离出缺口 = `OctavePerlinNoiseSampler::new_legacy`/`DoublePerlin::new_legacy`(-7,[1,1]) 的**采样语义**与 Java createLegacy 未对齐（构造与 LCG 均无错）；未修，yarn 源码已入档待下轮 | **对拍校准分段设计**：裸随机源→单 Octave 构造→复合采样→router 集成，逐层排除，最后不一致层即缺口；**一致性判据先定义精度口径**（f32 路径 ~6e-6 算对齐）；消融开关+分带混淆对+6 维直采三件套单轮拆解「哪一维/哪一段/偏差多少」；符号随开关翻转 = 机制归属证据；Java 参照探针（BIOME6）是校准权威侧 |
+
