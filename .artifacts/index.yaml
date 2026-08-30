@@ -569,4 +569,41 @@ entries:
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_finaldensity_after_unaryfix.txt'
     kind: evidence
     status: candidate
-    # 修 4 公式后：final_density 对齐 0.432843 → 0.000000（n=54 逐位）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 max_diff=0.000000；块级一致 99.30%（修前 78.48%）；vs vanilla FULL 94.20%（基线 95.40% 同量级）。
+    # 修 4 公式后：final_density 对齐 0.432843 → 0.000000（n=54 逐位）；块级一致 99.30%（修前 78.48%）。
+
+  # === judge 审查后补证（2026-08-30，证据缺口 + 记录矛盾处理）===
+  - id: 're-code:transpiler:prod-density-98304'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_density_98304.txt'
+    kind: evidence
+    status: candidate
+    # 补落盘：TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 max_diff=0.000000（均值/正值分布逐位相同）。
+
+  - id: 're-code:transpiler:vanilla-full'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_vanilla_full.txt'
+    kind: evidence
+    status: candidate
+    # 补落盘：transpiler 接入生产 vs vanilla FULL 94.20%（基线 macrosampler 95.40%，macrosampler_prod_vanilla_full_baseline.txt）。
+
+  - id: 're-code:transpiler:perf-multi'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_perf_multi.txt'
+    kind: evidence
+    status: candidate
+    # 性能矛盾修正：5 次运行 0.96-1.05x 均值 1.00x = 持平。此前 0.96-0.98x 与 1.09x 均为单次噪声。
+
+  - id: 're-code:transpiler:cacheid-isolation'
+    path: '../WorldgenRust/build/density.rs'
+    kind: patch
+    status: candidate
+    # 防御性修复：transpiler cache id 起始 1_000_000（与运行时 NEXT_CACHE_ID 从 0 递增隔离，两者共用 C2D_CACHE 数组）。
+
+  - id: 're-code:transpiler:probe-noiseset-ln'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M11'
+    kind: errors
+    status: candidate
+    # 探针教训：transpiler_slices_ch0 漏 set_blended_noise → ch0 内 sample_blended_noise 返回 0 → 误判 cache id 污染（134/1225 diff）；补后 0.000000。NoiseSet 必须 set_blended_noise；排障先核对探针前置条件。
+
+  - id: 're-code:transpiler:review-prod'
+    path: '../.investigations/macro-layer-scout/review-transpiler-prod.md'
+    kind: review
+    status: candidate
+    # judge 审查（2026-08-30）：4 公式修复/接入生产/n=54 0.000000/产物契约 → candidate；98304 点/94.20%/78.48%/性能 0.96-0.98x/docs/07 M12 → draft（证据缺口/记录矛盾）。缺口已补（本批条目）。

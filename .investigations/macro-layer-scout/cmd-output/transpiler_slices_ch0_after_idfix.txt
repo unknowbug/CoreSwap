@@ -1,0 +1,3 @@
+cell corners (5x5x49=1225): 最终 density max_diff=0.240652, diff_pts=134/1225
+corner (-4608,0,-4096): transpiler out[0]=0.208410
+  最终 density: td=0.066592 ms=0.066592 diff=0.000000

@@ -1,0 +1,1 @@
+WorldgenHandle vs vanilla FULL: match=1500533/1572864 (95.40%)  nonAir=435400/501102 (86.89%)

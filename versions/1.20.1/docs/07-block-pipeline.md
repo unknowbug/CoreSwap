@@ -1017,7 +1017,51 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 ### 五、域/边界
 
 - 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
-- status：**candidate**（confirmed 由人类授予）；补缓存已落地（cell grid 构建 443ms → 17ms），但 transpiler 生产接线未完成（探针层验证，生产 fill 路径未接入优化）；transpiler 整体价值仍受「noise 89% 主导」削弱（M9，见既有小节）。
+- status：**candidate**（confirmed 由人类授予）；补缓存已落地（cell grid 构建 443ms → 17ms）；**生产接线已完成**（TranspilerDensity + WG_TRANSPILER 门控，见下节「2026-08-30 transpiler 4 公式修复 + 生产接线」）；transpiler 整体价值仍受「noise 89% 主导」削弱（M9，见既有小节）。
 - 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M10/M11，五段式 + 速查表），本节不重复展开。
+
+---
+
+## 2026-08-30 transpiler 4 公式修复 + 生产接线（M12，candidate，judge 已审计）
+
+> **[DRAFT — knowledge subagent 产出草稿，待主会话应用 + 验证]**。
+> status（各环节）：**candidate**（judge 已审计，confirmed 由人类授予）。
+> 依据：`.investigations/macro-layer-scout/`{transpiler-errors.md M12, review-transpiler-prod.md} + `cmd-output/`{transpiler_finaldensity_after_unaryfix.txt, transpiler_prod_density_98304.txt, transpiler_slices_ch0_after_bnfix.txt, transpiler_prodblocks_after_unaryfix.txt, transpiler_prod_vanilla_full.txt, macrosampler_prod_vanilla_full_baseline.txt, transpiler_prod_perf_multi.txt}。
+> 载体：追加到 `versions/1.20.1/docs/07-block-pipeline.md` 末尾（追加不覆盖）。**本节只列中价值结论；错误链条见 §7 独立错误台账 transpiler-errors.md（M12，独立成篇，不重复展开）；一次性数值快照按低价值不展开。**
+
+### 一、M12：4 个数学公式生成错误（final_density 0.432843 的真正根因）
+
+- **背景**：transpiler 接入生产时发现 final_density 对齐 0.432843（judge 曾误判为「channel inner 采样语义差异」并接受）。逐 channel 对比（`transpiler_prod_combine6`）发现 ch1-4（noodle）diff=0.000000 完全对齐，唯独 ch0（terrain）差 3.14 → 分解出 4 个公式生成错误：
+  - **squeeze**：生成成 `v - v³/3`，正确是 `clamp(v,-1,1)/2 - d³/24`（对齐运行时 `apply_unary`）。
+  - **half_negative**：生成成 `-0.5*x`，正确是 `if x > 0 { x } else { 0.5*x }`。
+  - **quarter_negative**：生成成 `-0.25*x`，正确是 `if x > 0 { x } else { 0.25*x }`。
+  - **weird_scaled_sampler**：把 rarity 分段阶梯（`scale_value`：0.75/1.0/1.5/2.0/3.0）错生成成 `d*2.0`/`d*3.0` 常数乘。
+- **修复**：`build/density.rs` 四处生成公式对齐运行时 `apply_unary`/`WeirdScaled::scale_value` 语义。
+- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位）。
+- **可复用判据**：**「对齐值中等偏小（0.4）≠ 语义差异固有」**——对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失；**公式类 bug 用「手算对照」定位最快**（把 interp 值代入错式与对式手算，与实测输出对上即锁定）；**transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式。
+
+### 二、接入生产（TranspilerDensity + WG_TRANSPILER 门控）
+
+- **实现**：`terrain.rs` 泛化 `ChunkDensity`/`DensitySource`/`fill_chunk`（新增 `ChunkDensitySampler` trait）+ `TranspilerDensity`（transpiler 生成代码采样 cell grid + 块级插值 + compute）；`worldgen_handle.rs` `WG_TRANSPILER` env 门控构建 NoiseSet+TranspilerDensity，`fill_chunk_blocks` 按此分派。
+- **零风险切换**：env 未设时 `transpiler_density = None` → 走 `DensityMacroSampler`，行为与改动前完全一致。
+- **验证**：TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**（`transpiler_prod_density_98304.txt`）；块级一致 **99.30%**（修前 78.48%，`transpiler_prodblocks_after_unaryfix.txt`）；vs vanilla FULL **94.20%**（基线 DensityMacroSampler 95.40%，`transpiler_prod_vanilla_full.txt` + `macrosampler_prod_vanilla_full_baseline.txt`）。
+- **性能**：5 次 release 运行 **0.96-1.05x，均值 ~1.00x = 与基线持平**（`transpiler_prod_perf_multi.txt`）。cell grid 构建慢（47ms vs 8.14ms）不是端到端瓶颈（density 阶段占完整管线比例小；judge M9 已证 noise 89% 才是真瓶颈）。
+- **价值定位（最终）**：transpiler 的价值在**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可。
+
+### 三、探针教训（2026-08-30 新立）
+
+- **排障先核对探针自身前置条件**：`transpiler_slices_ch0` 探针漏 `set_blended_noise`（`noise.rs` L315，`NoiseSet` 方法）→ ch0 内 `sample_blended_noise` 返回 0 → 误判为「cache id 污染」（134/1225 diff）。补 `set_blended_noise` 后 max_diff=0.000000。**排查「两实现不一致」时，第一步核对两边初始化等价（NoiseSet 的 blended_noise/seed 派生/注册表），第二步才是怀疑缓存/污染/公式**。
+- **cache id 空间隔离（防御性）**：transpiler cache id 起始改为 1_000_000（与运行时 `NEXT_CACHE_ID` 从 0 递增隔离，两者共用 `C2D_CACHE` 数组）——防御性修复（本次矛盾另有根因，但隔离正确）。
+
+### 四、已排除假说（❌ 排除清单，保留一行，防重走弯路）
+
+- ❌ **final_density 0.43 来自「channel inner 采样语义差异」**——实际是 4 个公式生成错误叠加（M12，修后 0.000000）。
+- ❌ **transpiler 与运行时 cache id 空间冲突导致 134/1225 diff**——实为探针漏 `set_blended_noise`（补后 0.000000）；cache id 隔离是防御性修复，非本次矛盾根因。
+
+### 五、域/边界
+
+- 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
+- status：**candidate**（confirmed 由人类授予）；`cache_all_in_cell` 用点级 (x,y,z) 缓存（正确性保守，非 bug，但缓存效率低于 Java cell 级）；n=54 覆盖局限（cell 边界平面，未覆盖 cell 内部/边界 clamp/负 Y）。
+- 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M12，五段式 + 速查表），本节不重复展开。
 
 

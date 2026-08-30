@@ -1,0 +1,7 @@
+=== transpiler vs baseline fill_chunk_blocks 性能（5 次 release 运行，16 chunk，skip carver/features）===
+run1: 55.47 vs 53.33 = 0.96x
+run2: 57.62 vs 60.39 = 1.05x
+run3: 60.67 vs 59.48 = 0.98x
+run4: 58.89 vs 59.39 = 1.01x
+run5: 58.95 vs 58.65 = 1.00x
+结论：波动 0.96-1.05x，均值 ~1.00x = 性能持平。此前 0.96-0.98x（快 2-4%）与 1.09x（慢 9%）均为单次噪声。transpiler 端到端性能与 DensityMacroSampler 持平。

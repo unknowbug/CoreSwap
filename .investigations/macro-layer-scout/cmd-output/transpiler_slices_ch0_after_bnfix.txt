@@ -1,0 +1,2 @@
+时序A（ms先,td后）: max_diff=0.000000, diff_pts=105/1225
+时序B（重建后）:   max_diff=0.000000, diff_pts=105/1225

@@ -340,6 +340,8 @@
 - **缓存是性能关键**：transpiler 补缓存后 cell grid 构建 443ms → 17ms（25 倍），证明「无缓存每 corner 重算完整树」是性能主因（M1-M6 已定位，M11 落地修复）。
 - **缓存 key 语义必须对齐节点类型**：`flat_cache`/`cache_2d` 是 xz-only（(x,z) key 正确），`cache_once`/`cache_all_in_cell` 是精确位置（(x,y,z) key）——用 (x,z) key 缓存 y 相关 inner 是正确性 bug，非性能近似。**缓存 key 语义按节点类型区分，不能一刀切**。
 - **缓存 id 必须全局唯一**：跨生成函数（compute_continents vs fill_final_density）共用缓存 id 会互相污染——缓存 id 全局递增，不能每函数重置。
+- **排障先核对探针自身前置条件（2026-08-30 新立）**：`transpiler_slices_ch0` 探针漏 `set_blended_noise` → ch0 内 `sample_blended_noise` 返回 0 → 误判为「cache id 污染」（134/1225 diff，甚至怀疑 id 空间冲突）。补 `set_blended_noise` 后 max_diff=0.000000。**排查「两实现不一致」时，第一步核对两边初始化等价（NoiseSet 的 blended_noise/seed 派生/注册表），第二步才是怀疑缓存/污染/公式**。
+- **⚠️ 修前 78.48% 块级一致为会话内实测回显、无 cmd-output 落盘**（当时未保存，公式修复后无法重现）。仅修后 99.30% 有落盘（`transpiler_prodblocks_after_unaryfix.txt`）。标注降级：修前基线以回显为准（Partial/Degraded）。
 
 **【2026-08-30 对接生产发现：4 个数学公式生成错误（final_density 0.43 的真正根因）】**
 
@@ -353,7 +355,9 @@
 - **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位对齐）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**、块级一致 **99.30%**（修前 78.48%）；接入生产 vs vanilla FULL **94.20% match**（基线 DensityMacroSampler 95.40%，同量级）。
 - **教训（判错经验）**：① **「对齐值中等偏小（0.4）≠ 语义差异固有」**——judge 曾把 0.43 归因为「channel inner 采样语义差异」并接受；实际是 4 个公式错误叠加。**对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失**。② **公式类 bug 用「手算对照」定位最快**：把 interp 值代入错式与对式手算（0.322 vs -0.458333），与实测输出对上即锁定。③ **transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式——squeeze/square/cube/half/quarter/weird_scaled 这类「看似简单」的节点最易写错。
 
-**【2026-08-30 端到端性能（transpiler 接入生产后）】**
-- `fill_chunk_blocks` 16 chunk（跳过 carver/features，release）：**TranspilerDensity 52.97-59.79ms/chunk vs DensityMacroSampler 54.99-55.37ms/chunk，transpiler/基线 = 0.96-0.98x**（略快 2-4%，稳定）。
-- **关键洞察**：transpiler cell grid 构建慢（47ms vs 运行时 8.14ms，5.8 倍），但端到端 `fill_chunk_blocks` 不慢反快——density 阶段在完整管线占比不大，且 transpiler 块级插值可能更快，整体抵消。**cell grid 构建慢不是端到端瓶颈**（judge M9 已证 noise 89% 才是真瓶颈，transpiler 优化树遍历 11% 收益有限）。
-- **结论**：transpiler 的价值在**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可，无需为 cell grid 构建慢做深度优化。
+**【2026-08-30 端到端性能（transpiler 接入生产后，judge 审查修正）】**
+- ⚠️ 初次声称（0.96-0.98x 快 2-4%）与单次记录（1.09x 慢 9%）矛盾——**均为单次噪声**。
+- **多次运行修正（5 次 release，16 chunk，skip carver/features）**：0.96x / 1.05x / 0.98x / 1.01x / 1.00x，**波动 0.96-1.05x，均值 ~1.00x = 性能持平**（`transpiler_prod_perf_multi.txt`）。
+- **修正后的结论**：transpiler 接入生产端到端性能与 DensityMacroSampler **持平**（±5% 噪声内），无快也无慢。**cell grid 构建慢（47ms vs 8.14ms）不是端到端瓶颈**（density 阶段占完整管线比例小；judge M9 已证 noise 89% 才是真瓶颈）。
+- **transpiler 的价值定位（最终）**：**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可，无需为 cell grid 构建慢做深度优化。
+- **教训**：**性能结论 MUST 多次运行取范围/均值**——单次运行噪声可高达 ±9%（本次 0.96x 与 1.09x 两方向的单次误导都出现过），单次声称不可入台账。

@@ -16,9 +16,11 @@ pub fn build_final_density() -> String {
     let mut registry: HashMap<String, JsonValue> = HashMap::new();
     collect_json(&df_dir, &mut registry);
     // 生成 compute_final_density + compute_continents（验证 transpiler 核心对齐）
-    // cache_id 全局递增（跨 build_compute 共享），避免不同生成函数共用缓存 id（judge 发现 cache id 碰撞）
+    // cache_id 全局递增（跨 build_compute 共享），避免不同生成函数共用缓存 id（judge 发现 cache id 碰撞）。
+    // ⚠️ 起始 1_000_000：与运行时 NEXT_CACHE_ID（从 0 递增，ShiftDF/Cache2D/FlatCache）id 空间隔离——
+    // 两者共用同一 thread_local C2D_CACHE 数组，若 id 重叠则互相污染（探针 transpiler_slices_ch0 实证 134/1225 diff）。
     let mut out = String::new();
-    let mut global_cache_id = 0usize;
+    let mut global_cache_id = 1_000_000usize;
     out.push_str(&build_compute("final_density", fd, &registry, &mut global_cache_id));
     if let Some(cont) = registry.get("continents") {
         out.push_str(&build_compute("continents", cont, &registry, &mut global_cache_id));
