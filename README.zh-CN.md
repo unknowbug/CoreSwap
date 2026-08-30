@@ -29,6 +29,7 @@ worldgen 核心已**从 C++ 迁移到 Rust**。现在一个 `worldgen.dll` 打�
 - ✅ **Build-time transpiler**：vanilla `density_function` JSON 构建期编译成专用原生函数；与运行时解释器全 chunk 98304 点对比一致（max diff <5e-7），块级一致 99.30%
 - ✅ **多世界**：下界走同一 Rust 引擎（块级对齐 **74%**——熔岩海流体填充与基岩边缘层为已知差距；主世界不受影响）。末地：保护已接线，引擎未启动
 - ✅ **世界生成性能（实测）**：大样本端到端实测 Rust 管线 **~1.2× vanilla Java**；16 chunk 引擎内 JNI 全管线（含雕刻器 + 装饰，自适应线程）实测 **~14ms/chunk**。密度内部优化（双高度 cell、列缓存、宏观网格）全部无损——不靠近似
+- ✅ **双加载器支持——Fabric + Forge**：一个 jar 两边通用。Fabric 原生；Forge 经 [Sinytra Connector](https://modrinth.com/mod/connector)（jar 结构与 Connector 实测过的 1.0.18 逐条目一致；该版本 400+ mod 包实测）
 - ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——互不冲突
 - 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.19-beta` 为 **pre-release（beta）通道**构建
 - 🔭 路线：下界流体填充 + 基岩边缘、末地引擎、光照（LIGHT）、实体 AI（Brain / Goal / 寻路）Rust 化

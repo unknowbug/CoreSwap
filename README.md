@@ -28,6 +28,7 @@ The worldgen core has **migrated from C++ to Rust**. One `worldgen.dll` now ship
 - ✅ **Build-time transpiler**: vanilla `density_function` JSON compiled to native code at build time; consistent with the runtime interpreter across a 98304-point full-chunk sweep (max diff <5e-7), block match 99.30%
 - ✅ **Multi-world**: the Nether runs through the same Rust engine (block match **74%** vs vanilla — lava-ocean fluid fill and bedrock-edge layers are known gaps; overworld untouched). End: protection wired, engine not started
 - ✅ **Worldgen performance (measured)**: large-sample end-to-end runs measured the Rust pipeline at **~1.2× vanilla Java**; a 16-chunk in-engine JNI sweep (full pipeline incl. carvers + features, adaptive threading) ran at **~14 ms/chunk**. Density internals (dual-height cells, column caches, macro grid) are all lossless — no approximation
+- ✅ **Dual loader support — Fabric + Forge**: one jar for both. Fabric native; Forge via [Sinytra Connector](https://modrinth.com/mod/connector) (jar structure verified identical to the Connector-tested 1.0.18; 400+ modpacks tested there)
 - ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict
 - 📦 Download: [Releases](https://github.com/unknowbug/CoreSwap/releases) — `1.0.19-beta` is a **pre-release (beta)** channel build
 - 🔭 Roadmap: Nether fluid fill + bedrock edges, End engine, LIGHT stage, entity AI (Brain / Goal / Pathfinding) in Rust
