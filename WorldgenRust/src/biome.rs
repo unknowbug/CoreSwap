@@ -178,9 +178,11 @@ pub struct BiomeClassifier {
     // 放弃分桶仅用 SearchTree（本身已 10×）。
     tree: SearchTreeNode,
     // biome id → carvers.air 列表（从 biome/*.json 加载，CARVERS 阶段用）
-    carvers: std::collections::HashMap<String, Vec<String>>,
+    carvers: std::collections::BTreeMap<String, Vec<String>>,
     // biome id → features 列表（features[step][]，从 biome/*.json 加载，FEATURES 阶段用）
-    features: std::collections::HashMap<String, Vec<Vec<String>>>,
+    // BTreeMap（原 HashMap）：all_features_lists 迭代序每进程随机 → PlacedFeatureIndexer 编号随机 →
+    // nether features 放置运行间不确定（2796 块差，2026-08-30）——按键序确定。
+    features: std::collections::BTreeMap<String, Vec<Vec<String>>>,
 }
 
 fn read_box(v: &JsonValue) -> [f64; 2] {
@@ -273,7 +275,7 @@ impl BiomeClassifier {
             rows.push(BiomeEntry { biome, ranges, offset });
         }
         let tree = build_search_tree(&rows);
-        BiomeClassifier { tree, carvers: std::collections::HashMap::new(), features: std::collections::HashMap::new() }
+        BiomeClassifier { tree, carvers: std::collections::BTreeMap::new(), features: std::collections::BTreeMap::new() }
     }
 
     // 从 biome/*.json 加载 carvers.air（CARVERS 阶段用）。biome id "minecraft:plains" → plains.json。

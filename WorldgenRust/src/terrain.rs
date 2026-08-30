@@ -233,6 +233,7 @@ pub struct ChunkData {
 pub fn fill_chunk<D: DensitySource<S>, S: ChunkDensitySampler, A: AquiferSource, B: BiomeSource>(
     dense: &D, aqua: &mut A, biome: &B, cx: i32, cz: i32, min_y: i32, height: i32,
     beard: Option<&Beardifier>,
+    noise_height: i32,
 ) -> ChunkData {
     let mut cd = ChunkData {
         cx, cz,
@@ -240,9 +241,12 @@ pub fn fill_chunk<D: DensitySource<S>, S: ChunkDensitySampler, A: AquiferSource,
         blocks: vec![BlockKind::Air; (16*16*height) as usize],
         biome: vec!["".to_string(); 256],
     };
+    // 双高度（对齐 docs/09 下界引擎）：噪声高度（density 采样有效域）≤ 世界高度（buffer）。
+    // y ≥ min_y+noise_height 不采样，保持初始 Air（nether：noise 128 / world 256；overworld 两者相等零变化）。
+    let noise_top = min_y + noise_height;
     // 每 chunk 构建宏观采样（DensityMacroSampler 支持 multi-channel cell grid；否则 None = 逐点）。
     // 避免 thread_local 每点访问（对齐 Java NoiseChunk cell grid 语义）。
-    let chunk_density = dense.sample_chunk(cx, cz, min_y, height);
+    let chunk_density = dense.sample_chunk(cx, cz, min_y, noise_height);
     // 单遍逐列：自顶向下，一次树求值（或宏观网格插值）同时完成 surface 高度 + 块分类（省 50% 采样）
     for lz in 0..16 {
         for lx in 0..16 {
@@ -250,6 +254,7 @@ pub fn fill_chunk<D: DensitySource<S>, S: ChunkDensitySampler, A: AquiferSource,
             let mut top = i32::MIN;
             for ly in (0..height).rev() {
                 let y = min_y + ly;
+                if y >= noise_top { continue; } // 噪声高度以上留 Air（C++「y 循环上限 noiseHeight」修法）
                 // density：宏观网格插值（快）或逐点采样（回退/对齐风险时）
                 let d0 = match &chunk_density { Some(cd) => cd.sample(&NoisePos{x,y,z}), None => dense.sample(&NoisePos{x,y,z}) };
                 // Beardifier：块级加结构密度修正（CellCache add(finalDensity, Beardifier)）

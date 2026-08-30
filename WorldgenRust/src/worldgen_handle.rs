@@ -39,6 +39,7 @@ pub struct WorldgenHandle {
     pub seed: i64,
     pub min_y: i32,
     pub height: i32,
+    pub noise_height: i32, // 噪声高度（settings noise.height；nether 128 < world 256——density 采样有效域，上方留 air）
     pub aquifers_enabled: bool, // from noise_settings <settings>.aquifers_enabled（下界 false 跳过 aquifer）
     // density 树
     tree: Arc<DensityFunction>,       // final_density
@@ -141,7 +142,8 @@ impl WorldgenHandle {
         // 3. router DF 树
         let tree = Arc::new(db.build_node(router.get("final_density")?).ok()?);
         // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
-        let macro_sampler = crate::terrain::DensityMacroSampler::new(&tree, min_y, height);
+        // 网格只铺噪声高度（nether 128——y≥128 无密度语义，C++「双高度」修法）
+        let macro_sampler = crate::terrain::DensityMacroSampler::new(&tree, min_y, noise_height);
         // transpiler 宏观采样器（WG_TRANSPILER env 时启用）：构建 NoiseSet + TranspilerDensity
         // transpiler 生成代码（generated_density）用 NoiseSet 采样（非 DensityFunction 树），需独立构建 NoiseSet。
         let transpiler_density = if std::env::var("WG_TRANSPILER").is_ok() {
@@ -153,7 +155,7 @@ impl WorldgenHandle {
                     let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
                     noises.insert(id, sampler);
                 }
-                Some(crate::terrain::TranspilerDensity::new(noises, min_y, height))
+                Some(crate::terrain::TranspilerDensity::new(noises, min_y, noise_height))
             } else { None }
         } else { None };
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
@@ -242,7 +244,7 @@ impl WorldgenHandle {
         let uniform_carver_list = biomesrc.bc.uniform_carver_list();
 
         Some(WorldgenHandle {
-            seed, min_y, height, aquifers_enabled,
+            seed, min_y, height, noise_height, aquifers_enabled,
             tree, macro_sampler, transpiler_density, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
@@ -342,10 +344,10 @@ impl WorldgenHandle {
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
         let cd = if let Some(td) = &self.transpiler_density {
-            fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref())
+            fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         } else {
             let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
-            fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref())
+            fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         };
 
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
@@ -376,7 +378,7 @@ impl WorldgenHandle {
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
         let est_at = |x: i32, z: i32| -> i32 {
             let mut est = i32::MAX;
-            for y in (min_y..min_y + height).rev().step_by(8) {
+            for y in (min_y..min_y + self.noise_height).rev().step_by(8) {
                 if self.init.sample(&NoisePos { x, y, z }) > 0.390625 { est = y; break; }
             }
             est
