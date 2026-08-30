@@ -626,3 +626,29 @@ entries:
     kind: evidence
     status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # M13 扩大对齐样本（judge 建议项 7）验证：4 探针链（exactpoint_verify -> ch0_decompose -> ch0_census -> alignment_expanded）定位 flat_cache/cache_2d 语义合并 bug；修后对比1（精确点 vs 精确点）n=3584 max_diff=0.000000（残余 >1e-9 的 160/3584 点 <5e-7 浮点残差）、量化签名复刻（transpiler(1,1)=0.062840=runtime）、y 密扫/跨 x 全 0、生产路径对比 n=1480 max_diff=0.000000；生产回归 98304 点 0.000000、块级 99.30% 持平、FULL 94.20%->94.27%（+0.07pp）。另 5 份 after_flatcachefix 证据：cmd-output/{transpiler_exactpoint_verify_after, transpiler_ch0_decompose_after, transpiler_prod_density_98304_after, transpiler_prodblocks_after, transpiler_prod_vanilla_full}_after_flatcachefix.txt（修前定位：transpiler_exactpoint_verify.txt / transpiler_ch0_decompose.txt / transpiler_ch0_census.txt）。
+
+  # === multiworld-port（Rust 多世界 Phase A/B/C，2026-08-30，commit 1102f58 + 9a3f7fa）===
+  - id: 're-code:multiworld:nether-noiseheight-fix'
+    path: '../.investigations/multiworld-port/multiworld-errors.md#M3'
+    kind: patch
+    status: candidate
+    # M3 双高度修复：worldgen_handle 存 noise_height（nether 128 ≠ world height 256）+ fill_chunk 加参数（y≥noise_top 留 Air）+ 宏观采样器网格只铺噪声高度 + 13 探针 bin 补参。nether match 23.77%→74.04%（y≥128 0%→100%，超 C++ 71.97%）；overworld 95.40% 零回归。教训：参数化须贯穿 JSON→handle→fill→网格→est 全链路；C++ 已知坑清单是移植 checklist。
+
+  - id: 're-code:multiworld:nether-determinism-fix'
+    path: '../.investigations/multiworld-port/multiworld-errors.md#M4'
+    kind: patch
+    status: candidate
+    # M4 确定性修复：biome.rs BiomeClassifier features/carvers HashMap→BTreeMap——原 all_features_lists() 每进程随机迭代序 → PlacedFeatureIndexer 编号随机 → nether features 运行间漂移 2796 块。修后两次运行逐位一致。教训：跨进程确定性要求 Registry 类容器迭代序确定（BTreeMap/Vec 排序），Rust HashMap 默认不满足。
+
+  - id: 're-code:multiworld:nether-blocks-evidence'
+    path: '../.investigations/multiworld-port/cmd-output/nether_blocks_match_v2_noiseheight.txt'
+    kind: evidence
+    status: candidate
+    # Phase A 实证：multiworld_nether_blocks vs vanilla nether 参照（WGB2 4×4@0,0 h256）修双高度后 match 74.04%、y≥128 四带 100%；配套 v1（修前 23.77%）+ 游戏内拦截摘录 nether_ingame_intercept_20260830.txt（initNether enabled=true + populateNoise(nether) intercepted chunk(-1,-1)）。
+
+  - id: 're-code:multiworld:ingame-nether-wiring'
+    path: '../versions/1.20.1/docs/09-multi-dimension.md#八rust-多世界落地2026-08-30-phase-abc-commit-1102f58--9a3f7fa'
+    kind: patch
+    status: candidate
+    # Phase B/C 游戏内接线：jni_bridge initDim（5 参 wg_create）+ CppBridge netherHandle/fillChunkNether/feedBeardifier 泛化 + Mixin 按维度分派（末地保护=biomeSource 缓存反射，@Shadow 够不到父类字段）+ build.gradle processResources inputs.file dll（M5：UP-TO-DATE 跳过 doFirst 同步致旧 dll → UnsatisfiedLinkError）。结论小节见 docs/09「八」；错误台账 multiworld-errors.md M1-M5。
+
