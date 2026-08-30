@@ -1,0 +1,4 @@
+fill_chunk_blocks 16 chunk (skip carver/features):
+  DensityMacroSampler: 54.99 ms/chunk
+  TranspilerDensity:  59.79 ms/chunk
+  transpiler/基线: 1.09x

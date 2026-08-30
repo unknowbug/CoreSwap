@@ -352,3 +352,8 @@
 - **修复**：`build/density.rs` 四处生成公式对齐运行时 `apply_unary`/`WeirdScaled::scale_value` 语义。
 - **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位对齐）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**、块级一致 **99.30%**（修前 78.48%）；接入生产 vs vanilla FULL **94.20% match**（基线 DensityMacroSampler 95.40%，同量级）。
 - **教训（判错经验）**：① **「对齐值中等偏小（0.4）≠ 语义差异固有」**——judge 曾把 0.43 归因为「channel inner 采样语义差异」并接受；实际是 4 个公式错误叠加。**对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失**。② **公式类 bug 用「手算对照」定位最快**：把 interp 值代入错式与对式手算（0.322 vs -0.458333），与实测输出对上即锁定。③ **transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式——squeeze/square/cube/half/quarter/weird_scaled 这类「看似简单」的节点最易写错。
+
+**【2026-08-30 端到端性能（transpiler 接入生产后）】**
+- `fill_chunk_blocks` 16 chunk（跳过 carver/features，release）：**TranspilerDensity 52.97-59.79ms/chunk vs DensityMacroSampler 54.99-55.37ms/chunk，transpiler/基线 = 0.96-0.98x**（略快 2-4%，稳定）。
+- **关键洞察**：transpiler cell grid 构建慢（47ms vs 运行时 8.14ms，5.8 倍），但端到端 `fill_chunk_blocks` 不慢反快——density 阶段在完整管线占比不大，且 transpiler 块级插值可能更快，整体抵消。**cell grid 构建慢不是端到端瓶颈**（judge M9 已证 noise 89% 才是真瓶颈，transpiler 优化树遍历 11% 收益有限）。
+- **结论**：transpiler 的价值在**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可，无需为 cell grid 构建慢做深度优化。
