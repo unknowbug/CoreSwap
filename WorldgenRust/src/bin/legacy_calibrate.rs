@@ -70,6 +70,19 @@ fn main() {
     println!("seed_note: climate 固定种子与 worldSeed 无关（seed 参数仅打印用）");
     let _ = seed;
 
+    // ===== S3b: DoublePerlin createLegacy(CheckedRandom(2), (-7,[1,1])) 采样（vegetation 位对拍）=====
+    println!("=== S3b: DoublePerlin legacy seed=2 sample ===");
+    let mut rs2 = LegacyRandom::new(2);
+    let mut rnds2 = RsRandom::Legacy(rs2);
+    let dp2 = DoublePerlinNoiseSampler::new_legacy(&mut rnds2, -7, &[1.0, 1.0]);
+    let ptsb: [(i32, i32, i32); 10] = [
+        (5, 1, 0), (12, 1, 0), (10, 1, 1), (14, 1, 2), (7, 1, 3),
+        (11, 1, 3), (5, 1, 4), (8, 1, 4), (2, 1, 5), (6, 1, 5),
+    ];
+    for (x, y, z) in ptsb {
+        let v = dp2.sample(x as f64 * 0.25, 0.0, z as f64 * 0.25);
+        println!("({},{},{}) -> {:.6}", x, y, z, v);
+    }
     // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
     // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
     println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
@@ -105,6 +118,7 @@ fn main() {
     }
     let _ = upper;
 }
+
 
 
 
