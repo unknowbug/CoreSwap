@@ -256,8 +256,9 @@
 |---|---|---|
 | Rust Hole 用 surface_depth，注释称「C++ 用错字段是 bug」（M8） | 历史误判翻转：Java `HoleMaterialCondition = stoneDepthAbove <= 0`，C++ L251 正确，Rust 当年用 runDepth 噪声且注释反指 C++ 为 bug；修后 nether 82.72%/overworld 零变化 | **两个移植实现语义冲突 = 必有一错，当场读 Java 源码裁决**；「注释声称对齐 Java」不等于核对过——对语义断言注释的源码抽查优先于实现抽查 |
 
-## 附：错误 → 根因 速查表（一页索引）
 
+
+## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
 |---|---|---|
 | nether 加载 panic `unresolved density function ref: minecraft:nether/base_3d_noise`（M1） | `DensityBuilder::resolve_ref` 惰性按需加载**硬编码** `key.starts_with("minecraft:overworld/")` + `key["minecraft:overworld/".len()..]`；nether 引用 `minecraft:nether/` 前缀不匹配 → 落 panic。命名空间写死，未参数化维度 | **多世界参数化 = 命名空间/维度数据不要硬编码**；`"minecraft:overworld/"` 字面前缀/目录都是 single-world 假设。panic「unresolved ref」先判「前缀是否被识别」再查「文件是否缺失」——前者是结构错后者是环境错。lazy-load 前缀 + `density_function/<dfNs>/` 目录是两处同源，须同步参数化 |
@@ -266,6 +267,7 @@
 | 两次运行差 2796 块（M4） | `BiomeClassifier` features/carvers 用 HashMap，`all_features_lists()` 每进程随机迭代序 → PlacedFeatureIndexer 编号随机 → 放置序 + decorator seed 变 | **跨进程确定性要求所有影响输出的容器迭代序确定——Rust HashMap 默认不满足，Registry 类容器一律 BTreeMap/Vec 排序**；「同输入两次运行不同」= 确定性 bug，与精度 bug 不同族，二分管线段找「每进程会变的量」 |
 | initDim UnsatisfiedLinkError 但 target dll 是新的（M5） | processResources 的 doFirst 同步不在任务输入集 → UP-TO-DATE 跳过时同步不执行 → resources 留旧 dll。附记：@Shadow 够不到父类字段 → 缓存反射 | **构建脚本里的副作用拷贝必须声明为任务输入依赖（inputs.file）**，否则增量构建静默跳过；「产物新行为旧」→ 三层导出表对照（target/resources/tmp）定位断点；@Shadow 只覆盖目标类自身成员 |
 | nether 卡 74.04%、y32..63 带 7.9% 不动、legacy_random_source 零效果（M6） | `nether.json` 的 `false` 是 JSON 布尔；Rust 走 `as_f64()`（只匹配 Number，Bool 恒 None）→ `unwrap_or(true)` 默认值静默生效 → 下界被错误启用真实含水层（6.7 万块水 vs vanilla air）。同款坑：legacy_random_source、requires_block_below | **「optional 读取 + unwrap_or 默认值」会把「字段类型不匹配」静默吞成默认行为**——默认值必须显式断言类型/打日志验证「读到的是什么」；多配置字段同时零效果 = 先查共同解析层；判错路径：混淆对直方图 → skip 二分 → 分支条件反推 → 才下钻解析层 | | 下界熔岩分布与 vanilla 残差（M7） | `aquifers_enabled=false` 时 vanilla 用 `AquiferSampler.seaLevel()` 匿名实现：density≤0 → `y < sea_level ? lava : air`（严格 <，无噪声）；buildSurface 跳过流体格（SurfaceBuilder L136）。docs/09 旧猜测均证实 | **「开关关闭 ≠ 机制消失」**——false 分支是切换到简化实现而非跳过，移植前必读 false 分支实际源码；机制定论以源码逐条证据落盘（analysis-nether-lava-mechanism.md），猜测→验证闭环 |
-
 | 下界熔岩分布与 vanilla 残差（M7） | `aquifers_enabled=false` 时 vanilla 用 `AquiferSampler.seaLevel()` 匿名实现：density≤0 → `y < sea_level ? lava : air`（严格 <，无噪声）；buildSurface 跳过流体格（SurfaceBuilder L136）。docs/09 旧猜测均证实 | **「开关关闭 ≠ 机制消失」**——false 分支是切换到简化实现而非跳过，移植前必读 false 分支实际源码；机制定论以源码逐条证据落盘（analysis-nether-lava-mechanism.md），猜测→验证闭环 |
+| Rust Hole 用 surface_depth，注释称「C++ 用错字段是 bug」（M8） | 历史误判翻转：Java `HoleMaterialCondition = stoneDepthAbove <= 0`，C++ L251 正确，Rust 当年用 runDepth 噪声且注释反指 C++ 为 bug；修后 nether 82.72%/overworld 零变化 | **两个移植实现语义冲突 = 必有一错，当场读 Java 源码裁决**；「注释声称对齐 Java」不等于核对过——对语义断言注释的源码抽查优先于实现抽查 |
+| legacy climate 特例逐语义移植后 nether 82.72% → 77.01%（y32..63 暴跌 65.78→22.37，两带微升，nonAir 提升）（M9） | 实现**逐语义正确**（源码逐条核对排除移植错）；净负 = 全局耦合：正确的 climate 噪声 × 仍误判的 biome（nether_wastes）→ 涂布离 vanilla 更远（此前错误 climate 碰巧压制部分 biome 条件反而多对）。假设标注：biome 修复前置与 legacy climate 存在顺序依赖 | **逐语义正确 ≠ 整体正确**——visitor 全局替换类改动必须消融验证子项（分带/分阶段），不能只看总分；「修对反而降分」可能是负相关抵消，处置 = 分带证据 + env 门控回退（保留工作、维持最佳默认态）+ 前置依赖课题，而非回滚正确修复；附推论：legacy 下界 climate/地形主干全固定种子 → worldSeed 无关性（未验证） |
 
