@@ -352,7 +352,7 @@
 - **M12c quarter_negative**：生成成 `-0.25*x`，正确是 `if x > 0 { x } else { 0.25 * x }`（L43）。
 - **M12d weird_scaled_sampler**：把 rarity 分段阶梯（`scale_value`：0.75/1.0/1.5/2.0/3.0 按 input 值分段）错生成成 `d * 2.0`/`d * 3.0` 常数乘；且采样坐标用 `x/(d*mult)` 而非 `x/阶梯值`。
 - **修复**：`build/density.rs` 四处生成公式对齐运行时 `apply_unary`/`WeirdScaled::scale_value` 语义。
-- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位对齐）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**、块级一致 **99.30%**（修前 78.48%）；接入生产 vs vanilla FULL **94.20% match**（基线 DensityMacroSampler 95.40%，同量级）。
+- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54，`{:.6}` 舍入下 <5e-7）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**（逐点遍历，浮点残差 <5e-7）、块级一致 **99.30%**（非 100%）（修前 78.48%）；接入生产 vs vanilla FULL **94.20% match**（基线 DensityMacroSampler 95.40%，transpiler 略低 1.2pp，非逐位同优）。
 - **教训（判错经验）**：① **「对齐值中等偏小（0.4）≠ 语义差异固有」**——judge 曾把 0.43 归因为「channel inner 采样语义差异」并接受；实际是 4 个公式错误叠加。**对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失**。② **公式类 bug 用「手算对照」定位最快**：把 interp 值代入错式与对式手算（0.322 vs -0.458333），与实测输出对上即锁定。③ **transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式——squeeze/square/cube/half/quarter/weird_scaled 这类「看似简单」的节点最易写错。
 
 **【2026-08-30 端到端性能（transpiler 接入生产后，judge 审查修正）】**

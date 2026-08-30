@@ -607,3 +607,9 @@ entries:
     kind: review
     status: candidate
     # judge 审查（2026-08-30）：4 公式修复/接入生产/n=54 0.000000/产物契约 → candidate；98304 点/94.20%/78.48%/性能 0.96-0.98x/docs/07 M12 → draft（证据缺口/记录矛盾）。缺口已补（本批条目）。
+
+  - id: 're-code:transpiler:review-rereview'
+    path: '../.investigations/macro-layer-scout/review-transpiler-prod-recheck.md'
+    kind: review
+    status: candidate
+    # judge 复审（2026-08-30，commit 649a2b2）：上一轮 review-prod 的 4 处 draft 证据缺口全部闭环（98304 点逐点遍历 <5e-7 / 94.20% vanilla FULL+基线 / 性能 5 次持平 / docs07 M12）、ch0b 0.15 残差已澄清（预 M12 中间态）；4 公式修复与运行时逐位复验通过、生产接入门控零风险。各环节统一建议升 candidate（confirmed 由人类授予）。

@@ -921,6 +921,7 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
 - status：**candidate**（confirmed 由人类授予）；生产接线未完成，正确性证明局部（54 点）。
+- ⚠️ **后续已接线生产**：transpiler 现已接入生产（TranspilerDensity + WG_TRANSPILER 门控），见本文末尾「2026-08-30 transpiler 4 公式修复 + 生产接线」M12 节（此行为历史快照，保留不删）。
 
 ### 七、顶层排除清单 + 错误台账
 
@@ -977,6 +978,7 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
 - status：**candidate**（confirmed 由人类授予）；transpiler 加缓存方向未落地（仅记录方向，不标 confirmed）；生产接线未完成。
+- ⚠️ **后续已接线生产 + 加缓存已落地**：transpiler 已补缓存（对齐 ColumnCache）并接入生产（M11 + M12 节），见本文末尾 M12 节（此行为历史快照，保留不删）。
 - 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M1-M9，五段式 + 速查表），本节不重复展开。
 
 ---
@@ -1024,8 +1026,8 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 ## 2026-08-30 transpiler 4 公式修复 + 生产接线（M12，candidate，judge 已审计）
 
-> **[DRAFT — knowledge subagent 产出草稿，待主会话应用 + 验证]**。
-> status（各环节）：**candidate**（judge 已审计，confirmed 由人类授予）。
+> **已应用（commit 649a2b2）+ 已审计**：本节为结论性记录（candidate，confirmed 由人类授予），证据落盘见 `.investigations/macro-layer-scout/` 及 `cmd-output/`。
+> status（各环节）：**candidate**（judge 已审计 + 补证后复审，confirmed 由人类授予）。
 > 依据：`.investigations/macro-layer-scout/`{transpiler-errors.md M12, review-transpiler-prod.md} + `cmd-output/`{transpiler_finaldensity_after_unaryfix.txt, transpiler_prod_density_98304.txt, transpiler_slices_ch0_after_bnfix.txt, transpiler_prodblocks_after_unaryfix.txt, transpiler_prod_vanilla_full.txt, macrosampler_prod_vanilla_full_baseline.txt, transpiler_prod_perf_multi.txt}。
 > 载体：追加到 `versions/1.20.1/docs/07-block-pipeline.md` 末尾（追加不覆盖）。**本节只列中价值结论；错误链条见 §7 独立错误台账 transpiler-errors.md（M12，独立成篇，不重复展开）；一次性数值快照按低价值不展开。**
 
@@ -1037,16 +1039,16 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
   - **quarter_negative**：生成成 `-0.25*x`，正确是 `if x > 0 { x } else { 0.25*x }`。
   - **weird_scaled_sampler**：把 rarity 分段阶梯（`scale_value`：0.75/1.0/1.5/2.0/3.0）错生成成 `d*2.0`/`d*3.0` 常数乘。
 - **修复**：`build/density.rs` 四处生成公式对齐运行时 `apply_unary`/`WeirdScaled::scale_value` 语义。
-- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位）。
+- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54，`{:.6}` 舍入下 max_diff <5e-7，非 bit 级 0）。
 - **可复用判据**：**「对齐值中等偏小（0.4）≠ 语义差异固有」**——对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失；**公式类 bug 用「手算对照」定位最快**（把 interp 值代入错式与对式手算，与实测输出对上即锁定）；**transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式。
 
 ### 二、接入生产（TranspilerDensity + WG_TRANSPILER 门控）
 
 - **实现**：`terrain.rs` 泛化 `ChunkDensity`/`DensitySource`/`fill_chunk`（新增 `ChunkDensitySampler` trait）+ `TranspilerDensity`（transpiler 生成代码采样 cell grid + 块级插值 + compute）；`worldgen_handle.rs` `WG_TRANSPILER` env 门控构建 NoiseSet+TranspilerDensity，`fill_chunk_blocks` 按此分派。
 - **零风险切换**：env 未设时 `transpiler_density = None` → 走 `DensityMacroSampler`，行为与改动前完全一致。
-- **验证**：TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**（`transpiler_prod_density_98304.txt`）；块级一致 **99.30%**（修前 78.48%，`transpiler_prodblocks_after_unaryfix.txt`）；vs vanilla FULL **94.20%**（基线 DensityMacroSampler 95.40%，`transpiler_prod_vanilla_full.txt` + `macrosampler_prod_vanilla_full_baseline.txt`）。
+- **验证**：TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**（`{:.6}` 舍入下 <5e-7 浮点残差内，探针 `transpiler_prod_density.rs` L51-63 逐点遍历；`transpiler_prod_density_98304.txt`）；块级一致 **99.30%**（非 100%，~0.7% 块因密度近 0 边界浮点残差翻转分类，修前 78.48%，`transpiler_prodblocks_after_unaryfix.txt`）；vs vanilla FULL **94.20%**（基线 DensityMacroSampler 95.40%，transpiler 较基线**略低 1.2pp**，nonAir 83.06% vs 86.89% 低 3.83pp，经 carver/features 级联放大；两路径同为 partial match，基线亦未达 100%，`transpiler_prod_vanilla_full.txt` + `macrosampler_prod_vanilla_full_baseline.txt`）。差异来源待归因（cache_all_in_cell 点级缓存效率低于 Java cell 级为文档化假设——既有的正确性保守事实，非已证根因；channel 采样语义细微差异亦属可能方向）。
 - **性能**：5 次 release 运行 **0.96-1.05x，均值 ~1.00x = 与基线持平**（`transpiler_prod_perf_multi.txt`）。cell grid 构建慢（47ms vs 8.14ms）不是端到端瓶颈（density 阶段占完整管线比例小；judge M9 已证 noise 89% 才是真瓶颈）。
-- **价值定位（最终）**：transpiler 的价值在**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可。
+- **价值定位（最终）**：transpiler 的价值在**正确性对齐**（final_density 与基线 DensityMacroSampler 对齐至浮点残差 <5e-7、块级一致 99.30%，worldgen 上层可查由头），性能与基线持平即可。
 
 ### 三、探针教训（2026-08-30 新立）
 
