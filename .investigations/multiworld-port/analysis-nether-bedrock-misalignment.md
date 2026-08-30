@@ -86,3 +86,12 @@ nether min_y=0 无 absolute/相对转换 off-by；overworld `absolute` 直读也
 | B | 排除 | 高 |
 | C | 与 Java 真实分歧（应改 stone_depth_above<=0）；非基岩原因 | 分歧判定高 / 因果排除确定 |
 | D | nether.json 无丢支；静默丢弃路径登记为隐患 | 高 |
+
+---
+
+## 后续诊断（2026-08-30 深夜，WG_BIOMEDUMP 探针）
+
+- M6/M7/Hole 修复后 first mismatches 全部为 `got=netherrack(256) vs want=soul_sand(257)/soul_soil(258)`，位置 y=1..2。
+- WG_BIOMEDUMP：这些位置 Rust biome 判定**全部 = minecraft:nether_wastes**，而 vanilla 表面是 soul_sand/soul_soil → **soul_sand_valley 被 biome 分类误判为 nether_wastes**（MultiNoise 盒包含近似的参数空间误差），表面规则的 biome 条件因此不命中。
+- 结论：soul_sand 残差根因 = **biome 分类精度**（biome_params_nether.json 参数空间匹配），非表面规则 bug。修复方向：nether 参数空间匹配精度（盒包含 → 最近邻距离语义核对/参数读取核对），需单独课题。
+- 复现：`WG_BIOMEDUMP=1 cargo run --bin multiworld_nether_blocks`（打印前 10 个 mismatch 位置的 biome 判定）。

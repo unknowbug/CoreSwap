@@ -2,6 +2,10 @@
 // 参照：E:\PYTHON\MC\data\vanilla_-8248318472910187742_4_0_0_nether.blocks（WGB2 大端，size 4, origin 0,0, min_y 0, height 256）。
 // 输出：match% / nonAir match% / 每 32 层带 match% / 首 10 个 mismatch。
 use WorldgenRust::worldgen_handle::WorldgenHandle;
+use WorldgenRust::density::NoisePos as NP2;
+use WorldgenRust::biome::BiomeClassifier;
+use WorldgenRust::density_builder::DensityBuilder as DB2;
+use WorldgenRust::json::parse as parse2;
 
 fn be16(b: &[u8], i: &mut usize) -> u16 { let v = u16::from_be_bytes(b[*i..*i+2].try_into().unwrap()); *i += 2; v }
 fn be32(b: &[u8], i: &mut usize) -> i32 { let v = i32::from_be_bytes(b[*i..*i+4].try_into().unwrap()); *i += 4; v }
@@ -25,7 +29,29 @@ fn main() {
     let bpc = (16 * 16 * height) as usize;
     if h.min_y != min_y || h.height != height { println!("[WARN] handle 维度与参照不一致"); }
 
-    let mut total = 0u64; let mut match_t = 0u64; let mut tnair = 0u64; let mut mnair = 0u64;
+    // WG_BIOMEDUMP：nether biome 分类诊断（mismatch 位置判定名）
+let dump_biome = std::env::var("WG_BIOMEDUMP").is_ok();
+let (bc, trees) = if dump_biome {
+    let mut db2 = DB2::new(seed as u64, min_y, 128);
+    db2.load_noise_params_file(&format!("{}/../noise_params.json", wg_dir)).unwrap();
+    db2.set_df_ns("nether");
+    let df2 = format!("{}/data/minecraft/worldgen/density_function/nether", wg_dir);
+    let df2c = df2.clone();
+    db2.set_external_loader(Box::new(move |_f: &str, name: &str| -> String {
+        std::fs::read_to_string(&format!("{}/{}.json", df2c, name)).unwrap()
+    }));
+    if settings2_ok_legacy(&wg_dir) { db2.set_legacy_random(); }
+    let settings2 = parse2(&std::fs::read_to_string(format!("{}/data/minecraft/worldgen/noise_settings/nether.json", wg_dir)).unwrap()).unwrap();
+    let router2 = settings2.get("noise_router").unwrap();
+    let mut trees = std::collections::HashMap::new();
+    for key in ["temperature","vegetation","continents","erosion","depth","ridges"] {
+        trees.insert(key.to_string(), std::sync::Arc::new(db2.build_node(router2.get(key).unwrap()).ok().unwrap()));
+    }
+    let bc = BiomeClassifier::load(&format!("{}/../biome_params_nether.json", wg_dir));
+    (Some(bc), Some(trees))
+} else { (None, None) };
+
+let mut total = 0u64; let mut match_t = 0u64; let mut tnair = 0u64; let mut mnair = 0u64;
     // 分层统计：32 层一带
     let bands = (height / 32) as usize;
     let mut band_total = vec![0u64; bands]; let mut band_match = vec![0u64; bands];
@@ -53,6 +79,14 @@ fn main() {
                 let zz = rem / 16;
                 let xx = rem % 16;
                 mismatches.push((cx * 16 + xx, min_y + yy, cz * 16 + zz, got, want));
+                if dump_biome {
+                    if let (Some(bc), Some(trees)) = (&bc, &trees) {
+                        let pos = NP2 { x: cx * 16 + xx, y: min_y + yy, z: cz * 16 + zz };
+                        let g = |k2: &str| trees.get(k2).unwrap().as_ref();
+                        let name = bc.biome_of(g("temperature"), g("vegetation"), g("continents"), g("erosion"), g("depth"), g("ridges"), &pos);
+                        println!("[BIOME] ({},{},{}) -> {} (want id{})", pos.x, pos.y, pos.z, name, want);
+                    }
+                }
             }
             band_total[band] += 1;
         }
@@ -102,3 +136,10 @@ fn main() {
 }
 
 
+
+
+fn settings2_ok_legacy(wg_dir: &str) -> bool {
+    let p = format!("{}/data/minecraft/worldgen/noise_settings/nether.json", wg_dir);
+    let s = parse2(&std::fs::read_to_string(&p).unwrap()).unwrap();
+    s.get("legacy_random_source").and_then(|v| v.as_bool()).unwrap_or(false)
+}
