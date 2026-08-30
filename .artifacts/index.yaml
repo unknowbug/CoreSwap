@@ -556,38 +556,38 @@ entries:
   - id: 're-code:transpiler:formula-bugs'
     path: '../.investigations/macro-layer-scout/transpiler-errors.md#M12a'
     kind: errors
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # M12 a-d 四个公式生成错误：squeeze（v-v³/3 → clamp/2-d³/24）、half_negative（-0.5x → 条件）、quarter_negative（同）、weird_scaled（常数乘 → 分段阶梯）。final_density 0.432843 的真正根因（judge 曾误判为 channel inner 语义差异）。
 
   - id: 're-code:transpiler:prod-integration'
     path: '../WorldgenRust/src/terrain.rs'
     kind: patch
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # 接入生产：terrain.rs 加 TranspilerDensity（ChunkDensitySampler + DensitySource 泛型化 ChunkDensity/DensitySource/fill_chunk）；worldgen_handle.rs WG_TRANSPILER env 门控构建 NoiseSet+TranspilerDensity，fill_chunk_blocks 按此分派。
 
   - id: 're-code:transpiler:prod-alignment'
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_finaldensity_after_unaryfix.txt'
     kind: evidence
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # 修 4 公式后：final_density 对齐 0.432843 → 0.000000（n=54 逐位）；块级一致 99.30%（修前 78.48%）。
 
   # === judge 审查后补证（2026-08-30，证据缺口 + 记录矛盾处理）===
   - id: 're-code:transpiler:prod-density-98304'
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_density_98304.txt'
     kind: evidence
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # 补落盘：TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 max_diff=0.000000（均值/正值分布逐位相同）。
 
   - id: 're-code:transpiler:vanilla-full'
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_vanilla_full.txt'
     kind: evidence
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # 补落盘：transpiler 接入生产 vs vanilla FULL 94.20%（基线 macrosampler 95.40%，macrosampler_prod_vanilla_full_baseline.txt）。
 
   - id: 're-code:transpiler:perf-multi'
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_prod_perf_multi.txt'
     kind: evidence
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # 性能矛盾修正：5 次运行 0.96-1.05x 均值 1.00x = 持平。此前 0.96-0.98x 与 1.09x 均为单次噪声。
 
   - id: 're-code:transpiler:cacheid-isolation'
@@ -605,24 +605,24 @@ entries:
   - id: 're-code:transpiler:review-prod'
     path: '../.investigations/macro-layer-scout/review-transpiler-prod.md'
     kind: review
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # judge 审查（2026-08-30）：4 公式修复/接入生产/n=54 0.000000/产物契约 → candidate；98304 点/94.20%/78.48%/性能 0.96-0.98x/docs/07 M12 → draft（证据缺口/记录矛盾）。缺口已补（本批条目）。
 
   - id: 're-code:transpiler:review-rereview'
     path: '../.investigations/macro-layer-scout/review-transpiler-prod-recheck.md'
     kind: review
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # judge 复审（2026-08-30，commit 649a2b2）：上一轮 review-prod 的 4 处 draft 证据缺口全部闭环（98304 点逐点遍历 <5e-7 / 94.20% vanilla FULL+基线 / 性能 5 次持平 / docs07 M12）、ch0b 0.15 残差已澄清（预 M12 中间态）；4 公式修复与运行时逐位复验通过、生产接入门控零风险。各环节统一建议升 candidate（confirmed 由人类授予）。
 
   # === M13 flat_cache 量化语义修复 + 扩大对齐样本（2026-08-30，judge 建议项 7 扩样发现；判定报告 analysis-flatcache-semantics.md 目前 draft，judge 待审）===
   - id: 're-code:transpiler:flatcache-quant-fix'
     path: '../WorldgenRust/build/density.rs'
     kind: patch
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # M13 语义 bug 修复：transpiler 旧 L234-249 把 "minecraft:flat_cache"|"minecraft:cache_2d" 合并分支、统一生成精确键 transpiler_cache_2d——「y 无关」被偷换成「逐点精确」。Java vanilla flat_cache = 4×4 格点量化缓存（ChunkNoiseSampler.java L836-881：5×5 网格 y=0 预计算 + (blockX>>2) 量化索引），cache_2d（L557-579）才是精确列键；CoreSwap 运行时（FlatCacheData）与 C++ FlatCacheDF 本就正确。修复 = 拆分两分支：flat_cache 生成量化封装（x/z i64 算术右移量化到 4 的倍数、y 置 0、按量化键缓存），cache_2d 保持精确键。修后对比1 max_diff=0.000000（160/3584 点 <5e-7 浮点残差）、98304 点生产 0.000000、FULL 94.27%。五段式：transpiler-errors.md#M13；判定报告：.investigations/macro-layer-scout/analysis-flatcache-semantics.md（A 语义裁决 + 生产不受影响的两个前置条件）。
 
   - id: 're-code:transpiler:alignment-expanded'
     path: '../.investigations/macro-layer-scout/cmd-output/transpiler_alignment_expanded_after_flatcachefix.txt'
     kind: evidence
-    status: candidate
+    status: confirmed  # 用户授予 2026-08-30（MOD 实跑进游戏，肉眼与 vanilla 无差异）
     # M13 扩大对齐样本（judge 建议项 7）验证：4 探针链（exactpoint_verify -> ch0_decompose -> ch0_census -> alignment_expanded）定位 flat_cache/cache_2d 语义合并 bug；修后对比1（精确点 vs 精确点）n=3584 max_diff=0.000000（残余 >1e-9 的 160/3584 点 <5e-7 浮点残差）、量化签名复刻（transpiler(1,1)=0.062840=runtime）、y 密扫/跨 x 全 0、生产路径对比 n=1480 max_diff=0.000000；生产回归 98304 点 0.000000、块级 99.30% 持平、FULL 94.20%->94.27%（+0.07pp）。另 5 份 after_flatcachefix 证据：cmd-output/{transpiler_exactpoint_verify_after, transpiler_ch0_decompose_after, transpiler_prod_density_98304_after, transpiler_prodblocks_after, transpiler_prod_vanilla_full}_after_flatcachefix.txt（修前定位：transpiler_exactpoint_verify.txt / transpiler_ch0_decompose.txt / transpiler_ch0_census.txt）。

@@ -101,6 +101,12 @@ pub extern "system" fn Java_wg_CppWorldgen_fillBlocks<'frame>(
             if handle == 0 { return Ok(0); }
             let count = env.get_array_length(&chunk_xs)? as usize;
             if count == 0 { return Ok(0); }
+            // 防御校验（对齐 C++ jni_bridge.cpp L84）：chunkZs/outs 长度必须与 chunkXs 一致
+            if env.get_array_length(&chunk_zs)? as usize != count
+                || env.get_array_length(&outs)? as usize != count
+            {
+                return Ok(0);
+            }
             let mut cxs = vec![0i32; count];
             let mut czs = vec![0i32; count];
             env.get_int_array_region(&chunk_xs, 0, &mut cxs)?;

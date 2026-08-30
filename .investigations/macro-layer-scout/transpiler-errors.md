@@ -362,7 +362,7 @@
 - **transpiler 的价值定位（最终）**：**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可，无需为 cell grid 构建慢做深度优化。
 - **教训**：**性能结论 MUST 多次运行取范围/均值**——单次运行噪声可高达 ±9%（本次 0.96x 与 1.09x 两方向的单次误导都出现过），单次声称不可入台账。
 
-## M13. transpiler flat_cache 量化语义 bug：`flat_cache` 与 `cache_2d` 合并生成精确键，「y 无关」被偷换成「逐点精确」（重大，扩大对齐样本发现，judge 建议项 7）
+## M13. transpiler flat_cache 量化语义 bug：`flat_cache` 与 `cache_2d` 合并生成精确键，「y 无关」被偷换成「逐点精确」（重大，扩大对齐样本发现，judge 建议项 7；**confirmed 用户 2026-08-30 MOD 实跑授予**）
 
 ### 现象
 - 扩大对齐样本（judge 建议项 7，review-transpiler-prod.md「覆盖 cell 内部任意点 / chunk 边界 clamp / 负 Y 极端」）时发现：`transpiler_exactpoint_verify.txt` **对比1（transpiler 精确点 vs 运行时精确点，channel inner 精确采样 + combine，n=3584 含负 Y）max_diff=0.027855**（diff>1e-9=250/3584，诊断分组自 y=64 起）；**4 corner 两侧逐位一致**（corner 处 diff=0.000000×4，机制上量化值≡精确值）。

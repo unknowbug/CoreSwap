@@ -1,0 +1,11 @@
+=== JNI 端到端冒烟（Rust 纯单 dll WorldgenRust.dll 1702400 bytes，含 fillBlocks outs.length 防御校验，M13 修复后）===
+命令: gradle runServer -PjniProbe=true -PbenchSize=4 -PbenchOriginX=-288 -PbenchOriginZ=-256 -PcppLib=<Rust dll> -PcppWorldgenDir=<CoreSwap worldgen data>
+[17:59:58] Done (3.606s)! For help, type "help"
+[JniProbe] C++ via JNI: 16 chunks, 224.2ms (14.01ms/chunk)
+[JniProbe] ref chunk(-18,-16) want (-18,-16)
+[JniProbe] TOTAL: match=1509320/1572864 (95.9600%) nonAir match=436850/498694 (87.5988%)
+[JniProbe] layerMatch%: y=-64..-33:97% y=-32..-1:94% y=0..31:86% y=32..63:76% y=64..95:99% y=96..127:100% ... y=288..319:100%
+[JniProbe] first mismatches (x,y,z): [-288,-63,-246, -284,-62,-246, -278,-60,-255, ...]（首批集中在 y=-50..-63 深层，与 FULL 差异带一致）
+结论: init/fillBlocks 经 Rust JNI 桥全链路正常（无 UnsatisfiedLinkError/Exception），数组进出与参数传递正确；
+  95.96% 为 vs NOISE/SURFACE 级参照（4_-288_-256.blocks，非 FULL），与 handle_probe FULL 94.27% 口径不同不可直接比。
+judge 建议②（JNI 桥端到端冒烟）完成 → 桥层 candidate 依据成立。

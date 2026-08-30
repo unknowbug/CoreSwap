@@ -2,7 +2,7 @@
 
 - **结论**：三选一 → **A 成立**。vanilla `minecraft:flat_cache` = per-chunk 5×5 网格预计算 + **4×4 量化查表**（cell 内任意点取左下角格点值，格点 y=0），不是精确 (x,z) 键缓存。
 - **归属**：CoreSwap 运行时（Rust FlatCacheData / C++ FlatCacheDF）与 Java 同构（正确侧）；**transpiler 生成侧把 flat_cache 降级为精确键 `transpiler_cache_2d` 是语义 bug**（仅暴露在「精确点诊断采样」路径）。
-- **置信度**：**draft**（本产物不自我提升；证据已达 Java 反编译源 + 双侧独立复刻实现 + 行为探针三重一致，建议 judge 审查后升 candidate）。
+- **置信度**：**confirmed**（用户 2026-08-30 MOD 实跑授予；judge review-m13-flatcache-jni.md 3×PASS 在前）。
 - **验证分层**：Degraded（静态审查）+ 复用主会话已落盘 runtime 探针解读（探针采集/执行非本 worker，见 cmd-output 落盘引用）。
 - **生产影响**：确认**不受影响**（98304 点 diff=0.000000 与本判定自洽），附两个前置条件，见「四、修复方向」末尾评估。
 - 产出者：core-worker subagent（隔离，2026-08-30 会话）；只读分析，未修改任何源码。

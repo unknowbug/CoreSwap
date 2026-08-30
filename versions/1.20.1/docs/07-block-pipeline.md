@@ -1068,10 +1068,10 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 ---
 
-## 2026-08-30 扩大对齐样本（judge 建议项 7）+ transpiler flat_cache 量化语义修复（M13，candidate）
+## 2026-08-30 扩大对齐样本（judge 建议项 7）+ transpiler flat_cache 量化语义修复（M13，confirmed）
 
-> **已应用（含修后回归全量落盘）**：本节为结论性记录（candidate，confirmed 由人类授予）；A 语义判定（`analysis-flatcache-semantics.md`）为 draft，judge 审查后随本节一并升级。
-> status：**candidate**（confirmed 由人类授予）。
+> **已应用（含修后回归全量落盘）+ confirmed 由用户授予（2026-08-30，MOD 实跑进游戏肉眼无差异）**；A 语义判定（`analysis-flatcache-semantics.md`）随本节一并 confirmed。
+> status：**confirmed**（用户 2026-08-30 授予；judge 审查 review-m13-flatcache-jni.md 3×PASS 在前）。
 > 依据：`.investigations/macro-layer-scout/`{analysis-flatcache-semantics.md, transpiler-errors.md#M13} + `cmd-output/`{transpiler_exactpoint_verify.txt, transpiler_ch0_decompose.txt, transpiler_ch0_census.txt, transpiler_exactpoint_verify_after_flatcachefix.txt, transpiler_ch0_decompose_after_flatcachefix.txt, transpiler_alignment_expanded_after_flatcachefix.txt, transpiler_prod_density_98304_after_flatcachefix.txt, transpiler_prodblocks_after_flatcachefix.txt, transpiler_prod_vanilla_full_after_flatcachefix.txt}。
 > 载体：追加到 `versions/1.20.1/docs/07-block-pipeline.md` 末尾（追加不覆盖）。**本节只列中价值结论；错误链条见 §7 独立错误台账 transpiler-errors.md（M13，五段式 + 速查表），不重复展开；一次性数值快照按低价值不展开。**
 
@@ -1101,7 +1101,7 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - 验证分层 = Partial（探针可复现，非 @anchor.test）；判定报告 = Degraded（静态审查）+ 运行时探针解读；数值为当前快照。
 - **已知边界**：Java FlatCache 是 per-chunk 实例（查表区间 = 采样器自身 chunk，越界相对自身 startBiome 则 delegate 直算）；无状态 transpiler 按 pos 推导量化角，跨 chunk 直采诊断点与 Java per-chunk 上下文可能仍有差（生产 in-chunk 恒界内不受影响，诊断跨 chunk 抽查时注意）。对比2 vs tree.sample（InterpolatedDF 插值）0.043514 为既有「运行时插值 vs transpiler 直采」采样语义差异，非 bug 残留。
-- status：**candidate**（confirmed 由人类授予）；`analysis-flatcache-semantics.md` 目前为 draft，judge 审查后与本节一并升级。
+- status：**confirmed**（用户 2026-08-30 MOD 实跑授予）。
 - 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M13，五段式 + 速查表），本节不重复展开。
 
 
