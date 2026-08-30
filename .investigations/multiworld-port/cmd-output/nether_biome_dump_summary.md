@@ -18,3 +18,15 @@ Rust 未启用特例时 t 采样值连符号都不同 → soul_sand_valley 误�
 Rust 的 visitor 特例实现（WG_LEGACY_CLIMATE）方向正确，但 Legacy-Perlin 数值细节仍有偏差
 （v7 净负的原因），需专项对拍：Java CheckedRandom(0)+createLegacy(-7,[1,1]) vs Rust
 LegacyRandom(0)+new_legacy(-7,[1,1]) 在同坐标的逐点值。
+
+## 逐调用对拍 + 矛盾隔离（2026-08-30 深夜，第二轮）
+
+- CAL-TRACE-I（nextIntBound(256-i) ×256）：Java/Rust **完全一致** → LCG + rejection 采样正确
+- CAL-TRACE-D（nextDouble ×3）：f32 噪声级一致（~2e-8）→ nextDouble 正确
+- CAL-S3 DoublePerlin createLegacy(CheckedRandom(0),(-7,[1,1])) @ 同坐标：一致（~5e-6）→ 构造正确
+- **剩余矛盾隔离**：router.temperature/vegetation 直采（Java +0.0775/-0.1533）≠ 特例噪声直线采样（Rust 0.1435/-0.010）
+  → shifted_noise 的 **shift 偏移语义**是最后一层：Java OFFSET 特例 NoiseParameters(0,[0.0]) 振幅全零，
+  OctavePerlin sample 对 null octave 应恒 0——但 router 直采 ≠ 特例直线值 → Java shifted_noise 的
+  shift 采样还有未对齐语义（或 OFFSET 特例的实际效果是「DoublePerlin 退化为 -7 单 octave Perlin」
+  而非恒 0——需 Java 侧打印 router.temperature 的展开树确认）
+- 下轮消融：Java 反射 router.temperature()（ShiftedNoise）的 shiftX/shiftZ 分量采样值 + 树展开

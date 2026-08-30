@@ -11,6 +11,14 @@ use WorldgenRust::noise::{DoublePerlinNoiseSampler, OctavePerlinNoiseSampler};
 fn main() {
     let seed: i64 = -8248318472910187742; // 参照 seed（climate 特例固定种子 0 与 seed 无关，仅打印）
 
+    // CAL-TRACE: Perlin 构造逐调用（origin 3x nextDouble + permutation 256x nextIntBound(256-i)）
+    let mut rt = RsRandom::Legacy(LegacyRandom::new(0));
+    print!("[CAL-TRACE-D] ");
+    for _ in 0..3 { print!("{:.12} ", rt.next_double()); }
+    println!();
+    print!("[CAL-TRACE-I] ");
+    for i in 0..256 { print!("{},", rt.next_int_bound(256 - i)); }
+    println!();
     // ===== S1: LCG 裸输出（CheckedRandom(0) 语义：setSeed(0)→(0^25214903917)&mask）=====
     println!("=== S1: LegacyRandom::new(0) LCG next(32) x8 ===");
     let mut r = LegacyRandom::new(0);
@@ -97,6 +105,8 @@ fn main() {
     }
     let _ = upper;
 }
+
+
 
 
 
