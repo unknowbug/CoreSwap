@@ -2,6 +2,7 @@
 // 从 C++ noise.h 移植（逆向 Java 1.20.1）。随机源 XoroshiroRandom 在 xoroshiro.rs。
 // 依赖常量/辅助函数移自 C++ noise.h L10-26。
 
+use crate::legacy_random::RsRandom;
 use crate::xoroshiro::XoroshiroRandom;
 
 // ---- 辅助（对齐 C++ noise.h）----
@@ -26,7 +27,7 @@ pub struct PerlinNoiseSampler {
     permutation: [u8; 256],
 }
 impl PerlinNoiseSampler {
-    pub fn new(random: &mut XoroshiroRandom) -> Self {
+    pub fn new(random: &mut RsRandom) -> Self {
         let origin_x = random.next_double() * 256.0;
         let origin_y = random.next_double() * 256.0;
         let origin_z = random.next_double() * 256.0;
@@ -167,7 +168,7 @@ impl OctavePerlinNoiseSampler {
     }
     // legacy 构造（createLegacy：直接消费 random，非 splitter 派生；用于 old_blended_noise/InterpolatedNoiseDF）
     // 对齐 C++ noise.h L153-182：先无条件 new PerlinNoiseSampler(random)（可能丢弃），再对 kx=j-1..0 逐级建或 skip(262)
-    pub fn new_legacy(random: &mut XoroshiroRandom, first_octave: i32, amplitudes: &[f64]) -> Self {
+    pub fn new_legacy(random: &mut RsRandom, first_octave: i32, amplitudes: &[f64]) -> Self {
         let i = amplitudes.len() as i32;
         let j = -first_octave;
         let mut octave_samplers: Vec<Option<PerlinNoiseSampler>> = (0..i).map(|_| None).collect();
@@ -215,7 +216,7 @@ impl OctavePerlinNoiseSampler {
     fn total_amplitude_scale(&self, scale: f64) -> f64 {
         Self::get_total_amplitude(&self.octave_samplers, &self.amplitudes, self.persistence, scale)
     }
-    pub fn new(random: &mut XoroshiroRandom, first_octave: i32, amplitudes: &[f64]) -> Self {
+    pub fn new(random: &mut RsRandom, first_octave: i32, amplitudes: &[f64]) -> Self {
         let mut octave_samplers: Vec<Option<PerlinNoiseSampler>> = Vec::new();
         let j = -first_octave;
         let splitter = random.next_splitter();
@@ -271,7 +272,7 @@ pub struct DoublePerlinNoiseSampler {
 impl DoublePerlinNoiseSampler {
     pub const DOMAIN_SCALE: f64 = 1.0181268882175227;
     fn create_amplitude(octaves: i32) -> f64 { 0.1 * (1.0 + 1.0 / (octaves + 1) as f64) }
-    pub fn new(random: &mut XoroshiroRandom, params: &NoiseParameters) -> Self {
+    pub fn new(random: &mut RsRandom, params: &NoiseParameters) -> Self {
         let first_sampler = OctavePerlinNoiseSampler::new(random, params.first_octave, &params.amplitudes);
         let second_sampler = OctavePerlinNoiseSampler::new(random, params.first_octave, &params.amplitudes);
         let mut j = i32::MAX; let mut k = i32::MIN;
@@ -350,3 +351,4 @@ impl NoiseSet {
         }
     }
 }
+

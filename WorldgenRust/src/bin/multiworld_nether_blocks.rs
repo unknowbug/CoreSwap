@@ -66,4 +66,39 @@ fn main() {
             100.0 * band_match[b] as f64 / band_total[b].max(1) as f64);
     }
     println!("first mismatches (x,y,z, got, want): {:?}", mismatches);
+
+    // 混淆对直方图：每带 Top got→want 配对（定性判断错位类型：阈值翻转 / id 错位 / 缺方块类）
+    if std::env::var("WG_CONFUSION").is_ok() {
+        let name_of = |id: i32| -> String {
+            match id { 0 => "air".into(), 31 => "bedrock".into(), 33 => "lava".into(), 256 => "netherrack".into(), 257 => "soul_sand".into(), other => format!("id{}", other) }
+        };
+        let mut confusion: std::collections::HashMap<(i32, i32, i32), u64> = std::collections::HashMap::new();
+        let mut i2 = 0usize;
+        let _magic2 = be32(&bd, &mut i2); let _seed2 = be64(&bd, &mut i2); let size2 = be32(&bd, &mut i2);
+        let _ox = be32(&bd, &mut i2); let _oz = be32(&bd, &mut i2); let _my = be32(&bd, &mut i2); let _hh = be32(&bd, &mut i2);
+        let bpc2 = (16 * 16 * height) as usize;
+        for _c2 in 0..(size2 * size2) {
+            let cx2 = be32(&bd, &mut i2); let cz2 = be32(&bd, &mut i2);
+            let mut vanilla2 = vec![0i32; bpc2];
+            for k in 0..bpc2 { vanilla2[k] = be16(&bd, &mut i2) as i32; }
+            for _bi in 0..256 { let bl = be16(&bd, &mut i2) as usize; if bl > 0 { i2 += bl; } }
+            let blocks2 = h.fill_chunk_blocks(cx2, cz2);
+            for k in 0..bpc2 {
+                let g = blocks2[k]; let w = vanilla2[k];
+                if g != w {
+                    let y = min_y + (k / 256) as i32;
+                    let band = ((y - min_y) / 32) as usize;
+                    *confusion.entry((band as i32, g, w)).or_insert(0) += 1;
+                }
+            }
+        }
+        let mut pairs: Vec<((i32, i32, i32), u64)> = confusion.into_iter().collect();
+        pairs.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        println!("[混淆对] band(y0) got->want count Top12:");
+        for (i2, ((band, g, w), cnt)) in pairs.iter().enumerate().take(12) {
+            println!("  y{}..: {} -> {} : {}", min_y + band * 32, name_of(*g), name_of(*w), cnt);
+        }
+    }
 }
+
+

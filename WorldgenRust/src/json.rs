@@ -14,6 +14,10 @@ impl JsonValue {
     }
     pub fn as_str(&self) -> Option<&str> { if let JsonValue::String(s) = self { Some(s.as_str()) } else { None } }
     pub fn as_f64(&self) -> Option<f64> { if let JsonValue::Number(n) = self { Some(*n) } else { None } }
+    /// 布尔读取（JSON true/false；兼容 0/1 数字——M7 教训：Bool 走 as_f64 恒 None → unwrap_or 恒默认值）
+    pub fn as_bool(&self) -> Option<bool> {
+        match self { JsonValue::Bool(b) => Some(*b), JsonValue::Number(n) => Some(*n != 0.0), _ => None }
+    }
     pub fn as_array(&self) -> Option<&Vec<JsonValue>> { if let JsonValue::Array(a) = self { Some(a) } else { None } }
     pub fn as_object(&self) -> Option<&Vec<(String, JsonValue)>> { if let JsonValue::Object(o) = self { Some(o) } else { None } }
 }
@@ -96,3 +100,4 @@ pub fn parse(text: &str) -> Result<JsonValue, String> {
     let v = parse_value(&mut p)?;
     Ok(v)
 }
+

@@ -20,7 +20,8 @@ use std::sync::Arc;
 
 use crate::blocks::{BlockColumn, BlockId, BlockRegistry};
 use crate::noise::DoublePerlinNoiseSampler;
-use crate::xoroshiro::{XoroshiroRandom, XoroshiroSplitter};
+use crate::xoroshiro::XoroshiroRandom;
+use crate::legacy_random::{RsRandom, RsSplitter};
 
 // ========== 辅助 ==========
 // 对齐 C++ surface.h L20-24 lerpClamp
@@ -240,14 +241,14 @@ pub struct SurfaceContext<'a> {
     pub biome_id: String,
     pub biome_temp: f64,
     pub noise_samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
-    pub splitter: &'a XoroshiroSplitter,
+    pub splitter: &'a RsSplitter,
     pub initial_density_at: Option<&'a dyn Fn(i32, i32, i32) -> f64>,
     pub terracotta_bands_getter: Option<&'a dyn Fn(i32, i32, i32) -> i32>,
     pub column_heightmap: Option<&'a RefCell<Vec<i32>>>, // [256] WORLD_SURFACE_WG，索引 z*16+x（RefCell 供 pillar 写回）
     pub surface_heights4: Option<&'a [i32]>, // chunk 4 角 estimateSurfaceHeight
     pub surface_secondary_noise: Option<&'a DoublePerlinNoiseSampler>,
     // 按名字派生的 splitter 缓存（对应 NoiseConfig.getOrCreateRandomDeriver）
-    derived_splitters: RefCell<HashMap<String, XoroshiroSplitter>>,
+    derived_splitters: RefCell<HashMap<String, RsSplitter>>,
     // getSecondaryDepth 列缓存
     secondary_cache_key: Cell<i64>,
     secondary_cache: Cell<f64>,
@@ -257,7 +258,7 @@ impl<'a> SurfaceContext<'a> {
     // 便捷构造：初始化核心字段 + 缓存（引用字段由调用方 struct literal 填充，见 build_surface）
     pub fn new(
         noise_samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
-        splitter: &'a XoroshiroSplitter,
+        splitter: &'a RsSplitter,
         world_min_y: i32,
         world_height: i32,
     ) -> Self {
@@ -287,7 +288,7 @@ impl<'a> SurfaceContext<'a> {
     }
 
     // NoiseConfig.getOrCreateRandomDeriver(id) = randomDeriver.split(id).nextSplitter()
-    fn splitter_for(&self, name: &str) -> XoroshiroSplitter {
+    fn splitter_for(&self, name: &str) -> RsSplitter {
         let mut map = self.derived_splitters.borrow_mut();
         if let Some(s) = map.get(name) {
             return s.clone();
@@ -364,7 +365,7 @@ impl<'a> SurfaceContext<'a> {
 // ========== SurfaceBuilder（对齐 C++ surface.h L345-483）==========
 pub struct SurfaceBuilder<'a> {
     samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
-    splitter: &'a XoroshiroSplitter,
+    splitter: &'a RsSplitter,
     #[allow(dead_code)] // 保留 API 对齐（placeIceberg 未移植，暂未使用）
     sea_level: i32,
     blocks: &'a BlockRegistry,
@@ -374,7 +375,7 @@ pub struct SurfaceBuilder<'a> {
 impl<'a> SurfaceBuilder<'a> {
     pub fn new(
         samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
-        splitter: &'a XoroshiroSplitter,
+        splitter: &'a RsSplitter,
         sea_level: i32,
         blocks: &'a BlockRegistry,
     ) -> Self {
@@ -1285,7 +1286,7 @@ impl<'a> SurfaceBuilder<'a> {
 }
 
 // 对齐 C++ L453-460 addTerracottaBand
-fn add_terracotta_band(r: &mut XoroshiroRandom, bands: &mut Vec<BlockId>, min_band_size: i32, state: BlockId) {
+fn add_terracotta_band(r: &mut RsRandom, bands: &mut Vec<BlockId>, min_band_size: i32, state: BlockId) {
     let i = r.next_int_bound(10) + 6; // nextBetween(6,15)
     for _ in 0..i {
         let k = min_band_size + r.next_int_bound(3);
@@ -1376,3 +1377,6 @@ pub fn biome_temperature(biome_id: &str) -> f64 {
 //   - SurfaceBuilder::build_surface ↔ C++ L685-811（逐列扫描 + pillar + 规则应用）
 //   - SurfaceBuilder::place_badlands_pillar ↔ C++ L813-850
 //   - biome_temperature ↔ C++ biomeTemp 用法（TempCond < 0.15）
+
+
+

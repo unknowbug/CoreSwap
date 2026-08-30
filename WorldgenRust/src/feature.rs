@@ -496,7 +496,7 @@ impl SpringFeatureConfig {
             }
             if let Some(rc) = cfg.get("rock_count") { sc.rock_count = rc.as_f64().unwrap_or(0.0) as i32; }
             if let Some(hc) = cfg.get("hole_count") { sc.hole_count = hc.as_f64().unwrap_or(0.0) as i32; }
-            if let Some(rb) = cfg.get("requires_block_below") { sc.requires_block_below = rb.as_f64().map(|x| x != 0.0).unwrap_or(false); }
+            if let Some(rb) = cfg.get("requires_block_below") { sc.requires_block_below = rb.as_bool().unwrap_or(false); }
         }
         sc
     }
@@ -651,3 +651,5 @@ fn is_water_or_air(ctx: &OreFeatureContext, x: i32, y: i32, z: i32, water_id: i3
     if cur < 0 { return true; } // 越界视为 water/air（Java chunkSectionCache null → 默认 air）
     cur == water_id || cur == air_id
 }
+
+

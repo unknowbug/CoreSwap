@@ -16,6 +16,7 @@ use crate::density_builder::DensityBuilder;
 use crate::json::parse;
 use crate::surface_rules::{SurfaceBuilder, SurfaceRule};
 use crate::terrain::{fill_chunk, VanillaAquifer, VanillaDensity, BiomeSource};
+use crate::legacy_random::RsSplitter;
 use crate::xoroshiro::XoroshiroSplitter;
 
 // 宏观 biome 源（BiomeClassifier + 6 参数 DF）
@@ -40,6 +41,7 @@ pub struct WorldgenHandle {
     pub min_y: i32,
     pub height: i32,
     pub noise_height: i32, // 噪声高度（settings noise.height；nether 128 < world 256——density 采样有效域，上方留 air）
+    pub sea_level: i32, // settings sea_level（下界 32）——aquifer 禁用时的流体面
     pub aquifers_enabled: bool, // from noise_settings <settings>.aquifers_enabled（下界 false 跳过 aquifer）
     // density 树
     tree: Arc<DensityFunction>,       // final_density
@@ -119,7 +121,10 @@ impl WorldgenHandle {
             if let Some(m) = noise.get("min_y") { min_y = m.as_f64().unwrap_or(-64.0) as i32; }
             if let Some(h) = noise.get("height") { noise_height = h.as_f64().unwrap_or(384.0) as i32; }
         }
-        if let Some(aq) = settings.get("aquifers_enabled") { aquifers_enabled = aq.as_f64().map(|x| x != 0.0).unwrap_or(true); }
+        if let Some(aq) = settings.get("aquifers_enabled") { aquifers_enabled = aq.as_bool().unwrap_or(true); }
+        // legacy_random_source=true（下界）→ 噪声种子/surface 概率走 LegacyRandomSource（Java RandomState ctor 同构）
+        let mut legacy_random = false;
+        if let Some(l) = settings.get("legacy_random_source") { legacy_random = l.as_bool().unwrap_or(false); }
         // 世界高度：Java 传（维度定义）；兜底 = 噪声高度（对齐 C++ worldHeight>0 ? worldHeight : noiseHeight）
         let height = if world_height > 0 { world_height } else { noise_height };
         let router = settings.get("noise_router")?;
@@ -127,6 +132,7 @@ impl WorldgenHandle {
         // 1. DensityBuilder（dfNs 参数化：external_loader 读 <dfNs>/ 目录 + resolve_ref 用 dfNs 前缀）
         let mut db = DensityBuilder::new(seed as u64, min_y, noise_height);
         db.set_df_ns(&df_ns);
+        if legacy_random { db.set_legacy_random(); }
         let noise_params_path = format!("{}/../noise_params.json", wg_dir);
         if db.load_noise_params_file(&noise_params_path).is_err() {
             eprintln!("wg_create: cannot load {}", noise_params_path);
@@ -175,7 +181,11 @@ impl WorldgenHandle {
         let vein_toggle = Arc::new(db.build_node(router.get("vein_toggle")?).ok()?);
         let vein_ridged = Arc::new(db.build_node(router.get("vein_ridged")?).ok()?);
         let vein_gap = Arc::new(db.build_node(router.get("vein_gap")?).ok()?);
-        let ore_splitter = db.random_deriver().split_str("minecraft:ore").next_splitter();
+        let ore_splitter = match db.random_deriver() {
+            RsSplitter::Xoro(s) => s.split_str("minecraft:ore").next_splitter(),
+            // 下界（legacy）ore_vein 禁用——占位值不影响输出
+            RsSplitter::Legacy(_) => crate::xoroshiro::XoroshiroRandom::new(seed as u64).next_splitter().split_str("minecraft:ore").next_splitter(),
+        };
         // ore_vein 延后到 blocks 加载后构建（block id 需 BlockRegistry 解析，数据驱动）
 
         // 4. noise samplers（surface rules 用）
@@ -219,7 +229,11 @@ impl WorldgenHandle {
         };
 
         let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf };
-        let splitter = db.random_deriver().clone();
+        let splitter = match db.random_deriver() {
+            RsSplitter::Xoro(s) => s.clone(),
+            // 下界（legacy）aquifer 禁用——aquifer 字段需 XoroshiroSplitter 类型，占位值不影响输出
+            RsSplitter::Legacy(_) => crate::xoroshiro::XoroshiroRandom::new(seed as u64).next_splitter(),
+        };
 
         // FEATURES indexer（Java PlacedFeatureIndexer，从所有 biome features 构建）
         // p 值 = lastIndex（feature 在所有 biome features 中的最后出现索引），不是 featureIndex！
@@ -244,7 +258,7 @@ impl WorldgenHandle {
         let uniform_carver_list = biomesrc.bc.uniform_carver_list();
 
         Some(WorldgenHandle {
-            seed, min_y, height, noise_height, aquifers_enabled,
+            seed, min_y, height, noise_height, aquifers_enabled, sea_level,
             tree, macro_sampler, transpiler_density, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
@@ -340,7 +354,7 @@ impl WorldgenHandle {
         // aquifers_enabled=false（下界）→ VanillaAquifer.enabled=false，classify 跳过真实 aquifer（无 water/lava）
         // WG_SKIP_AQUIFER（诊断）chunk 级判断一次（避免每点 env 查询污染热路径）
         let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
-        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer };
+        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
         let cd = if let Some(td) = &self.transpiler_density {
@@ -635,3 +649,9 @@ impl WorldgenHandle {
         placed_count
     }
 }
+
+
+
+
+
+

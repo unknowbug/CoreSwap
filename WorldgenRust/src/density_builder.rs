@@ -11,7 +11,7 @@ use crate::noise::DoublePerlinNoiseSampler;
 use crate::noise::NoiseParameters;
 use crate::noise::OctavePerlinNoiseSampler;
 use crate::xoroshiro::XoroshiroRandom;
-use crate::xoroshiro::XoroshiroSplitter;
+use crate::legacy_random::{LegacyRandom, RsRandom, RsSplitter};
 
 // buildNoiseParams（C++ density_probe.cpp buildNoiseParams：BuiltinNoiseParameters 1.20.1 全表；noise_params.json 读取后续）
 pub fn build_noise_params() -> HashMap<String, NoiseParameters> {
@@ -105,7 +105,8 @@ pub fn build_noise_params_from_file(path: &str) -> Result<HashMap<String, NoiseP
 pub struct DensityBuilder {
     #[allow(dead_code)] seed: u64,
     noise_params: HashMap<String, NoiseParameters>,
-    random_deriver: XoroshiroSplitter,
+    random_deriver: RsSplitter,
+    legacy_random: bool,
     noise_samplers: HashMap<String, Arc<DoublePerlinNoiseSampler>>,
     registry: HashMap<String, Arc<DensityFunction>>,
     lazy_refs: HashMap<String, Arc<Mutex<Option<Arc<DensityFunction>>>>>,
@@ -121,8 +122,9 @@ impl DensityBuilder {
     pub fn new(seed: u64, min_y: i32, noise_height: i32) -> Self {
         let noise_params = build_noise_params();
         let mut base = XoroshiroRandom::new(seed);
-        let random_deriver = base.next_splitter();
-        DensityBuilder { seed, noise_params, random_deriver, noise_samplers: HashMap::new(), registry: HashMap::new(), lazy_refs: HashMap::new(), external_loader: None, df_ns: "overworld".to_string(), min_y, noise_height }
+        let _ = &mut base; // legacy 分流见 set_legacy_random
+        let random_deriver = RsSplitter::Xoro(base.next_splitter()); // 构造后经 set_legacy_random 可切换 legacy
+        DensityBuilder { seed, noise_params, random_deriver, legacy_random: false, noise_samplers: HashMap::new(), registry: HashMap::new(), lazy_refs: HashMap::new(), external_loader: None, df_ns: "overworld".to_string(), min_y, noise_height }
     }
     pub fn set_external_loader(&mut self, loader: Box<dyn Fn(&str, &str) -> String>) {
         self.external_loader = Some(loader);
@@ -132,7 +134,14 @@ impl DensityBuilder {
         self.df_ns = df_ns.to_string();
     }
     // 暴露 randomDeriver（供探针复刻 NoiseConfig 派生链，如 Aquifer "minecraft:aquifer" split）
-    pub fn random_deriver(&self) -> &XoroshiroSplitter { &self.random_deriver }
+    pub fn random_deriver(&self) -> &RsSplitter { &self.random_deriver }
+
+    /// legacy_random_source=true（下界）→ 随机源切换 LegacyRandomSource（Java RandomState ctor 同构）。
+    /// 必须在构建任何噪声/树之前调用。
+    pub fn set_legacy_random(&mut self) {
+        self.legacy_random = true;
+        self.random_deriver = RsSplitter::Legacy(LegacyRandom::new(self.seed as i64).next_splitter());
+    }
     // 暴露 noise_samplers（供 SurfaceBuilder 等消费；须先 get_noise_sampler 惰性创建所需 noise）
     pub fn noise_samplers(&self) -> &HashMap<String, Arc<DoublePerlinNoiseSampler>> { &self.noise_samplers }
     // 用 noise_params.json 覆盖硬编码表（对齐基准切到权威文件，judge P2-e）。须在首次 get_noise_sampler 前调用。
@@ -413,3 +422,7 @@ pub fn build_node(v: &JsonValue) -> Result<DensityFunction, String> {
     let mut db = DensityBuilder::new(0, -64, 384);
     db.build_node(v)
 }
+
+
+
+

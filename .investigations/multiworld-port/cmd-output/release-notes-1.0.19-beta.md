@@ -1,4 +1,3 @@
-# coreswap 1.20.1-1.0.19-beta (pre-release)
 
 **First Rust-core release.** The worldgen native core has migrated from C++ to Rust — one `worldgen.dll` now ships the JNI bridge and the engine together.
 
@@ -9,7 +8,7 @@
 - **Build-time transpiler in production** (env-gated): vanilla density JSON compiled to native code; proven consistent with the runtime interpreter across a 98304-point full-chunk sweep (max diff <5e-7), block match 99.30%. Recent milestone: fixed a `flat_cache` quantization semantics bug found by expanded alignment sampling (M13, confirmed)
 - **Multi-world — the Nether**: same Rust engine via a new `initDim` JNI path + per-dimension mixin dispatch (with End mis-route protection). Nether block match **74%** vs vanilla; known gaps: lava-ocean fluid fill, bedrock edge layers. Overworld unaffected
 - **Measured performance**: large-sample end-to-end **~1.2× vanilla Java**; 16-chunk in-engine JNI sweep (full pipeline incl. carvers + features) **~14 ms/chunk**. Parity between transpiler and baseline engines (multi-run 0.92–1.05×)
-- Works on dedicated Fabric servers; Forge via Sinytra Connector
+- **Dual loader support — Fabric + Forge**: one jar for both (Fabric native; Forge via Sinytra Connector — jar structure verified identical to the Connector-tested 1.0.18). Works on dedicated servers too
 
 ## Install
 

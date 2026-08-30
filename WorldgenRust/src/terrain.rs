@@ -205,16 +205,23 @@ pub struct VanillaDensity<'a> { pub df: &'a DensityFunction }
 impl<'a> DensitySource<DensityMacroSampler> for VanillaDensity<'a> {
     fn sample(&self, pos: &NoisePos) -> f64 { self.df.sample(pos) }
 }
-pub struct VanillaAquifer { pub aq: crate::aquifer::Aquifer, pub enabled: bool, pub skip_aquifer: bool }
+pub struct VanillaAquifer { pub aq: crate::aquifer::Aquifer, pub enabled: bool, pub skip_aquifer: bool,
+    pub sea_level: i32 }  // settings sea_level（下界 32）：aquifer 禁用时的 sea-level 熔岩语义用
 impl VanillaAquifer {
     // 便捷构造：默认启用 aquifer（overworld）
-    pub fn new(aq: crate::aquifer::Aquifer) -> Self { Self { aq, enabled: true, skip_aquifer: false } }
+    pub fn new(aq: crate::aquifer::Aquifer) -> Self { Self { aq, enabled: true, skip_aquifer: false, sea_level: 63 } }
 }
 impl AquiferSource for VanillaAquifer {
     fn classify(&mut self, x: i32, y: i32, z: i32, d: f64) -> BlockKind {
         if d > 0.0 { return BlockKind::Rock; }
-        // skip_aquifer（诊断，chunk 级判断一次）或 aquifers disabled（下界）：跳过真实 aquifer，直接 Air
-        if !self.enabled || self.skip_aquifer { return BlockKind::Air; }
+        // aquifers disabled（下界）→ 对齐 Java AquiferSampler.seaLevel()（ChunkNoiseSampler L160-161）：
+        // d ≤ 0 时 FluidLevel(sea_level, default_fluid).getBlockState(y) = y < sea_level ? lava : air（严格 <）。
+        // 无噪声参与（floodedness/spread/lava/barrier 均 seaLevel 路径不采样）；y 无下界（min_y 起全 lava）。
+        if !self.enabled {
+            return if y < self.sea_level { BlockKind::Lava } else { BlockKind::Air };
+        }
+        // skip_aquifer（诊断，chunk 级判断一次）：跳过真实 aquifer，直接 Air（保留原诊断语义）
+        if self.skip_aquifer { return BlockKind::Air; }
         match self.aq.apply(x, y, z, d) { 1 => BlockKind::Water, 2 => BlockKind::Lava, _ => BlockKind::Air }
     }
 }
