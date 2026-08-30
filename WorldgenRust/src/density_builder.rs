@@ -151,6 +151,27 @@ impl DensityBuilder {
     }
     pub fn get_noise_sampler(&mut self, key: &str) -> Arc<DoublePerlinNoiseSampler> {
         if let Some(s) = self.noise_samplers.get(key) { return s.clone(); }
+        // legacy 特例（对齐 yarn NoiseConfig LegacyNoiseDensityFunctionVisitor，源码提取 2026-08-30）：
+        // legacy 下 temperature/vegetation 强制 createLegacy(CheckedRandom(0)/(2), (-7, [1.0,1.0]))；
+        // offset 强制 create(参数(0,[0.0])) → 振幅全零 → 恒 0（shift_x/shift_z 在 legacy 下界无偏移）。
+        if self.legacy_random && std::env::var("WG_LEGACY_CLIMATE").is_ok() {
+            let fixed: Option<(i64, i32, Vec<f64>)> = match key {
+                "minecraft:temperature" => Some((0, -7, vec![1.0, 1.0])),
+                "minecraft:vegetation" => Some((2, -7, vec![1.0, 1.0])),
+                "minecraft:offset" => Some((i64::MAX, 0, vec![0.0])),  // i64::MAX 标记恒 0
+                _ => None,
+            };
+            if let Some((seed_n, first_octave, amps)) = fixed {
+                let sampler = if seed_n == i64::MAX {
+                    Arc::new(crate::noise::DoublePerlinNoiseSampler::zero())
+                } else {
+                    let mut rnd = RsRandom::Legacy(LegacyRandom::new(seed_n));
+                    Arc::new(crate::noise::DoublePerlinNoiseSampler::new_legacy(&mut rnd, first_octave, &amps))
+                };
+                self.noise_samplers.insert(key.to_string(), sampler.clone());
+                return sampler;
+            }
+        }
         let params = self.noise_params.get(key).cloned().ok_or_else(|| "unknown noise params".to_string()).expect("noise params");
         let mut rnd = self.random_deriver.split_str(key);
         let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, &params));
@@ -346,7 +367,13 @@ impl DensityBuilder {
             "minecraft:blend_offset" => DensityFunction::BlendOffset,
             "minecraft:blend_density" => DensityFunction::BlendDensity { input: Box::new(self.build_node(self.arg(v, "argument"))?) },
             "minecraft:old_blended_noise" => {
-                let mut rnd = self.random_deriver.split_str("minecraft:terrain");
+                // legacy（下界）：Java copyWithRandom(createRandom(0)) = CheckedRandom(0)（NoiseConfig visitor）
+                //   而非 split("minecraft:terrain")（overworld 路径）——legacy blended 种子固定 0。
+                let mut rnd = if self.legacy_random && std::env::var("WG_LEGACY_CLIMATE").is_ok() {
+                    RsRandom::Legacy(LegacyRandom::new(0))
+                } else {
+                    self.random_deriver.split_str("minecraft:terrain")
+                };
                 let xzs = v.get("xz_scale").and_then(|x| x.as_f64()).unwrap_or(0.25);
                 let ys = v.get("y_scale").and_then(|x| x.as_f64()).unwrap_or(0.125);
                 let xzf = v.get("xz_factor").and_then(|x| x.as_f64()).unwrap_or(80.0);
@@ -422,6 +449,7 @@ pub fn build_node(v: &JsonValue) -> Result<DensityFunction, String> {
     let mut db = DensityBuilder::new(0, -64, 384);
     db.build_node(v)
 }
+
 
 
 

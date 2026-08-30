@@ -270,6 +270,31 @@ pub struct DoublePerlinNoiseSampler {
     max_value: f64,
 }
 impl DoublePerlinNoiseSampler {
+    /// 恒 0 sampler（legacy 下界 offset：NoiseParameters(0,[0.0]) 振幅全零 → sample 恒 0）
+    pub fn zero() -> Self {
+        let mut rnd = RsRandom::Legacy(crate::legacy_random::LegacyRandom::new(0));
+        Self {
+            amplitude: 0.0,
+            first_sampler: OctavePerlinNoiseSampler::new_legacy(&mut rnd, 0, &[0.0]),
+            second_sampler: OctavePerlinNoiseSampler::new_legacy(&mut rnd, 0, &[0.0]),
+            max_value: 0.0,
+        }
+    }
+    /// createLegacy 路径（Java DoublePerlinNoiseSampler modern=false）：first/second 用 Octave createLegacy
+    pub fn new_legacy(random: &mut RsRandom, first_octave: i32, amplitudes: &[f64]) -> Self {
+        let first_sampler = OctavePerlinNoiseSampler::new_legacy(random, first_octave, amplitudes);
+        let second_sampler = OctavePerlinNoiseSampler::new_legacy(random, first_octave, amplitudes);
+        let mut j = i32::MAX; let mut k = i32::MIN;
+        for l in 0..amplitudes.len() {
+            if amplitudes[l] != 0.0 {
+                j = j.min(l as i32);
+                k = k.max(l as i32);
+            }
+        }
+        let amplitude = 0.16666666666666666 / Self::create_amplitude(k - j);
+        let max_value = (first_sampler.get_max_value() + second_sampler.get_max_value()) * amplitude;
+        DoublePerlinNoiseSampler { amplitude, first_sampler, second_sampler, max_value }
+    }
     pub const DOMAIN_SCALE: f64 = 1.0181268882175227;
     fn create_amplitude(octaves: i32) -> f64 { 0.1 * (1.0 + 1.0 / (octaves + 1) as f64) }
     pub fn new(random: &mut RsRandom, params: &NoiseParameters) -> Self {
@@ -351,4 +376,6 @@ impl NoiseSet {
         }
     }
 }
+
+
 
