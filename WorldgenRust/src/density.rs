@@ -328,6 +328,71 @@ thread_local! {
     // 性能：HashMap → Vec 直接下标（同 INTERP_CACHE，消除每 sample 的 hash/entry 开销）
     static C2D_CACHE: RefCell<Vec<Option<Box<RefCell<Cache2DSlot>>>>> = RefCell::new(Vec::new());
 }
+// transpiler 生成代码的缓存节点（flat_cache/cache_2d/cache_once/cache_all_in_cell）调用。
+// 语义对齐运行时 Cache2DData：y 无关（xz-only），key = (x<<32)^z，thread_local 按 id 缓存单值。
+// 闭包重算 inner（transpiler 内联表达式），命中返回缓存值。
+// 注意：闭包可能嵌套调用 transpiler_cache_2d（同一 C2D_CACHE RefCell），故重算前必须 drop 借用。
+pub fn transpiler_cache_2d(id: usize, x: f64, z: f64, compute: impl FnOnce() -> f64) -> f64 {
+    let key = ((((x as i64) << 32) ^ (z as i64)));
+    // 先查缓存（with 闭包内命中返回 Some）
+    let hit = C2D_CACHE.with(|m| {
+        let m = m.borrow();
+        if let Some(Some(slot)) = m.get(id) {
+            let slot = slot.borrow();
+            for i in 0..CACHE2D_CAP {
+                if slot.keys[i] == key { return Some(slot.values[i]); }
+            }
+        }
+        None
+    });
+    if let Some(v) = hit { return v; }
+    // 未命中：drop 借用后重算（闭包可能嵌套借用同一 RefCell）
+    let v = compute();
+    // 重算后写入缓存
+    C2D_CACHE.with(|m| {
+        let mut m = m.borrow_mut();
+        if m.len() <= id { m.resize(id + 1, None); }
+        let slot = m[id].get_or_insert_with(|| Box::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; CACHE2D_CAP], values: [0.0; CACHE2D_CAP], stamps: [0; CACHE2D_CAP], tick: 0 })));
+        let mut slot = slot.borrow_mut();
+        let mut idx = 0;
+        for i in 1..CACHE2D_CAP { if slot.stamps[i] < slot.stamps[idx] { idx = i; } }
+        slot.keys[idx] = key; slot.values[idx] = v; slot.stamps[idx] = slot.tick; slot.tick += 1;
+    });
+    v
+}
+
+// transpiler 生成代码的 cache_once/cache_all_in_cell 节点调用（精确位置，y 相关）。
+// 语义对齐 Java cache_once：按精确 (x,y,z) 缓存单值。key = (x<<32)^(y<<16)^z。
+// 闭包重算 inner（transpiler 内联表达式），命中返回缓存值。
+// 注意：闭包可能嵌套调用 transpiler_cache_2d/3d（同一 C2D_CACHE RefCell），故重算前必须 drop 借用。
+pub fn transpiler_cache_3d(id: usize, x: f64, y: f64, z: f64, compute: impl FnOnce() -> f64) -> f64 {
+    let key = ((((x as i64) << 32) ^ ((y as i64) << 16) ^ (z as i64)));
+    // 先查缓存（with 闭包内命中返回 Some）
+    let hit = C2D_CACHE.with(|m| {
+        let m = m.borrow();
+        if let Some(Some(slot)) = m.get(id) {
+            let slot = slot.borrow();
+            for i in 0..CACHE2D_CAP {
+                if slot.keys[i] == key { return Some(slot.values[i]); }
+            }
+        }
+        None
+    });
+    if let Some(v) = hit { return v; }
+    // 未命中：drop 借用后重算（闭包可能嵌套借用同一 RefCell）
+    let v = compute();
+    // 重算后写入缓存
+    C2D_CACHE.with(|m| {
+        let mut m = m.borrow_mut();
+        if m.len() <= id { m.resize(id + 1, None); }
+        let slot = m[id].get_or_insert_with(|| Box::new(RefCell::new(Cache2DSlot { keys: [i64::MIN; CACHE2D_CAP], values: [0.0; CACHE2D_CAP], stamps: [0; CACHE2D_CAP], tick: 0 })));
+        let mut slot = slot.borrow_mut();
+        let mut idx = 0;
+        for i in 1..CACHE2D_CAP { if slot.stamps[i] < slot.stamps[idx] { idx = i; } }
+        slot.keys[idx] = key; slot.values[idx] = v; slot.stamps[idx] = slot.tick; slot.tick += 1;
+    });
+    v
+}
 #[derive(Clone)]
 pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
 impl Cache2DData {

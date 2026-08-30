@@ -44,6 +44,8 @@ pub struct WorldgenHandle {
     tree: Arc<DensityFunction>,       // final_density
     // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
     macro_sampler: crate::terrain::DensityMacroSampler,
+    // transpiler 宏观采样器（build-time 编译 density 树，WG_TRANSPILER env 时启用；None = 用 macro_sampler）
+    transpiler_density: Option<crate::terrain::TranspilerDensity>,
     barrier: Arc<DensityFunction>,
     flooded: Arc<DensityFunction>,
     spread: Arc<DensityFunction>,
@@ -140,6 +142,20 @@ impl WorldgenHandle {
         let tree = Arc::new(db.build_node(router.get("final_density")?).ok()?);
         // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
         let macro_sampler = crate::terrain::DensityMacroSampler::new(&tree, min_y, height);
+        // transpiler 宏观采样器（WG_TRANSPILER env 时启用）：构建 NoiseSet + TranspilerDensity
+        // transpiler 生成代码（generated_density）用 NoiseSet 采样（非 DensityFunction 树），需独立构建 NoiseSet。
+        let transpiler_density = if std::env::var("WG_TRANSPILER").is_ok() {
+            let mut noises = crate::noise::NoiseSet::new();
+            let params = crate::density_builder::build_noise_params_from_file(&noise_params_path).ok();
+            if let Some(params) = params {
+                for (id, p) in &params {
+                    let mut rnd = db.random_deriver().split_str(id);
+                    let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
+                    noises.insert(id, sampler);
+                }
+                Some(crate::terrain::TranspilerDensity::new(noises, min_y, height))
+            } else { None }
+        } else { None };
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
         let flooded = Arc::new(db.build_node(router.get("fluid_level_floodedness")?).ok()?);
         let spread = Arc::new(db.build_node(router.get("fluid_level_spread")?).ok()?);
@@ -227,7 +243,7 @@ impl WorldgenHandle {
 
         Some(WorldgenHandle {
             seed, min_y, height, aquifers_enabled,
-            tree, macro_sampler, barrier, flooded, spread, lava, erosion, depth, init,
+            tree, macro_sampler, transpiler_density, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
             splitter,
@@ -314,7 +330,7 @@ impl WorldgenHandle {
 
         // 1. fill_chunk（宏观：density + aquifer 分类）
         // multi-channel 宏观采样器（cell grid 采样 density，对齐 Java NoiseChunk；thread_local slices 缓存每 chunk 重建一次）
-        let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
+        // WG_TRANSPILER 时用 transpiler 生成代码采样（build-time 编译 density 树），否则用 DensityMacroSampler。
         let mut aq = crate::aquifer::Aquifer::new(
             self.barrier.clone(), self.flooded.clone(), self.spread.clone(), self.lava.clone(),
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
@@ -325,7 +341,12 @@ impl WorldgenHandle {
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref());
+        let cd = if let Some(td) = &self.transpiler_density {
+            fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref())
+        } else {
+            let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
+            fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref())
+        };
 
         // 2. 宏观 → BlockColumn（具体 block id 占位：air/stone/water/lava）
         //    ore_vein：rock 处按矿脉分布替换为铜/铁矿脉块（aquifer 无 fluid 的 rock）

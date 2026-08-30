@@ -1,0 +1,9 @@
+interp = [-2.930319277823271, 0.2556418984357255, -0.06323286781108224, -0.2424560188619464, 0.09938688528822485]
+channels[ch].sample（运行时树，非 combine）:
+  ch0: tree=0.208410 combine-slices-transpiler=-2.930319 diff=3.138730
+  ch1: tree=0.255642 combine-slices-transpiler=0.255642 diff=0.000000
+  ch2: tree=-0.063233 combine-slices-transpiler=-0.063233 diff=0.000000
+  ch3: tree=-0.242456 combine-slices-transpiler=-0.242456 diff=0.000000
+  ch4: tree=0.099387 combine-slices-transpiler=0.099387 diff=0.000000
+manual(min/squeeze)  = 0.300451
+combine.sample_combine = -0.458333

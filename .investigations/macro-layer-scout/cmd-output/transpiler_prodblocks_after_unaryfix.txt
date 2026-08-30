@@ -1,0 +1,1 @@
+TranspilerDensity vs DensityMacroSampler blocks: match=1561802/1572864 (99.30%)  nonAir=515337/522774 (98.58%)

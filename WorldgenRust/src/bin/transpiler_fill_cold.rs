@@ -1,5 +1,5 @@
-// transpiler_fill_noise_share.rs — 测 transpiler fill_cell_corner_densities 单次调用（缓存冷）里 noise 采样占比。
-// 对比「完整 fill」vs「noise 返回常量」——分离 noise 采样成本。
+// transpiler_fill_cold.rs — 测 transpiler fill 单次（真正缓存冷：每 corner 不同 (x,z)）。
+// 对比 transpiler_fill_noise_share（坐标循环 16 种，缓存命中 = 缓存热）——确认探针污染影响。
 use std::time::Instant;
 use WorldgenRust::density_builder::DensityBuilder;
 use WorldgenRust::noise::NoiseSet;
@@ -28,16 +28,16 @@ fn main() {
 
     let nch = 5;
     let mut out = vec![0.0f64; nch];
-    // 缓存冷：每 corner 不同 (x,z)（px/pz 用不同取模，避免坐标循环命中缓存）
+    // 真正缓存冷：每 corner 不同 (x,z)（用 i 直接作为坐标，避免循环命中）
     let n = 100_000usize;
     let t0 = Instant::now();
     for i in 0..n {
-        let px = -288*16 + (i as i32 % 1000) * 4;
+        let px = -288*16 + (i as i32 % 1000) * 4;   // 1000 种不同 x
         let py = -64 + (i as i32 % 49) * 8;
-        let pz = -256*16 + (i as i32 / 1000 % 1000) * 4;
+        let pz = -256*16 + (i as i32 / 1000 % 1000) * 4;  // 1000 种不同 z
         fill_cell_corner_densities_final_density(&noises, px as f64, py as f64, pz as f64, &mut out);
     }
     let dt = t0.elapsed().as_secs_f64();
-    println!("transpiler fill 单次(缓存冷, 每 corner 不同 xz): {:.1}ns", dt/n as f64*1e9);
-    println!("(对比 transpiler_fill_cost 缓存热——缓存冷 vs 热差异)");
+    println!("transpiler fill 单次(真正缓存冷, 每 corner 不同 xz): {:.1}ns", dt/n as f64*1e9);
+    println!("(对比 transpiler_fill_noise_share 坐标循环 16 种 = 缓存热)");
 }

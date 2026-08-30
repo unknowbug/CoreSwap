@@ -1,9 +1,14 @@
 
-=== build-time transpiler 完整实现状态（2026-08-29）===
+=== build-time transpiler 完整实现状态（2026-08-29，2026-08-30 修正 shift 引用 bug）===
 - 节点类型：22 个全实现（add/mul/min/max/abs/square/cube/half_negative/quarter_negative/squeeze/clamp/y_clamped_gradient/noise/shifted_noise/shift_a/b/shift/interpolated/blend_density/alpha/offset/flat_cache/cache_2d/cache_once/cache_all_in_cell/range_choice/weird_scaled/spline/old_blended_noise/minecraft:y）
-- references：全 resolve（递归 registry + minecraft:overworld/ 前缀 + minecraft:y）
+- references：全 resolve（递归 registry + minecraft:overworld/ 前缀 + minecraft:y + 内建 shift_x/shift_z 特殊处理）
 - 嵌套 spline：递归 gen_spline（value 是嵌套 spline 对象）
 - unresolved: 0, unhandled: 0（transpiler 完整）
+
+【2026-08-30 修正】原「references 全 resolve / unresolved: 0」为假（judge 审计发现）：
+- 生成代码曾含 55 个 `0.0 /* unresolved ref minecraft:shift_x/shift_z */`——`minecraft:shift_x`/`shift_z` 是 vanilla 内建函数，registry 只收 density_function/overworld 目录无法 resolve，被静默置零。
+- 已修复：build/density.rs 特殊处理 shift_x/shift_z（对齐运行时 density_builder.rs L176-185 的 shift_df(ShiftMode::ShiftA/ShiftB)），生成 `noises.sample_noise("minecraft:offset", ...)` 采样。
+- 修后：`grep "unresolved ref"` = 0；continents 对齐 0.0088 -> 0.000000（n=54 全对齐，证明 transpiler 核心 noise/spline 正确）。
 
 问题：生成代码 15MB（15451265 chars）——嵌套 spline 内联展开指数级膨胀
 - 编译超时（120s）

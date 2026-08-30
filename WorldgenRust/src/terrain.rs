@@ -50,7 +50,7 @@ impl DensityMacroSampler {
         slices
     }
     #[inline]
-    fn sample_interp(&self, slices: &[f64], pos: &NoisePos) -> f64 {
+    fn sample_interp_impl(&self, slices: &[f64], pos: &NoisePos) -> f64 {
         let gx = self.gx as i32; let gy = self.gy as i32; let gz = self.gz as i32;
         let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
         let gxx = pos.x - chunk_x*16; let gzz = pos.z - chunk_z*16; let gyy = pos.y - self.min_y;
@@ -76,7 +76,12 @@ impl DensityMacroSampler {
         self.combine.sample_combine(pos, &interp)
     }
 }
-impl DensitySource for DensityMacroSampler {
+impl ChunkDensitySampler for DensityMacroSampler {
+    fn sample_interp(&self, slices: &[f64], pos: &NoisePos) -> f64 {
+        self.sample_interp_impl(slices, pos)
+    }
+}
+impl DensitySource<DensityMacroSampler> for DensityMacroSampler {
     fn sample(&self, pos: &NoisePos) -> f64 {
         let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
         let key = ((chunk_x as i64) << 32) ^ (chunk_z as u32 as i64);
@@ -87,11 +92,11 @@ impl DensitySource for DensityMacroSampler {
                 c.0 = key;
                 c.1 = self.build_slices(chunk_x, chunk_z);
             }
-            self.sample_interp(&c.1, pos)
+            self.sample_interp_impl(&c.1, pos)
         })
     }
     // 每 chunk 构建 slices 一次（避免 thread_local 每点访问）
-    fn sample_chunk(&self, cx: i32, cz: i32, _min_y: i32, _height: i32) -> Option<ChunkDensity> {
+    fn sample_chunk(&self, cx: i32, cz: i32, _min_y: i32, _height: i32) -> Option<ChunkDensity<'_, DensityMacroSampler>> {
         let slices = self.build_slices(cx, cz);
         Some(ChunkDensity { sampler: self, slices })
     }
@@ -168,19 +173,23 @@ impl MacroGrid {
 pub enum BlockKind { Air, Rock, Water, Lava }
 
 // ---- 抽象源（MOD 扩展点：可注入替代实现）----
-pub trait DensitySource {
+pub trait DensitySource<S: ChunkDensitySampler> {
     fn sample(&self, pos: &NoisePos) -> f64;
-    // 每 chunk 构建宏观采样（DensityMacroSampler 实现；默认 None = 逐点）。避免 thread_local 每点访问。
-    fn sample_chunk(&self, cx: i32, cz: i32, min_y: i32, height: i32) -> Option<ChunkDensity> { None }
+    // 每 chunk 构建宏观采样（DensityMacroSampler/TranspilerDensity 实现；默认 None = 逐点）。避免 thread_local 每点访问。
+    fn sample_chunk(&self, cx: i32, cz: i32, min_y: i32, height: i32) -> Option<ChunkDensity<'_, S>> { None }
 }
 // 每 chunk 的宏观采样结果（slices 已构建，块级 O(1) 插值）
-pub struct ChunkDensity<'a> {
-    sampler: &'a DensityMacroSampler,
+pub struct ChunkDensity<'a, S: ChunkDensitySampler> {
+    sampler: &'a S,
     slices: Vec<f64>,
 }
-impl<'a> ChunkDensity<'a> {
+impl<'a, S: ChunkDensitySampler> ChunkDensity<'a, S> {
     #[inline]
     pub fn sample(&self, pos: &NoisePos) -> f64 { self.sampler.sample_interp(&self.slices, pos) }
+}
+// 宏观采样器的块级插值接口（DensityMacroSampler / TranspilerDensity 实现）
+pub trait ChunkDensitySampler {
+    fn sample_interp(&self, slices: &[f64], pos: &NoisePos) -> f64;
 }
 pub trait AquiferSource {
     // d = density 值；返回该块的水/岩/空气/岩浆分类（宏观）
@@ -193,7 +202,7 @@ pub trait BiomeSource {
 
 // ---- 默认 vanilla 实现（复用已验证的 density/aquifer）----
 pub struct VanillaDensity<'a> { pub df: &'a DensityFunction }
-impl<'a> DensitySource for VanillaDensity<'a> {
+impl<'a> DensitySource<DensityMacroSampler> for VanillaDensity<'a> {
     fn sample(&self, pos: &NoisePos) -> f64 { self.df.sample(pos) }
 }
 pub struct VanillaAquifer { pub aq: crate::aquifer::Aquifer, pub enabled: bool, pub skip_aquifer: bool }
@@ -221,7 +230,7 @@ pub struct ChunkData {
 // fill_chunk：从 seed + chunk 坐标生成 ChunkData（宏观管线）。
 // dense: 密度源；aqua: 含水层源；biome: biome 源；min_y/height: 维度参数。
 // beard: 该 chunk 的 Beardifier 输入（结构密度修正）；None = 无结构（Beardifier=0）。
-pub fn fill_chunk<D: DensitySource, A: AquiferSource, B: BiomeSource>(
+pub fn fill_chunk<D: DensitySource<S>, S: ChunkDensitySampler, A: AquiferSource, B: BiomeSource>(
     dense: &D, aqua: &mut A, biome: &B, cx: i32, cz: i32, min_y: i32, height: i32,
     beard: Option<&Beardifier>,
 ) -> ChunkData {
@@ -258,4 +267,95 @@ pub fn fill_chunk<D: DensitySource, A: AquiferSource, B: BiomeSource>(
         }
     }
     cd
+}
+
+// ---- transpiler 宏观采样器（用 build-time 编译的 density 树采样，替换 DensityMacroSampler）----
+// transpiler 生成代码（generated_density::fill_cell_corner_densities_final_density + compute_final_density）
+// 把 final_density 编译成 native 代码（5 channels：1 BlendDensity + 4 RangeChoice noodle），
+// 对齐 Java NoiseChunk cell grid：cell corners 采样 channels + 块级三线性插值 + combine。
+// 与 DensityMacroSampler 语义一致（macrolize_channels 也是 5 channels），但用 NoiseSet 采样（非 DensityFunction 树）。
+pub struct TranspilerDensity {
+    noises: crate::noise::NoiseSet,
+    min_y: i32, height: i32,
+    cell_w: i32, cell_h: i32,
+    gx: usize, gy: usize, gz: usize,
+    nch: usize,
+}
+thread_local! {
+    static TRANSPILER_SLICE_CACHE: RefCell<(i64, Vec<f64>)> = RefCell::new((i64::MIN, Vec::new()));
+}
+impl TranspilerDensity {
+    pub fn new(noises: crate::noise::NoiseSet, min_y: i32, height: i32) -> Self {
+        Self { noises, min_y, height, cell_w: 4, cell_h: 8,
+            gx: (16/4+1) as usize, gy: (height/8+1) as usize, gz: (16/4+1) as usize,
+            nch: 5 } // final_density 5 channels（1 BlendDensity + 4 RangeChoice noodle）
+    }
+    fn build_slices(&self, cx: i32, cz: i32) -> Vec<f64> {
+        let nch = self.nch;
+        let mut slices = vec![0.0f64; self.gx * self.gy * self.gz * nch];
+        let mut out = vec![0.0f64; nch];
+        for ix in 0..self.gx {
+            for iz in 0..self.gz {
+                for iy in 0..self.gy {
+                    let px = cx*16 + ix as i32 * self.cell_w;
+                    let py = self.min_y + iy as i32 * self.cell_h;
+                    let pz = cz*16 + iz as i32 * self.cell_w;
+                    crate::generated_density::fill_cell_corner_densities_final_density(&self.noises, px as f64, py as f64, pz as f64, &mut out);
+                    for ch in 0..nch {
+                        slices[((iy*self.gz + iz)*self.gx + ix)*nch + ch] = out[ch];
+                    }
+                }
+            }
+        }
+        slices
+    }
+    #[inline]
+    fn sample_interp_impl(&self, slices: &[f64], pos: &NoisePos) -> f64 {
+        let gx = self.gx as i32; let gy = self.gy as i32; let gz = self.gz as i32;
+        let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
+        let gxx = pos.x - chunk_x*16; let gzz = pos.z - chunk_z*16; let gyy = pos.y - self.min_y;
+        let mut cx = gxx / self.cell_w; let mut cy = gyy / self.cell_h; let mut cz = gzz / self.cell_w;
+        cx = cx.clamp(0, gx-2); cy = cy.clamp(0, gy-2); cz = cz.clamp(0, gz-2);
+        let fx = (gxx % self.cell_w) as f64 / self.cell_w as f64;
+        let fy = (gyy % self.cell_h) as f64 / self.cell_h as f64;
+        let fz = (gzz % self.cell_w) as f64 / self.cell_w as f64;
+        let nch = self.nch;
+        let at = |dx: i32, dy: i32, dz: i32, ch: usize| -> f64 {
+            let cell_idx = ((cy+dy)*gz + (cz+dz))*gx + (cx+dx);
+            slices[cell_idx as usize * nch + ch]
+        };
+        let mut interp = vec![0.0f64; nch];
+        for ch in 0..nch {
+            let d000=at(0,0,0,ch); let d100=at(1,0,0,ch); let d010=at(0,1,0,ch); let d110=at(1,1,0,ch);
+            let d001=at(0,0,1,ch); let d101=at(1,0,1,ch); let d011=at(0,1,1,ch); let d111=at(1,1,1,ch);
+            let d00=d000+(d100-d000)*fx; let d10=d010+(d110-d010)*fx;
+            let d01=d001+(d101-d001)*fx; let d11=d011+(d111-d011)*fx;
+            let d0=d00+(d10-d00)*fy; let d1=d01+(d11-d01)*fy;
+            interp[ch] = d0 + (d1 - d0)*fz;
+        }
+        crate::generated_density::compute_final_density(&self.noises, &interp, pos.x as f64, pos.y as f64, pos.z as f64)
+    }
+}
+impl ChunkDensitySampler for TranspilerDensity {
+    fn sample_interp(&self, slices: &[f64], pos: &NoisePos) -> f64 {
+        self.sample_interp_impl(slices, pos)
+    }
+}
+impl DensitySource<TranspilerDensity> for TranspilerDensity {
+    fn sample(&self, pos: &NoisePos) -> f64 {
+        let chunk_x = pos.x.div_euclid(16); let chunk_z = pos.z.div_euclid(16);
+        let key = ((chunk_x as i64) << 32) ^ (chunk_z as u32 as i64);
+        TRANSPILER_SLICE_CACHE.with(|c| {
+            let mut c = c.borrow_mut();
+            if c.0 != key {
+                c.0 = key;
+                c.1 = self.build_slices(chunk_x, chunk_z);
+            }
+            self.sample_interp_impl(&c.1, pos)
+        })
+    }
+    fn sample_chunk(&self, cx: i32, cz: i32, _min_y: i32, _height: i32) -> Option<ChunkDensity<'_, TranspilerDensity>> {
+        let slices = self.build_slices(cx, cz);
+        Some(ChunkDensity { sampler: self, slices })
+    }
 }

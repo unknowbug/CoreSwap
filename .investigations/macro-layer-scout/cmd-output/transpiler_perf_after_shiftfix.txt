@@ -1,0 +1,6 @@
+ --> src\bin\transpiler_perf.rs:4:29
+warning: `WorldgenRust` (bin "transpiler_perf") generated 1 warning (run `cargo fix --bin "transpiler_perf" -p WorldgenRust` to apply 1 suggestion)
+     Running `target\debug\transpiler_perf.exe`
+运行时解释 final_density.sample: 38.74ms/chunk
+transpiler compute_final_density(cell grid 插值): 507.29ms/chunk
+transpiler 提速: 0.08x

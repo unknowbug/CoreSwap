@@ -453,3 +453,120 @@ entries:
     kind: review
     status: candidate
     # judge 审计意见：结论链主干正确、方向合理，3 处修正（产物落盘/ShiftDF/noise AVX）+ aquifer 减法限定。整体 candidate 非 confirmed。
+
+  # === build-time transpiler 探索（2026-08-30，shift 引用 bug 修复 + 对齐验证）===
+  - id: 're-code:transpiler:shift-ref-bug'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M7'
+    kind: errors
+    status: candidate
+    # M7 shift 引用 bug：minecraft:shift_x/shift_z 是 vanilla 内建函数，transpiler registry 只收 overworld 目录无法 resolve，被静默置零（55 处）。已修复（build/density.rs 特殊处理，对齐运行时 ShiftA/ShiftB）。
+
+  - id: 're-code:transpiler:shift-fix'
+    path: '../WorldgenRust/build/density.rs'
+    kind: patch
+    status: candidate
+    # 修 shift 引用 bug：build/density.rs 特殊处理 minecraft:shift_x/shift_z，生成 noises.sample_noise("minecraft:offset", ...) 采样（ShiftA/ShiftB 语义）。修后 grep "unresolved ref" = 0。
+
+  - id: 're-code:transpiler:continents-alignment'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_continents_after_shiftfix.txt'
+    kind: evidence
+    status: candidate
+    # continents 对齐 0.0088 -> 0.000000（n=54 全对齐）：证明 transpiler 核心（noise/spline）正确。原 0.0088 被 shift 引用 bug 污染。
+
+  - id: 're-code:transpiler:finaldensity-alignment'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_finaldensity_after_shiftfix.txt'
+    kind: evidence
+    status: candidate
+    # final_density 对齐 0.44 -> 0.432843（n=54）：修 shift bug 后无显著变化，剩余差异来自 channel inner 采样（transpiler 竖切 vs 运行时 Interpolated cell grid 插值），非 shift bug。
+
+  - id: 're-code:transpiler:value-weakened'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M9'
+    kind: errors
+    status: candidate
+    # M9 transpiler 价值被 noise 89% 主导削弱：ch#0 noise 采样 89%、树遍历 11%——transpiler 优化的是树遍历（11%），不是 noise 采样（89%）。
+
+  - id: 're-code:transpiler:perf-no-cache'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M1'
+    kind: errors
+    status: candidate
+    # M1-M6 性能定位：transpiler cell grid 构建 41.79ms vs 运行时 8.14ms（慢 5 倍）——无缓存每 corner 采样完整树；编译优化与缓存优化正交，缺一不可。
+
+  - id: 're-code:transpiler:review'
+    path: '../.investigations/macro-layer-scout/review-transpiler-perf.md'
+    kind: review
+    status: candidate
+    # judge 审计：性能定位链（M1-M6）candidate；transpiler 正确性/价值判断需重大修正（shift 引用 bug + continents 污染 + noise 89% 主导）。修 shift bug 后 continents 0.000000 证明核心正确。
+
+  - id: 're-code:transpiler:review-shiftfix'
+    path: '../.investigations/macro-layer-scout/review-transpiler-shiftfix.md'
+    kind: review
+    status: candidate
+    # judge 收尾审查（2026-08-30）：shift 修复语义与运行时 ShiftA/ShiftB 逐位一致（unresolved=0）；continents 0.000000 可信（n=54 全对齐，附局部充分限定）；final_density 0.432843 归因方向合理（附未逐位分离限定）；产物契约完整。整体建议 candidate（confirmed 由人类授予）。
+
+  # === transpiler 补缓存 + 探针污染（2026-08-30，对齐 Java/SteelMC ColumnCache）===
+  - id: 're-code:transpiler:cache-fix'
+    path: '../WorldgenRust/build/density.rs'
+    kind: patch
+    status: candidate
+    # 补缓存：build/density.rs 对 flat_cache/cache_2d/cache_once/cache_all_in_cell 节点生成 transpiler_cache_2d 调用（运行时 thread_local 缓存，key 按 (x,z)，y 无关，对齐运行时 Cache2DData 语义）。补缓存后 cell grid 构建 443ms -> 17ms。
+
+  - id: 're-code:transpiler:cache-runtime'
+    path: '../WorldgenRust/src/density.rs'
+    kind: patch
+    status: candidate
+    # 运行时加 transpiler_cache_2d 函数（先查缓存，未命中 drop 借用后重算，避免嵌套借用 RefCell panic）。
+
+  - id: 're-code:transpiler:cache-alignment'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_grid_after_cache.txt'
+    kind: evidence
+    status: candidate
+    # 补缓存后 cell grid 构建 17ms/chunk（补缓存前 443ms，慢 54 倍 -> 慢 2 倍）。continents 0.000000 不变（缓存语义正确）。
+
+  - id: 're-code:transpiler:probe-pollution'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M10'
+    kind: errors
+    status: candidate
+    # M10 探针污染：transpiler_fill_noise_share 声称测缓存冷，实际是缓存热（px/pz 用同一 (i%16)，坐标循环命中缓存），低估 20 倍（13μs vs 真实缓存冷 262μs）。已修探针（坐标改为每 corner 不同 xz）。
+
+  - id: 're-code:transpiler:mvp-simplification'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M11'
+    kind: errors
+    status: candidate
+    # M11 补缓存根因：MVP 简化砍掉缓存（初始版本缓存节点未处理，后续延续「不做缓存」），非用户拍板架构决策。补缓存后 cell grid 构建 443ms -> 17ms（25 倍）。
+
+  - id: 're-code:transpiler:cache-id-collision'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M11'
+    kind: errors
+    status: candidate
+    # judge 发现 cache id 碰撞：build_compute 每次 cache_id:0 重置，compute_continents 与 fill_final_density 共用 id 0。已修（全局递增 id），修后 100 个唯一 id。
+
+  - id: 're-code:transpiler:ycache-bug'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M11'
+    kind: errors
+    status: candidate
+    # judge 发现 y 相关 cache bug：cache_once 包装 y 相关 inner（spaghetti_3d_rarity y_scale=1.0）用 (x,z) key 缓存，同一 (x,z) 不同 y 返回错误值。已修（cache_once 用 transpiler_cache_3d (x,y,z) key），修后 ycache_probe diff=0。
+
+  - id: 're-code:transpiler:cachefix-alignment'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_continents_after_cachefix.txt'
+    kind: evidence
+    status: candidate
+    # 修 cache id 碰撞 + y-cache bug 后：continents 0.000000（不变）、final_density 0.432843（回到补缓存前值，正确）。cell grid 构建 53.55ms（y-cache 用 (x,y,z) key，正确性优先代价）。
+
+  # === transpiler 对接生产 + 4 公式修复（2026-08-30，final_density 0.43 真正根因）===
+  - id: 're-code:transpiler:formula-bugs'
+    path: '../.investigations/macro-layer-scout/transpiler-errors.md#M12a'
+    kind: errors
+    status: candidate
+    # M12 a-d 四个公式生成错误：squeeze（v-v³/3 → clamp/2-d³/24）、half_negative（-0.5x → 条件）、quarter_negative（同）、weird_scaled（常数乘 → 分段阶梯）。final_density 0.432843 的真正根因（judge 曾误判为 channel inner 语义差异）。
+
+  - id: 're-code:transpiler:prod-integration'
+    path: '../WorldgenRust/src/terrain.rs'
+    kind: patch
+    status: candidate
+    # 接入生产：terrain.rs 加 TranspilerDensity（ChunkDensitySampler + DensitySource 泛型化 ChunkDensity/DensitySource/fill_chunk）；worldgen_handle.rs WG_TRANSPILER env 门控构建 NoiseSet+TranspilerDensity，fill_chunk_blocks 按此分派。
+
+  - id: 're-code:transpiler:prod-alignment'
+    path: '../.investigations/macro-layer-scout/cmd-output/transpiler_finaldensity_after_unaryfix.txt'
+    kind: evidence
+    status: candidate
+    # 修 4 公式后：final_density 对齐 0.432843 → 0.000000（n=54 逐位）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 max_diff=0.000000；块级一致 99.30%（修前 78.48%）；vs vanilla FULL 94.20%（基线 95.40% 同量级）。

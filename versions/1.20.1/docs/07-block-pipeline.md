@@ -927,4 +927,97 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - **顶层排除清单**（6 个疑似上层均非采样层，reader 确认）：① blending（树内部：BlendAlpha→常量 1.0/BlendOffset→常量 0.0，BlendedNoise 为 corners 叶采样，非外层包装）② StaticCache2D/ChunkHolder（调度层，仅 Beardifier 结构引用解析）③ Beardifier（块级、combine 之后加，非 corners 采样）④ aquifer（宏观采样之后逐 block 消费层，独立液面 cell grid，不重采样地形 density）⑤ dimension settings（cell 尺寸参数，非独立层）⑥ ColumnCache（采样机制内部性能缓存）。
 - **错误台账独立成篇**：`.investigations/macro-layer-scout/multichannel-errors.md`（M1 ShiftDF 缓存 y=0 潜在 bug；M2 noise AVX 归因不实，五段式 + 速查表）。
 
+---
+
+## 2026-08-30 build-time transpiler 探索（shift 引用 bug 修复 + 对齐验证）（candidate，judge 已审计）
+
+> **[DRAFT — knowledge subagent 产出草稿，待主会话应用 + 验证]**。
+> status（各环节）：**candidate**（judge 已审计，confirmed 由人类授予）。
+> 依据：`.investigations/macro-layer-scout/`{buildtime-compile-map.md, review-transpiler-perf.md, transpiler-errors.md} + `cmd-output/`{transpiler_continents_after_shiftfix.txt, transpiler_finaldensity_after_shiftfix.txt, transpiler_alignment_status.txt, tree_vs_noise.txt, transpiler_grid_compare.txt, transpiler_grid_calls.txt} + judge 审计意见（review-transpiler-perf.md）。
+> 载体：追加到 `versions/1.20.1/docs/07-block-pipeline.md` 末尾（追加不覆盖）。**本节只列中价值结论；错误链条见 §7 独立错误台账 transpiler-errors.md（M1-M9，独立成篇，不重复展开）；一次性数值快照按低价值不展开。**
+
+### 一、背景（build-time transpiler 探索）
+
+- **目标**：把 density 树（3677 节点）编译成 native 代码，避免运行时 enum match 递归解释（`buildtime-compile-map.md`：SteelMC 式 specialized 内联函数生成器，非数据驱动解释器）。
+- **本 session 动作**：judge 审计（`review-transpiler-perf.md`）发现 transpiler 有重大缺陷（shift 引用 bug + continents 对齐被污染 + 价值判断被削弱），本 session 修复 shift 引用 bug 并重测对齐。
+
+### 二、修复：shift 引用 bug（M7，中价值判据）
+
+- **bug 机制**：`minecraft:shift_x`/`minecraft:shift_z` 是 **vanilla 内建 density 函数**（不在 `density_function/overworld` 子目录），transpiler 的 registry 只从 overworld 目录收集（`build/density.rs` `collect_json`）无法 resolve，被静默替换为 `0.0 /* unresolved ref */`（生成代码 55 处）。运行时 `density_builder.rs` L176-189 有正确特殊处理（`shift_df(ShiftMode::ShiftA/ShiftB)` 采样 `minecraft:offset` noise），transpiler 缺此处理 → 同一内建函数两种语义。
+- **修复**：`build/density.rs` L104-108 特殊处理 `minecraft:shift_x`/`shift_z`，对齐运行时 ShiftA/ShiftB：shift_x → `noises.sample_noise("minecraft:offset", x*0.25, 0.0, z*0.25)*4.0`，shift_z → `noises.sample_noise("minecraft:offset", z*0.25, x*0.25, 0.0)*4.0`。修后 `grep "unresolved ref"` 生成代码 = 0（原 55）。
+- **可复用判据**：**「unresolved: 0」计数是假信号**——置零也算 0（`0.0 /* unresolved ref */` 被当成已处理，但语义错）。计数必须数「含 unresolved 注释的占位符」。**「从数据目录收集」≠「覆盖所有函数」**——内建函数（shift_x/shift_z/shift_a/shift_b/shift）必须单独特殊处理；**transpiler 与运行时必须逐函数核对内建函数处理**，不能只对齐「数据目录里的函数」。
+
+### 三、对齐验证（continents 0.000000 / final_density 0.43）
+
+- **continents 对齐 0.0088 → 0.000000**（n=54 全对齐，`transpiler_continents_after_shiftfix.txt`）：**证明 transpiler 核心（noise/spline）正确**。原 0.0088 被 shift 引用 bug 污染（transpiler 置零 shift → 未偏移 vs 已偏移差异），非干净核心正确性测试。
+- **final_density 对齐 0.44 → 0.432843**（n=54，`transpiler_finaldensity_after_shiftfix.txt`）：修 shift bug 后无显著变化。**剩余差异来自「channel inner 采样」**——transpiler 竖切（`fill_cell_corner_densities` 每点采样完整树）vs 运行时 Interpolated cell grid 插值语义差异，**非 shift bug**。
+- **可复用判据**：**对齐测试要选「不含已知 bug 引用」的干净函数**——被测函数若含 transpiler 置零的 shift 引用，对齐差异是「bug 误差」不是「核心正确性」。**小对齐值 ≠ 核心正确**（0.0088 小只说明「shift 置零误差在当前测试点小」）；**污染测试比无测试更危险**（被污染的「通过」测试会让人误信错误实现）。
+
+### 四、价值评估：transpiler 价值被「noise 89% 主导」削弱（M9，中价值判据）
+
+- **ch#0 corners 采样构成**（`tree_vs_noise.txt`）：noise 采样占 **89%**（2.97ms/3.34ms），树遍历仅 **11%**（0.38ms/3.34ms）。
+- **transpiler 优化的是树遍历（11%），不是 noise 采样（89%）**——即使完美 transpiler（含缓存）也只能省 ~11% 的 ch#0 成本。**build-time 编译（消除 enum match）的收益上限 = 被编译部分占比（树遍历 11%）**。
+- **可复用判据**：**性能优化要盯「真正的瓶颈」（noise 89%），不是「顺手的」（树遍历 11%）**——先做占比分解（去 noise 后测剩余）再决定优化哪个；**「编译成 specialized 函数」的收益上限 = 被编译部分占比**。
+
+### 五、性能定位：无缓存抵消编译优势（M1-M6，中价值判据）
+
+- **transpiler cell grid 构建 41.79ms vs 运行时 Interpolated grid 构建 8.14ms（慢 5 倍）**（`transpiler_grid_compare.txt`/`transpiler_grid_calls.txt`）：两者都是 1225 corners（采样量相同），差异在**单次 fill 成本**——transpiler 每 corner 采样 5 channels 完整树**无缓存（缓存冷 34μs）**，运行时 Interpolated **有缓存复用**（grid 建一次 + 块内插值）。
+- **核心判断**：**编译优化与缓存优化是正交的两条线，缺一不可**——编译成 specialized 函数 ≠ 快，若每点采样完整树（无缓存复用），可能比运行时（有缓存）更慢。
+- **可复用判据**：**性能定位先排除「采样量」再查「单次成本」**（1225=1225 一致 → 差异必在单次 fill 缓存状态）；**区分「缓存热 vs 缓存冷」**（同一函数不同调用场景单次成本可差 5 倍，用单次成本估算总成本前先确认测量场景缓存状态一致）；**「看起来慢」≠「是瓶颈」**（noise 查表数组优化后 1.02x 无差异 → 排除，用「优化后是否有显著收益」的对照实验判断瓶颈）。
+
+### 六、已排除假说（❌ 排除清单，保留一行，防重走弯路）
+
+- ❌ **transpiler 完整实现 / references 全 resolve（unresolved: 0）**——假，实际 55 个未 resolve shift 引用（M7，已修复）。
+- ❌ **continents 0.0088 证明 transpiler 核心正确**——被 shift 引用 bug 污染，非干净测试（M8，修后 0.000000 才证明核心正确）。
+- ❌ **final_density 0.44 全部来自 channel inner 采样**——归因不完整，0.44 含 shift bug 贡献（M7，修后 0.432843 才分离出纯 channel inner 差异）。
+- ❌ **noise 查表（HashMap）是性能主因**——数组优化后 1.02x 无差异，主因是 cell grid 无缓存（M4）。
+- ❌ **「深入缓存」是下一步正解**——缓存建立在有 shift bug 的代码上，先修 bug + 重新评估价值（M7/M9，judge ⑥）。
+
+### 七、域/边界
+
+- 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
+- status：**candidate**（confirmed 由人类授予）；transpiler 加缓存方向未落地（仅记录方向，不标 confirmed）；生产接线未完成。
+- 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M1-M9，五段式 + 速查表），本节不重复展开。
+
+---
+
+## 2026-08-30 transpiler 补缓存 + 探针污染修复（candidate，judge 已审计）
+
+> **[DRAFT — knowledge subagent 产出草稿，待主会话应用 + 验证]**。
+> status（各环节）：**candidate**（judge 已审计，confirmed 由人类授予）。
+> 依据：`.investigations/macro-layer-scout/`{buildtime-compile-map.md, transpiler-errors.md} + `cmd-output/`{transpiler_grid_after_cache.txt, transpiler_fill_after_cache.txt, transpiler_fill_cold_after_cache.txt} + 代码锚点（`WorldgenRust/build/density.rs` L226-234、`WorldgenRust/src/density.rs` L334-335）。
+> 载体：追加到 `versions/1.20.1/docs/07-block-pipeline.md` 末尾（追加不覆盖）。**本节只列中价值结论；错误链条见 §7 独立错误台账 transpiler-errors.md（M10/M11，独立成篇，不重复展开）；一次性数值快照按低价值不展开。**
+
+### 一、背景（承接 build-time transpiler 探索）
+
+- 承接既有「2026-08-30 build-time transpiler 探索」小节：transpiler 把 density 树编译成 native 代码，但性能未达（cell grid 构建慢 5 倍，M1-M6 定位为「无缓存」）。本 session 落地两件事：① 补缓存（对齐 Java/SteelMC ColumnCache，M11）；② 修复性能探针污染（M10，声称测缓存冷实为缓存热，低估 20 倍）。
+
+### 二、补缓存（对齐 Java/SteelMC ColumnCache，M11，中价值判据）
+
+- **根因（MVP 简化，非架构决策）**：transpiler 是「先验证链路」的临时简化版，把 `flat_cache`/`cache_2d`/`cache_once`/`cache_all_in_cell` 直接内联 inner（`build/density.rs` L224-228「MVP 不做缓存，语义等价」），每 corner 重算完整树。查提交历史确认：初始版本（1838a22）缓存节点未处理，后续（e4a56c8）延续「不做缓存」——是实现者自己定的临时简化，**非用户拍板架构决策**。
+- **修复**：
+  - `build/density.rs` L226-234 对缓存节点生成 `transpiler_cache_2d(id, x, z, || inner)` 调用（运行时 thread_local 缓存，key 按 (x,z)，y 无关，对齐运行时 `Cache2DData` 语义）。
+  - 运行时 `density.rs` L334-335 加 `transpiler_cache_2d` 函数（先查缓存，未命中 **drop 借用后重算**，避免嵌套借用 RefCell panic——闭包可能嵌套调用同一 C2D_CACHE RefCell）。
+- **性能复测**：cell grid 构建 **443ms → 17ms/chunk**（慢 54 倍 → 慢 2 倍）；fill 单次（缓存热）**438μs → 13μs**。
+- **对齐验证**：continents **0.000000**（不变，缓存语义正确）、final_density **0.43**（基本不变）。
+- **可复用判据**：**「MVP 简化」要记录决策来源**——临时简化（先验证链路）若未记录，后续会误以为是架构决策，导致「照抄 Java 却丢了缓存」的困惑；**缓存是性能关键**——补缓存后 cell grid 构建 443ms → 17ms（25 倍），证明「无缓存每 corner 重算完整树」是性能主因（M1-M6 已定位，M11 落地修复）。
+
+### 三、探针污染修复（M10，中价值判据）
+
+- **污染**：`transpiler_fill_noise_share.rs` 声称测「缓存冷」，但坐标 `px = -288*16 + (i % 16) * 4`、`pz = -256*16 + (i % 16) * 4` 用**同一个 `(i % 16)`**，导致 (px, pz) 只有 **16 种组合**（不是 16×16=256 种）——缓存（按 (x,z) key）命中这 16 种组合 → 探针实际测的是**缓存热**，低估 **20 倍**（13μs vs 真实缓存冷 262μs）。
+- **定位**：对比 `transpiler_fill_noise_share`（13μs）与 `transpiler_fill_cost`（缓存热 12.3μs）几乎相同 → 触发怀疑「声称缓存冷，实际缓存热」；写新探针 `transpiler_fill_cold`（每 corner 不同 (x,z)）→ 262μs，确认探针污染。
+- **修复**：探针坐标改为每 corner 不同 (x,z)（px/pz 用不同取模），修后测出真正缓存冷 **263μs**（与独立探针 `transpiler_fill_cold` 一致）。
+- **可复用判据**：**探针坐标设计要避免循环命中缓存**——测「缓存冷」时坐标必须每点不同（px/pz 用不同取模），否则缓存命中，声称缓存冷实为缓存热；**对比探针测量值交叉验证**——声称测缓存冷的探针若与缓存热探针几乎相同，则探针污染（坐标循环命中）。
+
+### 四、已排除假说（❌ 排除清单，保留一行，防重走弯路）
+
+- ❌ **transpiler 无缓存是用户拍板的架构决策**——查提交历史（1838a22 初始未处理缓存节点、e4a56c8 延续「不做缓存」）确认是 MVP 临时简化，非架构决策（M11）。
+- ❌ **`transpiler_fill_noise_share` 测的是缓存冷**——坐标 px/pz 用同一 `(i % 16)` 循环命中缓存，实为缓存热，低估 20 倍（M10，修后 263μs 才测出真缓存冷）。
+
+### 五、域/边界
+
+- 验证分层 = Partial（探针可复现，非 @anchor.test）；数值为当前快照，随优化变化。
+- status：**candidate**（confirmed 由人类授予）；补缓存已落地（cell grid 构建 443ms → 17ms），但 transpiler 生产接线未完成（探针层验证，生产 fill 路径未接入优化）；transpiler 整体价值仍受「noise 89% 主导」削弱（M9，见既有小节）。
+- 错误链条完整记录见 `.investigations/macro-layer-scout/transpiler-errors.md`（M10/M11，五段式 + 速查表），本节不重复展开。
+
 

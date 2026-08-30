@@ -1,8 +1,16 @@
 
-=== build-time transpiler 完整实现 + CSE 成果（2026-08-29）===
+=== build-time transpiler 完整实现 + CSE 成果（2026-08-29，2026-08-30 修正 shift 引用 bug）===
 - 22 节点类型全实现 + references 全 resolve + 嵌套 spline + CSE
-- CSE：15MB -> 107KB 生成代码（812 spline_helper），编译通过
+- CSE：15MB -> 107KB 生成代码（53 spline_helper），编译通过
 - 对齐验证（transpiler_alignment）：max_diff=0.43（未对齐）
+
+【2026-08-30 修正】原「812 spline_helper」为假（judge 审计发现）：实际 53 个 helper 函数。
+
+【2026-08-30 修 shift 引用 bug 后对齐结果】
+- continents 对齐：0.0088 -> 0.000000（n=54 全对齐）——证明 transpiler 核心（noise/spline）正确。
+  - 原 0.0088 被 shift 引用 bug 污染（transpiler 置零 shift -> 未偏移 vs 已偏移差异），非干净核心正确性测试。
+- final_density 对齐：0.44 -> 0.432843（n=54）——修 shift bug 后无显著变化。
+  - 剩余差异来自「channel inner 采样」：transpiler 竖切（fill_cell_corner_densities 每点采样完整树）vs 运行时 Interpolated cell grid 插值语义差异，非 shift bug。
 
 对齐未达原因（待处理）：
 1. noise 注册/seed 派生可能仍不对（transpiler vs 运行时）

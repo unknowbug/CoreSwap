@@ -1,0 +1,6 @@
+corner (-4608,0,-4096):
+  transpiler out[0] (ch0) = 0.055648
+  runtime channels[0].sample = 0.208410
+  diff = 0.152762
+  noises.sample_blended_noise = 0.102796
+  transpiler out[0] - blended_noise (spline 部分) = -0.047148

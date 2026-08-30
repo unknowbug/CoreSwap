@@ -1,0 +1,2 @@
+jagged noise: transpiler=0.337125 runtime=0.337125 diff=0.000000
+compute_final_density(每点精确 channel) vs 运行时 final_density: max_diff=0.432843 at (-4596, 200, -4084) (n=54)

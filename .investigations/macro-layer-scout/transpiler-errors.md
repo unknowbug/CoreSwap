@@ -195,6 +195,12 @@
 - 修后重测 continents 对齐（M8）与 final_density 对齐（分离 shift bug 与 channel inner 采样差异）。
 - 修正 `transpiler_complete.txt` 表述：从「unresolved: 0」改为「22 节点类型 + 嵌套 spline + CSE 完整，但内建 shift 引用未 resolve（55）」。
 
+**【2026-08-30 修复已落地 + 验证】**
+- `build/density.rs` String 分支加入 shift 特殊处理：`minecraft:shift_x` → `noises.sample_noise("minecraft:offset", x*0.25, 0.0, z*0.25)*4.0`（ShiftA），`minecraft:shift_z` → `noises.sample_noise("minecraft:offset", z*0.25, x*0.25, 0.0)*4.0`（ShiftB）。
+- 修后 `grep "unresolved ref"` 生成代码 = 0（原 55）；shift_x/shift_z 各 63 处正确 resolve。
+- **continents 对齐 0.0088 → 0.000000**（n=54 全对齐）——证明 transpiler 核心（noise/spline）正确，原 0.0088 确为 shift bug 污染（M8 证实）。
+- **final_density 对齐 0.44 → 0.432843**（n=54）——修 shift bug 后无显著变化，剩余差异来自 channel inner 采样（transpiler 竖切 vs 运行时 Interpolated cell grid 插值），非 shift bug。
+
 ### 教训（可复用判错经验）
 - **「unresolved: 0」计数是假信号**：把未 resolve 的引用替换成 `0.0 /* unresolved ref */` 后，计数逻辑若只数「非 0.0 的 unresolved」就会漏——**置零也算 0，计数必须数「含 unresolved 注释的占位符」**。
 - **transpiler 的 registry 只收 overworld 目录，漏了 vanilla 内建函数**：`shift_x`/`shift_z` 是内建（不在 density_function 目录），registry 无法 resolve。**「从数据目录收集」≠「覆盖所有函数」——内建函数（shift_x/shift_z/shift_a/shift_b/shift）必须单独特殊处理**。
@@ -221,6 +227,9 @@
 ### 修复
 - **修 shift bug（M7）后重测 continents 对齐**——修后 0.0088 应显著变化（shift offset 被正确采样），此时的对齐值才反映核心正确性。
 - 对齐测试要选**不含 shift 引用**的干净函数，或用正确 shift 处理。
+
+**【2026-08-30 重测结果（证实污染判断）】**
+- 修 shift bug 后 continents 对齐 **0.0088 → 0.000000**（n=54 全对齐）——证实原 0.0088 确为 shift 置零污染（未偏移 vs 已偏移差异），且修后 transpiler 核心（noise/spline）**完全正确**（逐位对齐）。
 
 ### 教训（可复用判错经验）
 - **对齐测试要选「不含已知 bug 引用」的干净函数**：被测函数若含 transpiler 置零的 shift 引用，对齐差异是「bug 误差」不是「核心正确性」。**测试设计先确认被测函数不含已知 bug 的引用**。
@@ -266,8 +275,80 @@
 | NoiseSet HashMap 查表被列为性能主因，数组优化后 1.02x 无差异（M4） | **归因错误**：HashMap 查表直觉上慢，但 noise 采样在总成本占比可忽略，不是瓶颈；主因是 cell grid 无缓存 | **「看起来慢」≠「是瓶颈」**：判断瓶颈用「优化后是否有显著收益」的对照实验，不用直觉。先排除法再下结论 |
 | build-time 编译（消除 enum match）本应更快，实测反而慢 5 倍（M5） | **编译优势被无缓存抵消**：编译省下的 enum match 开销 < 无缓存带来的重采开销 | **编译成 specialized 函数 ≠ 快**：编译优化与缓存优化必须同时做。性能收益要端到端验证（transpiler vs 运行时），发现慢再回头查缓存 |
 | 采样量相同（1225 corners）但 transpiler 慢 5 倍（M6） | **差异不是采样量，是单次 fill 成本**：缓存冷 34μs vs 缓存热 7μs vs 运行时 6.6μs | **缓存是性能关键**：同一采样量下缓存冷/热差 5 倍。性能定位先查缓存状态，再查算法复杂度 |
-| 生成代码含 55 个 `0.0 /* unresolved ref minecraft:shift_x/shift_z */`，但 `transpiler_complete.txt` 声称「unresolved: 0」（M7） | **shift 引用 bug**：`minecraft:shift_x`/`shift_z` 是 vanilla 内建函数，transpiler 的 registry 只收 `density_function/overworld` 目录无法 resolve，被静默置零；运行时 `density_builder.rs` L176-185 有正确特殊处理 | **「unresolved: 0」计数是假（置零也算 0）**：计数必须数「含 unresolved 注释的占位符」。transpiler 与运行时必须对齐内建函数处理（shift_x/shift_z/shift_a/b/shift 单独特殊处理） |
-| continents 对齐 0.0088 被当作「transpiler 核心正确」证据（M8） | **0.0088 被 shift 引用污染**：`continents.json` 用 shift_x/shift_z，transpiler 置零 → 0.0088 是「未偏移 vs 已偏移」差异，非干净核心正确性测试 | **对齐测试要选「不含 shift 引用」的干净函数**；小对齐值 ≠ 核心正确（可能是 bug 误差恰好小）。污染测试比无测试更危险 |
+| 生成代码含 55 个 `0.0 /* unresolved ref minecraft:shift_x/shift_z */`，但 `transpiler_complete.txt` 声称「unresolved: 0」（M7） | **shift 引用 bug**：`minecraft:shift_x`/`shift_z` 是 vanilla 内建函数，transpiler 的 registry 只收 `density_function/overworld` 目录无法 resolve，被静默置零；运行时 `density_builder.rs` L176-185 有正确特殊处理。**已修复（2026-08-30）**：build/density.rs 特殊处理 shift_x/shift_z（ShiftA/ShiftB），修后 unresolved=0 | **「unresolved: 0」计数是假（置零也算 0）**：计数必须数「含 unresolved 注释的占位符」。transpiler 与运行时必须对齐内建函数处理（shift_x/shift_z/shift_a/b/shift 单独特殊处理） |
+| continents 对齐 0.0088 被当作「transpiler 核心正确」证据（M8） | **0.0088 被 shift 引用污染**：`continents.json` 用 shift_x/shift_z，transpiler 置零 → 0.0088 是「未偏移 vs 已偏移」差异，非干净核心正确性测试。**已证实（2026-08-30）**：修 shift bug 后 0.0088 → 0.000000（n=54 全对齐），transpiler 核心正确 | **对齐测试要选「不含 shift 引用」的干净函数**；小对齐值 ≠ 核心正确（可能是 bug 误差恰好小）。污染测试比无测试更危险 |
 | transpiler 价值主张（消除 enum match）被削弱（M9） | **transpiler 优化的是树遍历（11%），不是 noise 采样（89%）**：`tree_vs_noise.txt` 证明 ch#0 noise 89%、树遍历 11%，编译收益上限就是 11% | **性能优化要盯「真正的瓶颈」（noise 89%），不是「顺手的」（树遍历 11%）**：先做占比分解（去 noise 后测剩余）再决定优化哪个 |
 
-> [DRAFT — knowledge subagent 产出，待主会话应用。] 主会话应用：保留本文件（错误台账独立成篇，符合 SUBAGENT-KNOWLEDGE-GUIDE §三），末尾速查表已含 M1-M9 各一行。修复方向（transpiler 加缓存）未落地，仅记录方向，不标 confirmed。M7-M9 为 judge 审计发现（`review-transpiler-perf.md`），修复方向（修 shift 引用 bug / 重测 continents / 重新评估 transpiler 价值）未落地，仅记录，不标 confirmed。
+> [DRAFT — knowledge subagent 产出，待主会话应用。] 主会话应用：保留本文件（错误台账独立成篇，符合 SUBAGENT-KNOWLEDGE-GUIDE §三），末尾速查表已含 M1-M9 各一行。修复方向（transpiler 加缓存）未落地，仅记录方向，不标 confirmed。M7-M9 为 judge 审计发现（`review-transpiler-perf.md`）。**2026-08-30 更新：M7 shift 引用 bug 已修复（build/density.rs 特殊处理 shift_x/shift_z），M8 已证实（continents 0.0088 → 0.000000，transpiler 核心正确）；M9 价值评估未落地（需用户拍板 transpiler 方向）。**
+
+---
+
+## M10. transpiler 性能探针污染：`transpiler_fill_noise_share` 声称测缓存冷，实际是缓存热（坐标循环命中，低估 20 倍）
+
+### 现象
+- `transpiler_fill_noise_share.rs` 声称测「缓存冷：不同 corner」，但坐标 `px = -288*16 + (i % 16) * 4`、`pz = -256*16 + (i % 16) * 4`——**px 和 pz 用同一个 `(i % 16)`**，所以 (px, pz) 只有 **16 种组合**（不是 16×16=256 种）。
+- 缓存（`transpiler_cache_2d` 按 (x,z) key）命中这 16 种组合 → 探针实际测的是**缓存热**。
+- 补缓存后：`transpiler_fill_noise_share` 测 13μs，与 `transpiler_fill_cost`（缓存热 12.3μs）几乎相同——证实是缓存热。
+- 真正缓存冷（每 corner 不同 (x,z)，新探针 `transpiler_fill_cold`）：**262μs**——探针低估 **20 倍**。
+
+### 根因（机制）
+- **探针坐标设计错误**：px/pz 用同一个 `(i % 16)`，导致坐标循环命中缓存，声称测缓存冷实为缓存热。
+- 缓存（按 (x,z) key）对循环坐标命中，掩盖了真正的缓存冷成本。
+
+### 定位（诊断方法）
+- 对比 `transpiler_fill_noise_share`（13μs）与 `transpiler_fill_cost`（缓存热 12.3μs）几乎相同 → 触发怀疑「声称缓存冷，实际缓存热」。
+- 写新探针 `transpiler_fill_cold`（每 corner 不同 (x,z)）→ 262μs，确认探针污染。
+
+### 修复
+- 修 `transpiler_fill_noise_share.rs`：px/pz 用不同取模（`px = (i % 1000) * 4`，`pz = (i / 1000 % 1000) * 4`），每 corner 不同 (x,z)。
+- 修后测出真正缓存冷 263μs（与 `transpiler_fill_cold` 一致）。
+
+### 教训（可复用判错经验）
+- **探针坐标设计要避免循环命中缓存**：测「缓存冷」时，坐标必须每点不同（px/pz 用不同取模），否则缓存命中，声称缓存冷实为缓存热。
+- **对比探针测量值交叉验证**：声称测缓存冷的探针，若与缓存热探针几乎相同，则探针污染（坐标循环命中）。
+
+---
+
+## M11. transpiler 补缓存（对齐 Java/SteelMC ColumnCache）——MVP 简化砍掉缓存，补上后性能大幅改善
+
+### 现象
+- transpiler 生成代码把 `flat_cache`/`cache_2d`/`cache_once`/`cache_all_in_cell` 直接内联 inner（`build/density.rs` L224-228「MVP 不做缓存，语义等价」），每 corner 重算完整树。
+- 修 shift bug 后（正确采样 shift offset noise，无缓存）cell grid 构建 **443ms/chunk**（慢 54 倍 vs 运行时 8.14ms）。
+
+### 根因（机制）
+- **MVP 简化砍掉缓存**：transpiler 是「先验证链路」的临时简化（初始版本连缓存节点都没处理，后续补节点时延续「不做缓存」），不是用户拍板的架构决策。
+- Java/SteelMC 的 transpiler 有缓存（ColumnCache 缓存 flat-cached 值 + grid 数组），CoreSwap 简化版没有 → 每 corner 重算完整树。
+
+### 定位（诊断方法）
+- 用户质疑「照抄 Java 为什么没缓存」→ 查提交历史：初始版本（1838a22）缓存节点未处理，后续（e4a56c8）延续「MVP 不做缓存」。
+- 确认 transpiler 不是照抄 Java/SteelMC，是 MVP 简化版。
+
+### 修复
+- `build/density.rs` 对缓存节点生成 `transpiler_cache_2d(id, x, z, || inner)` 调用（运行时 thread_local 缓存，key 按 (x,z)，y 无关，对齐运行时 `Cache2DData` 语义）。
+- 运行时 `density.rs` 加 `transpiler_cache_2d` 函数（先查缓存，未命中 drop 借用后重算，避免嵌套借用 RefCell panic）。
+- 补缓存后：cell grid 构建 **443ms → 17ms**（慢 54 倍 → 慢 2 倍）；fill 单次（缓存热）438μs → 13μs。
+- 对齐验证：continents **0.000000**（不变，缓存语义正确）、final_density **0.43**（基本不变）。
+
+**【2026-08-30 judge 审查后修复 2 处正确性隐患】**
+- **cache id 碰撞**：`build_compute` 每次 `cache_id: 0` 重置，`compute_continents` 与 `fill_cell_corner_densities_final_density` 共用 id 0（生成代码 100 处调用但仅 99 唯一 id）。修复：`cache_id` 全局递增（跨 build_compute 共享计数器），修后 100 个唯一 id。
+- **y 相关 cache bug**：`cache_once` 包装 y 相关 inner（`entrances.json` 的 `spaghetti_3d_rarity` y_scale=1.0）时，transpiler 用 (x,z) key 缓存 → 同一 (x,z) 不同 y 返回首个 y 的值（错误，ycache_probe 验证 diff 到 0.043843）。修复：区分缓存节点类型——`flat_cache`/`cache_2d` 用 (x,z) key（xz-only 正确），`cache_once`/`cache_all_in_cell` 用 (x,y,z) key（`transpiler_cache_3d`，对齐 Java cache_once 精确位置缓存）。修后 ycache_probe diff=0（正确）。
+- **性能影响**：修 y-cache bug 后 cell grid 构建 17ms → 53.55ms（cache_once 用 (x,y,z) key，同一 (x,z) 的 8 个 y 层不再共享缓存，每 y 重算）。这是**正确性优先的代价**——cache_once 必须按精确位置缓存（对齐 Java），不能为性能用 (x,z) key 牺牲正确性。
+- **对齐验证（修后）**：continents **0.000000**（不变）、final_density **0.432843**（回到补缓存前值，y-cache bug 修复后正确）。
+
+### 教训（可复用判错经验）
+- **「MVP 简化」要记录决策来源**：临时简化（先验证链路）若未记录，后续会误以为是架构决策，导致「照抄 Java 却丢了缓存」的困惑。
+- **缓存是性能关键**：transpiler 补缓存后 cell grid 构建 443ms → 17ms（25 倍），证明「无缓存每 corner 重算完整树」是性能主因（M1-M6 已定位，M11 落地修复）。
+- **缓存 key 语义必须对齐节点类型**：`flat_cache`/`cache_2d` 是 xz-only（(x,z) key 正确），`cache_once`/`cache_all_in_cell` 是精确位置（(x,y,z) key）——用 (x,z) key 缓存 y 相关 inner 是正确性 bug，非性能近似。**缓存 key 语义按节点类型区分，不能一刀切**。
+- **缓存 id 必须全局唯一**：跨生成函数（compute_continents vs fill_final_density）共用缓存 id 会互相污染——缓存 id 全局递增，不能每函数重置。
+
+**【2026-08-30 对接生产发现：4 个数学公式生成错误（final_density 0.43 的真正根因）】**
+
+> 之前 judge 归因「0.432843 来自 channel inner 采样语义差异」为误判——逐 channel 对比（`transpiler_prod_combine6`）发现 ch1-4（noodle）diff=0.000000 完全对齐，唯独 ch0（terrain）差 3.14。继续分解：blended_noise 一致，spline 部分差 3.14 → 定位到 spline 内的 unary/weird_scaled 生成公式错。共 4 个公式错误：
+
+- **M12a squeeze**：生成成 `v - v³/3`，正确是 `clamp(v,-1,1)/2 - d³/24`（对齐 `apply_unary` L44）。铁证：v=-1.875 时错式=0.322，对式=-0.458333（= combine 采样的真实输出）。
+- **M12b half_negative**：生成成 `-0.5*x`，正确是 `if x > 0 { x } else { 0.5 * x }`（L42）。
+- **M12c quarter_negative**：生成成 `-0.25*x`，正确是 `if x > 0 { x } else { 0.25 * x }`（L43）。
+- **M12d weird_scaled_sampler**：把 rarity 分段阶梯（`scale_value`：0.75/1.0/1.5/2.0/3.0 按 input 值分段）错生成成 `d * 2.0`/`d * 3.0` 常数乘；且采样坐标用 `x/(d*mult)` 而非 `x/阶梯值`。
+- **修复**：`build/density.rs` 四处生成公式对齐运行时 `apply_unary`/`WeirdScaled::scale_value` 语义。
+- **结果**：final_density 对齐 **0.432843 → 0.000000**（n=54 逐位对齐）；TranspilerDensity vs DensityMacroSampler 全 chunk 98304 点 **max_diff=0.000000**、块级一致 **99.30%**（修前 78.48%）；接入生产 vs vanilla FULL **94.20% match**（基线 DensityMacroSampler 95.40%，同量级）。
+- **教训（判错经验）**：① **「对齐值中等偏小（0.4）≠ 语义差异固有」**——judge 曾把 0.43 归因为「channel inner 采样语义差异」并接受；实际是 4 个公式错误叠加。**对齐未达 0 时不要给差异找架构性借口，逐 channel/逐步骤分解直到差值消失**。② **公式类 bug 用「手算对照」定位最快**：把 interp 值代入错式与对式手算（0.322 vs -0.458333），与实测输出对上即锁定。③ **transpiler 每个节点类型的生成公式必须逐一对齐运行时对应实现**，不能凭记忆写数学式——squeeze/square/cube/half/quarter/weird_scaled 这类「看似简单」的节点最易写错。

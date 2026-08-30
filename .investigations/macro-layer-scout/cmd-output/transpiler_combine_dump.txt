@@ -1,0 +1,14 @@
+全 combine 树结构 (depth 限 4):
+BinaryOp op=MIN (mn=-0.4583 mx=0.4583)
+  UnaryOp (mn=-0.4583 mx=0.4583)
+    LinearOp c=0.64 (mn=-73.2908 mx=97.2329)
+      ReadChannel[0] (mn=-114.5169 mx=151.9264)
+  RangeChoice([-1000000, 0))
+    ReadChannel[1] (mn=-3.3333 mx=3.3333)
+    Constant(64)
+    BinaryOp op=Add (mn=-0.1583 mx=5.0083)
+      ReadChannel[2] (mn=-0.1583 mx=0.0083)
+      LinearOp c=1.5 (mn=0.0000 mx=5.0000)
+        BinaryOp op=Max (mn=0.0000 mx=3.3333)
+          ...
+          ...

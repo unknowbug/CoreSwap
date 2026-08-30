@@ -1,0 +1,58 @@
+channels 数: 5
+=== channels[0] 结构 (depth 限 10) ===
+BlendDensity
+  LinearOp c=0.1171875 (mn=-114.5169 mx=151.9264)
+    BinaryOp op=Mul (mn=-114.6341 mx=151.8092)
+      YClampedGradient
+      LinearOp c=-0.1171875 (mn=-114.6341 mx=151.8092)
+        LinearOp c=-0.078125 (mn=-114.5169 mx=151.9264)
+          BinaryOp op=Mul (mn=-114.4388 mx=152.0045)
+            YClampedGradient
+            LinearOp c=0.078125 (mn=-114.4388 mx=152.0045)
+              RangeChoice([-1000000, 1.5625))
+                BinaryOp op=Add (mn=-114.5169 mx=250.0711)
+                  LinearOp c=4 (mn=-26.9654 mx=162.5196)
+                    UnaryOp (mn=-6.7413 mx=40.6299)
+                      ...
+                  InterpolatedNoise
+                BinaryOp op=MIN (mn=-114.5169 mx=6.7111)
+                  BinaryOp op=Add (mn=-114.5169 mx=250.0711)
+                    LinearOp c=4 (mn=-26.9654 mx=162.5196)
+                      ...
+                    InterpolatedNoise
+                  LinearOp c=5 (mn=-11.0071 mx=6.7111)
+                    Wrapping
+                BinaryOp op=Max (mn=-2.2014 mx=151.9264)
+                  BinaryOp op=MIN (mn=-2.2014 mx=1.3422)
+                    BinaryOp op=MIN (mn=-2.2014 mx=1.3422)
+                      ...
+                      ...
+                    BinaryOp op=Add (mn=-1.6356 mx=1.3422)
+                      ...
+                      ...
+                  RangeChoice([-1000000, 0.03))
+                    Wrapping
+                    Constant(-1000000)
+                    Wrapping
+=== channels[1] 结构 (depth 限 10) ===
+RangeChoice([-60, 321))
+  YClampedGradient
+  Noise(xz=1, y=1)
+  Constant(-1)
+=== channels[2] 结构 (depth 限 10) ===
+RangeChoice([-60, 321))
+  YClampedGradient
+  LinearOp c=-0.07500000000000001 (mn=-0.1583 mx=0.0083)
+    LinearOp c=-0.025 (mn=-0.0833 mx=0.0833)
+      Noise(xz=1, y=1)
+  Constant(0)
+=== channels[3] 结构 (depth 限 10) ===
+RangeChoice([-60, 321))
+  YClampedGradient
+  Noise(xz=2.6666666666666665, y=2.6666666666666665)
+  Constant(0)
+=== channels[4] 结构 (depth 限 10) ===
+RangeChoice([-60, 321))
+  YClampedGradient
+  Noise(xz=2.6666666666666665, y=2.6666666666666665)
+  Constant(0)
