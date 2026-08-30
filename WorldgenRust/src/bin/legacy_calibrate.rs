@@ -61,5 +61,43 @@ fn main() {
     }
     println!("seed_note: climate 固定种子与 worldSeed 无关（seed 参数仅打印用）");
     let _ = seed;
+
+    // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
+    // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
+    println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
+    let mut r7 = LegacyRandom::new(0);
+    let mut rr7 = RsRandom::Legacy(r7);
+    let amp_l: Vec<f64> = vec![1.0; 16];
+    let amp_i: Vec<f64> = vec![1.0; 8];
+    let lower = OctavePerlinNoiseSampler::new_legacy(&mut rr7, -15, &amp_l);
+    let upper = OctavePerlinNoiseSampler::new_legacy(&mut rr7, -15, &amp_l);
+    let interp = OctavePerlinNoiseSampler::new_legacy(&mut rr7, -7, &amp_i);
+    for octave in 0..16 {
+        match lower.get_octave(octave) {
+            Some(p) => { let o = p.origin(); println!("lower oct{}: origin=({:.6},{:.6},{:.6})", octave, o.0, o.1, o.2); }
+            None => println!("lower oct{}: <null>", octave),
+        }
+    }
+    for octave in 0..2 {
+        match interp.get_octave(octave) {
+            Some(p) => { let o = p.origin(); println!("interp oct{}: origin=({:.6},{:.6},{:.6})", octave, o.0, o.1, o.2); }
+            None => println!("interp oct{}: <null>", octave),
+        }
+    }
+    // blended 采样：InterpolatedNoiseData（xz_scale 0.25 y_scale 0.375 xz_factor 80 y_factor 60 smear 8）
+    let bn = WorldgenRust::density::InterpolatedNoiseData::new(lower, upper, interp, 0.25, 0.375, 80.0, 60.0, 8.0);
+    println!("=== S5: blended sample @ mismatch 列 ===");
+    let pts2: [(i32, i32); 6] = [(5, 0), (12, 0), (10, 1), (14, 2), (7, 3), (2, 5)];
+    // 高 y 对拍（y=52：密度差最大的层）
+    for (x, z) in pts2 {
+        for yy in [1i32, 32, 52] {
+            let pos = WorldgenRust::density::NoisePos { x, y: yy, z };
+            println!("(x={},y={},z={}) blended = {:.6}", x, yy, z, bn.sample(&pos));
+        }
+    }
+    let _ = upper;
 }
+
+
+
 
