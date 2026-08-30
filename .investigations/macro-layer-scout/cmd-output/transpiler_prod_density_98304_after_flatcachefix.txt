@@ -1,0 +1,4 @@
+density 分布 (n=98304):
+  DensityMacroSampler: 均值=-0.1895 正(d>0)=32875/98304 (33.44%)
+  TranspilerDensity:    均值=-0.1895 正(d>0)=32875/98304 (33.44%)
+  max_diff=0.000000

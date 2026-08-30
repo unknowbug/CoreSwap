@@ -1,0 +1,8 @@
+[精确点核心对比] transpiler compute_final_density vs 运行时 tree.sample:
+  n=3584 (x/z 全 0..16 × y 14 值含负 Y 极端 -64..-56)
+  max_diff=0.043514 at (-4601, 64, -4085)
+  diff>1e-9 点数=2522/3584
+[生产路径对比] td_slices vs ms_slices（cell 内部 + chunk 边界 + 负 Y）:
+  n=1480 (interior 12×12 + boundary 2×2 × y 10 值)
+  max_diff=0.000000 at (-4605, 64, -4085)
+  diff>1e-9 点数=119/1480

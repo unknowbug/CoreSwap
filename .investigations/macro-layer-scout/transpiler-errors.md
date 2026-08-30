@@ -361,3 +361,59 @@
 - **修正后的结论**：transpiler 接入生产端到端性能与 DensityMacroSampler **持平**（±5% 噪声内），无快也无慢。**cell grid 构建慢（47ms vs 8.14ms）不是端到端瓶颈**（density 阶段占完整管线比例小；judge M9 已证 noise 89% 才是真瓶颈）。
 - **transpiler 的价值定位（最终）**：**正确性对齐**（final_density 0.000000，worldgen 上层可查由头），性能与基线持平即可，无需为 cell grid 构建慢做深度优化。
 - **教训**：**性能结论 MUST 多次运行取范围/均值**——单次运行噪声可高达 ±9%（本次 0.96x 与 1.09x 两方向的单次误导都出现过），单次声称不可入台账。
+
+## M13. transpiler flat_cache 量化语义 bug：`flat_cache` 与 `cache_2d` 合并生成精确键，「y 无关」被偷换成「逐点精确」（重大，扩大对齐样本发现，judge 建议项 7）
+
+### 现象
+- 扩大对齐样本（judge 建议项 7，review-transpiler-prod.md「覆盖 cell 内部任意点 / chunk 边界 clamp / 负 Y 极端」）时发现：`transpiler_exactpoint_verify.txt` **对比1（transpiler 精确点 vs 运行时精确点，channel inner 精确采样 + combine，n=3584 含负 Y）max_diff=0.027855**（diff>1e-9=250/3584，诊断分组自 y=64 起）；**4 corner 两侧逐位一致**（corner 处 diff=0.000000×4，机制上量化值≡精确值）。
+- 逐 channel（y=64, cell 内部点 x=3,z=3）：**ch0 transpiler=0.133102 vs runtime=0.068001，diff=0.065101**，ch1-4 全 0.000000——差异只在 ch0（terrain）；final combine 亦差 0.020810。
+- 分解实验（`transpiler_ch0_decompose.txt`）：
+  - **量化检查三点**：runtime(0,0)=0.072304 / (1,1)=0.062840 / (3,3)=0.068001；transpiler 修前 (1,1)=0.077602、(3,3)=0.133102（与 runtime 不同值）。
+  - **corner 双线性自洽性检验（决定性）**：runtime(3,3) 偏离自身 4 corner 双线性 **−0.069182（不自洽）**＝量化签名；transpiler(3,3) 偏离仅 −0.004081（自洽，树本征非线性残差）。
+  - **y 密扫**（固定 3,3）：diff 从 y≈52 启动（7.3e-5）、y=60-64 峰值 **0.068108@y=60**、之后随 y 近似线性（~0.000488/y 至 y=172，diff>1e-9 共 50 个 y 值）。
+  - **跨 x 扫描**（z=3 固定内部）：x 过 corner 仍有非零 diff（local 0 → 0.020105）——量化只在 x、z **同时**命中格点时才与精确一致。
+- census 普查（`transpiler_ch0_census.txt`）：channels[0] **Interpolated 残留=0**（排除「插值节点未编译干净」），**FlatCache=363**、Cache2D=9、ShiftDF=708（=354 shifted_noise×2 shift 参数，核实精确键非混淆源）——疑点收敛到 flat_cache 节点簇。
+- 生产路径不受影响（corner-only）：TranspilerDensity vs DensityMacroSampler 98304 点 diff=0.000000 与判定自洽。
+
+### 根因（机制）
+- **vanilla Java 1.20.1 `minecraft:flat_cache` = 4×4 格点量化缓存，不是精确列缓存**。决定性证据：`versions/1.20.1/data/mc_src_extract/net/minecraft/world/gen/chunk/ChunkNoiseSampler.java` **L836-881（`FlatCache` 内部类）**——构造时对 per-chunk **5×5 网格**（horizontalBiomeEnd+1，格点间隔 4 块）在 **y=0** 预采样 delegate；`sample()` 用 `(blockX>>2)−startBiomeX` **量化索引**查表——cell 内匿名点直接共享 cell 左下角格点值（无插值），网格外才 `delegate.sample(pos)` 精确直算。同文件 **Cache2D（L557-579）才是精确列键**（单槽，key=`ChunkPos.toLong` 精确 (x,z)）；CellCache（L652-681）是 cell 级。**Java vanilla 同一文件内部就有两套（三类）缓存语义，合并处理 = 错**。
+- **transpiler 生成侧把 `"minecraft:flat_cache" | "minecraft:cache_2d"` 合并成同一分支、统一生成精确键 `transpiler_cache_2d(id, x, z, || inner)`（`build/density.rs` 旧 L234-249）＝语义 bug**。注释原文「flat_cache/cache_2d 是 xz-only，用 (x,z) key 正确」把**「y 无关」偷换成「逐 (x,z) 精确」**（「y 无关」只支撑「缓存 key 不含 y」，不支撑「任意 (x,z) 都取本点值」）。flat_cache 是**量化采样器**（改变 cell 内匿名点返回值），不是透明缓存；对 y 无关树在 corner 处两者值相等、内部点不等。363 个 FlatCache 节点经 climate spline 链放大，量级 0.068、表面带（y=60-64）最敏感。
+- **diff 方向三重交叉验证**：① Java 权威源码（一锤定音）；② CoreSwap C++ `FlatCacheDF`（block_probe Full 级已验证、六维对齐 + 块级 99.99% 对齐史）——从未提出 (A) 异议；③ CoreSwap Rust 运行时 `FlatCacheData`（`density.rs` L428-487）逐位复刻同一量化结构。**运行时与 C++ FlatCacheDF 本就正确（Java 语义忠实侧），transpiler 生成侧是语义 bug 侧**。
+- **corner-only 生产域不可见**：生产双边（TranspilerDensity/DensityMacroSampler）只在 cell corner 采样 channel 再插值，corner 处 `(x>>2)` 恰命中网格槽位、量化值≡精确值（ch0 内 flat_cache 包裹链全 y 无关，y=0 与实际 y 同值），故 98304 点恒 0.000000——**缓存语义 bug 被生产域掩盖，只在「精确点诊断采样」路径暴露**。
+- 历史脉络：MVP 时代「缓存节点全部内联 inner（=逐点精确求值）」在 corner-only 生产域值等价；M11 缓存化把 flat_cache 沿用「精确键」结论时，**隐含前提（只在 corner 域验证过等价）未随代码迁移重立**——bug 由 M11 引入、在精确点扩样时暴露。附：`transpiler_cache_2d` 的 key 编码 `(x<<32)^z` 为单射，不构成正确性问题（非本 bug 源）。
+
+### 定位（诊断方法）
+- **fan-out 双 worker（A/B）超时失败 → 收敛降级路径**：判定树分叉（transpiler 侧语义 bug vs 运行时侧 bug）触发 fan-out，双 worker 均超时失败 → 主会话采集「分解实验 + census 普查」原始数据落盘（`cmd-output/`）→ core-worker 依据数据 + Java 源码完成隔离判定（`analysis-flatcache-semantics.md`，A 语义裁决）。数据采集归主会话、判读结论仍出自 subagent（职责边界保持）。
+- **corner 双线性自洽性检验（本 case 的强判据）**：检验 cell 内部点相对自身 4 corner 双线性插值的偏离——全精确实现应自洽（transpiler −0.004 = 树本征非线性残差），被量化的实现不自洽（runtime −0.069）——**量化签名**直接把「谁在量化」归属到侧，再用 Java 源码裁决谁是忠实侧，三步内锁定。
+- **知识库检索先行**（verdict 复盘）：03 篇（Cache2D 精确 key 修复）、07 篇（FlatCache 六维对齐 + L999 MVP 脉络）、10 时间线、algorithm-fingerprints #10/#12——既有知识全部指向「量化网格」侧，无一支持精确键。
+- **排除清单**：❌ (B)「Java 精确键、CoreSwap 运行时自行量化」（与 ChunkNoiseSampler.java L858-864 直接矛盾 + 与 C++/Rust 三方对齐史矛盾）；❌ ShiftDF 是第二处偏差源（运行时 ShiftDF 核实为精确 (x,z) 缓存——`ShiftSlot.cx/cz` 字段名误导实存精确坐标；双边一致非混淆源）；❌ 「runtime 偏离角双线性 = runtime bug」（正是 flat_cache 量化 + 树内其它精确项合成的预期签名）；❌ Interpolated 节点未编译残留（census=0）；❌ cache_all_in_cell→transpiler_cache_3d 精确键（与 Java CellCache 纯函数下值等价，非混淆源）。
+- **探针判据教训（差点误判）**：decompose 实验 2 的判据注释「若 (1,1)==(3,3)==(0,0) 则被量化」**过强**——A 只量化 flat_cache 子值，树内其它项仍在变化，三值不等**不构成**反证（runtime 三点恰不同值）。**探针判据必须与被测子机制同构**。
+
+### 修复
+- **`WorldgenRust/build/density.rs` 拆分 `flat_cache` / `cache_2d` 两分支**（原合并分支 L234）：
+  - `minecraft:flat_cache` → 生成**量化封装**：`{ let __fcq_x = (((x as i64) >> 2) << 2) as f64; let __fcq_z = ...; transpiler_cache_2d(id, __fcq_x, __fcq_z, || { let x = __fcq_x; let y = 0.0f64; let z = __fcq_z; (inner) }) }`——x/z 用 **i64 算术右移**量化到 4 的倍数（负坐标=floor，对齐 Java `BiomeCoords.fromBlock`）、y 变量遮蔽置 0（对齐 Java y=0 预采样）、**按量化键缓存**（cell 内匿名点共享 cell 左下角格点值）；变量遮蔽替代子树改写，嵌套结构（外层 flat_cache 包内层 cache_2d）保持。
+  - `minecraft:cache_2d` → 保持精确键（对齐 Java Cache2D L557-579）；生成侧注释更新，记录两类节点语义差异（防再合并）。
+- **运行时（Rust FlatCacheData）与 C++ FlatCacheDF 未动**（本就正确）。
+
+**【2026-08-30 修复后验证（`cmd-output/*_after_flatcachefix.txt` 落盘）】**
+- **内部点**：ch0 transpiler=0.068001 vs runtime=0.068001 **diff=0.000000**（final combine 亦 0.000000）；ch1-4 / corner 不变全 0.000000。
+- **量化签名复刻**：transpiler(0,0)=0.072304、(1,1)=0.062840、(3,3)=0.068001 与 runtime 三点同值——修后 transpiler 也呈现 runtime 的量化 signature（双边互证）。
+- **y 密扫 / 跨 x 扫描**：max=0.000000（y 密扫残余 >1e-9 的 49 个 y 值均 <5e-7 浮点残差）；跨 x 扫描（x=−6..6 含 cell/块边界）13 点全 0.000000。
+- **对比1（精确点 vs 精确点，n=3584 含负 Y）**：max_diff=**0.000000**（残余 >1e-9 的 160/3584 点均 <5e-7 浮点残差）；对比2 vs tree.sample（InterpolatedDF 插值）0.043514 维持——为「运行时插值 vs transpiler 直采」既有采样语义差异，非 transpiler bug（对比1=0 证实）。
+- **扩大对齐回归（alignment_expanded）**：生产路径对比 td_slices vs ms_slices（cell 内部 + chunk 边界 + 负 Y，n=1480）**max_diff=0.000000**（119/1480 点 <5e-7 浮点残差）。
+- **生产回归**：98304 点 max_diff=**0.000000**（均值/正值分布与修前落盘逐值相同）；块级 vs 基线 **99.30% 持平**（1561802/1572864、nonAir 98.58%，与修前逐值相同）；vs vanilla FULL **94.20%（修前）→ 94.27%（修后）**（+0.07pp，1482808/1572864，nonAir 82.25% vs 修前 83.06%）。
+
+### 教训（可复用判错经验）
+- **「缓存」≠「透明」——拿到 cache 类节点先问「命中时返回的值第一次在哪算的」**：cache_2d 在本点算（透明缓存，不改变语义）；flat_cache 在 cell 角、y=0 算（**量化采样器**，改变 cell 内匿名点返回值）。名字里的 cache 诱发合并处理——**按节点语法形状合并 ≠ 按值语义合并**。
+- **「y 无关 ≠ 逐点精确」**：语义注释按「y 无关性 / x-z 精度 / 采样点集」三轴陈述，禁止二轴合并——把「y 无关」偷换成「逐 (x,z) 精确」正是本 bug 的直接入口。
+- **Java vanilla 同一文件就有两套缓存语义，合并处理 = 错**：Cache2D 精确列键 / FlatCache 量化网格 / CellCache cell 级——缓存节点按节点类型逐一对照 vanilla 对应类核对语义，不能「名字像缓存就同语义」。
+- **corner-only 生产域会掩盖缓存语义 bug**：生产等价（98304 点 0.000000）≠ 语义正确——corner 处量化值恰与精确值重合（y 无关树），本体差异全部落在生产从不采样的内部点。**诊断（精确点对比）与生产（corner-only）域互补**：扩大对齐样本（内部点/边界/负 Y/多 y）是把「生产不可见」语义差暴露的手段——judge 建议项 7 值回票价，扩样当场抓出一个潜伏语义 bug。
+- **历史简化的适用域要随代码迁移显式重立**：「内联=精确」在 corner-only 域等价 → M11 缓存化沿用为「精确键生成」时隐含前提未随迁。凡继承临时简化的重构，必须在注释/产物里显式重立「在哪个采样点集上等价」。
+- **探针判据与被测机制同构**（见定位末条）；**字段名不可作为语义依据**（ShiftSlot.cx/cz 误导，以 key 构造行为准）。
+- **fan-out 失败的降级路径**：双 worker 超时 ≠ 判定失败——主会话采集可复用原始数据（分解实验+census），隔离判定仍交 subagent（采集/判读分工保持）。
+
+## 附：错误 → 根因 速查表（M13 行）
+
+| 现象/信号 | 根因 | 判错要点 |
+|---|---|---|
+| transpiler 精确点 ch0 cell 内部 diff 0.068、corner 0、生产 98304 点恒 0（M13） | **flat_cache 量化语义 bug**：`flat_cache\|cache_2d` 合并生成精确键 `transpiler_cache_2d`（「y 无关」偷换「逐点精确」）；vanilla flat_cache=4×4 格点量化缓存（ChunkNoiseSampler.java L836-881，5×5 网格 y=0 预计算 + (x>>2) 量化查表），cache_2d（L557-579）才是精确列键；运行时/C++ 本就正确。**已修复（2026-08-30）**：build/density.rs 拆分两分支，flat_cache 量化封装（i64 右移量化、y=0、量化键缓存），修后对比1 max_diff=0.000000（160/3584 点 <5e-7 浮点残差） | **「y 无关≠逐点精确」「缓存≠透明」**：flat_cache 是量化采样器（cell 角 y=0 取值）非透明缓存；corner-only 生产域会掩盖缓存语义 bug，**诊断精确点对比与生产 corner-only 互补**；定位用 corner 双线性自洽性检验——自洽侧=精确实现、不自洽侧=量化侧，再用 Java 源码裁决忠实侧 |

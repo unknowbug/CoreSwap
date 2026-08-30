@@ -231,9 +231,24 @@ impl<'a> GenCtx<'a> {
                     }
                     "minecraft:blend_alpha" => "1.0".to_string(),
                     "minecraft:blend_offset" => "0.0".to_string(),
-                    "minecraft:flat_cache" | "minecraft:cache_2d" => {
-                        // 缓存节点（xz-only，y 无关）：生成调用运行时缓存函数（对齐运行时 Cache2DData 语义）。
-                        // key = (x<<32)^z，thread_local 按 id 缓存单值。flat_cache/cache_2d 是 xz-only，用 (x,z) key 正确。
+                    "minecraft:flat_cache" => {
+                        // flat_cache（M13 修复，对齐 Java ChunkNoiseSampler.FlatCache L836-881）：
+                        // Java 语义 = 4×4 格点量化网格 —— 构造时以 (x>>2<<2, y=0, z>>2<<2) 预计算 5×5 网格，
+                        // 任意块坐标用 (blockX>>2)-start 量化索引查表（cell 内匿名点共享 cell 左下角值），无插值。
+                        // 曾错误合并进 cache_2d 精确键（把「y 无关」偷换成「逐点精确」）——corner-only 生产域不可见，
+                        // 精确点诊断路径暴露（ch0 内部点 diff 0.068，见 transpiler_ch0_decompose）。
+                        // 生成：先量化 x/z（i64 算术右移对负坐标=floor，对齐 Java），y 置 0，再以量化键缓存。
+                        let inner = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
+                        let id = self.cache_id;
+                        self.cache_id += 1;
+                        format!(
+                            "{{ let __fcq_x = (((x as i64) >> 2) << 2) as f64; let __fcq_z = (((z as i64) >> 2) << 2) as f64; crate::density::transpiler_cache_2d({}, __fcq_x, __fcq_z, || {{ let x = __fcq_x; let y = 0.0f64; let z = __fcq_z; ({}) }}) }}",
+                            id, inner
+                        )
+                    }
+                    "minecraft:cache_2d" => {
+                        // 缓存节点（xz-only，y 无关）：精确 (x,z) 键（对齐 Java Cache2D L557-579 精确列键单槽）。
+                        // 注意与 flat_cache 语义不同：cache_2d 是逐点精确缓存，flat_cache 是 cell 量化缓存（见 flat_cache 分支）。
                         let inner = self.gen_expr(v.get("argument").unwrap_or(&JsonValue::Number(0.0)));
                         let id = self.cache_id;
                         self.cache_id += 1;
