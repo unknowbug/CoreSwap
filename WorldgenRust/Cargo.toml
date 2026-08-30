@@ -7,3 +7,4 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+jni = "0.22.4"
