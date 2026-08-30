@@ -4,8 +4,8 @@
 
 [English / English](./README.md)
 
-把 Minecraft Java 版的性能核心——**区块生成** 和 **实体 AI / 寻路**——用 C++ 重写，**完整保留 Java MOD 生态**。
-同一个种子、同一个世界、同一个 MOD——只是底下换成了 C++。
+把 Minecraft Java 版的性能核心——**区块生成** 和 **实体 AI / 寻路**——用原生代码重写，**完整保留 Java MOD 生态**。
+同一个种子、同一个世界、同一个 MOD——只是底下换成了原生实现。
 
 **为什么：** Java 版的性能被诟病了二十年。现有的每个方案都有致命缺陷：
 
@@ -15,19 +15,23 @@
 | Cuberite（全 C++ 重写） | 性能好，但 MOD 生态全灭 |
 | 换基岩版 | 生态全丢，还得吃它的版本漂移 |
 
-CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD 层（JNI 桥）**——MOD API 保持 Java 不变，API 之下一律 C++。
+CoreSwap 走的是没人走过的中间路线：**原生性能核心 + Java MOD 层（JNI 桥）**——MOD API 保持 Java 不变，API 之下一律原生。
 
-## 当前状态（2026-08-08）
+## 项目调整（2026-08-30）：核心迁移到 Rust
 
-**最新：v1.0.18（pre-release 测试版）**——可安装的 Fabric mod（MC 1.20.1）。连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler（异常+调用栈+crash 文件）、完整调用栈 + dll sha256 诊断、内存损坏诊断、**VEH 崩溃日志 handler 与 JVM 兼容（不再干扰 JIT/GC，JVM 进程内自动降级）**。兼容 Forge（Sinytra Connector）。
+worldgen 核心已**从 C++ 迁移到 Rust**。现在一个 `worldgen.dll` 打包全部——JNI 桥（`Java_wg_CppWorldgen_*`）与引擎（`wg_*` C ABI）同体，单个 Rust cdylib。C++ 线已归档（仅历史参考）；所有活跃开发在 [`WorldgenRust/`](./WorldgenRust)。
 
-- ✅ NOISE+SURFACE 阶段（密度函数 / 含水层 / 矿脉 / 表面规则）与 vanilla **逐位一致**——同种子同地形，逐块不差（3200 区域 100%；玩家 seed 8576 区域 99.9768%+，剩余 terracotta 带边缘排查中）
-- ✅ **世界生成 10-20× 提速**：批量并行生成（~3ms/chunk vs vanilla ~60ms），自适应 `min(核数, 任务数)`
-- ✅ 纯算法优化全部无损（FlatCache / Cache2D / spline 缓存）——不靠近似
-- ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——实测 RTX 4060 笔记本 + BSL 光影 + 最大渲染距离全程不卡
-- 📦 下载：[CoreSwap 1.20.1 Releases](https://github.com/unknowbug/CoreSwap/releases)
-- 🗺️ 版本计划：**全版本覆盖**（含 1.17 及更早）；优先 1.20.x 系列，其余按顺序推进
-- 🔭 路线：光照（LIGHT）、实体 AI（Brain / Goal / 寻路）C++ 化
+**为什么换 Rust**：桥 + 引擎同一门语言（少一条工具链）、热多线程路径的内存安全、以及 build-time **密度函数 transpiler**（vanilla JSON → 专用原生代码）兼职正确性裁判——transpiled 管线与运行时解释器证明等价（浮点残差 <5e-7），能抓到生产采样域看不见的语义 bug。
+
+## 当前状态（2026-08-30，v1.0.19-beta）
+
+- ✅ **主世界 NOISE+SURFACE（Rust）**：密度 → 含水层 → 矿脉 → 表面规则 → 雕刻器。块级对齐 vanilla **95.40%**（基线引擎）/ **94.27%**（transpiler 引擎）；密度场对齐至浮点残差（<5e-7）。零崩溃，**游戏内实测通过**（服务端 + 客户端）
+- ✅ **Build-time transpiler**：vanilla `density_function` JSON 构建期编译成专用原生函数；与运行时解释器全 chunk 98304 点对比一致（max diff <5e-7），块级一致 99.30%
+- ✅ **多世界**：下界走同一 Rust 引擎（块级对齐 **74%**——熔岩海流体填充与基岩边缘层为已知差距；主世界不受影响）。末地：保护已接线，引擎未启动
+- ✅ **世界生成性能（实测）**：大样本端到端实测 Rust 管线 **~1.2× vanilla Java**；16 chunk 引擎内 JNI 全管线（含雕刻器 + 装饰，自适应线程）实测 **~14ms/chunk**。密度内部优化（双高度 cell、列缓存、宏观网格）全部无损——不靠近似
+- ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——互不冲突
+- 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.19-beta` 为 **pre-release（beta）通道**构建
+- 🔭 路线：下界流体填充 + 基岩边缘、末地引擎、光照（LIGHT）、实体 AI（Brain / Goal / 寻路）Rust 化
 
 ## 安装教程
 
@@ -39,88 +43,93 @@ CoreSwap 走的是没人走过的中间路线：**C++ 性能核心 + Java MOD �
 
 ### 安装步骤
 
-1. **下载**最新 `coreswap-1.20.1-*.jar`（[Releases](https://github.com/unknowbug/CoreSwap/releases)）
-2. **安装 Fabric**（已装可跳过）：运行 Fabric 安装器，选 **1.20.1**，Install——启动器里会出现 "fabric-loader-…" 配置
-3. **打开 mods 文件夹**：Fabric 配置里点 **打开 Mods 文件夹**，或手动找：
+1. **下载**最新的 `coreswap-1.20.1-*.jar`：[Releases](https://github.com/unknowbug/CoreSwap/releases)
+2. **装 Fabric**（已装跳过）：Fabric 安装器选 Minecraft **1.20.1**，Install
+3. **打开 mods 文件夹**：启动器配置里点 **Open Mods Folder**，或手动到：
    - Windows：`%appdata%\.minecraft\mods`
    - macOS：`~/Library/Application Support/minecraft/mods`
    - Linux：`~/.minecraft/mods`
-4. **把 CoreSwap 的 jar 丢进 `mods/`**——完成
-5. **（推荐）加 Sodium + Iris**（[Modrinth](https://modrinth.com/) 下载 1.20.1 版，同样丢进 `mods/`）——**Sodium 管渲染（帧率）、CoreSwap 管生成（区块加载），互补不冲突**；想开光影就再装个光影包（如 BSL、Complementary），在 `选项 → 视频设置 → 光影` 里启用
-6. **启动** Fabric 配置。在 `logs/latest.log` 里确认生效：
+4. **CoreSwap jar 丢进 `mods/`**——完成
+5. **（推荐）加 Sodium + Iris**（[Modrinth](https://modrinth.com/)）——**Sodium 管渲染（帧率），CoreSwap 管生成（探索加载）——互补不冲突**
+6. **启动** Fabric 配置。`logs/latest.log` 里验证已生效：
    ```
    [BenchMod] CoreSwap replace mode: C++ worldgen active
+   [CppBridge] init seed=... enabled=true
+   [CppBridge] initNether seed=... enabled=true
    ```
 
-### 注意事项
+### 说明
 
-- **服务端**：专用 Fabric 服务端同样可用——把 jar 放进服务端的 `mods/` 即可
-- **Forge**：通过 [Sinytra Connector](https://modrinth.com/mod/connector) 兼容
-- **FEATURES 阶段**（矿物/装饰）仍是 vanilla——**NOISE+SURFACE 已逐位一致**
-- 看不到上面的日志：检查 jar 在不在 `mods/`、MC 是否 1.20.1、Fabric Loader 是否 0.15.x、Java 是否 17
+- **服务端**：Fabric 专用服务端同样可用——同一个 jar 放服务端 `mods/`
+- **Forge**：经 [Sinytra Connector](https://modrinth.com/mod/connector) 支持
+- 日志里那句 "C++ worldgen" 是历史原因——1.0.19 起原生核心已是 **Rust**
+- 主世界 + 下界由引擎生成；其余维度回落 vanilla（末地已做误路由保护）
 
 ## 版本组织
 
-仓库按 **Minecraft Java 版本号**组织，每个版本一个目录：
+仓库按 **Minecraft Java 版本号**组织，每个版本独立目录：
 
 ```
 CoreSwap/
 ├── README.md
+├── WorldgenRust/            # ← Rust worldgen 核心（活跃开发）
+│   ├── src/                 # 引擎：density / aquifer / surface / carver / features / JNI 桥
+│   ├── build/               # build-time transpiler（vanilla JSON → 原生代码）
+│   └── rust-dll/            # 遗留产物（未使用）
 └── versions/
-    ├── 1.20.1/          # ← 当前
-    │   ├── cpp/         # C++ 核心（噪声 + 密度场 + 表面规则）
-    │   └── data/        # worldgen JSON + 参照方块数据（验证用）
-    └── <未来版本>/
+    ├── 1.20.1/              # ← 当前
+    │   ├── cpp/             # 已归档 C++ 核心（历史参考）
+    │   ├── data/            # worldgen JSON + 参照方块数据（验证用）
+    │   └── docs/            # 工程知识库（01-11 主题篇）
+    └── <future versions>/
 ```
 
-> **注意**：`data/` **不随仓库分发**（内含从 vanilla 导出的 worldgen JSON + 参照 blocks 数据；获取方式见下方「从源码构建」）。C++ 代码**编译不需要它**；验证工具（`block_probe` 等）**运行时需要**。
+Fabric mod 工程在 [`runtime/1.20.1/java`](./runtime/1.20.1/java)（fabric-loom）。构建时自动把新编译的 Rust dll 同步进 mod jar。
 
 ## 从源码构建
 
-C++ 核心**仅支持 MSVC**（不支持 MinGW——MinGW 静态链接下 `thread_local` 语义退化，跨线程共享缓存会堆损坏）。构建要求：
+**工具链（Windows x64）：**
 
-- **Visual Studio 2022+**（MSVC C++ 工具集，x64）
-- **JDK 17+**（仅 JNI 桥需要 `jni.h`；设置 `JAVA_HOME`）
-- **CMake 3.20+** 与 **Ninja**
-
-构建步骤（Windows，在加载了 vcvars64 的 Developer PowerShell / cmd 中）：
+- **Rust**（stable，`cargo`）——编原生核心
+- **JDK 17**——JNI 头文件 + Fabric/loom 构建
+- **Gradle 8.x**——mod 打包（fabric-loom 1.10）
 
 ```bat
-:: 加载 MSVC 环境（以 VS 2022 为例）
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-:: ninja 需在 PATH（VS 自带：Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja）
+:: 1. 编 Rust 核心（产出 WorldgenRust.dll；build.rs 同时从 vanilla JSON
+::    重生成 transpiled density 代码）
+cd WorldgenRust
+cargo build --release
 
-cd versions\1.20.1\cpp
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B build-msvc
-cmake --build build-msvc
+:: 2. 编 Fabric mod（自动把 dll 同步进 jar）
+cd ..\runtime\1.20.1\java
+gradle build
+:: jar 在 build\libs\coreswap-1.20.1-*.jar
 ```
 
-产物输出到 `build-msvc\bin\`（`block_probe.exe`、`worldgen.dll` 等）。
-
-**运行验证工具**还需要 worldgen 数据目录（`versions/1.20.1/data/worldgen` —— vanilla 的 `worldgen` JSON 树）与 `blocks.json` + 参照 `.blocks` 导出。这些从 vanilla 1.20.1 服务端/客户端导出（jar 内的 `data/minecraft/worldgen` 目录），参照数据按 seed 用探针工具重新生成；刻意不入库。需要副本请联系维护者。
+`build.rs` 里的 transpiler 构建期读取 `versions/1.20.1/data/worldgen`（vanilla worldgen JSON 树）。验证探针（`WorldgenRust/src/bin/*`）另需 `blocks.json` + 参照 `.blocks` dump——从 vanilla 1.20.1 服务端导出，有意不入库。
 
 ## 工作原理
 
-C++ 核心完全复刻 vanilla 的密度场构建：
+Rust 核心与 vanilla 完全同构地重建密度场：
 
-- **噪声原语**：Xoroshiro128PlusPlus 随机数、MD5 种子派生、Perlin / octave / double-perlin 采样器——与 Mojang 实现逐位一致
-- **密度函数树**：运行时从 vanilla 的 `worldgen` JSON 装配（`noise_settings/overworld.json` + `density_function/overworld/*.json`），镜像 `NoiseConfig` 的 visitor 语义
-- **InterpolatedNoiseSampler**（`old_blended_noise`）：地形骨架，精确复刻
-
-不需要容差：C++ 密度场与 vanilla 精确到 IEEE double 完全一致。
+- **噪声原语**：Xoroshiro128PlusPlus 随机数、MD5 种子派生、Perlin / octave / double-perlin 采样器——对齐 Mojang 实现
+- **密度函数树**：运行时从 vanilla `worldgen` JSON 加载（`noise_settings/<dim>.json` + `density_function/<dim>/*.json`），镜像 `NoiseConfig` 的 visitor 语义——**数据驱动，无维度专属代码**（多世界就绪）
+- **Build-time transpiler**（`build.rs`）：把同一份 JSON 编译成专用原生函数（spline 内联、缓存解算、CSE）——独立的第二评估路径，用作正确性裁判并经 env 门控接入生产
+- **块级管线**：density → aquifer → ore veins → surface rules → carvers → features，镜像 vanilla 阶段语义（含下界的噪声/世界双高度）
 
 ## 路线图
 
-1. ✅ **JNI 桥**：批量区块数据交换
-2. ✅ **方块层**：密度 → 方块状态（表面规则 + 区块填充）
-3. ✅ **集成**：可安装的 Fabric mod / 服务端插件
-4. **内存优化**：紧凑数组 + 索引 + 缓存友好的布局（预计再提速 2-5×）
-5. **实体 AI / 寻路**：第二个 C++ 化核心（社区先例：JNI 加速寻路）
+1. ✅ **JNI 桥**：区块数据批量交换（已 Rust 化）
+2. ✅ **方块层**：density → block states（表面规则 + 区块填充）
+3. ✅ **集成**：可安装 Fabric mod / 服务端插件
+4. ✅ **多世界**：下界引擎 + 游戏内维度分派（末地下一步）
+5. **下界打磨**：流体填充（熔岩海）、基岩边缘层
+6. **实体 AI / 寻路**：下一个原生化的核心
 
-## Credits
+## 致谢
 
-- **dustinmoon78** — Forge + Sinytra Connector 兼容：多级 mod jar 定位（`CoreSwapFixHelper`）+ 直接 `JarFile` 提取，400+ modpack 实测。见 [#3](https://github.com/unknowbug/CoreSwap/pull/3)。
+- **dustinmoon78**——Forge + Sinytra Connector 兼容：多级 mod jar 定位（`CoreSwapFixHelper`）+ 直接 `JarFile` 解压，400+ mod 包实测。见 [#3](https://github.com/unknowbug/CoreSwap/pull/3)。
 
-## License
+## 许可
 
 MIT

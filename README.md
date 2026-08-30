@@ -4,7 +4,7 @@
 
 [中文版 / Chinese](./README.zh-CN.md)
 
-Rewrite Minecraft Java Edition's performance-critical cores — **world generation** (and eventually entity AI / pathfinding) — in C++, while keeping the **full Java mod ecosystem** intact. Same seed. Same world. Same mods. The C++ goes underneath.
+Rewrite Minecraft Java Edition's performance-critical cores — **world generation** (and eventually entity AI / pathfinding) — in native code, while keeping the **full Java mod ecosystem** intact. Same seed. Same world. Same mods. The native core goes underneath.
 
 **Why:** Java Edition's performance has been a meme for two decades. Every existing fix has a fatal flaw:
 
@@ -14,19 +14,23 @@ Rewrite Minecraft Java Edition's performance-critical cores — **world generati
 | Cuberite (full C++ rewrite) | Fast, but the mod ecosystem dies |
 | Switch to Bedrock | Ecosystem gone, version drift forever |
 
-CoreSwap walks the path nobody has walked: **C++ performance core + Java mod layer (JNI bridge)** — the mod API stays Java and untouched; everything below it is free to become C++.
+CoreSwap walks the path nobody has walked: **native performance core + Java mod layer (JNI bridge)** — the mod API stays Java and untouched; everything below it is free to go native.
 
-## Status (as of 2026-08-08)
+## Project Adjustment (2026-08-30): Core rewritten in Rust
 
-**Latest: v1.0.18 (pre-release)** — installable Fabric mod for MC 1.20.1. 连续修复：heightmap 索引、并发崩溃、原生崩溃日志 handler（异常+调用栈+crash 文件）、完整调用栈 + dll sha256 诊断、内存损坏诊断、**VEH 崩溃日志 handler 与 JVM 兼容（不再干扰 JIT/GC，JVM 进程内自动降级）**。兼容 Forge（Sinytra Connector）。
+The worldgen core has **migrated from C++ to Rust**. One `worldgen.dll` now ships everything — the JNI bridge (`Java_wg_CppWorldgen_*`) and the engine (`wg_*` C ABI) in a single Rust cdylib. The C++ line is archived (historical reference only); all active development happens in [`WorldgenRust/`](./WorldgenRust).
 
-- ✅ NOISE+SURFACE (density / aquifer / ore veins / surface rules) **bit-identical to vanilla** — same seed, same terrain, block-for-block (3200 区域 100%，玩家 seed 8576 区域 99.9768%+，剩余为 terracotta 带边缘排查中)
-- ✅ **10-20× faster worldgen**: batched parallel generation (~3 ms/chunk vs ~60 ms vanilla), adaptive `min(cores, tasks)` threading
-- ✅ All pure-algorithm optimizations **lossless** (FlatCache / Cache2D / spline caching) — no approximation
-- ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict. Tested: RTX 4060 laptop + BSL shaders + max render distance, zero stutter
-- 📦 Download: [CoreSwap 1.20.1 v1.0.18](https://github.com/unknowbug/CoreSwap/releases)
-- 🗺️ Version plan: **full coverage on the roadmap** — 1.20.x ships first, then 1.18/1.19 and 1.17- progressively (worldgen architecture differs per version)
-- 🔭 Roadmap: LIGHT stage, entity AI (Brain / Goal / Pathfinding) in C++
+**Why Rust:** one language for bridge + engine (no second toolchain), memory safety in a hot multi-threaded path, and a build-time **density-function transpiler** (vanilla JSON → specialized native code) that doubles as a correctness oracle — the transpiled pipeline is proven equivalent to the runtime interpreter to floating-point residual (<5e-7), catching semantic bugs invisible to production sampling.
+
+## Status (as of 2026-08-30, v1.0.19-beta)
+
+- ✅ **Overworld NOISE+SURFACE in Rust**: density → aquifer → ore veins → surface rules → carvers. Block-level match vs vanilla **95.40%** (baseline engine) / **94.27%** (transpiler engine); density fields aligned to floating-point residual (<5e-7). Zero crashes, **verified in-game** (server + client)
+- ✅ **Build-time transpiler**: vanilla `density_function` JSON compiled to native code at build time; consistent with the runtime interpreter across a 98304-point full-chunk sweep (max diff <5e-7), block match 99.30%
+- ✅ **Multi-world**: the Nether runs through the same Rust engine (block match **74%** vs vanilla — lava-ocean fluid fill and bedrock-edge layers are known gaps; overworld untouched). End: protection wired, engine not started
+- ✅ **Worldgen performance (measured)**: large-sample end-to-end runs measured the Rust pipeline at **~1.2× vanilla Java**; a 16-chunk in-engine JNI sweep (full pipeline incl. carvers + features, adaptive threading) ran at **~14 ms/chunk**. Density internals (dual-height cells, column caches, macro grid) are all lossless — no approximation
+- ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict
+- 📦 Download: [Releases](https://github.com/unknowbug/CoreSwap/releases) — `1.0.19-beta` is a **pre-release (beta)** channel build
+- 🔭 Roadmap: Nether fluid fill + bedrock edges, End engine, LIGHT stage, entity AI (Brain / Goal / Pathfinding) in Rust
 
 ## Installation
 
@@ -45,18 +49,20 @@ CoreSwap walks the path nobody has walked: **C++ performance core + Java mod lay
    - macOS: `~/Library/Application Support/minecraft/mods`
    - Linux: `~/.minecraft/mods`
 4. **Drop the CoreSwap jar into `mods/`** — done
-5. **(Recommended) Add Sodium + Iris** (from [Modrinth](https://modrinth.com/)) — Sodium 0.5.x and Iris 1.7.x for 1.20.1, drop into `mods/` too. **Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — they complement each other, no conflict.** Add a shaderpack (e.g. BSL, Complementary) via `Options → Video Settings → Shader Packs` if you want shaders
+5. **(Recommended) Add Sodium + Iris** (from [Modrinth](https://modrinth.com/)) — **Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — they complement each other, no conflict.**
 6. **Launch** the Fabric profile. Verify it's active in `logs/latest.log`:
    ```
    [BenchMod] CoreSwap replace mode: C++ worldgen active
+   [CppBridge] init seed=... enabled=true
+   [CppBridge] initNether seed=... enabled=true
    ```
 
 ### Notes
 
 - **Server**: works on dedicated Fabric servers too — put the same jar in the server's `mods/` folder
 - **Forge**: supported via [Sinytra Connector](https://modrinth.com/mod/connector)
-- **FEATURES stage** (ores / decoration) is still vanilla — **NOISE+SURFACE** is bit-identical to vanilla
-- If you don't see the log lines above: check the jar is in `mods/`, MC is 1.20.1, Fabric Loader is 0.15.x, and Java is 17
+- The log line still says "C++ worldgen" for historical reasons — since 1.0.19 the native core is **Rust**
+- Overworld + Nether are engine-generated; other dimensions fall through to vanilla (End is protected from misrouting)
 
 ## Versioning
 
@@ -65,56 +71,59 @@ The repo is organized by **Minecraft Java version number**. Each version lives i
 ```
 CoreSwap/
 ├── README.md
+├── WorldgenRust/            # ← the Rust worldgen core (active)
+│   ├── src/                 # engine: density / aquifer / surface / carver / features / JNI bridge
+│   ├── build/               # build-time transpiler (vanilla JSON → native code)
+│   └── rust-dll/            # legacy artifacts (unused)
 └── versions/
-    ├── 1.20.1/          # ← current
-    │   ├── cpp/         # C++ core (noise + density field + surface rules)
-    │   └── data/        # worldgen JSON + reference block data (for verification)
+    ├── 1.20.1/              # ← current
+    │   ├── cpp/             # archived C++ core (historical reference)
+    │   ├── data/            # worldgen JSON + reference block data (for verification)
+    │   └── docs/            # engineering knowledge base (01-11 topic docs)
     └── <future versions>/
 ```
 
-> **Note**: `data/` is **not** distributed in the repo (it contains worldgen JSON exported from vanilla + reference block dumps; see "Building from source" below for how to obtain it). The C++ code compiles without it; the verification tools (`block_probe` etc.) need it at runtime.
+The Fabric mod project lives in [`runtime/1.20.1/java`](./runtime/1.20.1/java) (fabric-loom). Its build syncs the freshly compiled Rust dll into the mod jar automatically.
 
 ## Building from source
 
-The C++ core is **MSVC-only** (MinGW is not supported — `thread_local` semantics break under MinGW's static linking, corrupting the shared caches). CI-like requirements:
+**Toolchain (Windows x64):**
 
-- **Visual Studio 2022+** (MSVC C++ toolset, x64)
-- **JDK 17+** (only for the JNI bridge headers — `jni.h`; set `JAVA_HOME`)
-- **CMake 3.20+** and **Ninja**
-
-Build steps (Windows, from a **Developer PowerShell / cmd with vcvars64** loaded):
+- **Rust** (stable, `cargo`) — builds the native core
+- **JDK 17** — JNI headers + Fabric/loom builds
+- **Gradle 8.x** — mod packaging (fabric-loom 1.10)
 
 ```bat
-:: load the MSVC environment (VS 2022 example)
-call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-:: ninja must be on PATH (VS ships it under Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja)
+:: 1. build the Rust core (emits WorldgenRust.dll; also regenerates the
+::    transpiled density code from vanilla JSON via build.rs)
+cd WorldgenRust
+cargo build --release
 
-cd versions\1.20.1\cpp
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B build-msvc
-cmake --build build-msvc
+:: 2. build the Fabric mod (syncs the dll into the jar automatically)
+cd ..\runtime\1.20.1\java
+gradle build
+:: jar lands in build\libs\coreswap-1.20.1-*.jar
 ```
 
-Outputs land in `build-msvc\bin\` (`block_probe.exe`, `worldgen.dll`, etc.).
-
-**To run the verification tools** you also need the worldgen data directory (`versions/1.20.1/data/worldgen` — vanilla's `worldgen` JSON tree) and `blocks.json` + reference `.blocks` dumps. These are exported from a vanilla 1.20.1 server/client (the `data/minecraft/worldgen` folder inside the jar) and regenerated per-seed with the probe tools; they are intentionally kept out of the repo. Contact the maintainers if you need a copy.
+The transpiler inside `build.rs` reads `versions/1.20.1/data/worldgen` (vanilla's worldgen JSON tree) at build time. Verification probes (`WorldgenRust/src/bin/*`) additionally need `blocks.json` + reference `.blocks` dumps — exported from a vanilla 1.20.1 server; intentionally kept out of the repo.
 
 ## How It Works
 
-The C++ core reconstructs the density field exactly as vanilla does:
+The Rust core reconstructs the density field following vanilla's exact semantics:
 
-- **Noise primitives**: Xoroshiro128PlusPlus RNG, MD5-based seed derivation, Perlin / octave / double-perlin samplers — bit-identical to Mojang's implementation
-- **Density function tree**: assembled at runtime from vanilla's `worldgen` JSON (`noise_settings/overworld.json` + `density_function/overworld/*.json`), mirroring `NoiseConfig`'s visitor semantics
-- **InterpolatedNoiseSampler** (`old_blended_noise`): the terrain backbone, reproduced exactly
-
-No tolerance was needed: the C++ density field matches vanilla to the exact IEEE double.
+- **Noise primitives**: Xoroshiro128PlusPlus RNG, MD5-based seed derivation, Perlin / octave / double-perlin samplers — matching Mojang's implementation
+- **Density function tree**: loaded at runtime from vanilla's `worldgen` JSON (`noise_settings/<dim>.json` + `density_function/<dim>/*.json`), mirroring `NoiseConfig`'s visitor semantics — **data-driven, no per-dimension code** (multi-world ready)
+- **Build-time transpiler** (`build.rs`): compiles the same JSON into specialized native functions (splines inlined, caches resolved, CSE'd) — a second, independent evaluation path used as a correctness oracle and wired into production behind an env gate
+- **Block pipeline**: density → aquifer → ore veins → surface rules → carvers → features, mirroring vanilla stage semantics (including dual noise/world heights for the Nether)
 
 ## Roadmap
 
-1. ✅ **JNI bridge**: bulk chunk data exchange
+1. ✅ **JNI bridge**: bulk chunk data exchange (now in Rust)
 2. ✅ **Block layer**: density → block states (surface rules + chunk fill)
 3. ✅ **Integration**: installable Fabric mod / server plugin
-4. **Memory optimization**: compact arrays + indexing + cache-friendly layouts (projected 2-5× more)
-5. **Entity AI / pathfinding**: second core to C++-ify (community precedent: JNI-accelerated pathfinding)
+4. ✅ **Multi-world**: Nether engine + in-game dimension dispatch (End next)
+5. **Nether polish**: fluid fill (lava oceans), bedrock edge layers
+6. **Entity AI / pathfinding**: second core to nativify
 
 ## Credits
 
