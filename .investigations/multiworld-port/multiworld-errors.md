@@ -424,6 +424,19 @@
 | 同 seed 竖切 density 残差：cell 角点全 0、中间点 ±0.01~0.08、y≥128 恒值不饱和（M12 补遗二） | **工具语义陷阱**：Java DensityProbe 纯 `df.sample` 直采 vs Rust 竖切走生产插值路径——两侧采样语义不同，中间点/y≥128 的「残差」是语义差非实现错；旧「残差随 y 增长」结论 = seed 错位（M11）+ 语义差复合假象，已推翻 | **跨工具对比先声明两侧采样语义（纯函数/插值/网格）**——「⚠️ 探针采集核对铁律」的采样语义扩展：seed 一致 → 采样语义一致 → 逐节点公式，三层递进，前两层收敛就不进第三层；**cell 角点（插值端点）对齐 = 形状主体对齐的充分判据**，中间点差优先怀疑语义 |
 
 
+
+---
+
+## A 部分：追加小节正文
+
+> 主会话应用方式：① 下面「A 部分」整段插入 **M12 补遗二 之后、`## 附：错误 → 根因 速查表` 之前**；② 「B 部分」表格行追加到速查表末尾。
+> 本条是同日后续，且是本文件此前所有 nether 对齐工作的收口性突破。
+> 产出者：knowledge 落盘 subagent（2026-08-31）。数据源：主会话 M13 实测记录（nether 82.51%→96.0568%、bedrock 残差 10288→4011、分带数据）。
+
+# draft-multiworld-errors-m13 —— M13 追加 multiworld-errors.md（2026-08-31，status: candidate）
+| nether 卡 82%、多带同时残差（y32..95 低至 55~66%）、bedrock roof/floor 整层缺失（混淆对 10288@y96..）（M13） | surface_rule JSON 数据驱动解析器不支持 `vertical_gradient` 条件类型 → nether.json 的 bedrock_floor/bedrock_roof 分支解析返回 None 被**整条静默跳过**（仅一行 WARN 被海量警告淹没）→ 顶部/底部 bedrock 层及规则链涂布全缺；附带：`below_top(N)` 的 height 误传 world_height(256) 致 roof 锚越界（须用 noise_height 128） | **「多带同时残差 + 特定块类缺失」优先查规则解析覆盖率，不逐带调参**——数据驱动解析器静默跳过分支是高危反模式，新数据文件接入 MUST 断言 [PARSE-WARN] 计数为 0，不能只看总分（总分被其它层掩盖，+13.5pp 一步修复）；**锚换算的 height 用逻辑生成高度（nether 128），不混用 world_height 256**（M3 同族） |
+
+
 ## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
 |---|---|---|
@@ -443,3 +456,4 @@
 | Java t 符号相反 / h≈0，推导出「Octave createLegacy 缺口」结论链，后被同 seed 重比推翻（M11【复发·第3次】） | 跨工具对比用了不同 worldSeed（Java 探针跑 server world -2032795982907864146，Rust 探针用参照 seed -8248318472910187742）；派生噪声与 worldSeed 相关 → seed 不同则派生值全不同，seed 错位假象长得像实现 bug；固定种子特例不受影响 → 混合正确与错误证据带偏定位多个循环 | **seed/坐标错位类错误第 3 次复发**——铁律（seed 三查）存在但没套到「Java↔Rust 跨工具数值对比」场景。修正：**任何跨工具数值对比的第一动作 = 核对两侧 worldSeed 一致**（对比前，非得出怪结论后）；判据：出现**符号翻转/量级级差异**先怀疑 seed/坐标错位再怀疑实现；对比工具链强制 seed 自检（探针输出自带 seed + 脚本核对，人眼核对已三犯不可靠） |
 | M11 修正后 t 残差 0.094（shift/派生/参数表全对齐仍不收敛）（M12） | legacy temperature 特例种子源按 yarn sources 字面 0L 实现，而运行时实测为 **worldSeed**（S8 try-seed sweep：seed=worldSeed origins 与 Java router 逐位一致；seed=0/×2 不符）；修后 t 残差 0.094→0.0005（f32 级），nether 82.72% 中性、overworld 零回归 | **种子源必须逐维 try-seed 实测定案，不能同模式类推**（vegetation 套用 worldSeed 立即翻车：h=+0.078 与 t 全同而 Java t≠h，已回滚）；**record 字段 ≠ sampler 实际来源**（noiseData 显示注册表参数、firstSampler 已是 visitor 特例——字段形状+行为对照才是定案手段）；**sources 字面 ≠ 运行时行为**（实测优先于源码字面） |
 | 同 seed 竖切 density 残差：cell 角点全 0、中间点 ±0.01~0.08、y≥128 恒值不饱和（M12 补遗二） | **工具语义陷阱**：Java DensityProbe 纯 `df.sample` 直采 vs Rust 竖切走生产插值路径——两侧采样语义不同，中间点/y≥128 的「残差」是语义差非实现错；旧「残差随 y 增长」结论 = seed 错位（M11）+ 语义差复合假象，已推翻 | **跨工具对比先声明两侧采样语义（纯函数/插值/网格）**——「⚠️ 探针采集核对铁律」的采样语义扩展：seed 一致 → 采样语义一致 → 逐节点公式，三层递进，前两层收敛就不进第三层；**cell 角点（插值端点）对齐 = 形状主体对齐的充分判据**，中间点差优先怀疑语义 |
+| nether 卡 82%、多带同时残差（y32..95 低至 55~66%）、bedrock roof/floor 整层缺失（混淆对 10288@y96..）（M13） | surface_rule JSON 数据驱动解析器不支持 `vertical_gradient` 条件类型 → nether.json 的 bedrock_floor/bedrock_roof 分支解析返回 None 被**整条静默跳过**（仅一行 WARN 被海量警告淹没）→ 顶部/底部 bedrock 层及规则链涂布全缺；附带：`below_top(N)` 的 height 误传 world_height(256) 致 roof 锚越界（须用 noise_height 128） | **「多带同时残差 + 特定块类缺失」优先查规则解析覆盖率，不逐带调参**——数据驱动解析器静默跳过分支是高危反模式，新数据文件接入 MUST 断言 [PARSE-WARN] 计数为 0，不能只看总分（总分被其它层掩盖，+13.5pp 一步修复）；**锚换算的 height 用逻辑生成高度（nether 128），不混用 world_height 256**（M3 同族） |
