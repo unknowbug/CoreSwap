@@ -366,10 +366,10 @@ impl DensityBuilder {
             "minecraft:blend_offset" => DensityFunction::BlendOffset,
             "minecraft:blend_density" => DensityFunction::BlendDensity { input: Box::new(self.build_node(self.arg(v, "argument"))?) },
             "minecraft:old_blended_noise" => {
-                // legacy（下界）：Java copyWithRandom(createRandom(0)) = CheckedRandom(0)（NoiseConfig visitor）
-                //   而非 split("minecraft:terrain")（overworld 路径）——legacy blended 种子固定 0。
-                let mut rnd = if self.legacy_random && std::env::var("WG_LEGACY_CLIMATE").is_ok() {
-                    RsRandom::Legacy(LegacyRandom::new(0))
+                // legacy（下界）：S8 try-seed 模式定案——blended 实际种子 = worldSeed（同 temperature，
+                // 字面 0L 在运行时即 worldSeed 源）；无门控（density 竖切 y 残差消融验证）。
+                let mut rnd = if self.legacy_random {
+                    RsRandom::Legacy(LegacyRandom::new(self.seed as i64))
                 } else {
                     self.random_deriver.split_str("minecraft:terrain")
                 };

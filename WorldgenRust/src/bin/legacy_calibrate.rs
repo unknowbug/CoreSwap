@@ -150,6 +150,19 @@ fn main() {
         println!("seed={} ({}): [0]={} [1]={} sample(3,0,0)={:.6}", s, label, s0, s1, rt9);
         let _ = &mut rt9;
     }
+    // ===== S10: blended 列对拍（LocalRandom(worldSeed), (8,y,8)）=====
+    println!("=== S10: blended column @ (8,y,8) ===");
+    let mut rb = RsRandom::Legacy(LegacyRandom::new(-2032795982907864146));
+    let amp_lb = vec![1.0; 16];
+    let amp_ib = vec![1.0; 8];
+    let lowerb = OctavePerlinNoiseSampler::new_legacy(&mut rb, -15, &amp_lb);
+    let upperb = OctavePerlinNoiseSampler::new_legacy(&mut rb, -15, &amp_lb);
+    let interpb = OctavePerlinNoiseSampler::new_legacy(&mut rb, -7, &amp_ib);
+    let bnb = WorldgenRust::density::InterpolatedNoiseData::new(lowerb, upperb, interpb, 0.25, 0.375, 80.0, 60.0, 8.0);
+    for y in (0..128).step_by(8) {
+        let v = bnb.sample(&WorldgenRust::density::NoisePos { x: 8, y, z: 8 });
+        println!("[BLEND] y={} {:.6}", y, v);
+    }
     // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
     // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
     println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
@@ -185,6 +198,7 @@ fn main() {
     }
     let _ = upper;
 }
+
 
 
 
