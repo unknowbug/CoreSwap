@@ -1002,6 +1002,13 @@ impl<'a> SurfaceBuilder<'a> {
                 return Some(SurfaceCond::AboveY { anchor_y, mult: 0, add_stone_depth });
             }
         }
+        if type_name.contains("vertical_gradient") {
+            if let Some(name) = j.get("random_name").and_then(|x| x.as_str()) {
+                let true_y = j.get("true_at_and_below").map(|a| Self::parse_anchor_abs_y(a, min_y, height)).unwrap_or(i32::MIN);
+                let false_y = j.get("false_at_and_above").map(|a| Self::parse_anchor_abs_y(a, min_y, height)).unwrap_or(i32::MAX);
+                return Some(SurfaceCond::VerticalGradient { name: name.to_string(), true_y, false_y });
+            }
+        }
         if type_name.contains("stone_depth") {
             return Some(SurfaceCond::StoneDepth {
                 offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
@@ -1381,6 +1388,7 @@ pub fn biome_temperature(biome_id: &str) -> f64 {
 //   - SurfaceBuilder::build_surface ↔ C++ L685-811（逐列扫描 + pillar + 规则应用）
 //   - SurfaceBuilder::place_badlands_pillar ↔ C++ L813-850
 //   - biome_temperature ↔ C++ biomeTemp 用法（TempCond < 0.15）
+
 
 
 

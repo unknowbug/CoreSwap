@@ -223,7 +223,7 @@ impl WorldgenHandle {
             sb.build_overworld_rule()
         } else {
             match settings.get("surface_rule") {
-                Some(sr) => sb.parse_surface_rule(&sr, min_y, height).unwrap_or_else(|| sb.build_overworld_rule()),
+                Some(sr) => sb.parse_surface_rule(&sr, min_y, noise_height).unwrap_or_else(|| sb.build_overworld_rule()),
                 None => sb.build_overworld_rule(),
             }
         };
@@ -653,6 +653,7 @@ impl WorldgenHandle {
         placed_count
     }
 }
+
 
 
 
