@@ -160,8 +160,13 @@ impl DensityBuilder {
         // legacy 下 temperature → createLegacy(LegacyRandom(worldSeed), (-7,[1,1]))（S8 try-seed 定案：
         // Java router 实测 firstSampler origins [21.877382/47.402641] 与 seed=worldSeed 逐位一致——
         // 真实运行时 visitor 的种子源是 worldSeed，非 yarn sources 字面的 0L（M11 消融，2026-08-31））。
-        if self.legacy_random && key == "minecraft:temperature" {
-            let mut rnd = RsRandom::Legacy(LegacyRandom::new(self.seed as i64));
+        // legacy climate 特例（S8/S9 try-seed 实测定案 2026-08-31）：
+        // temperature → createLegacy(LegacyRandom(worldSeed), (-7,[1,1]))
+        // vegetation  → createLegacy(LegacyRandom(worldSeed+1), (-7,[1,1]))
+        // 模式：yarn sources 字面 createRandom(NL) 运行时实际 = worldSeed + N。
+        if self.legacy_random && (key == "minecraft:temperature" || key == "minecraft:vegetation") {
+            let offset_n = if key == "minecraft:temperature" { 0i64 } else { 1i64 };
+            let mut rnd = RsRandom::Legacy(LegacyRandom::new(self.seed as i64 + offset_n));
             let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::new_legacy(&mut rnd, -7, &[1.0, 1.0]));
             self.noise_samplers.insert(key.to_string(), sampler.clone());
             return sampler;
@@ -443,6 +448,7 @@ pub fn build_node(v: &JsonValue) -> Result<DensityFunction, String> {
     let mut db = DensityBuilder::new(0, -64, 384);
     db.build_node(v)
 }
+
 
 
 
