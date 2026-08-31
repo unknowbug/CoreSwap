@@ -3,7 +3,7 @@
 use WorldgenRust::worldgen_handle::WorldgenHandle;
 
 fn main() {
-    let seed: i64 = -8248318472910187742;
+    let seed: i64 = std::env::var("WG_SEED").ok().and_then(|s| s.parse::<i64>().ok()).unwrap_or(-8248318472910187742);
     let wg_dir = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen";
     let h = match WorldgenHandle::create_for_dim(seed, wg_dir, "nether.json", "biome_params_nether.json", 256) {
         Some(h) => h,
@@ -21,5 +21,6 @@ fn main() {
     }
 
 }
+
 
 
