@@ -30,3 +30,14 @@ LegacyRandom(0)+new_legacy(-7,[1,1]) 在同坐标的逐点值。
   shift 采样还有未对齐语义（或 OFFSET 特例的实际效果是「DoublePerlin 退化为 -7 单 octave Perlin」
   而非恒 0——需 Java 侧打印 router.temperature 的展开树确认）
 - 下轮消融：Java 反射 router.temperature()（ShiftedNoise）的 shiftX/shiftZ 分量采样值 + 树展开
+
+## seed 错位修正 + t/h 残差重测（2026-08-31）
+
+**方法学错误**：BIOME6（Java）跑在 run/server world seed=-2032795982907864146 上，Rust 探针用参照 seed=-8248318472910187742——跨工具对比用了不同 worldSeed，「t 符号相反/h≈0」全部是 seed 错位假象！（探针采集核对铁律 seed 三查的跨工具新实例）
+
+**同 seed 重比**（seed=-2032795982907864146, (12,1,0)）：
+- t：Java +0.0775 / Rust +0.171（差 0.094，符号一致）
+- h：Java -0.1533 / Rust -0.187（差 0.034，量级一致）
+- shiftX/Y/Z：Java 直采全恒 0（OFFSET 特例生效）——与 Rust offset 常规派生路径可能仍有差（待对拍 offset 采样值）
+
+**重估**：h 量级一致 → vegetation 采样链基本对齐；t 残差 0.09 → temperature 链仍有具体差异（noise_params 表 vs 注册表 / shift 细节）。soul_sand 残差的定性需重估（两边最近邻都判 nether_wastes，但 vanilla 参照块是 soul_sand → 可能来自 features 层而非表面/biome 层——新方向）。
