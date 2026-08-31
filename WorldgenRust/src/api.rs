@@ -95,7 +95,6 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
     let cxs = unsafe { std::slice::from_raw_parts(chunk_xs, count) };
     let czs = unsafe { std::slice::from_raw_parts(chunk_zs, count) };
     let out_ptrs = unsafe { std::slice::from_raw_parts(outs, count) };
-    let block_count = (16 * 16 * HEIGHT) as usize;
     let nthreads = adaptive_threads(threads, count);
 
     let h_arc = std::sync::Arc::new(h);
@@ -112,7 +111,9 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
                 let mut i = t;
                 while i < count {
                     let blocks = h.fill_chunk_blocks(cxs[i], czs[i]);
-                    outs[i].write(&blocks[..block_count]);
+                    // ⚠️ 按 handle 实际高度填充（nether 256×256=65536），切片长度不能假设 overworld 384
+                    // （M13 后续：下界实机崩溃 = &blocks[..98304] 越界 65536 长的调用方 buffer → abort）
+                    outs[i].write(&blocks);
                     i += nthreads;
                 }
             });
@@ -155,7 +156,10 @@ pub extern "C" fn wg_density_y_interval(_h: *mut c_void) -> c_int { Y_INTERVAL }
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_min_y(_h: *mut c_void) -> c_int { MIN_Y }
 #[unsafe(no_mangle)]
-pub extern "C" fn wg_height(_h: *mut c_void) -> c_int { HEIGHT }
+pub extern "C" fn wg_height(h: *mut c_void) -> c_int {
+    if h.is_null() { return HEIGHT; }
+    unsafe { (*(h as *const WorldgenHandle)).height }
+}
 #[unsafe(no_mangle)]
 pub extern "C" fn wg_density_points_per_chunk(_h: *mut c_void) -> c_int { POINTS_PER_CHUNK }
 
@@ -171,3 +175,4 @@ pub extern "C" fn wg_fill_density(handle: *mut c_void, min_chunk_x: c_int, min_c
     dst.copy_from_slice(&points);
     POINTS_PER_CHUNK
 }
+
