@@ -410,6 +410,20 @@
 ---
 
 
+### M12 补遗二：同 seed 竖切定案——cell 角点全对齐，「density 残差」大部分是工具语义陷阱（2026-08-31，status: candidate）
+
+## A 部分：追加小节正文
+
+---
+
+> status: candidate（数据源：cmd-output/nether_density_rust_same_seed.txt、nether_confusion_v3_postfix.txt）。
+> `## 附：错误 → 根因 速查表` 之前；② 「B 部分」表格行追加到速查表末尾。
+> `multiworld-errors.md` 的 M12 节（`## M12. legacy temperature 噪声种子源定案…`）之后、
+> 产出者：knowledge 落盘 subagent（2026-08-31）。主会话应用方式：① 下面「A 部分」整段插入
+
+| 同 seed 竖切 density 残差：cell 角点全 0、中间点 ±0.01~0.08、y≥128 恒值不饱和（M12 补遗二） | **工具语义陷阱**：Java DensityProbe 纯 `df.sample` 直采 vs Rust 竖切走生产插值路径——两侧采样语义不同，中间点/y≥128 的「残差」是语义差非实现错；旧「残差随 y 增长」结论 = seed 错位（M11）+ 语义差复合假象，已推翻 | **跨工具对比先声明两侧采样语义（纯函数/插值/网格）**——「⚠️ 探针采集核对铁律」的采样语义扩展：seed 一致 → 采样语义一致 → 逐节点公式，三层递进，前两层收敛就不进第三层；**cell 角点（插值端点）对齐 = 形状主体对齐的充分判据**，中间点差优先怀疑语义 |
+
+
 ## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
 |---|---|---|
@@ -428,3 +442,4 @@
 
 | Java t 符号相反 / h≈0，推导出「Octave createLegacy 缺口」结论链，后被同 seed 重比推翻（M11【复发·第3次】） | 跨工具对比用了不同 worldSeed（Java 探针跑 server world -2032795982907864146，Rust 探针用参照 seed -8248318472910187742）；派生噪声与 worldSeed 相关 → seed 不同则派生值全不同，seed 错位假象长得像实现 bug；固定种子特例不受影响 → 混合正确与错误证据带偏定位多个循环 | **seed/坐标错位类错误第 3 次复发**——铁律（seed 三查）存在但没套到「Java↔Rust 跨工具数值对比」场景。修正：**任何跨工具数值对比的第一动作 = 核对两侧 worldSeed 一致**（对比前，非得出怪结论后）；判据：出现**符号翻转/量级级差异**先怀疑 seed/坐标错位再怀疑实现；对比工具链强制 seed 自检（探针输出自带 seed + 脚本核对，人眼核对已三犯不可靠） |
 | M11 修正后 t 残差 0.094（shift/派生/参数表全对齐仍不收敛）（M12） | legacy temperature 特例种子源按 yarn sources 字面 0L 实现，而运行时实测为 **worldSeed**（S8 try-seed sweep：seed=worldSeed origins 与 Java router 逐位一致；seed=0/×2 不符）；修后 t 残差 0.094→0.0005（f32 级），nether 82.72% 中性、overworld 零回归 | **种子源必须逐维 try-seed 实测定案，不能同模式类推**（vegetation 套用 worldSeed 立即翻车：h=+0.078 与 t 全同而 Java t≠h，已回滚）；**record 字段 ≠ sampler 实际来源**（noiseData 显示注册表参数、firstSampler 已是 visitor 特例——字段形状+行为对照才是定案手段）；**sources 字面 ≠ 运行时行为**（实测优先于源码字面） |
+| 同 seed 竖切 density 残差：cell 角点全 0、中间点 ±0.01~0.08、y≥128 恒值不饱和（M12 补遗二） | **工具语义陷阱**：Java DensityProbe 纯 `df.sample` 直采 vs Rust 竖切走生产插值路径——两侧采样语义不同，中间点/y≥128 的「残差」是语义差非实现错；旧「残差随 y 增长」结论 = seed 错位（M11）+ 语义差复合假象，已推翻 | **跨工具对比先声明两侧采样语义（纯函数/插值/网格）**——「⚠️ 探针采集核对铁律」的采样语义扩展：seed 一致 → 采样语义一致 → 逐节点公式，三层递进，前两层收敛就不进第三层；**cell 角点（插值端点）对齐 = 形状主体对齐的充分判据**，中间点差优先怀疑语义 |
