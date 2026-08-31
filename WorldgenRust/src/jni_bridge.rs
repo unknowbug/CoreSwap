@@ -133,8 +133,13 @@ pub extern "system" fn Java_wg_CppWorldgen_fillBlocks<'frame>(
             env.get_int_array_region(&chunk_xs, 0, &mut cxs)?;
             env.get_int_array_region(&chunk_zs, 0, &mut czs)?;
 
-            // 本地 buffer（每 chunk 一个 int[16*16*384]）
-            let mut local: Vec<Vec<i32>> = (0..count).map(|_| vec![0i32; BLOCK_COUNT]).collect();
+            // 本地 buffer：按 Java 侧 out 数组的实际长度分配（overworld 98304 / nether 65536）。
+            // ⚠️ 历史根因（M13 后续）：硬编码 BLOCK_COUNT(384 高=98304)——nether 时 dll 写前 65536 正确，
+            // 但拷回 set_int_array_region 把 98304 长数据拷进 65536 的 Java 数组 → 越界被 jni crate 拒绝、
+            // 错误被 let _ 吞掉 → Java 数组保持全 0 → 实机下界「一片虚空」（overworld 长度恰好相等从未暴露）。
+            let out0 = env.get_object_array_element(&outs, 0)?;
+            let out_len = env.get_array_length(&out0)? as usize;
+            let mut local: Vec<Vec<i32>> = (0..count).map(|_| vec![0i32; out_len]).collect();
             let mut bufs: Vec<*mut c_int> = local.iter_mut().map(|v| v.as_mut_ptr()).collect();
 
             let r = wg_fill_blocks_multi(
@@ -146,11 +151,11 @@ pub extern "system" fn Java_wg_CppWorldgen_fillBlocks<'frame>(
                 threads,
             );
 
-            // 主线程拷回 Java 数组
+            // 主线程拷回 Java 数组（长度匹配；错误不吞——对齐「不吞异常」铁律）
             let r = r as usize;
             for i in 0..r.min(count) {
                 if let Ok(arr) = env.get_object_array_element(&outs, i) {
-                    let _ = env.set_int_array_region(&arr, 0, &local[i]);
+                    env.set_int_array_region(&arr, 0, &local[i])?;
                 }
             }
             Ok(r as jint)

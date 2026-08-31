@@ -109,8 +109,14 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
             let outs = outs_arc.clone();
             s.spawn(move || {
                 let mut i = t;
+                let dbg = std::env::var("WG_DEBUG").is_ok();
                 while i < count {
                     let blocks = h.fill_chunk_blocks(cxs[i], czs[i]);
+                    if dbg {
+                        let nz = blocks.iter().filter(|&&v| v != 0).count();
+                        // 采样 y=32/64/96 三个点的 density 组成参考（首列 x=0,z=0）
+                        eprintln!("[WG-DBG] fill chunk({},{}) nonzero={}/{}", cxs[i], czs[i], nz, blocks.len());
+                    }
                     // ⚠️ 按 handle 实际高度填充（nether 256×256=65536），切片长度不能假设 overworld 384
                     // （M13 后续：下界实机崩溃 = &blocks[..98304] 越界 65536 长的调用方 buffer → abort）
                     outs[i].write(&blocks);
@@ -175,4 +181,5 @@ pub extern "C" fn wg_fill_density(handle: *mut c_void, min_chunk_x: c_int, min_c
     dst.copy_from_slice(&points);
     POINTS_PER_CHUNK
 }
+
 
