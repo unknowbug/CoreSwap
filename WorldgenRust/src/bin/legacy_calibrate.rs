@@ -92,6 +92,24 @@ fn main() {
     let mut rt = sp.split_str("minecraft:temperature");
     let vals: Vec<i32> = (0..4).map(|_| rt.next(32)).collect();
     println!("[SPLIT] temp stream: {:?}", vals);
+    // ===== S7: temperature DoublePerlin modern Octave 对拍 =====
+    // Java: OctavePerlinNoiseSampler.create(splitter.split("minecraft:temperature"), -10, [1.5,0,1,0,0,0])
+    println!("=== S7: temperature modern Octave origins ===");
+    let ws7: i64 = -2032795982907864146;
+    let mut lr7 = LegacyRandom::new(ws7);
+    let mut rr7 = RsRandom::Legacy(lr7);
+    let sp7 = rr7.next_splitter();
+    let mut r7 = sp7.split_str("minecraft:temperature");
+    let amp_t7 = vec![1.5, 0.0, 1.0, 0.0, 0.0, 0.0];
+    let oct7 = OctavePerlinNoiseSampler::new(&mut r7, -10, &amp_t7);
+    for octave in 0..6 {
+        match oct7.get_octave(octave) {
+            Some(p) => { let o = p.origin(); println!("tempoct oct{}: origin=({:.6},{:.6},{:.6})", octave, o.0, o.1, o.2); }
+            None => println!("tempoct oct{}: <null>", octave),
+        }
+    }
+    let v = oct7.sample(3.0, 0.0, 0.0);
+    println!("tempoct sample(3,0,0) = {:.6}", v);
     // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
     // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
     println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
@@ -127,6 +145,8 @@ fn main() {
     }
     let _ = upper;
 }
+
+
 
 
 
