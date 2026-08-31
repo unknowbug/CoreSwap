@@ -23,3 +23,10 @@ first mismatches (x,y,z, got, want): [(12, 1, 0, 256, 257), (10, 1, 1, 256, 257)
   y0..: id849 -> netherrack : 1396
   y32..: soul_sand -> id258 : 1360
   y0..: id607 -> netherrack : 1306
+
+## 残差最终定性（2026-08-31）
+- magma_block（1306）：nether.json 无此规则 → features 层装饰放置（未对齐的确认实例）
+- blackstone（1396）：nether_state_selector 阈值分支（basalt/blackstone sequence）——阈值边界精修项
+- soul_sand/soul_soil（≈9200）：noise_threshold 阈值边界（输入已对齐，边界微差）
+- lava 湖边界（4558）+ cave_air 空腔（1648）：洞窟/湖形状边界
+- bedrock 随机带（4011）：123..126 随机层微差（主层已修）
