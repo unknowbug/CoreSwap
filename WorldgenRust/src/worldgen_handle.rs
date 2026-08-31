@@ -306,6 +306,10 @@ impl WorldgenHandle {
 
     // finalDensity 网格采样（wg_fill_density / fillDensity 用）：
     // size×size chunks，每 chunk POINTS_PER_CHUNK 点（XZ_INTERVAL/Y_INTERVAL 网格），chunk-major。
+    /// 精确 density 采样（tree.sample 纯函数，无网格插值）——对齐 Java DensityProbe 的 df.sample 语义
+    pub fn sample_density_exact(&self, x: i32, y: i32, z: i32) -> f64 {
+        self.tree.sample(&crate::density::NoisePos { x, y, z })
+    }
     pub fn fill_density(&self, min_chunk_x: i32, min_chunk_z: i32, size: i32) -> Vec<f64> {
         let xz = crate::api::density_xz_interval();
         let yi = crate::api::density_y_interval();
@@ -649,6 +653,7 @@ impl WorldgenHandle {
         placed_count
     }
 }
+
 
 
 
