@@ -152,10 +152,17 @@ impl DensityBuilder {
     pub fn get_noise_sampler(&mut self, key: &str) -> Arc<DoublePerlinNoiseSampler> {
         if let Some(s) = self.noise_samplers.get(key) { return s.clone(); }
         // legacy 下 offset → 恒 0（M11 消融实测：Java ShiftedNoise shiftX/Y/Z 全恒 0，BIOME6 树 dump）。
-        // vanilla NoiseParametersKeys.OFFSET 注册参数即 (0, [0.0]) 振幅全零 → shift_x/shift_z 无偏移。
-        // ⚠️ temperature/vegetation 不做特例替换——M11 前的「固定种子特例」是 seed 错位对比的误产物（M11 五段式）。
         if self.legacy_random && key == "minecraft:offset" {
             let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::zero());
+            self.noise_samplers.insert(key.to_string(), sampler.clone());
+            return sampler;
+        }
+        // legacy 下 temperature → createLegacy(LegacyRandom(worldSeed), (-7,[1,1]))（S8 try-seed 定案：
+        // Java router 实测 firstSampler origins [21.877382/47.402641] 与 seed=worldSeed 逐位一致——
+        // 真实运行时 visitor 的种子源是 worldSeed，非 yarn sources 字面的 0L（M11 消融，2026-08-31））。
+        if self.legacy_random && key == "minecraft:temperature" {
+            let mut rnd = RsRandom::Legacy(LegacyRandom::new(self.seed as i64));
+            let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::new_legacy(&mut rnd, -7, &[1.0, 1.0]));
             self.noise_samplers.insert(key.to_string(), sampler.clone());
             return sampler;
         }
@@ -436,6 +443,8 @@ pub fn build_node(v: &JsonValue) -> Result<DensityFunction, String> {
     let mut db = DensityBuilder::new(0, -64, 384);
     db.build_node(v)
 }
+
+
 
 
 

@@ -110,6 +110,24 @@ fn main() {
     }
     let v = oct7.sample(3.0, 0.0, 0.0);
     println!("tempoct sample(3,0,0) = {:.6}", v);
+    // ===== S8: try-seed sweep——对照 Java router 实测 firstSampler origins [21.877383, 47.402641] =====
+    println!("=== S8: try-seed sweep (createLegacy(seed, -7, [1,1])) ===");
+    let ws8: i64 = -2032795982907864146;
+    let candidates: Vec<(&str, i64)> = vec![
+        ("0", 0),
+        ("worldSeed", ws8),
+        ("worldSeed*2", ws8.wrapping_mul(2)),
+        ("worldSeed+worldSeed", ws8.wrapping_add(ws8)),
+    ];
+    for (label, s) in candidates {
+        let mut rr = RsRandom::Legacy(LegacyRandom::new(s));
+        let oct = OctavePerlinNoiseSampler::new_legacy(&mut rr, -7, &[1.0, 1.0]);
+        let o0 = oct.get_octave(1).map(|p| p.origin());  // samplers[0]（数组序）
+        let o1 = oct.get_octave(0).map(|p| p.origin());  // samplers[1]
+        let s0 = match o0 { Some(o) => format!("({:.6},{:.6},{:.6})", o.0, o.1, o.2), None => "<null>".into() };
+        let s1 = match o1 { Some(o) => format!("({:.6},{:.6},{:.6})", o.0, o.1, o.2), None => "<null>".into() };
+        println!("seed={} ({}): samplers[0]={} samplers[1]={}", s, label, s0, s1);
+    }
     // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
     // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
     println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
@@ -145,6 +163,7 @@ fn main() {
     }
     let _ = upper;
 }
+
 
 
 
