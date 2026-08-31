@@ -83,6 +83,15 @@ fn main() {
         let v = dp2.sample(x as f64 * 0.25, 0.0, z as f64 * 0.25);
         println!("({},{},{}) -> {:.6}", x, y, z, v);
     }
+    // ===== S6: split 链对拍（worldSeed = -2032795982907864146）=====
+    println!("=== S6: split chain (LocalRandom(ws).nextSplitter().split_str) ===");
+    let ws: i64 = -2032795982907864146;
+    let mut lr = LegacyRandom::new(ws);
+    let sp = lr.next_splitter();
+    println!("[SPLIT] worldSeed={} splitterSeed={}", ws, sp.seed);
+    let mut rt = sp.split_str("minecraft:temperature");
+    let vals: Vec<i32> = (0..4).map(|_| rt.next(32)).collect();
+    println!("[SPLIT] temp stream: {:?}", vals);
     // ===== S4: blended（old_blended_noise）legacy 构造逐 octave 对拍 =====
     // Java: lower/upper = createLegacy(-15, [1 x16]), interp = createLegacy(-7, [1 x8])，同一 CheckedRandom(0) 连续消耗
     println!("=== S4: blended Octave origins (CheckedRandom(0) 连续消耗) ===");
@@ -118,6 +127,7 @@ fn main() {
     }
     let _ = upper;
 }
+
 
 
 
