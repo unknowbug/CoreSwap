@@ -7,6 +7,13 @@ fn main() {
         Some(h) => h,
         None => { println!("[FAIL] create_for_dim"); return; }
     };
+    // 负坐标 fill 统计（对照 JniProbe 正坐标 1.5-2.4 万非零）
+    println!("=== 负坐标 fill_chunk_blocks 非零统计（server seed）===");
+    for (cx, cz) in [(-28i32, 4i32), (-28, 5), (-27, 4), (-30, 6), (1, 1), (2, 1)] {
+        let b = h.fill_chunk_blocks(cx, cz);
+        let nz = b.iter().filter(|&&v| v != 0).count();
+        println!("chunk({},{}) nonzero={}/{}", cx, cz, nz, b.len());
+    }
     let blocks = h.fill_chunk_blocks(1, 1);
     let n = blocks.len();
     let height = n / 256;
@@ -26,3 +33,4 @@ fn main() {
         println!("y={:<4} air={:<4} 顶部:{}", y, air, top);
     }
 }
+
