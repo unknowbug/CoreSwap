@@ -98,3 +98,13 @@ Java `Math.floorDiv / Math.floorMod` 与 C++ `/ %`（截断除法）在负坐标
 - **JVM 进程（jvm.dll 已加载）不装 VEH 崩溃日志 handler**；检测 `GetModuleHandleA("jvm.dll")` 非空则跳过
 - JVM 侧崩溃交给 JVM 自带 hs_err（含 native 栈 dll 偏移）兜底——仍满足「崩溃可定位」
 - 独立原生进程可安全使用 VEH + StackWalk64
+
+## 发现 #6: 跨层 id 域错位（raw block id vs global state id）——Minecraft mod 写入存档的判据
+
+- **发现时间**：2026-09-01；**发现者**：worker（multiworld-port M16）；**来源定位**：`.investigations/multiworld-port/multiworld-errors.md` M16 + snapshot-CppBridge-m16fix.java；**置信度**：candidate（闭环判据实锤；confirmed 待用户拍板）；**module**：re-code / swe（JNI/FFI 跨语言边界）。
+- **观察**：MC 存在 raw block id（`getRawId`，注册表序）与 global state id（`STATE_IDS`，blockstate 展平序）两套域；跨层传 id 中间某跳换域而无声明 → 低 id 区（经典块）恰好命中、高 id 区（nether/新块）全面错位，信号是「不相干方块成片」而非崩溃。
+- **证据**：nether 存档 oak_leaves×3150+sapling+note_block、重生成精确复现；3×3 biome dump 纯 nether 排除 feature 污染、Status 包装层门控排除调度；修复闭环（改 raw id 解码后存档级 Partial 验证 nether 82.16% / overworld 87.75%）。
+- **如何利用**：
+  - 每跳「域声明」：JNI/FFI 传 id 每一跳显式声明域；参照导出域与写入解码域同源核对（seed/坐标三查的 id 域版本）。
+  - **判据**：① 块名直方图签名（橡树叶+多 sapling+note_block = 错位解码签名，非 feature 签名——feature 不会以 note_block 成片混入）；② 同代码重生成数量精确复现 = 写入层确定性错误，排除下游随机性；③ 排查顺序：写入路径 id 域 → 下游阶段上下文 → 判定算法。
+  - 交叉引用：接管类 mod 下游阶段审计清单见 workflow-patterns 发现 #8（M16 本例根因不是它，#8 仍是有效检查清单）。

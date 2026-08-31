@@ -501,6 +501,8 @@
 
 ---
 
+> **【2026-09-01 结案】** M14 开放问题已由 M16 真根因解释——非 feature 阶段上下文问题，是 JNI 写入路径 id 域错位（见 M16）。上文「根因方向」判断作废，三方对照/指纹定位方法结论保留。
+
 ## M15. 诊断工具的性能陷阱：CountingAlloc 全局原子计数在多线程 fill 下灾难性慢
 
 ### 现象
@@ -522,6 +524,38 @@
 
 ---
 
+
+## M16.【结案】实机下界「怪异城」真根因：JNI 写入路径 block id 域错位（raw block id vs global state id）
+
+### 现象
+- 实机下界（M13 buffer 修复 + M12 STATE_BY_ID 修复之后）依然异常：chunk(-5,-3) 存档导出 **oak_leaves ×3150 + 多种 sapling + note_block** 成片出现在 nether chunk（交接 M14 开放问题）。
+- 上一轮定位方向 = vanilla feature 装饰阶段 biome 上下文污染——**该方向本轮被证伪**。
+
+### 根因（机制）
+- **JNI 写入路径的 id 域错位**：Rust buf = **blocks.json 域 raw id**（BlockProbe 参照导出同为 getRawId，同域自洽）；`CppBridge.writeChunk` 却用 `Block.STATE_IDS.get(id)`（**state id 域**）解码（6a7337d 引入，只对齐症状层未查数据源头域），nether 高 raw id 错位解码成 oak_leaves×3150 等。
+- **闭环判据**：修复前干净重生成同 chunk 存档 oak_leaves×3150 与用户实机存档**数量完全一致**。
+
+### 定位（诊断方法）
+1. **H1 证伪 ①**：scout 证明 feature 候选集 = 3×3 邻 chunk biome 容器并集 ∩ biomeSource（`ChunkGenerator#method_39787`，证据 .investigations/multiworld-port/scout-feature-biome-chain.md），无跨维度污染通道。
+2. **H1 证伪 ②**：诊断 mixin（`-Dwg.dumpbiome`）dump feature 阶段 3×3 biome 上下文 = 纯 nether（soul_sand_valley/nether_wastes），无 overworld 条目（cmd-output/diag-m14-run5.log）。
+3. **「Status 卡 biomes」证伪 ③**：Status 推进在 ChunkStatus 包装层（isAtLeast 门控），mixin cancel populateNoise 不影响；fill 日志 `status=biomes` 是时点快照。
+4. **锁定**：修复前重生成复现实机签名（数量逐块一致）→ 写入层确定性错误；Rust buf/参照导出/Java 解码三方对照，唯一异域跳点 = writeChunk。
+
+### 修复
+- `CppBridge.writeChunk` 改回 raw id 域：`Registries.BLOCK.get(id).getDefaultState()`（快照 `.investigations/multiworld-port/snapshot-CppBridge-m16fix.java`；runtime/ 已 untrack 无 git diff）。
+- M12/M16 区分：M12 修「STATE_BY_ID 查询路径」域、M16 错「存档写入路径」域——两条路径数据源头域不同，不能共享同一解码假设。
+
+### 验证（Partial 声明）
+- **Partial（单 chunk 存档级，非 Full）**：修复后存档 vs vanilla FULL 参照 nether(-5,-3) **82.16%** / overworld(10,10) **87.75%**（cmd-output/compare_save_vs_ref.py）；残差 = soul_soil/cave_air/air/石系边界微结构（参照含 carvers/features 而我方只替换 NOISE+SURFACE + cave_air/air 语义差）。
+- **⚠️ 口径分流**：82.16%/87.75% 是「**存档写入路径正确性**」口径，**不延续**旧 96.06%「探针（Rust 产物 raw id 域）对齐」口径——禁止跨口径比大小或拼趋势。
+
+### 教训
+1. **「id 域要三查」**：blocks.json/参照导出/Rust buf 同为 raw id 域，Java 写入用 STATE_IDS 即错——跨层传 id 必须显式声明域，是 seed/坐标三查的 **id 域版本**。
+2. **「探针对齐率高 ≠ 存档正确」**：探针域自洽掩盖 JNI 写入解码层域错位（「纯函数 vs 生产插值」工具语义陷阱家族）。
+3. **6a7337d 教训延伸**：修 bug 时「改成什么域」要先查数据源头的域，不是只对齐症状层。
+4. **overworld「零回归」是探针口径假象**：6a7337d 后 overworld 存档层从未被验证（spawn 区由 vanilla 在 SERVER_STARTED 前代生成）。
+
+---
 
 ## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
@@ -545,5 +579,6 @@
 | nether 卡 82%、多带同时残差（y32..95 低至 55~66%）、bedrock roof/floor 整层缺失（混淆对 10288@y96..）（M13） | surface_rule JSON 数据驱动解析器不支持 `vertical_gradient` 条件类型 → nether.json 的 bedrock_floor/bedrock_roof 分支解析返回 None 被**整条静默跳过**（仅一行 WARN 被海量警告淹没）→ 顶部/底部 bedrock 层及规则链涂布全缺；附带：`below_top(N)` 的 height 误传 world_height(256) 致 roof 锚越界（须用 noise_height 128） | **「多带同时残差 + 特定块类缺失」优先查规则解析覆盖率，不逐带调参**——数据驱动解析器静默跳过分支是高危反模式，新数据文件接入 MUST 断言 [PARSE-WARN] 计数为 0，不能只看总分（总分被其它层掩盖，+13.5pp 一步修复）；**锚换算的 height 用逻辑生成高度（nether 128），不混用 world_height 256**（M3 同族） |
 | 实机下界「怪异城」：soul_sand_valley 判定正确但地形缺失，存档 chunk 出现 oak_leaves×3150+多 sapling（M14【开放问题】） | mixin 接管 populateNoise 后，vanilla feature 装饰阶段（applyBiomeDecoration）对该 chunk 的 **biome/feature 上下文被污染**（拿到主世界森林 feature 集）；三方对照（vanilla 导出 vs Rust fill 高度一致 vs 存档两者皆不同）锁死错乱块来自 vanilla 后续阶段；机制待查（chunk biome 属性未刷新 / NoiseConfig climate 状态 / feature 阶段 biome source） | **接管一个阶段后，后续阶段的上下文依赖会暴露**——mod 接管世界生成必须审计全管线阶段依赖（discovered 发现 #8）；**三方对照归因**：实况与两个静态产物都不同 = 中间被第三方阶段改写；视觉+物理直觉（真空+坠落）优先于长推理链 |
 | 挂全局分配计数器后多线程 fill 灾难性变慢「卡死」（M15） | 全局 AtomicI64 每次 alloc/dealloc RMW，23 线程分配密集场景成为**序列化点**——并行度被分配计数归一；已移除恢复 | **全局分配计数器 = 分配序列化，多线程高频分配禁用**（或 thread_local 计数+定期汇总）；「诊断工具改变被诊断系统」的极端形态：污染的不是测量值而是执行并行度——热路径诊断必须 chunk 级一次判断或编译期 gate |
+| 实机下界「怪异城」：nether 存档 oak_leaves×3150+多 sapling+note_block，数量跨环境精确复现（M16【结案】） | JNI 写入路径 **block id 域错位**：Rust buf = raw block id 域，writeChunk 用 STATE_IDS（state id 域）错位解码（6a7337d 引入）；feature 污染与 Status 卡 biomes 均被数据证伪 | **id 域三查**（四点同域核对：blocks.json/参照导出/Rust buf/Java 解码）；「不相干方块成片 + 数量精确复现」= 写入层确定性错误签名；**探针对齐 ≠ 存档正确** |
 | 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31） |
 
