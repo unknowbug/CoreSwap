@@ -151,23 +151,13 @@ impl DensityBuilder {
     }
     pub fn get_noise_sampler(&mut self, key: &str) -> Arc<DoublePerlinNoiseSampler> {
         if let Some(s) = self.noise_samplers.get(key) { return s.clone(); }
-        // legacy 特例（对齐 yarn NoiseConfig LegacyNoiseDensityFunctionVisitor，源码提取 2026-08-30）：
-        // legacy 下 temperature/vegetation 强制 createLegacy(CheckedRandom(0)/(2), (-7, [1.0,1.0]))。
-        // ⚠️ offset 不在特例内（M10 后续消融定案）：visitor 只替换 router 树中的 Noise 节点，
-        // ShiftA/ShiftB（Offset 类型）的内部 offset 噪声走常规装配（randomDeriver 派生、非恒 0）——
-        // 曾误加恒 0 特例导致 shift 偏移丢失（temperature/vegetation 采样坐标无偏移 → 与 Java 偏差）。
-        if self.legacy_random && std::env::var("WG_LEGACY_CLIMATE").is_ok() {
-            let fixed: Option<(i64, i32, Vec<f64>)> = match key {
-                "minecraft:temperature" => Some((0, -7, vec![1.0, 1.0])),
-                "minecraft:vegetation" => Some((2, -7, vec![1.0, 1.0])),
-                _ => None,
-            };
-            if let Some((seed_n, first_octave, amps)) = fixed {
-                let mut rnd = RsRandom::Legacy(LegacyRandom::new(seed_n));
-                let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::new_legacy(&mut rnd, first_octave, &amps));
-                self.noise_samplers.insert(key.to_string(), sampler.clone());
-                return sampler;
-            }
+        // legacy 下 offset → 恒 0（M11 消融实测：Java ShiftedNoise shiftX/Y/Z 全恒 0，BIOME6 树 dump）。
+        // vanilla NoiseParametersKeys.OFFSET 注册参数即 (0, [0.0]) 振幅全零 → shift_x/shift_z 无偏移。
+        // ⚠️ temperature/vegetation 不做特例替换——M11 前的「固定种子特例」是 seed 错位对比的误产物（M11 五段式）。
+        if self.legacy_random && key == "minecraft:offset" {
+            let sampler = Arc::new(crate::noise::DoublePerlinNoiseSampler::zero());
+            self.noise_samplers.insert(key.to_string(), sampler.clone());
+            return sampler;
         }
         let params = self.noise_params.get(key).cloned().ok_or_else(|| "unknown noise params".to_string()).expect("noise params");
         let mut rnd = self.random_deriver.split_str(key);
