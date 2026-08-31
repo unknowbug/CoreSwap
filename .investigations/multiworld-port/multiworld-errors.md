@@ -458,6 +458,8 @@
 2. 调用处 `parse_surface_rule(&sr, min_y, height)` 的 height 改传 `noise_height`（128）。
 
 ### 效果
+
+- ⚠️ **效果边界（2026-08-31 补充）**：buffer 修复后实机下界的结构性块（bedrock/blackstone/netherrack）与 vanilla 对齐 ✓，但「怪异城」（feature 错乱，→M14）与「全 air chunk」（JNI buffer 越界，已修）是**三个独立问题**——M13 修复只解决了第一个问题的解析缺失部分，最终下界虚空问题的完整闭环见 M14。
 - nether：**82.51% → 96.0568%**（+13.5pp 一步修复）；分带 y0..31 88.4%、y32..63 93.3%、y64..95 92.8%、y96..127 94.0%、y≥128 100%。
 - bedrock 残差 10288 → 4011（roof 主层修复，剩随机层微差）。
 - overworld **95.40% 零回归**（overworld 走代码规则，不经 JSON 解析器，不受影响）。
@@ -466,6 +468,57 @@
 - **数据驱动解析器的静默跳过是高危反模式**：解析失败的分支整条丢失且只留一行 WARN——新数据文件接入后 MUST 检查 [SURFACE-WARN]/[PARSE-WARN] 计数为 0（或解析覆盖率断言），**不能只看总分**（总分会被其它层部分对齐掩盖）。
 - **「多带同时残差 + 特定块类缺失」优先查规则解析覆盖率**，而非逐带调参——本例 13.5pp 藏在「解析器不支持某条件类型」这一行。
 - **锚基准随维度变**：below_top/above_bottom 的 height 必须用逻辑生成高度（nether 128），不能混用 world_height（256）——与 M3 双高度教训同族。
+
+---
+
+
+
+---
+
+## M14.【开放问题·本轮核心】实机下界「怪异城+虚空」：feature 装饰阶段的 biome 上下文错乱
+
+### 现象
+- 实机下界（M13 buffer 修复 + M12 STATE_BY_ID 修复之后）依然异常——用户实机验证（F3 截图）：**Biome=soul_sand_valley 判定正确**，但地形大片缺失（视觉真空 + 物理坠落）。
+- chunk(-5,-3) 存档导出统计：**oak_leaves ×3150 + jungle/acacia/dark_oak_sapling + note_block** 成片出现在下界 chunk——**主世界森林的树 feature 块**。用户称为「怪异下界城」的实体就是这些错乱块。
+
+### 根因（机制，定位到方向、机制待查）
+- **三方对照（同 seed=-2032795982907864146 同 chunk）**：vanilla 导出 vs Rust fill **高度一致**（bedrock/blackstone/涂布/空腔大格局对齐，残差仅 soul_soil/soul_sand 涂布分布与 cave_air 分布微差）；**存档数据与两者都不同**（橡树海洋）→ 错乱块不来自 Rust fill，来自 **vanilla 的 feature 装饰阶段**（在 Rust fill 之后由 vanilla 运行）。
+- 机制方向：mixin 接管 populateNoise 后，**vanilla 的 applyBiomeDecoration 对该下界 chunk 使用的 biome/feature 上下文被污染**——拿到了主世界森林的 feature 集（橡树树叶 = 树 feature 产物）。
+- 候选（下轮审计 applyBiomeDecoration 的 biome 上下文）：① chunk 的 biome 属性在 fill 后未刷新；② NoiseConfig 的 climate 采样状态；③ feature 阶段的 biome source 依赖。
+
+### 定位（诊断方法）
+1. **三方对照隔离产物归属**：vanilla 导出 / Rust fill / 实机存档三方同 seed 同 chunk 对比——存档与 vanilla、Rust fill **都**不同 → 错乱块必在「vanilla 后续阶段」，排除 Rust fill 自身。这是「mod 接管后异常归因」的关键一步：先把嫌疑从自己人身上洗掉。
+2. **存档块统计找指纹**：oak_leaves ×3150 + 多种 sapling 是「森林 feature 集」的签名性组合，直接指向 feature 装饰阶段拿错 biome，而非噪声/表面层。
+3. F3 biome 判定正确 + 地形错乱并存 → 排除「biome 判定算法错」，锁定「biome 上下文传递链」。
+
+### 修复
+- **未修**。下轮开工点：审计 applyBiomeDecoration 的 biome 上下文（候选三选一消融验证）。
+
+### 教训（⚠️ 重点：开放问题 + 可复用判错经验）
+- **接管世界生成的一个阶段（populateNoise）后，后续 vanilla 阶段（feature 装饰）的上下文依赖会暴露**——mod 接管世界生成必须审计**全管线的阶段依赖**，不只是被替换的那个阶段（已立 discovered 条目，见本草稿 C 部分）。
+- **三方对照是 mod 接管场景的归因利器**：vanilla 导出（基线）+ 自家输出（被怀疑方）+ 运行时实况（集成结果）三方对齐情况直接分派责任——「实况与两个静态产物都不同」= 中间被第三方阶段改写。
+- **视觉+物理直觉胜过长推理链**：视觉真空 + 物理坠落两个体感现象 = 数据层真空实锤（用户的直觉判断比推理链先到）。
+
+---
+
+## M15. 诊断工具的性能陷阱：CountingAlloc 全局原子计数在多线程 fill 下灾难性慢
+
+### 现象
+- 为内存诊断给 dll 挂全局分配计数器（GlobalAlloc 包装 + 全局 AtomicI64 计数）后，删档重生成的 chunk 生成**灾难性变慢**——用户感知「卡死」，被迫强杀进程。
+
+### 根因（机制）
+- 全局 AtomicI64 的 alloc/dealloc 每次 RMW（read-modify-write）——**23 线程并发 fill 的分配密集场景下成为序列化点**：每次内存分配都要抢同一把原子「锁」，多线程并行度被分配计数归一。
+- 本质与「测量/探针污染铁律」（AGENTS §四，WG_PROFILE/WG_STAGETIMER 家族）同族：**诊断工具改变被诊断系统的行为**——但层级更深，这次污染的不是计时精度，是执行并行度本身。
+
+### 定位（诊断方法）
+- 挂计数器前后行为对比：计数器一挂即「卡死」、一移除即恢复 → 变量唯一，直接归因（诊断代码在热路径的每分配执行 + 全局共享 = 唯一嫌疑）。
+
+### 修复
+- 已移除计数器（性能恢复）；结论记录在案。
+
+### 教训（可复用判错经验）
+- **全局分配计数器 = 分配序列化**，多线程高频分配场景**禁用**（或 thread_local 计数 + 定期汇总——把 RMW 竞争从每次分配降为每汇总周期一次）。
+- **「诊断工具改变被诊断系统的行为」的极端形态**：不只污染测量值，直接改变执行特性（并行度归一/卡死）——热路径诊断代码必须 chunk 级判断一次或编译期 feature gate（与「端到端性能对比铁律」的诊断门控条款同族）。
 
 ---
 
@@ -490,3 +543,7 @@
 | M11 修正后 t 残差 0.094（shift/派生/参数表全对齐仍不收敛）（M12） | legacy temperature 特例种子源按 yarn sources 字面 0L 实现，而运行时实测为 **worldSeed**（S8 try-seed sweep：seed=worldSeed origins 与 Java router 逐位一致；seed=0/×2 不符）；修后 t 残差 0.094→0.0005（f32 级），nether 82.72% 中性、overworld 零回归 | **种子源必须逐维 try-seed 实测定案，不能同模式类推**（vegetation 套用 worldSeed 立即翻车：h=+0.078 与 t 全同而 Java t≠h，已回滚）；**record 字段 ≠ sampler 实际来源**（noiseData 显示注册表参数、firstSampler 已是 visitor 特例——字段形状+行为对照才是定案手段）；**sources 字面 ≠ 运行时行为**（实测优先于源码字面） |
 | 同 seed 竖切 density 残差：cell 角点全 0、中间点 ±0.01~0.08、y≥128 恒值不饱和（M12 补遗二） | **工具语义陷阱**：Java DensityProbe 纯 `df.sample` 直采 vs Rust 竖切走生产插值路径——两侧采样语义不同，中间点/y≥128 的「残差」是语义差非实现错；旧「残差随 y 增长」结论 = seed 错位（M11）+ 语义差复合假象，已推翻 | **跨工具对比先声明两侧采样语义（纯函数/插值/网格）**——「⚠️ 探针采集核对铁律」的采样语义扩展：seed 一致 → 采样语义一致 → 逐节点公式，三层递进，前两层收敛就不进第三层；**cell 角点（插值端点）对齐 = 形状主体对齐的充分判据**，中间点差优先怀疑语义 |
 | nether 卡 82%、多带同时残差（y32..95 低至 55~66%）、bedrock roof/floor 整层缺失（混淆对 10288@y96..）（M13） | surface_rule JSON 数据驱动解析器不支持 `vertical_gradient` 条件类型 → nether.json 的 bedrock_floor/bedrock_roof 分支解析返回 None 被**整条静默跳过**（仅一行 WARN 被海量警告淹没）→ 顶部/底部 bedrock 层及规则链涂布全缺；附带：`below_top(N)` 的 height 误传 world_height(256) 致 roof 锚越界（须用 noise_height 128） | **「多带同时残差 + 特定块类缺失」优先查规则解析覆盖率，不逐带调参**——数据驱动解析器静默跳过分支是高危反模式，新数据文件接入 MUST 断言 [PARSE-WARN] 计数为 0，不能只看总分（总分被其它层掩盖，+13.5pp 一步修复）；**锚换算的 height 用逻辑生成高度（nether 128），不混用 world_height 256**（M3 同族） |
+| 实机下界「怪异城」：soul_sand_valley 判定正确但地形缺失，存档 chunk 出现 oak_leaves×3150+多 sapling（M14【开放问题】） | mixin 接管 populateNoise 后，vanilla feature 装饰阶段（applyBiomeDecoration）对该 chunk 的 **biome/feature 上下文被污染**（拿到主世界森林 feature 集）；三方对照（vanilla 导出 vs Rust fill 高度一致 vs 存档两者皆不同）锁死错乱块来自 vanilla 后续阶段；机制待查（chunk biome 属性未刷新 / NoiseConfig climate 状态 / feature 阶段 biome source） | **接管一个阶段后，后续阶段的上下文依赖会暴露**——mod 接管世界生成必须审计全管线阶段依赖（discovered 发现 #8）；**三方对照归因**：实况与两个静态产物都不同 = 中间被第三方阶段改写；视觉+物理直觉（真空+坠落）优先于长推理链 |
+| 挂全局分配计数器后多线程 fill 灾难性变慢「卡死」（M15） | 全局 AtomicI64 每次 alloc/dealloc RMW，23 线程分配密集场景成为**序列化点**——并行度被分配计数归一；已移除恢复 | **全局分配计数器 = 分配序列化，多线程高频分配禁用**（或 thread_local 计数+定期汇总）；「诊断工具改变被诊断系统」的极端形态：污染的不是测量值而是执行并行度——热路径诊断必须 chunk 级一次判断或编译期 gate |
+| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31） |
+
