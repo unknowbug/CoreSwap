@@ -9,9 +9,9 @@
 
 ## 追加正文（从下面一行开始复制）
 
-## B1 定论：basalt deltas 三大宗石互换 = feature 阶段产物在两种基底地形上的命中/形态差（candidate，2026-09-05）
+## B1 定论：basalt deltas 三大宗石互换 = feature 阶段产物在两种基底地形上的命中/形态差（candidate，260901-03）
 
-> 承接上节「nether 存档写入口径 Full 化」B1 未闭合项（52,078 块 / 76.6%）。本轮三方实验 + fan-out 两候选裁决后机制定论。过程与被推翻假说见 10 时间线 2026-09-05 条；错误 E6 见 `.investigations/nether-save-full/nether-save-errors.md`。
+> 承接上节「nether 存档写入口径 Full 化」B1 未闭合项（52,078 块 / 76.6%）。本轮三方实验 + fan-out 两候选裁决后机制定论。过程与被推翻假说见 10 时间线 260901-03 条；错误 E6 见 `.investigations/nether-save-full/nether-save-errors.md`。
 
 ### 机制定论（B1 主导，candidate）
 
@@ -48,10 +48,10 @@
 
 在其后追加：
 
-`  - **[supersedes 2026-09-05]** 本行已过时（M6 修复前表述）：当前 Rust surface_rules.rs L101 Hole => stone_depth_above <= 0 与 Java 一致，dll M17（C5AC5309）含修复——Hole 语义课题闭合。依据见本文「B1 定论」节（§15.4 取代链，原行保留不删）。`
+`  - **[supersedes 260901-03]** 本行已过时（M6 修复前表述）：当前 Rust surface_rules.rs L101 Hole => stone_depth_above <= 0 与 Java 一致，dll M17（C5AC5309）含修复——Hole 语义课题闭合。依据见本文「B1 定论」节（§15.4 取代链，原行保留不删）。`
 
 ## 就地标注二：上节「未闭合待查项」#2 B1 行追加状态注记
 
 在「basalt deltas 大宗互换（B1）……」待查项后追加：
 
-`  - **[已结案 2026-09-05]** 机制定论见本文「B1 定论」节：feature 阶段产物（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差；surface_depth 带厚候选被排除，nether_state_selector bug 另案（非主导）。`
+`  - **[已结案 260901-03]** 机制定论见本文「B1 定论」节：feature 阶段产物（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差；surface_depth 带厚候选被排除，nether_state_selector bug 另案（非主导）。`

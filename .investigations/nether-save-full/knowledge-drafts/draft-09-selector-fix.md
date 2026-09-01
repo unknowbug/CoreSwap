@@ -6,7 +6,7 @@
 
 ---
 
-## nether_state_selector 预加载表修复（.b2 遗留项闭合，candidate，2026-09-06）
+## nether_state_selector 预加载表修复（.b2 遗留项闭合，candidate，260901-04）
 
 > supersedes：**本文取代本篇「B1 定论」节附带定论中的 .b2 待修注记**（「nether_state_selector 恒 0.0 → 修复值得做，待修后重测」）——该项已修复并重测，待修状态作废；原注记按 §15.4 不删。fan-out 候选记录：`.artifacts/.b2-nether-state-selector/`。
 
@@ -39,4 +39,4 @@
 ### 状态
 
 - 置信度 candidate（验证 = Partial：存档口径端到端，非逐位 Full）；confirmed 留用户。
-- 过程 → 10 时间线 2026-09-06 条；错误 E7（隐式契约缺 key 静默回退）→ `.investigations/nether-save-full/nether-save-errors.md`。
+- 过程 → 10 时间线 260901-04 条；错误 E7（隐式契约缺 key 静默回退）→ `.investigations/nether-save-full/nether-save-errors.md`。

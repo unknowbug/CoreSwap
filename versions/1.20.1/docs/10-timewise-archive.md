@@ -2055,7 +2055,8 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 ## 2026-08-29 Rust worldgen 作为 mod 运行（✅ 关键里程碑）
 
-> CoreSwap worldgen 全量重写为 Rust（WorldgenRust/）后，把 Rust 块级管线作为 Minecraft mod 运行。三层链路：**Rust cdylib（C ABI）→ C++ JNI 桥（worldgen.dll）→ mod 加载（Java_wg_CppWorldgen_*）**。配套：07 篇「Rust worldgen 作为 mod 运行」结论小节 + .investigations/rust-mod-load/ + ust-mod-errors.md 错误台账（M1-M4）。
+> CoreSwap worldgen 全量重写为 Rust（WorldgenRust/）后，把 Rust 块级管线作为 Minecraft mod 运行。三层链路：**Rust cdylib（C ABI）→ C++ JNI 桥（worldgen.dll）→ mod 加载（Java_wg_CppWorldgen_*）**。配套：07 篇「Rust worldgen 作为 mod 运行」结论小节 + .investigations/rust-mod-load/ + 
+ust-mod-errors.md 错误台账（M1-M4）。
 
 ### ✅ 一、Rust 块级管线封装 + C ABI（关键里程碑）
 - worldgen_handle.rs：WorldgenHandle::create + ill_chunk_blocks（fill_chunk 宏观 → BlockColumn → build_surface → carver 17×17 邻域）。
@@ -2197,7 +2198,8 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - **barrier.sample 实测仅 0.1%**（346/393216 = 每 chunk ~86 次）——「barrier 是 aquifer 大头 / 加 Cache2D 缓存」方向被计数类硬证据推翻（错误方向，见 perf-e2e-errors.md P4）。
 - **无污染精确构成**（diag 方法）：get_fluid_level 3.84ms（22%）+ get_block_pos 2.57ms（14%）+ get_water_level_at 小 + calculate_density fluid ~0ms → 合计可解释 ~6.4ms，**剩余 ~11ms 未解释 = apply 每点 98304 次调用固定开销**。
 - **根本洞察**：Java 宏观 Interpolated 网格（~1225 交点）vs Rust 逐点 98304 次 → 采样差 ~80×（density 段）。
-- **❌ 方向修正（judge 否决「宏观网格采样对齐」）**：judge 审查（eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——真正最大成本是 **aquifer（Java 同样逐块不插值，网格覆盖不到）**；「宏观网格采样」不立项。
+- **❌ 方向修正（judge 否决「宏观网格采样对齐」）**：judge 审查（
+eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——真正最大成本是 **aquifer（Java 同样逐块不插值，网格覆盖不到）**；「宏观网格采样」不立项。
 - **✅ 更优方向（judge 收益排序）**：① aquifer 每点开销优化（最大头）② 单层 Interpolated 应用于纯 SplineDF 子树（70× 实测）③ DFC 直排。
 
 ---
@@ -2280,7 +2282,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 
 
-## 2026-09-04 nether 存档写入口径 Full 化（1.0.22 dll，双 seed，candidate）
+## 260901-03 nether 存档写入口径 Full 化（1.0.22 dll，双 seed，candidate）
 
 > 承接 09 篇 nether 维度课题 + `.investigations/nether-save-full/`。目标：存档级（MCA 直解）Full 口径量化 Rust nether 接管质量。dll sha256=C5AC5309F3C59A044（1.0.22 M17），区域 4×4 @(3200,3208)。
 
@@ -2316,9 +2318,9 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 
 
-## 2026-09-05 B1 定论：basalt deltas 三大宗互换 = feature 产物 × 两种基底地形（candidate）
+## 260901-03 B1 定论：basalt deltas 三大宗互换 = feature 产物 × 两种基底地形（candidate）
 
-> 承接 2026-09-04 nether 存档条目 B1 未闭合项（52,078 块 / 76.6%）。结论 → 09 篇「B1 定论」节；错误 E6 → nether-save-errors.md。
+> 承接 260901-03 nether 存档条目 B1 未闭合项（52,078 块 / 76.6%）。结论 → 09 篇「B1 定论」节；错误 E6 → nether-save-errors.md。
 
 ### ✅ 一、前置验证推翻交接假设（Hole 语义）
 - 上轮遗留「Rust Hole 用 surface_depth<=0」为 M6（2026-08-30）修复前过时表述；开工前廉价独立验证：Rust surface_rules.rs L101 当前为 `Hole => stone_depth_above <= 0` 与 Java 一致，dll M17（sha C5AC5309）含修复——Hole 语义课题闭合（§15.4：09 篇原行加 supersedes 注记，不删）。
@@ -2343,9 +2345,9 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 通用模式 → knowledge/discovered/workflow-patterns.md 发现 #10（三阶段归因法）。
 - 状态：机制定论 candidate（judge 审查通过建议），confirmed 留人类。
 
-## 2026-09-06 nether_state_selector 预加载表修复（.b2 遗留项闭合）+ SURFACE 口径残差量化 ✅
+## 260901-04 nether_state_selector 预加载表修复（.b2 遗留项闭合）+ SURFACE 口径残差量化 ✅
 
-> 承接 2026-09-05 B1 定论条 fan-out .b2 遗留修复项（⚠️ 真实 bug 非主导，待修）+ judge WARN-4 待排除备择。结论 → 09 篇追加两小节；错误 E7 → nether-save-errors.md。
+> 承接 260901-03 B1 定论条 fan-out .b2 遗留修复项（⚠️ 真实 bug 非主导，待修）+ judge WARN-4 待排除备择。结论 → 09 篇追加两小节；错误 E7 → nether-save-errors.md。
 
 ### ✅ 一、selector 预加载表修复
 - `WorldgenRust/src/worldgen_handle.rs` step4 surface rules 噪声预加载表（L192-195 一带）补 6 个 nether 噪声：`minecraft:nether_state_selector` / `patch` / `soul_sand_layer` / `netherrack` / `nether_wart` / `gravel_layer`（全部存在于 `versions/1.20.1/data/worldgen/data/minecraft/worldgen/noise/*.json`）。
@@ -2374,7 +2376,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 
 
-## 2026-09-07（nether-save-full 课题续）
+## 260902-01（nether-save-full 课题续）
 
 - ✅ **C2 预加载表数据驱动化**（commit 709b006）：`worldgen_handle.rs` step4 新增 `collect_noise_keys()`，从 surface_rule JSON 构建期收集 noise_threshold 引用 key；overworld 保留静态清单（代码规则无 JSON 源）；nether 静态 6 key 清单删除（E7 手工修复的架构层收尾）。3 连跑 93.8988% 逐位同值无回归；judge C2 CONCERN 闭环。candidate。
 - ✅ **P2 矿石归因重大转向——双重 feature 应用**（H_B'，judge PASS 建议 candidate）：发现 `wg_fill_blocks_multi` 内含 carver+feature 阶段（worldgen_handle.rs L442-449，WG_SKIP_CARVER/WG_SKIP_FEATURES env 门控）；存档链路 mixin 只拦 populateNoise + cancel buildSurface，Java CARVER/FEATURES 照跑 → 存档 = Rust+Java features 双跑。消融链：SKIP_FEATURES → 93.8988%→94.4241%（+5508），quartz 4478→2125（ref 1992）/ gold 1525→739（ref 728）/ magma 3814→1979（ref 1533）；SKIP_CARVER 仅再 +370。矿石 ~2.2× 偏高全额归因双跑。修正早前「features 只由 Java 运行一次（无双跑通道）」判断（09 篇原行加注记不删）。遗留：overworld 同路径双跑 vs 99.9% 对齐矛盾 → X1 FEATURELOG 裁决 🔍 进行中；修复方向 judge CONCERN = env 门进程全局，勿全局默认翻转，需句柄/调用级显式 flag。
@@ -2383,17 +2385,17 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - ⚠️ **环境坑 E8/E9**（详录 `.investigations/nether-save-full/nether-save-errors.md`）：E8 = 沙箱下 gradle runServer 提取 worldgen.dll AccessDeniedException → JAVA_TOOL_OPTIONS=-Djava.io.tmpdir 指工作区；E9 = WorldgenRust.dll mtime 因 fs::copy 保留时间戳不可信 → dll 新旧用二进制字符串探测；bin-diag bin 临时挪 src/bin/ 编译（init_vertical 需 pub 化）。
 
 
-### ✅ X1 FEATURELOG 裁决回填（2026-09-07 深夜，裁决 overworld 双跑矛盾）
+### ✅ X1 FEATURELOG 裁决回填（260902-01 深夜，裁决 overworld 双跑矛盾）
 - runServer -PreadWorldProbe（overworld）+ WG_FEATURELOG：**8137 条 [FEATURE] 行 = Rust features 在 overworld 存档链路同样运行**（mixin 拦截范围两维度相同，X1 候选①「overworld 未装配 features」证伪）。
 - 同 region 对齐 = 97.3537%（seed B，4×4 @3200,3208，FULL 参照 3219616B）——「overworld 99.9%」系 seed A 不同样本的口径记忆，同 region 从未测过 99.9%。双跑矛盾解除：overworld 同样双跑，只是 overworld feature 密度/基底差使其未显形为 2× 矿石（定性，未量化）。
 - 教训补充 E9 同族：**历史对齐数字引用必须带 seed+region+口径三要素**，凭「维度印象」引用构成伪矛盾（本条即 X1 的成立前提）。
 - 遗留：overworld 双跑的量化影响（对齐率/矿石计数）未测，需 seed B overworld 消融 run（SKIP_FEATURES）定性——下轮候选。
 
-### ✅ 拍板回填（2026-09-07）
+### ✅ 拍板回填（260902-01）
 - 用户全部批准：六项 candidate → **confirmed**（selector 修复 / SURFACE 残差量化 / 容差口径修正 / C2 数据驱动化 / P2 双重 feature 归因 / P3 soul 缺口在 Rust 管线 + 三签名方向）。状态标注已回写 09 篇、decision-package、两份 artifacts verdict。修复类后续（双跑修复 / V3-V5）不在拍板范围。
 
 
-## 2026-09-08（nether-save-full 课题续：双跑修复 + soul V3）
+## 260902-02（nether-save-full 课题续：双跑修复 + soul V3）
 
 ### ✅ 一、句柄级 wg_set_flags 修复双跑（judge PASS，candidate）
 
@@ -2424,7 +2426,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 状态：双跑修复 candidate（judge PASS）；V3 draft（Degraded）；confirmed 留用户。
 
 
-## 2026-09-09（soul V4/V5 课题：布尔解析 bug 根因 + 修复 + C4 消融）
+## 260902-03（soul V4/V5 课题：布尔解析 bug 根因 + 修复 + C4 消融）
 
 ### ✅ 一、V4 采集——输入差候选否定
 

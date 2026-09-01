@@ -1,6 +1,6 @@
 # nether 存档写入口径 Full 化 — 错误台账（nether-save-errors.md）
 
-> status: draft（knowledge worker 整理，2026-09-04；按 SUBAGENT-KNOWLEDGE-GUIDE 五段式，载体 = `.investigations/<课题>/<课题>-errors.md` 项目级指定载体）
+> status: draft（knowledge worker 整理，260901-03；按 SUBAGENT-KNOWLEDGE-GUIDE 五段式，载体 = `.investigations/<课题>/<课题>-errors.md` 项目级指定载体）
 > 课题目录：`.investigations/nether-save-full/`；judge 审查记录：`judge-review.md` #16-#21
 > 数据来源：`cmd-output/seedA-contradiction-facts.md`、`candidate.b2-pipeline.md`（含追加段）、`candidate.b3-nondeterminism.md`（含追加段）、judge-review #13-#21
 
@@ -59,7 +59,7 @@
 ## E6. 对照口径误置：把存档口径残差直接归因 surface rule 条件链，未先做阶段消融
 
 - **编号**：E6（B1 定论轮复盘，建议 candidate）
-- **现象**：2026-09-04 轮把 seed B 残差大头 B1（basalt deltas 三大宗石互换，52,078 块 / 76.6%）的机制候选直接写成「surface rule 条件链系统性偏差（biome 判定 / noise 阈值 / Hole 语义下游表现）」并列为深挖优先级 #1——本轮三方实验证明该归因方向错位：互换主因 = **feature 阶段产物**（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差，宗石大宗根本不是 surface rule 产物；连带把已修复的 Hole 语义（M6 后 Rust `stone_depth_above <= 0` 与 Java 一致）仍当未闭合疑点继承。
+- **现象**：260901-03 轮把 seed B 残差大头 B1（basalt deltas 三大宗石互换，52,078 块 / 76.6%）的机制候选直接写成「surface rule 条件链系统性偏差（biome 判定 / noise 阈值 / Hole 语义下游表现）」并列为深挖优先级 #1——本轮三方实验证明该归因方向错位：互换主因 = **feature 阶段产物**（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差，宗石大宗根本不是 surface rule 产物；连带把已修复的 Hole 语义（M6 后 Rust `stone_depth_above <= 0` 与 Java 一致）仍当未闭合疑点继承。
 - **根因**：**对照口径误置 + 归因未先做阶段分解**——残差来自存档口径（Rust noise/surface + Java carvers/features 端到端），其中混着 Java feature 阶段产物，却在未做任何阶段消融的情况下把差异整体对到替换方（Rust surface rule）的条件链上；且把上一轮交接文档里的「方向性待查假设」（Hole 语义不一致）当公理直接继承，未做廉价独立验证（该假设 M6 修复时已过时）。
 - **定位**：三方实验 + fan-out 两候选裁决：① 纯 Rust 口径（ctypes 直连 dll vs rlib 直跑 cell 级 0 差异）vs FULL = 77.43%（basalt→netherrack 157k = surface 薄带 + 纯 Rust 下 blobs/columns 缺失叠加）；② 存档口径（+Java carvers/features）= 93.5508%——feature 补回大头；③ WG_SKIP_SURFACE=1 重跑 = 55.18% 且 blobs 不触发（stone 基底非 netherrack → blackstone=0、quartz/gold ore=0）——证明 blobs 是 feature 阶段、依赖 netherrack 基底；④ biome 分桶（互换 100% 落 vanilla basalt_deltas 列）排除源分配差。两候选：.b1 surface_depth 带厚（❌ 带厚上限 ≤6 层，40 层体块不可达）、.b2 nether_state_selector 恒 0.0（⚠️ 真实 bug 但只解释零星翻转，非主导）。
 - **修复**：B1 机制定论改写为「feature 产物 × 两种基底地形」结论（→ 09 篇追加小节，candidate）；Hole 语义遗留行做 supersedes 标注（§15.4，原行不删）；对照口径澄清（纯 Rust 77.43% 与存档 93.55% 载体不同不可比；B1 参照分两用：BlockProbe SURFACE 口径测 Rust surface 残差、存档口径测端到端）；.b2 的 nether_state_selector 预加载表缺 nether 噪声列为待修（一行补齐，非 B1 主导）。
@@ -72,7 +72,7 @@
 
 ## E7. surface rules 噪声预加载表缺 nether 噪声：unwrap_or(0.0) 静默回退使 nether_state_selector 恒 true（.b2 遗留 bug，已修复）
 
-- **编号**：E7（fan-out .b2 候选判定为真实 bug，2026-09-06 修复；candidate）
+- **编号**：E7（fan-out .b2 候选判定为真实 bug，260901-04 修复；candidate）
 - **现象**：nether 存档口径验证中 nether surface rule 恒走 basalt 分支（basalt deltas 相关宗石零星分支内翻转，selector 条件失效）；`surface_rules.rs` noise_threshold_sample 对 `minecraft:nether_state_selector` 等 nether 噪声 key 全部取到 0.0。
 - **根因**：**隐式契约断裂 + 缺省值吞错误**——「surface rules 引用的噪声 key 必须在 step4 预加载」这一约束没有任何静态检查；`worldgen_handle.rs` step4 预加载表（L192-195 一带）只硬编码了 overworld 噪声清单（surface/surface_secondary/clay_bands_offset/badlands_*/gravel/powder_snow/packed_ice/ice/surface_swamp），nether 的 6 个噪声（nether_state_selector/patch/soul_sand_layer/netherrack/nether_wart/gravel_layer）全部缺失；下游 `noise_threshold_sample`（surface_rules.rs L120-137）查不到 sampler 时 `unwrap_or(0.0)` 静默回退——而 nether_state_selector 的 min threshold 恰为 0.0，回退值使条件恒 true，错误被完全吞掉，只在输出块差异里显形。
 - **定位**：B1 大宗互换排查 fan-out 两候选中，.b2 候选沿 noise key 数据流（surface rule JSON 引用 → step4 预加载表 → noise_threshold_sample 查表）逐段对拍发现表缺 key（证据：`.artifacts/.b2-nether-state-selector/`）；judge 裁决「真实 bug 非主导」（B1 主导 = feature 产物 × 基底地形差，见 09 篇 B1 定论）。
@@ -86,7 +86,7 @@
 
 ## E8. 沙箱下 gradle runServer「failed to extract worldgen.dll」AccessDeniedException（已修复）
 
-- **编号**：E8（环境坑，2026-09-07）
+- **编号**：E8（环境坑，260902-01）
 - **现象**：沙箱下 `gradle runServer` 启动失败，报 `failed to extract worldgen.dll`，异常链为 `AccessDeniedException`，写入目标为 `%TEMP%\dsh-*` 临时目录。
 - **根因**：**沙箱文件权限边界**——JVM/gradle 侧原生库提取流程默认写系统 `%TEMP%`，沙箱策略对该路径拒绝写入；机制上不是 dll 本身损坏或版本不符，而是「提取目标目录不可写」，报错被包装成「failed to extract」易误判为 dll 问题。
 - **定位**：读异常链中 `AccessDeniedException` 的目标路径（`%TEMP%\dsh-*`），确认拒绝发生在临时目录写入而非 dll 源读取；对照沙箱可写范围（session workspace）即定位。
@@ -99,7 +99,7 @@
 
 ## E9. WorldgenRust.dll mtime 因 fs::copy 保留时间戳不可信：显示 9/1 实为最新（已修复判定方法）
 
-- **编号**：E9（环境坑/判错方法，2026-09-07）
+- **编号**：E9（环境坑/判错方法，260902-01）
 - **现象**：WorldgenRust.dll 文件资源管理器/Get-ChildItem 显示 mtime 为 9/1，按时间戳判断应为旧产物，实际是最新构建——按 mtime 判新旧会得出错误结论。
 - **根因**：构建/部署链使用 `fs::copy`，该调用**保留源文件时间戳**——复制产物的 mtime 反映的是源文件时间而非复制时刻；mtime 在此链路上不是「产物生成时间」的可靠信号。
 - **定位**：对 dll 内容做二进制字符串探测（比对链路中新特征字符串/版本串存在于「旧 mtime」文件中），确认内容为最新 → 证明 mtime 与内容不一致，时间戳不可信。
@@ -113,8 +113,8 @@
 ## 未闭合待查项（供后续 session，非错误）
 
 - **103 cave_air 簇机制**（judge #14 保持 draft）：v2 下新形态矛盾——seed A 内存=存档读回精确同值（1047922），MCA 却多 103 块 air→cave_air（chunk(203,200) y70-72 一簇）。b1/b3 均未闭合，residual-interpretation §3 #5 给出探针方向（M4 复核 / 禁 carvers 重跑 / save 前后 hook）。
-- **basalt deltas 大宗互换**（B1，52,078 块 76.6%）：~~surface rule 条件链系统性偏差候选，方向见 residual-interpretation §3 #1~~ **[supersedes 2026-09-05]** 已定论：feature 阶段产物 × 两种基底地形差 + Rust surface 薄带残差（见 09 篇「B1 定论」节）；本行原候选方向作废。
-- **矿石 features 缺口**（A1+B4，3,269 块）：nether ore feature「未实现 vs 放置错位」归属未定，§3 #2。**[注 2026-09-05]** 存档口径下 features 由 Java vanilla 运行（本轮 cppReplace 架构事实），A1 归因候选需按三阶段归因法（发现 #10）重估。**[supersedes 2026-09-07]** 已定论：非「未实现/错位」——Rust 管线自带 feature 阶段与 Java 双跑（见 09 篇「矿石归因定论：双重 feature 应用」，消融实证）；本行原候选方向作废。
+- **basalt deltas 大宗互换**（B1，52,078 块 76.6%）：~~surface rule 条件链系统性偏差候选，方向见 residual-interpretation §3 #1~~ **[supersedes 260901-03]** 已定论：feature 阶段产物 × 两种基底地形差 + Rust surface 薄带残差（见 09 篇「B1 定论」节）；本行原候选方向作废。
+- **矿石 features 缺口**（A1+B4，3,269 块）：nether ore feature「未实现 vs 放置错位」归属未定，§3 #2。**[注 260901-03]** 存档口径下 features 由 Java vanilla 运行（本轮 cppReplace 架构事实），A1 归因候选需按三阶段归因法（发现 #10）重估。**[supersedes 260902-01]** 已定论：非「未实现/错位」——Rust 管线自带 feature 阶段与 Java 双跑（见 09 篇「矿石归因定论：双重 feature 应用」，消融实证）；本行原候选方向作废。
 
 ---
 
@@ -133,7 +133,7 @@
 | E9 dll mtime 显示 9/1 实为最新，按时间戳判新旧出错 | 构建链 `fs::copy` 保留源时间戳，mtime ≠ 产物生成时间 | 复制链产物判新旧用内容指纹（二进制字符串探测），不用 mtime；诊断 bin 走 bin-diag/ 临时挪入 |
 | E10 强杀 gradle daemon 后全部 gradle 调用报 "Failed to load native-platform.dll" | 根因 = `~/.gradle/native/**/native-platform.dll.lock` 拒绝访问（daemon 被杀锁未释放 + home 目录在沙箱外删锁被硬拒），非 dll 本身 | --stacktrace 定位到 .lock 文件级拒绝再动手；`GRADLE_USER_HOME` 指工作区（.gradle-home）一次性绕开 home 权限（= build-tooling 发现 #7，同机制与 #4 互证）；参照文件名四要素（seed/size/origin/dim）与命令参数逐项核对防空跑（run2/3 空跑教训） |
 
-## E10. 强杀 gradle daemon → native-platform.dll 加载失败（2026-09-08，已修复）
+## E10. 强杀 gradle daemon → native-platform.dll 加载失败（260902-02，已修复）
 
 - **现象**：`Stop-Process -Name java` 清理残留后，任何 gradle 调用（含 `gradle --status`）报 `Gradle could not start your build. > Could not initialize native services. > Failed to load native library 'native-platform.dll'`；带不带 `JAVA_TOOL_OPTIONS` tmpdir 均复现。
 - **根因**：daemon 被强杀时 `native-platform.dll.lock` 未释放；锁文件在 `C:\Users\NDark\.gradle\native\`（工作区外），沙箱 workspace-write 下删除被硬拒（sandbox_permissions 升级被拒：已是 workspace-write，属策略硬拒绝）。表象（dll 加载失败）与根因（.lock 访问拒绝）错位。

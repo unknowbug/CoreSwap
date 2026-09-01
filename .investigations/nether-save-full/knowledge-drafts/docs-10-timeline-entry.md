@@ -5,7 +5,7 @@
 
 ---
 
-## 2026-09-04 nether 存档写入口径 Full 化（1.0.22 dll，双 seed，candidate）
+## 260901-03 nether 存档写入口径 Full 化（1.0.22 dll，双 seed，candidate）
 
 > 承接 09 篇 nether 维度课题 + `.investigations/nether-save-full/`。目标：存档级（MCA 直解）Full 口径量化 Rust nether 接管质量。dll sha256=C5AC5309F3C59A044（1.0.22 M17），区域 4×4 @(3200,3208)。
 

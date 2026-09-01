@@ -1,7 +1,7 @@
 # nether 存档级 Full 化 — 双 seed 残差机制解读
 
 > status: **draft**（Partial/Degraded：纯静态 + 数据解读，未做任何新探针运行，无 confirmed 结论）
-> worker 解读，2026-09-04。数据源：
+> worker 解读，260901-03。数据源：
 > - `.tmp/compare_nether_seedA_rust.txt` / `.tmp/compare_nether_seedB_rust.txt`（MCA 直解，per-chunk + top mismatch 分类）
 > - `.tmp/rust_nether_seedA_v2.log` / `.tmp/rust_nether_seedB_v2.log`（ReadWorldProbe mismatch 前 15 行 + layerMatch）
 > - `.investigations/nether-save-full/cmd-output/seedA-contradiction-facts.md`（历史，其"Rust gen"前提已推翻，仅参考现象记录）

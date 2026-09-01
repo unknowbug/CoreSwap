@@ -3,9 +3,9 @@ id: v4-eval-conflict
 topic: b2-soul
 title: V4 求值层矛盾裁决——parse_surface_cond 布尔字段解析 bug（add_surface_depth/add_stone_depth 恒 false）
 status: draft
-验证分层: Degraded 静态阅读 + Partial（bin-diag 复现：soul_tree_repro 解析产物树 dump + 定点 apply，2026-09-09，未逐位对拍）
+验证分层: Degraded 静态阅读 + Partial（bin-diag 复现：soul_tree_repro 解析产物树 dump + 定点 apply，260902-03，未逐位对拍）
 可比性声明: 载体=nether.json（versions\1.20.1\data\worldgen\data\...\nether.json，sha256=80EE79C0*，四副本同哈希）× surface_rules.rs 当前工作区源码 × soul_tree_repro 实跑产物；覆盖面=nether surface_rule 全树解析产物 + 单点（3260,1,3200）apply + 生产 dump stderr 交叉核对；与 V1/V2 存档写入口径、V3 纯静态口径均不可比（本产物裁决「解析产物树 ≠ JSON 语义」，不重新度量对齐率）
-date: 2026-09-09
+date: 260902-03
 ---
 
 # V4 求值层矛盾裁决：规则树求值层矛盾 = 解析器布尔字段 bug

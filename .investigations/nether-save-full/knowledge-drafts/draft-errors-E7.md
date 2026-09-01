@@ -6,7 +6,7 @@
 
 ## E7. surface rules 噪声预加载表缺 nether 噪声：unwrap_or(0.0) 静默回退使 nether_state_selector 恒 true（.b2 遗留 bug，已修复）
 
-- **编号**：E7（fan-out .b2 候选判定为真实 bug，2026-09-06 修复；建议 candidate）
+- **编号**：E7（fan-out .b2 候选判定为真实 bug，260901-04 修复；建议 candidate）
 - **现象**：nether 存档口径验证中 nether surface rule 恒走 basalt 分支（basalt deltas 相关宗石零星分支内翻转，selector 条件失效）；`surface_rules.rs` noise_threshold_sample 对 `minecraft:nether_state_selector` 等 nether 噪声 key 全部取到 0.0。
 - **根因**：**隐式契约断裂 + 缺省值吞错误**——「surface rules 引用的噪声 key 必须在 step4 预加载」这一约束没有任何静态检查；`worldgen_handle.rs` step4 预加载表（L192-195 一带）只硬编码了 overworld 噪声清单（surface/surface_secondary/clay_bands_offset/badlands_*/gravel/powder_snow/packed_ice/ice/surface_swamp），nether 的 6 个噪声（nether_state_selector/patch/soul_sand_layer/netherrack/nether_wart/gravel_layer）全部缺失；下游 `noise_threshold_sample`（surface_rules.rs L120-137）查不到 sampler 时 `unwrap_or(0.0)` 静默回退——而 nether_state_selector 的 min threshold 恰为 0.0，回退值使条件恒 true，错误被完全吞掉，只在输出块差异里显形。
 - **定位**：B1 大宗互换排查 fan-out 两候选中，.b2 候选沿 noise key 数据流（surface rule JSON 引用 → step4 预加载表 → noise_threshold_sample 查表）逐段对拍发现表缺 key（证据：`.artifacts/.b2-nether-state-selector/`）；judge 裁决「真实 bug 非主导」（B1 主导 = feature 产物 × 基底地形差，见 09 篇 B1 定论）。

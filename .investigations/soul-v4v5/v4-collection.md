@@ -1,4 +1,4 @@
-# V4 采集记录（生产链 soul 分支 ctx dump，2026-09-09）
+# V4 采集记录（生产链 soul 分支 ctx dump，260902-03）
 
 ## 方法
 - patch：`surface_rules.rs` build_surface 内 env 门控点级 ctx dump（`WG_SOUL_CTX_DUMP`，OnceLock 进程级点集 + chunk 级门控，未配置零热路径成本）。
@@ -16,10 +16,10 @@
   （候选：V3 静态误读 JSON / parser 产物树 ≠ JSON 语义 / 求值语义差）。
 - 附：3275,2,3201 applied=id=31 疑为 bedrock_floor（y=2 ∈ above_bottom 0..5）先中，非 soul 判定点。
 
-## 附：block id 映射（versions/1.20.1/data/blocks.json 核对，2026-09-09）
+## 附：block id 映射（versions/1.20.1/data/blocks.json 核对，260902-03）
 air=0 / stone=1 / bedrock=31 / lava=33 / gravel=37 / netherrack=256 / soul_sand=257 / soul_soil=258 / blackstone=849
 
-## 附：180 点生产 dump 分布（主会话统计，2026-09-09）
+## 附：180 点生产 dump 分布（主会话统计，260902-03）
 - biome：nether_wastes=90 / soul_sand_valley=90（**生产侧 biome 一半点判为 nether_wastes**——与签名 C「组3 entered 0/60」家族吻合）
 - applied：256(netherrack)=103 / 31(bedrock)=77
 - ceiling_ok=true 共 115；selector<0 共 93

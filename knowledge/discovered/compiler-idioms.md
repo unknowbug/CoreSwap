@@ -111,7 +111,7 @@ Java `Math.floorDiv / Math.floorMod` 与 C++ `/ %`（截断除法）在负坐标
 
 ## 发现 #7: 锚坐标换算 off-by-one（below_top 类顶块相对锚 = min_y+height-1-v）——数据驱动规则锚公式的维度覆盖判据
 
-**发现时间:** 2026-09-02
+**发现时间:** 260901-02
 **发现者:** worker（multiworld-port M17）
 **来源定位:** `.investigations/multiworld-port/multiworld-errors.md` M17 + `.investigations/multiworld-port/m17-bedrock-band-summary.md`（修复位置 `WorldgenRust/src/surface_rules.rs` L944）
 **置信度:** candidate（修复后逐位吻合：van_only=rust_only=0；TOTAL 96.0568%→96.4428%，同工具同区域同 seed 前后可比；confirmed 待用户拍板）
@@ -131,7 +131,7 @@ MC worldgen 的相对锚（`above_bottom(N)` / `below_top(N)`）换算：**顶�
 
 ## 发现 #8: JSON 布尔字段经 as_f64 读取恒 false——分型标量 API 下的「静默语义腐蚀」签名
 
-- **发现时间**：2026-09-09；**发现者**：core.worker 草稿（soul-v4v5 课题 .b2-soul fan-out 裁决）+ 主会话应用；**来源定位**：`.artifacts/.b2-soul/v4-eval-conflict.md` + `.investigations/soul-v4v5/v4-fix-verification.md`（修复位置 `WorldgenRust/src/surface_rules.rs` parse_surface_cond 三处 + `parse_bool_field`）；**置信度**：candidate（三级数据层证据实锤，confirmed 待用户拍板）；**module**：re-code / swe（数据驱动解析器 / 跨语言 JSON 语义）。
+- **发现时间**：260902-03；**发现者**：core.worker 草稿（soul-v4v5 课题 .b2-soul fan-out 裁决）+ 主会话应用；**来源定位**：`.artifacts/.b2-soul/v4-eval-conflict.md` + `.investigations/soul-v4v5/v4-fix-verification.md`（修复位置 `WorldgenRust/src/surface_rules.rs` parse_surface_cond 三处 + `parse_bool_field`）；**置信度**：candidate（三级数据层证据实锤，confirmed 待用户拍板）；**module**：re-code / swe（数据驱动解析器 / 跨语言 JSON 语义）。
 - **观察**：自定义 JSON 包装层若按标量分型提供 API（`as_f64` / `as_bool` / `as_str` 各只对同型返回 Some），则 `x.as_f64().map(|f| f != 0.0).unwrap_or(false)` 读布尔字段**恒得 false 且无任何告警**——不是兼容读取，是静默语义腐蚀。Java `GsonHelper.getAsBoolean(json, key, false)` 是 bool 优先/缺省 false 的类型感知读取，两端 API 语义不等价，直译即错。本例：surface_rule 三处布尔字段（add_surface_depth/add_stone_depth）恒 false → soul 分支条件 `sdb ≤ 1+0+surface_depth` 退化为 `sdb ≤ 1` → 分支该进未进穿透兜底，nether 存档对齐被压 2.20pp（94.42%→96.62% 修复）。
 - **证据**：nether.json L293 `"add_surface_depth": true`（布尔）vs 解析产物树 dump 实测 `asd=false`（soul-tree-repro，8 处假阴性中 3 处为真阳性翻转）；定点 3260,1,3200（sdb=2, surface_depth=3）`2 ≤ 1+0+0`=false 复现 applied=256，修复后 `2 ≤ 1+0+3`=true → applied=258 与 V3 语义推演逐位一致；生产 180 点 dump netherrack 103→71；存档 94.4241%→96.6215%/96.5866%（seed B，4×4@3200,3208，存档口径）。
 - **如何利用**：

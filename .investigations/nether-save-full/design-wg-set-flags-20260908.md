@@ -1,4 +1,4 @@
-# 双跑修复设计 — wg_set_flags 句柄级显式 flag（2026-09-08）
+# 双跑修复设计 — wg_set_flags 句柄级显式 flag（260902-02）
 
 ## 背景
 存档链路 = Rust 管线（含 carver+features）× Java 分步拦截（mixin 只拦 populateNoise + cancel buildSurface）→ **双重 feature 应用**（judge C2-P2 confirmed，消融 +5508）。

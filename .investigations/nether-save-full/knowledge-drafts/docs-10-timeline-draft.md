@@ -1,4 +1,4 @@
-# 草稿：docs/10 时间线 2026-09-05 条目
+# 草稿：docs/10 时间线 260901-03 条目
 
 > 用途：主会话应用——**追加**到 `versions/1.20.1/docs/10-timewise-archive.md` 文件末尾（追加不覆盖）。
 > 状态：按时间线纪律（含被推翻假说记录，每条一行排除证据）。
@@ -7,9 +7,9 @@
 
 ## 追加正文（从下面一行开始复制）
 
-## 2026-09-05 B1 定论：basalt deltas 三大宗互换 = feature 产物 × 两种基底地形（candidate）
+## 260901-03 B1 定论：basalt deltas 三大宗互换 = feature 产物 × 两种基底地形（candidate）
 
-> 承接 2026-09-04 nether 存档条目 B1 未闭合项（52,078 块 / 76.6%）。结论 → 09 篇「B1 定论」节；错误 E6 → nether-save-errors.md。
+> 承接 260901-03 nether 存档条目 B1 未闭合项（52,078 块 / 76.6%）。结论 → 09 篇「B1 定论」节；错误 E6 → nether-save-errors.md。
 
 ### ✅ 一、前置验证推翻交接假设（Hole 语义）
 - 上轮遗留「Rust Hole 用 surface_depth<=0」为 M6（2026-08-30）修复前过时表述；开工前廉价独立验证：Rust surface_rules.rs L101 当前为 `Hole => stone_depth_above <= 0` 与 Java 一致，dll M17（sha C5AC5309）含修复——Hole 语义课题闭合（§15.4：09 篇原行加 supersedes 注记，不删）。

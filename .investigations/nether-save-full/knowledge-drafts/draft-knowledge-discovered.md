@@ -1,4 +1,4 @@
-# 草稿：knowledge/discovered 通用模式候选（2026-09-07）
+# 草稿：knowledge/discovered 通用模式候选（260902-01）
 
 > 用法：两条均过记录价值门（高价值：可复用判据 / 环境坑判错方法）。主会话应用时按 core-knowledge「发现 #N」格式追加到目标文件，并同步 `knowledge/INDEX.md`。条目文本如下，编号以应用时 INDEX 现状顺延。
 

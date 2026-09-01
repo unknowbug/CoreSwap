@@ -652,7 +652,7 @@ entries:
     status: candidate
     # Phase B/C 游戏内接线：jni_bridge initDim（5 参 wg_create）+ CppBridge netherHandle/fillChunkNether/feedBeardifier 泛化 + Mixin 按维度分派（末地保护=biomeSource 缓存反射，@Shadow 够不到父类字段）+ build.gradle processResources inputs.file dll（M5：UP-TO-DATE 跳过 doFirst 同步致旧 dll → UnsatisfiedLinkError）。结论小节见 docs/09「八」；错误台账 multiworld-errors.md M1-M5。
 
-  # === nether-save-full（B1 机制定论 fan-out 候选，2026-09-05，verdict 在案）===
+  # === nether-save-full（B1 机制定论 fan-out 候选，260901-03，verdict 在案）===
   - id: 're-code:nether-save-full:b1-surface-depth'
     path: '../.artifacts/.b1-surface-depth/'
     kind: analysis
@@ -663,5 +663,5 @@ entries:
     path: '../.artifacts/.b2-nether-state-selector/'
     kind: analysis
     status: draft
-    # fan-out 候选 .b2：nether_state_selector 恒 0.0 bug——真实 bug 非主导（预加载表缺 nether 噪声 → unwrap_or(0.0)，selector min=0.0 恒 true → 恒 basalt，只解释零星分支内翻转）。修复：worldgen_handle.rs 预加载表补 6 个 nether 噪声（2026-09-06）。
+    # fan-out 候选 .b2：nether_state_selector 恒 0.0 bug——真实 bug 非主导（预加载表缺 nether 噪声 → unwrap_or(0.0)，selector min=0.0 恒 true → 恒 basalt，只解释零星分支内翻转）。修复：worldgen_handle.rs 预加载表补 6 个 nether 噪声（260901-04）。
 

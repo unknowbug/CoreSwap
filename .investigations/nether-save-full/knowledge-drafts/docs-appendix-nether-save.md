@@ -6,7 +6,7 @@
 
 ---
 
-## nether 存档写入口径 Full 化（1.0.22 dll，双 seed）（candidate，2026-09-04）
+## nether 存档写入口径 Full 化（1.0.22 dll，双 seed）（candidate，260901-03）
 
 > 载体：Rust nether 接管 gen（cppReplace）→ 存档落盘 → MCA 直解（compare_save_region.py）vs vanilla BlockProbe 参照（WGB2）+ ReadWorldProbe 内存读交叉验证。dll sha256=C5AC5309F3C59A044（1.0.22 M17）。
 > **口径声明（v0.20 §9.7 三要素）**：① 载体 = MCA 存档直解 + 内存读，vs vanilla 参照；② 覆盖面 = 4×4 chunks @(3200,3208) 全高度（nether min_y=0，height=256，动态读取）；③ **与 96.44% 探针口径（docs/09 既有数字）不可比**——载体不同（存档/内存 vs 探针直采），数值禁止直接互比。seed 三查：server.properties ↔ level.dat ↔ ref header 全同值。
@@ -50,5 +50,5 @@
 5. **A2 cave_air 簇**（104，价值在排除 M4 家族复发而非块数）
 6. **B5 magma**（1,694，中低：与 #1 同脚本分桶）
 
-> 状态：数据、口径声明、分类占比 = **candidate**（judge-review #1-4/#15 建议，2026-09-04）；机制解释与待查项 = draft；**confirmed 留人类**。
+> 状态：数据、口径声明、分类占比 = **candidate**（judge-review #1-4/#15 建议，260901-03）；机制解释与待查项 = draft；**confirmed 留人类**。
 > 关联：`.investigations/nether-save-full/`（facts / .b1-.b3 / residual-interpretation / judge-review / nether-save-errors.md）。

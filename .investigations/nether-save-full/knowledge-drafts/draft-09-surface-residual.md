@@ -6,7 +6,7 @@
 
 ---
 
-## SURFACE 口径残差量化：Rust surface 层自身残差 = 22.5%，主导形态 = basalt/blackstone 位放 netherrack（candidate，2026-09-06）
+## SURFACE 口径残差量化：Rust surface 层自身残差 = 22.5%，主导形态 = basalt/blackstone 位放 netherrack（candidate，260901-04）
 
 > 承接「B1 定论」节 judge WARN-4 待排除备择：「Rust surface 薄带残差在 52k 中的量级未单独量化」——本节以 SURFACE 参照口径闭合（计划项 2）。
 
@@ -40,4 +40,4 @@
 
 ### 状态
 
-- 置信度 candidate；confirmed 留用户。过程 → 10 时间线 2026-09-06 条（如需可由主会话合并应用）。
+- 置信度 candidate；confirmed 留用户。过程 → 10 时间线 260901-04 条（如需可由主会话合并应用）。

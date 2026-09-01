@@ -1,6 +1,6 @@
 # C1 CONCERN 判据措辞修正草稿（knowledge 草稿，status 不改，待主会话应用）
 
-> 产出：core.worker 知识库角色（subagent），2026-09-08。
+> 产出：core.worker 知识库角色（subagent），260902-02。
 > C1 原文（`.artifacts/.c2-p2-ore-attribution/review-judge-20260908.md` L16/L45；任务给的 `.investigations/nether-save-full/review-judge-20260908.md` 不存在，实际 judge 文档在 .artifacts 下，与 NEXT_SESSION L21 引用一致）：
 > 「CONCERN-C1（判据措辞）：设计文档判据『≥3 采样区间一致』——实测三轮是同一 seed 同一 region（198..205）重复三次，验证的是确定性/可复现性，不是 3 个独立采样区间……建议改判据措辞为『同 region 三次复跑一致』或补跑 2 个不同 region。」
 
@@ -49,7 +49,7 @@ new:
 
 ## 文件 3：`E:\PYTHON\CoreSwap\versions\1.20.1\docs\10-timewise-archive.md`
 
-**对 3.1**（L2402，时间线 2026-09-08 条回归行——同步措辞；追加不覆盖原则不受影响，此为同日条内措辞修正）：
+**对 3.1**（L2402，时间线 260902-02 条回归行——同步措辞；追加不覆盖原则不受影响，此为同日条内措辞修正）：
 
 old:
 ```

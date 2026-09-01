@@ -1,6 +1,6 @@
 # 候选 b3：Rust nether 生成 / Java feature 阶段跨运行非确定（M4 家族）
 
-**status: draft**（worker b3 候选产物，2026-09-04，静态审查 + 矛盾现场推演；无 shell，全部证据来自工作区文件）
+**status: draft**（worker b3 候选产物，260901-03，静态审查 + 矛盾现场推演；无 shell，全部证据来自工作区文件）
 
 ## 结论倾向：**弱不支持（倾向于推翻「Rust 生成非确定」子命题；Java 侧仍-running 的 vanilla CARVER/FEATURE 阶段 + probe 读取时机竞态是更优解释）**
 
@@ -51,7 +51,7 @@
 
 ---
 
-# 前提修正后的再评估（2026-09-04 追加；不改原结论正文）
+# 前提修正后的再评估（260901-03 追加；不改原结论正文）
 
 ## 前提修正内容
 新数据层证据：所有 gen run 的 **CppBridge 均 enabled=false**——`cppWorldgenDir` 传错一层（传了 `.tmp-coreswap-data\worldgen\data`，正确为 `.tmp-coreswap-data\worldgen` 这层，即 wg_dir=含 `data/` 的目录）；ctypes 直连 `wg_create` 已复现：传错层返回 0（NULL），传对层返回非 0。

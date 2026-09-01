@@ -1,6 +1,6 @@
-# M17 bedrock 随机带修复 — 结论摘要（2026-09-02 session）
+# M17 bedrock 随机带修复 — 结论摘要（260901-02 session）
 
-> **状态更新（2026-09-02）：用户实机验收通过（下界无异常，M16+M17 一并确认）→ M17 修复与 M16 Full 化结论升级 confirmed。**
+> **状态更新（260901-02）：用户实机验收通过（下界无异常，M16+M17 一并确认）→ M17 修复与 M16 Full 化结论升级 confirmed。**
 
 ## 结论（candidate，待 judge + 用户确认）
 Nether bedrock roof 随机带残差（123..126，4011 块）根因 = `parse_anchor_abs_y` 的 `below_top` 锚换算 off-by-one：
@@ -26,7 +26,7 @@ Nether bedrock roof 随机带残差（123..126，4011 块）根因 = `parse_anch
 - M17 修复：cargo release 编译通过；未实机验证（建议用户实机验收时一并观察下界顶部床岩）
 - 残余残差（非本课题）：soul_sand/gravel 涂布边界、熔岩湖边界、洞窟空腔、矿石 feature 差异
 
-## judge 审查与补盘（2026-09-02）
+## judge 审查与补盘（260901-02）
 - judge 结论：**A（M17 修复）与 B（M16 Full 化）均建议授予 candidate**；波及面/格式假设/seed 三查/口径声明全部核实通过
 - 补盘完成（judge 待办两条）：
   - `cmd-output/nether-bedrock-band-after-fix.txt`（修后 per-y 原始表：832/1675/2450/3256/4096 逐位吻合）

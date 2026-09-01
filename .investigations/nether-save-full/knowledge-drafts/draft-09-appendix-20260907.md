@@ -1,10 +1,10 @@
-# 草稿：docs/09-multi-dimension.md 追加小节（2026-09-07）
+# 草稿：docs/09-multi-dimension.md 追加小节（260902-01）
 
 > 用法：主会话将以下小节追加到 `versions/1.20.1/docs/09-multi-dimension.md` 末尾（追加不覆盖；supersedes 只加注记，原行不删）。数字全部来自本 session 已 judge 审查 / worker 定稿素材，confirmed 待用户。
 
 ---
 
-## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（candidate，2026-09-07，commit 709b006）
+## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（candidate，260902-01，commit 709b006）
 
 > 承接「E7 修复」节：E7 修复 = 手工补齐 nether 6 key 清单；本节 = 同一问题的架构层收尾（数据驱动化，对齐 AGENTS.md 数据驱动铁律）。
 
@@ -26,17 +26,17 @@
 
 ### 状态
 
-- candidate；confirmed 留用户。过程 → 10 时间线 2026-09-07 条。
+- candidate；confirmed 留用户。过程 → 10 时间线 260902-01 条。
 
 ---
 
-## 矿石归因定论：双重 feature 应用（candidate，2026-09-07，judge PASS 建议 candidate）
+## 矿石归因定论：双重 feature 应用（candidate，260902-01，judge PASS 建议 candidate）
 
 ### 机制（H_B'）
 
 - `wg_fill_blocks_multi` 内含 **carver + feature 阶段**（`worldgen_handle.rs` L442-449，`WG_SKIP_CARVER` / `WG_SKIP_FEATURES` env 门控）。
 - 存档链路 mixin 只拦 **populateNoise + cancel buildSurface**，Java 侧 CARVER / FEATURES 步骤照跑 → **存档 = Rust features + Java features 双跑**。
-- 修正早前结论：09 篇「SURFACE 口径残差量化」节曾写「cppReplace 架构只拦截 populateNoise + buildSurface，features 只由 Java 运行一次（无双跑通道）」——该判断对 mixin 拦截范围描述正确，但漏了 Rust 侧 `wg_fill_blocks_multi` 内含 feature 阶段这一半，双跑通道实存。**[注 2026-09-07]** 原行不删，以本节为准。
+- 修正早前结论：09 篇「SURFACE 口径残差量化」节曾写「cppReplace 架构只拦截 populateNoise + buildSurface，features 只由 Java 运行一次（无双跑通道）」——该判断对 mixin 拦截范围描述正确，但漏了 Rust 侧 `wg_fill_blocks_multi` 内含 feature 阶段这一半，双跑通道实存。**[注 260902-01]** 原行不删，以本节为准。
 
 ### 消融证据（seed B，4×4 @3200,3208，存档口径）
 
@@ -64,7 +64,7 @@
 
 ---
 
-## soul sand valley 归因三签名（B2 定稿，2026-09-07）
+## soul sand valley 归因三签名（B2 定稿，260902-01）
 
 ### 上轮假设证伪（supersedes 注记）
 
@@ -96,4 +96,4 @@
 
 ### 状态
 
-- 三签名 = worker 定稿（candidate 级）；.b1b idk；confirmed 留用户。过程 → 10 时间线 2026-09-07 条。
+- 三签名 = worker 定稿（candidate 级）；.b1b idk；confirmed 留用户。过程 → 10 时间线 260902-01 条。

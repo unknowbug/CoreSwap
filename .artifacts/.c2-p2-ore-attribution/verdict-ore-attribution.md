@@ -1,6 +1,6 @@
 # C2/P2 ore-attribution verdict —— nether 矿石/岩浆块 save 偏高（~2.2×）主导机制候选
 
-> **修订 v2（2026-09-05，V1 阶段分离探针并入；supersedes v1 的 H_A 排序，v1 正文保留于文末历史节）**：主候选由 H_A（基底命中差）**翻转为 H_B'「双重 feature 应用 = Rust 自身 feature 阶段未在 cppReplace 存档链路关闭」**。依据见 §0。
+> **修订 v2（260901-03，V1 阶段分离探针并入；supersedes v1 的 H_A 排序，v1 正文保留于文末历史节）**：主候选由 H_A（基底命中差）**翻转为 H_B'「双重 feature 应用 = Rust 自身 feature 阶段未在 cppReplace 存档链路关闭」**。依据见 §0。
 
 - **status**: draft（未做任何消融/探针消融验证；仅存量数据归因，按 workflow-patterns #10「先消融后归因」纪律不得升 candidate）
 - **验证分层**: Degraded（静态数据解读，无 trace/probe 新证据；结论仅到「候选归因 + 可证伪设计」层）

@@ -1,4 +1,4 @@
-# C4 overworld 双跑消融量化（采集记录，2026-09-09，draft）
+# C4 overworld 双跑消融量化（采集记录，260902-03，draft）
 
 ## 设置
 - seed B = 8576294172403134396，overworld 4×4@3200,3208，参照 `versions/1.20.1/data/vanilla_8576294172403134396_4_3200_3208.blocks`（四要素核对通过，无 missing ref）。

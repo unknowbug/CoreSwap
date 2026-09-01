@@ -1,4 +1,4 @@
-# review-001 —— V4 soul 残差根因定论 + 布尔解析修复有效性（core.judge，2026-09-09）
+# review-001 —— V4 soul 残差根因定论 + 布尔解析修复有效性（core.judge，260902-03）
 
 > 审查对象：`.artifacts/.b2-soul/v4-eval-conflict.md`（draft）+ `v4-fix-verification.md`（candidate 前置）
 > 三源核对：① 产物快照（两 md）② git 工作区 diff（surface_rules.rs + bin-diag/bin + docs）③ cmd-output 验证记录（前后各一对 dump/repro + run1/2 + mask log）
@@ -40,7 +40,7 @@
 - 产物快照 vs 验证记录：一致（log/dump 原文数字与产物引用逐项相符）。
 - **发现的不一致（处理项，不影响技术结论）**：
   1. **E9 违规**：临时 bin 副本 `WorldgenRust/src/bin/soul_ctx_dump.rs`、`src/bin/soul_tree_repro.rs` 未删（bin-diag 正本已在）。v4-collection 明说「临时挪 src/bin 编译」，用完未清——发版全量绿检查会被这两个 bin 阻塞（1.0.22 前科同型）。
-  2. **产物契约缺口**：`.artifacts/.b2-soul/index.yaml` 未登记 `v4-eval-conflict` 条目（仍停在 2026-09-08 的 v3 条目）。
+  2. **产物契约缺口**：`.artifacts/.b2-soul/index.yaml` 未登记 `v4-eval-conflict` 条目（仍停在 260902-02 的 v3 条目）。
   3. **supersedes 双指针缺失**（v0.20 §15.4）：v4-eval-conflict 单向声明「细化 V3」，但 v3-structure-diff.md 侧无被取代标注/指向 v4 的指针（原结论不可改写 ≠ 不可加取代标注；应补 supersedes 记录而非改 v3 正文）。
   4. docs/09-multi-dimension.md + 10-timewise-archive.md 已有工作区改动——升 candidate/归档前核对该 diff 是否由知识库 subagent 草稿产出（工作区存在 `knowledge-drafts/`，疑似合规，需主会话确认草稿来源）。
 

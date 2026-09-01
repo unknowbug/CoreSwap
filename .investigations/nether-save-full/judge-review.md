@@ -1,4 +1,4 @@
-# judge-review — nether 存档写入口径 Full 化（2026-09-04）
+# judge-review — nether 存档写入口径 Full 化（260901-03）
 
 > judge 只出意见，不改任何 status；confirmed 留给人类。
 > 三源核对：① 产物快照（架构计划 / facts / .b1-.b3 / residual-interpretation）② 工作区改动（runtime/1.20.1/java/.../ReadWorldProbe.java 逐行核对，BlockProbe.java 写入端对拍；git HEAD=dd24e1e 无已跟踪改动，与声明一致）③ 验证记录（.tmp/ 4 个 v2 log + 2 个 compare 输出，全部实读）。

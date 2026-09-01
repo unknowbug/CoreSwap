@@ -1,6 +1,6 @@
-# nether 存档级 Full 化 — seed A 矛盾现场（2026-09-04）
+# nether 存档级 Full 化 — seed A 矛盾现场（260901-03）
 
-> ⚠️ **supersedes（§15.4，2026-09-04 回填）**：本文所有 run 的前提已被推翻——三场 gen 的 CppBridge 均 `enabled=false`（cppWorldgenDir 传错一层 → wg_create 返回 0），世界为 vanilla 生成而非 Rust。本文数据仅作过程记录保留（正文不删不改）；有效数据以 `.tmp/rust_nether_seedA_v2*.log`、`.tmp/compare_nether_seed{A,B}_rust.txt`（v2 真 Rust run）为准。取代详情见 `../nether-save-errors.md` E1/E5 与 `versions/1.20.1/docs/10-timewise-archive.md` 2026-09-04 节。
+> ⚠️ **supersedes（§15.4，260901-03 回填）**：本文所有 run 的前提已被推翻——三场 gen 的 CppBridge 均 `enabled=false`（cppWorldgenDir 传错一层 → wg_create 返回 0），世界为 vanilla 生成而非 Rust。本文数据仅作过程记录保留（正文不删不改）；有效数据以 `.tmp/rust_nether_seedA_v2*.log`、`.tmp/compare_nether_seed{A,B}_rust.txt`（v2 真 Rust run）为准。取代详情见 `../nether-save-errors.md` E1/E5 与 `versions/1.20.1/docs/10-timewise-archive.md` 260901-03 节。
 
 ## 实验设置
 - 区域：4×4 chunks @ (3200,3208)，nether，dll sha256=C5AC5309F3C59A044（1.0.22 M17 版）

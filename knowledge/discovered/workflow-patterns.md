@@ -83,7 +83,7 @@
 
 ## 发现 #9: 一次性诊断产物禁止放「约定目录 = 自动构建范围」——临时产物必须有唯一隔离区
 
-- **发现时间**：2026-09-03；**发现者**：1.0.22 发版 session；**来源定位**：`WorldgenRust/src/bin/` 过时诊断 bin 阻塞发版事件 + AGENTS.md 八.13「临时文件唯一区纪律」；**置信度**：candidate（用户已拍板纪律并落地修复，本发现未走 judge）；**module**：workflow / 构建工程。
+- **发现时间**：260901-03；**发现者**：1.0.22 发版 session；**来源定位**：`WorldgenRust/src/bin/` 过时诊断 bin 阻塞发版事件 + AGENTS.md 八.13「临时文件唯一区纪律」；**置信度**：candidate（用户已拍板纪律并落地修复，本发现未走 judge）；**module**：workflow / 构建工程。
 - **观察**：cargo 只自动编译 `src/bin/` 下所有文件（npm 侧 src 扫描、CMake glob 同族），该目录里积累的一次性诊断 bin 过时后无人维护，却仍参与每次全量构建。1.0.22 发版时 `cargo build --release` 因其中 23 个 bin 仍用旧 `RsSplitter` API（`Aquifer::new` 签名已换 `XoroshiroSplitter`）报 E0308 阻塞发版——而发版产物只需 cdylib（dll），这些 bin 根本不在发版产物内。致灾 = 两因素叠加：①「临时产物位置无约束」（写进明面约定目录）②「构建范围 = 全目录」（约定目录全量自动编译）。
 - **证据**：E0308 全部指向 bin 内旧 API 调用；分两批迁出（先 5 个，重建后又暴露一批 → 共 23 个 → `WorldgenRust/src/bin-diag/`，cargo 不扫描该目录）后全量构建 exit 0，发版产物（cdylib）不受任何影响——证明这批 bin 与发版零依赖，纯属「位置无约束 × 全目录构建」的结构性问题。**第二轮才见底**也是证据：首次报错列表只是「先编译失败的那批」，cargo 不会一次报完所有坏 bin——清此类债必须迭代到全绿。
 - **如何利用**：
@@ -99,7 +99,7 @@
 
 ## 发现 #10: cppReplace 存档口径残差的三阶段归因法——先分阶段再定位机制
 
-- **发现时间**：2026-09-05；**发现者**：nether-save-full session（B1 定论轮）；**来源定位**：`.investigations/nether-save-full/`（residual-interpretation + .b1/.b2 + judge-review）；**置信度**：candidate（三方实验数据实锤，模式层面复用性待下一案例）；**module**：workflow / Minecraft modding / 验证方法。
+- **发现时间**：260901-03；**发现者**：nether-save-full session（B1 定论轮）；**来源定位**：`.investigations/nether-save-full/`（residual-interpretation + .b1/.b2 + judge-review）；**置信度**：candidate（三方实验数据实锤，模式层面复用性待下一案例）；**module**：workflow / Minecraft modding / 验证方法。
 - **观察**：替换模式（如 cppReplace 只接管 noise+surface，Java carvers/features 仍在替换后地形上运行）下的存档口径残差是**多阶段混合产物**——直接把残差对到单一层（如 surface rule 条件链）会得出错误归因（错误 E6：B1 52k 块大宗互换一度被归因 surface rule 条件链，实为 feature 阶段产物在两种基底地形上的命中/形态差）。正确做法是**三阶段归因**：
   1. **阶段分解**：先分清 noise/surface（替换方 = Rust）与 carvers/features（存续方 = Java）各自贡献，再定位机制；
   2. **消融判别**：`WG_SKIP_SURFACE=1` 重跑——surface 关掉后残差从 93.55% 掉到 55.18% 证明 surface 是实心块主来源；且 blobs 不触发（stone 基底非 netherrack → blackstone=0）反向证明 blobs 是 feature 阶段、依赖 netherrack 基底；
@@ -112,18 +112,18 @@
   - **先消融后归因**：任何「残差 → 某层机制」的归因结论，出手前必须已有至少一个阶段消融或直连基线证据，否则降为 draft（反模式见 E6）。
 - **同族模式**：发现 #4（参照数据状态三查 SURFACE vs FULL——参照阶段决定差异构成）是「对照侧」的前置；本发现是「被测侧」（替换模式运行时残差）的阶段归因，两者合用构成替换模式验证的完整口径纪律。
 
-## 发现 #11: 嵌套接管管线复查——「内层全管线 vs 外层分步拦截」的双跑风险（2026-09-07）
+## 发现 #11: 嵌套接管管线复查——「内层全管线 vs 外层分步拦截」的双跑风险（260902-01）
 
-- **发现时间**：2026-09-07（nether-save-full 课题 P2 矿石归因；judge PASS 建议 candidate）
+- **发现时间**：260902-01（nether-save-full 课题 P2 矿石归因；judge PASS 建议 candidate）
 - **置信度**：candidate（消融数据层证据，单 region 单 seed）
 - **module**：workflow / cppReplace 架构
 - **观察**：原生层接管宿主管线时，`wg_fill_blocks_multi` 内部自己实现了完整管线（noise+surface+carver+feature），而外层 mixin 只拦截 populateNoise + cancel buildSurface——未拦截的 Java CARVER/FEATURES 步骤照跑 → 同阶段双跑，矿石族计数 ~2.2×（quartz 4478 vs ref 1992）。
 - **证据**：消融 WG_SKIP_FEATURES=1 → match +5508，quartz 4478→2125 / gold 1525→739 / magma 3814→1979，全部落回 ref 邻域（09 篇「矿石归因定论」）。
 - **如何利用**：①「某块族计数 ≈2× ref」是双跑签名，≈1× 落回即证实；②「同 dll 存档基线 + env 逐阶段消融」两步定位，单步差值直接归因；③接管边界审计（谁拦哪些步骤 × 内层实现哪些阶段）先于条件链归因（与发现 #10 同族、方向互补）；④修复勿用进程全局 env 默认翻转，用句柄/调用级显式 flag。
 
-## 发现 #12: 静态对拍必须对拍解析产物而非输入原文——「参数全对拍」假阴性掩盖真 bug（2026-09-09）
+## 发现 #12: 静态对拍必须对拍解析产物而非输入原文——「参数全对拍」假阴性掩盖真 bug（260902-03）
 
-- **发现时间**：2026-09-09（soul-v4v5 课题 V3→V4；judge PASS 建议 candidate）；**module**：workflow / 验证方法 / 数据驱动解析。
+- **发现时间**：260902-03（soul-v4v5 课题 V3→V4；judge PASS 建议 candidate）；**module**：workflow / 验证方法 / 数据驱动解析。
 - **观察**：V3 静态结构对拍把「解析器产物树 vs JSON」的对拍做成「肉眼核对 JSON 原文参数」——节点结构逐项一致、参数「全对拍」通过，结论「结构差不存在」。但**中间层（解析器）本身是嫌疑对象**：布尔字段被解析器读成 false，JSON 原文上是 true，「肉眼对拍 JSON」天然查不出——8 处假阴性中多处 JSON 原值恰为 false，进一步掩护。真 bug（as_f64 读布尔恒 false，见 compiler-idioms 发现 #8）被假阴性压制一轮（V3 draft）才在 V4 由解析产物树 dump 锁定。
 - **证据**：修复前解析产物树 dump（soul-tree-repro）实测 8 处 `asd=false`，与 nether.json 原文行号逐项对拍——3 处 JSON=`true`（真阳性）、多处 JSON=false（假阴性掩护）；「JSON 原文 / 解析产物树 / 运行时行为」三方对拍闭合后单轮定位根因（`.artifacts/.b2-soul/v4-eval-conflict.md` §1 表）。
 - **如何利用**：

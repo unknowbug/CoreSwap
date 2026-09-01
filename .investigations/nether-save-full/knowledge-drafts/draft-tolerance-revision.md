@@ -5,7 +5,7 @@
 
 ---
 
-### 容差口径修正（candidate，2026-09-06，C1 修复回归暴露）
+### 容差口径修正（candidate，260901-04，C1 修复回归暴露）
 
 > 背景：C1 修复（`surface_rules.rs` 未知 noise key 每 key warn 一次，行为中性）后两次回归 rerun（log = `.investigations/nether-save-full/cmd-output/c1-warn-regression.log` / `c1-warn-regression2.log`）暴露容差样本量问题。
 

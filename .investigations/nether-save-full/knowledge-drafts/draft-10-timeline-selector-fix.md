@@ -1,12 +1,12 @@
-# 草稿：追加到 versions/1.20.1/docs/10-timewise-archive.md 的 2026-09-06 时间线条目（draft，未应用）
+# 草稿：追加到 versions/1.20.1/docs/10-timewise-archive.md 的 260901-04 时间线条目（draft，未应用）
 
-> 本文件为 subagent 产出草稿，主会话审后应用。追加位置：时间线末尾（2026-09-05 B1 定论条之后）。
+> 本文件为 subagent 产出草稿，主会话审后应用。追加位置：时间线末尾（260901-03 B1 定论条之后）。
 
 ---
 
-## 2026-09-06 nether_state_selector 预加载表修复（.b2 遗留项闭合）✅
+## 260901-04 nether_state_selector 预加载表修复（.b2 遗留项闭合）✅
 
-> 承接 2026-09-05 B1 定论条 fan-out .b2 遗留修复项（⚠️ 真实 bug 非主导，待修）。结论 → 09 篇追加小节（草稿 knowledge-drafts/draft-09-selector-fix.md）；错误 E7 → nether-save-errors.md。
+> 承接 260901-03 B1 定论条 fan-out .b2 遗留修复项（⚠️ 真实 bug 非主导，待修）。结论 → 09 篇追加小节（草稿 knowledge-drafts/draft-09-selector-fix.md）；错误 E7 → nether-save-errors.md。
 
 ### ✅ 一、修复
 - `WorldgenRust/src/worldgen_handle.rs` step4 surface rules 噪声预加载表（L192-195 一带）补 6 个 nether 噪声：`minecraft:nether_state_selector` / `patch` / `soul_sand_layer` / `netherrack` / `nether_wart` / `gravel_layer`（全部存在于 `versions/1.20.1/data/minecraft/worldgen/noise/*.json`）。

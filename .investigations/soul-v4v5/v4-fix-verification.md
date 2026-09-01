@@ -1,4 +1,4 @@
-# V4 修复与回归验证（布尔字段解析 bug，2026-09-09，draft）
+# V4 修复与回归验证（布尔字段解析 bug，260902-03，draft）
 
 ## 根因（承 worker 裁决 .artifacts/.b2-soul/v4-eval-conflict.md）
 - `parse_surface_cond` 用 `as_f64()` 读 JSON 布尔字段 `add_surface_depth` / `add_stone_depth`——`JsonValue::Bool` 走 `as_f64()` 返回 None → **恒解析为 false**（原 surface_rules.rs 三处：y_above / stone_depth / water）。
@@ -19,7 +19,7 @@
 4. **soul 族 per-id 佐证**（.tmp/soul_per_id.py，save MCA vs FULL ref）：
    - soul_soil：修复前 1334 → **5771**（ref 5474，+297）；soul_sand：1471→2494（ref 2457，+37）——soul 族闭合至 ref 邻域。
    - quartz 2095（ref 1992）/ gold 711（728）/ magma 1543（1533）/ gravel 674（674）——矿石/杂项近邻域。
-   - basalt −1736 / blackstone −434：B1 surface 残差家族（已知遗留，非本次范围）。修复前后对照（同 seed/region/口径）：basalt save-ref 修复前 −3631（NEXT_SESSION 2026-09-08）→ 修复后 −1736——asd 翻转无新负迁移，B1 家族反而收敛。
+   - basalt −1736 / blackstone −434：B1 surface 残差家族（已知遗留，非本次范围）。修复前后对照（同 seed/region/口径）：basalt save-ref 修复前 −3631（NEXT_SESSION 260902-02）→ 修复后 −1736——asd 翻转无新负迁移，B1 家族反而收敛。
 
 ## 附带修复影响面
 - nether gravel patch 高度带（y_above asd）整体修正；nether_wastes 签名 C「soul_sand_layer 分支 entered 0/60」同 bug 源（L579 add_surface_depth），随本修复闭合（soul_sand 2494 vs ref 2457 佐证）。

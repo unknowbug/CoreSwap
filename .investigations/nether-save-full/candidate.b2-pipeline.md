@@ -2,7 +2,7 @@
 
 status: draft
 worker: fan-out b2（只读静态分析 + 日志取证，无 shell）
-date: 2026-09-04
+date: 260901-03
 
 ## 结论倾向
 
@@ -61,7 +61,7 @@ gen2 log 同样有 `enabled=false` + `failed to extract worldgen.dll`；且**两
 - **P1（MCA 取证，零新运行）**：扩展 dump_chunk_203_200.py，打印 r.6.6.mca 中 chunk(203,200) 与 (200,200) 的 NBT `Timestamp`（epoch 秒）、`DataVersion`、`Status`，对照三个墙钟锚点（gen1 停服 20:09:45 / gen2 停服 20:13:21 / reconfirm 停服 ~20:13:5x）与**实际被 compare 的那个 mca 文件的 mtime+完整路径**。一次定位：cave_air 版最后由谁写入、compare 读的是不是 reconfirm 输出的那份文件。
 - **P2（协议修复门，重跑前强制）**：① 修 dll 提取失败（先查 java.io.tmpdir 权限，JNA jnidispatch「拒绝访问」同源嫌疑）；② 重跑验收判据写死：log 必须含 `enabled=true` + 恰好 16 条 `populateNoise(nether) intercepted`，否则该 run 作废；③ 每次运行间清 `world/region` **和 `world/DIM-1/region`**（nether 残留正是本场混乱之源），并核对 DIM-1 mtime 确已更新。
 
-## 前提修正后的再评估（2026-09-04 追加，原结论不改）
+## 前提修正后的再评估（260901-03 追加，原结论不改）
 
 **新数据层证据（主会话确认）**：所有 gen run 的 CppBridge 均 enabled=false 的根因已定位——**cppWorldgenDir 传错一层目录 → wg_create 返回 0**（此前本文档推测的「dll 提取失败/临时目录权限」是表象之一，机制根因是路径传参错）。即 gen1/gen2/reconfirm 的世界**全部是 vanilla 生成的，没有任何一次 run 真正经过 Rust/mixin 拦截**（日志 [Mixin] 计数=0、initNether enabled=false）。
 

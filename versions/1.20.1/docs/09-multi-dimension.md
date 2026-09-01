@@ -163,11 +163,11 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 - soul_sand_valley 表面残差（y=1..2）；
 - legacy 分流激活验证（as_bool 修复后读取已通，块级输出仍未变）；
 - Hole 语义不一致（Rust `surface_depth <= 0` vs Java `stoneDepthAbove <= 0`，C++ L251 才对——Rust 注释声称对齐 Java 是错的，影响 nether lake/not(hole) 门控，单开课题）；
-  - **[supersedes 2026-09-05]** 本行已过时（M6 修复前表述）：当前 Rust surface_rules.rs L101 Hole => stone_depth_above <= 0 与 Java 一致，dll M17（C5AC5309）含修复——Hole 语义课题闭合。依据见本文「B1 定论」节（§15.4 取代链，原行保留不删）。
+  - **[supersedes 260901-03]** 本行已过时（M6 修复前表述）：当前 Rust surface_rules.rs L101 Hole => stone_depth_above <= 0 与 Java 一致，dll M17（C5AC5309）含修复——Hole 语义课题闭合。依据见本文「B1 定论」节（§15.4 取代链，原行保留不删）。
 - 末地引擎未启动（同前）。
 
 
-## nether 存档写入口径 Full 化（1.0.22 dll，双 seed）（数据/口径/写盘无损 = confirmed；机制解释 = draft，2026-09-04）
+## nether 存档写入口径 Full 化（1.0.22 dll，双 seed）（数据/口径/写盘无损 = confirmed；机制解释 = draft，260901-03）
 
 > 载体：Rust nether 接管 gen（cppReplace）→ 存档落盘 → MCA 直解（compare_save_region.py）vs vanilla BlockProbe 参照（WGB2）+ ReadWorldProbe 内存读交叉验证。dll sha256=C5AC5309F3C59A044（1.0.22 M17）。
 > **口径声明（v0.20 §9.7 三要素）**：① 载体 = MCA 存档直解 + 内存读，vs vanilla 参照；② 覆盖面 = 4×4 chunks @(3200,3208) 全高度（nether min_y=0，height=256，动态读取）；③ **与 96.44% 探针口径（docs/09 既有数字）不可比**——载体不同（存档/内存 vs 探针直采），数值禁止直接互比。seed 三查：server.properties ↔ level.dat ↔ ref header 全同值。
@@ -190,7 +190,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 | A | A1 nether 矿石 feature 差（quartz/gold/debris，方向全为「vanilla 有矿→存档无矿」） | 640 | 84.5% | Rust nether ore feature 未放置或错位（与 B4 同家族；09 篇已知缺口「fill_chunk_blocks nether 逻辑差异化」的存档级量化） |
 | A | A2 air↔cave_air 尾随簇（单 chunk(203,200) y70-72） | 104 | 13.7% | **未闭合**（见下） |
 | A | A3/A4 magma 点差 / 熔岩湖边界点差 | 13 | 1.8% | seed B 大类的缩微版 |
-| B | B1 basalt deltas 三大宗石互换（basalt↔blackstone↔netherrack，成片双向） | 52,078 | 76.6% | surface rule 条件链系统性偏差（biome 判定 / noise 阈值 / Hole 语义 `surface_depth<=0` vs `stoneDepthAbove<=0` 的下游表现之一，未验证）**[supersedes 2026-09-05]** 本行旧候选方向作废，定论见本文「B1 定论」节 |
+| B | B1 basalt deltas 三大宗石互换（basalt↔blackstone↔netherrack，成片双向） | 52,078 | 76.6% | surface rule 条件链系统性偏差（biome 判定 / noise 阈值 / Hole 语义 `surface_depth<=0` vs `stoneDepthAbove<=0` 的下游表现之一，未验证）**[supersedes 260901-03]** 本行旧候选方向作废，定论见本文「B1 定论」节 |
 | B | B2 soul sand valley 涂布边界 | 5,720 | 8.4% | 吻合 09 篇已知遗留（y=1..2 soul_sand_valley 表面残差），块数放大 |
 | B | B4 矿石（与 A1 同家族） | 2,629 | 3.9% | 同 A1 |
 | B | B5 magma / B3 熔岩湖边界 | 3,069 | 4.5% | magma：underwater_magma/邻接判定归属未定；湖边界：M7 seaLevel 机制已修、边界条件残差（已知遗留） |
@@ -200,7 +200,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 1. **103 cave_air 簇机制**：v2 下 seed A 内存 = 存档读回**精确同值**（无 cave_air），MCA 直解却多 103 块 air→cave_air（同 chunk 同簇，y69=0/70=4/71=23/72=53）——「同一次落盘、两种读取口径不同」的新形态矛盾；Rust 全代码零写 cave_air，b1（时序）/b3（非确定）候选均未闭合。探针方向：M4（biome.rs BTreeMap）复核、禁 carvers/features 重跑定位尾随写入者、save 前后 hook dump。
 2. **basalt deltas 大宗互换（B1）**：76.6% 大头，层位/形状已锁定（y≤127、按区域成片）——surface rule 单列对拍 + 按 biome 分桶可定位。
-   - **[已结案 2026-09-05]** 机制定论见本文「B1 定论」节：feature 阶段产物（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差；surface_depth 带厚候选被排除，nether_state_selector bug 另案（非主导）。
+   - **[已结案 260901-03]** 机制定论见本文「B1 定论」节：feature 阶段产物（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差；surface_depth 带厚候选被排除，nether_state_selector bug 另案（非主导）。
 3. **矿石 features 缺口（A1+B4，3,269 块）**：「未实现」vs「放置错位」归属未定——feature 阶段 A/B diff 出 Rust 实际矿位 vs 参照矿位集合即可裁决（若错位，按发现 #6 查 PlacedFeatureIndexer 编号链）。
 
 ### 下一步深挖优先级（块数 × 可定位性，residual-interpretation §3）
@@ -212,12 +212,12 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 5. **A2 cave_air 簇**（104，价值在排除 M4 家族复发而非块数）
 6. **B5 magma**（1,694，中低：与 #1 同脚本分桶）
 
-> 状态：**数据、口径声明、写盘无损结论（三口径同值）= confirmed（用户拍板 2026-09-04，judge-review #1-4/#15 通过）**；残差分类占比数据 confirmed、机制解释与待查项 = draft。
+> 状态：**数据、口径声明、写盘无损结论（三口径同值）= confirmed（用户拍板 260901-03，judge-review #1-4/#15 通过）**；残差分类占比数据 confirmed、机制解释与待查项 = draft。
 > 关联：`.investigations/nether-save-full/`（facts / .b1-.b3 / residual-interpretation / judge-review / nether-save-errors.md）。
 
-## B1 定论：basalt deltas 三大宗石互换 = feature 阶段产物在两种基底地形上的命中/形态差（candidate，2026-09-05）
+## B1 定论：basalt deltas 三大宗石互换 = feature 阶段产物在两种基底地形上的命中/形态差（candidate，260901-03）
 
-> 承接上节「nether 存档写入口径 Full 化」B1 未闭合项（52,078 块 / 76.6%）。本轮三方实验 + fan-out 两候选裁决后机制定论。过程与被推翻假说见 10 时间线 2026-09-05 条；错误 E6 见 `.investigations/nether-save-full/nether-save-errors.md`。
+> 承接上节「nether 存档写入口径 Full 化」B1 未闭合项（52,078 块 / 76.6%）。本轮三方实验 + fan-out 两候选裁决后机制定论。过程与被推翻假说见 10 时间线 260901-03 条；错误 E6 见 `.investigations/nether-save-full/nether-save-errors.md`。
 
 ### 机制定论（B1 主导，candidate）
 
@@ -247,9 +247,9 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 - ✅ **Hole 语义不一致已闭合**（取代本篇前文遗留课题中的 Hole 行）：docs/09 前文「Rust Hole 用 surface_depth<=0」为 M6（2026-08-30）修复前的过时表述；当前 Rust surface_rules.rs L101 `Hole => stone_depth_above <= 0` 与 Java 一致，dll M17（sha C5AC5309）含修复。见上方 supersedes 标注。
 - ❌ surface_depth 带厚机制（fan-out .b1）：不成立——带厚上限 ≤6 层，实测 40 层体块不可达（`.artifacts/.b1-surface-depth/` verdict）。
 - ⚠️ nether_state_selector 恒 0.0（fan-out .b2）：**真实 bug**（`create_for_dim` step4 预加载表缺 nether 噪声：nether_state_selector/patch/soul_sand_layer/netherrack/nether_wart/gravel_layer → `unwrap_or(0.0)`），但只解释零星分支内翻转，**非 B1 主导**（`.artifacts/.b2-nether-state-selector/`）。修复值得做（一行预加载表补齐），预期闭合 soul_soil 子族等——**待修，修复后重测**。
-  **[supersedes 2026-09-06]** 上行「待修」状态作废：已修复并重测，见下节。
+  **[supersedes 260901-04]** 上行「待修」状态作废：已修复并重测，见下节。
 
-## nether_state_selector 预加载表修复（.b2 遗留项闭合，candidate，2026-09-06）
+## nether_state_selector 预加载表修复（.b2 遗留项闭合，candidate，260901-04）
 
 > 置信度 **candidate**；验证分层 **Partial**（存档口径端到端对齐 + 日志判据核对，非逐位 Full）。§9.7：93.8988% 为**存档口径**，与纯 Rust 口径不可比。
 
@@ -264,7 +264,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 | 项 | 数字 | 判读 |
 |---|---|---|
 | 修复前基线 | 93.5508%（上轮） | 同 dll 非确定性容差实测 ±369 块 ≈ ±0.035pp |
-| 修复后 | **93.8988%**（match = 984600/1048576） | **+0.348pp ≈ 10× 容差 → 超出非确定性噪声，真实改善** **[supersedes 2026-09-06]** 单点倍数表述作废，见下方「容差口径修正」 |
+| 修复后 | **93.8988%**（match = 984600/1048576） | **+0.348pp ≈ 10× 容差 → 超出非确定性噪声，真实改善** **[supersedes 260901-04]** 单点倍数表述作废，见下方「容差口径修正」 |
 | E1/E3 判据核对 | 通过 | `[CppBridge] initNether enabled=true` 且 seed 一致；log = `.investigations/nether-save-full/cmd-output/b2-fix-rerun.log` |
 
 ### 修复后分族（b1_family_split.py / b1_id_totals.py）
@@ -278,7 +278,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 - 载体：MCA 存档直解 vs vanilla FULL 参照（WGB2）；覆盖面：4×4 chunk 全高度（min_y=0, height=256）。
 - 可比性：93.8988% 与纯 Rust 口径 77.43% 不可比；与修复前 93.5508% 同口径可比（容差 ±369 块已声明）。
 
-### 容差口径修正（candidate，2026-09-06，C1 修复回归暴露）
+### 容差口径修正（candidate，260901-04，C1 修复回归暴露）
 
 > supersedes：本段取代上方验证表中「+0.348pp ≈ 10× 容差」的容差倍数表述——n=2 容差样本低估散布（judge CONCERN C4 属实），改善量表述修正为区间下界；原表行不删，加注记。
 
@@ -297,9 +297,9 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 ### 状态
 
 - candidate（Partial 分层 + 容差倍数判真改善）；confirmed 留用户。
-- 过程 → 10 时间线 2026-09-06 条；错误 E7 → `.investigations/nether-save-full/nether-save-errors.md`。
+- 过程 → 10 时间线 260901-04 条；错误 E7 → `.investigations/nether-save-full/nether-save-errors.md`。
 
-## SURFACE 口径残差量化：Rust surface 层自身残差 = 22.5%，主导形态 = basalt/blackstone 位放 netherrack（candidate，2026-09-06）
+## SURFACE 口径残差量化：Rust surface 层自身残差 = 22.5%，主导形态 = basalt/blackstone 位放 netherrack（candidate，260901-04）
 
 > 承接「B1 定论」节 judge WARN-4 待排除备择。验证分层 Partial（SURFACE 参照口径 = BlockProbe 无 carvers/features）。
 
@@ -333,7 +333,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 
 
-## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（confirmed，2026-09-07 用户拍板，commit 709b006）
+## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（confirmed，260902-01 用户拍板，commit 709b006）
 
 > 承接「E7 修复」节：E7 修复 = 手工补齐 nether 6 key 清单；本节 = 同一问题的架构层收尾（数据驱动化，对齐 AGENTS.md 数据驱动铁律）。
 
@@ -355,17 +355,17 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- **confirmed（2026-09-07 用户拍板）**。过程 → 10 时间线 2026-09-07 条。
+- **confirmed（260902-01 用户拍板）**。过程 → 10 时间线 260902-01 条。
 
 ---
 
-## 矿石归因定论：双重 feature 应用（confirmed，2026-09-07 用户拍板；judge PASS）
+## 矿石归因定论：双重 feature 应用（confirmed，260902-01 用户拍板；judge PASS）
 
 ### 机制（H_B'）
 
 - `wg_fill_blocks_multi` 内含 **carver + feature 阶段**（`worldgen_handle.rs` L442-449，`WG_SKIP_CARVER` / `WG_SKIP_FEATURES` env 门控）。
 - 存档链路 mixin 只拦 **populateNoise + cancel buildSurface**，Java 侧 CARVER / FEATURES 步骤照跑 → **存档 = Rust features + Java features 双跑**。
-- 修正早前结论：09 篇「SURFACE 口径残差量化」节曾写「cppReplace 架构只拦截 populateNoise + buildSurface，features 只由 Java 运行一次（无双跑通道）」——该判断对 mixin 拦截范围描述正确，但漏了 Rust 侧 `wg_fill_blocks_multi` 内含 feature 阶段这一半，双跑通道实存。**[注 2026-09-07]** 原行不删，以本节为准。
+- 修正早前结论：09 篇「SURFACE 口径残差量化」节曾写「cppReplace 架构只拦截 populateNoise + buildSurface，features 只由 Java 运行一次（无双跑通道）」——该判断对 mixin 拦截范围描述正确，但漏了 Rust 侧 `wg_fill_blocks_multi` 内含 feature 阶段这一半，双跑通道实存。**[注 260902-01]** 原行不删，以本节为准。
 
 ### 消融证据（seed B，4×4 @3200,3208，存档口径）
 
@@ -389,11 +389,11 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- **confirmed（2026-09-07 用户拍板）**。
+- **confirmed（260902-01 用户拍板）**。
 
 ---
 
-## soul sand valley 归因三签名（B2 定稿，2026-09-07）
+## soul sand valley 归因三签名（B2 定稿，260902-01）
 
 ### 上轮假设证伪（supersedes 注记）
 
@@ -425,12 +425,12 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- **confirmed（2026-09-07 用户拍板：缺口在 Rust 管线内 + 三签名方向）**；.b1b 内部机制 idk 保持（不阻塞本定论）。过程 → 10 时间线 2026-09-07 条。
+- **confirmed（260902-01 用户拍板：缺口在 Rust 管线内 + 三签名方向）**；.b1b 内部机制 idk 保持（不阻塞本定论）。过程 → 10 时间线 260902-01 条。
 
 
 
 
-## 句柄级 wg_set_flags 修复 cppReplace 存档链路 Rust features/carver 双跑（candidate，2026-09-08；judge PASS）
+## 句柄级 wg_set_flags 修复 cppReplace 存档链路 Rust features/carver 双跑（confirmed，260902-02；judge PASS；用户拍板 260902-03）
 
 > 承接「矿石归因定论」节结论 4 的 judge CONCERN（`WG_SKIP_*` 为进程全局 env 门控，勿全局默认翻转）。修复验证分层 **Partial**（存档口径端到端 + ore per-id 消融值佐证，非逐位 Full）。§9.7：94.4241% 为存档口径，与 SURFACE/纯 Rust 口径不可比。
 
@@ -464,11 +464,11 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- **candidate（judge PASS）**；过程 → 10 时间线 2026-09-08 条。
+- **confirmed（260902-03 用户拍板；judge PASS）**；过程 → 10 时间线 260902-02 条。
 
 ---
 
-## V3 结构对拍：nether surface_rule 解析器全节点一致，「分支缺失」假说否定（draft，Degraded，2026-09-08）
+## V3 结构对拍：nether surface_rule 解析器全节点一致，「分支缺失」假说否定（draft，Degraded，260902-02）
 
 > 承接「soul 三签名」节下一步第 1 项（V3 结构对拍，零成本最高优先）。验证分层 **Degraded**（静态结构对拍，无运行时证据），MUST 声明降级。
 
@@ -490,10 +490,10 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 ### 状态
 
 - **draft（Degraded）**：排除结论（结构差不存在）数据直读可信；归因指向两候选均未验证。下一步 V4（ctx dump 对差）/ V5（biome 边界带）。
-- 产物：`.artifacts/.b2-soul/v3-structure-diff.md`。过程 → 10 时间线 2026-09-08 条。
+- 产物：`.artifacts/.b2-soul/v3-structure-diff.md`。过程 → 10 时间线 260902-02 条。
 
 
-## 布尔字段解析 bug 修复签名 B/C（candidate，2026-09-09；judge PASS）
+## 布尔字段解析 bug 修复签名 B/C（confirmed，260902-03；judge PASS；用户拍板 260902-03）
 
 > 承接上节 V3 结构对拍的「归因指向」——V4 生产 ctx dump 先否定「输入差」候选（180 点生产 dump 与 probe 逐项全同），随后解析产物树 dump 锁定**求值层矛盾 = 解析器布尔字段 bug**。本节 supersedes V3 节的处置方向（原「到运行时输入找」的方向由本节取代，V3 原节不删）；V3 的「结构差不存在」排除结论维持成立，仅其「参数全对拍」子项为漏检（对拍的是 JSON 原文而非解析产物）。验证分层 **Partial**（bin-diag 解析树 dump + 定点 apply + 存档口径端到端，非逐位 Full）。
 
@@ -524,7 +524,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 残差（idk / 遗留）
 
-- basalt −1736 / blackstone −434：**B1 surface 残差家族**（已知遗留，非本次范围）；修复前后对照（同 seed/region/口径）：basalt save-ref −3631（2026-09-08）→ −1736——asd 翻转无新负迁移，B1 家族反而收敛。
+- basalt −1736 / blackstone −434：**B1 surface 残差家族**（已知遗留，非本次范围）；修复前后对照（同 seed/region/口径）：basalt save-ref −3631（260902-02）→ −1736——asd 翻转无新负迁移，B1 家族反而收敛。
 - 366 块非确定带宽（run1/run2）；**V5 biome 边界带（vs vanilla 足迹）未做**——修复后残差图需重导（readWorldProbe mismatch 全集），残差降至 ~3.4%。
 
 ### 口径声明（§9.7 三要素）
@@ -534,6 +534,6 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- **candidate（judge PASS，review-001）**；supersedes 双指针：v3-structure-diff.md 参数对拍子项被 `.artifacts/.b2-soul/v4-eval-conflict.md` 细化取代。confirmed 待用户拍板。过程 → 10 时间线 2026-09-09 条。
+- **confirmed（260902-03 用户拍板；judge PASS，review-001）**；supersedes 双指针：v3-structure-diff.md 参数对拍子项被 `.artifacts/.b2-soul/v4-eval-conflict.md` 细化取代。过程 → 10 时间线 260902-03 条。
 
 

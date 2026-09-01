@@ -1,14 +1,14 @@
 ---
 id: review-judge-20260908
 topic: c2-p2-ore-attribution
-title: Judge 审查——存档双跑修复（wg_set_flags 句柄级 flag）+ V3 soul rule 结构对拍（2026-09-08）
+title: Judge 审查——存档双跑修复（wg_set_flags 句柄级 flag）+ V3 soul rule 结构对拍（260902-02）
 status: draft
 审查性质: 只出审查意见，不改任何 status；confirmed 留待宿主人类
 审查基线: 三源核对（① 产物快照 design-wg-set-flags-20260908.md + v3-structure-diff.md + index.yaml ② git status/diff ③ 回归日志 run4/5/6）
-date: 2026-09-08
+date: 260902-02
 ---
 
-# Judge 审查意见（2026-09-08）：双跑修复 + V3 对拍
+# Judge 审查意见（260902-02）：双跑修复 + V3 对拍
 
 ## 一、证据完整性（run4/5/6）
 

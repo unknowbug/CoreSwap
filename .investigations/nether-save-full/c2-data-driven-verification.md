@@ -1,4 +1,4 @@
-# C2 预加载表数据驱动化 — 验证记录（candidate，2026-09-07）
+# C2 预加载表数据驱动化 — 验证记录（candidate，260902-01）
 
 ## 改动
 - `WorldgenRust/src/surface_rules.rs`：新增 `collect_noise_keys()`——遍历 surface_rule JSON（sequence/if_true/then_run/invert 递归），收集全部 noise_threshold 引用的 noise key（去重）。

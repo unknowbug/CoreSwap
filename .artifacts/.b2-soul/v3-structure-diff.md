@@ -5,12 +5,12 @@ title: V3 静态结构对拍——nether surface_rule JSON vs Rust 解析（签�
 status: draft
 验证分层: Degraded（纯静态阅读对拍，无运行时证据；子代理分析，未编译/未执行）
 可比性声明: 载体=JSON 数据树 vs Rust 解析器源码静态语义；覆盖面=nether.json surface_rule 全部节点类型 + surface_rules.rs parse_surface_rule/parse_surface_cond/SurfaceCond::test/build_surface 装配；与 V1/V2 动态探针口径不可比（本产物只回答「rule 结构差可否解释」，不回答「运行时输入差」）
-date: 2026-09-08
+date: 260902-02
 ---
 
 # V3 静态结构对拍：nether surface_rule（JSON）vs Rust 解析
 
-> **[supersedes 注 2026-09-09]** 本节「签名 B/C 结构差不可解释（需 V4 动态对照）」的处置方向已被
+> **[supersedes 注 260902-03]** 本节「签名 B/C 结构差不可解释（需 V4 动态对照）」的处置方向已被
 > `.artifacts/.b2-soul/v4-eval-conflict.md` 取代：矛盾最终定位为 **parse_surface_cond 布尔字段解析 bug**
 > （as_f64 读 Bool → 恒 false，求值层 ≠ JSON 语义），非运行时输入差。本节「结构完整一致」结论仍成立；
 > §1 的「参数全对拍」为假阴性——教训：静态对拍必须对拍**解析产物树**而非 JSON 原文（详见 v4-eval-conflict §4）。

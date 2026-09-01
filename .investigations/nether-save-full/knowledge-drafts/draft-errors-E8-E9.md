@@ -6,7 +6,7 @@
 
 ## E8. 沙箱下 gradle runServer「failed to extract worldgen.dll」AccessDeniedException（已修复）
 
-- **编号**：E8（环境坑，2026-09-07）
+- **编号**：E8（环境坑，260902-01）
 - **现象**：沙箱下 `gradle runServer` 启动失败，报 `failed to extract worldgen.dll`，异常链为 `AccessDeniedException`，写入目标为 `%TEMP%\dsh-*` 临时目录。
 - **根因**：**沙箱文件权限边界**——JVM/gradle 侧原生库提取流程默认写系统 `%TEMP%`，沙箱策略对该路径拒绝写入；机制上不是 dll 本身损坏或版本不符，而是「提取目标目录不可写」，报错被包装成「failed to extract」易误判为 dll 问题。
 - **定位**：读异常链中 `AccessDeniedException` 的目标路径（`%TEMP%\dsh-*`），确认拒绝发生在临时目录写入而非 dll 源读取；对照沙箱可写范围（session workspace）即定位。
@@ -19,7 +19,7 @@
 
 ## E9. WorldgenRust.dll mtime 因 fs::copy 保留时间戳不可信：显示 9/1 实为最新（已修复判定方法）
 
-- **编号**：E9（环境坑/判错方法，2026-09-07）
+- **编号**：E9（环境坑/判错方法，260902-01）
 - **现象**：WorldgenRust.dll 文件资源管理器/Get-ChildItem 显示 mtime 为 9/1，按时间戳判断应为旧产物，实际是最新构建——按 mtime 判新旧会得出错误结论。
 - **根因**：构建/部署链使用 `fs::copy`，该调用**保留源文件时间戳**——复制产物的 mtime 反映的是源文件时间而非复制时刻；mtime 在此链路上不是「产物生成时间」的可靠信号。
 - **定位**：对 dll 内容做二进制字符串探测（比对链路中新特征字符串/版本串存在于「旧 mtime」文件中），确认内容为最新 → 证明 mtime 与内容不一致，时间戳不可信。
