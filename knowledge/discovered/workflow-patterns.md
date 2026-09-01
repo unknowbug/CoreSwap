@@ -81,10 +81,16 @@
 
 > **【2026-09-01 更新】** #8 原始案例（M14）最终根因已由 M16 定案为 JNI 写入路径 id 域错位（见 compiler-idioms.md 发现 #6）——非 feature 阶段上下文问题。「审计清单」价值保留（「下游阶段吃我什么状态」检查方法仍有效）；本例根因见 M16。
 
-## INDEX.md 应用后该行变为
+## 发现 #9: 一次性诊断产物禁止放「约定目录 = 自动构建范围」——临时产物必须有唯一隔离区
 
-| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31） |
-
----
+- **发现时间**：2026-09-03；**发现者**：1.0.22 发版 session；**来源定位**：`WorldgenRust/src/bin/` 过时诊断 bin 阻塞发版事件 + AGENTS.md 八.13「临时文件唯一区纪律」；**置信度**：candidate（用户已拍板纪律并落地修复，本发现未走 judge）；**module**：workflow / 构建工程。
+- **观察**：cargo 只自动编译 `src/bin/` 下所有文件（npm 侧 src 扫描、CMake glob 同族），该目录里积累的一次性诊断 bin 过时后无人维护，却仍参与每次全量构建。1.0.22 发版时 `cargo build --release` 因其中 23 个 bin 仍用旧 `RsSplitter` API（`Aquifer::new` 签名已换 `XoroshiroSplitter`）报 E0308 阻塞发版——而发版产物只需 cdylib（dll），这些 bin 根本不在发版产物内。致灾 = 两因素叠加：①「临时产物位置无约束」（写进明面约定目录）②「构建范围 = 全目录」（约定目录全量自动编译）。
+- **证据**：E0308 全部指向 bin 内旧 API 调用；分两批迁出（先 5 个，重建后又暴露一批 → 共 23 个 → `WorldgenRust/src/bin-diag/`，cargo 不扫描该目录）后全量构建 exit 0，发版产物（cdylib）不受任何影响——证明这批 bin 与发版零依赖，纯属「位置无约束 × 全目录构建」的结构性问题。**第二轮才见底**也是证据：首次报错列表只是「先编译失败的那批」，cargo 不会一次报完所有坏 bin——清此类债必须迭代到全绿。
+- **如何利用**：
+  - **判据一**：任何构建系统的「约定目录 = 自动构建范围」（cargo `src/bin/`、npm 打包器 src 扫描、CMake `file(GLOB)`）都**不要放一次性脚本/诊断程序**——放进去即等于「永久参与构建 + 永久欠维护债」。
+  - **判据二**：临时产物必须有唯一隔离区，**靠纪律不如靠机制**——最可靠的隔离是目录选择本身（放构建器不扫的目录），而不是「记得别乱放」；CoreSwap 落地：Python/一次性脚本 → 仓库根 `.tmp/`，Rust 诊断 bin → `WorldgenRust/src/bin-diag/`（要用时 rustc 单编或临时挪入）。`src/bin/` 只保留「随库维护、全量编译必须绿」的正式 bin。
+  - **判据三**：发版只需库产物时 `cargo build --release --lib` 可救急，但**全量绿仍保留为发版前检查**——全量构建是过时产物的探测器，全量红即暴露「有产物已脱离维护」。
+  - 反模式警示：诊断 bin 与生产代码共享 crate 时，API 演进不会「顺带」修好 bin（无 CI 强制时更不会）——过时是默认轨迹，隔离是唯一低成本对策。
+- **同族已知坑**：gradle 换机器/新 shell 直接 `gradle` 不带 `GRADLE_USER_HOME` → native-platform.dll 加载失败（build-tooling.md 发现 #4）——环境类「约定不生效」同族：工具的 home/缓存必须显式指到工作区内。
 
 
