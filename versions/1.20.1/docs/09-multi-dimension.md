@@ -333,7 +333,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 
 
-## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（candidate，2026-09-07，commit 709b006）
+## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（confirmed，2026-09-07 用户拍板，commit 709b006）
 
 > 承接「E7 修复」节：E7 修复 = 手工补齐 nether 6 key 清单；本节 = 同一问题的架构层收尾（数据驱动化，对齐 AGENTS.md 数据驱动铁律）。
 
@@ -355,11 +355,11 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- candidate；confirmed 留用户。过程 → 10 时间线 2026-09-07 条。
+- **confirmed（2026-09-07 用户拍板）**。过程 → 10 时间线 2026-09-07 条。
 
 ---
 
-## 矿石归因定论：双重 feature 应用（candidate，2026-09-07，judge PASS 建议 candidate）
+## 矿石归因定论：双重 feature 应用（confirmed，2026-09-07 用户拍板；judge PASS）
 
 ### 机制（H_B'）
 
@@ -389,7 +389,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- candidate（judge PASS 建议）；confirmed 留用户。
+- **confirmed（2026-09-07 用户拍板）**。
 
 ---
 
@@ -425,5 +425,6 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 ### 状态
 
-- 三签名 = worker 定稿（candidate 级）；.b1b idk；confirmed 留用户。过程 → 10 时间线 2026-09-07 条。
+- **confirmed（2026-09-07 用户拍板：缺口在 Rust 管线内 + 三签名方向）**；.b1b 内部机制 idk 保持（不阻塞本定论）。过程 → 10 时间线 2026-09-07 条。
+
 

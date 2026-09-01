@@ -87,3 +87,4 @@ cppReplace 契约 = Rust 只接管 populateNoise + buildSurface，Java 跑 carve
 
 ## 五、错误/教训沉淀提示（按价值门）
 - 本轮可复用判法：「同源 feature、双地形基底」的均匀倍率残差 → 先怀疑基底命中差（派生自 surface 残差），用 ore-mask 重叠（⊆ 判据）一步区分「命中差 vs 重复应用」——若验证有效，建议沉淀进 workflow-patterns #10 的判别手段清单（knowledge subagent 产出，验证后再写）。
+

@@ -2388,3 +2388,6 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 同 region 对齐 = 97.3537%（seed B，4×4 @3200,3208，FULL 参照 3219616B）——「overworld 99.9%」系 seed A 不同样本的口径记忆，同 region 从未测过 99.9%。双跑矛盾解除：overworld 同样双跑，只是 overworld feature 密度/基底差使其未显形为 2× 矿石（定性，未量化）。
 - 教训补充 E9 同族：**历史对齐数字引用必须带 seed+region+口径三要素**，凭「维度印象」引用构成伪矛盾（本条即 X1 的成立前提）。
 - 遗留：overworld 双跑的量化影响（对齐率/矿石计数）未测，需 seed B overworld 消融 run（SKIP_FEATURES）定性——下轮候选。
+
+### ✅ 拍板回填（2026-09-07）
+- 用户全部批准：六项 candidate → **confirmed**（selector 修复 / SURFACE 残差量化 / 容差口径修正 / C2 数据驱动化 / P2 双重 feature 归因 / P3 soul 缺口在 Rust 管线 + 三签名方向）。状态标注已回写 09 篇、decision-package、两份 artifacts verdict。修复类后续（双跑修复 / V3-V5）不在拍板范围。

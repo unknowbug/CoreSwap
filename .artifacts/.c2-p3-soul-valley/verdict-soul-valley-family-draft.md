@@ -151,3 +151,4 @@ Java features 侧为净回补（soul_sand +587），不是缺口来源。
 - 「缺口主导在 Rust SURFACE 阶段结构差（.b1a），非 feature」：**candidate**（V1 阶段分离 + V2 三组同点探针双数据层证据；单 region 单 seed，扩样可加固）。
 - 「soul_soil 子分支落 netherrack」「soul_sand_layer 分支缺失」：**draft 签名**（Rust 单侧 apply 模式推断，待 V3-rule 对拍定案）。
 - 「Rust selector 噪声值 vs vanilla」：**idk**（V4 未做）。
+

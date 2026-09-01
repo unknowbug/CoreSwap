@@ -1,4 +1,4 @@
-# 拍板材料 — 四项 candidate 证据包（2026-09-07，待用户 confirmed）
+# 拍板材料 — 六项 **confirmed**（2026-09-07 用户全部拍板批准）
 
 > 汇总自 judge 审查 + 本 session 回归。每项含：结论 / 证据 / 载体口径 / judge 意见 / 状态。
 
@@ -28,5 +28,6 @@
 - **P3 soul 家族（worker 定稿，candidate 级证据）**：上轮「soul_soil 大头在 Java feature」假设证伪（supersedes）；缺口 4140 在 Rust 管线内。V2 三签名：A biome 足迹偏移（x≥3410 边界带）/ B soul_soil 子分支失效 / C floor 侧 soul_sand_layer 分支疑似缺失；.b1a 结构差主导，.b1b idk。下一步 V3 结构对拍（零成本）→ V4 RouterProbe → V5 边界带。
 - **judge 审查**：`.artifacts/.c2-p2-ore-attribution/review-judge-20260907.md`（1/2 PASS 建议授 candidate；overworld 矛盾 CONCERN 不阻塞；P3 措辞已修；消融输出已落盘 cmd-output/）。
 
-## 拍板请求（更新）
-建议 confirmed 共 6 项：原 4 项（§1-4）+ P2 双重 feature 归因 + P3 soul 缺口在 Rust 管线（三签名）。AI 无权自授，任何一项可单独批准/退回。
+## 拍板结果（2026-09-07）
+**六项全部 confirmed（用户批准）**。修复类后续（双跑修复设计 / V3-V5 深挖）不在本拍板范围，见 NEXT_SESSION 下轮清单。
+
