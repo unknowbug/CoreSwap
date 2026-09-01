@@ -1,0 +1,12 @@
+# .artifacts index (fragment)
+topic: b2-soul
+updated: 2026-09-08
+entries:
+  - id: v3-structure-diff
+    path: .artifacts/.b2-soul/v3-structure-diff.md
+    status: draft
+    confidence: draft；Degraded（纯静态对拍，无运行时证据）
+    module: minecraft-worldgen / nether-surface-rule / soul-signatures
+    summary: nether.json surface_rule 全节点 vs Rust parse_surface_rule/parse_surface_cond 静态对拍——soul 与 nether_wastes 分支结构完整一致，解析器覆盖全部节点类型；静态偏差 4 项（y_above multiplier 硬编码 0 等）均判非本次因果。判定：签名 B「结构差不可解释」→ V4 动态对照；签名 C「结构差不可解释」且「分支缺失」假说被否定，biome 足迹偏移（签名 A 同源，biome 层）升为并列主候选。
+    verification: Degraded（静态阅读对拍；JSON nether.json L105-737 全节点 + surface_rules.rs L996-1093/67-118/1096-1233 + worldgen_handle.rs L217-256）
+    next: V4 动态对照（生产链路 soul 分支入口 ctx dump vs soul_selector_probe 输入）；解析失败回退改 fail-fast（改进建议）

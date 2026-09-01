@@ -79,7 +79,16 @@ pub struct WorldgenHandle {
     feature_indexer: crate::feature_loader::PlacedFeatureIndexer,
     // 数据目录
     wg_dir: String,
+    // 句柄级阶段开关（2026-09-08 双跑修复，judge CONCERN：env 门是进程全局，需句柄级 flag）。
+    // bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；0 = 未设置 → 回落 env 判定（兼容 bin-diag/probe）。
+    // skip 方向 OR：flag 位或 env 任一命中即 skip。存档链路由 CppBridge 设 flag，standalone 工具零改动。
+    pub flags: std::sync::atomic::AtomicU32,
 }
+
+// flags 位定义（与 wg_set_flags / Java CppBridge 对齐）
+pub const FLAG_SKIP_CARVER: u32 = 1 << 0;
+pub const FLAG_SKIP_FEATURES: u32 = 1 << 1;
+pub const FLAG_SKIP_SURFACE: u32 = 1 << 2;
 
 impl WorldgenHandle {
     // 便捷入口：overworld 默认维度（保留既有 probe 调用兼容）。
@@ -288,6 +297,7 @@ impl WorldgenHandle {
             feature_cache,
             feature_indexer,
             wg_dir,
+            flags: std::sync::atomic::AtomicU32::new(0),
         })
     }
 
@@ -429,18 +439,19 @@ impl WorldgenHandle {
         };
         let biome_temp = |id: &str| -> f64 { crate::surface_rules::biome_temperature(id) };
         let initial_density_at = |x: i32, y: i32, z: i32| -> f64 { self.init.sample(&NoisePos { x, y, z }) };
-        if std::env::var("WG_SKIP_SURFACE").is_err() {
+        let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
+        if flags & FLAG_SKIP_SURFACE == 0 && std::env::var("WG_SKIP_SURFACE").is_err() {
             self.sb.build_surface(&mut col, &self.rule, cx * 16, cz * 16, &heightmap, &surface_heights4,
                                   &biome_at, &|x, y, z| ((x as i64) << 32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
         }
 
-        // 4. carver（洞穴雕刻，17×17 邻域）
-        if std::env::var("WG_SKIP_CARVER").is_err() {
+        // 4. carver（洞穴雕刻，17×17 邻域）——句柄 flag 或 env 任一命中即 skip
+        if flags & FLAG_SKIP_CARVER == 0 && std::env::var("WG_SKIP_CARVER").is_err() {
             self.apply_carvers(&mut col, cx, cz, &mut va.aq, &biome_at);
         }
 
         // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
-        let skip_features = std::env::var("WG_SKIP_FEATURES").is_ok();
+        let skip_features = flags & FLAG_SKIP_FEATURES != 0 || std::env::var("WG_SKIP_FEATURES").is_ok();
         if !skip_features {
             let n_features = self.apply_features(&mut col, cx, cz, &heightmap, &biome_at);
             if std::env::var("WG_FEATURELOG").is_ok() {

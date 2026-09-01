@@ -131,3 +131,12 @@
 | E7 nether surface rule 恒 basalt 分支（noise key 全取 0.0） | step4 预加载表只含 overworld 噪声，nether key 缺失 → noise_threshold_sample `unwrap_or(0.0)` 静默回退（threshold=0.0 使条件恒 true） | **隐式契约要有静态检查；unwrap_or(0.0) 吞错误是跨语言通用反模式**；新维度上线先核硬编码清单覆盖面 |
 | E8 沙箱 gradle runServer「failed to extract worldgen.dll」AccessDeniedException | JVM 默认写 `%TEMP%\dsh-*` 提取 dll，沙箱拒绝临时目录写入；非 dll 本身问题 | 沙箱下 JVM 工具用 `-Djava.io.tmpdir` 重定向临时目录到工作区；先读异常链目标路径再定方向 |
 | E9 dll mtime 显示 9/1 实为最新，按时间戳判新旧出错 | 构建链 `fs::copy` 保留源时间戳，mtime ≠ 产物生成时间 | 复制链产物判新旧用内容指纹（二进制字符串探测），不用 mtime；诊断 bin 走 bin-diag/ 临时挪入 |
+| E10 强杀 gradle daemon 后全部 gradle 调用报 "Failed to load native-platform.dll" | 根因 = `~/.gradle/native/**/native-platform.dll.lock` 拒绝访问（daemon 被杀锁未释放 + home 目录在沙箱外删锁被硬拒），非 dll 本身 | --stacktrace 定位到 .lock 文件级拒绝再动手；`GRADLE_USER_HOME` 指工作区（.gradle-home）一次性绕开 home 权限（= build-tooling 发现 #7，同机制与 #4 互证）；参照文件名四要素（seed/size/origin/dim）与命令参数逐项核对防空跑（run2/3 空跑教训） |
+
+## E10. 强杀 gradle daemon → native-platform.dll 加载失败（2026-09-08，已修复）
+
+- **现象**：`Stop-Process -Name java` 清理残留后，任何 gradle 调用（含 `gradle --status`）报 `Gradle could not start your build. > Could not initialize native services. > Failed to load native library 'native-platform.dll'`；带不带 `JAVA_TOOL_OPTIONS` tmpdir 均复现。
+- **根因**：daemon 被强杀时 `native-platform.dll.lock` 未释放；锁文件在 `C:\Users\NDark\.gradle\native\`（工作区外），沙箱 workspace-write 下删除被硬拒（sandbox_permissions 升级被拒：已是 workspace-write，属策略硬拒绝）。表象（dll 加载失败）与根因（.lock 访问拒绝）错位。
+- **定位**：`gradle --status --stacktrace`，最内层 `Caused by: java.io.FileNotFoundException: ...\native-platform.dll.lock (拒绝访问。)`——先看最深 Caused by 再定方向，不被第一行报错误导。
+- **修复**：`$env:GRADLE_USER_HOME='E:\PYTHON\CoreSwap\.gradle-home'`（仓库根既有目录）——gradle 全套可变状态（native 锁/daemon/依赖缓存）都在 GRADLE_USER_HOME 下，指到工作区即整体绕开。同时固化 nether 回归命令模板（run4 log）：cppReplace + readWorldProbe + blockProbeDimension=nether + benchSeed/benchSize/benchOriginX/benchOriginZ/benchOut 须与参照文件名四要素逐项一致。
+- **教训**：①沙箱下强杀 java daemon 前先想锁文件，预防（GRADLE_USER_HOME 指工作区）优于修复；②「Failed to load X.dll」类报错先用 --stacktrace 查最内层 Caused by，别按表象查 dll；③跨工具对比 run 的参数 ↔ 参照文件名四要素核对前置，防空跑烧轮次（run2/run3 两次空跑）。

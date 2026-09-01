@@ -81,6 +81,23 @@ pub extern "C" fn wg_destroy(handle: *mut c_void) {
     unsafe { drop(Box::from_raw(handle as *mut WorldgenHandle)); }
 }
 
+// 句柄级阶段开关（2026-09-08 双跑修复）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE。
+// 语义：flag 位与 env 门 skip 方向 OR；flags=0 时行为与旧版完全一致（env 兜底）。
+// 存档链路（CppBridge）设 flag 关 Rust carver/features，standalone probe 工具零改动。
+#[unsafe(no_mangle)]
+pub extern "C" fn wg_set_flags(handle: *mut c_void, mask: c_int) {
+    if handle.is_null() { return; }
+    let h = unsafe { &*(handle as *const WorldgenHandle) };
+    h.flags.store(mask as u32, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn wg_get_flags(handle: *mut c_void) -> c_int {
+    if handle.is_null() { return 0; }
+    let h = unsafe { &*(handle as *const WorldgenHandle) };
+    h.flags.load(std::sync::atomic::Ordering::Relaxed) as c_int
+}
+
 // 完整区块生成（方块层）：count 个 chunk，outs[i] = int[16*16*384]（vanilla raw block id）
 // threads: 并行线程数；0 或负 = 自适应（物理核-2，实测最优）。返回 count。
 // 自适应多线程：按核数分块（threads 个 scoped 线程交错处理 count chunks），线程数受控，

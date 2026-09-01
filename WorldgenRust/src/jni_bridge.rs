@@ -12,8 +12,8 @@ use jni::{Env, EnvUnowned};
 
 use crate::api::{
     wg_clear_beardifier, wg_create, wg_density_points_per_chunk, wg_density_xz_interval,
-    wg_density_y_interval, wg_destroy, wg_fill_blocks_multi, wg_fill_density, wg_height,
-    wg_min_y, wg_set_beardifier,
+    wg_density_y_interval, wg_destroy, wg_fill_blocks_multi, wg_fill_density, wg_get_flags,
+    wg_height, wg_min_y, wg_set_beardifier, wg_set_flags,
 };
 
 const BLOCK_COUNT: usize = 16 * 16 * 384;
@@ -66,6 +66,31 @@ pub extern "system" fn Java_wg_CppWorldgen_destroy<'frame>(
         }
         Ok(())
     });
+}
+
+// 句柄级阶段开关（双跑修复 2026-09-08）：Java CppBridge 在 init/initNether 后设 flag 关 Rust carver/features。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_setFlags<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong, mask: jint,
+) {
+    let _ = unowned_env.with_env(|_env: &mut Env| -> Result<(), Error> {
+        if handle != 0 {
+            wg_set_flags(handle as *mut c_void, mask as c_int);
+        }
+        Ok(())
+    });
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_getFlags<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+) -> jint {
+    unowned_env
+        .with_env(|_env: &mut Env| -> Result<jint, Error> {
+            if handle == 0 { return Ok(0); }
+            Ok(wg_get_flags(handle as *mut c_void))
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }
 
 // 密度场批量求值（size×size chunks）：out = double[]，大小 = size*size*pointsPerChunk。返回 points。
