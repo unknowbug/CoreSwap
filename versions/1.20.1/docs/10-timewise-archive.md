@@ -2382,3 +2382,9 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 🔍 **X1 FEATURELOG 裁决**：overworld 双跑是否成立及为何对齐 99.9%，进行中，待回填。
 - ⚠️ **环境坑 E8/E9**（详录 `.investigations/nether-save-full/nether-save-errors.md`）：E8 = 沙箱下 gradle runServer 提取 worldgen.dll AccessDeniedException → JAVA_TOOL_OPTIONS=-Djava.io.tmpdir 指工作区；E9 = WorldgenRust.dll mtime 因 fs::copy 保留时间戳不可信 → dll 新旧用二进制字符串探测；bin-diag bin 临时挪 src/bin/ 编译（init_vertical 需 pub 化）。
 
+
+### ✅ X1 FEATURELOG 裁决回填（2026-09-07 深夜，裁决 overworld 双跑矛盾）
+- runServer -PreadWorldProbe（overworld）+ WG_FEATURELOG：**8137 条 [FEATURE] 行 = Rust features 在 overworld 存档链路同样运行**（mixin 拦截范围两维度相同，X1 候选①「overworld 未装配 features」证伪）。
+- 同 region 对齐 = 97.3537%（seed B，4×4 @3200,3208，FULL 参照 3219616B）——「overworld 99.9%」系 seed A 不同样本的口径记忆，同 region 从未测过 99.9%。双跑矛盾解除：overworld 同样双跑，只是 overworld feature 密度/基底差使其未显形为 2× 矿石（定性，未量化）。
+- 教训补充 E9 同族：**历史对齐数字引用必须带 seed+region+口径三要素**，凭「维度印象」引用构成伪矛盾（本条即 X1 的成立前提）。
+- 遗留：overworld 双跑的量化影响（对齐率/矿石计数）未测，需 seed B overworld 消融 run（SKIP_FEATURES）定性——下轮候选。
