@@ -2366,3 +2366,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 结论 → 09 篇「nether_state_selector 预加载表修复」+「SURFACE 口径残差量化」两小节（supersedes 取代「B1 定论」节 .b2 待修注记，candidate）。
 - 错误 E7（预加载表隐式契约缺 key 静默回退 0.0）→ `.investigations/nether-save-full/nether-save-errors.md`。
 - 状态 ✅：修复完成、验证通过（candidate，confirmed 留用户）。
+
+### ✅ 追加（同日晚）：C1 修复 + 容差口径修正
+- C1 落实（judge CONCERN）：`surface_rules.rs` noise_threshold_sample 未知 noise key 改为每 key warn 一次（全局去重，OnceLock+Mutex），不再静默回退（commit a3e9909）。两次回归均无 warn 触发 = 预加载表完备性运行时佐证。
+- **容差口径修正（C4 属实）**：C1 回归两次 + 原修复轮一次 = 修复后 3 采样 {93.8988, 93.6767, 93.6765}，与修复前 {93.5156, 93.5508} 区间不重叠 → 改善保持成立，但下界修正为 +0.126pp；**同 dll 存档口径散布实测 ~2330 块（0.22pp），±369 块（n=2）系低估**。后续存档口径比对统一「区间不重叠 + 多次采样」判据。详见 09 篇「容差口径修正」段（log：cmd-output/c1-warn-regression{,2}.log）。

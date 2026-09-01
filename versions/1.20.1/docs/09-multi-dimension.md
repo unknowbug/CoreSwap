@@ -264,7 +264,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 | 项 | 数字 | 判读 |
 |---|---|---|
 | 修复前基线 | 93.5508%（上轮） | 同 dll 非确定性容差实测 ±369 块 ≈ ±0.035pp |
-| 修复后 | **93.8988%**（match = 984600/1048576） | **+0.348pp ≈ 10× 容差 → 超出非确定性噪声，真实改善** |
+| 修复后 | **93.8988%**（match = 984600/1048576） | **+0.348pp ≈ 10× 容差 → 超出非确定性噪声，真实改善** **[supersedes 2026-09-06]** 单点倍数表述作废，见下方「容差口径修正」 |
 | E1/E3 判据核对 | 通过 | `[CppBridge] initNether enabled=true` 且 seed 一致；log = `.investigations/nether-save-full/cmd-output/b2-fix-rerun.log` |
 
 ### 修复后分族（b1_family_split.py / b1_id_totals.py）
@@ -277,6 +277,22 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 - 载体：MCA 存档直解 vs vanilla FULL 参照（WGB2）；覆盖面：4×4 chunk 全高度（min_y=0, height=256）。
 - 可比性：93.8988% 与纯 Rust 口径 77.43% 不可比；与修复前 93.5508% 同口径可比（容差 ±369 块已声明）。
+
+### 容差口径修正（candidate，2026-09-06，C1 修复回归暴露）
+
+> supersedes：本段取代上方验证表中「+0.348pp ≈ 10× 容差」的容差倍数表述——n=2 容差样本低估散布（judge CONCERN C4 属实），改善量表述修正为区间下界；原表行不删，加注记。
+
+背景：C1 修复（`surface_rules.rs` 未知 noise key 每 key warn 一次，行为中性）后两次回归 rerun（log = `.investigations/nether-save-full/cmd-output/c1-warn-regression.log` / `c1-warn-regression2.log`）暴露容差样本量问题。
+
+| 代码版本 | run 结果 | 判读 |
+|---|---|---|
+| 修复后（3 次） | **93.8988%**（984600）/ **93.6767%**（982271）/ **93.6765%**（982269） | 后两次仅差 2 块（近确定），与前一次差 ~2330 块（≈0.222pp） |
+| 修复前（2 次） | 93.5156% / 93.5508% | 即上轮 ±369 块容差的来源（n=2） |
+
+1. **「修复真实改善」结论保持成立**：两组区间不重叠（修复后最小 93.6765 > 修复前最大 93.5508）。改善量表述修正为——**下界 = +0.126pp（≥3.6× 旧容差），点估计随调度波动（+0.126~+0.348pp）**。
+2. **同 dll 存档口径散布实测可达 ~2330 块（≈0.22pp），此前 ±369 块（n=2）是低估**——n=2 样本无法覆盖调度非确定性的真实散布。
+3. **后续存档口径比对判据统一为「区间不重叠 + 多次采样」**，不再用「单次差值 vs ±369 块」判定改善/回归。
+4. **C1 代码验证通过**：行为中性、构建绿；两次回归均无 SURFACE-WARN 触发 = 预加载表完备性同时得到运行时佐证（`initNether enabled=true`）。
 
 ### 状态
 
