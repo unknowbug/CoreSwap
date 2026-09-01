@@ -17,10 +17,10 @@
 |------|------|------|
 | 语言/编译器惯用法 | [discovered/compiler-idioms.md](discovered/compiler-idioms.md) | Java/MC 代码生成模式、浮点/整数语义、插值公式、MSVC/Windows·JVM 平台坑、跨层 id 域错位 raw block id vs state id（2026-09-01）、锚坐标换算 off-by-one below_top/above_bottom（2026-09-02） |
 | 还原工具误译及修正 | [discovered/f5-bugs.md](discovered/f5-bugs.md) | javap/反编译不可信点、反射缓存污染、修正方法 |
-| 构建/工具链坑 | [discovered/build-tooling.md](discovered/build-tooling.md) | gradle daemon/env/参数解析、task UP-TO-DATE 跳过、文件同步 |
+| 构建/工具链坑 | [discovered/build-tooling.md](discovered/build-tooling.md) | gradle daemon/env/参数解析、task UP-TO-DATE 跳过、文件同步、fs::copy 保留 mtime——产物判新旧用内容指纹（发现 #6，2026-09-07） |
 | 已确认的算法/协议指纹 | [discovered/algorithm-fingerprints.md](discovered/algorithm-fingerprints.md) | MC 密度/噪声算法特征、scale/seed 坑、key 语义、性能指纹（缓存失效/spline 扁平化/边界角点复用） |
 | 混淆/反逆向手法 | [discovered/anti-patterns.md](discovered/anti-patterns.md) | （CoreSwap 非二进制逆向，一般空置） |
-| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31）、临时产物唯一隔离区（2026-09-03）、cppReplace 存档口径三阶段归因法 + 同 dll 重跑非确定容差（发现 #10，2026-09-05）|
+| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31）、临时产物唯一隔离区（2026-09-03）、cppReplace 存档口径三阶段归因法 + 同 dll 重跑非确定容差（发现 #10，2026-09-05）、嵌套接管管线双跑风险——内层全管线 × 外层分步拦截（发现 #11，2026-09-07） |
 | 预置知识 | [builtin/README.md](builtin/README.md) | 预留；RE-Framework knowledge-builtin 为汇编逆向内容，CoreSwap 不复制 |
 
 ## 写入规则（core.knowledge，2026-08-21 对齐记录价值门）

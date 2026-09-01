@@ -1,0 +1,21 @@
+# .c2-p3-soul-valley — B2 soul sand valley 家族分族重测（core.worker 草稿）
+artifacts:
+  - id: c2-p3-soul-valley-verdict
+    path: verdict-soul-valley-family-draft.md
+    type: verdict
+    status: draft
+    confidence: draft-medium  # 主结论 candidate 级证据（V1+V2），签名 B/C draft，.b1b idk
+    verification: partial     # V1 阶段分离 + V2 180 点同点探针（Rust 侧）落地；Java 侧对照未做
+    topic: B2 soul_sand/soul_soil 存档口径偏低定位
+    key_claims:
+      - "❌ 上轮交接假设『soul_soil 大头在 Java feature 阶段』证伪（V1+V2 双重）；Java features 为净回补（soul_sand +587）"
+      - "V1 收敛：缺口在 Rust SURFACE 阶段（.b1a 成立主导）；V1 措辞修正：『pureRust』实为 Rust 全管线（含 Rust carvers/features），结论不受影响"
+      - "V2 签名 A：soul_sand_valley biome 足迹偏移/收窄（组1 35/60、组2 9/60、组3 多数点 Rust biome=nether_wastes，聚簇 x≥3410 带）"
+      - "V2 签名 B：soul_soil 子分支失效——entered=true 且 selector<0 的点 rule_applied=netherrack 而非 soul_soil（3260/3261，|selector|<0.05 边界带）"
+      - "V2 候选签名 C：floor 侧 soul_sand_layer 分支缺失（组3 entered=0/60，含 valley 点 ceiling_ok=false）"
+      - "idk：.b1b 噪声值偏离不可裁决（Java 同点对照未做）；rule_applied=id=31 语义未定（palette index?）"
+    fanout_record: ".b1 selector 判定差 成立（V1）/ .b2 feature 覆盖差 降级边缘；.b1a 结构差主导 / .b1b 噪声偏离 idk（V2）"
+    next:
+      - V3-rule 结构对拍（Rust nether surface rule vs vanilla nether.json：soul_soil 子分支 / soul_sand_layer / stone_depth 参数）——最高优先零成本
+      - V4 RouterProbe 同点 selector 值对照（裁决 .b1b）
+      - V5 biome 边界带对比 x∈[3400,3520]；id=31 语义确认

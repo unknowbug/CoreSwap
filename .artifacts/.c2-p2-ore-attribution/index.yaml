@@ -1,0 +1,12 @@
+# .artifacts index (fragment)
+topic: c2-p2-ore-attribution
+updated: 2026-09-05
+entries:
+  - id: verdict-ore-attribution
+    path: .artifacts/.c2-p2-ore-attribution/verdict-ore-attribution.md
+    status: draft（v2 修订：V1 探针并入）
+    confidence: draft；主候选 H_B' 双重 feature 应用（Rust apply_features 未在 cppReplace 链路关闭），H_A 降级次级
+    module: minecraft-worldgen / cppReplace-save-attribution
+    summary: V1 加和形态（save≈pureRust+ref，gold 误差 0.3%）+ 代码核实（worldgen_handle.rs:442 apply_features；surface_rule 无 ore 放置点）→ 主候选翻转为 Rust feature 阶段未关闭的双应用；basalt 证据维持 B1 定论不变。判别 = V2-A FEATURELOG 侧证 / V2-B WG_SKIP_FEATURES 消融 / V2-C 纯 surface 归零。
+    verification: Partial→Degraded（V1 数据层新证据 + 静态代码路径核对；H_B' 未做链路侧证）
+    next: V2-A featurelog 侧证 / V2-B skip_features 消融 / V2-C 纯 surface 归零 / P1 ore-mask 重叠（保留）

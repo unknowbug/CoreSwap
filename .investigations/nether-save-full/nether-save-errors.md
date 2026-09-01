@@ -84,11 +84,37 @@
 
 ---
 
+## E8. 沙箱下 gradle runServer「failed to extract worldgen.dll」AccessDeniedException（已修复）
+
+- **编号**：E8（环境坑，2026-09-07）
+- **现象**：沙箱下 `gradle runServer` 启动失败，报 `failed to extract worldgen.dll`，异常链为 `AccessDeniedException`，写入目标为 `%TEMP%\dsh-*` 临时目录。
+- **根因**：**沙箱文件权限边界**——JVM/gradle 侧原生库提取流程默认写系统 `%TEMP%`，沙箱策略对该路径拒绝写入；机制上不是 dll 本身损坏或版本不符，而是「提取目标目录不可写」，报错被包装成「failed to extract」易误判为 dll 问题。
+- **定位**：读异常链中 `AccessDeniedException` 的目标路径（`%TEMP%\dsh-*`），确认拒绝发生在临时目录写入而非 dll 源读取；对照沙箱可写范围（session workspace）即定位。
+- **修复**：设 `JAVA_TOOL_OPTIONS=-Djava.io.tmpdir` 指向工作区内目录，使 JVM 全部临时文件（含 dll 提取）落到沙箱可写路径，runServer 正常启动。
+- **教训**：
+  1. **沙箱环境下 JVM 类工具默认临时目录不可信**：任何「提取/解包到 %TEMP%」的构建/运行流程在沙箱下优先怀疑临时目录权限，用 `java.io.tmpdir`（或等价物）重定向到工作区，而不是去排查被提取的资源文件本身。
+  2. **报错文本 vs 异常链**：「failed to extract X」的表面文本指向 X，机制原因常在异常链尾部的目标路径——先读 AccessDenied 的目标再定方向。
+
+---
+
+## E9. WorldgenRust.dll mtime 因 fs::copy 保留时间戳不可信：显示 9/1 实为最新（已修复判定方法）
+
+- **编号**：E9（环境坑/判错方法，2026-09-07）
+- **现象**：WorldgenRust.dll 文件资源管理器/Get-ChildItem 显示 mtime 为 9/1，按时间戳判断应为旧产物，实际是最新构建——按 mtime 判新旧会得出错误结论。
+- **根因**：构建/部署链使用 `fs::copy`，该调用**保留源文件时间戳**——复制产物的 mtime 反映的是源文件时间而非复制时刻；mtime 在此链路上不是「产物生成时间」的可靠信号。
+- **定位**：对 dll 内容做二进制字符串探测（比对链路中新特征字符串/版本串存在于「旧 mtime」文件中），确认内容为最新 → 证明 mtime 与内容不一致，时间戳不可信。
+- **修复**：判 dll 新旧改用**二进制字符串探测（内容指纹）**，不再依赖 mtime。顺带处置：bin-diag 诊断 bin 不参与默认构建（cargo 只编译 `src/bin/`），使用时**临时挪入 `src/bin/` 编译**（`init_vertical` 需 `pub` 化），用完迁回，符合临时文件唯一区纪律（AGENTS.md 八.13）。
+- **教训**：
+  1. **`fs::copy` 保留 mtime——凡复制链路上的产物，时间戳不代表新旧**；判产物版本用内容指纹（二进制字符串/哈希），不用文件时间戳。
+  2. **诊断 bin 与正式 bin 分区**：`src/bin/` 只放随库维护 bin，一次性诊断程序放 `bin-diag/`（不参与默认构建），临时挪入编译是合法用法——勿为诊断 bin 长期污染 `src/bin/` 的全量绿。
+
+---
+
 ## 未闭合待查项（供后续 session，非错误）
 
 - **103 cave_air 簇机制**（judge #14 保持 draft）：v2 下新形态矛盾——seed A 内存=存档读回精确同值（1047922），MCA 却多 103 块 air→cave_air（chunk(203,200) y70-72 一簇）。b1/b3 均未闭合，residual-interpretation §3 #5 给出探针方向（M4 复核 / 禁 carvers 重跑 / save 前后 hook）。
 - **basalt deltas 大宗互换**（B1，52,078 块 76.6%）：~~surface rule 条件链系统性偏差候选，方向见 residual-interpretation §3 #1~~ **[supersedes 2026-09-05]** 已定论：feature 阶段产物 × 两种基底地形差 + Rust surface 薄带残差（见 09 篇「B1 定论」节）；本行原候选方向作废。
-- **矿石 features 缺口**（A1+B4，3,269 块）：nether ore feature「未实现 vs 放置错位」归属未定，§3 #2。**[注 2026-09-05]** 存档口径下 features 由 Java vanilla 运行（本轮 cppReplace 架构事实），A1 归因候选需按三阶段归因法（发现 #10）重估。
+- **矿石 features 缺口**（A1+B4，3,269 块）：nether ore feature「未实现 vs 放置错位」归属未定，§3 #2。**[注 2026-09-05]** 存档口径下 features 由 Java vanilla 运行（本轮 cppReplace 架构事实），A1 归因候选需按三阶段归因法（发现 #10）重估。**[supersedes 2026-09-07]** 已定论：非「未实现/错位」——Rust 管线自带 feature 阶段与 Java 双跑（见 09 篇「矿石归因定论：双重 feature 应用」，消融实证）；本行原候选方向作废。
 
 ---
 
@@ -103,3 +129,5 @@
 | E5 vanilla run 期 5 条矛盾观察（131/1/104 差跨运行不一致） | 前提崩塌：全 vanilla + DIM-1 stale 残留；差异 = 观察层伪影 + 残留，非生成器行为 | **矛盾观察先查前提再建候选**；nether 清 world 必须连 DIM-1（已作废，被 v2 Rust run 取代） |
 | E6 B1 大宗互换被归因 surface rule 条件链（实为 feature 产物 × 基底差） | 对照口径误置：存档口径混 Java feature 阶段产物，未先阶段消融就归因替换方条件链 | **先消融/直连基线后归因**（发现 #10 三阶段归因法）；交接方向性假设开工先验 |
 | E7 nether surface rule 恒 basalt 分支（noise key 全取 0.0） | step4 预加载表只含 overworld 噪声，nether key 缺失 → noise_threshold_sample `unwrap_or(0.0)` 静默回退（threshold=0.0 使条件恒 true） | **隐式契约要有静态检查；unwrap_or(0.0) 吞错误是跨语言通用反模式**；新维度上线先核硬编码清单覆盖面 |
+| E8 沙箱 gradle runServer「failed to extract worldgen.dll」AccessDeniedException | JVM 默认写 `%TEMP%\dsh-*` 提取 dll，沙箱拒绝临时目录写入；非 dll 本身问题 | 沙箱下 JVM 工具用 `-Djava.io.tmpdir` 重定向临时目录到工作区；先读异常链目标路径再定方向 |
+| E9 dll mtime 显示 9/1 实为最新，按时间戳判新旧出错 | 构建链 `fs::copy` 保留源时间戳，mtime ≠ 产物生成时间 | 复制链产物判新旧用内容指纹（二进制字符串探测），不用 mtime；诊断 bin 走 bin-diag/ 临时挪入 |

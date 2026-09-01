@@ -451,6 +451,53 @@ impl WorldgenHandle {
         col.data().to_vec()
     }
 
+    // bin-diag 增量 API（2026-09-08，soul_selector_probe 用；不改任何现有行为）：
+    // 返回 surface 阶段**之前**的区块方块（fill_chunk 宏观 + aquifer + ore_vein，步骤 1-2，
+    // 与 fill_chunk_blocks 逐行同源）+ WORLD_SURFACE_WG heightmap（build_surface 输入）。
+    // 动机：build_surface 的 stone_depth_above/below 由 surface 前列状态扫描得出，
+    // fill_chunk_blocks 是 surface 后结果，无法用于复算 stone_depth 判定输入。
+    pub fn diag_pre_surface_column(&self, cx: i32, cz: i32) -> (Vec<BlockId>, Vec<i32>) {
+        let min_y = self.min_y;
+        let height = self.height;
+        let air = self.blocks.id("minecraft:air");
+        let stone = self.blocks.id("minecraft:stone");
+        let water = self.blocks.id("minecraft:water");
+        let lava_id = self.blocks.id("minecraft:lava");
+        let mut aq = crate::aquifer::Aquifer::new(
+            self.barrier.clone(), self.flooded.clone(), self.spread.clone(), self.lava.clone(),
+            self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),
+            cx * 16, cz * 16, min_y, height);
+        let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
+        let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
+        let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
+        let cd = if let Some(td) = &self.transpiler_density {
+            fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else {
+            let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
+            fill_chunk(dense, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        };
+        let mut col = BlockColumn::new(min_y, height);
+        let skip_orevein = std::env::var("WG_SKIP_OREVEIN").is_ok();
+        for lz in 0..16 { for lx in 0..16 { for ly in 0..height {
+            let y = min_y + ly;
+            let kind = cd.blocks[(lx + lz * 16 + ly * 256) as usize];
+            let wx = cx * 16 + lx;
+            let wz = cz * 16 + lz;
+            let mut id = match kind {
+                crate::terrain::BlockKind::Air => air,
+                crate::terrain::BlockKind::Rock => stone,
+                crate::terrain::BlockKind::Water => water,
+                crate::terrain::BlockKind::Lava => lava_id,
+            };
+            if kind == crate::terrain::BlockKind::Rock && !skip_orevein {
+                let vein = self.ore_vein.apply(wx, y, wz);
+                if vein >= 0 { id = vein; }
+            }
+            *col.at_mut(lx, y, lz) = id;
+        }}}
+        (col.data().to_vec(), cd.surface_height.to_vec())
+    }
+
     // CARVERS 阶段：17×17 邻域，per-biome carvers.air，setCarverSeed，shouldCarve，carve
     fn apply_carvers(&self, col: &mut BlockColumn, cx: i32, cz: i32,
                      aquifer: &mut crate::aquifer::Aquifer,

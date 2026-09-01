@@ -390,8 +390,8 @@ impl<'a> SurfaceContext<'a> {
         })
     }
 
-    // 对齐 C++ L196-203 initVertical
-    fn init_vertical(
+    // 对齐 C++ L196-203 initVertical（pub：bin-diag soul_selector_probe 复算 stone_depth 用，2026-09-07）
+    pub fn init_vertical(
         &mut self,
         stone_depth_above: i32,
         stone_depth_below: i32,
