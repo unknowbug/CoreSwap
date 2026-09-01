@@ -189,15 +189,29 @@ impl WorldgenHandle {
         // ore_vein 延后到 blocks 加载后构建（block id 需 BlockRegistry 解析，数据驱动）
 
         // 4. noise samplers（surface rules 用）
-        for key in ["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset",
-                    "minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:calcite",
-                    "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice", "minecraft:ice",
-                    "minecraft:surface_swamp",
-                    // .b2 修复（2026-09-06）：nether surface rules 用的噪声此前未预加载，
-                    // noise_threshold_sample fallback unwrap_or(0.0) → nether_state_selector min=0.0 恒 true
-                    "minecraft:nether_state_selector", "minecraft:patch", "minecraft:soul_sand_layer",
-                    "minecraft:netherrack", "minecraft:nether_wart", "minecraft:gravel_layer"] {
-            let _ = db.get_noise_sampler(key);
+        // C2（2026-09-07，judge CONCERN：数据驱动化）：预加载 key 分两路——
+        //   ① 基础 3 key（SurfaceBuilder 引擎无条件用：sample_run_depth/get_terracotta_block/secondary）
+        //   ② overworld 代码规则保留静态清单（规则在代码里，无 JSON 数据源可收集；含 .b2 前的历史 key）；
+        //      非 overworld 从 settings.surface_rule JSON 构建期动态收集 noise_threshold 引用的 key
+        //      （collect_noise_keys，一次性调用非热路径）。静态 nether 清单已删除（由 JSON 收集取代）。
+        {
+            let base: &[&str] = &["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset"];
+            for k in base {
+                let _ = db.get_noise_sampler(k);
+            }
+            if df_ns == "overworld" {
+                for k in ["minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:calcite",
+                          "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice", "minecraft:ice",
+                          "minecraft:surface_swamp"] {
+                    let _ = db.get_noise_sampler(k);
+                }
+            } else if let Some(sr) = settings.get("surface_rule") {
+                let mut dyn_keys: Vec<String> = Vec::new();
+                crate::surface_rules::collect_noise_keys(sr, &mut dyn_keys);
+                for k in &dyn_keys {
+                    let _ = db.get_noise_sampler(k);
+                }
+            }
         }
 
         // 5. blocks registry

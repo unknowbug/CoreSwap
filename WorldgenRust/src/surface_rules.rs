@@ -153,6 +153,38 @@ fn warn_unknown_noise_key(key: &str) {
     }
 }
 
+// C2（2026-09-07，judge CONCERN：step4 预加载表数据驱动化）：遍历 surface_rule JSON，
+// 收集所有 noise_threshold 条件引用的 noise key（构建期一次性调用，非热路径）。
+// 递归结构与 parse_surface_rule/parse_surface_cond 的节点形态一一对应：
+// rule = sequence / condition(if_true + then_run)；cond = not(invert) / noise_threshold(noise 字段) / 其他叶子。
+pub fn collect_noise_keys(j: &crate::json::JsonValue, out: &mut Vec<String>) {
+    if let Some(t) = j.get("type").and_then(|t| t.as_str()) {
+        if t.contains("noise_threshold") {
+            if let Some(n) = j.get("noise").and_then(|n| n.as_str()) {
+                if !out.iter().any(|k| k == n) {
+                    out.push(n.to_string());
+                }
+            }
+        }
+    }
+    if let Some(seq) = j.get("sequence") {
+        if let Some(arr) = seq.as_array() {
+            for r in arr {
+                collect_noise_keys(r, out);
+            }
+        }
+    }
+    if let Some(c) = j.get("if_true") {
+        collect_noise_keys(c, out);
+    }
+    if let Some(t) = j.get("then_run") {
+        collect_noise_keys(t, out);
+    }
+    if let Some(i) = j.get("invert") {
+        collect_noise_keys(i, out);
+    }
+}
+
 // 对齐 Java SteepSlopePredicate（MaterialRules.java L541-565），heightmap 索引 z*16+x
 fn steep_test(ctx: &SurfaceContext) -> bool {
     let i = ctx.block_x & 15; // x
