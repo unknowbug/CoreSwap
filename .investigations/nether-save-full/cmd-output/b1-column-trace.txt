@@ -1,0 +1,467 @@
+handle: min_y=0 height=256
+[ref] magic=0x57474232 seed=8576294172403134396 size=4 origin=(3200,3208) min_y=0 height=256
+
+=== column chunk(200,200) local(7,0) block(3207,3200) ===
+  y=  0  van=  31  rust=  31  
+  y=  1  van= 259  rust= 256 <
+  y=  2  van=  31  rust=  31  
+  y=  3  van= 259  rust= 256 <
+  y=  4  van= 259  rust= 256 <
+  y=  5  van= 259  rust= 256 <
+  y=  6  van= 259  rust= 256 <
+  y=  7  van= 256  rust= 256  
+  y=  8  van= 256  rust= 256  
+  y=  9  van= 256  rust= 256  
+  y= 10  van= 256  rust= 256  
+  y= 11  van= 256  rust= 256  
+  y= 12  van= 256  rust= 256  
+  y= 13  van= 256  rust= 256  
+  y= 14  van= 256  rust= 256  
+  y= 15  van= 256  rust= 256  
+  y= 16  van= 256  rust= 256  
+  y= 17  van= 256  rust= 256  
+  y= 18  van= 256  rust= 256  
+  y= 19  van= 841  rust= 256 <
+  y= 20  van= 256  rust= 256  
+  y= 21  van= 256  rust= 256  
+  y= 22  van= 849  rust= 256 <
+  y= 23  van= 259  rust= 256 <
+  y= 24  van= 259  rust=  33 <
+  y= 25  van=  33  rust=  33  
+  y= 26  van=  33  rust=  33  
+  y= 27  van= 259  rust= 259  
+  y= 28  van= 259  rust= 607 <
+  y= 29  van= 256  rust= 607 <
+  y= 30  van= 256  rust= 607 <
+  y= 31  van= 259  rust= 256 <
+  y= 32  van= 256  rust= 256  
+  y= 33  van= 849  rust= 256 <
+  y= 34  van= 849  rust= 256 <
+  y= 35  van= 849  rust= 256 <
+  y= 36  van= 849  rust= 256 <
+  y= 37  van= 259  rust= 256 <
+  y= 38  van= 849  rust= 256 <
+  y= 39  van= 849  rust= 256 <
+  y= 40  van= 849  rust= 256 <
+  y= 41  van= 849  rust= 256 <
+  y= 42  van= 849  rust= 256 <
+  y= 43  van= 259  rust= 256 <
+  y= 44  van= 259  rust= 256 <
+  y= 45  van= 259  rust= 259  
+  y= 46  van= 259  rust=   0 <
+  y= 47  van= 259  rust=   0 <
+  y= 48  van= 259  rust=   0 <
+  y= 49  van= 259  rust=   0 <
+  y= 50  van= 259  rust=   0 <
+  y= 51  van= 259  rust=   0 <
+  y= 52  van= 259  rust=   0 <
+  y= 53  van= 259  rust=   0 <
+  y= 54  van= 259  rust=   0 <
+  y= 55  van= 259  rust=   0 <
+  y= 56  van= 259  rust=   0 <
+  y= 57  van= 259  rust=   0 <
+  y= 58  van= 259  rust=   0 <
+  y= 68  van= 259  rust= 259  
+  y= 69  van= 259  rust= 256 <
+  y= 70  van= 259  rust= 256 <
+  y= 71  van= 259  rust= 256 <
+  y= 72  van= 259  rust= 256 <
+  y= 73  van= 259  rust= 256 <
+  y= 74  van= 259  rust= 256 <
+  y= 75  van= 259  rust= 256 <
+  y= 76  van= 259  rust= 256 <
+  y= 77  van= 259  rust= 256 <
+  y= 78  van= 256  rust= 256  
+  y= 79  van= 256  rust= 256  
+  y= 80  van= 256  rust= 256  
+  y= 81  van= 849  rust= 256 <
+  y= 82  van= 849  rust= 256 <
+  y= 83  van= 849  rust= 256 <
+  y= 84  van= 849  rust= 256 <
+  y= 85  van= 849  rust= 256 <
+  y= 86  van= 849  rust= 256 <
+  y= 87  van= 259  rust= 256 <
+  y= 88  van= 259  rust= 256 <
+  y= 89  van= 259  rust= 256 <
+  y= 90  van= 259  rust= 256 <
+  y= 91  van= 259  rust= 256 <
+  y= 92  van= 259  rust= 256 <
+  y= 93  van= 259  rust= 256 <
+  y= 94  van= 259  rust= 256 <
+  y= 95  van= 259  rust= 256 <
+  y= 96  van= 259  rust= 256 <
+  y= 97  van= 259  rust= 256 <
+  y= 98  van= 259  rust= 256 <
+  y= 99  van= 259  rust= 256 <
+  y=100  van= 259  rust= 256 <
+  y=101  van= 259  rust= 256 <
+  y=102  van= 259  rust= 256 <
+  y=103  van= 259  rust= 256 <
+  y=104  van= 259  rust= 256 <
+  y=105  van= 259  rust= 256 <
+  y=106  van= 259  rust= 256 <
+  y=107  van= 259  rust= 256 <
+  y=108  van= 256  rust= 256  
+  y=109  van= 256  rust= 256  
+  y=110  van= 259  rust= 256 <
+  y=111  van= 256  rust= 256  
+  y=112  van= 256  rust= 256  
+  y=113  van= 256  rust= 256  
+  y=114  van= 256  rust= 256  
+  y=115  van= 256  rust= 256  
+  y=116  van= 256  rust= 256  
+  y=117  van= 849  rust= 256 <
+  y=118  van= 849  rust= 256 <
+  y=119  van= 849  rust= 256 <
+  y=120  van= 259  rust= 256 <
+  y=121  van= 259  rust= 256 <
+  y=122  van= 256  rust= 256  
+  y=123  van= 259  rust= 256 <
+  y=124  van= 259  rust= 256 <
+  y=125  van= 259  rust= 256 <
+  y=126  van=  31  rust=  31  
+  y=127  van=  31  rust=  31  
+
+=== column chunk(200,200) local(11,1) block(3211,3201) ===
+  y=  0  van=  31  rust=  31  
+  y=  1  van=  31  rust=  31  
+  y=  2  van= 259  rust= 256 <
+  y=  3  van=  31  rust=  31  
+  y=  4  van= 259  rust= 256 <
+  y=  5  van= 256  rust= 256  
+  y=  6  van= 256  rust= 256  
+  y=  7  van= 256  rust= 256  
+  y=  8  van= 256  rust= 256  
+  y=  9  van= 256  rust= 256  
+  y= 10  van= 256  rust= 256  
+  y= 11  van= 256  rust= 256  
+  y= 12  van= 849  rust= 256 <
+  y= 13  van= 849  rust= 256 <
+  y= 14  van= 849  rust= 256 <
+  y= 15  van= 849  rust= 256 <
+  y= 16  van= 849  rust= 256 <
+  y= 17  van= 256  rust= 256  
+  y= 18  van= 256  rust= 256  
+  y= 19  van= 849  rust= 256 <
+  y= 20  van= 849  rust= 256 <
+  y= 21  van= 849  rust= 256 <
+  y= 22  van= 849  rust= 256 <
+  y= 23  van= 849  rust= 256 <
+  y= 24  van=  33  rust=  33  
+  y= 25  van=  33  rust=  33  
+  y= 26  van= 259  rust= 259  
+  y= 27  van= 259  rust= 607 <
+  y= 28  van= 259  rust= 607 <
+  y= 29  van= 259  rust= 607 <
+  y= 30  van= 259  rust= 607 <
+  y= 31  van= 259  rust= 256 <
+  y= 32  van= 259  rust= 256 <
+  y= 33  van= 259  rust= 256 <
+  y= 34  van= 259  rust= 256 <
+  y= 35  van= 259  rust= 256 <
+  y= 36  van= 259  rust= 256 <
+  y= 37  van= 256  rust= 256  
+  y= 38  van= 849  rust= 256 <
+  y= 39  van= 849  rust= 256 <
+  y= 40  van= 259  rust= 256 <
+  y= 41  van= 256  rust= 256  
+  y= 42  van= 256  rust= 256  
+  y= 43  van= 259  rust= 256 <
+  y= 44  van= 849  rust= 256 <
+  y= 45  van= 849  rust= 259 <
+  y= 46  van= 259  rust=   0 <
+  y= 47  van= 259  rust=   0 <
+  y= 48  van= 259  rust=   0 <
+  y= 49  van= 259  rust=   0 <
+  y= 50  van= 259  rust=   0 <
+  y= 51  van=  33  rust=   0 <
+  y= 67  van= 259  rust= 259  
+  y= 68  van= 259  rust= 256 <
+  y= 69  van= 259  rust= 256 <
+  y= 70  van= 259  rust= 256 <
+  y= 71  van= 259  rust= 256 <
+  y= 72  van= 259  rust= 256 <
+  y= 73  van= 259  rust= 256 <
+  y= 74  van= 259  rust= 256 <
+  y= 75  van= 259  rust= 256 <
+  y= 76  van= 259  rust= 256 <
+  y= 77  van= 259  rust= 256 <
+  y= 78  van= 259  rust= 256 <
+  y= 79  van= 259  rust= 256 <
+  y= 80  van= 259  rust= 256 <
+  y= 81  van= 259  rust= 256 <
+  y= 82  van= 259  rust= 256 <
+  y= 83  van= 259  rust= 256 <
+  y= 84  van= 849  rust= 256 <
+  y= 85  van= 259  rust= 256 <
+  y= 86  van= 259  rust= 256 <
+  y= 87  van= 259  rust= 256 <
+  y= 88  van= 259  rust= 256 <
+  y= 89  van= 256  rust= 256  
+  y= 90  van= 259  rust= 256 <
+  y= 91  van= 256  rust= 256  
+  y= 92  van= 259  rust= 256 <
+  y= 93  van= 259  rust= 256 <
+  y= 94  van= 259  rust= 256 <
+  y= 95  van= 259  rust= 256 <
+  y= 96  van= 259  rust= 256 <
+  y= 97  van= 259  rust= 417 <
+  y= 98  van= 259  rust= 417 <
+  y= 99  van= 259  rust= 256 <
+  y=100  van= 259  rust= 256 <
+  y=101  van= 259  rust= 256 <
+  y=102  van= 259  rust= 256 <
+  y=103  van= 259  rust= 256 <
+  y=104  van= 259  rust= 256 <
+  y=105  van= 259  rust= 256 <
+  y=106  van= 259  rust= 256 <
+  y=107  van= 259  rust= 256 <
+  y=108  van= 259  rust= 256 <
+  y=109  van= 259  rust= 256 <
+  y=110  van= 259  rust= 256 <
+  y=111  van= 259  rust= 256 <
+  y=112  van= 259  rust= 256 <
+  y=113  van= 259  rust= 256 <
+  y=114  van= 256  rust= 256  
+  y=115  van= 256  rust= 256  
+  y=116  van= 256  rust= 256  
+  y=117  van= 256  rust= 256  
+  y=118  van= 256  rust= 256  
+  y=119  van= 256  rust= 256  
+  y=120  van= 256  rust= 256  
+  y=121  van= 256  rust= 256  
+  y=122  van= 259  rust= 256 <
+  y=123  van= 259  rust= 256 <
+  y=124  van= 259  rust= 256 <
+  y=125  van=  31  rust=  31  
+  y=126  van= 259  rust= 256 <
+  y=127  van=  31  rust=  31  
+
+=== column chunk(200,200) local(12,2) block(3212,3202) ===
+  y=  0  van=  31  rust=  31  
+  y=  1  van= 259  rust= 256 <
+  y=  2  van=  31  rust=  31  
+  y=  3  van=  31  rust=  31  
+  y=  4  van= 259  rust= 256 <
+  y=  5  van= 256  rust= 256  
+  y=  6  van= 256  rust= 256  
+  y=  7  van= 256  rust= 256  
+  y=  8  van= 256  rust= 256  
+  y=  9  van= 256  rust= 256  
+  y= 10  van= 849  rust= 256 <
+  y= 11  van= 849  rust= 256 <
+  y= 12  van= 849  rust= 256 <
+  y= 13  van= 849  rust= 256 <
+  y= 14  van= 849  rust= 256 <
+  y= 15  van= 849  rust= 256 <
+  y= 16  van= 259  rust= 256 <
+  y= 17  van= 259  rust= 256 <
+  y= 18  van= 259  rust= 256 <
+  y= 19  van= 259  rust= 256 <
+  y= 20  van= 259  rust= 256 <
+  y= 21  van= 259  rust= 256 <
+  y= 22  van= 259  rust= 256 <
+  y= 23  van= 259  rust= 256 <
+  y= 24  van=  33  rust=  33  
+  y= 25  van=  33  rust=  33  
+  y= 26  van=  33  rust=  33  
+  y= 27  van= 259  rust= 259  
+  y= 28  van= 259  rust= 607 <
+  y= 29  van= 259  rust= 256 <
+  y= 30  van= 259  rust= 256 <
+  y= 31  van= 259  rust= 256 <
+  y= 32  van= 259  rust= 256 <
+  y= 33  van= 259  rust= 256 <
+  y= 34  van= 259  rust= 256 <
+  y= 35  van= 259  rust= 256 <
+  y= 36  van= 259  rust= 256 <
+  y= 37  van= 256  rust= 256  
+  y= 38  van= 256  rust= 256  
+  y= 39  van= 256  rust= 256  
+  y= 40  van= 259  rust= 256 <
+  y= 41  van= 256  rust= 256  
+  y= 42  van= 256  rust= 256  
+  y= 43  van= 259  rust= 256 <
+  y= 44  van= 259  rust= 256 <
+  y= 45  van= 259  rust= 259  
+  y= 46  van= 259  rust=   0 <
+  y= 47  van= 259  rust=   0 <
+  y= 48  van= 259  rust=   0 <
+  y= 49  van= 259  rust=   0 <
+  y= 50  van= 259  rust=   0 <
+  y= 51  van= 259  rust=   0 <
+  y= 52  van= 259  rust=   0 <
+  y= 53  van= 259  rust=   0 <
+  y= 54  van= 259  rust=   0 <
+  y= 55  van= 259  rust=   0 <
+  y= 56  van= 259  rust=   0 <
+  y= 57  van= 259  rust=   0 <
+  y= 67  van= 259  rust= 259  
+  y= 68  van= 259  rust= 256 <
+  y= 69  van= 259  rust= 256 <
+  y= 70  van= 259  rust= 256 <
+  y= 71  van= 259  rust= 256 <
+  y= 72  van= 259  rust= 256 <
+  y= 73  van= 259  rust= 256 <
+  y= 74  van= 259  rust= 256 <
+  y= 75  van= 849  rust= 256 <
+  y= 76  van= 256  rust= 256  
+  y= 77  van= 256  rust= 256  
+  y= 78  van= 259  rust= 256 <
+  y= 79  van= 259  rust= 256 <
+  y= 80  van= 259  rust= 256 <
+  y= 81  van= 259  rust= 256 <
+  y= 82  van= 259  rust= 256 <
+  y= 83  van= 259  rust= 256 <
+  y= 84  van= 259  rust= 256 <
+  y= 85  van= 259  rust= 256 <
+  y= 86  van= 259  rust= 256 <
+  y= 87  van= 259  rust= 256 <
+  y= 88  van= 259  rust= 256 <
+  y= 89  van= 259  rust= 256 <
+  y= 90  van= 259  rust= 256 <
+  y= 91  van= 259  rust= 256 <
+  y= 92  van= 259  rust= 256 <
+  y= 93  van= 259  rust= 256 <
+  y= 94  van= 259  rust= 256 <
+  y= 95  van= 259  rust= 256 <
+  y= 96  van= 259  rust= 256 <
+  y= 97  van= 259  rust= 256 <
+  y= 98  van= 259  rust= 256 <
+  y= 99  van= 259  rust= 256 <
+  y=100  van= 259  rust= 256 <
+  y=101  van= 259  rust= 256 <
+  y=102  van= 259  rust= 256 <
+  y=103  van= 259  rust= 256 <
+  y=104  van= 259  rust= 256 <
+  y=105  van= 259  rust= 256 <
+  y=106  van= 259  rust= 256 <
+  y=107  van= 259  rust= 256 <
+  y=108  van= 259  rust= 256 <
+  y=109  van= 259  rust= 256 <
+  y=110  van= 259  rust= 256 <
+  y=111  van= 259  rust= 256 <
+  y=112  van= 259  rust= 256 <
+  y=113  van= 259  rust= 256 <
+  y=114  van= 256  rust= 256  
+  y=115  van= 256  rust= 256  
+  y=116  van= 256  rust= 256  
+  y=117  van= 256  rust= 256  
+  y=118  van= 256  rust= 256  
+  y=119  van= 256  rust= 256  
+  y=120  van= 256  rust= 256  
+  y=121  van= 256  rust= 256  
+  y=122  van= 256  rust= 256  
+  y=123  van= 256  rust= 256  
+  y=124  van= 259  rust= 256 <
+  y=125  van=  31  rust=  31  
+  y=126  van=  31  rust=  31  
+  y=127  van=  31  rust=  31  
+
+=== column chunk(200,200) local(0,2) block(3200,3202) ===
+  y=  0  van=  31  rust=  31  
+  y=  1  van=  31  rust=  31  
+  y=  2  van= 849  rust= 256 <
+  y=  3  van= 259  rust= 256 <
+  y=  4  van= 259  rust= 256 <
+  y=  5  van= 259  rust= 256 <
+  y=  6  van= 259  rust= 256 <
+  y=  7  van= 259  rust= 256 <
+  y=  8  van= 259  rust= 256 <
+  y=  9  van= 259  rust= 256 <
+  y= 10  van= 259  rust= 256 <
+  y= 11  van= 259  rust= 256 <
+  y= 12  van= 259  rust= 256 <
+  y= 13  van= 259  rust= 256 <
+  y= 14  van= 259  rust= 256 <
+  y= 15  van= 259  rust= 256 <
+  y= 16  van= 259  rust= 256 <
+  y= 17  van= 259  rust= 256 <
+  y= 18  van= 259  rust= 256 <
+  y= 19  van= 259  rust= 256 <
+  y= 20  van= 259  rust= 256 <
+  y= 21  van= 259  rust= 256 <
+  y= 22  van= 259  rust= 256 <
+  y= 23  van= 259  rust= 256 <
+  y= 24  van= 259  rust=  33 <
+  y= 25  van= 259  rust=  33 <
+  y= 26  van=  33  rust=  33  
+  y= 27  van=  33  rust=  33  
+  y= 28  van=  33  rust=  33  
+  y= 29  van=  33  rust=  33  
+  y= 30  van=  33  rust=  33  
+  y= 31  van= 259  rust= 259  
+  y= 32  van= 259  rust= 256 <
+  y= 33  van= 259  rust= 607 <
+  y= 34  van= 849  rust= 607 <
+  y= 35  van= 849  rust= 607 <
+  y= 36  van= 849  rust= 607 <
+  y= 37  van= 259  rust= 256 <
+  y= 38  van= 259  rust= 256 <
+  y= 39  van= 259  rust= 256 <
+  y= 40  van= 259  rust= 256 <
+  y= 41  van= 259  rust= 256 <
+  y= 42  van= 259  rust= 256 <
+  y= 43  van= 259  rust= 256 <
+  y= 44  van= 259  rust= 256 <
+  y= 45  van=  33  rust= 259 <
+  y= 68  van= 259  rust= 259  
+  y= 69  van= 259  rust= 256 <
+  y= 70  van= 256  rust= 256  
+  y= 71  van= 256  rust= 256  
+  y= 72  van= 256  rust= 256  
+  y= 73  van= 256  rust= 256  
+  y= 74  van= 256  rust= 256  
+  y= 75  van= 256  rust= 256  
+  y= 76  van= 256  rust= 256  
+  y= 77  van= 256  rust= 256  
+  y= 78  van= 849  rust= 256 <
+  y= 79  van= 849  rust= 256 <
+  y= 80  van= 849  rust= 256 <
+  y= 81  van= 849  rust= 256 <
+  y= 82  van= 849  rust= 256 <
+  y= 83  van= 259  rust= 256 <
+  y= 84  van= 259  rust= 256 <
+  y= 85  van= 849  rust= 256 <
+  y= 86  van= 259  rust= 256 <
+  y= 87  van= 259  rust= 256 <
+  y= 88  van= 259  rust= 256 <
+  y= 89  van= 259  rust= 256 <
+  y= 90  van= 259  rust= 256 <
+  y= 91  van= 259  rust= 256 <
+  y= 92  van= 259  rust= 256 <
+  y= 93  van= 259  rust= 256 <
+  y= 94  van= 259  rust= 256 <
+  y= 95  van= 259  rust= 256 <
+  y= 96  van= 259  rust= 256 <
+  y= 97  van= 259  rust= 256 <
+  y= 98  van= 259  rust= 256 <
+  y= 99  van= 259  rust= 256 <
+  y=100  van= 259  rust= 256 <
+  y=101  van= 259  rust= 256 <
+  y=102  van= 259  rust= 256 <
+  y=103  van= 259  rust= 256 <
+  y=104  van= 259  rust= 256 <
+  y=105  van= 259  rust= 256 <
+  y=106  van= 259  rust= 256 <
+  y=107  van= 259  rust= 256 <
+  y=108  van= 259  rust= 256 <
+  y=109  van= 259  rust= 256 <
+  y=110  van= 259  rust= 256 <
+  y=111  van= 259  rust= 256 <
+  y=112  van= 259  rust= 256 <
+  y=113  van= 259  rust= 256 <
+  y=114  van= 259  rust= 256 <
+  y=115  van= 259  rust= 256 <
+  y=116  van= 259  rust= 256 <
+  y=117  van= 259  rust= 256 <
+  y=118  van= 849  rust= 256 <
+  y=119  van= 259  rust= 256 <
+  y=120  van= 259  rust= 256 <
+  y=121  van= 259  rust= 256 <
+  y=122  van= 259  rust= 256 <
+  y=123  van= 259  rust= 256 <
+  y=124  van= 259  rust= 256 <
+  y=125  van=  31  rust=  31  
+  y=126  van= 259  rust= 256 <
+  y=127  van=  31  rust=  31  

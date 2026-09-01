@@ -192,7 +192,11 @@ impl WorldgenHandle {
         for key in ["minecraft:surface", "minecraft:surface_secondary", "minecraft:clay_bands_offset",
                     "minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:calcite",
                     "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice", "minecraft:ice",
-                    "minecraft:surface_swamp"] {
+                    "minecraft:surface_swamp",
+                    // .b2 修复（2026-09-06）：nether surface rules 用的噪声此前未预加载，
+                    // noise_threshold_sample fallback unwrap_or(0.0) → nether_state_selector min=0.0 恒 true
+                    "minecraft:nether_state_selector", "minecraft:patch", "minecraft:soul_sand_layer",
+                    "minecraft:netherrack", "minecraft:nether_wart", "minecraft:gravel_layer"] {
             let _ = db.get_noise_sampler(key);
         }
 

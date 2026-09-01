@@ -1,0 +1,5 @@
+[ref] seed=8576294172403134396 size=4 origin=(3200,3208) min_y=0 height=256
+total mismatch = 67994
+  solid_solid          66844 (98.3%)
+  van_solid_rust_air   584 (0.9%)
+  van_air_rust_solid   566 (0.8%)

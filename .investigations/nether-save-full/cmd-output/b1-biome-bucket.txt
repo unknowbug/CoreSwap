@@ -1,0 +1,757 @@
+[ref] magic=1464287794 seed=8576294172403134396 size=4 origin=(3200,3208) min_y=0 height=256
+
+=== mismatches by biome (vanilla -> save) ===
+  basalt_deltas                blackstone -> basalt x11749
+  basalt_deltas                basalt -> netherrack x11190
+  basalt_deltas                basalt -> blackstone x10139
+  basalt_deltas                netherrack -> basalt x7697
+  basalt_deltas                blackstone -> netherrack x4843
+  basalt_deltas                netherrack -> blackstone x4339
+  soul_sand_valley             soul_soil -> netherrack x3268
+  soul_sand_valley             soul_soil -> soul_sand x1221
+  basalt_deltas                basalt -> nether_quartz_ore x1111
+  soul_sand_valley             soul_sand -> netherrack x1080
+  soul_sand_valley             netherrack -> magma_block x958
+  soul_sand_valley             basalt -> lava x686
+  soul_sand_valley             netherrack -> nether_quartz_ore x665
+  soul_sand_valley             basalt -> netherrack x651
+  basalt_deltas                basalt -> lava x592
+  basalt_deltas                basalt -> magma_block x564
+  basalt_deltas                netherrack -> nether_quartz_ore x372
+  soul_sand_valley             netherrack -> soul_sand x349
+  soul_sand_valley             netherrack -> basalt x343
+  soul_sand_valley             soul_soil -> magma_block x336
+  soul_sand_valley             blackstone -> netherrack x321
+  basalt_deltas                basalt -> nether_gold_ore x319
+  soul_sand_valley             netherrack -> blackstone x302
+  basalt_deltas                blackstone -> nether_quartz_ore x291
+  basalt_deltas                lava -> basalt x290
+  basalt_deltas                basalt -> cave_air x285
+  basalt_deltas                air -> basalt x271
+  soul_sand_valley             soul_soil -> basalt x265
+  soul_sand_valley             netherrack -> nether_gold_ore x261
+  basalt_deltas                basalt -> air x242
+  soul_sand_valley             blackstone -> basalt x222
+  soul_sand_valley             basalt -> blackstone x193
+  basalt_deltas                netherrack -> nether_gold_ore x153
+  soul_sand_valley             soul_sand -> magma_block x142
+  basalt_deltas                netherrack -> magma_block x140
+  basalt_deltas                blackstone -> magma_block x131
+  basalt_deltas                nether_quartz_ore -> basalt x126
+  basalt_deltas                soul_soil -> basalt x80
+  basalt_deltas                cave_air -> nether_quartz_ore x79
+  soul_sand_valley             soul_sand -> basalt x79
+  basalt_deltas                soul_soil -> netherrack x76
+  basalt_deltas                blackstone -> nether_gold_ore x75
+  basalt_deltas                cave_air -> basalt x74
+  soul_sand_valley             basalt -> nether_quartz_ore x65
+  basalt_deltas                nether_quartz_ore -> blackstone x53
+  basalt_deltas                soul_soil -> soul_sand x53
+  soul_sand_valley             soul_soil -> blackstone x52
+  basalt_deltas                nether_gold_ore -> basalt x49
+  soul_sand_valley             blackstone -> soul_sand x46
+  soul_sand_valley             basalt -> cave_air x44
+  basalt_deltas                soul_soil -> blackstone x40
+  soul_sand_valley             soul_sand -> blackstone x38
+  basalt_deltas                magma_block -> basalt x34
+  soul_sand_valley             blackstone -> nether_quartz_ore x32
+  soul_sand_valley             basalt -> magma_block x32
+  soul_sand_valley             soul_soil -> gravel x31
+  soul_sand_valley             basalt -> soul_sand x29
+  basalt_deltas                lava -> magma_block x23
+  basalt_deltas                basalt -> soul_sand x23
+  basalt_deltas                cave_air -> nether_gold_ore x22
+  basalt_deltas                soul_sand -> netherrack x22
+  basalt_deltas                nether_gold_ore -> blackstone x19
+  basalt_deltas                gravel -> basalt x19
+  soul_sand_valley             soul_soil -> nether_quartz_ore x18
+  basalt_deltas                magma_block -> lava x17
+  basalt_deltas                blackstone -> lava x16
+  soul_sand_valley             soul_sand -> nether_quartz_ore x15
+  soul_sand_valley             soul_soil -> nether_gold_ore x15
+  basalt_deltas                blackstone -> soul_sand x14
+  soul_sand_valley             cave_air -> nether_quartz_ore x14
+  basalt_deltas                soul_sand -> basalt x12
+  basalt_deltas                gravel -> magma_block x10
+  basalt_deltas                basalt -> ancient_debris x9
+  basalt_deltas                soul_soil -> magma_block x9
+  basalt_deltas                basalt -> gravel x9
+  soul_sand_valley             basalt -> nether_gold_ore x8
+  basalt_deltas                blackstone -> gravel x8
+  basalt_deltas                nether_gold_ore -> nether_quartz_ore x7
+  soul_sand_valley             soul_sand -> gravel x7
+  basalt_deltas                lava -> cave_air x7
+  soul_sand_valley             magma_block -> nether_gold_ore x7
+  basalt_deltas                soul_sand -> blackstone x6
+  soul_sand_valley             blackstone -> nether_gold_ore x6
+  basalt_deltas                soul_soil -> nether_quartz_ore x6
+  soul_sand_valley             magma_block -> soul_sand x6
+  basalt_deltas                magma_block -> blackstone x5
+  basalt_deltas                air -> magma_block x5
+  basalt_deltas                netherrack -> lava x5
+  soul_sand_valley             magma_block -> gravel x5
+  soul_sand_valley             cave_air -> nether_gold_ore x5
+  soul_sand_valley             gravel -> soul_sand x5
+  basalt_deltas                lava -> blackstone x4
+  soul_sand_valley             nether_quartz_ore -> basalt x4
+  soul_sand_valley             nether_quartz_ore -> soul_sand x4
+  soul_sand_valley             netherrack -> ancient_debris x4
+  soul_sand_valley             soul_soil -> ancient_debris x4
+  basalt_deltas                magma_block -> cave_air x4
+  soul_sand_valley             lava -> netherrack x4
+  soul_sand_valley             gravel -> blackstone x4
+  soul_sand_valley             gravel -> netherrack x4
+  basalt_deltas                lava -> netherrack x3
+  basalt_deltas                nether_quartz_ore -> nether_gold_ore x3
+  basalt_deltas                blackstone -> ancient_debris x3
+  soul_sand_valley             basalt -> gravel x3
+  soul_sand_valley             lava -> magma_block x3
+  basalt_deltas                air -> lava x2
+  basalt_deltas                nether_quartz_ore -> magma_block x2
+  soul_sand_valley             nether_gold_ore -> nether_quartz_ore x2
+  soul_sand_valley             cave_air -> basalt x2
+  basalt_deltas                magma_block -> netherrack x2
+  soul_sand_valley             nether_quartz_ore -> magma_block x2
+  basalt_deltas                netherrack -> ancient_debris x1
+  soul_sand_valley             soul_sand -> nether_gold_ore x1
+  soul_sand_valley             blackstone -> ancient_debris x1
+  soul_sand_valley             lava -> nether_gold_ore x1
+  basalt_deltas                cave_air -> lava x1
+  soul_sand_valley             magma_block -> lava x1
+  soul_sand_valley             netherrack -> lava x1
+  soul_sand_valley             magma_block -> blackstone x1
+  soul_sand_valley             gravel -> magma_block x1
+  soul_sand_valley             cave_air -> ancient_debris x1
+TOTAL mismatch = 67625
+
+=== per-chunk mismatch counts ===
+  chunk(200,200): 6029
+  chunk(200,201): 4953
+  chunk(200,202): 4981
+  chunk(200,203): 8029
+  chunk(201,200): 5274
+  chunk(201,201): 6398
+  chunk(201,202): 4024
+  chunk(201,203): 3311
+  chunk(202,200): 7131
+  chunk(202,201): 4432
+  chunk(202,202): 2893
+  chunk(202,203): 2190
+  chunk(203,200): 4910
+  chunk(203,201): 1352
+  chunk(203,202): 899
+  chunk(203,203): 819
+
+=== example mismatch locations (chunk cx,cz + local x,z + y) ===
+ basalt -> netherrack:
+    chunk(200,200) local(7,0) y=1  biome=basalt_deltas
+    chunk(200,200) local(10,0) y=1  biome=basalt_deltas
+    chunk(200,200) local(15,0) y=1  biome=basalt_deltas
+    chunk(200,200) local(5,1) y=1  biome=basalt_deltas
+    chunk(200,200) local(9,1) y=1  biome=basalt_deltas
+    chunk(200,200) local(4,4) y=1  biome=basalt_deltas
+    chunk(200,200) local(3,5) y=1  biome=basalt_deltas
+    chunk(200,200) local(5,6) y=1  biome=basalt_deltas
+ basalt -> blackstone:
+    chunk(200,200) local(12,2) y=1  biome=basalt_deltas
+    chunk(200,200) local(14,2) y=1  biome=basalt_deltas
+    chunk(200,200) local(9,6) y=1  biome=basalt_deltas
+    chunk(200,200) local(9,9) y=1  biome=basalt_deltas
+    chunk(200,200) local(10,9) y=1  biome=basalt_deltas
+    chunk(200,200) local(8,10) y=1  biome=basalt_deltas
+    chunk(200,200) local(8,14) y=1  biome=basalt_deltas
+    chunk(200,200) local(15,3) y=2  biome=basalt_deltas
+ netherrack -> blackstone:
+    chunk(200,200) local(11,4) y=1  biome=basalt_deltas
+    chunk(200,200) local(13,4) y=1  biome=basalt_deltas
+    chunk(200,200) local(13,5) y=1  biome=basalt_deltas
+    chunk(200,200) local(14,5) y=1  biome=basalt_deltas
+    chunk(200,200) local(9,7) y=1  biome=basalt_deltas
+    chunk(200,200) local(8,8) y=1  biome=basalt_deltas
+    chunk(200,200) local(14,1) y=2  biome=basalt_deltas
+    chunk(200,200) local(13,2) y=2  biome=basalt_deltas
+ blackstone -> basalt:
+    chunk(200,200) local(0,2) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,3) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,4) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,5) y=2  biome=basalt_deltas
+    chunk(200,200) local(1,5) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,6) y=2  biome=basalt_deltas
+    chunk(200,200) local(1,10) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,3) y=3  biome=basalt_deltas
+ blackstone -> netherrack:
+    chunk(200,200) local(0,9) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,12) y=2  biome=basalt_deltas
+    chunk(200,200) local(1,13) y=2  biome=basalt_deltas
+    chunk(200,200) local(0,10) y=3  biome=basalt_deltas
+    chunk(200,200) local(0,11) y=3  biome=basalt_deltas
+    chunk(200,200) local(0,13) y=3  biome=basalt_deltas
+    chunk(200,200) local(1,13) y=3  biome=basalt_deltas
+    chunk(200,200) local(6,4) y=4  biome=basalt_deltas
+ netherrack -> basalt:
+    chunk(200,200) local(11,9) y=2  biome=basalt_deltas
+    chunk(200,200) local(9,11) y=2  biome=basalt_deltas
+    chunk(200,200) local(8,12) y=2  biome=basalt_deltas
+    chunk(200,200) local(11,8) y=3  biome=basalt_deltas
+    chunk(200,200) local(10,9) y=3  biome=basalt_deltas
+    chunk(200,200) local(13,9) y=3  biome=basalt_deltas
+    chunk(200,200) local(9,10) y=3  biome=basalt_deltas
+    chunk(200,200) local(9,11) y=3  biome=basalt_deltas
+ nether_gold_ore -> blackstone:
+    chunk(200,200) local(14,2) y=9  biome=basalt_deltas
+    chunk(201,200) local(0,5) y=39  biome=basalt_deltas
+    chunk(201,200) local(7,6) y=85  biome=basalt_deltas
+    chunk(201,200) local(7,5) y=86  biome=basalt_deltas
+    chunk(201,200) local(7,6) y=86  biome=basalt_deltas
+    chunk(201,200) local(5,4) y=115  biome=basalt_deltas
+    chunk(201,200) local(4,4) y=116  biome=basalt_deltas
+    chunk(201,200) local(5,4) y=116  biome=basalt_deltas
+ blackstone -> nether_gold_ore:
+    chunk(200,200) local(14,2) y=10  biome=basalt_deltas
+    chunk(201,200) local(14,0) y=36  biome=basalt_deltas
+    chunk(201,200) local(13,1) y=36  biome=basalt_deltas
+    chunk(201,200) local(14,1) y=36  biome=basalt_deltas
+    chunk(201,200) local(13,2) y=36  biome=basalt_deltas
+    chunk(201,200) local(14,2) y=36  biome=basalt_deltas
+    chunk(201,200) local(13,3) y=36  biome=basalt_deltas
+    chunk(201,200) local(14,0) y=37  biome=basalt_deltas
+ basalt -> nether_quartz_ore:
+    chunk(200,200) local(1,0) y=13  biome=basalt_deltas
+    chunk(200,200) local(2,0) y=13  biome=basalt_deltas
+    chunk(200,200) local(1,1) y=13  biome=basalt_deltas
+    chunk(200,200) local(2,1) y=13  biome=basalt_deltas
+    chunk(200,200) local(1,0) y=14  biome=basalt_deltas
+    chunk(200,200) local(2,0) y=14  biome=basalt_deltas
+    chunk(200,200) local(1,1) y=14  biome=basalt_deltas
+    chunk(200,200) local(2,1) y=14  biome=basalt_deltas
+ basalt -> ancient_debris:
+    chunk(200,200) local(8,12) y=16  biome=basalt_deltas
+    chunk(201,200) local(9,5) y=20  biome=basalt_deltas
+    chunk(201,200) local(9,5) y=21  biome=basalt_deltas
+    chunk(202,200) local(10,5) y=10  biome=basalt_deltas
+    chunk(202,200) local(11,4) y=11  biome=basalt_deltas
+    chunk(202,200) local(11,5) y=11  biome=basalt_deltas
+    chunk(203,200) local(9,3) y=17  biome=basalt_deltas
+    chunk(201,201) local(11,13) y=122  biome=basalt_deltas
+ basalt -> nether_gold_ore:
+    chunk(200,200) local(15,0) y=19  biome=basalt_deltas
+    chunk(200,200) local(0,7) y=78  biome=basalt_deltas
+    chunk(200,200) local(0,8) y=78  biome=basalt_deltas
+    chunk(200,200) local(0,9) y=78  biome=basalt_deltas
+    chunk(200,200) local(9,9) y=78  biome=basalt_deltas
+    chunk(200,200) local(0,7) y=79  biome=basalt_deltas
+    chunk(200,200) local(0,8) y=79  biome=basalt_deltas
+    chunk(200,200) local(13,14) y=81  biome=basalt_deltas
+ basalt -> lava:
+    chunk(200,200) local(5,0) y=24  biome=basalt_deltas
+    chunk(200,200) local(6,0) y=24  biome=basalt_deltas
+    chunk(200,200) local(8,0) y=24  biome=basalt_deltas
+    chunk(200,200) local(9,0) y=24  biome=basalt_deltas
+    chunk(200,200) local(9,1) y=24  biome=basalt_deltas
+    chunk(200,200) local(10,1) y=24  biome=basalt_deltas
+    chunk(200,200) local(10,2) y=24  biome=basalt_deltas
+    chunk(200,200) local(11,2) y=24  biome=basalt_deltas
+ lava -> basalt:
+    chunk(200,200) local(3,0) y=25  biome=basalt_deltas
+    chunk(200,200) local(2,1) y=25  biome=basalt_deltas
+    chunk(200,200) local(3,1) y=25  biome=basalt_deltas
+    chunk(200,200) local(4,1) y=25  biome=basalt_deltas
+    chunk(200,200) local(1,2) y=25  biome=basalt_deltas
+    chunk(200,200) local(2,2) y=25  biome=basalt_deltas
+    chunk(200,200) local(3,2) y=25  biome=basalt_deltas
+    chunk(200,200) local(2,3) y=25  biome=basalt_deltas
+ basalt -> magma_block:
+    chunk(200,200) local(9,0) y=27  biome=basalt_deltas
+    chunk(200,200) local(10,0) y=27  biome=basalt_deltas
+    chunk(200,200) local(11,0) y=27  biome=basalt_deltas
+    chunk(200,200) local(11,1) y=27  biome=basalt_deltas
+    chunk(200,200) local(12,1) y=27  biome=basalt_deltas
+    chunk(200,200) local(7,0) y=28  biome=basalt_deltas
+    chunk(200,200) local(10,0) y=28  biome=basalt_deltas
+    chunk(200,200) local(11,0) y=28  biome=basalt_deltas
+ blackstone -> magma_block:
+    chunk(200,200) local(12,0) y=27  biome=basalt_deltas
+    chunk(200,200) local(0,1) y=33  biome=basalt_deltas
+    chunk(200,200) local(0,0) y=34  biome=basalt_deltas
+    chunk(200,200) local(0,1) y=34  biome=basalt_deltas
+    chunk(200,200) local(1,1) y=34  biome=basalt_deltas
+    chunk(200,200) local(0,2) y=34  biome=basalt_deltas
+    chunk(200,200) local(0,0) y=35  biome=basalt_deltas
+    chunk(200,200) local(1,0) y=35  biome=basalt_deltas
+ netherrack -> magma_block:
+    chunk(200,200) local(13,0) y=27  biome=basalt_deltas
+    chunk(200,200) local(8,0) y=28  biome=basalt_deltas
+    chunk(200,200) local(9,0) y=28  biome=basalt_deltas
+    chunk(200,200) local(13,0) y=28  biome=basalt_deltas
+    chunk(200,200) local(7,0) y=29  biome=basalt_deltas
+    chunk(200,200) local(8,0) y=29  biome=basalt_deltas
+    chunk(200,200) local(7,1) y=29  biome=basalt_deltas
+    chunk(200,200) local(7,0) y=30  biome=basalt_deltas
+ magma_block -> blackstone:
+    chunk(200,200) local(0,0) y=30  biome=basalt_deltas
+    chunk(200,200) local(1,0) y=30  biome=basalt_deltas
+    chunk(200,200) local(2,0) y=30  biome=basalt_deltas
+    chunk(201,203) local(1,15) y=26  biome=basalt_deltas
+    chunk(201,203) local(2,15) y=26  biome=basalt_deltas
+    chunk(203,203) local(0,0) y=25  biome=soul_sand_valley
+ nether_gold_ore -> basalt:
+    chunk(200,200) local(9,10) y=35  biome=basalt_deltas
+    chunk(200,200) local(13,2) y=74  biome=basalt_deltas
+    chunk(200,200) local(13,3) y=74  biome=basalt_deltas
+    chunk(200,200) local(13,2) y=75  biome=basalt_deltas
+    chunk(200,200) local(8,13) y=92  biome=basalt_deltas
+    chunk(200,200) local(7,13) y=93  biome=basalt_deltas
+    chunk(200,200) local(8,13) y=93  biome=basalt_deltas
+    chunk(200,200) local(7,14) y=93  biome=basalt_deltas
+ nether_quartz_ore -> basalt:
+    chunk(200,200) local(15,7) y=38  biome=basalt_deltas
+    chunk(200,200) local(15,8) y=38  biome=basalt_deltas
+    chunk(200,200) local(15,7) y=39  biome=basalt_deltas
+    chunk(200,200) local(2,13) y=39  biome=basalt_deltas
+    chunk(200,200) local(3,14) y=39  biome=basalt_deltas
+    chunk(200,200) local(11,6) y=80  biome=basalt_deltas
+    chunk(200,200) local(12,7) y=80  biome=basalt_deltas
+    chunk(200,200) local(11,7) y=81  biome=basalt_deltas
+ lava -> magma_block:
+    chunk(200,200) local(0,2) y=45  biome=basalt_deltas
+    chunk(200,200) local(1,2) y=45  biome=basalt_deltas
+    chunk(200,200) local(0,7) y=45  biome=basalt_deltas
+    chunk(200,200) local(0,8) y=45  biome=basalt_deltas
+    chunk(200,200) local(2,9) y=45  biome=basalt_deltas
+    chunk(200,200) local(3,10) y=45  biome=basalt_deltas
+    chunk(200,200) local(5,12) y=45  biome=basalt_deltas
+    chunk(201,200) local(6,5) y=46  biome=basalt_deltas
+ magma_block -> basalt:
+    chunk(200,200) local(0,6) y=45  biome=basalt_deltas
+    chunk(200,200) local(2,8) y=45  biome=basalt_deltas
+    chunk(200,200) local(4,9) y=45  biome=basalt_deltas
+    chunk(200,200) local(4,10) y=45  biome=basalt_deltas
+    chunk(200,200) local(7,12) y=45  biome=basalt_deltas
+    chunk(200,200) local(12,3) y=47  biome=basalt_deltas
+    chunk(201,200) local(10,0) y=46  biome=basalt_deltas
+    chunk(201,200) local(14,1) y=46  biome=basalt_deltas
+ magma_block -> lava:
+    chunk(200,200) local(1,9) y=45  biome=basalt_deltas
+    chunk(200,200) local(1,10) y=45  biome=basalt_deltas
+    chunk(200,200) local(1,11) y=45  biome=basalt_deltas
+    chunk(200,200) local(1,12) y=45  biome=basalt_deltas
+    chunk(200,200) local(4,12) y=45  biome=basalt_deltas
+    chunk(200,200) local(3,13) y=45  biome=basalt_deltas
+    chunk(200,200) local(6,13) y=45  biome=basalt_deltas
+    chunk(200,200) local(3,14) y=45  biome=basalt_deltas
+ blackstone -> lava:
+    chunk(200,200) local(10,14) y=45  biome=basalt_deltas
+    chunk(200,200) local(9,15) y=45  biome=basalt_deltas
+    chunk(200,200) local(10,15) y=45  biome=basalt_deltas
+    chunk(201,200) local(0,9) y=46  biome=basalt_deltas
+    chunk(201,200) local(1,9) y=46  biome=basalt_deltas
+    chunk(201,200) local(0,10) y=46  biome=basalt_deltas
+    chunk(201,200) local(8,12) y=46  biome=basalt_deltas
+    chunk(201,200) local(7,14) y=46  biome=basalt_deltas
+ air -> basalt:
+    chunk(200,200) local(3,0) y=46  biome=basalt_deltas
+    chunk(200,200) local(4,0) y=46  biome=basalt_deltas
+    chunk(200,200) local(5,0) y=46  biome=basalt_deltas
+    chunk(200,200) local(3,1) y=46  biome=basalt_deltas
+    chunk(200,200) local(4,1) y=46  biome=basalt_deltas
+    chunk(200,200) local(3,2) y=46  biome=basalt_deltas
+    chunk(200,200) local(4,2) y=46  biome=basalt_deltas
+    chunk(200,200) local(3,3) y=46  biome=basalt_deltas
+ air -> magma_block:
+    chunk(200,200) local(3,4) y=47  biome=basalt_deltas
+    chunk(200,200) local(1,5) y=47  biome=basalt_deltas
+    chunk(200,200) local(2,5) y=47  biome=basalt_deltas
+    chunk(200,200) local(1,6) y=47  biome=basalt_deltas
+    chunk(200,200) local(3,7) y=47  biome=basalt_deltas
+ air -> lava:
+    chunk(200,200) local(2,7) y=47  biome=basalt_deltas
+    chunk(200,200) local(11,1) y=52  biome=basalt_deltas
+ basalt -> air:
+    chunk(200,200) local(8,6) y=50  biome=basalt_deltas
+    chunk(200,200) local(8,9) y=50  biome=basalt_deltas
+    chunk(200,200) local(11,9) y=50  biome=basalt_deltas
+    chunk(200,200) local(8,10) y=50  biome=basalt_deltas
+    chunk(200,200) local(8,6) y=51  biome=basalt_deltas
+    chunk(200,200) local(11,6) y=51  biome=basalt_deltas
+    chunk(200,200) local(8,9) y=51  biome=basalt_deltas
+    chunk(200,200) local(9,9) y=51  biome=basalt_deltas
+ nether_quartz_ore -> blackstone:
+    chunk(200,200) local(0,3) y=77  biome=basalt_deltas
+    chunk(200,200) local(0,4) y=77  biome=basalt_deltas
+    chunk(200,200) local(0,4) y=78  biome=basalt_deltas
+    chunk(200,200) local(2,0) y=82  biome=basalt_deltas
+    chunk(200,200) local(2,5) y=111  biome=basalt_deltas
+    chunk(200,200) local(2,6) y=112  biome=basalt_deltas
+    chunk(200,200) local(3,7) y=114  biome=basalt_deltas
+    chunk(201,200) local(5,15) y=20  biome=basalt_deltas
+ netherrack -> nether_gold_ore:
+    chunk(200,200) local(10,12) y=87  biome=basalt_deltas
+    chunk(200,200) local(8,11) y=88  biome=basalt_deltas
+    chunk(200,200) local(9,11) y=88  biome=basalt_deltas
+    chunk(200,200) local(10,11) y=88  biome=basalt_deltas
+    chunk(200,200) local(9,12) y=88  biome=basalt_deltas
+    chunk(200,200) local(10,12) y=88  biome=basalt_deltas
+    chunk(200,200) local(11,12) y=88  biome=basalt_deltas
+    chunk(200,200) local(9,11) y=89  biome=basalt_deltas
+ netherrack -> nether_quartz_ore:
+    chunk(200,200) local(8,14) y=87  biome=basalt_deltas
+    chunk(200,200) local(9,14) y=88  biome=basalt_deltas
+    chunk(200,200) local(10,14) y=88  biome=basalt_deltas
+    chunk(200,200) local(11,14) y=88  biome=basalt_deltas
+    chunk(200,200) local(10,15) y=88  biome=basalt_deltas
+    chunk(200,200) local(11,15) y=88  biome=basalt_deltas
+    chunk(200,200) local(8,15) y=94  biome=basalt_deltas
+    chunk(200,200) local(7,13) y=95  biome=basalt_deltas
+ blackstone -> nether_quartz_ore:
+    chunk(200,200) local(12,6) y=94  biome=basalt_deltas
+    chunk(200,200) local(13,6) y=94  biome=basalt_deltas
+    chunk(200,200) local(12,7) y=94  biome=basalt_deltas
+    chunk(200,200) local(13,7) y=94  biome=basalt_deltas
+    chunk(200,200) local(12,6) y=95  biome=basalt_deltas
+    chunk(200,200) local(13,6) y=95  biome=basalt_deltas
+    chunk(200,200) local(11,7) y=95  biome=basalt_deltas
+    chunk(200,200) local(12,7) y=95  biome=basalt_deltas
+ nether_gold_ore -> nether_quartz_ore:
+    chunk(200,200) local(8,14) y=94  biome=basalt_deltas
+    chunk(200,200) local(7,14) y=95  biome=basalt_deltas
+    chunk(201,200) local(6,11) y=97  biome=basalt_deltas
+    chunk(201,200) local(7,11) y=97  biome=basalt_deltas
+    chunk(201,200) local(7,10) y=98  biome=basalt_deltas
+    chunk(201,200) local(6,11) y=98  biome=basalt_deltas
+    chunk(201,200) local(7,11) y=98  biome=basalt_deltas
+    chunk(203,200) local(9,12) y=73  biome=soul_sand_valley
+ netherrack -> lava:
+    chunk(200,200) local(14,2) y=112  biome=basalt_deltas
+    chunk(201,200) local(14,8) y=92  biome=basalt_deltas
+    chunk(202,200) local(8,3) y=86  biome=basalt_deltas
+    chunk(200,201) local(10,5) y=115  biome=basalt_deltas
+    chunk(200,203) local(4,9) y=15  biome=basalt_deltas
+    chunk(201,203) local(10,6) y=72  biome=soul_sand_valley
+ lava -> blackstone:
+    chunk(200,200) local(4,3) y=115  biome=basalt_deltas
+    chunk(201,200) local(1,5) y=117  biome=basalt_deltas
+    chunk(202,200) local(1,2) y=89  biome=basalt_deltas
+    chunk(201,201) local(4,10) y=108  biome=basalt_deltas
+ nether_quartz_ore -> magma_block:
+    chunk(201,200) local(15,8) y=37  biome=basalt_deltas
+    chunk(201,200) local(15,9) y=37  biome=basalt_deltas
+    chunk(202,203) local(14,13) y=30  biome=soul_sand_valley
+    chunk(202,203) local(14,13) y=31  biome=soul_sand_valley
+ lava -> netherrack:
+    chunk(201,200) local(12,11) y=70  biome=basalt_deltas
+    chunk(202,200) local(6,11) y=10  biome=basalt_deltas
+    chunk(203,200) local(4,12) y=76  biome=basalt_deltas
+    chunk(201,203) local(8,12) y=59  biome=soul_sand_valley
+    chunk(201,203) local(7,13) y=59  biome=soul_sand_valley
+    chunk(201,203) local(6,14) y=59  biome=soul_sand_valley
+    chunk(201,203) local(10,6) y=94  biome=soul_sand_valley
+ soul_soil -> basalt:
+    chunk(202,200) local(15,12) y=34  biome=basalt_deltas
+    chunk(202,200) local(15,13) y=34  biome=basalt_deltas
+    chunk(203,200) local(2,13) y=1  biome=soul_sand_valley
+    chunk(203,200) local(0,13) y=2  biome=basalt_deltas
+    chunk(203,200) local(1,13) y=2  biome=basalt_deltas
+    chunk(203,200) local(2,13) y=2  biome=soul_sand_valley
+    chunk(203,200) local(2,14) y=2  biome=soul_sand_valley
+    chunk(203,200) local(12,0) y=19  biome=soul_sand_valley
+ cave_air -> nether_gold_ore:
+    chunk(202,200) local(13,14) y=46  biome=basalt_deltas
+    chunk(202,200) local(13,15) y=46  biome=basalt_deltas
+    chunk(202,200) local(14,15) y=46  biome=basalt_deltas
+    chunk(202,200) local(12,14) y=47  biome=basalt_deltas
+    chunk(202,200) local(13,14) y=47  biome=basalt_deltas
+    chunk(202,200) local(13,15) y=47  biome=basalt_deltas
+    chunk(202,200) local(14,15) y=47  biome=basalt_deltas
+    chunk(202,200) local(7,13) y=63  biome=basalt_deltas
+ cave_air -> nether_quartz_ore:
+    chunk(202,200) local(10,11) y=53  biome=basalt_deltas
+    chunk(202,200) local(9,11) y=54  biome=basalt_deltas
+    chunk(202,200) local(10,11) y=54  biome=basalt_deltas
+    chunk(202,200) local(11,11) y=54  biome=basalt_deltas
+    chunk(202,200) local(10,10) y=55  biome=basalt_deltas
+    chunk(202,200) local(9,11) y=55  biome=basalt_deltas
+    chunk(202,200) local(10,11) y=55  biome=basalt_deltas
+    chunk(202,201) local(13,1) y=76  biome=basalt_deltas
+ cave_air -> basalt:
+    chunk(202,200) local(11,11) y=53  biome=basalt_deltas
+    chunk(202,200) local(12,11) y=53  biome=basalt_deltas
+    chunk(202,200) local(10,12) y=53  biome=basalt_deltas
+    chunk(202,200) local(10,12) y=54  biome=basalt_deltas
+    chunk(202,200) local(7,13) y=65  biome=basalt_deltas
+    chunk(202,200) local(7,13) y=66  biome=basalt_deltas
+    chunk(202,200) local(7,13) y=67  biome=basalt_deltas
+    chunk(202,200) local(7,13) y=68  biome=basalt_deltas
+ basalt -> cave_air:
+    chunk(202,200) local(6,13) y=64  biome=basalt_deltas
+    chunk(202,201) local(8,2) y=59  biome=basalt_deltas
+    chunk(202,201) local(6,3) y=59  biome=basalt_deltas
+    chunk(202,201) local(14,3) y=59  biome=basalt_deltas
+    chunk(202,201) local(13,4) y=59  biome=soul_sand_valley
+    chunk(202,201) local(6,2) y=60  biome=basalt_deltas
+    chunk(202,201) local(7,2) y=60  biome=basalt_deltas
+    chunk(202,201) local(8,2) y=60  biome=basalt_deltas
+ soul_soil -> netherrack:
+    chunk(203,200) local(12,0) y=1  biome=soul_sand_valley
+    chunk(203,200) local(13,0) y=1  biome=soul_sand_valley
+    chunk(203,200) local(15,6) y=1  biome=soul_sand_valley
+    chunk(203,200) local(15,7) y=1  biome=soul_sand_valley
+    chunk(203,200) local(12,8) y=1  biome=soul_sand_valley
+    chunk(203,200) local(13,8) y=1  biome=soul_sand_valley
+    chunk(203,200) local(14,8) y=1  biome=soul_sand_valley
+    chunk(203,200) local(14,10) y=1  biome=soul_sand_valley
+ soul_sand -> netherrack:
+    chunk(203,200) local(11,1) y=1  biome=soul_sand_valley
+    chunk(203,200) local(12,1) y=1  biome=soul_sand_valley
+    chunk(203,200) local(10,2) y=1  biome=soul_sand_valley
+    chunk(203,200) local(12,2) y=1  biome=soul_sand_valley
+    chunk(203,200) local(14,2) y=1  biome=soul_sand_valley
+    chunk(203,200) local(15,4) y=1  biome=soul_sand_valley
+    chunk(203,200) local(10,5) y=1  biome=soul_sand_valley
+    chunk(203,200) local(5,7) y=1  biome=soul_sand_valley
+ soul_soil -> soul_sand:
+    chunk(203,200) local(5,11) y=2  biome=soul_sand_valley
+    chunk(203,200) local(6,11) y=21  biome=soul_sand_valley
+    chunk(203,200) local(8,0) y=22  biome=basalt_deltas
+    chunk(203,200) local(9,0) y=22  biome=basalt_deltas
+    chunk(203,200) local(10,0) y=22  biome=basalt_deltas
+    chunk(203,200) local(8,1) y=22  biome=basalt_deltas
+    chunk(203,200) local(9,1) y=22  biome=basalt_deltas
+    chunk(203,200) local(15,6) y=22  biome=soul_sand_valley
+ soul_sand -> basalt:
+    chunk(203,200) local(11,1) y=3  biome=soul_sand_valley
+    chunk(203,200) local(10,2) y=3  biome=soul_sand_valley
+    chunk(203,200) local(14,0) y=19  biome=soul_sand_valley
+    chunk(203,200) local(15,0) y=19  biome=soul_sand_valley
+    chunk(203,200) local(12,1) y=19  biome=soul_sand_valley
+    chunk(203,200) local(13,1) y=19  biome=soul_sand_valley
+    chunk(203,200) local(14,1) y=19  biome=soul_sand_valley
+    chunk(203,200) local(15,1) y=19  biome=soul_sand_valley
+ basalt -> soul_sand:
+    chunk(203,200) local(5,6) y=16  biome=soul_sand_valley
+    chunk(203,200) local(5,6) y=17  biome=soul_sand_valley
+    chunk(203,200) local(5,4) y=22  biome=basalt_deltas
+    chunk(203,200) local(6,4) y=22  biome=basalt_deltas
+    chunk(203,200) local(4,5) y=22  biome=basalt_deltas
+    chunk(203,200) local(5,5) y=22  biome=basalt_deltas
+    chunk(203,200) local(5,8) y=22  biome=soul_sand_valley
+    chunk(203,200) local(3,12) y=33  biome=basalt_deltas
+ blackstone -> soul_sand:
+    chunk(203,200) local(5,7) y=16  biome=soul_sand_valley
+    chunk(203,200) local(6,7) y=16  biome=soul_sand_valley
+    chunk(203,200) local(5,8) y=16  biome=soul_sand_valley
+    chunk(203,200) local(6,8) y=16  biome=soul_sand_valley
+    chunk(203,200) local(6,9) y=16  biome=soul_sand_valley
+    chunk(203,200) local(6,7) y=17  biome=soul_sand_valley
+    chunk(203,200) local(5,8) y=17  biome=soul_sand_valley
+    chunk(203,200) local(6,8) y=17  biome=soul_sand_valley
+ netherrack -> ancient_debris:
+    chunk(203,200) local(8,3) y=17  biome=basalt_deltas
+    chunk(203,201) local(2,3) y=18  biome=soul_sand_valley
+    chunk(202,202) local(14,3) y=82  biome=soul_sand_valley
+    chunk(201,203) local(11,11) y=9  biome=soul_sand_valley
+    chunk(203,203) local(8,11) y=14  biome=soul_sand_valley
+ soul_sand -> blackstone:
+    chunk(203,200) local(6,5) y=20  biome=basalt_deltas
+    chunk(203,200) local(6,6) y=20  biome=soul_sand_valley
+    chunk(203,200) local(7,6) y=20  biome=soul_sand_valley
+    chunk(203,200) local(6,7) y=20  biome=soul_sand_valley
+    chunk(203,200) local(7,7) y=20  biome=soul_sand_valley
+    chunk(203,200) local(8,7) y=20  biome=soul_sand_valley
+    chunk(203,200) local(6,8) y=20  biome=soul_sand_valley
+    chunk(203,200) local(7,8) y=20  biome=soul_sand_valley
+ soul_soil -> nether_quartz_ore:
+    chunk(203,200) local(5,13) y=20  biome=soul_sand_valley
+    chunk(202,202) local(2,7) y=21  biome=basalt_deltas
+    chunk(202,202) local(1,8) y=21  biome=basalt_deltas
+    chunk(202,202) local(2,8) y=21  biome=soul_sand_valley
+    chunk(202,202) local(2,9) y=21  biome=soul_sand_valley
+    chunk(202,202) local(2,7) y=22  biome=basalt_deltas
+    chunk(202,202) local(1,8) y=22  biome=basalt_deltas
+    chunk(202,202) local(2,8) y=22  biome=soul_sand_valley
+ soul_sand -> nether_quartz_ore:
+    chunk(203,200) local(14,2) y=21  biome=soul_sand_valley
+    chunk(203,200) local(13,3) y=21  biome=soul_sand_valley
+    chunk(203,200) local(14,3) y=21  biome=soul_sand_valley
+    chunk(203,200) local(13,4) y=21  biome=soul_sand_valley
+    chunk(203,200) local(14,4) y=21  biome=soul_sand_valley
+    chunk(203,200) local(14,5) y=100  biome=soul_sand_valley
+    chunk(203,202) local(12,1) y=26  biome=soul_sand_valley
+    chunk(203,202) local(10,2) y=26  biome=soul_sand_valley
+ soul_soil -> blackstone:
+    chunk(203,200) local(5,10) y=21  biome=soul_sand_valley
+    chunk(203,200) local(5,11) y=21  biome=soul_sand_valley
+    chunk(203,200) local(3,12) y=21  biome=basalt_deltas
+    chunk(203,200) local(4,12) y=21  biome=basalt_deltas
+    chunk(203,200) local(13,0) y=91  biome=soul_sand_valley
+    chunk(202,201) local(12,2) y=34  biome=basalt_deltas
+    chunk(202,201) local(13,2) y=34  biome=basalt_deltas
+    chunk(202,201) local(12,3) y=34  biome=basalt_deltas
+ soul_soil -> magma_block:
+    chunk(203,200) local(11,13) y=34  biome=soul_sand_valley
+    chunk(203,200) local(12,13) y=34  biome=soul_sand_valley
+    chunk(203,200) local(13,13) y=34  biome=soul_sand_valley
+    chunk(203,200) local(14,13) y=34  biome=soul_sand_valley
+    chunk(203,200) local(15,13) y=34  biome=soul_sand_valley
+    chunk(203,200) local(12,14) y=34  biome=soul_sand_valley
+    chunk(203,200) local(13,14) y=34  biome=soul_sand_valley
+    chunk(203,200) local(14,14) y=34  biome=soul_sand_valley
+ soul_sand -> magma_block:
+    chunk(203,200) local(11,14) y=34  biome=soul_sand_valley
+    chunk(203,200) local(11,14) y=35  biome=soul_sand_valley
+    chunk(203,201) local(11,9) y=26  biome=soul_sand_valley
+    chunk(203,201) local(10,10) y=26  biome=soul_sand_valley
+    chunk(203,201) local(11,10) y=26  biome=soul_sand_valley
+    chunk(203,201) local(12,10) y=26  biome=soul_sand_valley
+    chunk(203,201) local(10,11) y=26  biome=soul_sand_valley
+    chunk(203,201) local(11,11) y=26  biome=soul_sand_valley
+ nether_quartz_ore -> nether_gold_ore:
+    chunk(201,201) local(14,13) y=60  biome=basalt_deltas
+    chunk(201,201) local(14,14) y=61  biome=basalt_deltas
+    chunk(202,202) local(0,3) y=93  biome=basalt_deltas
+ blackstone -> ancient_debris:
+    chunk(202,201) local(5,4) y=22  biome=basalt_deltas
+    chunk(202,201) local(6,4) y=22  biome=basalt_deltas
+    chunk(200,203) local(11,1) y=13  biome=basalt_deltas
+    chunk(201,203) local(10,10) y=8  biome=soul_sand_valley
+ netherrack -> soul_sand:
+    chunk(203,201) local(6,0) y=3  biome=soul_sand_valley
+    chunk(203,201) local(7,1) y=3  biome=soul_sand_valley
+    chunk(203,201) local(8,1) y=3  biome=soul_sand_valley
+    chunk(203,201) local(1,13) y=3  biome=soul_sand_valley
+    chunk(203,201) local(2,13) y=3  biome=soul_sand_valley
+    chunk(203,201) local(3,13) y=3  biome=soul_sand_valley
+    chunk(203,201) local(1,13) y=4  biome=soul_sand_valley
+    chunk(203,201) local(3,13) y=4  biome=soul_sand_valley
+ nether_quartz_ore -> soul_sand:
+    chunk(203,201) local(9,3) y=12  biome=soul_sand_valley
+    chunk(203,201) local(10,3) y=12  biome=soul_sand_valley
+    chunk(203,201) local(9,4) y=12  biome=soul_sand_valley
+    chunk(203,201) local(10,4) y=12  biome=soul_sand_valley
+ soul_sand -> nether_gold_ore:
+    chunk(203,201) local(7,3) y=34  biome=soul_sand_valley
+ basalt -> gravel:
+    chunk(201,202) local(15,14) y=34  biome=soul_sand_valley
+    chunk(201,202) local(15,15) y=34  biome=soul_sand_valley
+    chunk(200,203) local(3,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(4,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(5,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(6,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(7,3) y=30  biome=basalt_deltas
+    chunk(201,203) local(1,4) y=30  biome=basalt_deltas
+ soul_soil -> ancient_debris:
+    chunk(202,202) local(8,15) y=21  biome=soul_sand_valley
+    chunk(202,202) local(8,15) y=22  biome=soul_sand_valley
+    chunk(202,203) local(15,2) y=22  biome=soul_sand_valley
+    chunk(202,203) local(15,3) y=22  biome=soul_sand_valley
+ soul_soil -> gravel:
+    chunk(202,202) local(3,12) y=34  biome=soul_sand_valley
+    chunk(202,202) local(3,13) y=34  biome=soul_sand_valley
+    chunk(202,202) local(4,13) y=34  biome=soul_sand_valley
+    chunk(202,202) local(0,14) y=34  biome=soul_sand_valley
+    chunk(202,202) local(2,14) y=34  biome=soul_sand_valley
+    chunk(202,202) local(3,14) y=34  biome=soul_sand_valley
+    chunk(202,202) local(0,15) y=34  biome=soul_sand_valley
+    chunk(202,202) local(1,15) y=34  biome=soul_sand_valley
+ soul_sand -> gravel:
+    chunk(203,202) local(2,7) y=8  biome=soul_sand_valley
+    chunk(203,202) local(2,6) y=9  biome=soul_sand_valley
+    chunk(203,202) local(1,7) y=9  biome=soul_sand_valley
+    chunk(203,202) local(2,7) y=9  biome=soul_sand_valley
+    chunk(203,202) local(4,6) y=12  biome=soul_sand_valley
+    chunk(203,202) local(3,7) y=12  biome=soul_sand_valley
+    chunk(203,202) local(4,7) y=12  biome=soul_sand_valley
+ magma_block -> soul_sand:
+    chunk(203,202) local(13,6) y=25  biome=soul_sand_valley
+    chunk(203,202) local(13,5) y=26  biome=soul_sand_valley
+    chunk(203,203) local(3,11) y=24  biome=soul_sand_valley
+    chunk(203,203) local(2,12) y=24  biome=soul_sand_valley
+    chunk(203,203) local(3,12) y=24  biome=soul_sand_valley
+    chunk(203,203) local(3,11) y=25  biome=soul_sand_valley
+ magma_block -> gravel:
+    chunk(203,202) local(5,14) y=28  biome=soul_sand_valley
+    chunk(202,203) local(7,11) y=32  biome=soul_sand_valley
+    chunk(202,203) local(8,11) y=32  biome=soul_sand_valley
+    chunk(202,203) local(7,11) y=33  biome=soul_sand_valley
+    chunk(202,203) local(8,11) y=33  biome=soul_sand_valley
+ gravel -> magma_block:
+    chunk(200,203) local(0,2) y=26  biome=basalt_deltas
+    chunk(200,203) local(1,2) y=26  biome=basalt_deltas
+    chunk(200,203) local(2,2) y=26  biome=basalt_deltas
+    chunk(200,203) local(3,2) y=26  biome=basalt_deltas
+    chunk(200,203) local(4,2) y=26  biome=basalt_deltas
+    chunk(200,203) local(2,2) y=27  biome=basalt_deltas
+    chunk(200,203) local(3,2) y=27  biome=basalt_deltas
+    chunk(200,203) local(4,2) y=27  biome=basalt_deltas
+ gravel -> basalt:
+    chunk(200,203) local(0,2) y=27  biome=basalt_deltas
+    chunk(200,203) local(1,2) y=27  biome=basalt_deltas
+    chunk(200,203) local(0,3) y=27  biome=basalt_deltas
+    chunk(200,203) local(1,3) y=27  biome=basalt_deltas
+    chunk(200,203) local(0,2) y=28  biome=basalt_deltas
+    chunk(200,203) local(1,2) y=28  biome=basalt_deltas
+    chunk(200,203) local(2,2) y=28  biome=basalt_deltas
+    chunk(200,203) local(3,2) y=28  biome=basalt_deltas
+ blackstone -> gravel:
+    chunk(200,203) local(8,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(9,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(10,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(11,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(12,3) y=30  biome=basalt_deltas
+    chunk(200,203) local(15,4) y=30  biome=basalt_deltas
+    chunk(201,203) local(0,4) y=30  biome=basalt_deltas
+    chunk(201,203) local(5,4) y=30  biome=basalt_deltas
+ magma_block -> cave_air:
+    chunk(200,203) local(12,7) y=60  biome=basalt_deltas
+    chunk(200,203) local(14,7) y=60  biome=basalt_deltas
+    chunk(200,203) local(11,8) y=60  biome=basalt_deltas
+    chunk(200,203) local(12,8) y=60  biome=basalt_deltas
+ lava -> cave_air:
+    chunk(200,203) local(15,7) y=60  biome=basalt_deltas
+    chunk(200,203) local(15,9) y=60  biome=basalt_deltas
+    chunk(201,203) local(0,7) y=60  biome=basalt_deltas
+    chunk(201,203) local(1,7) y=60  biome=basalt_deltas
+    chunk(201,203) local(0,8) y=60  biome=basalt_deltas
+    chunk(201,203) local(4,8) y=60  biome=basalt_deltas
+    chunk(201,203) local(1,9) y=60  biome=basalt_deltas
+ lava -> nether_gold_ore:
+    chunk(201,203) local(10,11) y=19  biome=soul_sand_valley
+ magma_block -> netherrack:
+    chunk(201,203) local(5,11) y=57  biome=basalt_deltas
+    chunk(201,203) local(6,12) y=58  biome=basalt_deltas
+ cave_air -> lava:
+    chunk(201,203) local(2,8) y=59  biome=basalt_deltas
+ soul_soil -> nether_gold_ore:
+    chunk(202,203) local(9,1) y=21  biome=soul_sand_valley
+    chunk(202,203) local(10,1) y=21  biome=soul_sand_valley
+    chunk(202,203) local(9,2) y=21  biome=soul_sand_valley
+    chunk(202,203) local(10,2) y=21  biome=soul_sand_valley
+    chunk(202,203) local(2,5) y=21  biome=soul_sand_valley
+    chunk(202,203) local(3,6) y=21  biome=soul_sand_valley
+    chunk(202,203) local(10,0) y=22  biome=soul_sand_valley
+    chunk(202,203) local(9,1) y=22  biome=soul_sand_valley
+ gravel -> blackstone:
+    chunk(203,203) local(1,0) y=26  biome=soul_sand_valley
+    chunk(203,203) local(2,0) y=26  biome=soul_sand_valley
+    chunk(203,203) local(3,0) y=26  biome=soul_sand_valley
+    chunk(203,203) local(3,0) y=27  biome=soul_sand_valley
+ gravel -> soul_sand:
+    chunk(203,203) local(1,0) y=27  biome=soul_sand_valley
+    chunk(203,203) local(2,0) y=27  biome=soul_sand_valley
+    chunk(203,203) local(1,0) y=28  biome=soul_sand_valley
+    chunk(203,203) local(2,0) y=28  biome=soul_sand_valley
+    chunk(203,203) local(15,15) y=29  biome=soul_sand_valley
+ gravel -> netherrack:
+    chunk(203,203) local(15,15) y=28  biome=soul_sand_valley
+    chunk(203,203) local(15,14) y=29  biome=soul_sand_valley
+    chunk(203,203) local(15,13) y=30  biome=soul_sand_valley
+    chunk(203,203) local(14,15) y=30  biome=soul_sand_valley
+ magma_block -> nether_gold_ore:
+    chunk(203,203) local(7,9) y=31  biome=soul_sand_valley
+    chunk(203,203) local(8,9) y=31  biome=soul_sand_valley
+    chunk(203,203) local(7,10) y=31  biome=soul_sand_valley
+    chunk(203,203) local(8,10) y=31  biome=soul_sand_valley
+    chunk(203,203) local(8,9) y=32  biome=soul_sand_valley
+    chunk(203,203) local(7,10) y=32  biome=soul_sand_valley
+    chunk(203,203) local(8,10) y=32  biome=soul_sand_valley
+ cave_air -> ancient_debris:
+    chunk(203,203) local(7,12) y=72  biome=soul_sand_valley

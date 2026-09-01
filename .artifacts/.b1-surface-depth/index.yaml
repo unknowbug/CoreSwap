@@ -1,0 +1,26 @@
+# .b1-surface-depth fan-out 候选索引（status: draft — AI 不写 confirmed）
+topic: B1-nether-basalt-deltas-three-stone-swap
+candidate: .b1 surface_depth(runDepth) 2D 噪声不一致 → stone_depth 带厚差
+seed_b: 8576294172403134396
+baseline: nether 存档级内存读 93.5156%；残差 B1 大类 = basalt_deltas 列内三大宗石互换（子族 netherrack↔basalt/blackstone ≈28k 块）
+entries:
+  - id: b1-surface-depth-analysis
+    file: b1-surface-depth-analysis.md
+    type: analysis
+    status: draft
+    verdict: 机制不成立（§7 取代首轮「候选成立」：错位大量位于 stone_depth 带不可达的内部层，40 层连续 basalt 体超出带厚上限 1+runDepth≤6）
+    confidence: draft（数据层否证，Degraded→数据层复核完成）
+    evidence:
+      - .investigations/nether-save-full/cmd-output/b1-column-trace.txt（4 列逐层 vanilla vs Rust）
+      - .investigations/nether-save-full/cmd-output/b1-family-split.txt（全量分类：solid↔solid 66844=98.3%）
+      - §8 逐层带可达性检验（固体↔固体口径：y=6 超 runDepth 上限 5；y=69-107 中 32/39 层带不可达；深层夹层 q≥100 全不可达）
+      - data/minecraft/worldgen/configured_feature/basalt_blobs.json + blackstone_blobs.json（type=netherrack_replace_blobs, radius uniform 3..7, target=netherrack）
+      - data/minecraft/worldgen/biome/basalt_deltas.json features step6（basalt_blobs/blackstone_blobs/large+small_basalt_columns/delta）
+      - noise_settings/nether.json surface_rule 全量核对（无大宗玄武岩分支，排除解析漏分支）
+    superseded_verdict: 首轮「机制成立（候选）」——基于 3 样本双向带翻转的自洽性推断，被带不可达层证据否定
+    reroute: 主候选改指向 Rust 缺失 nether feature 类型（netherrack_replace_blobs / basalt_columns / delta_feature / basalt_pillar），建议主会话立 .b1' 或并入 feature 课题
+    probes_planned:
+      - WG_B1_COLS 增采相邻 4-8 列（判别 blob 团块 vs 带等厚薄壳签名，§8 预测）
+      - WG_SKIP_FEATURES=1 双跑 b1_column_trace（确认 rust magma 全来自 feature）
+      - blob 形状对拍 bin-diag（radius uniform 3..7 + legacy LCG 序列，见分析文档 §7 建议 2-3）
+next_session_hook: 主会话按 §7 建议 1-3 执行 → feature 缺失候选另行立课题 → B1 台账（09 篇 L192）候选指向修正走知识库更新流程

@@ -1,0 +1,21 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+entries:
+  - id: 're-code:b2-nether-state-selector:analysis'
+    path: 'b2-nether-state-selector-analysis.md'
+    kind: analysis
+    status: draft
+    # 结论摘要（draft，待主会话验证 + judge）：b2 机制 = nether_state_selector 采样不一致。
+    # 代码级实证：该噪声只出现在 nether.json surface_rule（L254/307/383），不在 noise_router/density_function——
+    # Rust worldgen_handle.rs create_for_dim step4 预加载表（L192-195）不含它 → DensityBuilder 从未建 sampler →
+    # surface_rules.rs noise_threshold_sample L129-133 unwrap_or(0.0) 恒回退 0.0 → selector 条件恒 true →
+    # basalt_deltas floor 恒 basalt（vanilla: selector≥0 basalt / <0 blackstone）；soul_sand_valley 同理恒 soul_sand。
+    # 预测单向（vanilla blackstone→save basalt）；bucket 双向证据中 vanilla=basalt→save=blackstone 方向与本机制矛盾 → 三态=部分成立+证据不足。
+    # R1 更新（b1-column-trace.txt 解读）：错位层 rust ≈100% netherrack、从未写出 849、仅零星 259
+    # → selector 噪声差只能解释分支内 basalt/blackstone 翻转（col(11,1) y=45 van=849→rust=259 为方向吻合样本），
+    #   不能解释「rust 完全不涂布」→ 主导机制 = 分支未进入（.b1 stone_depth / biome 判定 / 宏观地形差 rust air+magma 段）。
+    # R2 补充：机制预期签名（双侧进分支+错位∈{259,849}+同列同向）与实测（rust 涂 256=未进分支）逐条比对
+    # → b2 匹配度低（仅零星分支内点位）；固体↔固体 98.3% 不支持 b2（netherrack 是固体，未涂布也计入）。
+    # b2 处置：恒 0.0 为已实证真实 bug（一行预加载修复顺带闭合 soul_soil/patch 子族），但不作 B1 主导根因候选；
+    # B1 主导归 .b1 stone_depth / biome / fill 上游，探针 P-A/P-C/P-D 区分。

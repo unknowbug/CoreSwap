@@ -1,0 +1,16 @@
+id	ref	save
+minecraft:air                    560068      35744
+minecraft:netherrack             204903     210777
+minecraft:basalt                 172704     167826
+minecraft:blackstone              38500      35937
+minecraft:bedrock                 24518      24518
+minecraft:lava                    19099      20085
+minecraft:cave_air                15894      16036
+minecraft:nether_quartz_ore        1992       4475
+minecraft:soul_soil                5474          0
+minecraft:magma_block              1533       3809
+minecraft:soul_sand                2457       2805
+minecraft:nether_gold_ore           728       1527
+minecraft:gravel                    674        694
+minecraft:ancient_debris             30         53
+minecraft:red_mushroom                2          2

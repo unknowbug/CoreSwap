@@ -91,7 +91,8 @@ wg_create(seed, dataDir, settingsName, biomeParamsFile, worldHeight);
 **参数化维度（非硬编码 overworld）**：
 - \settings_name\：\
 oise_settings/<settings_name>.json\（overworld / nether / end / mod 维度文件名）
-- **dfNs** = settings_name 去 ".json"：决定 \density_function/<dfNs>/\ 目录 + \esolve_ref\ 命名空间前缀 \minecraft:<df_ns>/\（\DensityBuilder.set_df_ns\；修复 M1——惰性加载前缀原硬编码 \minecraft:overworld/\）
+- **dfNs** = settings_name 去 ".json"：决定 \density_function/<dfNs>/\ 目录 + \
+esolve_ref\ 命名空间前缀 \minecraft:<df_ns>/\（\DensityBuilder.set_df_ns\；修复 M1——惰性加载前缀原硬编码 \minecraft:overworld/\）
 - **维度参数从 settings 读**：\min_y\ / \
 oise.height\ / \sea_level\ / \quifers_enabled\（非硬编码 overworld 的 -64/384/63/true）
 - \iome_params_file\：维度 biome 参数（overworld \iome_params.json\ / nether \iome_params_nether.json\ / mod 自定义）
@@ -162,4 +163,153 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 - soul_sand_valley 表面残差（y=1..2）；
 - legacy 分流激活验证（as_bool 修复后读取已通，块级输出仍未变）；
 - Hole 语义不一致（Rust `surface_depth <= 0` vs Java `stoneDepthAbove <= 0`，C++ L251 才对——Rust 注释声称对齐 Java 是错的，影响 nether lake/not(hole) 门控，单开课题）；
+  - **[supersedes 2026-09-05]** 本行已过时（M6 修复前表述）：当前 Rust surface_rules.rs L101 Hole => stone_depth_above <= 0 与 Java 一致，dll M17（C5AC5309）含修复——Hole 语义课题闭合。依据见本文「B1 定论」节（§15.4 取代链，原行保留不删）。
 - 末地引擎未启动（同前）。
+
+
+## nether 存档写入口径 Full 化（1.0.22 dll，双 seed）（数据/口径/写盘无损 = confirmed；机制解释 = draft，2026-09-04）
+
+> 载体：Rust nether 接管 gen（cppReplace）→ 存档落盘 → MCA 直解（compare_save_region.py）vs vanilla BlockProbe 参照（WGB2）+ ReadWorldProbe 内存读交叉验证。dll sha256=C5AC5309F3C59A044（1.0.22 M17）。
+> **口径声明（v0.20 §9.7 三要素）**：① 载体 = MCA 存档直解 + 内存读，vs vanilla 参照；② 覆盖面 = 4×4 chunks @(3200,3208) 全高度（nether min_y=0，height=256，动态读取）；③ **与 96.44% 探针口径（docs/09 既有数字）不可比**——载体不同（存档/内存 vs 探针直采），数值禁止直接互比。seed 三查：server.properties ↔ level.dat ↔ ref header 全同值。
+> 过程错误（首轮三场 run enabled=false 全作废、cppWorldgenDir 错层等）见 `.investigations/nether-save-full/nether-save-errors.md`（独立台账，不在此重复）。
+
+### 双 seed 三口径数字表（candidate）
+
+| seed | 内存读（ReadWorldProbe） | 存档读回（reconfirm，从盘读） | MCA 直解（compare_save_region） | 残差块数 |
+|---|---|---|---|---|
+| A = -2032795982907864146 | 99.9376%（1047922/1048576） | 99.9376%（**与内存精确同值**） | 99.9278%（1047819，差 103 = cave_air 簇） | 757（MCA）/ 655（内存） |
+| B = 8576294172403134396 | 93.5156%（980582/1048576） | 93.5156%（精确同值） | 93.5156%（精确同值） | 67,994 |
+
+- Rust 真实参与证明：v2 log `enabled=true` + 64 条 `populateNoise(nether) intercepted`（4×4 目标 + feature 蔓延邻域）。**验收判据：enabled 标志 + intercepted 覆盖目标 chunk，缺一 run 作废**（首轮教训，见错误台账 E1/E3）。
+- seed B 残差全部落在 y≤127（layerMatch：y0..31=82% / 32..63=88% / 64..95=88% / 96..127=90%；**y≥128=100%**）——与「noise_height=128、y≥128 留 air」（09 篇 M3 教训）自洽；本次 run buildSurface 被 Mixin skip，存档表层全来自 Rust 生成，残差 = vanilla surface rule 输出 vs Rust 生成的差异。
+
+### 残差机制分类占比（分类 = 数据直读，candidate；机制解释 = draft）
+
+| seed | 类别 | 块数 | 占比 | 机制候选（draft） |
+|---|---|---|---|---|
+| A | A1 nether 矿石 feature 差（quartz/gold/debris，方向全为「vanilla 有矿→存档无矿」） | 640 | 84.5% | Rust nether ore feature 未放置或错位（与 B4 同家族；09 篇已知缺口「fill_chunk_blocks nether 逻辑差异化」的存档级量化） |
+| A | A2 air↔cave_air 尾随簇（单 chunk(203,200) y70-72） | 104 | 13.7% | **未闭合**（见下） |
+| A | A3/A4 magma 点差 / 熔岩湖边界点差 | 13 | 1.8% | seed B 大类的缩微版 |
+| B | B1 basalt deltas 三大宗石互换（basalt↔blackstone↔netherrack，成片双向） | 52,078 | 76.6% | surface rule 条件链系统性偏差（biome 判定 / noise 阈值 / Hole 语义 `surface_depth<=0` vs `stoneDepthAbove<=0` 的下游表现之一，未验证）**[supersedes 2026-09-05]** 本行旧候选方向作废，定论见本文「B1 定论」节 |
+| B | B2 soul sand valley 涂布边界 | 5,720 | 8.4% | 吻合 09 篇已知遗留（y=1..2 soul_sand_valley 表面残差），块数放大 |
+| B | B4 矿石（与 A1 同家族） | 2,629 | 3.9% | 同 A1 |
+| B | B5 magma / B3 熔岩湖边界 | 3,069 | 4.5% | magma：underwater_magma/邻接判定归属未定；湖边界：M7 seaLevel 机制已修、边界条件残差（已知遗留） |
+| B | 未分类（top15 以下散点） | 4,498 | 6.6% | — |
+
+### 未闭合待查项（全部 draft/待查）
+
+1. **103 cave_air 簇机制**：v2 下 seed A 内存 = 存档读回**精确同值**（无 cave_air），MCA 直解却多 103 块 air→cave_air（同 chunk 同簇，y69=0/70=4/71=23/72=53）——「同一次落盘、两种读取口径不同」的新形态矛盾；Rust 全代码零写 cave_air，b1（时序）/b3（非确定）候选均未闭合。探针方向：M4（biome.rs BTreeMap）复核、禁 carvers/features 重跑定位尾随写入者、save 前后 hook dump。
+2. **basalt deltas 大宗互换（B1）**：76.6% 大头，层位/形状已锁定（y≤127、按区域成片）——surface rule 单列对拍 + 按 biome 分桶可定位。
+   - **[已结案 2026-09-05]** 机制定论见本文「B1 定论」节：feature 阶段产物（blobs/columns/delta/pillar）在两种基底地形上的命中/形态差 + Rust surface 薄带残差；surface_depth 带厚候选被排除，nether_state_selector bug 另案（非主导）。
+3. **矿石 features 缺口（A1+B4，3,269 块）**：「未实现」vs「放置错位」归属未定——feature 阶段 A/B diff 出 Rust 实际矿位 vs 参照矿位集合即可裁决（若错位，按发现 #6 查 PlacedFeatureIndexer 编号链）。
+
+### 下一步深挖优先级（块数 × 可定位性，residual-interpretation §3）
+
+1. **B1 表面规则大宗互换**（52,078，可定位性高：biome 分桶 + 单列 surface rule 逐步对拍）
+2. **A1+B4 nether 矿石 feature**（3,269，中高：一次探针双 seed 受益，A1 占 seed A 残差 84.5%）
+3. **B2 soul sand valley**（5,720，中高：已知遗留，限 y∈[0,4] 切片 diff）
+4. **B3 熔岩湖边界**（1,375，中：y 直方图看是否聚 sea_level 附近）
+5. **A2 cave_air 簇**（104，价值在排除 M4 家族复发而非块数）
+6. **B5 magma**（1,694，中低：与 #1 同脚本分桶）
+
+> 状态：**数据、口径声明、写盘无损结论（三口径同值）= confirmed（用户拍板 2026-09-04，judge-review #1-4/#15 通过）**；残差分类占比数据 confirmed、机制解释与待查项 = draft。
+> 关联：`.investigations/nether-save-full/`（facts / .b1-.b3 / residual-interpretation / judge-review / nether-save-errors.md）。
+
+## B1 定论：basalt deltas 三大宗石互换 = feature 阶段产物在两种基底地形上的命中/形态差（candidate，2026-09-05）
+
+> 承接上节「nether 存档写入口径 Full 化」B1 未闭合项（52,078 块 / 76.6%）。本轮三方实验 + fan-out 两候选裁决后机制定论。过程与被推翻假说见 10 时间线 2026-09-05 条；错误 E6 见 `.investigations/nether-save-full/nether-save-errors.md`。
+
+### 机制定论（B1 主导，candidate）
+
+- **架构事实**：cppReplace 模式下 Rust 只接管 populateNoise + buildSurface（NoiseChunkGeneratorMixin.java）；vanilla carvers + features 仍在 Rust 地形上运行。
+- **机制**：nether 的 basalt_deltas / soul_sand_valley 宗石大宗（basalt_blobs / blackstone_blobs = netherrack_replace_blobs、large/small_basalt_columns、delta、basalt_pillar）**本是 feature 阶段产物**，不是 surface rule 产物。同一套 Java feature 在两种基底地形（vanilla surface vs Rust surface）上运行，命中/形态不同 → 大宗互换；叠加 Rust surface 薄带残差。
+- **biome 源分配差排除**：互换块 100% 落在 vanilla basalt_deltas 列内（soul_sand_valley 家族单列）——feature 的 biome 源分配两侧一致，排除。
+
+### 三方实验证据（数据直读）
+
+| 口径 | 数字 | 判读 |
+|---|---|---|
+| 纯 Rust 输出（ctypes 直连 dll vs rlib 直跑）vs FULL 参照 | **77.43%**（basalt→netherrack 157k）；ctypes/rlib cell 级 **0 差异**（确定性） | Rust surface 薄带 + 纯 Rust 口径下 blobs/columns 缺失的叠加表现 |
+| 存档（Rust noise+surface + Java carvers/features）vs FULL 参照 | **93.5508%** | feature 阶段产物补回大头 |
+| WG_SKIP_SURFACE=1 重跑 | **55.18%**，且 blobs 不触发（可用基底面大幅减少 + target=netherrack 依赖 → blackstone=0、quartz/gold ore=0） | **surface 是实心块主来源**，且证明 blobs 是 feature 阶段依赖 netherrack 基底 |
+
+**待排除备择（judge WARN-4）**：Rust surface 薄带残差在 52k 中的量级未单独量化（待 SURFACE 口径参照重测）；「Rust 自身已实现 feature 与 Java feature 并存重复放置」（Rust 侧 ore_magma 等已实现）未显式排除——二者均列为下轮待查。
+**369 块容差注记（judge）**：数值（两次 run 相差 369 块）= 过程事实；「Java feature 邻块写入调度非确定」的机制解释 = 推断（draft），未经隔离实验证明。
+
+### 对照口径澄清（v0.20 §9.7）
+
+- 纯 Rust 口径（77.43%）与存档口径（93.55%）**不可比**（载体不同，§9.7）。
+- B1 深挖的正确参照分两用：**BlockProbe SURFACE 口径**（无 carvers/FEATURE）测 Rust surface 残差；**存档口径**测端到端。
+- **同 dll 非确定性容差（新过程事实）**：同 dll 两次完整 run 相差 369 块（93.5156% → 93.5508%）——Java feature 阶段邻块写入调度非确定性所致。**存档口径对齐指标必须声明该容差**（同 dll 重跑差 ≤ 百分级块数属正常，非实现回归）。
+
+### 附带定论与遗留
+
+- ✅ **Hole 语义不一致已闭合**（取代本篇前文遗留课题中的 Hole 行）：docs/09 前文「Rust Hole 用 surface_depth<=0」为 M6（2026-08-30）修复前的过时表述；当前 Rust surface_rules.rs L101 `Hole => stone_depth_above <= 0` 与 Java 一致，dll M17（sha C5AC5309）含修复。见上方 supersedes 标注。
+- ❌ surface_depth 带厚机制（fan-out .b1）：不成立——带厚上限 ≤6 层，实测 40 层体块不可达（`.artifacts/.b1-surface-depth/` verdict）。
+- ⚠️ nether_state_selector 恒 0.0（fan-out .b2）：**真实 bug**（`create_for_dim` step4 预加载表缺 nether 噪声：nether_state_selector/patch/soul_sand_layer/netherrack/nether_wart/gravel_layer → `unwrap_or(0.0)`），但只解释零星分支内翻转，**非 B1 主导**（`.artifacts/.b2-nether-state-selector/`）。修复值得做（一行预加载表补齐），预期闭合 soul_soil 子族等——**待修，修复后重测**。
+  **[supersedes 2026-09-06]** 上行「待修」状态作废：已修复并重测，见下节。
+
+## nether_state_selector 预加载表修复（.b2 遗留项闭合，candidate，2026-09-06）
+
+> 置信度 **candidate**；验证分层 **Partial**（存档口径端到端对齐 + 日志判据核对，非逐位 Full）。§9.7：93.8988% 为**存档口径**，与纯 Rust 口径不可比。
+
+### 修复内容
+
+`WorldgenRust/src/worldgen_handle.rs` step4 surface rules 噪声预加载表（L192-195 一带）原只含 overworld 噪声（surface / surface_secondary / clay_bands_offset / badlands_* / gravel / powder_snow / packed_ice / ice / surface_swamp），**缺全部 nether 噪声**。下游 `surface_rules.rs` 的 `noise_threshold_sample`（L120-137）查不到 sampler 时 `unwrap_or(0.0)` 静默回退 → `nether_state_selector`（min threshold = 0.0）条件恒 true → nether surface rule 恒走 basalt 分支。
+
+修复 = 预加载表补 6 个 nether 噪声：`minecraft:nether_state_selector` / `patch` / `soul_sand_layer` / `netherrack` / `nether_wart` / `gravel_layer`（全部存在于 `versions/1.20.1/data/worldgen/data/minecraft/worldgen/noise/*.json`）。
+
+### 验证（存档口径，seed B = 8576294172403134396，4×4 @3200,3208，参照 = vanilla FULL）
+
+| 项 | 数字 | 判读 |
+|---|---|---|
+| 修复前基线 | 93.5508%（上轮） | 同 dll 非确定性容差实测 ±369 块 ≈ ±0.035pp |
+| 修复后 | **93.8988%**（match = 984600/1048576） | **+0.348pp ≈ 10× 容差 → 超出非确定性噪声，真实改善** |
+| E1/E3 判据核对 | 通过 | `[CppBridge] initNether enabled=true` 且 seed 一致；log = `.investigations/nether-save-full/cmd-output/b2-fix-rerun.log` |
+
+### 修复后分族（b1_family_split.py / b1_id_totals.py）
+
+- 总 mismatch 63,976：solid_solid 62,850 / van_solid_rust_air 580 / van_air_rust_solid 546。
+- soul_soil：ref 5474 vs save 1334（仍偏低）——**selector 噪声已生效**，soul_soil 大头疑似在 Java feature 阶段，属 B1 主导机制（feature 产物 × 基底地形差）的正常残差，**不是本 bug**。
+- soul_sand 2457 vs 1471；quartz_ore / gold_ore / magma 仍偏高——ore features 归因（待 A1+B4 重估）。
+
+### 口径声明（§9.7 三要素）
+
+- 载体：MCA 存档直解 vs vanilla FULL 参照（WGB2）；覆盖面：4×4 chunk 全高度（min_y=0, height=256）。
+- 可比性：93.8988% 与纯 Rust 口径 77.43% 不可比；与修复前 93.5508% 同口径可比（容差 ±369 块已声明）。
+
+### 状态
+
+- candidate（Partial 分层 + 容差倍数判真改善）；confirmed 留用户。
+- 过程 → 10 时间线 2026-09-06 条；错误 E7 → `.investigations/nether-save-full/nether-save-errors.md`。
+
+## SURFACE 口径残差量化：Rust surface 层自身残差 = 22.5%，主导形态 = basalt/blackstone 位放 netherrack（candidate，2026-09-06）
+
+> 承接「B1 定论」节 judge WARN-4 待排除备择。验证分层 Partial（SURFACE 参照口径 = BlockProbe 无 carvers/features）。
+
+### 采集与口径
+
+- vanilla SURFACE 参照：BlockProbe 默认口径（无 carvers/features；`-PblockProbe -PblockProbeDimension=nether`，**不带** blockProbe.full），seed B = 8576294172403134396，4×4 @3200,3208。export log = `.investigations/nether-save-full/cmd-output/b2-surface-ref-export.log`（`BlockProbe worldSeed=` 核对一致）。
+- FULL 参照已备份 `.blocks.full`，hash 不同确认口径切换生效（SURFACE 270D6E97… vs FULL 1DDE3B09…）。
+- 对比脚本：`.tmp/b2_surface_residual.py`；纯 Rust 侧 = rlib dump（`.tmp/b1-rlib-blocks.bin`）。
+
+### 数据（数据直读）
+
+| 对比 | 数字 | 判读 |
+|---|---|---|
+| SURFACE 参照 vs FULL 参照 | diff 仅 21,296/1,048,576（**97.9691% identical**） | 本 4×4 区域 features 贡献 ~2%；黑石/玄武岩大宗主体在 surface rules 层（SURFACE 参照 basalt = 173,073 vs FULL 172,704） |
+| SURFACE 参照 vs 纯 Rust rlib dump | **77.4857%**（match = 812496/1048576） | Rust surface 层自身残差 = 22.5%（SURFACE 口径） |
+| 分族 | solid_solid 233,197 / ref_solid_rust_air 2,871 / ref_air_rust_solid 12 | 残差几乎全是实心块互换 |
+| top mismatch | basalt→netherrack 157,658 / blackstone→netherrack 35,031 / cave_air→netherrack 15,678 | 主导形态 = vanilla surface 放 basalt/blackstone 处 Rust 放 netherrack |
+
+### 结论（candidate）
+
+1. **Rust surface 层自身残差 = 22.5%**（SURFACE 口径）——B1 定论中的「薄带残差」实为 surface 层大宗差异（非薄带）。
+2. **存档口径 93.8988% 说明 Java features 在 Rust 基底上补齐了其中大部分**——与 B1 定论「feature 产物 × 两种基底地形差」自洽。
+3. **judge WARN-4 备择「Rust 已实现 feature 与 Java feature 并存重复放置」排除**：cppReplace 架构只拦截 populateNoise + buildSurface，features 只由 Java 运行一次（无双跑通道）；SURFACE 口径 Rust 侧残差形态与存档口径收敛方向一致。
+4. **⚠️ 外推限制**：FULL−SURFACE 差 ~2% 是 4×4 局部观察（basalt deltas 宗石恰好 surface 主导），**勿外推为全局 features 贡献占比**。
+
+### 口径声明（§9.7 三要素）
+
+- 载体：SURFACE 参照 = BlockProbe 默认口径（无 carvers/features）vs 纯 Rust rlib dump；覆盖面：4×4 chunk 全高度，seed B。
+- 可比性：**77.4857%（SURFACE 口径）与 93.8988%（存档口径）载体不同不可比，分列**；与 B1 节纯 Rust 口径 77.43%（FULL 参照）亦不同载体，分列——数值接近纯属本区域 features 占比低的巧合，不构成口径可合并的证据。
