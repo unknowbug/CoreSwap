@@ -120,3 +120,15 @@
 - **观察**：原生层接管宿主管线时，`wg_fill_blocks_multi` 内部自己实现了完整管线（noise+surface+carver+feature），而外层 mixin 只拦截 populateNoise + cancel buildSurface——未拦截的 Java CARVER/FEATURES 步骤照跑 → 同阶段双跑，矿石族计数 ~2.2×（quartz 4478 vs ref 1992）。
 - **证据**：消融 WG_SKIP_FEATURES=1 → match +5508，quartz 4478→2125 / gold 1525→739 / magma 3814→1979，全部落回 ref 邻域（09 篇「矿石归因定论」）。
 - **如何利用**：①「某块族计数 ≈2× ref」是双跑签名，≈1× 落回即证实；②「同 dll 存档基线 + env 逐阶段消融」两步定位，单步差值直接归因；③接管边界审计（谁拦哪些步骤 × 内层实现哪些阶段）先于条件链归因（与发现 #10 同族、方向互补）；④修复勿用进程全局 env 默认翻转，用句柄/调用级显式 flag。
+
+## 发现 #12: 静态对拍必须对拍解析产物而非输入原文——「参数全对拍」假阴性掩盖真 bug（2026-09-09）
+
+- **发现时间**：2026-09-09（soul-v4v5 课题 V3→V4；judge PASS 建议 candidate）；**module**：workflow / 验证方法 / 数据驱动解析。
+- **观察**：V3 静态结构对拍把「解析器产物树 vs JSON」的对拍做成「肉眼核对 JSON 原文参数」——节点结构逐项一致、参数「全对拍」通过，结论「结构差不存在」。但**中间层（解析器）本身是嫌疑对象**：布尔字段被解析器读成 false，JSON 原文上是 true，「肉眼对拍 JSON」天然查不出——8 处假阴性中多处 JSON 原值恰为 false，进一步掩护。真 bug（as_f64 读布尔恒 false，见 compiler-idioms 发现 #8）被假阴性压制一轮（V3 draft）才在 V4 由解析产物树 dump 锁定。
+- **证据**：修复前解析产物树 dump（soul-tree-repro）实测 8 处 `asd=false`，与 nether.json 原文行号逐项对拍——3 处 JSON=`true`（真阳性）、多处 JSON=false（假阴性掩护）；「JSON 原文 / 解析产物树 / 运行时行为」三方对拍闭合后单轮定位根因（`.artifacts/.b2-soul/v4-eval-conflict.md` §1 表）。
+- **如何利用**：
+  - **规则**：凡对拍「解析器/转换器/中间层」的正确性，对拍物必须是**parse 产物树 dump**，不是输入原文——原文对拍只能证「输入长什么样」，证不了「中间层把它变成了什么」。
+  - **工具化**：把 parse 产物树 dump 固化为 bin-diag 常备诊断（本例 `soul_tree_repro`），带 JSON 行号列，逐节点对拍；「参数全对拍」类结论必须注明对拍对象是原文还是产物。
+  - **三方纪律**：probe「复算一致」只证 probe 与生产同源，不证与 JSON 规范同源——JSON 规范 / 解析产物 / 运行时三方对拍缺一不可（本例三方各自自洽、互相矛盾，矛盾点即中间层 bug）。
+
+

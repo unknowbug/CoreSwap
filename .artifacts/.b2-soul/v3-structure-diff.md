@@ -10,6 +10,12 @@ date: 2026-09-08
 
 # V3 静态结构对拍：nether surface_rule（JSON）vs Rust 解析
 
+> **[supersedes 注 2026-09-09]** 本节「签名 B/C 结构差不可解释（需 V4 动态对照）」的处置方向已被
+> `.artifacts/.b2-soul/v4-eval-conflict.md` 取代：矛盾最终定位为 **parse_surface_cond 布尔字段解析 bug**
+> （as_f64 读 Bool → 恒 false，求值层 ≠ JSON 语义），非运行时输入差。本节「结构完整一致」结论仍成立；
+> §1 的「参数全对拍」为假阴性——教训：静态对拍必须对拍**解析产物树**而非 JSON 原文（详见 v4-eval-conflict §4）。
+> 原文不删不改，以本注记为准（§15.4 取代链）。
+
 ## 0. 对拍对象
 
 - JSON：`versions/1.20.1/data/minecraft/worldgen/noise_settings/nether.json` surface_rule（L105-737）

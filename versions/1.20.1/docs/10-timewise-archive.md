@@ -2399,7 +2399,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 
 - 承接 09-07 P2 矿石归因 judge CONCERN（`WG_SKIP_*` env 门控进程全局，勿全局默认翻转）。
 - 改动：`worldgen_handle.rs` AtomicU32 flags（bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE，**OR-env 语义**，0=回落 env 兼容）+ `api.rs` wg_set_flags/wg_get_flags + jni_bridge + Java CppWorldgen/CppBridge（**默认 mask=0b011**，`-Dcoreswap.rust.stages` 可覆盖）。
-- 回归：3 轮全新 run 全部 **94.4241%**（990108/1048576，seed B，nether 4×4@3200,3208，FULL 参照，ReadWorldProbe 存档口径；修复前 93.8988%）；ore per-id quartz 4478→2125 / gold 1525→739 / magma 3814→1979 = **SKIP_FEATURES 消融值**（ref 邻域 1992/728/1533）——与消融实验因果链重复，比区间判据更强。
+- 回归（C1 措辞修正）：同 region（seed B，nether 4×4@3200,3208）3 次复跑全部 **94.4241%**（990108/1048576，FULL 参照，ReadWorldProbe 存档口径；修复前 93.8988%）——验证确定性非覆盖面；ore per-id quartz 4478→2125 / gold 1525→739 / magma 3814→1979 = **SKIP_FEATURES 消融值**（ref 邻域 1992/728/1533）——与消融实验因果链重复。
 - 设计：`.investigations/nether-save-full/design-wg-set-flags-20260908.md`；judge：`.artifacts/.c2-p2-ore-attribution/review-judge-20260908.md`；日志：cmd-output/flags-regression-run4/5/6.log。
 
 ### ✅ 二、V3 结构对拍（draft，Degraded）
@@ -2422,4 +2422,48 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - 通用模式 → `knowledge/discovered/build-tooling.md` 发现 #7（E10：GRADLE_USER_HOME 沙箱策略 + 参照四要素核对），草稿 `knowledge-drafts/20260908-build-tooling-faxian7.md`。
 - 错误 E10 五段式 → `.investigations/nether-save-full/nether-save-errors.md` 追加 + 速查表加行。
 - 状态：双跑修复 candidate（judge PASS）；V3 draft（Degraded）；confirmed 留用户。
+
+
+## 2026-09-09（soul V4/V5 课题：布尔解析 bug 根因 + 修复 + C4 消融）
+
+### ✅ 一、V4 采集——输入差候选否定
+
+- patch `WG_SOUL_CTX_DUMP`（env 门控点级 ctx dump，OnceLock 点集 + chunk 级门控，零热路径成本）+ bin-diag `soul_ctx_dump` 驱动生产 fill_chunk_blocks，180 点（V2 签名 B/C mismatch 点）180/180 全命中。
+- 抽样点 probe CSV vs 生产 dump：biome / sda / sdb / surface_depth / selector **逐项全同**，整规则 apply 一致 → **「probe 复算输入 ≠ 生产 ctx」输入差候选被采集数据否定**。
+- 新矛盾：biome=soul ∧ ceiling_ok ∧ selector<0 → applied=netherrack(256)，与 V3「进 soul 分支必得 soul_soil 兜底」结构推演冲突 → 矛盾收敛到求值/解析层。产物：`.investigations/soul-v4v5/v4-collection.md`。
+
+### ✅ 二、树复现——假阴性 8 处
+
+- bin-diag `soul_tree_repro` 直接 dump 解析产物树（修复前）：**8 处 `asd=false` 假阴性**（3 处 JSON 原文 true：soul ceiling/floor / basalt floor / wastes floor / gravel y_above 等；其余 8 处 JSON 原值即 false，恰成假阴性掩护）——「参数全对拍」对 JSON 原文肉眼核对全对，实为解析产物 ≠ JSON 语义。
+- 3275,2,3201 裁决：bedrock_floor（above_bottom 0..5）生产侧随机判定先中即返（applied=31），从签名 B 证据集剔除。
+
+### ✅ 三、根因定位 + 修复
+
+- 根因（.b2-soul fan-out 裁决，候选 b）：`parse_surface_cond` 用 `as_f64()` 读 JSON 布尔字段 → Bool→None→**恒 false**（surface_rules.rs 三处：y_above L1079 / stone_depth L1093 / water L1116）；soul ceiling `sdb ≤ 1+0+surface_depth` 退化为 `sdb ≤ 1` → 分支未进 → 穿透 netherrack 兜底。产物：`.artifacts/.b2-soul/v4-eval-conflict.md`。
+- 修复：新增 `parse_bool_field`（`as_bool().or_else(as_f64 != 0).unwrap_or(false)`），三处替换；grep 复核无残留布尔误读。
+
+### ✅ 四、四级回归（seed B = 8576294172403134396，nether 4×4 @3200,3208）
+
+- 树复现（postfix）：5 处翻 true（soul ceiling/floor、gravel y_above 30/35、basalt floor），8 处保持 false=JSON 原值，无一误翻。
+- 生产 dump（180 点）：netherrack 103→71，+soul_soil 18 / soul_sand 14；定点 3260,1,3200 applied 256→**258**。
+- 存档口径 ×2：94.4241% → **run1 96.6215% / run2 96.5866%**（+2.20pp；run 间差 366 块在 #10 非确定带宽 ~2330 块内）。
+- per-id：soul_soil 1334→5771（ref 5474）/ soul_sand 1471→2494（ref 2457）——soul 族闭合至 ref 邻域；gravel 674=ref 精确相等。
+- 签名 C（soul_sand_layer entered 0/60）同 bug 源随修复闭合；basalt −3631→−1736（B1 家族收敛，无新负迁移）。
+
+### ✅ 五、judge PASS + C4 overworld 消融量化 + C1 回写
+
+- **judge（review-001）PASS，建议 candidate**：三重锁定（解析树 dump × 定点 apply × 生产 dump 逐位一致）成立；`parse_bool_field` 语义正确且替换完备；回归数字可归因；Degraded/§9.7 声明合规。4 项卫生处置（E9 临时 bin 删除 / index 登记 / supersedes 双指针 / 本 docs 草稿来源确认）→ 主会话清单。
+- **C4 overworld 消融**（seed B，overworld 4×4 @3200,3208，存档口径）：默认 mask=0b011（不双跑）**98.9520%**（1556380/1572864）vs 旧双跑 mask=0 **97.3266%**（1530815/1572864）——双跑修复 **+1.6254pp**（+25565 块），差异集中 y=-64..63 features 活跃层（y≥64 两 run 100% 一致）；judge C4 CONCERN（overworld 默认 mask 行为变更未回归量化）量化闭合，无回归证据。⚠️ 单 region 单次，方向性量化非覆盖面结论。产物：`.investigations/soul-v4v5/c4-overworld-ablation.md`。
+- **C1 措辞回写完成**：同 region 3 次复跑 = 验证确定性/可复现性（非多 region 覆盖面），判据措辞已按 C1 修正在 09 篇回归节与时间线落实。
+
+### 🔍 残差
+
+- basalt −1736 / blackstone −434（B1 家族遗留）；366 块非确定带宽；**V5 biome 边界带未做**（修复后残差图需重导，残差 ~3.4%）。
+
+### 📌 记录指引
+
+- 结论 → 09 篇追加「布尔字段解析 bug 修复签名 B/C（candidate）」小节，草稿 `knowledge-drafts/20260909-v4-boolfix-docs.md`（supersedes V3 节处置方向，原节不删）。
+- 通用模式 → `knowledge/discovered/compiler-idioms.md` 发现 #8（布尔字段 as_f64 恒 false）+ `knowledge/discovered/workflow-patterns.md` 发现 #12（静态对拍须对拍解析产物）。
+- 状态：根因 + 修复有效性 candidate（judge PASS 建议）；confirmed 留用户。
+
 

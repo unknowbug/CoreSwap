@@ -411,6 +411,35 @@ impl<'a> SurfaceContext<'a> {
     }
 }
 
+// V4 诊断（2026-09-09，soul 签名 B 运行时输入差裁决）：生产链路 soul 分支入口 ctx dump。
+// 门控：env WG_SOUL_CTX_DUMP=<点文件路径>（`x y z 标签` 行格式，# 注释）。
+// 进程级读一次点集（OnceLock）；build_surface 入口 chunk 级取一次引用——未配置时零热路径成本
+// （每 chunk 一次 thread_local/OnceLock 访问，非每点 env 查询，对齐测量污染铁律）。
+// 命中点集的 apply 点 dump：生产 ctx 的 biome/sda/sdb/surface_depth/fluid_height/selector +
+// soul 分支入口判定 + 规则 apply 结果（stderr，诊断输出）。
+fn soul_dump_points() -> &'static Option<std::collections::HashSet<(i32, i32, i32)>> {
+    static DUMP: std::sync::OnceLock<Option<std::collections::HashSet<(i32, i32, i32)>>> =
+        std::sync::OnceLock::new();
+    DUMP.get_or_init(|| {
+        let path = std::env::var("WG_SOUL_CTX_DUMP").ok()?;
+        let txt = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("[SOUL-CTX] cannot read {}: {}", path, e));
+        let mut set = std::collections::HashSet::new();
+        for line in txt.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') { continue; }
+            let mut it = line.split_whitespace();
+            if let (Some(a), Some(b), Some(c)) = (it.next(), it.next(), it.next()) {
+                if let (Ok(x), Ok(y), Ok(z)) = (a.parse(), b.parse(), c.parse()) {
+                    set.insert((x, y, z));
+                }
+            }
+        }
+        eprintln!("[SOUL-CTX] dump enabled: {} points from {}", set.len(), path);
+        Some(set)
+    })
+}
+
 // ========== SurfaceBuilder（对齐 C++ surface.h L345-483）==========
 pub struct SurfaceBuilder<'a> {
     samplers: &'a HashMap<String, Arc<DoublePerlinNoiseSampler>>,
@@ -987,6 +1016,16 @@ impl<'a> SurfaceBuilder<'a> {
     // 支持节点：rule = minecraft:sequence / condition / block；cond = not / biome / y_above / stone_depth /
     //          noise_threshold / vertical_gradient / hole / steep / water / temperature / surface。
     // 未支持节点 → 返回 None（调用方回退 overworld 规则 / 报错）。
+    // 布尔感知字段读取（V4 修复，2026-09-09）：旧代码用 as_f64() 读 JSON 布尔字段，
+    // JsonValue::Bool 走 as_f64() 返回 None → add_surface_depth/add_stone_depth 恒 false
+    //（nether soul/gravel/patch 等全部分支的 stone_depth/y_above/water 修饰位丢失）。
+    // 兼容数字写法（0/1）与缺失字段（false）。
+    fn parse_bool_field(j: &crate::json::JsonValue, key: &str) -> bool {
+        j.get(key)
+            .and_then(|x| x.as_bool().or_else(|| x.as_f64().map(|f| f != 0.0)))
+            .unwrap_or(false)
+    }
+
     fn parse_anchor_abs_y(a: &crate::json::JsonValue, min_y: i32, height: i32) -> i32 {
         if let Some(v) = a.get("absolute") { return v.as_f64().unwrap_or(0.0) as i32; }
         if let Some(v) = a.get("above_bottom") { return min_y + v.as_f64().unwrap_or(0.0) as i32; }
@@ -1047,7 +1086,7 @@ impl<'a> SurfaceBuilder<'a> {
         if type_name.contains("y_above") {
             if let Some(a) = j.get("anchor") {
                 let anchor_y = Self::parse_anchor_abs_y(a, min_y, height);
-                let add_stone_depth = j.get("add_stone_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false);
+                let add_stone_depth = Self::parse_bool_field(j, "add_stone_depth");
                 return Some(SurfaceCond::AboveY { anchor_y, mult: 0, add_stone_depth });
             }
         }
@@ -1061,7 +1100,7 @@ impl<'a> SurfaceBuilder<'a> {
         if type_name.contains("stone_depth") {
             return Some(SurfaceCond::StoneDepth {
                 offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
-                add_surface_depth: j.get("add_surface_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false),
+                add_surface_depth: Self::parse_bool_field(j, "add_surface_depth"),
                 secondary_depth_range: j.get("secondary_depth_range").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
                 ceiling: j.get("surface_type").and_then(|x| x.as_str()).map(|s| s == "ceiling").unwrap_or(false),
             });
@@ -1084,7 +1123,7 @@ impl<'a> SurfaceBuilder<'a> {
             return Some(SurfaceCond::Water {
                 offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
                 mult: 0,
-                add_stone_depth: j.get("add_stone_depth").and_then(|x| x.as_f64()).map(|x| x != 0.0).unwrap_or(false),
+                add_stone_depth: Self::parse_bool_field(j, "add_stone_depth"),
             });
         }
         if type_name.contains("temperature") { return Some(SurfaceCond::Temp); }
@@ -1156,6 +1195,9 @@ impl<'a> SurfaceBuilder<'a> {
             r
         };
 
+        // V4 诊断门控：chunk 级取一次（None = 未配置，循环内零成本）
+        let dump_points: Option<&std::collections::HashSet<(i32, i32, i32)>> = soul_dump_points().as_ref();
+
         for k in 0..16 {
             for l in 0..16 {
                 let m = chunk_start_x + k;
@@ -1221,7 +1263,24 @@ impl<'a> SurfaceBuilder<'a> {
                         ctx.init_vertical(q, vx, r, m, wy, n, &b.0);
                         ctx.biome_temp = b.1;
                         if state == default_block {
-                            if let Some(new_state) = rule.apply(&ctx) {
+                            let new_state = rule.apply(&ctx);
+                            if let Some(set) = dump_points {
+                                if set.contains(&(m, wy, n)) {
+                                    // 生产 ctx 的 soul 分支入口判定（镜像 SurfaceCond::StoneDepth L84-93
+                                    // nether 参数：offset=0, add_surface_depth=true, secondary=0）
+                                    let selector = noise_threshold_sample(&ctx, "minecraft:nether_state_selector");
+                                    let ceiling_ok = ctx.stone_depth_below <= 1 + 0 + ctx.surface_depth + 0;
+                                    let floor_ok = ctx.stone_depth_above <= 1 + 0 + ctx.surface_depth + 0;
+                                    let applied_s = match new_state {
+                                        Some(b) => format!("id={}", b),
+                                        None => "none".to_string(),
+                                    };
+                                    eprintln!("[SOUL-CTX] {},{},{},biome={},sda={},sdb={},surface_depth={},fluid_height={},selector={:.6},ceiling_ok={},floor_ok={},is_default=true,applied={}",
+                                        m, wy, n, ctx.biome_id, ctx.stone_depth_above, ctx.stone_depth_below,
+                                        ctx.surface_depth, ctx.fluid_height, selector, ceiling_ok, floor_ok, applied_s);
+                                }
+                            }
+                            if let Some(new_state) = new_state {
                                 *col.at_mut(k, wy, l) = new_state;
                             }
                         }

@@ -1,0 +1,212 @@
+[SOUL-CTX-DRIVER] points=180 chunks=29
+[SOUL-CTX-DRIVER] chunk 203,200
+[SOUL-CTX-DRIVER] chunk 203,201
+[SOUL-CTX-DRIVER] chunk 204,200
+[SOUL-CTX-DRIVER] chunk 204,201
+[SOUL-CTX-DRIVER] chunk 205,200
+[SOUL-CTX-DRIVER] chunk 206,200
+[SOUL-CTX-DRIVER] chunk 206,201
+[SOUL-CTX-DRIVER] chunk 207,200
+[SOUL-CTX-DRIVER] chunk 207,201
+[SOUL-CTX-DRIVER] chunk 208,200
+[SOUL-CTX-DRIVER] chunk 208,201
+[SOUL-CTX-DRIVER] chunk 209,200
+[SOUL-CTX-DRIVER] chunk 210,200
+[SOUL-CTX-DRIVER] chunk 211,200
+[SOUL-CTX-DRIVER] chunk 211,201
+[SOUL-CTX-DRIVER] chunk 212,200
+[SOUL-CTX-DRIVER] chunk 212,201
+[SOUL-CTX-DRIVER] chunk 213,200
+[SOUL-CTX-DRIVER] chunk 213,201
+[SOUL-CTX-DRIVER] chunk 214,200
+[SOUL-CTX-DRIVER] chunk 214,201
+[SOUL-CTX-DRIVER] chunk 215,200
+[SOUL-CTX-DRIVER] chunk 215,201
+[SOUL-CTX-DRIVER] chunk 216,200
+[SOUL-CTX-DRIVER] chunk 216,201
+[SOUL-CTX-DRIVER] chunk 217,200
+[SOUL-CTX-DRIVER] chunk 217,201
+[SOUL-CTX-DRIVER] chunk 218,200
+[SOUL-CTX-DRIVER] chunk 218,201
+[SOUL-CTX] dump enabled: 180 points from E:/PYTHON/CoreSwap/.tmp/soul-mismatch-points.txt
+[SOUL-CTX] 3260,3,3200,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=3,fluid_height=32,selector=-0.047268,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3260,1,3200,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=3,fluid_height=32,selector=-0.047268,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3261,3,3200,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=3,fluid_height=32,selector=-0.013279,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3261,1,3200,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=3,fluid_height=32,selector=-0.013279,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3262,3,3200,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=3,fluid_height=32,selector=0.033028,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3254,3,3216,biome=minecraft:soul_sand_valley,sda=21,sdb=4,surface_depth=2,fluid_height=32,selector=-0.083404,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3275,2,3201,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=0.256630,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3275,1,3201,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=4,fluid_height=32,selector=0.256630,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3276,3,3201,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=0.194849,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3276,1,3201,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=4,fluid_height=32,selector=0.194849,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3277,2,3201,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=0.123122,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3278,2,3201,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=0.047618,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3279,3,3201,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=-0.024358,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3271,3,3217,biome=minecraft:soul_sand_valley,sda=79,sdb=4,surface_depth=2,fluid_height=30,selector=-0.408889,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3272,3,3217,biome=minecraft:soul_sand_valley,sda=79,sdb=4,surface_depth=2,fluid_height=30,selector=-0.432424,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3290,1,3202,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=4,fluid_height=32,selector=0.050740,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3291,2,3202,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=0.049761,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3292,3,3202,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=0.036472,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3292,2,3202,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=0.036472,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3292,1,3202,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=4,fluid_height=32,selector=0.036472,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3293,3,3202,biome=minecraft:soul_sand_valley,sda=21,sdb=4,surface_depth=4,fluid_height=32,selector=0.016217,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3294,2,3202,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=4,fluid_height=32,selector=-0.006748,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3294,1,3202,biome=minecraft:soul_sand_valley,sda=23,sdb=2,surface_depth=4,fluid_height=32,selector=-0.006748,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3308,2,3203,biome=minecraft:soul_sand_valley,sda=65,sdb=3,surface_depth=4,fluid_height=30,selector=0.243001,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3311,2,3203,biome=minecraft:soul_sand_valley,sda=64,sdb=3,surface_depth=4,fluid_height=30,selector=0.238965,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3305,11,3219,biome=minecraft:soul_sand_valley,sda=62,sdb=12,surface_depth=4,fluid_height=27,selector=-0.043431,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3306,11,3219,biome=minecraft:soul_sand_valley,sda=61,sdb=12,surface_depth=4,fluid_height=28,selector=-0.016794,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3321,2,3204,biome=minecraft:soul_sand_valley,sda=57,sdb=3,surface_depth=4,fluid_height=32,selector=-0.416088,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3322,3,3204,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=-0.456835,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3323,3,3204,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=-0.485541,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3324,2,3204,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=-0.497492,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3325,3,3204,biome=minecraft:soul_sand_valley,sda=20,sdb=4,surface_depth=4,fluid_height=32,selector=-0.490792,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3326,2,3204,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=-0.466254,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3327,2,3204,biome=minecraft:soul_sand_valley,sda=21,sdb=3,surface_depth=4,fluid_height=32,selector=-0.427095,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3327,1,3204,biome=minecraft:soul_sand_valley,sda=22,sdb=2,surface_depth=4,fluid_height=32,selector=-0.427095,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3321,11,3220,biome=minecraft:soul_sand_valley,sda=11,sdb=12,surface_depth=4,fluid_height=32,selector=-0.204697,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3322,11,3220,biome=minecraft:soul_sand_valley,sda=11,sdb=12,surface_depth=4,fluid_height=32,selector=-0.272388,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3322,10,3220,biome=minecraft:soul_sand_valley,sda=12,sdb=11,surface_depth=4,fluid_height=32,selector=-0.272388,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3323,11,3220,biome=minecraft:soul_sand_valley,sda=11,sdb=12,surface_depth=4,fluid_height=32,selector=-0.332642,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3334,2,3205,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=4,fluid_height=32,selector=-0.209974,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3336,2,3205,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=-0.216660,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3338,2,3205,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=-0.207914,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3338,1,3205,biome=minecraft:soul_sand_valley,sda=23,sdb=2,surface_depth=3,fluid_height=32,selector=-0.207914,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3340,2,3205,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=-0.192026,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3342,3,3205,biome=minecraft:soul_sand_valley,sda=21,sdb=4,surface_depth=3,fluid_height=32,selector=-0.188042,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3343,3,3205,biome=minecraft:soul_sand_valley,sda=21,sdb=4,surface_depth=3,fluid_height=32,selector=-0.188293,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3343,2,3205,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=-0.188293,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3338,11,3221,biome=minecraft:soul_sand_valley,sda=11,sdb=12,surface_depth=3,fluid_height=32,selector=-0.350589,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3356,3,3206,biome=minecraft:soul_sand_valley,sda=21,sdb=4,surface_depth=3,fluid_height=32,selector=0.238078,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3356,2,3206,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=0.238078,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3358,2,3206,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=0.279462,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3359,19,3206,biome=minecraft:soul_sand_valley,sda=5,sdb=20,surface_depth=3,fluid_height=32,selector=0.286669,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3359,2,3206,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=0.286669,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3359,1,3206,biome=minecraft:soul_sand_valley,sda=23,sdb=2,surface_depth=3,fluid_height=32,selector=0.286669,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3365,2,3207,biome=minecraft:soul_sand_valley,sda=22,sdb=3,surface_depth=3,fluid_height=32,selector=0.139449,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3365,1,3207,biome=minecraft:soul_sand_valley,sda=23,sdb=2,surface_depth=3,fluid_height=32,selector=0.139449,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3369,1,3207,biome=minecraft:soul_sand_valley,sda=28,sdb=2,surface_depth=3,fluid_height=32,selector=-0.035180,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3370,2,3207,biome=minecraft:soul_sand_valley,sda=50,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.077719,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3373,19,3207,biome=minecraft:soul_sand_valley,sda=34,sdb=20,surface_depth=3,fluid_height=-2147483648,selector=-0.168598,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3373,3,3207,biome=minecraft:soul_sand_valley,sda=50,sdb=4,surface_depth=3,fluid_height=-2147483648,selector=-0.168598,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3373,2,3207,biome=minecraft:soul_sand_valley,sda=51,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.168598,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3374,19,3207,biome=minecraft:soul_sand_valley,sda=34,sdb=20,surface_depth=3,fluid_height=-2147483648,selector=-0.188815,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3375,19,3207,biome=minecraft:soul_sand_valley,sda=34,sdb=20,surface_depth=3,fluid_height=-2147483648,selector=-0.205236,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3375,1,3207,biome=minecraft:soul_sand_valley,sda=52,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=-0.205236,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3382,2,3208,biome=minecraft:soul_sand_valley,sda=51,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.262735,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3383,2,3208,biome=minecraft:soul_sand_valley,sda=51,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.230889,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3384,1,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=-0.181032,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=258
+[SOUL-CTX] 3385,1,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=-0.119086,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3387,2,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.016954,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3387,1,3208,biome=minecraft:soul_sand_valley,sda=53,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.016954,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3388,2,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.097202,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3388,1,3208,biome=minecraft:soul_sand_valley,sda=53,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.097202,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3389,19,3208,biome=minecraft:soul_sand_valley,sda=35,sdb=20,surface_depth=3,fluid_height=-2147483648,selector=0.186594,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3389,3,3208,biome=minecraft:soul_sand_valley,sda=51,sdb=4,surface_depth=3,fluid_height=-2147483648,selector=0.186594,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3389,2,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.186594,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3389,1,3208,biome=minecraft:soul_sand_valley,sda=53,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.186594,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3390,3,3208,biome=minecraft:soul_sand_valley,sda=51,sdb=4,surface_depth=3,fluid_height=-2147483648,selector=0.281655,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3390,2,3208,biome=minecraft:soul_sand_valley,sda=52,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.281655,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3390,1,3208,biome=minecraft:soul_sand_valley,sda=53,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.281655,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3391,3,3208,biome=minecraft:soul_sand_valley,sda=51,sdb=4,surface_depth=3,fluid_height=-2147483648,selector=0.377493,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3378,13,3224,biome=minecraft:soul_sand_valley,sda=10,sdb=14,surface_depth=2,fluid_height=32,selector=0.372506,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3396,2,3209,biome=minecraft:soul_sand_valley,sda=45,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.751449,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3398,1,3209,biome=minecraft:soul_sand_valley,sda=46,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.750922,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3400,2,3209,biome=minecraft:soul_sand_valley,sda=45,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.683638,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=257
+[SOUL-CTX] 3402,2,3209,biome=minecraft:soul_sand_valley,sda=45,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.586715,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3402,1,3209,biome=minecraft:soul_sand_valley,sda=46,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.586715,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3406,3,3209,biome=minecraft:soul_sand_valley,sda=43,sdb=4,surface_depth=3,fluid_height=-2147483648,selector=0.366441,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3394,13,3225,biome=minecraft:soul_sand_valley,sda=11,sdb=14,surface_depth=1,fluid_height=32,selector=0.358036,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3394,12,3225,biome=minecraft:soul_sand_valley,sda=12,sdb=13,surface_depth=1,fluid_height=32,selector=0.358036,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3395,13,3225,biome=minecraft:soul_sand_valley,sda=11,sdb=14,surface_depth=2,fluid_height=32,selector=0.261990,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3417,2,3210,biome=minecraft:nether_wastes,sda=46,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.173926,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3418,2,3210,biome=minecraft:nether_wastes,sda=46,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.238028,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3421,2,3210,biome=minecraft:nether_wastes,sda=47,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.430534,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3422,1,3210,biome=minecraft:nether_wastes,sda=48,sdb=2,surface_depth=2,fluid_height=-2147483648,selector=-0.479236,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3423,2,3210,biome=minecraft:nether_wastes,sda=47,sdb=3,surface_depth=2,fluid_height=-2147483648,selector=-0.513841,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3410,14,3226,biome=minecraft:nether_wastes,sda=27,sdb=15,surface_depth=1,fluid_height=-2147483648,selector=-0.157345,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3410,13,3226,biome=minecraft:nether_wastes,sda=28,sdb=14,surface_depth=1,fluid_height=-2147483648,selector=-0.157345,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3411,14,3226,biome=minecraft:nether_wastes,sda=28,sdb=15,surface_depth=1,fluid_height=-2147483648,selector=-0.149757,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3411,13,3226,biome=minecraft:nether_wastes,sda=29,sdb=14,surface_depth=1,fluid_height=-2147483648,selector=-0.149757,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3411,12,3226,biome=minecraft:nether_wastes,sda=30,sdb=13,surface_depth=1,fluid_height=-2147483648,selector=-0.149757,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3432,2,3211,biome=minecraft:nether_wastes,sda=47,sdb=3,surface_depth=2,fluid_height=-2147483648,selector=-0.319286,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3435,2,3211,biome=minecraft:nether_wastes,sda=47,sdb=3,surface_depth=2,fluid_height=-2147483648,selector=-0.200037,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3437,1,3211,biome=minecraft:nether_wastes,sda=49,sdb=2,surface_depth=2,fluid_height=-2147483648,selector=-0.067942,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3438,2,3211,biome=minecraft:nether_wastes,sda=48,sdb=3,surface_depth=2,fluid_height=-2147483648,selector=0.007174,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3438,1,3211,biome=minecraft:nether_wastes,sda=49,sdb=2,surface_depth=2,fluid_height=-2147483648,selector=0.007174,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3426,13,3227,biome=minecraft:nether_wastes,sda=34,sdb=14,surface_depth=1,fluid_height=-2147483648,selector=0.146749,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3427,14,3227,biome=minecraft:nether_wastes,sda=34,sdb=15,surface_depth=1,fluid_height=-2147483648,selector=0.168246,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3427,13,3227,biome=minecraft:nether_wastes,sda=35,sdb=14,surface_depth=1,fluid_height=-2147483648,selector=0.168246,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3446,1,3212,biome=minecraft:nether_wastes,sda=51,sdb=2,surface_depth=2,fluid_height=-2147483648,selector=0.322341,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3450,2,3212,biome=minecraft:nether_wastes,sda=52,sdb=3,surface_depth=2,fluid_height=-2147483648,selector=0.217411,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3452,1,3212,biome=minecraft:nether_wastes,sda=53,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=0.148707,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3453,2,3212,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.108784,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3455,2,3212,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=0.016218,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3447,15,3228,biome=minecraft:nether_wastes,sda=37,sdb=16,surface_depth=2,fluid_height=-2147483648,selector=0.454078,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3450,9,3228,biome=minecraft:nether_wastes,sda=44,sdb=10,surface_depth=2,fluid_height=-2147483648,selector=0.434720,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3450,8,3228,biome=minecraft:nether_wastes,sda=45,sdb=9,surface_depth=2,fluid_height=-2147483648,selector=0.434720,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3459,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.227605,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3461,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.311167,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3465,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.534178,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3466,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.598795,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3466,1,3213,biome=minecraft:nether_wastes,sda=54,sdb=2,surface_depth=4,fluid_height=-2147483648,selector=-0.598795,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3467,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.666836,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3468,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.736159,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3468,1,3213,biome=minecraft:nether_wastes,sda=54,sdb=2,surface_depth=4,fluid_height=-2147483648,selector=-0.736159,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3469,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.800965,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3470,2,3213,biome=minecraft:nether_wastes,sda=53,sdb=3,surface_depth=4,fluid_height=-2147483648,selector=-0.853993,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3470,1,3213,biome=minecraft:nether_wastes,sda=54,sdb=2,surface_depth=4,fluid_height=-2147483648,selector=-0.853993,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3457,4,3229,biome=minecraft:nether_wastes,sda=51,sdb=5,surface_depth=2,fluid_height=-2147483648,selector=0.306470,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3457,3,3229,biome=minecraft:nether_wastes,sda=52,sdb=4,surface_depth=2,fluid_height=-2147483648,selector=0.306470,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3458,3,3229,biome=minecraft:nether_wastes,sda=52,sdb=4,surface_depth=2,fluid_height=-2147483648,selector=0.266506,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3459,4,3229,biome=minecraft:nether_wastes,sda=51,sdb=5,surface_depth=2,fluid_height=-2147483648,selector=0.230015,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3459,3,3229,biome=minecraft:nether_wastes,sda=52,sdb=4,surface_depth=2,fluid_height=-2147483648,selector=0.230015,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3462,15,3229,biome=minecraft:nether_wastes,sda=41,sdb=16,surface_depth=2,fluid_height=-2147483648,selector=0.118687,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3463,15,3229,biome=minecraft:nether_wastes,sda=41,sdb=16,surface_depth=2,fluid_height=-2147483648,selector=0.072566,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3466,9,3229,biome=minecraft:nether_wastes,sda=50,sdb=10,surface_depth=2,fluid_height=-2147483648,selector=-0.100147,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3466,8,3229,biome=minecraft:nether_wastes,sda=51,sdb=9,surface_depth=2,fluid_height=-2147483648,selector=-0.100147,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3467,9,3229,biome=minecraft:nether_wastes,sda=54,sdb=10,surface_depth=2,fluid_height=-2147483648,selector=-0.168000,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3467,8,3229,biome=minecraft:nether_wastes,sda=55,sdb=9,surface_depth=2,fluid_height=-2147483648,selector=-0.168000,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3477,2,3214,biome=minecraft:nether_wastes,sda=54,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.620867,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3477,1,3214,biome=minecraft:nether_wastes,sda=55,sdb=2,surface_depth=3,fluid_height=-2147483648,selector=-0.620867,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3482,2,3214,biome=minecraft:nether_wastes,sda=66,sdb=3,surface_depth=3,fluid_height=-2147483648,selector=-0.140957,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3483,1,3214,biome=minecraft:nether_wastes,sda=63,sdb=2,surface_depth=3,fluid_height=29,selector=-0.069304,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3485,1,3214,biome=minecraft:nether_wastes,sda=23,sdb=2,surface_depth=3,fluid_height=32,selector=0.064002,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3487,1,3214,biome=minecraft:nether_wastes,sda=64,sdb=2,surface_depth=2,fluid_height=31,selector=0.181809,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3474,4,3230,biome=minecraft:nether_wastes,sda=73,sdb=5,surface_depth=2,fluid_height=-2147483648,selector=-0.510921,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3478,14,3230,biome=minecraft:nether_wastes,sda=62,sdb=15,surface_depth=2,fluid_height=-2147483648,selector=-0.488669,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3480,11,3230,biome=minecraft:nether_wastes,sda=65,sdb=12,surface_depth=2,fluid_height=-2147483648,selector=-0.368628,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3480,10,3230,biome=minecraft:nether_wastes,sda=66,sdb=11,surface_depth=2,fluid_height=-2147483648,selector=-0.368628,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3481,12,3230,biome=minecraft:nether_wastes,sda=64,sdb=13,surface_depth=1,fluid_height=-2147483648,selector=-0.283204,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3481,11,3230,biome=minecraft:nether_wastes,sda=65,sdb=12,surface_depth=1,fluid_height=-2147483648,selector=-0.283204,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3482,12,3230,biome=minecraft:nether_wastes,sda=63,sdb=13,surface_depth=2,fluid_height=25,selector=-0.182680,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3482,11,3230,biome=minecraft:nether_wastes,sda=64,sdb=12,surface_depth=2,fluid_height=25,selector=-0.182680,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3482,9,3230,biome=minecraft:nether_wastes,sda=66,sdb=10,surface_depth=2,fluid_height=25,selector=-0.182680,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3482,8,3230,biome=minecraft:nether_wastes,sda=67,sdb=9,surface_depth=2,fluid_height=25,selector=-0.182680,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3483,12,3230,biome=minecraft:nether_wastes,sda=62,sdb=13,surface_depth=2,fluid_height=26,selector=-0.068285,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3483,9,3230,biome=minecraft:nether_wastes,sda=65,sdb=10,surface_depth=2,fluid_height=26,selector=-0.068285,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3483,8,3230,biome=minecraft:nether_wastes,sda=66,sdb=9,surface_depth=2,fluid_height=26,selector=-0.068285,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3489,1,3215,biome=minecraft:nether_wastes,sda=65,sdb=2,surface_depth=2,fluid_height=31,selector=0.272628,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3492,2,3215,biome=minecraft:nether_wastes,sda=64,sdb=3,surface_depth=2,fluid_height=31,selector=0.367394,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3492,1,3215,biome=minecraft:nether_wastes,sda=65,sdb=2,surface_depth=2,fluid_height=31,selector=0.367394,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3493,2,3215,biome=minecraft:nether_wastes,sda=63,sdb=3,surface_depth=2,fluid_height=32,selector=0.361301,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3493,1,3215,biome=minecraft:nether_wastes,sda=64,sdb=2,surface_depth=2,fluid_height=32,selector=0.361301,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3494,2,3215,biome=minecraft:nether_wastes,sda=22,sdb=3,surface_depth=2,fluid_height=32,selector=0.331744,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3495,2,3215,biome=minecraft:nether_wastes,sda=22,sdb=3,surface_depth=2,fluid_height=32,selector=0.283964,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3496,2,3215,biome=minecraft:nether_wastes,sda=22,sdb=3,surface_depth=2,fluid_height=32,selector=0.226011,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3496,1,3215,biome=minecraft:nether_wastes,sda=23,sdb=2,surface_depth=2,fluid_height=32,selector=0.226011,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3501,2,3215,biome=minecraft:nether_wastes,sda=66,sdb=3,surface_depth=2,fluid_height=29,selector=-0.028925,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3502,2,3215,biome=minecraft:nether_wastes,sda=67,sdb=3,surface_depth=2,fluid_height=28,selector=-0.065391,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3503,2,3215,biome=minecraft:nether_wastes,sda=67,sdb=3,surface_depth=2,fluid_height=27,selector=-0.094277,ceiling_ok=true,floor_ok=false,is_default=true,applied=id=31
+[SOUL-CTX] 3494,14,3231,biome=minecraft:nether_wastes,sda=10,sdb=15,surface_depth=1,fluid_height=32,selector=0.611495,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3496,11,3231,biome=minecraft:nether_wastes,sda=13,sdb=12,surface_depth=1,fluid_height=32,selector=0.618677,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3496,10,3231,biome=minecraft:nether_wastes,sda=14,sdb=11,surface_depth=1,fluid_height=32,selector=0.618677,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3497,12,3231,biome=minecraft:nether_wastes,sda=12,sdb=13,surface_depth=1,fluid_height=32,selector=0.611496,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3497,11,3231,biome=minecraft:nether_wastes,sda=13,sdb=12,surface_depth=1,fluid_height=32,selector=0.611496,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3498,12,3231,biome=minecraft:nether_wastes,sda=12,sdb=13,surface_depth=1,fluid_height=32,selector=0.594679,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3498,11,3231,biome=minecraft:nether_wastes,sda=13,sdb=12,surface_depth=1,fluid_height=32,selector=0.594679,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3499,13,3231,biome=minecraft:nether_wastes,sda=11,sdb=14,surface_depth=1,fluid_height=32,selector=0.561916,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3499,12,3231,biome=minecraft:nether_wastes,sda=12,sdb=13,surface_depth=1,fluid_height=32,selector=0.561916,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3499,9,3231,biome=minecraft:nether_wastes,sda=15,sdb=10,surface_depth=1,fluid_height=32,selector=0.561916,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX] 3499,8,3231,biome=minecraft:nether_wastes,sda=16,sdb=9,surface_depth=1,fluid_height=32,selector=0.561916,ceiling_ok=false,floor_ok=false,is_default=true,applied=id=256
+[SOUL-CTX-DRIVER] done chunks=29

@@ -1,7 +1,16 @@
 # .artifacts index (fragment)
 topic: b2-soul
-updated: 2026-09-08
+updated: 2026-09-09
 entries:
+  - id: v4-eval-conflict
+    path: .artifacts/.b2-soul/v4-eval-conflict.md
+    status: draft（judge PASS 2026-09-09，review-001.md，建议 candidate；confirmed 待用户）
+    confidence: candidate（根因三重锁定：树 dump + 定点 apply 复现 + 生产 dump 逐位一致）
+    module: minecraft-worldgen / nether-surface-rule / bool-parse-bug
+    summary: V4 裁决——解析器 parse_surface_cond 用 as_f64() 读 JSON 布尔字段 add_surface_depth/add_stone_depth，Bool→None→恒 false（y_above/stone_depth/water 三处）；soul ceiling 条件退化 sdb≤1 分支未进穿透兜底 netherrack。V3「soul_soil 兜底」推读正确，错在解析产物树；V3 假阴性根因 = 静态对拍对拍 JSON 原文而非解析产物（教训 §4）。修复 = parse_bool_field 布尔感知读取；回归 nether 94.42%→96.62%/96.59%，soul 族 per-id 闭合至 ref 邻域。
+    verification: Partial（运行时探针 + 存档回归 + per-id；诊断 bin 均编译实跑）
+    supersedes: v3-structure-diff 的「签名 B/C 结构差不可解释 → 需 V4 输入差对照」处置方向（其「结构完整」结论仍成立；矛盾最终定位为求值层解析 bug 而非输入差——V3 §2 候选①输入差被 V4 采集否定、候选②实为解析产物 ≠ JSON 语义）
+    next: 用户 confirmed 拍板；残差 basalt/blackstone B1 家族；V5 biome 边界带重导（修复后残差 ~3.4%）
   - id: v3-structure-diff
     path: .artifacts/.b2-soul/v3-structure-diff.md
     status: draft

@@ -445,10 +445,10 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 | 项 | 数字 | 判读 |
 |---|---|---|
 | 修复前（消融轮） | 93.8988% | 存档 = Rust+Java features 双跑基线 |
-| 修复后（3 轮全新 run） | **全部 94.4241%**（990108/1048576） | 与消融轮 SKIP_FEATURES 值逐位一致 = 双跑通道闭合 |
+| 修复后（同 region 3 次复跑，seed B 4×4@3200,3208，存档口径） | **全部 94.4241%**（990108/1048576） | 同 region 复跑零散布 = 确定性/可复现（非多 region 覆盖面）；与消融轮 SKIP_FEATURES 值逐位一致 = 双跑通道闭合 |
 | ore per-id 直接佐证 | quartz 4478→2125 / gold 1525→739 / magma 3814→1979 | **= SKIP_FEATURES 消融值**（ref 邻域 1992/728/1533），三族矿石全部落回 ref 邻域 |
 
-- 判据：修复后值 94.4241% 与此前手工 `WG_SKIP_FEATURES=1` 消融值**逐位相同**，且 3 轮全新 run 无散布——比「区间不重叠」判据更强（重复了消融实验的因果链）。
+- 判据（C1 措辞修正）：**同 region 3 次复跑确定性**（seed B，nether 4×4@3200,3208 同一 region，3 次全新 run 全部 94.4241% 零散布——验证的是确定性/可复现性，非多 region 覆盖面）+ **ore per-id 消融值佐证**（quartz 4478→2125 / gold 1525→739 / magma 3814→1979 = SKIP_FEATURES 消融值，ref 邻域 1992/728/1533）——修复后值与手工 `WG_SKIP_FEATURES=1` 消融值逐位相同（重复了消融实验的因果链）。
 - 日志：`.investigations/nether-save-full/cmd-output/flags-regression-run4/5/6.log`。
 
 ### 设计与审查记录
@@ -491,4 +491,49 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 - **draft（Degraded）**：排除结论（结构差不存在）数据直读可信；归因指向两候选均未验证。下一步 V4（ctx dump 对差）/ V5（biome 边界带）。
 - 产物：`.artifacts/.b2-soul/v3-structure-diff.md`。过程 → 10 时间线 2026-09-08 条。
+
+
+## 布尔字段解析 bug 修复签名 B/C（candidate，2026-09-09；judge PASS）
+
+> 承接上节 V3 结构对拍的「归因指向」——V4 生产 ctx dump 先否定「输入差」候选（180 点生产 dump 与 probe 逐项全同），随后解析产物树 dump 锁定**求值层矛盾 = 解析器布尔字段 bug**。本节 supersedes V3 节的处置方向（原「到运行时输入找」的方向由本节取代，V3 原节不删）；V3 的「结构差不存在」排除结论维持成立，仅其「参数全对拍」子项为漏检（对拍的是 JSON 原文而非解析产物）。验证分层 **Partial**（bin-diag 解析树 dump + 定点 apply + 存档口径端到端，非逐位 Full）。
+
+### 根因（supersedes：V3 节处置方向）
+
+- `parse_surface_cond` 用 `as_f64()` 读 JSON 布尔字段 `add_surface_depth` / `add_stone_depth`——`JsonValue::Bool` 走 `as_f64()` 返回 `None` → **恒解析为 false**（surface_rules.rs 三处：y_above / stone_depth / water）。
+- soul 分支 ceiling 条件 `sdb ≤ 1+0+surface_depth` 退化为 `sdb ≤ 1+0+0` → 分支该进未进 → 穿透 [7] 兜底 netherrack。V3 的「soul_soil 无条件兜底存在」推读本身正确，错在**解析产物树**；V3 静态对拍「参数全对拍」对拍的是 JSON 原文而非解析产物，被假阴性掩盖。
+- 三处定位：L1079（y_above `add_stone_depth`）/ L1093（stone_depth `add_surface_depth`）/ L1116（water `add_stone_depth`）——`as_f64()` 对布尔返回 None；对照 `legacy_random_source` 的 `as_bool()` 读取为正确 API。
+
+### 修复（surface_rules.rs）
+
+- 新增 `SurfaceBuilder::parse_bool_field`：`as_bool().or_else(|| as_f64().map(|f| f != 0.0)).unwrap_or(false)`（bool 优先 / 数字 0/1 兼容 / 缺省 false，与 Java `GsonHelper.getAsBoolean(json, key, false)` 语义一致）。
+- 三处调用替换：y_above `add_stone_depth` / stone_depth `add_surface_depth` / water `add_stone_depth`；grep 复核剩余 `as_f64` 命中均为纯数字字段，无残留布尔误读。
+- overworld 不受影响（走代码规则树 build_overworld_rule，不经 parse_surface_cond）。
+
+### 验证链（四级回归，seed B = 8576294172403134396）
+
+1. **树复现**（soul_tree_repro，nether.json × surface_rules.rs 解析产物树 dump）：修复前解析树 8 处 `asd=false` 假阴性（其中 3 处 JSON 原文为 true；通用 floor 段等 8 处 JSON 原值即 false，恰成假阴性掩护）；修复后 5 处翻 true（soul ceiling/floor StoneDepth、gravel patch y_above 30/35、basalt floor stone_depth），其余 8 处保持 false = JSON 原值，无一误翻。产物：`.investigations/soul-v4v5/cmd-output/soul-tree-repro-postfix.txt`。
+2. **生产 ctx dump**（soul_ctx_dump，180 点生产链，nether 4×4 @3200,3208）：netherrack 103→71，新增 soul_soil=18 / soul_sand=14（103=71+18+14 自洽）；定点 3260,1,3200（sdb=2, sd=3, selector<0）applied 256→**258(soul_soil)**，与 V3 语义推演逐位一致。产物：`cmd-output/soul-ctx-dump-postfix.stderr.txt`。
+3. **nether 存档全量回归**（run4 模板照抄，FULL 参照，ReadWorldProbe 存档口径，4×4 @3200,3208）：94.4241%（990108/1048576）→ **run1 96.6215%（1013150/1048576）/ run2 96.5866%（1012784/1048576）**，+2.20pp。run1/run2 差 366 块，在已知同 dll 重跑非确定容差带内（workflow-patterns 发现 #10，实测散布 ~2330 块）——归因成立。
+4. **soul 族 per-id 佐证**（save MCA vs FULL ref，同 seed/region/口径）：soul_soil 修复前 1334 → **5771**（ref 5474，偏高 +297，闭合至 ref 邻域，「完全闭合」不成立）；soul_sand 1471→2494（ref 2457）；quartz 2095（ref 1992）/ gold 711（728）/ magma 1543（1533）/ gravel 674（674，精确相等）。
+
+### 附带闭合（同 bug 源次生影响面）
+
+- **签名 C**：nether_wastes「soul_sand_layer 分支 entered 0/60」同 bug 源（floor 段 `add_surface_depth` 误读），随本修复闭合（soul_sand 2494 vs ref 2457 佐证）。
+- nether **gravel patch 高度带**（y_above asd，锚 30/35）整体修正（gravel per-id 674=ref 覆盖）。
+- **3275,2,3201 从签名 B 证据集剔除**：该点 y=2 ∈ bedrock_floor 随机带（above_bottom 0..5），生产侧 bedrock 先中即返（applied=31），本不用于 soul 表面判定；vanilla 同点亦先判 bedrock_floor。
+
+### 残差（idk / 遗留）
+
+- basalt −1736 / blackstone −434：**B1 surface 残差家族**（已知遗留，非本次范围）；修复前后对照（同 seed/region/口径）：basalt save-ref −3631（2026-09-08）→ −1736——asd 翻转无新负迁移，B1 家族反而收敛。
+- 366 块非确定带宽（run1/run2）；**V5 biome 边界带（vs vanilla 足迹）未做**——修复后残差图需重导（readWorldProbe mismatch 全集），残差降至 ~3.4%。
+
+### 口径声明（§9.7 三要素）
+
+- 载体：MCA 存档直解（ReadWorldProbe）vs vanilla FULL 参照 × 解析产物树 dump（bin-diag）× 生产 ctx dump（stderr）；覆盖面：nether 4×4 @3200,3208 全高度 + 180 点签名集；与既有口径可比（94.4241% 历史值同参照/同 region/同口径），与 SURFACE 77.49% / 纯 Rust 77.43% 口径不可比，分列。
+- 本节数字全部带 seed+region+口径三要素（seed B = 8576294172403134396；region 4×4 @3200,3208；存档/树 dump/dump 口径分列）。
+
+### 状态
+
+- **candidate（judge PASS，review-001）**；supersedes 双指针：v3-structure-diff.md 参数对拍子项被 `.artifacts/.b2-soul/v4-eval-conflict.md` 细化取代。confirmed 待用户拍板。过程 → 10 时间线 2026-09-09 条。
+
 
