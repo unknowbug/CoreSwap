@@ -557,6 +557,37 @@
 
 ---
 
+## M17. nether bedrock roof 随机带 4011 块残差：`below_top` 锚换算 off-by-one（`min_y+height-v` → `min_y+height-1-v`）
+
+### 现象
+- M13 修复 `vertical_gradient` 解析缺失后，nether 块级对齐达 96.0568%，但残留**结构性微差**：bedrock roof 随机带（y=123..126）4011 块残差（M13 后混淆对遗留：roof 主层已对、随机层微差）。
+- 诊断 bin（`WorldgenRust/src/bin/nether_bedrock_band.rs`，4×4@0,0 seed -8248）per-y vanilla/rust bedrock 计数对比：vanilla 概率序列 [123]=0.2、[124]=0.4、[125]=0.6、[126]=0.8、[127]=1.0（满层）；Rust **同一模式整体 +1 层**（[123]=0、…、[127]=0.8）。
+
+### 根因（机制）
+- `parse_anchor_abs_y` 的 `below_top` 锚换算 off-by-one：
+  - 旧：`min_y + height - v`（nether：128-v → v=5 时 true_y=123/false_y=128）
+  - 新：`min_y + height - 1 - v`（Java 顶块 y = min_y+height-1 = 127 起 → true_y=122/false_y=127）
+- Java 的 `VerticalGradient` 锚 `above_bottom(0)` / `below_top(0)` 语义：顶块坐标是 **min_y+height-1**（闭区间端点），Rust 侧换算漏了 `-1` → 整条 vertical_gradient 判定的 y 基准整体平移一层，随机带概率层全部错位。
+- **overworld 为什么没暴露**：overworld deepslate 梯度用**绝对锚**（absolute y），不走 `below_top` 换算路径——全绝对锚的维度掩盖了这个换算 bug，直到第一个依赖 `below_top` 的维度（nether roof）才暴露。
+
+### 定位（诊断方法）
+1. **随机带概率序列逐层对比**（诊断 bin `nether_bedrock_band.rs`）：per-y 统计两侧 bedrock 出现概率——vanilla 0.2/0.4/0.6/0.8/1.0 vs Rust +1 层平移，**确定性平移签名**直接指向锚 y 基准错位（若是随机流/种子错，概率序列形状不会保持一致平移）。
+2. 修复后复跑同 bin：每层 **van_only=rust_only=0 逐位吻合** → splitter 种子派生正确，纯锚换算 bug，一维一因闭环。
+
+### 修复
+- `WorldgenRust/src/surface_rules.rs` L944：`parse_anchor_abs_y` 的 `below_top` 分支 `min_y + height - v` → `min_y + height - 1 - v`。
+- 效果（同工具同区域同 seed，前后可比）：
+  - 随机带逐位吻合（van_only=rust_only=0）；
+  - 全量回归 `multiworld_nether_blocks` TOTAL **96.0568% → 96.4428%**；y96..127 **94.0% → 97.12%**。
+- 状态：cargo release 编译通过；**2026-09-02 用户实机验收通过（confirmed）**。
+
+### 教训（可复用判错经验）
+- **「随机带概率序列逐层对比」是定位锚错位的利器**：per-y 概率序列是 vertical_gradient 的指纹——序列形状一致但整体平移 = 确定性平移签名，一眼锁定锚 y 基准；与随机流错误（形状破坏）可明确区分。
+- **数据驱动 JSON 规则的锚换算必须用「非绝对锚的维度」实测验证**：overworld 全绝对锚使 `below_top` 路径从未被执行过——单维度验证通过的换算代码 ≠ 换算正确，只是未被覆盖；新维度接入时对每个锚类型（above_bottom/below_top/absolute）至少一条实测用例（与 M3「参数化须贯穿全链路」同族：覆盖缺口 = 隐性 bug 存量）。
+- **闭区间端点 off-by-one 家族又一条**：`min_y+height` 是开区间端，顶块是 `min_y+height-1`——凡「从顶/底数第 N 层」换算，先把端点语义（inclusive/exclusive）与 Java 源码核对再写公式。
+
+---
+
 ## 附：错误 → 根因 速查表（一页索引）
 | 现象/信号 | 根因 | 判错要点 |
 |---|---|---|
@@ -580,5 +611,6 @@
 | 实机下界「怪异城」：soul_sand_valley 判定正确但地形缺失，存档 chunk 出现 oak_leaves×3150+多 sapling（M14【开放问题】） | mixin 接管 populateNoise 后，vanilla feature 装饰阶段（applyBiomeDecoration）对该 chunk 的 **biome/feature 上下文被污染**（拿到主世界森林 feature 集）；三方对照（vanilla 导出 vs Rust fill 高度一致 vs 存档两者皆不同）锁死错乱块来自 vanilla 后续阶段；机制待查（chunk biome 属性未刷新 / NoiseConfig climate 状态 / feature 阶段 biome source） | **接管一个阶段后，后续阶段的上下文依赖会暴露**——mod 接管世界生成必须审计全管线阶段依赖（discovered 发现 #8）；**三方对照归因**：实况与两个静态产物都不同 = 中间被第三方阶段改写；视觉+物理直觉（真空+坠落）优先于长推理链 |
 | 挂全局分配计数器后多线程 fill 灾难性变慢「卡死」（M15） | 全局 AtomicI64 每次 alloc/dealloc RMW，23 线程分配密集场景成为**序列化点**——并行度被分配计数归一；已移除恢复 | **全局分配计数器 = 分配序列化，多线程高频分配禁用**（或 thread_local 计数+定期汇总）；「诊断工具改变被诊断系统」的极端形态：污染的不是测量值而是执行并行度——热路径诊断必须 chunk 级一次判断或编译期 gate |
 | 实机下界「怪异城」：nether 存档 oak_leaves×3150+多 sapling+note_block，数量跨环境精确复现（M16【结案】） | JNI 写入路径 **block id 域错位**：Rust buf = raw block id 域，writeChunk 用 STATE_IDS（state id 域）错位解码（6a7337d 引入）；feature 污染与 Status 卡 biomes 均被数据证伪 | **id 域三查**（四点同域核对：blocks.json/参照导出/Rust buf/Java 解码）；「不相干方块成片 + 数量精确复现」= 写入层确定性错误签名；**探针对齐 ≠ 存档正确** |
+| nether bedrock roof 随机带 4011 块残差：per-y 概率序列 vanilla 0.2/0.4/0.6/0.8/1.0 vs Rust 整体 +1 层平移（M17） | `parse_anchor_abs_y` 的 `below_top` 锚换算 off-by-one：`min_y+height-v` 应为 `min_y+height-1-v`（Java 顶块 = min_y+height-1，闭区间端点）；overworld 全绝对锚使该换算路径从未被覆盖，nether 首个 `below_top` 使用方暴露 bug；修后逐位吻合（van_only=rust_only=0），TOTAL 96.0568%→96.4428%、y96..127 94.0→97.12% | **随机带概率序列逐层对比 = 锚错位的确定性平移签名**（形状一致整体平移 → 锚 y 基准错；形状破坏 → 随机流错）；**锚换算要用非绝对锚的维度实测验证**（单维度全绝对锚通过 ≠ 换算正确）；闭区间端点家族：从顶/底数第 N 层换算先核对 inclusive/exclusive 语义 |
 | 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31） |
 

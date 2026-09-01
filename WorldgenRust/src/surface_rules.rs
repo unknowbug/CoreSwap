@@ -941,7 +941,7 @@ impl<'a> SurfaceBuilder<'a> {
     fn parse_anchor_abs_y(a: &crate::json::JsonValue, min_y: i32, height: i32) -> i32 {
         if let Some(v) = a.get("absolute") { return v.as_f64().unwrap_or(0.0) as i32; }
         if let Some(v) = a.get("above_bottom") { return min_y + v.as_f64().unwrap_or(0.0) as i32; }
-        if let Some(v) = a.get("below_top") { return min_y + height - v.as_f64().unwrap_or(0.0) as i32; }
+        if let Some(v) = a.get("below_top") { return min_y + height - 1 - v.as_f64().unwrap_or(0.0) as i32; }
         0
     }
     pub fn parse_surface_rule(&self, j: &crate::json::JsonValue, min_y: i32, height: i32) -> Option<SurfaceRule> {

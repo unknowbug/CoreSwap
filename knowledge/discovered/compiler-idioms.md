@@ -108,3 +108,23 @@ Java `Math.floorDiv / Math.floorMod` 与 C++ `/ %`（截断除法）在负坐标
   - 每跳「域声明」：JNI/FFI 传 id 每一跳显式声明域；参照导出域与写入解码域同源核对（seed/坐标三查的 id 域版本）。
   - **判据**：① 块名直方图签名（橡树叶+多 sapling+note_block = 错位解码签名，非 feature 签名——feature 不会以 note_block 成片混入）；② 同代码重生成数量精确复现 = 写入层确定性错误，排除下游随机性；③ 排查顺序：写入路径 id 域 → 下游阶段上下文 → 判定算法。
   - 交叉引用：接管类 mod 下游阶段审计清单见 workflow-patterns 发现 #8（M16 本例根因不是它，#8 仍是有效检查清单）。
+
+## 发现 #7: 锚坐标换算 off-by-one（below_top 类顶块相对锚 = min_y+height-1-v）——数据驱动规则锚公式的维度覆盖判据
+
+**发现时间:** 2026-09-02
+**发现者:** worker（multiworld-port M17）
+**来源定位:** `.investigations/multiworld-port/multiworld-errors.md` M17 + `.investigations/multiworld-port/m17-bedrock-band-summary.md`（修复位置 `WorldgenRust/src/surface_rules.rs` L944）
+**置信度:** candidate（修复后逐位吻合：van_only=rust_only=0；TOTAL 96.0568%→96.4428%，同工具同区域同 seed 前后可比；confirmed 待用户拍板）
+**module:** re-code / swe（数据驱动规则解析 / 坐标域换算）
+
+### 观察
+MC worldgen 的相对锚（`above_bottom(N)` / `below_top(N)`）换算：**顶块 y = min_y+height-1（闭区间端点），不是 min_y+height**——`below_top(v)` 正确公式为 `min_y + height - 1 - v`。写漏 `-1` 会使整条 vertical_gradient 判定的 y 基准整体平移一层，随机带概率层全部错位。此类 bug 会被「全绝对锚的维度」长期掩盖（overworld deepslate 用 absolute 锚，`below_top` 路径从未被执行），直到第一个依赖相对锚的维度（nether bedrock roof）才暴露。
+
+### 证据
+- vanilla nether bedrock roof 概率序列（4×4@0,0 seed -8248，诊断 bin `nether_bedrock_band.rs` per-y 计数）：[123]=0.2、[124]=0.4、[125]=0.6、[126]=0.8、[127]=1.0；Rust 修复前同形状**整体 +1 层**（[123]=0…[127]=0.8）——确定性平移签名。
+- 修复（`min_y+height-v` → `min_y+height-1-v`）后逐位吻合（每层 van_only=rust_only=0）→ splitter 种子派生正确，纯锚换算 bug；全量回归 TOTAL 96.0568%→96.4428%、y96..127 94.0→97.12%。
+
+### 如何利用
+- **公式**：`above_bottom(v) = min_y + v`；`below_top(v) = min_y + height - 1 - v`——凡「从顶/底数第 N 层」的换算，先把端点语义（inclusive/exclusive）与 Java 源码核对再写（与 M3「锚 height 用逻辑生成高度不混用 world_height」同族：锚换算两个独立坑 = 高度基准 + 端点 off-by-one）。
+- **签名**：per-y 概率/计数序列形状一致但整体平移 = 锚 y 基准错位；形状破坏才是随机流/种子错——诊断 bin 按层统计即可单轮定位。
+- **覆盖判据**：数据驱动 JSON 规则的每个锚类型（absolute/above_bottom/below_top）至少要有一条**非绝对锚维度**的实测用例——单维度（全绝对锚）验证通过 ≠ 换算正确，只是未被覆盖。
