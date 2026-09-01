@@ -1,6 +1,6 @@
 # verdict — C2/P3 soul sand valley 家族分族重测解读（B2）
 
-- **status: draft**（AI 不得标 confirmed；待 judge 审查 + 用户拍板）
+- **status: confirmed（2026-09-07 用户拍板；主结论=缺口在 Rust 管线内+三签名方向；.b1b 内部机制 idk 保持）**（AI 不得标 confirmed；待 judge 审查 + 用户拍板）
 - **验证分层：Degraded（静态数据解读）**——本结论仅基于主会话提供的 per-id / 块对原始数据推演，未运行任何探针/命令（沙箱无 shell）。升级到 candidate 需下文「数据层验证动作清单」至少 V1+V2 落地。
 - **可比性声明（§9.7）**：口径 = FULL vanilla 参照 vs Rust 存档 MCA 直解（存档写入口径），seed B=8576294172403134396，4×4 @3200,3208，总 mismatch 63,976。与 SURFACE 参照 77.4857%（探针口径）**不可直接比**。
 - 产出者：core.worker subagent；日期：本轮。
@@ -151,4 +151,5 @@ Java features 侧为净回补（soul_sand +587），不是缺口来源。
 - 「缺口主导在 Rust SURFACE 阶段结构差（.b1a），非 feature」：**candidate**（V1 阶段分离 + V2 三组同点探针双数据层证据；单 region 单 seed，扩样可加固）。
 - 「soul_soil 子分支落 netherrack」「soul_sand_layer 分支缺失」：**draft 签名**（Rust 单侧 apply 模式推断，待 V3-rule 对拍定案）。
 - 「Rust selector 噪声值 vs vanilla」：**idk**（V4 未做）。
+
 
