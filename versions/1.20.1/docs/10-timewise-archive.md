@@ -2478,4 +2478,57 @@ eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——�
 - 📝 **T4 工程加固**：worldgen_handle.rs parse_surface_rule 静默回退 → fail-fast（panic）；surface_rules.rs AboveY/Water mult 硬编码 0 跨版本风险标注；重编 dll 回归 96.6215% 不变（cargo check + 内容字符串验证）。
 - 🔍 **下一步**：B1 下钻（nether_state_selector 采样 / delta 分支进出 / blackstone·basalt 分配）；签名 A 独立修（biome 边界/offset 精度）。
 
+## 260902-05（实际 2026-09-02 15:5x–17:00；B1 下钻 Phase 1：口径修复 + surface 层收敛 + 残差主体改判）
+
+- ✅ **overworld NoiseConfig 错位破案（错误链，高价值）**：RouterProbe 原 NOISEPT 对拍取 `server.getOverworld()` 的 NoiseConfig——overworld=XOROSHIRO 派生、nether=LEGACY，首轮「selector 场差 42%/patch 差 64%」全为该错位假象（发现 #13 同族）。修复：`-DnoisePoints.dim=nether`。
+- ✅ **场一致**：selector/patch 噪声场 Java(nether)↔Rust 146 列零符号翻转，|diff| 中位 1e-5；派生链四中间种子 + origins 逐位相同 → selector 采样差候选正式排除（.b2 遗留 idk 闭合一半）。
+- ✅ **BlockProbe FULL 预生成口径污染修复（错误链，高价值）**：原代码无条件预生成 FULL 邻域 → SURFACE 口径返回已提升 chunk，260901-04「SURFACE 残差 22.5%」参照实为 FULL 混合 → docs/09 supersedes 注记。修复：pregen 仅 FULL 口径执行。
+- ✅ **大宗归属**：FULL vs 真 SURFACE diff 214,497 块（79.5% identical）；SURFACE basalt 15,065 vs FULL 172,704 → 大宗 basalt/blackstone 确为 features（blobs）产物。
+- ✅ **surface 层收敛**：Rust surface-only vs 真 SURFACE 参照（02B94092）= **99.9423%**（mismatch ~600 块 soul 族散点）→ 260902-04 T2「同 biome 表面规则差」表述改判，surface 规则层基本正确。
+- ✅ **残差定位**：存档 mismatch 35,426 块中 98.5%（34,865）落在两侧基底完全相同的块上 → 残差主体产生于特征阶段 blobs（H1 主导候选确立；H2 = 差基底放大待模拟验证）。
+- 📝 纪律：inline `python -c` 双次被坑（GBK/BOM、解析歧义）→ 脚本文件化；探针/参照口径三查再次救场两次（NoiseConfig 维度、pregen 提升）。lib 零改动。
+- 🔍 下一步：P1 blob origin 对拍 + P2 放大模拟（→ 260902-06）。
+
+## 260902-06（实际 2026-09-02 17:02 起；B1 下钻 Phase 2：H1 机制链 candidate 定案）
+
+- ✅ **P2 放大模拟排除 H2**：b1_blob_amp_sim.py rev1 verdict bug（20,000 采样 blobs_k=1122 误当 per-region 预算）→ rev2 修正；per-region 触碰 blob 期望 ≈3.7 个 × 上限 853 ≈ 3,150 块，对 34,246 缺口 shortfall ~10.8× → INSUFFICIENT；1,122 差基底中可种子仅 472 → H2 降为排除项。
+- ✅ **P1 三层探针链对拍**（BlobProbeMixin + ConfiguredFeatureProbeMixin + SurfaceColDumpProbe + ColProfProbeMixin，lib 零改动，seed=8576294172403134396 两轮均验三查）：① PlacedFeature 入口两轮 1308 行全同（chunk 级随机分叉排除）；② ConfiguredFeature placedPos vanilla 20,327 / cpp 20,320，only_v=644/only_c=637（~3%）集中 blob/column/delta 族；③ 首分叉行 320 delta 同 x 异 z（judge 订正：初稿误标同 x,z 异 y；实为流内 skip 行对齐边界伪影）；④ 终态列 dump 9216 列 × 4 口径逐列全同（不含流体层）；⑤ **COLPROF 终审：10 列 diff 全部同构——V 含 `99|air→lava`（熔岩海面），C 缺失、代以 `100~104|air→netherrack`**。
+- ✅ **H1 机制链五环 candidate 定案**：熔岩海缺失 → 转换面序列漂移（CountMultilayerPlacementModifier y 零随机语义）→ delta origin y 漂 → delta 流内级联（±1~5）→ blob 链式放大皮肤差（only_v=450/only_c=445 量级自洽）。修复落点 = Rust nether surface 填充规则；环节分级：1-2 环硬证据 / 4-5 环推理待 LAVAAUDIT。→ 09 篇新小节「B1 下钻 H1 定案（260902-06）」。
+- 📝 **错误台账 8 条**（五段式详见 `.investigations/b1-downdrill/b1-errors.md` 新建）：后台 job 相对路径落空 ×2 / gradlew wrapper 不存在 / yarn PlacedFeature 实名 generate 非 place / mixin 非 private 静态成员被拒 / RegistryKey.getValue() 带命名空间 equals 恒 false（CSV 空 4 轮真根因，发现 #13 同族）/ BufferedWriter 未 flush 即 stop 丢数据 / cppWorldgenDir 必须显式 -P / BlobProbe 无 driver 不生成 chunk。
+- 🔍 下一步：judge 审查 → LAVAAUDIT + Rust surface 熔岩海修复 → 回归三判据。
+
+
+
+
+## 260902-07（实际 2026-09-02 18:36–19:1x；B1 下钻：H1 环1 证伪定案——id 标注误读）
+
+- ❌→✅ **H1 环1 被证伪（本 session 主线转向，judge PASS）**：原计划 LAVAAUDIT 定性 → 熔岩海修复 → 回归；实际 LAVAAUDIT 探针新增（runtime ColProfProbeMixin `colprof.mode=lavaAudit` 模式：v1 只记 above=lava → v2 加记 below=lava 面向 lavaSurfY + `[LAUIDMAP]` 一次性 id 映射；build.gradle 补 colProfMode/colProfR -P→-D 映射）→ v1 指标盲区暴露（99.4% 一致率不记 above=air 转换，不构成世界一致证据，已废弃）→ `[LAUIDMAP]` id 映射实锤：**19319=blackstone 非 lava、5854=basalt 非 netherrack**（air=0 lava=96 water=80 netherrack=5850 basalt=5854 blackstone=19319 …）——昨日 COLPROF「`99|0->19319` = air→lava 熔岩海面」标注纯系误读。
+- ✅ **COLPROF 10/25 列 diff 真相**：V 黑石底（y=99 恒平）vs C 玄武岩底（y=100~104 贴地形），两侧均实心材质；快照时间线（b1_colprof_firstsnap.py）证明 diff 在第一枚举快照即分叉（V#0/C#0 同构异材质，T 序列稳定），非 feature 事后改列伪影。
+- ✅ **LAVAAUDIT v2 全扫**（11,443 公共列）：air→lava 面向**两侧均为零**——该区域 feature 阶段起点无任何熔岩面向；熔岩以流动态（96）存在于两轮相同位置（lavaTopY 分布峰值 23~24 一致）；lavaTopY 逐列差 329/11443（2.9%）、n 差 60 列（judge D1 补测，本 session 实测）。昨日「终态列 dump 9216 列逐列全同」不矛盾——该口径只记顶块（roof y=128），y=99~104 材质差不可见。
+- ✅ **judge PASS（环1 证伪 + 转向）**：环 2~5（转换面漂移 → delta origin 漂 → 级联/blob 放大）作为现象保留（cfg 独立证据 delta y=111/119/121 vs 99）；CountMultilayerPlacementModifier y-零随机 findPos 语义只需「第一转换面不同」即可成立。judge 六项 CONCERN：lavaTopY 逐列已补（329 列）；only_v=10/only_c=56 覆盖缺口未解释；结论限 3200,3208 区域；SURFACE 99.9423%（4×4 固体表面顶块口径）vs 内部转换面差——口径三要素须显式声明；LAUIDMAP 只跑 vanilla 轮，cpp 轮待补；「标注三查」应入 NEXT_SESSION 开工检查项。
+- 🔍 **下一轮方向（judge 设计，四候选判别 fan-out）**：(a) surface rule 材质分支差 (b) biome 判定输入差 (c) surface rule 随机序列差 (d) 前置地形形状差（NOISE/density 阶段列高度差——judge 指出若成立则 a/b/c 全降次生）；判别探针 = SURFACE 前/后逐列 dump（材质序列+biome id+顶面 y）；候选非严格互斥，按「判别目标」设计各自可独立排除；**先跑 (d)**。
+- 📝 **错误台账 3 条**（五段式详见 b1-errors.md E-B1-9/10/11）：raw id 标注当公理继承（E-B1-9，重大——「标注三查」与 seed 三查同级）/ 探针指标盲区 lavaAudit 测不了 air→lava 面向（E-B1-10）/ grep 行首锚对带前缀 log 恒零命中假「零输出」（E-B1-11）。
+- 📝 lib/dll 零改动（仅 runtime 探针 + .tmp 数据/脚本）；修复方案（熔岩流体填充）作废未执行。
+- 🔍 下一步：判别探针 SURFACE 前/后逐列 dump → 四候选 fan-out 先跑 (d) → LAUIDMAP 补 cpp 轮。
+
+---
+
+## 260902-08/09（B1 下钻 Phase 3：四候选判别定案 + 假 100% 陷阱实证）
+
+### 🔍→✅ 判别探针（fan-out 四候选）
+(d) NOISE 宏观地形差排除：air 签名 99.68%（seed B，3200/3208，basalt_deltas）。✅
+### ✅ surface 层对拍
+99.66% 列一致（26/524288 单元），实现差上界 0.005%——非主体。✅
+### ✅ 交集闭合
+(a)(c) 排除（band 边缘对结构非系统/随机）；残余 = NOISE 微差 13 列 → band 边缘 ±1 平移 + 1 列黑石/熔岩边缘平移（51247,51375）。✅
+### ✅ 历史残差改判
+13.70% air / 22.5% SURFACE / 黑石·玄武岩底界差 = 测量口径阶段污染；真实 ~3.4% 主体归因 feature/carver 链路（放大系数未量化🔍）。
+### ❌ java noise-only 路线证伪
+stageMask 语义误解：-Dcoreswap.rust.stages 只控 Rust 内部阶段，cppReplace 下 Java CARVERS/FEATURES 照跑——「noise-only 存档」假象（判据：看存档内容而非 stageMask 日志）。
+### 🔍 id 空间发现
+Rust surface skip 输出统一 default block id=1，材质在 surface 层 → NOISE 材质级对拍不可做，air 签名可做。
+### ⚠️ 假阴性两陷阱（假 100%）
+① [128:] 切片空序列 → zip 空 → 0 差异；② mat= split(',')[3][4:] 逗号切散。两处本 session 实证；防范 = sanity 行强制打印序列长度+common 数。
+### 附带
+gradle --nogui 非 CLI 选项（runServer 失败）；build.gradle rustStages 缺 -P→-D 映射行（已补）。工具遗产：bin-diag b1_noiseonly/surfaceonly_dump.rs，.tmp/compare_*.py、overlap_check.py、judge_followup.py。
 

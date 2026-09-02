@@ -1,0 +1,33 @@
+[chunk(200,200)] 97158/98304 = 98.8342%
+[chunk(201,200)] 96172/98304 = 97.8312%
+[chunk(202,200)] 96335/98304 = 97.9970%
+[chunk(203,200)] 95879/98304 = 97.5332%
+[chunk(200,201)] 96460/98304 = 98.1242%
+[chunk(201,201)] 89964/98304 = 91.5161%
+[chunk(202,201)] 94681/98304 = 96.3145%
+[chunk(203,201)] 97284/98304 = 98.9624%
+[chunk(200,202)] 93386/98304 = 94.9972%
+[chunk(201,202)] 90736/98304 = 92.3014%
+[chunk(202,202)] 94678/98304 = 96.3114%
+[chunk(203,202)] 97154/98304 = 98.8302%
+[chunk(200,203)] 89738/98304 = 91.2862%
+[chunk(201,203)] 91604/98304 = 93.1844%
+[chunk(202,203)] 94323/98304 = 95.9503%
+[chunk(203,203)] 97161/98304 = 98.8373%
+=== GRAND TOTAL 1512713/1572864 = 96.1757% (ref seed=-2032795982907864146, origin=(3200,3208), size=4) ===
+top mismatches (vanilla -> save):
+  minecraft:packed_ice -> minecraft:water x16220
+  minecraft:packed_ice -> minecraft:air x15060
+  minecraft:stone -> minecraft:dirt x5019
+  minecraft:gravel -> minecraft:sand x1852
+  minecraft:gravel -> minecraft:dirt x1788
+  minecraft:stone -> minecraft:sand x1543
+  minecraft:air -> minecraft:water x1263
+  minecraft:gravel -> minecraft:deepslate x1086
+  minecraft:stone -> minecraft:gravel x997
+  minecraft:stone -> minecraft:coal_ore x994
+  minecraft:gravel -> minecraft:stone x953
+  minecraft:stone -> minecraft:copper_ore x740
+  minecraft:granite -> minecraft:dirt x725
+  minecraft:diorite -> minecraft:dirt x647
+  minecraft:andesite -> minecraft:dirt x622

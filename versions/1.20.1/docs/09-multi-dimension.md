@@ -330,8 +330,7 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 - 载体：SURFACE 参照 = BlockProbe 默认口径（无 carvers/features）vs 纯 Rust rlib dump；覆盖面：4×4 chunk 全高度，seed B。
 - 可比性：**77.4857%（SURFACE 口径）与 93.8988%（存档口径）载体不同不可比，分列**；与 B1 节纯 Rust 口径 77.43%（FULL 参照）亦不同载体，分列——数值接近纯属本区域 features 占比低的巧合，不构成口径可合并的证据。
 
-
-
+> **[supersedes 260902-05]** 本节「SURFACE 口径残差 = 22.5%」结论作废——参照口径污染：BlockProbe 原实现无条件预生成 FULL 邻域 chunk，SURFACE 口径请求 getChunk 返回的实为已提升的 FULL 混合数据（SURFACE 参照 basalt=173k 实为 features 产物混入），22.5% 残差量化基于被污染参照，不成立。修复后真 SURFACE 参照（hash 02B94092）重导：Rust surface-only vs 真 SURFACE = **99.9423%**，surface 规则层基本正确；残差主体改判特征阶段 blobs。见本文「B1 下钻 H1 定案（260902-06）」节 + 10 时间线 260902-05 条。原节数据与结论不删不改，仅作历史口径记录（§15.4 取代链）。
 
 ## C2 预加载表数据驱动化：nether 噪声 key 从 surface_rule JSON 构建期收集（confirmed，260902-01 用户拍板，commit 709b006）
 
@@ -563,5 +562,79 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 ### 状态
 
 - **candidate（judge 有条件 PASS 260902-04，P1-P5 已落实；confirmed 留用户）**。过程 → 10 时间线 260902-04 条；探针坐标 bug 教训 → workflow-patterns 发现 #13。
+
+> **[supersedes 260902-05]** 本节结论「残差主体 = basalt_deltas 同 biome 表面规则差（surface rule 分支判定差，B1 家族本体）」部分改判：BlockProbe FULL 预生成污染修复 + 布尔修复后重导，**surface 规则层 Java(nether)↔Rust = 99.9423% 一致**——「同 biome 表面规则差」作为残差主体的表述作废；残差主体改判为**特征阶段 blobs 在相同基底上的放置差**（存档 mismatch 35,426 块中 98.5% 落在两侧基底完全相同的块上）。本节的分类器排除证据链（biome 真差 3.7%、6 维逐位一致）维持成立。见「B1 下钻 H1 定案（260902-06）」节。
+
+## B1 下钻 H1 定案：熔岩海缺失 → 转换面漂移 → delta/blob 链式放大（candidate，judge 审查中，260902-06）
+
+> **[supersedes 260902-06]** 本节第 1 环（Rust surface 熔岩海缺失——netherrack 实心兜底）**被数据证伪**：`[LAUIDMAP]` Java STATE_IDS 权威映射实测 `19319 = blackstone`、`5854 = basalt`（air=0 lava=96 water=80 netherrack=5850 basalt=5854 blackstone=19319 soulsand=5851 soulsoil=5852 magma=12402 bedrock=79）——COLPROF 10/25 列 diff 真相 = **V 黑石底（y=99 恒平）vs C 玄武岩底（y=100~104 贴地形）**，两侧均为实心材质，无任何熔岩缺失（LAVAAUDIT v2 全扫 11,443 公共列 air→lava 面向两侧均为零）。基于该环的「熔岩流体填充」修复方案作废未执行。环 2~5（转换面漂移 → delta origin 漂 → 级联/blob 放大）作为**现象**维持成立（cfg 探针独立证据 delta y=111/119/121 vs 99；CountMultilayerPlacementModifier y-零随机 findPos 语义只需「第一转换面不同」即可触发），因果入口需重定位。范围限定与口径声明（§9.7 三要素）：本证伪基于**已扫描区域**（seed=8576294172403134396，3200,3208 size=4+外扩环，11,443 公共列）；「99.9423%」为 4×4 固体表面顶块口径，与本节 10/25 列内部转换面差（y=99~104，顶块以下）载体/覆盖面不同、不可直接比较。新机制候选（材质分支差 / biome 输入差 / 随机序列差 / 前置地形形状差）待四候选 fan-out 判别。见 10 时间线 260902-07 条 + `.investigations/b1-downdrill/facts-260902-07.md` + judge-opinion-260902-07.md。原节数据与结论不删不改，仅作历史记录（§15.4 取代链）。
+
+> 承接 260902-05 开工点 H1/H2。本 session 完成 P2 放大模拟排除 H2 + P1 三层探针链对拍，H1 机制链 candidate 定案。验证分层 Partial（COLPROF/cfg 对拍数据层证据 + 量级自洽推理，非逐位 Full）。事实链全文：`.investigations/b1-downdrill/facts-260902-06.md`。
+
+### 机制链五环
+
+1. **Rust surface 熔岩海缺失**：nether surface 以 netherrack 实心兜底填充，未按 vanilla 熔岩海规则填流体（y=99 lava 面）——成片结构性，非随机散点。
+2. **CountMultilayerPlacementModifier 转换面序列漂移**：y 零随机语义（x,z 随机 + MOTION_BLOCKING 起点找第 i 个 air/water/lava → 实心转换；sources.jar 已核）——熔岩海缺失使转换面序列系统性漂移。
+3. **delta origin y 漂移**：首分叉行 320，`delta` V=(51178,99,51319) C=(51178,99,51310)——同 x、**异 z**（judge 订正：初稿误标「同 x,z 异 y」；且该行 V/C 分属不同 decorated chunk，是流内 skip 的行对齐边界伪影，不构成同点 y 对比证据；y 漂有效证据 = COLPROF cpp 侧 y=100~104 替代 99 + cfg-cmp C 侧 delta y=111/119/121）。
+4. **delta 流内级联**：per-placed-feature RandomSequence 隔离 → 差异只污染自身，per-feature 计数差 ±1~5（basalt_blobs ±1 / blackstone_blobs ±1 / delta −3 / small_basalt_columns −5 / direct ±1）。
+5. **blob 链式放大皮肤差**：only_v=644 / only_c=637（xyz+featureId，~3%）→ 存档皮肤差 only_v=450/only_c=445 量级自洽。
+
+### COLPROF 证据（终审）
+
+首分叉邻域 25 列枚举时刻转换面：**10 列 diff 全部同构**——V 含 `99|0->19319`（air→lava，熔岩海面 y=99），C 同转换缺失、代以 `100~104|0->5854`（air→netherrack，各列 y 不一）；其余 15 列逐项相同。前置层证据：PlacedFeature 入口两轮 1308 行全同（随机序列 chunk 级分叉排除）；ConfiguredFeature placedPos vanilla 20,327 / cpp 20,320；终态列 dump 9216 列 × 4 口径逐列全同（口径不含流体层 → 流体差隐形，恰与 COLPROF 互补）。
+
+### 已排除
+
+- ❌ H2「差基底放大」：per-region 触碰 blob 期望 ≈3.7 个 × 上限 853 ≈ 3,150 块，对 34,246 缺口 shortfall ~10.8× → INSUFFICIENT；且 1,122 差基底中可种子口径仅 472（~650 块 soul 侧不可触发 blob 链）、「触碰即翻转」不物理。
+- ❌ 随机序列 chunk 级/全局分叉（入口全同 + 转换面漂移签名）；❌ biome 过滤差（链尾过滤不碰随机）。
+
+### 环节分级（judge ① 项）
+
+- **第 1-2 环（熔岩海缺失 / 转换面漂移）= COLPROF 数据层硬证据**；
+- 第 3 环（delta origin 漂）= cfg 数据（首分叉）+ 伪影订正后仍成立；
+- **第 4-5 环（流内级联 / blob 链式放大）= 推理 + 量级自洽，非独立探针——confirmed 前须 LAVAAUDIT / 修复回归升级为证据**。
+
+### 修复落点与回归判据
+
+- 修复落点 = **Rust nether surface 填充规则**（按 vanilla 熔岩海规则填流体，禁止实心兜底）；Java/Mixin 侧无错。
+- 回归判据：① COLPROF 25 列两轮逐项相等（`99|air->lava` 恢复）；② cfg 对拍 delta y 收敛全 99、blob 族计数差归零、only_v/only_c 归零；③ blob 对拍 20327==20327 全同 + 存档口径（vs FULL 1DDE3B09）不重叠区回归 + overworld 基线不破。
+- LAVAAUDIT 补充验收（不阻塞授级）：colprof 加 `-Dcolprof.mode=lavaAudit -Dcolprof.r=64` 两轮 diff → 熔岩海缺失列数 + 空间分布（成片=高度/区域规则错；按 biome 分块=biome 输入差）。
+
+### 口径声明（§9.7 三要素）
+
+- 99.9423% 是「4×4 区内固体表面」口径；600 块残差清单**漏区外熔岩海残差**；熔岩海缺失（成片）与 soul 散点（散点替换）不同类，修复分模式处理。
+- seed 三查声明（judge B 项）：cpp 轮各 log 有 CppBridge init seed=8576294172403134396 直证；vanilla colprof 轮无直接 worldSeed 行，以同参数命令行 benchSeed + 输出一致性作间接声明。
+
+### 状态
+
+- candidate（judge 审查中）；confirmed 留用户。过程 → 10 时间线 260902-05/06 条；错误 → `.investigations/b1-downdrill/b1-errors.md`。
+
+---
+
+## B1 四候选判别定案：残差主体 = NOISE 单元格微差驱动的 band 边缘平移，历史「surface rule 差 / feature blobs 差」判为口径污染（candidate，260902-08/09）
+
+> **[supersedes 260902-09，§15.4 双指针]** 本节取代：①「B1 定论」节（260901-03）「feature 阶段产物在两种基底地形上的命中/形态差」；②「B1 下钻 H1 定案」（260902-06）「转换面漂移 → delta/blob 链式放大」的因果入口方向；③历史残差观测（13.70% air、22.5% SURFACE、黑石/玄武岩底界差）判为**测量口径阶段污染**。被取代节原正文不删不改。
+
+### 判别结论（fan-out 四候选，seed 8576294172403134396，chunk(3200..3203,3208..3211)，basalt_deltas）
+
+- **(d) NOISE 宏观地形差排除**：air 签名 99.68% 一致（4083/4096 列，同阶段对拍）。
+- **surface 层实现差上界 0.005%**：99.66% 列一致（26/524288 单元，id 投票映射后）——非主体。
+- **(a)(c) 排除**：差异呈 band 边缘对结构、非系统/随机。
+- **残余定论**：NOISE 单元格微差（13 列）驱动 band 边缘 ±1 平移 + 1 列 blackstone/lava 边缘平移（51247,51375，y20-24）——非规则/feature 机制差。
+- 真实存档残差（~3.4%）主体归因 feature/carver 链路差（**放大系数未量化，idk**）。
+- **保留项（不属污染）**：signature A（biome 3.7% 真差）；soul_soil V1 缺口。
+- **新架构事实**：Rust fill_chunk_blocks 在 surface skip 时输出统一 default block（id=1），材质分配在 surface 层；vanilla NOISE 已是真材质 → **NOISE 层材质级对拍不可做，air 签名可做**。
+
+### 口径声明（§9.7 三要素）
+
+- 载体 = 阶段化逐列 dump（air 签名/surface 列对拍）+ 存档口径；覆盖面 = 单 seed / 单 biome（basalt_deltas）/ 4×4 chunks——**外推边界：多 seed/多 biome 未验证**；与 13.70% air、22.5% SURFACE 等历史口径不可比（后者已被判污染），与 96.6% 存档口径载体不同分列。
+
+### 后续探针（指名）
+
+- ① 多 seed / 多 biome 同阶段重采样（破单点外推）；② feature/carver 放大系数量化（~3.4% 残差归因闭合）。
+
+### 状态
+
+- 数据直读部分 candidate（已过 judge）；归因定论 candidate 待用户拍板 confirmed。产物 = `.artifacts/b1-candidates/four-candidate-verdict-260902-09.md`；审查 = `.investigations/b1-candidates/review-260902-judge-b1.md`。
 
 

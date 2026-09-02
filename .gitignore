@@ -77,6 +77,10 @@ runtime/1.20.1/java/run/
 runtime/1.20.1/java/data/
 # gradle user home (dependency cache, copied into workspace for sandbox-free gradle)
 .gradle/
+# 临时区（260902-09 补：一次性脚本/dump 数据/依赖缓存不入库）
+.tmp/
+.gradle-home/
+.tmp-coreswap-data/
 
 
 # Java MOD 运行时工程（本地私有，不入库）

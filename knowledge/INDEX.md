@@ -15,12 +15,12 @@
 
 | 分类 | 文件 | 说明 |
 |------|------|------|
-| 语言/编译器惯用法 | [discovered/compiler-idioms.md](discovered/compiler-idioms.md) | Java/MC 代码生成模式、浮点/整数语义、插值公式、MSVC/Windows·JVM 平台坑、跨层 id 域错位 raw block id vs state id（2026-09-01）、锚坐标换算 off-by-one below_top/above_bottom（260901-02）、JSON 布尔字段经 as_f64 读取恒 false——分型标量 API 静默语义腐蚀（发现 #8，260902-03） |
+| 语言/编译器惯用法 | [discovered/compiler-idioms.md](discovered/compiler-idioms.md) | Java/MC 代码生成模式、浮点/整数语义、插值公式、MSVC/Windows·JVM 平台坑、跨层 id 域错位 raw block id vs state id（2026-09-01）、锚坐标换算 off-by-one below_top/above_bottom（260901-02）、JSON 布尔字段经 as_f64 读取恒 false——分型标量 API 静默语义腐蚀（发现 #8，260902-03）、跨 session raw id 标注三查——未验证标注当公理继承整链作废（发现 #9，260902-07） |
 | 还原工具误译及修正 | [discovered/f5-bugs.md](discovered/f5-bugs.md) | javap/反编译不可信点、反射缓存污染、修正方法 |
-| 构建/工具链坑 | [discovered/build-tooling.md](discovered/build-tooling.md) | gradle daemon/env/参数解析、task UP-TO-DATE 跳过、文件同步、fs::copy 保留 mtime——产物判新旧用内容指纹（发现 #6，260902-01）、GRADLE_USER_HOME 全套状态指工作区绕开 home 权限 + 参照文件名四要素核对（发现 #7，260902-02）、gradle -P→-D 手工映射清单遗漏静默不生效（发现 #8，260902-04） |
+| 构建/工具链坑 | [discovered/build-tooling.md](discovered/build-tooling.md) | gradle daemon/env/参数解析、task UP-TO-DATE 跳过、文件同步、fs::copy 保留 mtime——产物判新旧用内容指纹（发现 #6，260902-01）、GRADLE_USER_HOME 全套状态指工作区绕开 home 权限 + 参照文件名四要素核对（发现 #7，260902-02）、gradle -P→-D 手工映射清单遗漏静默不生效（发现 #8，260902-04）、gradle runServer --nogui 非 CLI 选项 + rustStages 缺映射行静默不生效（发现 #9，260902-09） |
 | 已确认的算法/协议指纹 | [discovered/algorithm-fingerprints.md](discovered/algorithm-fingerprints.md) | MC 密度/噪声算法特征、scale/seed 坑、key 语义、性能指纹（缓存失效/spline 扁平化/边界角点复用） |
 | 混淆/反逆向手法 | [discovered/anti-patterns.md](discovered/anti-patterns.md) | （CoreSwap 非二进制逆向，一般空置） |
-| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31）、临时产物唯一隔离区（260901-03）、cppReplace 存档口径三阶段归因法 + 同 dll 重跑非确定容差（发现 #10，260901-03）、嵌套接管管线双跑风险——内层全管线 × 外层分步拦截（发现 #11，260902-01）、静态对拍必须对拍解析产物而非输入原文——假阴性掩盖真 bug（发现 #12，260902-03）、探针坐标 bug 制造 100% 单向假象——探针输出先做 sanity check + one-step decisive probe 逐层收敛（发现 #13，260902-04） |
+| 工作流模式 | [discovered/workflow-patterns.md](discovered/workflow-patterns.md) | judge 审查门强制触发点、scout 勘探前置、fan-out 多假设分叉强制触发、块级真相验证法、参照状态三查、FEATURE 独立于地形、getChunk 阶段语义（2026-08-09 更新）、接管单阶段后的后续阶段上下文依赖（2026-08-31）、临时产物唯一隔离区（260901-03）、cppReplace 存档口径三阶段归因法 + 同 dll 重跑非确定容差（发现 #10，260901-03）、嵌套接管管线双跑风险——内层全管线 × 外层分步拦截（发现 #11，260902-01）、静态对拍必须对拍解析产物而非输入原文——假阴性掩盖真 bug（发现 #12，260902-03）、探针坐标 bug 制造 100% 单向假象——探针输出先做 sanity check + one-step decisive probe 逐层收敛（发现 #13，260902-04）+ 测量侧先查三犯（wBiome 坐标/NoiseConfig 维度/pregen 提升 chunk）与 RegistryKey 命名空间过滤恒 false、探针零输出先查过滤/驱动条件（#13 补充案例，260902-05/06）+ 探针指标盲区（指标先从判别证据反推）与行首锚 grep 假零输出（#13 补充案例，260902-07）+ 探针阶段同源性——stageMask 只控本侧阶段，noise-only 判据看存档内容非开关日志（发现 #14，260902-09）+ 假阴性陷阱：空切片/切分散→假 100% 一致，sanity 行强制打长度+common 数（#12 家族案例，260902-09） |
 | 预置知识 | [builtin/README.md](builtin/README.md) | 预留；RE-Framework knowledge-builtin 为汇编逆向内容，CoreSwap 不复制 |
 
 ## 写入规则（core.knowledge，2026-08-21 对齐记录价值门）

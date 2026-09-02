@@ -2,6 +2,10 @@ schema_version: 1
 project: CoreSwap
 module: re-code
 entries:
+  - id: 're-code:b1-candidates:four-candidate-verdict-260902-09'
+    path: 'b1-candidates/four-candidate-verdict-260902-09.md'
+    kind: analysis
+    status: candidate
   - id: 're-code:rust-density-builder:alignment'
     path: 'rust-density-builder/rust-density-builder-alignment.md'
     kind: analysis
@@ -664,4 +668,21 @@ entries:
     kind: analysis
     status: draft
     # fan-out 候选 .b2：nether_state_selector 恒 0.0 bug——真实 bug 非主导（预加载表缺 nether 噪声 → unwrap_or(0.0)，selector min=0.0 恒 true → 恒 basalt，只解释零星分支内翻转）。修复：worldgen_handle.rs 预加载表补 6 个 nether 噪声（260901-04）。
+
+  # === b1-downdrill（B1 下钻 H1 机制链，260902-06，judge 有条件通过）===
+  - id: 're-code:b1-downdrill:h1-lava-sea-mechanism'
+    path: '../.investigations/b1-downdrill/facts-260902-06.md'
+    kind: analysis
+    status: candidate
+    # 机制链（judge 有条件 candidate，2026-09-02）：Rust nether surface 熔岩海缺失（netherrack 实心兜底，
+    # COLPROF 10/25 列同构实锤：V 99|air->lava 缺失、C 100~104|air->netherrack）→ CountMultilayerPlacementModifier
+    # 转换面序列漂移（y 零随机语义）→ delta origin 漂 → delta 流内级联（RandomSequence per-feature 隔离）
+    # → blob 链式放大皮肤差。Java/Mixin 无错；修复落点 = Rust surface 填充规则（熔岩海填流体）。
+    # 第 4-5 环为推理（非独立探针），confirmed 前须 LAVAAUDIT + 修复回归三判据。H2 放大已排除（10.8× shortfall）。
+  - id: 're-code:b1-downdrill:h1-judge-review'
+    path: '../.investigations/b1-downdrill/facts-260902-06.md#judge-审意见'
+    kind: review
+    status: candidate
+    # judge 审查（2026-09-02）：三源核对 PASS ×2 + 判据链 CONCERN（首分叉判据错标已订正：同 x,y 异 z + 跨 chunk 行对齐伪影；
+    # vanilla colprof 轮 seed 间接声明）。建议：可开工 Rust 修复；confirmed 待回归三判据 + LAVAAUDIT。
 

@@ -163,4 +163,40 @@ wBiome 改用世界坐标查询（mismatch-nether-run6.csv）：96.3% 残差列 
 
 V5 残差排查中 4 次「一步裁决探针」逐层收敛（biome 列对比 → 6 维输入对拍 → storage cell dump → 整列 storage vs biomeAccess），每步排除一批候选；fan-out worker 静态代码分析与主会话探针数据采集交替（worker 出模板 → 主会话执行不解读 → 原始输出回传）——与发现 #10 三阶段归因法互补：#10 是宏观阶段分解，本条是微观单层内的最小裁决步设计。复用判据：每一步探针设计成「输出只有两种互斥解释」的裁决形态，避免采集后再发散分析。
 
+### 补充案例（260902-05/06，测量侧三犯清单 + 同族新案例）
+
+同 session 链再证「探针输出先 sanity check」：260902-05「selector 场差 42%/patch 差 64%」整轮假象 = NoiseConfig 维度取错（overworld vs nether）；同轮 BlockProbe FULL 预生成提升 chunk 污染 SURFACE 参照（22.5% 残差假结论，260901-04 结论被取代）；260902-06 CSV 空 4 轮 = RegistryKey 过滤条件恒 false。合并沉淀**测量侧先查三犯清单**（探针零输出/异常完美签名时，先查测量侧再怀疑被测侧）：
+1. **wBiome 坐标**：chunk 局部 x,z（0-15）vs 世界坐标混用（#13 原案例）；
+2. **NoiseConfig/维度上下文**：探针取的 server 维度对象 ≠ 目标维度（overworld XOROSHIRO vs nether LEGACY）；
+3. **pregen 提升 chunk**：预生成邻域导致 getChunk 返回已推进状态，参照口径名不符实（同族：发现 #6 getChunk「至少 N」语义）。
+
+**同族新案例（260902-06）**：`RegistryKey.getValue().toString()` 返回带命名空间全名（`minecraft:the_nether`），与裸路径（`the_nether`）equals 过滤恒 false → CSV 空 4 轮的真根因。同判据扩展：**探针零输出先查两类条件**——①过滤条件（字符串/枚举语义不匹配恒 false）②驱动条件（如 BlobProbe 单独跑无 driver 不生成 nether chunk，COLPROF 空跑一轮——「没数据」先问「chunk 根本没被生成」再问「生成了没读到」）。
+
+
+
+
+### 补充案例（260902-07，指标盲区 + 行首锚假零输出）
+
+同判据家族两例（b1-downdrill lavaAudit 课题，详见 b1-errors.md E-B1-10/11）：
+
+1. **探针指标盲区**：lavaAudit v1 只记 above=lava 转换，恰好测不到判别「熔岩海缺失」所需的 below=lava 面向（air→lava 转换面）——v1 输出「99.4% 一致」对核心命题零判别力，是「测了且一致」的假安心；v2 加记 lavaSurfY 后一轮实锤两侧 air→lava 面向均为零，直接推翻待测现象的存在。**判据扩展**：设计探针指标先写「要判别命题 P，最小充分证据是什么」再检查指标覆盖，指标名对口 ≠ 覆盖证明（与发现 #12 对拍对象错级同族：测量设计与判别目标脱节）。
+2. **行首锚 grep 假零输出**：`^\[LAVAAUDIT\]` 对带日志框架前缀（时间戳/线程名）的 log 行恒零命中 → 误判「探针零输出」。与 260902-06 RegistryKey 命名空间前缀（本发现 #13 补充案例）同属「过滤条件把全部行静默滤掉」家族。**判据扩展**：「零命中」先打印一行原文核对行格式，`^` 行首锚对 log 行默认不可用。
+
+## 发现 #14: 探针阶段同源性——stageMask 只控本侧阶段，「noise-only」要先验证对侧是否真静默（260902-08）
+
+- **时间/置信度/module**：260902-08/09，candidate，re-code/swe 通用。
+- **现象**：以 -Dcoreswap.rust.stages=7 控制为「noise-only」采对照存档，存档中仍含蘑菇/basalt delta/carver 产物（air pocket 材质对比被污染）。
+- **根因**：该属性只控 Rust 内部阶段（bit0/1/2=CARVER/FEATURES/SURFACE，CppBridge.java L63-71 默认 0b011）；cppReplace 下 Java 侧 CARVERS/FEATURES 照跑——stageMask 是「本侧开关」不是「管线状态」。
+- **定位**：直接看存档内容 vs stageMask 日志——日志与存档不符即暴露。
+- **修复**：对照口径改为按存档实际内容分阶段归因（与发现 #10 阶段归因法合用）；纯阶段对照走替换方独立通道（bin-diag 直连 fill_chunk_blocks + env 全 skip）。
+- **教训/如何利用**：任何「只跑某阶段」的对照实验，判定依据必须是产物内容而非开关日志；「对侧阶段静默」须独立验证（对照侧=发现 #4，本条=被测侧开关语义，合用）。
+
+### 补充案例（260902-09，#12 家族：假阴性陷阱 → 假 100% 一致）
+
+对拍脚本自身失真产出「假 100% 一致」两例（本 session 实证，均发生在同一对拍链）：
+1. **空切片假一致**：对 128 项 vanilla 序列施加 `[128:]` 切片（本意为切 Rust 侧 256 项）→ 空序列 → `zip` 空 → 0 差异被读成「完全一致 100%」；
+2. **切分散假一致**：`mat=` 解析用 `split(',')[3][4:]`，逗号切散后只取到首个数字 → 单元素序列 → 同样假 100%。
+
+**防范（判据）**：对拍脚本强制打印 sanity 行（两侧序列长度 + common 列数），`common=0` 或长度不符即拒绝出结论——「完美一致」与「完美失败」一样要先怀疑测量侧（与 #12 对拍对象错级、#13 sanity check 同族）。
+
 
