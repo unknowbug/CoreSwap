@@ -1,0 +1,34 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+topic: extreme-coord-stress
+entries:
+  - id: 're-code:extreme-coord-stress:architecture-plan'
+    path: '../../.investigations/extreme-coord-stress/architecture-plan.md'
+    kind: plan
+    status: confirmed
+    # 用户批准的 Phase 0 计划（采样矩阵/判据/预置介入点）
+  - id: 're-code:extreme-coord-stress:verdict-260902'
+    path: 'verdict-260902.md'
+    kind: analysis
+    status: confirmed
+    # 用户拍板封存（260902）：极限坐标无地形颠覆（最差 98.59% ≥ 预登记 95% 线）；
+    # judge 审查通过（judge-opinion-260902.md，通过 + C1/C2 修正已闭环）
+  - id: 're-code:extreme-coord-stress:judge-opinion'
+    path: '../../.investigations/extreme-coord-stress/judge-opinion-260902.md'
+    kind: review
+    status: candidate
+  - id: 're-code:extreme-coord-stress:facts'
+    path: '../../.investigations/extreme-coord-stress/facts-260902.md'
+    kind: analysis
+    status: confirmed
+  - id: 're-code:extreme-coord-stress:derive-stats'
+    path: '../../.investigations/extreme-coord-stress/cmd-output/derive_stats.out.txt'
+    kind: evidence
+    status: candidate
+    # 派生统计（表面漂移/簇统计）复现脚本输出（C2 闭环）
+  - id: 're-code:extreme-coord-stress:cmp-outputs'
+    path: '../../.tmp/extreme/'
+    kind: evidence
+    status: candidate
+    # 原始对拍明细 cmp_run1/2/3/4_ctl_*.out.txt + 采集日志 log_run*.log（.tmp 大文件区）
