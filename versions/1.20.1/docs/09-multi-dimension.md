@@ -639,11 +639,11 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 
 
 ---
-## feature/carver 放大系数定案：不存在——存档残差在 surface 层闭合 + 历史「~3.4% 存档残差」改判参照口径污染（candidate，260902-10）
+## feature/carver 放大系数定案：不存在——存档残差在 surface 层闭合 + 历史「~3.4% 存档残差」改判参照口径污染（confirmed，260902-10 用户拍板）
 
 > **[supersedes 260902-10，§15.4 双指针]** 本节取代：「B1 四候选判别定案」（260902-08/09）中「真实存档残差（~3.4%）主体归因 feature/carver 链路差（放大系数未量化，idk）」一条——被取代对象不删不改。推翻理由 = ① 参照口径阶段污染（run3-6 的对比参照实为 SURFACE 阶段参照，「~3.4%」是 FULL 存档 vs SURFACE 参照的跨阶段伪残差）；② 同域重测放大系数不存在（surface 层微差经 feature/carver 链路无放大，系数 0.62 < 1，残差在 surface 层即闭合）。
 
-### 定案结论（candidate，judge 0 BLOCKER 建议授予；confirmed 待用户拍板）
+### 定案结论（confirmed，260902-10 用户拍板；judge 0 BLOCKER 曾建议 candidate）
 
 1. **feature/carver 放大系数 = 不存在（不适用）**。cppReplace 存档（stageMask=3，Java carver/feature 照跑）vs 同期新鲜 vanilla FULL 参照：
    - **200 区（biome 边界混合区，chunk 200..203）**：0 / 1,048,576 = 0.0000% 失配（逐位一致）；
@@ -665,4 +665,4 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 
 ### 状态
 
-- **candidate（260902-10，judge 0 BLOCKER 建议授予；confirmed 待用户）**。supersedes 仅限 four-candidate-verdict C5 条的残差归因与放大假设；C1-C4、signature A（biome 3.7% 真差）、soul_soil V1 不动。产物 = `.artifacts/b1-candidates/amplification-verdict-260902-10.md`；审查 = `.investigations/b1-candidates/review-260902-10-judge-amplification.md`；过程 → 10 时间线 260902-10 条；参照五要素教训 → build-tooling 发现 #10。3200 区 16 块明细可下钻 B1 NOISE 微差（外推边界不变）。
+- **confirmed（260902-10 用户拍板；judge 0 BLOCKER 曾建议 candidate）**。supersedes 仅限 four-candidate-verdict C5 条的残差归因与放大假设；C1-C4、signature A（biome 3.7% 真差）、soul_soil V1 不动。产物 = `.artifacts/b1-candidates/amplification-verdict-260902-10.md`；审查 = `.investigations/b1-candidates/review-260902-10-judge-amplification.md`；过程 → 10 时间线 260902-10 条；参照五要素教训 → build-tooling 发现 #10。3200 区 16 块明细可下钻 B1 NOISE 微差（外推边界不变）。

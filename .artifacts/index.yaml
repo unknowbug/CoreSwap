@@ -690,7 +690,7 @@ entries:
   - id: 're-code:b1-candidates:amplification-verdict-260902-10'
     path: 'b1-candidates/amplification-verdict-260902-10.md'
     kind: analysis
-    status: candidate
+    status: confirmed
     # feature/carver 放大系数 = 不存在（200 区 0 失配逐位一致；3200 区 16 块全部落 B1 差异列，系数 0.62<1）；
     # supersedes C5 条「~3.4% 残差主体归因 feature/carver」——3.4% = FULL 存档 vs SURFACE 阶段参照（02b94092）跨阶段伪残差。
 

@@ -176,7 +176,7 @@ build.gradle 映射清单补对应行（每新增一个系统属性同步加一�
 
 ## 发现 #10: 参照文件核对四要素不够——文件名不含 stage，SURFACE 参照被当 FULL 用贯穿多轮；判据升级五要素 + 内容指纹（260902-10）
 
-- **发现时间**：260902-10（amplification 课题）；**置信度**：candidate（judge 0 BLOCKER，confirmed 待用户）；**module**：re-code。
+- **发现时间**：260902-10（amplification 课题）；**置信度**：confirmed（260902-10 用户拍板；judge 0 BLOCKER 曾建议 candidate）；**module**：re-code。
 
 ### 现象
 

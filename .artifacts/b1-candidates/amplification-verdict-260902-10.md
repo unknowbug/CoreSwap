@@ -1,4 +1,4 @@
-# feature/carver 放大系数量化 + 存档残差改判（260902-10 · candidate，待 judge + 用户拍板）
+# feature/carver 放大系数量化 + 存档残差改判（260902-10 · confirmed，260902-10 用户拍板）
 
 > session 260902-10 · seed 8576294172403134396（worldSeed 三查 ✓ 全部 4 次运行）· 域：chunk 3200..3211 区 + chunk 200..203 区（各 4×4，nether）
 > 取代对象（§15.4）：four-candidate-verdict-260902-09.md **C5 条**的「真实存档残差 ~3.4% 主体归因 feature/carver 链路差（26 单元种子 × 放置放大，放大系数未量化）」——原条不删不改，本文取代其残差归因与放大假设。
