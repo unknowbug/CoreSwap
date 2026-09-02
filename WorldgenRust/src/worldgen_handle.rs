@@ -49,6 +49,8 @@ pub struct WorldgenHandle {
     macro_sampler: crate::terrain::DensityMacroSampler,
     // transpiler 宏观采样器（build-time 编译 density 树，WG_TRANSPILER env 时启用；None = 用 macro_sampler）
     transpiler_density: Option<crate::terrain::TranspilerDensity>,
+    // DFC 宏观采样器（lossless-accel P2a，WG_DFC env 时启用，优先级 > WG_TRANSPILER；None = 回退）
+    dfc_density: Option<crate::terrain::DfcDensity>,
     barrier: Arc<DensityFunction>,
     flooded: Arc<DensityFunction>,
     spread: Arc<DensityFunction>,
@@ -173,6 +175,10 @@ impl WorldgenHandle {
                 Some(crate::terrain::TranspilerDensity::new(noises, min_y, noise_height))
             } else { None }
         } else { None };
+        // DFC 宏观采样器（WG_DFC env 时启用；优先级 > WG_TRANSPILER；零退化铁律：默认关）
+        let dfc_density = if std::env::var("WG_DFC").is_ok() {
+            Some(crate::terrain::DfcDensity::new(seed as u64))
+        } else { None };
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
         let flooded = Arc::new(db.build_node(router.get("fluid_level_floodedness")?).ok()?);
         let spread = Arc::new(db.build_node(router.get("fluid_level_spread")?).ok()?);
@@ -295,7 +301,7 @@ impl WorldgenHandle {
 
         Some(WorldgenHandle {
             seed, min_y, height, noise_height, aquifers_enabled, sea_level,
-            tree, macro_sampler, transpiler_density, barrier, flooded, spread, lava, erosion, depth, init,
+            tree, macro_sampler, transpiler_density, dfc_density, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
             splitter,
@@ -398,7 +404,9 @@ impl WorldgenHandle {
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = if let Some(td) = &self.transpiler_density {
+        let cd = if let Some(dd) = &self.dfc_density {
+            fill_chunk(dd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(td) = &self.transpiler_density {
             fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         } else {
             let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;
@@ -490,7 +498,9 @@ impl WorldgenHandle {
         let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = if let Some(td) = &self.transpiler_density {
+        let cd = if let Some(dd) = &self.dfc_density {
+            fill_chunk(dd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(td) = &self.transpiler_density {
             fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         } else {
             let dense: &crate::terrain::DensityMacroSampler = &self.macro_sampler;

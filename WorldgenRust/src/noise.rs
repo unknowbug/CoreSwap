@@ -212,6 +212,11 @@ impl OctavePerlinNoiseSampler {
             self.octave_samplers[idx as usize].as_ref()
         } else { None }
     }
+    // DFC split 直查（对齐 C++ octaveSamplers[i] 布局：i = firstOctave 起顺序索引）
+    pub fn octave_at(&self, i: usize) -> Option<&PerlinNoiseSampler> {
+        self.octave_samplers.get(i).and_then(|o| o.as_ref())
+    }
+    pub fn first_octave(&self) -> i32 { self.first_octave }
     // 对齐 C++ noise.h L195-197：method_40556(d) = getTotalAmplitude(d + 2.0)
     pub fn method_40556(&self, d: f64) -> f64 { self.total_amplitude_scale(d + 2.0) }
     fn total_amplitude_scale(&self, scale: f64) -> f64 {
@@ -313,6 +318,9 @@ impl DoublePerlinNoiseSampler {
         DoublePerlinNoiseSampler { amplitude, first_sampler, second_sampler, max_value }
     }
     pub fn get_max_value(&self) -> f64 { self.max_value }
+    // DFC split 直查（对齐 C++ noise.firstSampler/secondSampler）
+    pub fn first(&self) -> &OctavePerlinNoiseSampler { &self.first_sampler }
+    pub fn second(&self) -> &OctavePerlinNoiseSampler { &self.second_sampler }
     pub fn sample(&self, x: f64, y: f64, z: f64) -> f64 {
         let d = x * Self::DOMAIN_SCALE;
         let e = y * Self::DOMAIN_SCALE;

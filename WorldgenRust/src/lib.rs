@@ -12,6 +12,7 @@ pub mod blocks;             // 方块 ID 注册表 + 区块方块存储（BlockC
 pub mod beardifier;         // StructureWeightSampler（Beardifier）结构密度修正（对齐 C++ beardifier.h）
 pub mod spline;            // SplineDF（data-driven 表 + 采样，可软流）
 pub mod terrain;           // finalDensity 构建 + fill 逻辑
+pub mod dfc_backend;       // P2a DFC CPU 后端（lossless-accel；WG_DFC 门控，默认关）
 pub mod api;               // wg_create/fill/sample 等价（C ABI 导出）
 pub mod json;              // worldgen JSON 解析
 pub mod verif;             // 验证：ref 数据加载 + 逐位对比

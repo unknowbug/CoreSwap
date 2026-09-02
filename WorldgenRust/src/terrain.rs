@@ -377,3 +377,25 @@ impl DensitySource<TranspilerDensity> for TranspilerDensity {
         Some(ChunkDensity { sampler: self, slices })
     }
 }
+
+// ---- DFC 宏观采样器（WG_DFC 门控，lossless-accel P2a；默认关）----
+// final_density 整树 DFC 直采（对齐 C++ WG_DFC_CPU 已验证形态）：split_top 热路径 + interp grid 缓存，
+// 逐点 sample（sample_chunk=None → fill_chunk 逐点回退路径）。f32 采样语义（同源 GLSL/C++ 红线，
+// 精度口径见 .investigations/lossless-accel/p2a-design-260903-03.md §3）。
+pub struct DfcDensity {
+    backend: crate::dfc_backend::DfcBackend,
+}
+impl DfcDensity {
+    pub fn new(seed: u64) -> Self { DfcDensity { backend: crate::dfc_backend::DfcBackend::new(seed) } }
+}
+impl DensitySource<DfcDensity> for DfcDensity {
+    fn sample(&self, pos: &NoisePos) -> f64 {
+        self.backend.sample_point(pos.x, pos.y, pos.z) as f64
+    }
+}
+// ChunkDensitySampler 仅 trait bound 需要（DfcDensity 走逐点路径，sample_chunk=None，永不调用）
+impl ChunkDensitySampler for DfcDensity {
+    fn sample_interp(&self, _slices: &[f64], _pos: &NoisePos) -> f64 {
+        unreachable!("DfcDensity is per-point only")
+    }
+}
