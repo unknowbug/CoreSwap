@@ -1,28 +1,15 @@
-# lossless-accel 错误台账（260903-02 立）
+# S6 欠账清偿草稿——DFC Rust 后端三 bug（260903-03，subagent 产出，待主会话应用）
 
-> 五段式：现象 → 根因 → 定位 → 修复 → 教训。末尾附「错误→根因」速查表。
+> 载体：追加到 `.investigations/lossless-accel/lossless-accel-errors.md`（LL3/LL4/LL5，接续现有 LL1/LL2 编号与五段式格式）；速查表补 3 行。
+> 证据源：p2a-design-260903-03.md §0 末行、cmd-output/dfc-probe-260903-03.txt、cmd-output/dfc-verify-260903-03/04.txt、dfc_gen.py（gen_tables_rs / _normal_func / _old_blended_func / gen_cpu :1651,1713-1716）、WorldgenRust/src/dfc_backend.rs（:76-160, :258-262）、generated/dfc_cpu_tables.rs（PERM_SIZE=356352, NORMAL_PACK/NORMAL_PACK_F）。
 
-## LL1. Rust 侧 MT3 同款 clamp 结构性串行（P0-② 欠账清偿，260903-02）
-
-- **现象**：架构计划 §0 预置核对项——C++ `worldgen_api.cpp:1323` 有 `if (threads > count) threads = count`（MT3，count=1 时池恒 1 worker = 实机 M=1 结构性串行）；Rust 侧是否同款待核对。
-- **定位**：grep `WorldgenRust` → `src/api.rs:38` `threads.min(count).max(1)`（env 覆盖分支 L27 同语义）——同款确认。
-- **修复**：`api.rs` adaptive_threads 尾行改为 `if count > 1 { threads.min(count).max(1) } else { threads.max(1) }`——count=1 不 clamp，池按请求线程数建 worker 并保持；count>1 语义不变。`cargo check --lib` 绿（仅既有 267 warnings）。
-- **状态**：代码级修复完成（candidate）；实机/批量性能影响随 P2a 端到端验证一并确认。C++ 侧同款修复仍是 worldgen-mt-scaling 课题 candidate 待办（本课题不动）。
-- **教训**：跨语言移植的池化/调度参数逻辑（clamp/自适应）是同款 bug 高发位——移植核对项应 grep 两侧同语义表达式而非只看函数名。
-
-## LL2. 参照文件 header origin 与内容坐标不符（260903-02，P0-① 探针踩坑）
-
-- **现象**：FULL 归因探针按 header/文件名假设的 origin (-288,-256) 生成对比 chunk → vanilla 配对全 miss（分解计数 0，与同运行 12321 差异块矛盾）。
-- **根因**：`vanilla_..._4_-288_-256_FULL.bak.blocks` 的 header origin 字段与实际 chunk 坐标（-18..-15, -16..-13）不符；文件名/注释同被误导。
-- **定位**：同运行内恒等式自检（match 差 vs 分解差）矛盾 → python 直读参照文件逐 chunk 坐标（`/tmp .tmp/refkeys.py` 范式）→ 实际坐标曝光。
-- **修复**：探针改按参照文件内坐标生成与配对；handle_probe 历史对比因「用文件内坐标生成」本就自洽，未污染。
-- **教训**：参照五要素之外，**header 字段本身也可能是错的**——配对/对比永远以文件内容实测坐标为准；探针必须带恒等式自检（本例 0 vs 12321 矛盾 5 分钟暴露假配对）。
+---
 
 ## LL3. Emitter 漏调 `_normal_func/_old_blended_func` → NORMAL_PACK 全占位 → 噪声层恒 0（260903-03）
 
 - **现象**：DFC Rust 后端首跑，FINAL 密度与参照差异呈结构性模式——**格点（采样角点）处整对、其余位置恒常数**，噪声细节完全缺失（噪声层输出恒 0）；差异不是随机散布而是「有信号 vs 无信号」的二值形态。
 - **根因**：`dfc_gen.py` 新增的 `gen_tables_rs` emitter 只产出了 DF 节点表/spline 表/坐标 fold 表，**漏调了 `_normal_func(idx, …)` / `_old_blended_func(idx, …)`** 这两个「数据收集」调用（C++ 版 `gen_cpu` :1658-1674 在遍历 noise_instances 时同步调它们填充 normal_meta/old_meta，进而生成 NORMAL_PACK/NORMAL_PACK_F/OLD_PACK）。Rust 后端表中 NORMAL_PACK 是按 noise_instances 索引的 `[n, octBase, splitBase]` 三元组——emitter 没调收集函数时这些槽位全为占位 0。运行时 `dfc_backend.rs` 的 normal 噪声求值按 `NORMAL_PACK[b3]=n`（octave 数）展开循环：n=0 → 循环零次 → 该噪声采样恒返回 0。**机制层面：数据表生成器是「遍历副作用填充元数据」的隐式契约，漏掉的是副作用调用而不是任何显式字段**——这是数据驱动架构特有的错误形态（代码路径显式、数据路径靠遍历填充）。
-- **定位**：**分层探针（layered probe）**——不直接对 FINAL 全量对拍（那只会得到一个 12.7% 级 mismatch 无从下手），而是按层级隔离输出：先只让 runtime 输出噪声层采样，与参照噪声逐点对比。判据签名：**「格点整对 + 其余恒常数 = 噪声层零输出签名」**——格点处（2D 噪声经 offset 调制的格点缓存语义）恰好常数项对上，其余点暴露噪声项恒 0。签名一确认，即倒查「噪声输入从哪张表来」→ NORMAL_PACK 全 0 → 回查 emitter 遍历代码发现收集调用缺失。
+- **定位**：**分层探针（layered probe）**——不直接对 FINAL 全量对拍（那只会得到一个 12.7% 级 mismatch 无从下手），而是按层级隔离输出：先只让 runtime 输出噪声层采样（`dbg_normal_raw` 类 hook），与参照噪声逐点对比。判据签名：**「格点整对 + 其余恒常数 = 噪声层零输出签名」**——格点处（2D 噪声经 offset 调制的格点缓存语义）恰好常数项对上，其余点暴露噪声项恒 0。签名一确认，即倒查「噪声输入从哪张表来」→ NORMAL_PACK 全 0 → 回查 emitter 遍历代码发现收集调用缺失。
 - **修复**：`gen_tables_rs` 遍历 noise_instances 时补调 `self._old_blended_func(idx, params, octBase, splitBase)` / `self._normal_func(idx, params, octBase, splitBase)`（与 C++ `gen_cpu` :1658-1674 同源对齐），使 NORMAL_PACK/NORMAL_PACK_F/OLD_PACK 被真实填充后生成到 `dfc_cpu_tables.rs`（重生成后 NORMAL_PACK 首项 `9, 0, 0, 9, 18, 108, …`，非全 0）。
 - **教训**：
   1. **可复用判错签名：「格点整对 + 其余恒常数 = 噪声层零输出签名」**——密度的结构化差异模式本身就是分层定位信息：整段恒 0/恒常数指向「该层输入表为空/占位」，随机散布才指向索引错位或精度。先分层复现签名，再倒查数据源，不要在 FINAL 全量 diff 上硬啃。
@@ -44,33 +31,12 @@
 - **修复**：`collect_perm` 的 normal 段改用独立序号 `k` 顺序对应 `normals[k]`（只对 n≠0 的实例递增），与「normals Vec 只含 normal 实例、按序对应非 0 NORMAL_PACK 项」的压缩约定对齐。
 - **教训**：**生成数据表（全量索引、含占位槽）与运行时容器（按类过滤压缩）之间必须显式声明索引映射约定**，回填/查表代码写之前先问「这个下标是全量序还是过滤后序」。可复用判据：**「packed 表带占位槽 + runtime 容器按类过滤 ⇒ 一切下标换算需经过过滤映射，禁止直接同下标互查」**。另注：LL3→LL4→LL5 是串联暴露链（上一 bug 修复才让下一 bug 的症状显形）——多 bug 串联时每修一个都要重跑分层签名，不能假设「一次全量对拍通过 = 无残留 bug」。
 
-## LL6. 预注册判据「0 diff」未达（rounded6 96.08%）——判据形式违规与口径裁定（260903-04）
+---
 
-- **现象**：架构计划 260903-04 W4 预注册「GPU 角点 vs DFC-CPU oracle `{:.6}` 舍入内 0 diff」；实测 rounded6 仅 96.08%（6144 点 5903 对），max_diff=9.18e-6。
-- **根因**：预注册判据把「f32 ULP 级微差在 6 位舍入边界的翻转」误写成「0 diff」——f32 vs f32 的 ULP 差（~1e-6 量级）落在 `{:.6}` 舍入边界上是必然事件，判据本身口径错位，非实现错误。
-- **定位**：tri-cut3 重编后双 seed 23 点 major_diff(>1e-4)=0 + max_diff 9.18e-6 与已知 f32 ULP 量级吻合 → 差异全部为精度级，无语义级。
-- **裁定**：按计划「f32 口径既定判定规则」（p2a-design §3：舍入边界翻转回数据层取证，不得静默放宽）——本次以 major_diff(>1e-4)=0 为主判据、max_diff 量级为辅证，rounded6 降为参考指标。**教训：预注册判据必须与数值精度口径自洽——f32 对拍写「0 diff」前先算 ULP 量级落在舍入边界的期望翻转率。**
-- **状态**：candidate（judge ④-2 指出的形式违规，本条即补录）。
-
-## LL7. final_density.spv 陈旧产物（D23 修复前语义）——生成器多产物部分更新失配（260903-04）
-
-- **现象**：GPU 引擎 vs DFC-CPU oracle 系统性 diff（6144 点 f32_exact 43.26%、max_diff 0.5533）；tri-cut 证明 C++ CPU 与 GPU 自身 major diff。已知值哨兵点 (784,160,-408)（历史 seed）GPU 输出 0.0453032888 = 时间线 L1386 记录的 D23 修复**前**错误值。
-- **根因**：spv 编译于 D23 提交（cc58e05 08-15 19:21）前 5 小时，9de661e 提交了修复前 spv（git blob 取证：.bak-pre-d23 与 9de661e 提交 blob 哈希逐字节相同）；08-23 comp/cpu_backend.h 同批重生成但 spv 未重编——生成器多产物（comp/cpu_backend.h/spv）部分更新，glslc 编译步骤脱节。
-- **定位**：双 seed 切分（历史 seed 正 x 已验证点复现历史错值）+ mtime/提交时间 5 小时窗交叉；重编（gen_final_density.py → glslc → 部署 .bak-pre-d23 备份）后双 seed 23 点 major=0、6144 点 max_diff=9.18e-6——闭环。
-- **修复**：重编部署；判据固化（多产物原子更新 + 哨兵结论配已知值哨兵点）→ knowledge/discovered/build-tooling.md 发现 #12。
-- **教训**：二进制产物无法从内容/新鲜时间戳判断新旧；「逐位一致」只证明一致域内语义相同，域外产物可能陈旧。
-- **状态**：candidate（judge 三重独立证据 PASS）。
-
-## 速查表
+## 速查表补行（追加到现有表末尾）
 
 | 错误 | 根因 |
 |---|---|
-| LL1 Rust MT3 串行 | `threads.min(count)` 在 count=1 时把池 clamp 到 1 worker（C++ 同款移植） |
-| LL2 归因探针全 miss | 参照 header origin 与内容坐标不符；配对用了硬编码坐标而非文件内坐标 |
 | LL3 噪声层恒 0 | emitter 漏调 `_normal_func/_old_blended_func` → NORMAL_PACK 全占位 0 → octave 循环零次；「格点整对+其余恒常数 = 噪声层零输出签名」 |
 | LL4 PERM_SIZE 错 | 容量漏 ×256（一维化 packed 表 SIZE=各维度之积，与 gen_cpu :1716 口径脱钩） |
 | LL5 collect_perm 错位 | 全量索引表（NORMAL_PACK 含占位槽）vs 压缩 normals Vec 直接同下标互查，缺过滤映射（k 序号） |
-| LL6 rounded6 96.08% 未达「0 diff」 | 预注册判据与 f32 ULP 口径错位（ULP 差落 6 位舍入边界必然翻转）；主判据改 major_diff(>1e-4)=0 |
-| LL7 spv 陈旧产物 | 多产物部分更新失配（spv 编译早于 D23 提交 5h，commit 9de661e 提交修复前 spv；重编即愈）→ build-tooling #12 |
-
-

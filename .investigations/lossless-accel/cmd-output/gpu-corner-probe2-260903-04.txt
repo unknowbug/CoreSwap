@@ -1,0 +1,14 @@
+=== gpu_corner_probe (260903-04) ===
+seed=-8248318472910187742 spv=E:\PYTHON\CoreSwap\versions\1.20.1\cpp\worldgen\gpu-assets\final_density.spv
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[fact1] create #1 = 74991.1 ms  (splitTotal=8672 perSample=352)
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[fact1] create #2 = 74342.9 ms（同 seed 第二实例，判断缓存/重复成本）
+[compare] gpu_vs_dfc_oracle: n=6144 f32_exact=4053 (65.9668%) rounded6=5903 (96.0775%) max_diff=9.179e-6
+[fact2] serial: 30.64 ms / batch(8 chunks) = 3.830 ms/chunk-corner = 5.0 us/pt
+[fact2] 2-thread (mutex, same handle): 18.54 ms / batch-equivalent → 衰减系数 0.61×
+=== done ===
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[device] NVIDIA GeForce RTX 4060 Laptop GPU

@@ -2,6 +2,22 @@ schema_version: 1
 project: CoreSwap
 module: re-code
 entries:
+  - id: 'lossless-accel:route2:tricut-bA'
+    path: 'lossless-accel/route2-tricut.bA.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:tricut-bB'
+    path: 'lossless-accel/route2-tricut.bB.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:tricut-bC'
+    path: 'lossless-accel/route2-tricut.bC.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:judge-260903-04'
+    path: 'lossless-accel/route2-judge-260903-04.md'
+    kind: review
+    status: candidate
   - id: 're-code:b1-candidates:four-candidate-verdict-260902-09'
     path: 'b1-candidates/four-candidate-verdict-260902-09.md'
     kind: analysis

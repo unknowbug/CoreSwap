@@ -18,7 +18,8 @@
 param(
     [string]$Target = "",     # 空 = 默认（block_probe + bench_chunks）
     [switch]$All,             # 构建全部
-    [switch]$Clean            # 清理 .obj/.lib
+    [switch]$Clean,           # 清理 .obj/.lib
+    [switch]$Ffi              # 额外构建 gpu_ffi.dll（C-ABI shim，Rust FFI 用，lossless-accel 路线②）
 )
 
 $ErrorActionPreference = "Stop"
@@ -94,5 +95,21 @@ function Build-Exe {
 
 $targets = if ($All) { $exes } elseif ($Target) { @($Target) } else { @("block_probe", "bench_chunks") }
 foreach ($t in $targets) { Build-Exe $t }
+
+# gpu_ffi.dll —— C-ABI shim（Rust FFI 借 GpuDensityEngine；链接 worldgen_core.lib + Vulkan）
+if ($Ffi) {
+    Write-Host "[build] gpu_ffi.dll ..." -ForegroundColor Cyan
+    $ffiObj = Join-Path $bin "gpu_ffi.obj"
+    $ffiSrc = Join-Path $src "gpu_ffi.cpp"
+    $cmd = "cl $commonOpt $commonDef $commonInc /Fo`"$ffiObj`" `"$ffiSrc`" > `"$bin\bld_gpu_ffi.txt`" 2>&1"
+    Invoke-VcCl $cmd | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Host "[FAIL] gpu_ffi.cpp" -ForegroundColor Red; Get-Content "$bin\bld_gpu_ffi.txt" | Select-Object -Last 3; exit 1 }
+    $ffiOut = Join-Path $bin "gpu_ffi.dll"
+    $vLib2 = if ($vulkan -and (Test-Path $vulkanLib)) { "`"$vulkanLib`"" } else { "" }
+    $linkCmd = "link /nologo /DLL /IMPLIB:`"$bin\gpu_ffi.lib`" `"$ffiObj`" `"$libOut`" $vLib2 /OUT:`"$ffiOut`" > `"$bin\bld_gpu_ffi_link.txt`" 2>&1"
+    Invoke-VcCl $linkCmd | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Host "[FAIL] gpu_ffi.dll link" -ForegroundColor Red; Get-Content "$bin\bld_gpu_ffi_link.txt" | Select-Object -Last 5; exit 1 }
+    Write-Host "  [OK] gpu_ffi.dll" -ForegroundColor Green
+}
 
 Write-Host "`n[build] done ✔  lib=$libOut" -ForegroundColor Green

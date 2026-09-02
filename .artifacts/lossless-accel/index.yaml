@@ -1,0 +1,20 @@
+schema_version: 1
+project: CoreSwap
+module: lossless-accel
+entries:
+  - id: 'lossless-accel:route2:tricut-bA'
+    path: 'route2-tricut.bA.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:tricut-bB'
+    path: 'route2-tricut.bB.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:tricut-bC'
+    path: 'route2-tricut.bC.md'
+    kind: analysis
+    status: draft
+  - id: 'lossless-accel:route2:judge-260903-04'
+    path: 'route2-judge-260903-04.md'
+    kind: review
+    status: candidate

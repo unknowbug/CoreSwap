@@ -2599,3 +2599,19 @@ judge 三源核对 PASS（数字抽查/判据忠实度/归因/§9.7/日志污染
 ### 📌 记录指引
 - 结论 + ⚠️ 泥土带醒目小节 → 09 篇追加「极端坐标应力测试定论」小节（全新，无 supersedes）。
 - 状态：candidate（用户已拍板封存）。🔍 遗留：泥土带系统差仅记录不下钻（开逐位 100% 对齐课题须先 biome 归因 fan-out）。
+
+## 260903-04（lossless-accel 路线② FFI 工作包：spv 陈旧产物定案——「逐位一致」哨兵结论被陈旧二进制产物击穿）
+
+### ✅ FFI shim + 三事实 + 决定性三路切分
+W2 `gpu_ffi.cpp` C-ABI shim（build.ps1 `-Ffi`）+ W3 Rust 角点探针（bin-diag，LoadLibrary 动态加载零新依赖）。三事实实测（gpu-corner-probe-260903-04.txt）：① create ~64-75s，同 seed 第二实例无缓存同价（每次全量编译 pipeline）；② 串行 5.0µs/pt，双线程同 handle Mutex 反而 0.61×（GPU dispatch 异步流水，Mutex 不串行化 GPU 队列，readback 同步保正确性）；③ GPU vs DFC oracle 6144 点 f32_exact 仅 43.26% → 系统性 diff 非纯精度。tri-cut（同程序同坐标 CpuBackend.sample vs GpuDensityEngine.fill）：C++ CPU vs C++ GPU 自己就 major diff（16 点中 5 点，最大 0.502）→ **FFI/Rust 侧无罪，问题在引擎内部**。✅
+
+### ✅ 三 worker fan-out（互斥候选并行）
+.bA GPU fill 路径 / .bB CPU 参照单点采样（结论：CPU 参照正确——饱和值 -0.458333343 = DF_SQUEEZE clamp -1 属正常，错误在 GPU 侧；顺带发现 sampleInterpGrid y=320 grid[49] 越界读为独立真实缺陷，另立修复项）/ .bC 历史域考古（历史「逐位一致 maxDiff 3.1e-07」域 = seed …396 × x∈[0,63] × y∈[-64,-49]，新证据域外，结论保留须补域声明）。产物 .artifacts/lossless-accel/route2-tricut.bA/bB/bC.md。✅
+
+### ✅ 决定性双 seed 切分 + 根因 = final_density.spv 陈旧产物（supersedes fan-out 归因方向）
+已知值哨兵点 (784,160,-408) 历史验证 seed 下：旧 spv 输出 **0.0453032888 = 时间线 L1386 记录的 D23 修复前错误值**（正确 -0.458333343）——直接复现历史错值签名（tri-cut2）。证据链：① spv mtime 08-15 14:17 **早于** D23 修复提交 cc58e05（08-15 19:21）5 小时，commit 9de661e（19:22）提交的是修复前编译的 spv；② 08-23 `final_density.comp` 与 cpu_backend.h 同批重生成但 spv 未随之重编——生成器多产物部分更新失配。重编（gen_final_density.py → glslc → 部署，旧 spv 备份 .bak-pre-d23）后：**双 seed 23 点 major_diff=0**（tri-cut3），全量 6144 点 max_diff=9.18e-6（f32 ULP 级），rounded6 96.08%。✅ 已结案（根因闭合）
+
+### 📌 记录指引
+- 错误链五段式 → `.investigations/lossless-accel/lossless-accel-errors.md`（subagent 草稿应用）。
+- 可复用判据（二进制产物无法从内容/时间戳判断新旧 + 逐位一致哨兵须配已知值哨兵点）→ build-tooling 发现 #12（260903-04）。
+- 状态：candidate（judge 待过）；confirmed 待用户。
