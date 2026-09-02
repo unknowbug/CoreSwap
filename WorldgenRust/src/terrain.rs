@@ -64,7 +64,10 @@ impl DensityMacroSampler {
             let cell_idx = ((cy+dy)*gz + (cz+dz))*gx + (cx+dx);
             slices[cell_idx as usize * nch + ch]
         };
-        let mut interp = vec![0.0f64; nch];
+        // 栈数组替代每 block heap Vec 分配（热路径 ~98304 次/chunk，scout §1.5）
+        let mut interp = [0.0f64; 8];
+        debug_assert!(nch <= 8);
+        let nch = nch.min(8);
         for ch in 0..nch {
             let d000=at(0,0,0,ch); let d100=at(1,0,0,ch); let d010=at(0,1,0,ch); let d110=at(1,1,0,ch);
             let d001=at(0,0,1,ch); let d101=at(1,0,1,ch); let d011=at(0,1,1,ch); let d111=at(1,1,1,ch);
@@ -73,7 +76,7 @@ impl DensityMacroSampler {
             let d0=d00+(d10-d00)*fy; let d1=d01+(d11-d01)*fy;
             interp[ch] = d0 + (d1 - d0)*fz;
         }
-        self.combine.sample_combine(pos, &interp)
+        self.combine.sample_combine(pos, &interp[..nch])
     }
 }
 impl ChunkDensitySampler for DensityMacroSampler {
@@ -336,7 +339,10 @@ impl TranspilerDensity {
             let cell_idx = ((cy+dy)*gz + (cz+dz))*gx + (cx+dx);
             slices[cell_idx as usize * nch + ch]
         };
-        let mut interp = vec![0.0f64; nch];
+        // 栈数组替代每 block heap Vec 分配（热路径 ~98304 次/chunk，scout §1.5）
+        let mut interp = [0.0f64; 8];
+        debug_assert!(nch <= 8);
+        let nch = nch.min(8);
         for ch in 0..nch {
             let d000=at(0,0,0,ch); let d100=at(1,0,0,ch); let d010=at(0,1,0,ch); let d110=at(1,1,0,ch);
             let d001=at(0,0,1,ch); let d101=at(1,0,1,ch); let d011=at(0,1,1,ch); let d111=at(1,1,1,ch);
@@ -345,7 +351,7 @@ impl TranspilerDensity {
             let d0=d00+(d10-d00)*fy; let d1=d01+(d11-d01)*fy;
             interp[ch] = d0 + (d1 - d0)*fz;
         }
-        crate::generated_density::compute_final_density(&self.noises, &interp, pos.x as f64, pos.y as f64, pos.z as f64)
+        crate::generated_density::compute_final_density(&self.noises, &interp[..nch], pos.x as f64, pos.y as f64, pos.z as f64)
     }
 }
 impl ChunkDensitySampler for TranspilerDensity {

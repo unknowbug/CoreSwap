@@ -200,3 +200,30 @@ build.gradle 映射清单补对应行（每新增一个系统属性同步加一�
 - **伪残差签名**：失配率量级与「某生成阶段的产物量」同阶（如 ~3.4% vs feature 覆盖率），且失配块集中在该阶段产物 id 上 → 先怀疑跨阶段参照，不怀疑实现差。
 - 附记（同课题坐标坑）：benchOriginX/Z = 块坐标（wx=origin/16+cx），chunk 3200 区传 51200/51328——采集命令与参照 origin 核对用同一单位。
 - 同族：workflow-patterns #4（参照状态三查，阶段同源意识）/#14（探针阶段同源性）；本条补齐「文件级参照的阶段指纹核对」操作判据。上游结论见 `.artifacts/b1-candidates/amplification-verdict-260902-10.md`。
+
+## 发现 #11: header/文件名本身也可能是错的——参照核对以内容实测坐标为准 + 探针带恒等式自检（260903-02）
+
+- **发现时间**：260903-02（lossless-accel 课题 P0-① 探针踩坑，五段式见 `.investigations/lossless-accel/lossless-accel-errors.md` LL2）；**置信度**：draft；**module**：re-code/swe 通用。
+
+### 现象
+
+参照文件 `vanilla_..._4_-288_-256_FULL.bak.blocks`（E:\python\MC\data\）文件名与 header origin 均为 (-288,-256)，Python 直读二进制实测内容 chunk 坐标为 (-18..-15, -16..-13)——header origin 字段与内容不符，文件名同被误导。按 header 配对的探针报告「match 差 12321 块」与同运行内「分解计数差 0」自相矛盾。
+
+### 根因
+
+header origin 是导出工具写入的**声明**，不是数据的**实测**——写 header 的代码与写 chunk 的代码可能不同源/不同步。五要素核对（#10）核对的是声明字段，声明本身可漂移；跨工具 chunk 配对以声明为键即产生假配对，差异被归因到错误一侧。
+
+### 定位
+
+python 直读二进制逐 chunk 打印坐标：header 32 字节（magic u32 + seed i64 + size/ox/oz/minY/height 5×i32）；每 chunk = 8B 坐标 + bpc*2 blocks + 256 个 u16 前缀计数的变长 biome 段。实测内容坐标 vs header 声明即暴露不符；同运行内恒等式自检（match 差 ≠ 分解计数差）一次即确认假配对。
+
+### 修复
+
+跨工具 chunk 配对/对比一律以**文件内容实测坐标**为键，header/文件名/注释仅作线索不作判据；探针必须内置恒等式自检（配对 match 差 ≡ 分解计数差，违反即报假配对拒绝出数）。
+
+### 教训/如何利用
+
+- **判据再升级**：五要素核对声明字段 + 内容指纹验 stage 之外，**声明字段本身也要与内容实测交叉验证**——「字段说 X」≠「数据是 X」。
+- 恒等式自检是识别假配对的最廉价手段：同一数据两种独立口径必须相等，不等即配对/坐标系出错。
+- 历史对比未污染的原因：handle_probe 用文件内坐标生成对比侧（自洽）——侧证「内容实测键」天然免疫 header 谎报。
+- 同族：workflow-patterns #13/#16；上游：build-tooling #10（本条为其第二次升级）。

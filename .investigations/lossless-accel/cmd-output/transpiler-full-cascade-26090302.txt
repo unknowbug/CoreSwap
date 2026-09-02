@@ -1,0 +1,10 @@
+
+    Finished `release` profile [optimized] target(s) in 1.17s
+     Running `target\release\transpiler_prod_blocks.exe`
+ref: magic=0x57474232 seed=-8248318472910187742 size=4 origin=(-288,-256) minY=-64 height=384
+ref chunk coords: [(-18, -16), (-17, -16), (-16, -16), (-15, -16), (-18, -15), (-17, -15), (-16, -15), (-15, -15), (-18, -14), (-17, -14), (-16, -14), (-15, -14), (-18, -13), (-17, -13), (-16, -13), (-15, -13)]
+TranspilerDensity vs DensityMacroSampler blocks: match=1542602/1572864 (98.08%)  nonAir=468018/498280 (93.93%)
+FULL cascade decomposition: td!=ms diff-blocks total=30262
+  broke(ms_ok,td_bad)=19111 gained(ms_bad,td_ok)=1387 both_wrong=9764  net=broke-gained=17724
+  (identity check: net must equal match_ms - match_td = 17725 from handle_probe runs)
+

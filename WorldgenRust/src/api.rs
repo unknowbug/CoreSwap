@@ -35,7 +35,9 @@ fn adaptive_threads(param_threads: i32, count: usize) -> usize {
         let t = physical.saturating_sub(2).max(1); // 留 2 核
         t
     };
-    threads.min(count).max(1) // clamp 到任务数
+    // MT3 修复（对齐 C++ 候选方案）：count=1（实机 M=1 每次单 chunk 调用）不 clamp，
+    // 池按请求线程数建 worker 并保持——否则每次调用池被 clamp 到 1 worker = 结构性串行。
+    if count > 1 { threads.min(count).max(1) } else { threads.max(1) }
 }
 
 // 输出指针 Send 包装：闭包调用 write() 方法（而非访问 .0 字段）写自己线程的 out，

@@ -700,3 +700,12 @@ entries:
     kind: analysis
     status: confirmed
     # 用户确认 260902-11：B1 残差 = 密度零面擦边格符号翻转，机制类 = FP 求值序微差（A1/A3 不可区分，量级为推断）；99.9992% 封顶结案。
+
+  # === extreme-coord-stress（极端坐标 FP 应力测试，260902，用户拍板封存）===
+  - id: 're-code:extreme-coord-stress:verdict-260902'
+    path: 'extreme-coord-stress/verdict-260902.md'
+    kind: analysis
+    status: confirmed
+    # 用户拍板封存：±30M 极限坐标四区最差 98.59%（≥95% 预登记线），表面高度零漂移，无地形颠覆；
+    # 泥土带系统差（stone/sand→dirt，~1%，y22-53 带）经普通坐标对照证明非坐标引起——遗留项醒目标注仅记录；
+    # judge 通过（C1/C2 修正闭环）。证据：cmp_*.out.txt（.tmp/extreme/）+ judge-opinion-260902.md

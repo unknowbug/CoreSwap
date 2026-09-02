@@ -2578,3 +2578,24 @@ C3 措辞采纳授 candidate / 不补 Java 配对采样（接受机制类收敛�
 - ✅ **A4 排除前提闭合（Degraded 级静态核验）**：versions/1.20.1/cpp 全部 .h/.hpp/.cpp 零 SIMD intrinsic / 零 pragma simd——「C++ dll 无显式向量化 noise 路径」成立（编译器自动向量化不在核验范围，保留声明）；Rust 侧 noise.rs 确有显式 AVX 路径 sample_section_avx（cfg target_feature="avx"）。verdict 第 3 条 idk 注记由本轮补证闭合。
 - 📝 **知识库落盘（subagent 草稿 → 主会话应用）**：09 篇追加「B1 零面擦边定案」小节；可复用判据「零面擦边格签名判别法」→ workflow-patterns 发现 #15。
 - 🔍 下一步（继承 NEXT_SESSION 优先级）：多 seed/多 biome 泛化重采样。
+
+## 260902-14（极端坐标 FP 微差应力测试：±30M 无地形颠覆 + 泥土带系统差遗留 + 课题封存）
+
+### ✅ 采样矩阵（4 极限 + 1 对照，每区 1,572,864 块）
+2 seed（±7159…337）× ±30M 双极限角 + 普通坐标对照（chunk 200,200）；WGB2 端到端逐位，dll sha256=68d7f401 与 B1 同构建；每跑 seed 三查（server.properties 备份/删 world/worldSeed 日志核对），ref 跑无 CppBridge、cpp 跑 populateNoise intercepted 16/16。四极限区 98.85–99.85%（≫95% 预登记线），对照 98.5914%。✅
+
+### ✅ 对照归因 → 封存
+对照区一致率低于全部极限区 + 泥土带在对照区同样出现（17,754 vs 12k-18k）→ 失配主体非坐标极端化引起；排除泥土带后极限区只剩 B1 同族 FP 擦边散簇（区④ 466 个，最大 522）→ FP 微差不随坐标爆炸，课题封存。负轴区④为四区最佳 → 负坐标无结构崩坏（floorDiv 前科未复现）。✅
+
+### ✅ judge 通过 + 用户拍板封存
+judge 三源核对 PASS（数字抽查/判据忠实度/归因/§9.7/日志污染/遗留项可见性），CONCERN C1（index.yaml 登记）/C2（派生统计落盘）已闭环（derive_stats.out.txt 复现五区 y 分带与簇统计）。用户拍板：课题封存；泥土带系统差醒目标注、仅记录不下钻。✅
+
+### 📝 4 个新坑（高价值，详录 facts-260902.md）
+1. **gradle 沙箱坑复现**（= build-tooling #7）：`Failed to load native-platform.dll` → `GRADLE_USER_HOME=.gradle-home` + `JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=.tmp\java-tmp` 修复。
+2. **cppWorldgenDir 必须显式**：缺 `-PcppWorldgenDir` → `worldgen-data not found in mod resources`（runServer dev 模式 mod=classes 目录，jar 内解压路径失效）→ 显式传 `versions/1.20.1/data/worldgen`。
+3. **WGB2 overworld 每 chunk id 数 = 98304**（256×height=384，非 nether 65536）——解析器按 65536 读 → stride 错位假坐标；正确格式 BlockProbe.java L477-485/L921-938。
+4. **正极限原点越界**：chunk 1874999 为世界最后合法 chunk，原点 29999984 + size=4 会越界 → 取 29999936（chunk 1874996..1874999）。
+
+### 📌 记录指引
+- 结论 + ⚠️ 泥土带醒目小节 → 09 篇追加「极端坐标应力测试定论」小节（全新，无 supersedes）。
+- 状态：candidate（用户已拍板封存）。🔍 遗留：泥土带系统差仅记录不下钻（开逐位 100% 对齐课题须先 biome 归因 fan-out）。
