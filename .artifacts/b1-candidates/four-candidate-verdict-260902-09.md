@@ -1,7 +1,7 @@
-# B1 四候选判别结论（260902-09 · draft → candidate 建议已过 judge）
+# B1 四候选判别结论（260902-09 · confirmed，260902-09 用户拍板）
 
 > session 260902-09 · seed 8576294172403134396 · chunk(3200..3203, 3208..3211) 4×4 · biome=basalt_deltas 单一
-> judge：建议授予 candidate（条件项已闭环，见 review-260902-judge-b1.md）；confirmed 留人类。
+> judge：建议授予 candidate（条件项已闭环，见 review-260902-judge-b1.md）；**confirmed 已由用户拍板授予（260902-09）**。外推边界不变：单 seed/单 biome/4×4。
 
 ## 结论
 

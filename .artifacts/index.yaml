@@ -5,7 +5,7 @@ entries:
   - id: 're-code:b1-candidates:four-candidate-verdict-260902-09'
     path: 'b1-candidates/four-candidate-verdict-260902-09.md'
     kind: analysis
-    status: candidate
+    status: confirmed
   - id: 're-code:rust-density-builder:alignment'
     path: 'rust-density-builder/rust-density-builder-alignment.md'
     kind: analysis

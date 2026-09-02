@@ -635,6 +635,6 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 
 ### 状态
 
-- 数据直读部分 candidate（已过 judge）；归因定论 candidate 待用户拍板 confirmed。产物 = `.artifacts/b1-candidates/four-candidate-verdict-260902-09.md`；审查 = `.investigations/b1-candidates/review-260902-judge-b1.md`。
+- **confirmed（260902-09 用户拍板；外推边界单 seed/单 biome/4×4 不变）**。产物 = `.artifacts/b1-candidates/four-candidate-verdict-260902-09.md`；审查 = `.investigations/b1-candidates/review-260902-judge-b1.md`。
 
 
