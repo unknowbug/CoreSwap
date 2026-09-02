@@ -2532,3 +2532,28 @@ Rust surface skip 输出统一 default block id=1，材质在 surface 层 → NO
 ### 附带
 gradle --nogui 非 CLI 选项（runServer 失败）；build.gradle rustStages 缺 -P→-D 映射行（已补）。工具遗产：bin-diag b1_noiseonly/surfaceonly_dump.rs，.tmp/compare_*.py、overlap_check.py、judge_followup.py。
 
+
+## 260902-10（feature/carver 放大系数量化 + ~3.4% 存档残差改判：参照口径阶段污染）
+
+### 🔍→✅ 盘点发现区域缺口
+C5 桥接（3200 区 26 种子 → 200 区 3.4% 残差）盘点证伪：200 区 vs 3200 区数据不同域；上轮 b1_blob_amp_sim（INSUFFICIENT 10.8×）输入 = 200 坐标旧 bug dump，结论作废未继承。✅
+
+### ✅ 同域采集
+3 次运行 seed 三查全过（worldSeed=8576294172403134396，log：.tmp/amp-van-ref-run.log / amp-cppreplace-run.log / amp-cppreplace-run200.log）；dll sha256 一致（68d7f401）；stageMask=3。benchOrigin 坑：benchOriginX/Z 是块坐标（chunk 3200 区传 51200/51328）。✅
+
+### ✅ 3200 区 16 块全落种子列
+fresh vanilla FULL vs cppReplace 存档 = 16/1048576（0.0015%），100% 落 B1 的 13 列 NOISE 微差 + 1 列 surface-only 差 → 放大系数 0.62 < 1，不存在（amp_step2_join.out.txt）。✅
+
+### ❌→✅ 200 区 20% 异常 → 三方判别
+200 区 fresh vs old ref = 214,474（20.4538%）异常高（amp_step3_region200.out.txt）；三方判别（amp_step4_crosscheck.out.txt）：old ref vs fresh = 20.45%、fresh vs cpp = 0.0000% → 异常收敛到 old ref 一侧。✅
+
+### ✅ old ref = SURFACE 参照定性 → 改判
+old ref（sha256 02b94092f917cb5d）内容指纹缺矿石 417/607/45、cave_air 730、basalt blob → 是 SURFACE 阶段参照被当 FULL 用，贯穿 M16→V5 多轮（96.62%/13.7%/22.5%/3.4% 全是口径污染链）→ ~3.4% 存档残差 = 跨阶段伪残差，改判 supersedes C5 条残差归因（verdict：.artifacts/b1-candidates/amplification-verdict-260902-10.md）。✅
+
+### ✅ judge + 端到端水平
+judge 0 BLOCKER，建议 candidate（review-260902-10-judge-amplification.md）；区域差异自洽（200 区无种子→无残差）补进 verdict 第 5 条；当前 dll 端到端真实对齐 = 两区合计 16/2097152 = 99.9992%。✅
+
+### 📌 记录指引
+- 结论 → 09 篇追加「feature/carver 放大系数定案」小节（supersedes C5 条，原节不删）。
+- 教训 → 参照文件核对升级五要素（seed/size/origin/dim/stage 内容指纹）→ build-tooling 发现 #10；benchOrigin 块坐标坑同条附记。
+- 状态：candidate（judge 建议授予）；confirmed 待用户。🔍 下一步：B1 NOISE 微差下钻（16 块，外推边界不变）。

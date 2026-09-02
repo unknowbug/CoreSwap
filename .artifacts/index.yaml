@@ -686,3 +686,11 @@ entries:
     # judge 审查（2026-09-02）：三源核对 PASS ×2 + 判据链 CONCERN（首分叉判据错标已订正：同 x,y 异 z + 跨 chunk 行对齐伪影；
     # vanilla colprof 轮 seed 间接声明）。建议：可开工 Rust 修复；confirmed 待回归三判据 + LAVAAUDIT。
 
+  # === 放大系数量化（260902-10，cppReplace 存档 vs fresh vanilla FULL 同域对拍；待 judge + 用户拍板）===
+  - id: 're-code:b1-candidates:amplification-verdict-260902-10'
+    path: 'b1-candidates/amplification-verdict-260902-10.md'
+    kind: analysis
+    status: candidate
+    # feature/carver 放大系数 = 不存在（200 区 0 失配逐位一致；3200 区 16 块全部落 B1 差异列，系数 0.62<1）；
+    # supersedes C5 条「~3.4% 残差主体归因 feature/carver」——3.4% = FULL 存档 vs SURFACE 阶段参照（02b94092）跨阶段伪残差。
+

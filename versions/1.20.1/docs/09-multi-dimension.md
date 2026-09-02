@@ -638,3 +638,31 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 - **confirmed（260902-09 用户拍板；外推边界单 seed/单 biome/4×4 不变）**。产物 = `.artifacts/b1-candidates/four-candidate-verdict-260902-09.md`；审查 = `.investigations/b1-candidates/review-260902-judge-b1.md`。
 
 
+---
+## feature/carver 放大系数定案：不存在——存档残差在 surface 层闭合 + 历史「~3.4% 存档残差」改判参照口径污染（candidate，260902-10）
+
+> **[supersedes 260902-10，§15.4 双指针]** 本节取代：「B1 四候选判别定案」（260902-08/09）中「真实存档残差（~3.4%）主体归因 feature/carver 链路差（放大系数未量化，idk）」一条——被取代对象不删不改。推翻理由 = ① 参照口径阶段污染（run3-6 的对比参照实为 SURFACE 阶段参照，「~3.4%」是 FULL 存档 vs SURFACE 参照的跨阶段伪残差）；② 同域重测放大系数不存在（surface 层微差经 feature/carver 链路无放大，系数 0.62 < 1，残差在 surface 层即闭合）。
+
+### 定案结论（candidate，judge 0 BLOCKER 建议授予；confirmed 待用户拍板）
+
+1. **feature/carver 放大系数 = 不存在（不适用）**。cppReplace 存档（stageMask=3，Java carver/feature 照跑）vs 同期新鲜 vanilla FULL 参照：
+   - **200 区（biome 边界混合区，chunk 200..203）**：0 / 1,048,576 = 0.0000% 失配（逐位一致）；
+   - **3200 区（basalt_deltas 单一 biome 区，chunk 3200..3211）**：16 / 1,048,576 = 0.0015% 失配，16 块全部落在 B1 已判定的 13 列 NOISE 微差 + 1 列 surface-only 差（种子列集合上 100%）。
+   - 26 种子单元 → 16 块存档失配，系数 0.62 < 1：surface 层微差在 feature/carver 链路无放大，端到端残差在 surface 阶段即闭合。
+2. **历史「~3.4% 存档残差」（run3-6，96.6215% 口径）改判为参照口径污染**：其对比参照 = `versions/1.20.1/data/vanilla_8576294172403134396_4_3200_3208_nether.blocks`（sha256 02b94092f917cb5d）——该文件是 **SURFACE 阶段参照**（缺矿石 417/607/45、cave_air 730、basalt blob 等 feature/carver 产物；docs/09「真 SURFACE 参照 hash 02B94092」即此文件），不是 FULL 参照。「3.4%」= FULL 存档 vs SURFACE 参照的**跨阶段伪残差**，与已废除的 13.70% air / 22.5% SURFACE 同病（测量口径阶段污染）。
+3. **当前 dll 端到端对齐真实水平**：两区合计 16 / 2,097,152 = 99.9992%，16 块全部可归因 B1 NOISE 单元格微差（外推边界不变：单 seed / 双区域 / 4×4）。
+4. **区域桥接缺口（附带发现，已闭合）**：C5 原文以 3200 区 26 种子桥接 200 区 3.4% 残差——两区数据本就不同域，该桥接作废。
+5. **区域间差异自洽性**：200 区 0 残差与 3200 区 16 块残差不矛盾——反向命题成立：200 区 NOISE 层与 vanilla 完全一致（不含 B1 的 13+1 差异列种子），故无种子即无残差；残差只出现在有 surface 微差种子的列，正是「放大系数不存在、残差在 surface 层闭合」的预期结果。另：两区 cppReplace 数据来自两次独立运行（同 dll sha256=68d7f401、同 seed、同 stageMask=3），跨运行稳定。
+
+### 口径声明（§9.7 三要素同行）
+
+| 对比 | 载体 | 覆盖面 | 失配 | 可比性 |
+|---|---|---|---|---|
+| fresh vanilla FULL vs cppReplace 存档（200 区） | 存档读回 MCA vs BlockProbe FULL 导出（同日采集） | 4×4@200..203 × y0..255 | 0（0.0000%） | 与历史 96.62%/3.4%/93.x 不可比（那些参照=SURFACE 阶段） |
+| fresh vanilla FULL vs cppReplace 存档（3200 区） | 同上 @3200..3211 | 4×4 × y0..255 | 16（0.0015%），100% 落 B1 差异列 | 同上 |
+| old ref(02b94092) vs fresh vanilla（200 区） | — | 同上 | 214,474（20.4538%）：old ref 缺 feature/carver 产物 | 证明 old ref 非 FULL |
+| cppReplace 内存导出 vs 存档读回（200 区） | benchOut .blocks vs MCA | 同上 | 0（0.0000%） | 读回无损 |
+
+### 状态
+
+- **candidate（260902-10，judge 0 BLOCKER 建议授予；confirmed 待用户）**。supersedes 仅限 four-candidate-verdict C5 条的残差归因与放大假设；C1-C4、signature A（biome 3.7% 真差）、soul_soil V1 不动。产物 = `.artifacts/b1-candidates/amplification-verdict-260902-10.md`；审查 = `.investigations/b1-candidates/review-260902-10-judge-amplification.md`；过程 → 10 时间线 260902-10 条；参照五要素教训 → build-tooling 发现 #10。3200 区 16 块明细可下钻 B1 NOISE 微差（外推边界不变）。

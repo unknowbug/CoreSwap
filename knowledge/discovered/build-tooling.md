@@ -173,3 +173,30 @@ build.gradle 映射清单补对应行（每新增一个系统属性同步加一�
 - **修复**：--nogui 从 CLI 去掉（programArgs 已有）；build.gradle 补 `rustStages` 映射行；补后 `gradle --stop` 防 daemon 缓存（#8 三犯）。
 - **教训/如何利用**：gradle run* 任务自定义参数先看 build.gradle 三层接线（CLI 选项/programArgs/-P→-D 映射）再传，勿按直觉传。与发现 #8 同族，本条补 runServer + programArgs 场景。
 
+
+## 发现 #10: 参照文件核对四要素不够——文件名不含 stage，SURFACE 参照被当 FULL 用贯穿多轮；判据升级五要素 + 内容指纹（260902-10）
+
+- **发现时间**：260902-10（amplification 课题）；**置信度**：candidate（judge 0 BLOCKER，confirmed 待用户）；**module**：re-code。
+
+### 现象
+
+历史「~3.4% 真实存档残差」（run3-6，96.6215% 口径）参照 = `versions/1.20.1/data/vanilla_8576294172403134396_4_3200_3208_nether.blocks`（sha256 02b94092f917cb5d）——文件名四要素（seed/size/origin/dim）核对全过，但该文件实为 **SURFACE 阶段参照**。FULL 存档 vs SURFACE 参照 → feature/carver 产物（矿石 417/607/45、cave_air 730、basalt blob）全被计为失配 → 伪残差 3.4%，并引出「feature/carver 放大假设」整条错误方向（贯穿 M16→V5 多轮：96.62% / 13.7% / 22.5% / 3.4% 同一污染链）。同轮还踩 benchOriginX/Z 是块坐标非 chunk 坐标（chunk 3200 区要传 51200/51328，wx=origin/16+cx）。
+
+### 根因
+
+参照文件核对判据缺**阶段（stage）**维度——文件名只含 seed/size/origin/dim 四要素，SURFACE 参照与 FULL 参照在文件名上不可区分；而两者内容差异巨大（feature/carver 产物只在 FULL 产物出现）。四要素核对通过 ≠ 参照口径正确；跨阶段对比的差异量天然等于两阶段产物差，任何归因结论都建立在伪残差上。
+
+### 定位
+
+三方判别法：同一区域 fresh vanilla FULL vs old ref = 20.4538% 失配（old ref 缺 feature 产物），fresh vanilla vs cppReplace = 0.0000% → 异常收敛到 old ref 一侧；再对 old ref 做内容指纹（阶段特征 id 有无）定性为 SURFACE 参照。证据：.tmp/amp_step3_region200.out.txt（20.45%）、amp_step4_crosscheck.out.txt（0.0000% + top pairs 独立佐证）、amp_step2_join.out.txt（同域重测 16/1048576，放大系数 0.62 < 1 不存在）。
+
+### 修复
+
+参照文件核对判据升级**五要素**：seed / size / origin / dim / **stage**。文件名不含 stage 时用**内容指纹**判定：阶段特征 id 有无——nether 矿石（417/607/45）、cave_air（730）、basalt blob 族只在 FULL 产物出现，全无即 SURFACE 参照。对比前先定性两侧阶段同源，再谈失配率归因。
+
+### 教训/如何利用
+
+- **判据**：拿到任何参照 .blocks 文件，第一动作不是跑对比，是按五要素核对——四要素对上后必须补一步内容指纹验 stage（grep 阶段特征 id 计数）。
+- **伪残差签名**：失配率量级与「某生成阶段的产物量」同阶（如 ~3.4% vs feature 覆盖率），且失配块集中在该阶段产物 id 上 → 先怀疑跨阶段参照，不怀疑实现差。
+- 附记（同课题坐标坑）：benchOriginX/Z = 块坐标（wx=origin/16+cx），chunk 3200 区传 51200/51328——采集命令与参照 origin 核对用同一单位。
+- 同族：workflow-patterns #4（参照状态三查，阶段同源意识）/#14（探针阶段同源性）；本条补齐「文件级参照的阶段指纹核对」操作判据。上游结论见 `.artifacts/b1-candidates/amplification-verdict-260902-10.md`。
