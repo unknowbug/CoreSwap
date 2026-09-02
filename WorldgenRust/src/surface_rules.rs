@@ -1087,6 +1087,9 @@ impl<'a> SurfaceBuilder<'a> {
             if let Some(a) = j.get("anchor") {
                 let anchor_y = Self::parse_anchor_abs_y(a, min_y, height);
                 let add_stone_depth = Self::parse_bool_field(j, "add_stone_depth");
+                // ⚠️ 跨版本风险点（260902-04 标注）：mult 硬编码 0——nether 的 y_above 条目
+                // 全部 offset=0，恒等；但 1.20.1 之外若出现 offset≠0 的 y_above，此处会静默
+                // 语义偏差。升级 MC 版本时 MUST 从 JSON anchor/offset 派生 mult，不再硬编码。
                 return Some(SurfaceCond::AboveY { anchor_y, mult: 0, add_stone_depth });
             }
         }
@@ -1120,6 +1123,9 @@ impl<'a> SurfaceBuilder<'a> {
         if type_name.contains("hole") { return Some(SurfaceCond::Hole); }
         if type_name.contains("steep") { return Some(SurfaceCond::Steep); }
         if type_name.contains("water") {
+            // ⚠️ 跨版本风险点（260902-04 标注）：mult 硬编码 0（overworld 代码规则的
+            // WaterCond 才用 mult；nether JSON water(-1,0)/water(0,0) 恒等，当前无影响）。
+            // 出现 offset≠0 或 fluid 非水的 water 条目时此处会静默语义偏差，升级时 MUST 派生。
             return Some(SurfaceCond::Water {
                 offset: j.get("offset").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
                 mult: 0,

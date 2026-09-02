@@ -249,9 +249,18 @@ impl WorldgenHandle {
         let rule = if df_ns2 == "overworld" {
             sb.build_overworld_rule()
         } else {
+            // fail-fast（judge 建议，260902-04）：非 overworld 维度 surface_rule 缺失/解析失败
+            // 曾静默回退 overworld 代码规则——错误数据被掩盖成「对齐率莫名下降」，
+            // 改为直接 panic 暴露配置/解析问题（对齐 C++ worldgen_api.cpp 的报错路径语义）。
             match settings.get("surface_rule") {
-                Some(sr) => sb.parse_surface_rule(&sr, min_y, noise_height).unwrap_or_else(|| sb.build_overworld_rule()),
-                None => sb.build_overworld_rule(),
+                Some(sr) => match sb.parse_surface_rule(&sr, min_y, noise_height) {
+                    Some(r) => r,
+                    None => panic!(
+                        "[surface] settings '{}' surface_rule 解析失败（不支持的节点/缺字段），fail-fast 拒绝回退 overworld 规则",
+                        df_ns2
+                    ),
+                },
+                None => panic!("[surface] settings '{}' 缺少 surface_rule 字段，fail-fast", df_ns2),
             }
         };
 

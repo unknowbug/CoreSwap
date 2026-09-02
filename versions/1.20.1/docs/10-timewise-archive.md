@@ -2468,4 +2468,14 @@ eview-fillchunk-grid-alignment.md）确认「80× = 根本」归因错误——�
 - 通用模式 → `knowledge/discovered/compiler-idioms.md` 发现 #8（布尔字段 as_f64 恒 false）+ `knowledge/discovered/workflow-patterns.md` 发现 #12（静态对拍须对拍解析产物）。
 - 状态：根因 + 修复有效性 candidate（judge PASS 建议）；confirmed 留用户。
 
+## 260902-04（实际 2026-09-02 15:45 = 本轮提交簇 git 时间戳锚；V5 残差排查）
+
+- ✅ **存档口径复现**：nether 4x4@3200,3208 seed B = 96.6215%，与 confirmed 逐位一致（seed 三查 ✓；本轮三犯防住：权威 run 目录 = `runtime/1.20.1/java/run`，勿被 `E:\PYTHON\MC` 旧快照误导）。
+- ❌→✅ **探针坐标 bug 假象（错误链，高价值）**：wBiome 误用 chunk 局部 x,z（0-15）调 world.getBiome → 实查 chunk(0,0)=warped_forest → 35426 列 biome 100% 单向假象 → 一步裁决探针 4 层收敛（biome 列对比→6 维对拍→storage cell dump→整列 storage vs biomeAccess）锁定 → 修正为世界坐标。教训沉淀 → workflow-patterns 发现 #13。fan-out .b6（存储填充异常）随修正**排除**。
+- ✅ **残差归因闭合（candidate，judge 有条件 PASS）**：96.3% 残差列 biome 一致 → 残差主体 = basalt_deltas 同 biome 表面规则差（B1 家族本体）；签名 A（ssv↔basalt 互换）降级 1303 列 ≈ 3.7%；分类器 4 点 6 维逐位一致排除（.b1/.b2/.b4）。per-id：netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / gravel 0。→ 09 篇新小节。
+- 📝 **gradle -P 映射坑三犯**：biome6.points / biome6.cellDump / biome6.colDump 前两次忘加 -P→-D 映射行静默不生效 → build-tooling 发现 #8。
+- 📝 **容差实例更新**：basalt −1736（run2）vs −1050（本轮），量级一致数值漂移 ~686，佐证 #10 非确定容差判据。
+- 📝 **T4 工程加固**：worldgen_handle.rs parse_surface_rule 静默回退 → fail-fast（panic）；surface_rules.rs AboveY/Water mult 硬编码 0 跨版本风险标注；重编 dll 回归 96.6215% 不变（cargo check + 内容字符串验证）。
+- 🔍 **下一步**：B1 下钻（nether_state_selector 采样 / delta 分支进出 / blackstone·basalt 分配）；签名 A 独立修（biome 边界/offset 精度）。
+
 

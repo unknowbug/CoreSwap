@@ -536,4 +536,32 @@ oise_settings/<mod_dim>.json\ + \density_function/<mod_dim>/*.json\ + biome para
 
 - **confirmed（260902-03 用户拍板；judge PASS，review-001）**；supersedes 双指针：v3-structure-diff.md 参数对拍子项被 `.artifacts/.b2-soul/v4-eval-conflict.md` 细化取代。过程 → 10 时间线 260902-03 条。
 
+## V5 残差归因：主体 = 同 biome 表面规则差（B1 家族本体），签名 A 降级 3.7%（candidate 待 judge，260902-04）
+
+> 承接「布尔字段解析 bug 修复」节遗留的 V5 biome 边界带课题。本节 supersedes 前置假设「biome 分类器/存储填充异常（fan-out .b6）」——该假设由探针坐标 bug 假象制造（见 10 时间线 260902-04 条 + workflow-patterns 发现 #13），修正后排除。验证分层 **Partial**（ReadWorldProbe biome 列对比 + BIOME6/biome6_dump 6 维对拍 + storage cell dump，非逐位 Full）。
+
+### 残差真图景（修正 wBiome 坐标 bug 后，mismatch-nether-run6.csv）
+
+- 35426 mismatch 列中 **96.3% biome 完全一致**（basalt→basalt 32817 列 + ssv→ssv 1306 列）→ 残差主体 = **basalt_deltas biome 内 surface rule 分支判定差**（vanilla 写 basalt/blackstone 的列，Rust 写 netherrack 或 basalt/blackstone 互换）——与 B1 家族（basalt −1736/blackstone −434）同族本体，下钻候选：nether_state_selector 采样 / delta 分支进出条件 / blackstone·basalt 分配。
+- **签名 A（biome 边界带）降级为次要项**：biome 真差仅 1303 列 ≈ 残差 3.7%（ssv→basalt 676 + basalt→ssv 627，边界互换）——可单独修（biome 6 维边界/offset 距离精度），非残差主体。
+
+### 分类器排除证据链
+
+- Java BIOME6 与 Rust biome6_dump 同 4 点 6 维值**逐位一致**（t=-0.5598/h=-0.2920 等）；两侧数学均判 basalt_deltas（dist 0.119 vs warped 1.080，非平局）→ 排除 offset 维语义（.b1）、shift/Perlin 种子差（.b2）、SearchTree 平局（.b4）。
+- Rust 独立分类器（生产同路径组件重组）判定与 vanilla 参照一致；fillChunkNether 只写方块无 biome 写入；BIOMES 阶段 biome 容器由 Java 填充。
+
+### per-id 量化（vanilla→save 净差，match 行精确等价法，judge 独立复核正负归零 ±1965）
+
+netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sand +37 / gravel 0；tail：quartz_ore +82 / lava −109 / air −128 / gold_ore −26 / magma +9 / red_mushroom +1（id→名 = data/blocks.json；basalt+blackstone −1702 ≈ netherrack+soul_soil +1836，delta 族互换闭环）。basalt −1736（run2）vs −1050（本轮）漂移在 #10 非确定容差内。
+
+### 口径声明（§9.7 三要素）
+
+- 残差/对齐：存档读回 vs vanilla 参照 blocks（B/4/3200,3208/nether），与 M16 起 96.62% 口径可比；本轮复现 96.6215% 与 confirmed 逐位一致（seed 三查 ✓）。
+- biome 对比：ReadWorldProbe CSV（vanilla 列 biome @y=100 world.getBiome 平滑值 vs save 同方法）+ BIOME6/biome6_dump 原始 router 采样（UnblendedNoisePos 直采）——两口径分列，不混比。
+- 覆盖面：单 seed B、单 4x4 域，占比外推性有限。
+
+### 状态
+
+- **candidate（judge 有条件 PASS 260902-04，P1-P5 已落实；confirmed 留用户）**。过程 → 10 时间线 260902-04 条；探针坐标 bug 教训 → workflow-patterns 发现 #13。
+
 
