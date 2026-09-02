@@ -694,3 +694,9 @@ entries:
     # feature/carver 放大系数 = 不存在（200 区 0 失配逐位一致；3200 区 16 块全部落 B1 差异列，系数 0.62<1）；
     # supersedes C5 条「~3.4% 残差主体归因 feature/carver」——3.4% = FULL 存档 vs SURFACE 阶段参照（02b94092）跨阶段伪残差。
 
+
+  - id: 're-code:b1-noise-drill:noise-drill-verdict-260902-11'
+    path: 'b1-noise-drill/noise-drill-verdict-260902-11.md'
+    kind: analysis
+    status: confirmed
+    # 用户确认 260902-11：B1 残差 = 密度零面擦边格符号翻转，机制类 = FP 求值序微差（A1/A3 不可区分，量级为推断）；99.9992% 封顶结案。
