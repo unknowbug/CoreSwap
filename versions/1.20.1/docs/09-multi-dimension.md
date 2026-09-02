@@ -666,3 +666,30 @@ netherrack +1539 / basalt −1050 / blackstone −652 / soul_soil +297 / soul_sa
 ### 状态
 
 - **confirmed（260902-10 用户拍板；judge 0 BLOCKER 曾建议 candidate）**。supersedes 仅限 four-candidate-verdict C5 条的残差归因与放大假设；C1-C4、signature A（biome 3.7% 真差）、soul_soil V1 不动。产物 = `.artifacts/b1-candidates/amplification-verdict-260902-10.md`；审查 = `.investigations/b1-candidates/review-260902-10-judge-amplification.md`；过程 → 10 时间线 260902-10 条；参照五要素教训 → build-tooling 发现 #10。3200 区 16 块明细可下钻 B1 NOISE 微差（外推边界不变）。
+---
+## B1 NOISE 零面擦边定案：13 列微差 = 密度零面擦边格符号翻转，机制类 FP 求值序微差（confirmed，260902-12 用户拍板）
+
+> 承接「feature/carver 放大系数定案」（260902-10）第 5 条遗留的 3200 区 16 块下钻：13 列 NOISE 微差根因闭合。域边界继承：单 seed / 单 biome（basalt_deltas）/ 4×4。
+
+### 定案结论（confirmed；judge 有保留 C1-C4，修订已应用）
+
+- 13 个差异单元格**全部位于密度零面擦边带**（|d_exact| ≤ 2.27e-5，最小 3.7e-8）；全区 4×4×128 = 524,288 单元 |d| 普查擦边集仅 83 格（0.016%），与存档残差量级自洽——封闭验证通过。
+- 机制类 = **FP 求值序微差类（A1 随机舍入 vs A3 系统微差不可区分），非符号级/网格级结构错误**；微差量级为**推断**（Java 侧无配对实测，judge C1）。
+- A4（Rust AVX 专属）排除前提**已闭合**（260902-13）：C++ 侧全量静态核验 versions/1.20.1/cpp 零 SIMD intrinsic / 零 pragma simd（Degraded 级；编译器自动向量化不在核验范围）；Rust 侧 WorldgenRust/src/noise.rs 确有显式 AVX 路径（sample_section_avx）。
+- **封顶结案**：99.9992% 端到端对齐为当前架构实质上限附近；收窄需逐位复刻 Java 浮点求值序（成本高、跨平台脆弱）——不补配对采样、不下钻 A1/A3。残差 = 孤立单格 air 孔；对游戏行为影响评估无证据（@anchor.idk）。
+
+### 可复用判据（详版 → workflow-patterns 发现 #15）
+
+- **零面擦边格签名**：|d|≤~1e-5、孤立单格翻转、方向不系统 → FP 求值序微差类；判别手段 = 逐点 d_exact 探针 + 全区 |d| 普查封闭验证。~0.1 级 → 角点值错（结构性）；二分判据之间的量级（本例 1e-6..2e-5）归因为**推断**，配对实测前不可定言（judge C1/C2）。
+
+### 踩坑（高价值）
+
+- **census histogram 标签偏移坑**：b1_grazing_census.rs 打印桶标签与桶语义错位一格（实为 ≥1e-3 / [1e-4,1e-3) / [1e-5,1e-4) / [1e-6,1e-5) / (0,1e-6) / =0）——复用先修标签，计数以 grazing 变量为准。
+- **scout 小样例推断需全量复核**：scout 5 样例推「x 等差 9 贯穿」被全量 13 列否定（仅 4 列子簇）——弱证据标 draft 正确，消费前 MUST 全量核对。
+- **单侧数据不能定量言两侧差**：Rust 单侧普查只证「擦边+自洽」，Δd 需 Java 配对采样实测——后续引用勿把「~1e-6 级」当实测（judge C1 留痕）。
+- 普查阈值 1e-5 为**后验选择**，仅作封闭性统计，不作判据（judge N1）。
+
+### 口径声明（§9.7）与状态
+
+- 载体 = Rust 纯函数 d_exact 探针（bin-diag）+ 既有 dump 资产复现；覆盖面 = 单 seed/单 biome/4×4（外推边界不变）；块级口径（插值 cell）与逐点 d_exact 不同层，仅作擦边判定。
+- **confirmed（260902-12 用户拍板；judge 建议候选有保留）**。产物 = `.artifacts/b1-noise-drill/noise-drill-verdict-260902-11.md`；审查 = `.investigations/b1-noise-drill/review-260902-12-judge.md`；过程 → 10 时间线 260902-11..13 条；判据 → workflow-patterns 发现 #15。

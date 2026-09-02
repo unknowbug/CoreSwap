@@ -34,3 +34,6 @@
 - judge 审查（MUST，candidate 授予前）→ 用户拍板。
 - 用户决策点：是否继续下钻 A1 vs A3 精确归因（逐位复刻 Java 求值序），还是接受 99.9992% 封顶结案。
 - knowledge 草稿（subagent）：docs/09 追加小节 + docs/10 时间线 + workflow/compiler-idioms 可复用判据（零面擦边格签名：|d|≤~1e-5、孤立单格翻转、方向不系统）。
+
+---
+[260902-13 更新] 第 3 条 A4 idk 注记已由静态核验闭合：versions/1.20.1/cpp 全部 .h/.hpp/.cpp 零 SIMD intrinsic / 零 pragma simd（Degraded 级；编译器自动向量化不在核验范围）；Rust 侧 noise.rs 确有显式 AVX 路径 sample_section_avx。原文 idk 注记不删（§15.4 取代链：仅追加，不改写）。

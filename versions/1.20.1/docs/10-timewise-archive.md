@@ -2557,3 +2557,24 @@ judge 0 BLOCKER，建议 candidate（review-260902-10-judge-amplification.md）�
 - 结论 → 09 篇追加「feature/carver 放大系数定案」小节（supersedes C5 条，原节不删）。
 - 教训 → 参照文件核对升级五要素（seed/size/origin/dim/stage 内容指纹）→ build-tooling 发现 #10；benchOrigin 块坐标坑同条附记。
 - 状态：candidate（judge 建议授予）；confirmed 待用户。🔍 下一步：B1 NOISE 微差下钻（16 块，外推边界不变）。
+
+## 260902-11/12（B1 NOISE 微差下钻：零面擦边符号翻转定案 + 封顶结案）
+
+### 🔍→✅ scout 勘探 + 差异格 d_exact 逐点探针
+13 差异格全部落密度零面擦边带（|d_exact| ∈ [3.7e-8, 2.27e-5]），符号与 air 归属 13/13 自洽（10 列 rust 多 air / 3 列 vanilla 多 air，方向不系统）。✅
+### ✅ 全区普查封闭验证
+4×4×128 = 524,288 单元 |d| 普查：擦边集 83 格（0.016%），12/13 差异格落入（第 13 格 +2.27e-5 略超 1e-5 阈值；阈值为后验，仅统计用途）。与存档残差 0.00076% 同量级。✅
+### ❌→📝 scout 小样例推断被全量否定（高价值踩坑）
+scout 5 样例推「x 等差 9 贯穿」→ 全量 13 列核对仅 4 列子簇成立——弱证据 draft 标注正确，消费前必须全量复核。📝
+### 📝 census histogram 标签偏移坑（高价值踩坑）
+b1_grazing_census.rs 桶打印标签错位一格，以 grazing 计数为准；复用脚本先修标签。📝
+### ✅ judge 审查（0 BLOCKER，建议 candidate 有保留 C1-C4/N1-N4）
+核心保留：C1 Java↔Rust 数值差从未配对实测（单侧数据不能定量言两侧差）/ C2 量级分流居间、归因推断 / C3 措辞越界（已改「非符号级/网格级结构错误；A1 vs A3 不可区分」）/ C4 A4 排除前提未静态核验（补 idk）。修订全部应用。✅
+### ✅ 用户拍板三连 → confirmed
+C3 措辞采纳授 candidate / 不补 Java 配对采样（接受机制类收敛）/ A1-A3 不再下钻，99.9992% 封顶结案。verdict + index.yaml 回写 confirmed。产物 noise-drill-verdict-260902-11.md；过程详录 .investigations/b1-noise-drill/。✅
+
+## 260902-13（SIMD 静态核验闭合 A4 前提 + 知识库落盘）
+
+- ✅ **A4 排除前提闭合（Degraded 级静态核验）**：versions/1.20.1/cpp 全部 .h/.hpp/.cpp 零 SIMD intrinsic / 零 pragma simd——「C++ dll 无显式向量化 noise 路径」成立（编译器自动向量化不在核验范围，保留声明）；Rust 侧 noise.rs 确有显式 AVX 路径 sample_section_avx（cfg target_feature="avx"）。verdict 第 3 条 idk 注记由本轮补证闭合。
+- 📝 **知识库落盘（subagent 草稿 → 主会话应用）**：09 篇追加「B1 零面擦边定案」小节；可复用判据「零面擦边格签名判别法」→ workflow-patterns 发现 #15。
+- 🔍 下一步（继承 NEXT_SESSION 优先级）：多 seed/多 biome 泛化重采样。
