@@ -1,7 +1,7 @@
-# est-opt 结果（260903-11 · candidate，judge PASS 260903-11）
+# est-opt 结果（260903-11 · confirmed，用户拍板 260903-11）
 
 > 任务：est 查表化优化包（Q-AQ1 后继）。方案：b1-a est_at 共享（门控默认关）+ b1-b 跨 chunk est L2（门控默认关）。
-> 状态：**candidate**（judge PASS 4 CONCERN，R 项已修订；confirmed 待用户拍板）。
+> 状态：**confirmed**（judge PASS 4 CONCERN，R 项已修订；用户拍板 confirmed 260903-11）。
 
 ## judge 修订（260903-11）
 

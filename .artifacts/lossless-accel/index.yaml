@@ -29,4 +29,4 @@ entries:
   - id: 'lossless-accel:estopt:result-260903-11'
     path: 'est-opt-result-260903-11.md'
     kind: implementation
-    status: candidate
+    status: confirmed
