@@ -33,7 +33,7 @@ entries:
   - id: 'lossless-accel:estopt:offscan-cornerfix-260903-13'
     path: 'off-scan-cornerfix-verdict-260903-13.md'
     kind: analysis
-    status: candidate
+    status: confirmed
   - id: 'lossless-accel:estopt:est-shared-verdict-260903-12'
     path: 'est-shared-verdict-260903-12.md'
     kind: analysis

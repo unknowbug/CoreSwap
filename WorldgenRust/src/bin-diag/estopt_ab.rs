@@ -1,9 +1,8 @@
-// estopt_ab.rs — b1-a/b1-b 四臂 A/B 探针（260903-11）。
-// 臂由 env 控制（WG_EST_SHARED / WG_EST_L2，与 fill_chunk_blocks 生产门控同源）：
+// estopt_ab.rs — b1-a/b1-b 四臂 A/B 探针（260903-11；260903-13 翻默认后臂语义同步）。
+// 臂由 env 控制（WG_EST_SHARED / WG_EST_L2，与 fill_chunk_blocks 生产门控同源：默认开，"0" 关）：
 //   off | shared | l2 | shared+l2
 // 输出：8x8 chunks (200,200) blocks 的 FNV-1a 64 hash + L2 统计。
-// 用途：① off 臂 = 默认路径零回归基线（vs HEAD 构建同 hash）② shared 臂 vs off = D1 语义变化量
-// ③ l2 臂 vs off = L2 精确性自检（必须同 hash）④ l2 stats = miss 率实测。
+// 260903-13 修复后四臂 hash 必须同值（零语义差哨兵）；任一分歧即回归失败。
 use WorldgenRust::worldgen_handle::WorldgenHandle;
 
 const SEED: i64 = 8576294172403134396;
@@ -19,8 +18,8 @@ fn fnv(data: &[u8]) -> u64 {
 }
 
 fn main() {
-    let shared = std::env::var("WG_EST_SHARED").is_ok();
-    let l2 = std::env::var("WG_EST_L2").is_ok();
+    let shared = WorldgenRust::worldgen_handle::env_enabled("WG_EST_SHARED");
+    let l2 = WorldgenRust::worldgen_handle::env_enabled("WG_EST_L2");
     println!("=== estopt_ab arm shared={} l2={} seed={} ===", shared, l2, SEED);
     let h = WorldgenHandle::create(SEED, WG_DIR).expect("create handle");
     // 预热（区外，触发可能的 L2 初始化但不计入 hash 区域）

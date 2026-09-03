@@ -19,6 +19,15 @@ use crate::terrain::{fill_chunk, VanillaAquifer, VanillaDensity, BiomeSource};
 use crate::legacy_random::RsSplitter;
 use crate::xoroshiro::XoroshiroSplitter;
 
+/// 260903-13 翻默认配套：env 开关语义 = 默认启用，显式设 "0" 关闭（其余值视为开）。
+/// 用于 WG_EST_SHARED / WG_EST_L2（est 优化，四臂 hash 已证零语义差）。
+pub fn env_enabled(key: &str) -> bool {
+    match std::env::var(key) {
+        Ok(v) => v != "0",
+        Err(_) => true,
+    }
+}
+
 // 宏观 biome 源（BiomeClassifier + 6 参数 DF）
 struct MacroBiome {
     bc: BiomeClassifier,
@@ -89,7 +98,7 @@ pub struct WorldgenHandle {
     // bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；0 = 未设置 → 回落 env 判定（兼容 bin-diag/probe）。
     // skip 方向 OR：flag 位或 env 任一命中即 skip。存档链路由 CppBridge 设 flag，standalone 工具零改动。
     pub flags: std::sync::atomic::AtomicU32,
-    // b1-b 跨 chunk est L2（260903-11，默认关）：OnceLock 惰性建（首次 fill 时按 WG_EST_L2 env 决定），
+    // b1-b 跨 chunk est L2（260903-13 翻默认：默认启用，WG_EST_L2=0 关）：OnceLock 惰性建（首次 fill 时按 env 决定），
     // Arc 跨 chunk 共享；挂 handle → (seed,params) 代际隔离天然成立。blend 闸门见 aquifer::BLEND_ACTIVE。
     est_l2: std::sync::OnceLock<Option<std::sync::Arc<std::sync::Mutex<crate::aquifer::EstL2>>>>,
 }
@@ -471,8 +480,9 @@ impl WorldgenHandle {
         // WG_SKIP_AQUIFER（诊断）chunk 级判断一次（避免每点 env 查询污染热路径）
         let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
-        // b1-b（260903-11，默认关）：WG_EST_L2 → 注入跨 chunk est L2（chunk 级 env 判一次，热路径零 env 查询）
-        if std::env::var("WG_EST_L2").is_ok() {
+        // b1-b（260903-13 翻默认，用户 confirmed）：est L2 默认启用，WG_EST_L2=0 反转关闭
+        //（chunk 级 env 判一次，热路径零 env 查询；修复后 L2 精确值缓存零语义差，四臂 hash 同一）
+        if crate::worldgen_handle::env_enabled("WG_EST_L2") {
             va.aq.set_est_l2(Some(self.est_l2_handle()));
         }
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
@@ -516,13 +526,13 @@ impl WorldgenHandle {
 
         // 3. build_surface（具体 block id：grass/sand/terracotta 等）
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
-        // b1-a（260903-11，默认关）：WG_EST_SHARED → est_at 复用 va.aq 的 surface_cache
-        //（对齐 Java：SURFACE 阶段走 sampler.estimateSurfaceHeight 同一张 map，ChunkNoiseSampler.java:222-226）。
-        // 差异 A/B（WG_EST_SHARED 的语义变化，judge D1/D3）：
-        //  D1 角列量化：两臂角参数均已修正为 Java SURFACE 四角 (i+1)<<4（+16，260903-13）；
-        //    shared 路径 estimate_surface_height 内部再 (x>>2)<<2 量化（Java 语义，+16 量化不变）
-        //  D3 扫描域：旧路径 min_y+noise_height；共享路径 min_y+height（overworld 384 同值；nether 128<256，收敛仅限 overworld 生产路径）
-        let est_shared = std::env::var("WG_EST_SHARED").is_ok();
+        // b1-a（260903-13 翻默认，用户 confirmed）：est_at 默认复用 va.aq 的 surface_cache（对齐 Java：
+        // SURFACE 阶段走 sampler.estimateSurfaceHeight 同一张 map，ChunkNoiseSampler.java:222-226）；
+        // WG_EST_SHARED=0 反转关闭（回归旧独立扫描路径，诊断用）。
+        // 260903-13 修复后两路径语义完全一致（四臂 hash 同一 f2b1a3932c6e589e）：
+        //  D1 角列：两臂角参数均为 Java SURFACE 四角 (i+1)<<4（+16）；shared 路径内部 (x>>2)<<2 量化（+16 不变）
+        //  D3 扫描域：两臂扫描均为 min_y+noise_height 起、含 min_y 下界（overworld 320..-64）
+        let est_shared = crate::worldgen_handle::env_enabled("WG_EST_SHARED");
         let mut est_at = |x: i32, z: i32| -> i32 {
             if est_shared {
                 va.aq.estimate_surface_height(x, z)

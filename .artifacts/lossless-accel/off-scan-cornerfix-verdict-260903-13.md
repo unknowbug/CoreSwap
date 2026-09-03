@@ -1,7 +1,7 @@
 # off 臂 −1 扫描偏移 + 角参数 +16 修复裁决 — 260903-13
 
 ---
-status: candidate
+status: confirmed（260903-13 用户拍板批准翻默认，judge review-...-260903-13.md PASS 在前）
 verification: partial
 date: 260903-13（锚 git 提交时间戳）
 supersedes: 无（修复对象是 260903-12 judge A1 发现的生产 bug + #25 第三例角参数，非推翻既有 confirmed 结论；260903-12 shared 裁决 confirmed 仍然成立）
@@ -12,6 +12,7 @@ supersedes: 无（修复对象是 260903-12 judge A1 发现的生产 bug + #25 �
 1. **off 臂 −1 扫描偏移已修**：`worldgen_handle.rs` off 臂扫描由半开区间 rev（首点 319）改为对齐 Java `NoiseChunk.computePreliminarySurfaceLevel`（forge sources NoiseChunk.java:174：`for(l=min_y+height; l>=min_y; l-=cellHeight)` → 320..-64 含两端）。
 2. **角参数 +15→+16 已修（两臂共有）**：对齐 Java `MaterialRules.java:496-499` `chunkToBlockCoord(i+1)=(i+1)<<4`；dump 行 corner_params 同步。
 3. **修复后 est 优化零语义差**：四臂 hash 完全一致 `f2b1a3932c6e589e`（off==shared==l2==shared+l2）——WG_EST_SHARED/L2 从「语义变化 + 提速」变为**纯性能优化**，翻默认不再是语义决策。
+4. **翻默认已实施（260903-13 用户拍板 confirmed）**：`env_enabled()` 助手 = 默认启用、`WG_EST_SHARED=0`/`WG_EST_L2=0` 反转关闭；验证 `estopt-ab-defaultflip-260903-13.txt`——默认臂 shared=true l2=true hash 同值 + L2 命中 84.9%；双 0 反转臂同 hash + L2 stats 归零。探针 estopt_ab/estopt_mt_bench 臂语义同步。
 
 ## 证据链
 

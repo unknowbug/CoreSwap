@@ -18,7 +18,7 @@ const ORIGIN: (i32, i32) = (200, 200);
 
 fn main() {
     let mode = std::env::args().nth(1).unwrap_or_else(|| "mt".into());
-    let l2 = std::env::var("WG_EST_L2").is_ok();
+    let l2 = WorldgenRust::worldgen_handle::env_enabled("WG_EST_L2");
     if mode == "sweep" {
         sweep(l2);
     } else {

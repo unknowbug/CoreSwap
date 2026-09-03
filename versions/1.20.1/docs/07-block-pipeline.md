@@ -1140,3 +1140,30 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 > 过程（P0 复现 → scout → 探针搭建 → 裁决 → 三件套 → P2.4 → 重议 → 两轮 judge）→ 10 时间线 260903-12 条；新课题四项（off −1 偏移 / surface_rules.rs:505 panic / +16 角修正 / 翻默认拍板）→ 10 时间线「新课题登记」。
 
+## 2026-09-03 est 两处偏差修复：off 臂扫描偏移 + 角参数 +15→+16（260903-13，四臂同 hash，confirmed + 翻默认已实施）
+
+> 承接上节「est 优化收口」遗留的新课题 #1（off 臂 −1 扫描偏移）与 #3（角参数 +16 修正待办）。修复 commit 3e2e67d；judge review 见 `.investigations/lossless-accel/review-offscan-cornerfix-260903-13.md`（PASS）；结论 `.artifacts/lossless-accel/off-scan-cornerfix-verdict-260903-13.md`（judge PASS + 用户拍板批准翻默认 → confirmed）。
+
+### ✅ 修复一：off 臂扫描首点 off-by-one（半开区间 rev）
+
+- **根因（机制）**：Rust `(min_y..min_y+noise_height).rev().step_by(8)` 是半开区间 rev——首采样点 = **319**；Java `NoiseChunk.computePreliminarySurfaceLevel`（forge official sources NoiseChunk.java:174）为 `for(l=minY+height; l>=minY; l-=cellHeight)`——**320..-64 含两端**。半开区间 rev 使首点差 1、下界差 step（编译器惯用法条目，见 knowledge/discovered/compiler-idioms.md 发现 #10）。
+- **修复**：扫描改为闭区间含两端对齐 Java（首点 320、下界 -64 均含）。
+
+### ✅ 修复二：角参数 +15→+16
+
+- **根因（机制）**：Java `MaterialRules.java:496-499` SURFACE 四角用 `chunkToBlockCoord(i+1) = (i+1)<<4` 即 **+16**；Rust 两臂曾用 `cx*16+15`（经量化 +12 ≠ +16）——系 workflow-patterns #25「静态调研结论失真」第三例的实例修复（上节已登记为待办）。
+- **修复**：两臂（off/shared）heights4 角参数统一改 +16。
+
+### ✅ 验证（Full 层，§9.7 口径见 verdict 头部）
+
+- **修复后四臂 hash 完全一致 `f2b1a3932c6e589e`**（off/shared × L2 开关，64 chunks A/B）。
+- Java est 角列对比：off / shared 各 **256/256 一致，0 diff**；敏感 chunk (201,200) 角值一致（java@+16=56）。
+
+### ✅ 翻默认已实施（260903-13 用户拍板 confirmed）
+
+- `WG_EST_SHARED` / `WG_EST_L2` **默认启用**，`env_enabled()` 助手 = 默认开、显式设 `0` 反转关闭（诊断用）。
+- 验证：默认臂 shared=true l2=true hash 同值 + L2 命中 84.9%；双 `0` 反转臂同 hash + L2 stats 归零（`estopt-ab-defaultflip-260903-13.txt`）。
+- est 优化语义零差达成 → 翻默认由语义裁决问题变为纯性能决策，已落地。
+
+> 过程 → 10 时间线 260903-13 条；编译器惯用法 → compiler-idioms 发现 #10。
+

@@ -2744,3 +2744,35 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 产物：三份 candidate artifact + index.yaml 登记；judge 意见两份；cmd-output 六件（est-compare-p13/p13b、estopt-ab-arms-p0、estopt-mt-baseline、estopt-sweep、est-price-p24）。
 - 状态：三份产物均 candidate（两轮 judge 建议 confirmed 前清偿文档级修正），confirmed 留用户；翻默认动作不在本 session 执行范围。
 
+## 260903-13（实际 2026-09-03；est off 臂扫描偏移 + 角参数 +16 两处修复——四臂同 hash 收口 + 翻默认实施）
+
+> 承接 260903-12 新课题登记 #1（off 臂 −1 扫描偏移）/#3（角参数 +15→+16）。commit 3e2e67d（修复）+ 翻默认提交；judge PASS（`.investigations/lossless-accel/review-offscan-cornerfix-260903-13.md`，1 should-fix 已清偿）；结论 `.artifacts/lossless-accel/off-scan-cornerfix-verdict-260903-13.md`（confirmed）。
+
+### ✅ 一、P0 交接验证（先廉价验证再继承）
+
+- 修复前四臂 hash 复跑与 260903-12 记录逐项一致（off 74f5dfc4eede8ef4 / shared 8bff408735f1560d / l2==off+84.9%）——交接结论继承合法（estopt-ab-arms-p0-260903-13.txt）。
+
+### ✅ 二、off 臂扫描首点修复（judge A1 线索闭环）
+
+- 现象：off 臂 est 对 Java 恒差 −1，c0 原点角也偏。
+- 根因（为什么错）：Rust `(min_y..min_y+noise_height).rev().step_by(8)` 半开区间 rev → 首采样点 319；Java `NoiseChunk.computePreliminarySurfaceLevel`（forge official sources NoiseChunk.java:174）`for(l=minY+height; l>=minY; l-=cellHeight)` → 320..-64 含两端。首点差 1 + 下界包含性差，两个独立错位。
+- 定位：judge A1 静态发现 + 本 session 抽取 forge official sources（Mojang 官方映射 jar）核对权威实现（非反编译推断）。
+- 修复：扫描改闭区间含两端（首点 320、下界 -64）。通用模式 → compiler-idioms 发现 #10。
+
+### ✅ 三、角参数 +15→+16（workflow-patterns #25 第三例实例修复）
+
+- 根因：Java `MaterialRules.java:496-499` SURFACE 四角 `chunkToBlockCoord(i+1) = (i+1)<<4` = +16；Rust 两臂曾用 `cx*16+15`（量化后 +12 ≠ +16）。
+- 修复：两臂 heights4 + dump corner_params 统一 +16。
+
+### ✅ 四、验证与翻默认（Full 层）
+
+- 修复后**四臂 hash 完全一致 `f2b1a3932c6e589e`**（off/shared × L2 开关）；est 优化语义零差。
+- Java est 角列对比：off / shared 各 256/256 一致 0 diff；敏感 chunk (201,200) 一致（修复前 java@+16=56/shared@+12=48/off=55 → 修复后三方一致）。
+- **翻默认（用户拍板 confirmed）**：WG_EST_SHARED / WG_EST_L2 默认启用、`=0` 反转关闭；默认臂 hash 同值 + L2 命中 84.9%，反转臂同 hash + L2 stats 归零（estopt-ab-defaultflip-260903-13.txt）。
+
+### 📌 记录指引
+
+- 结论 → 07 篇「est 优化收口」节后追加小节（260903-13）。
+- 通用模式 → knowledge/discovered/compiler-idioms.md 发现 #10（半开区间 rev 复刻 Java 含两端递减 for 的 off-by-one）。
+- 未结：surface_rules.rs:505 大 region panic（课题 #2，下轮立项 MUST recode-scout 前置）。
+

@@ -149,6 +149,25 @@ MC worldgen 的相对锚（`above_bottom(N)` / `below_top(N)`）换算：**顶�
 - **如何利用**：
   - **标注三查（与 seed 三查同级的开工检查项）**：① 探针输出的 raw id/枚举/魔法数**首次解释前必须先建立 id→语义映射**（探针打印 LAUIDMAP 类映射，禁止数值范围直觉命名）；② 标注跨 session 传递 MUST 带「已验证/未验证」标记，未验证标注续用前先做廉价独立验证（≤ 一轮，§16.3 宿主交接验证）；③ 机制链逐环追问「这一环的输入标注是谁验证的」——环 1 错则整链作废，越早核实越便宜。
   - **判据**：「机制链自洽 + 量级对得上」不能替代输入标注核实——自洽的链条建在错误标注上时全链同样自洽（本例黑石/玄武岩材质差同样能解释转换面漂移现象）。
-  - 交叉引用：workflow-patterns 发现 #13（测量侧先查三犯——本发现是「标注/解释侧」的对应纪律）；AGENTS.md「交接结论验证纪律」（M14/M11 复盘）在 id 域的具体化。
+## 发现 #10: Rust 半开区间 rev().step_by() 复刻 Java 含两端递减 for 循环的 off-by-one
+
+- **发现时间**：260903-13；**发现者**：core.worker 草稿（lossless-accel off-scan+cornerfix 课题）+ 主会话应用；**来源定位**：commit 3e2e67d + `.artifacts/lossless-accel/off-scan-cornerfix-verdict-260903-13.md` + `.investigations/lossless-accel/review-offscan-cornerfix-260903-13.md`（Rust 侧 `WorldgenRust` est 扫描；Java 侧 forge official sources `NoiseChunk.java:174` `computePreliminarySurfaceLevel`）；**置信度**：confirmed（修复后两臂四臂 hash 完全一致 f2b1a3932c6e589e + Java 角列 256/256 0 diff，judge PASS，260903-13 用户拍板）；**module**：re-code / swe（跨语言循环移植）。
+
+### 观察
+
+Java `for(l=top; l>=bottom; l-=step)` 是**含两端**的递减扫描；移植 Rust 时写成 `(bottom..top_exclusive).rev().step_by(step)` 会引入**两个独立的错位**：① 半开区间上端使 rev 首点 = top−1（本例 319 vs Java 320）；② 下端 exclusive 使下界端点语义差（本例 Java 扫到 −64 含端）。首点差与下界包含性是**两个独立参数**，只对齐其一修不完整。
+
+### 证据
+
+- 本例签名：修复前 off 臂 est 角列对 Java **恒差 −1**（64/64 全偏、delta 恒 −1，含 c0 原点角——规整性系统偏移而非随机差）；敏感角 (201,200) 值 55 vs Java 56。
+- 修复（扫描对齐「首点值 + 下界包含性」）后：两臂四臂 hash 完全一致（`f2b1a3932c6e589e`）；Java est 角列 off/shared 各 256/256 一致 0 diff。
+
+### 如何利用
+
+- **判据**：跨语言移植递减扫描循环时，必须显式对齐**「首点值」+「下界包含性」两个独立参数**，逐一与 Java 源码核对（`l>=bottom` 含端 vs Rust `..` 半开），禁止凭「看起来等价」直译。
+- **签名**：结果相对参照**恒差固定小量（如 −1）且全样本规整偏移** = 扫描/索引 off-by-one 类错位，优先核对循环端点语义，不是精度/随机性问题。
+- 等价复刻形态：Java `for(l=top; l>=bottom; l-=step)` → Rust `(bottom..=top).rev().step_by(step)`（含端 RangeInclusive），并核对 `top−bottom` 可被 step 整除时的末点行为。
+- 交叉引用：workflow-patterns #25（静态调研/直译结论失真——本例 +15 角参数即其第三例实例）；compiler-idioms 发现 #7（锚换算端点 off-by-one 同族：端点语义 inclusive/exclusive 是跨语言移植的第一易错点）。
+
 
 

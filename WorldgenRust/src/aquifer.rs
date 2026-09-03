@@ -83,7 +83,7 @@ const CACHE_OFF_Z: i32 = 4;
 // per-chunk density 污染跨 chunk 缓存，ChunkNoiseSampler.java:142-154 对应语义）。
 pub const BLEND_ACTIVE: bool = false;
 
-// b1-b：跨 chunk est L2 精确值缓存（Java 语义外的纯性能优化，默认关 WG_EST_L2）。
+// b1-b：跨 chunk est L2 精确值缓存（Java 语义外的纯性能优化；260903-13 翻默认：默认启用，WG_EST_L2=0 关）。
 // est = f(seed, noise_params, 量化列) 纯函数 → 跨 chunk 缓存逐位安全（blend 闸门见上）。
 // 淘汰：FIFO 环（容量上限硬界，语义同 clock——淘汰只影响命中率不影响正确性，重算同值）。
 // epoch：实例挂 WorldgenHandle（每 (seed,params) 一个 handle）→ 代际隔离天然成立。
