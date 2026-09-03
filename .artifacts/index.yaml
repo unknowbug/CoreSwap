@@ -725,3 +725,12 @@ entries:
     # 用户拍板封存：±30M 极限坐标四区最差 98.59%（≥95% 预登记线），表面高度零漂移，无地形颠覆；
     # 泥土带系统差（stone/sand→dirt，~1%，y22-53 带）经普通坐标对照证明非坐标引起——遗留项醒目标注仅记录；
     # judge 通过（C1/C2 修正闭环）。证据：cmp_*.out.txt（.tmp/extreme/）+ judge-opinion-260902.md
+
+  # === lossless-accel P-A ch0 闭合（260903-06，judge 待过）===
+  - id: 're-code:lossless-accel:pa-ch0-closure-260903-06'
+    path: 'lossless-accel/pa-ch0-closure-260903-06.md'
+    kind: analysis
+    status: candidate
+    # ch0 通道级闭合：GPU vs C++ oracle 144 点 major=0（max 1.795e-6）；macro 无缺陷；
+    # 假残差定案（z=0/z=16 混列）+ transpiler 真根因=漏设 blended_noise（已修复，supersedes bA 归因）；
+    # §15.4 两条 supersedes；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。

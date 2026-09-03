@@ -144,6 +144,38 @@ impl WorldgenHandle {
         let height = if world_height > 0 { world_height } else { noise_height };
         let router = settings.get("noise_router")?;
 
+        // transpiler/ fallback 共用 NoiseSet 构建（260903-06 P-B 修复）：
+        // ⚠️ 必须设 blended_noise（old_blended_noise = base_3d_noise）——漏设则 sample_blended_noise
+        // 返回 0.0 → ch0 丢 base_3d 分量（列扫呈 depth*factor 纯线性，transpiler ch0 系统性偏差）。
+        // 污染源定位：260903-05 bA「生成物 y=0 闭包压平」为误归因（supersedes，单点探针证生成函数正确）。
+        // scale/factor/smear 从 base_3d_noise.json 读（数据驱动）；octave 结构（-15/-7 legacy）为 Java
+        // 构造器固定参数（代码固定，同 C++ 侧）。
+        fn build_transpiler_noises(db: &DensityBuilder, noise_params_path: &str, wg_dir: &str) -> Option<crate::noise::NoiseSet> {
+            let mut noises = crate::noise::NoiseSet::new();
+            let params = crate::density_builder::build_noise_params_from_file(noise_params_path).ok()?;
+            for (id, p) in &params {
+                let mut rnd = db.random_deriver().split_str(id);
+                let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
+                noises.insert(id, sampler);
+            }
+            // base_3d_noise.json：xz_scale/y_scale/xz_factor/y_factor/smear_scale_multiplier
+            let b3 = crate::json::parse(&std::fs::read_to_string(
+                format!("{}/data/minecraft/worldgen/density_function/overworld/base_3d_noise.json", wg_dir)).ok()?).ok()?;
+            let num = |k: &str, d: f64| -> f64 { b3.get(k).and_then(|x| x.as_f64()).unwrap_or(d) };
+            let (xz_s, y_s, xz_f, y_f, smear) = (
+                num("xz_scale", 0.25), num("y_scale", 0.125),
+                num("xz_factor", 80.0), num("y_factor", 160.0), num("smear_scale_multiplier", 8.0));
+            let mut rnd = db.random_deriver().split_str("minecraft:terrain");
+            let amp_l = crate::noise::OctavePerlinNoiseSampler::range_closed_amplitudes(-15, 0);
+            let lower = crate::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -15, &amp_l);
+            let upper = crate::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -15, &amp_l);
+            let amp_i = crate::noise::OctavePerlinNoiseSampler::range_closed_amplitudes(-7, 0);
+            let interp = crate::noise::OctavePerlinNoiseSampler::new_legacy(&mut rnd, -7, &amp_i);
+            let bn = crate::density::InterpolatedNoiseData::new(lower, upper, interp, xz_s, y_s, xz_f, y_f, smear);
+            noises.set_blended_noise(bn);
+            Some(noises)
+        }
+
         // 1. DensityBuilder（dfNs 参数化：external_loader 读 <dfNs>/ 目录 + resolve_ref 用 dfNs 前缀）
         let mut db = DensityBuilder::new(seed as u64, min_y, noise_height);
         db.set_df_ns(&df_ns);
@@ -168,16 +200,8 @@ impl WorldgenHandle {
         // transpiler 宏观采样器（WG_TRANSPILER env 时启用）：构建 NoiseSet + TranspilerDensity
         // transpiler 生成代码（generated_density）用 NoiseSet 采样（非 DensityFunction 树），需独立构建 NoiseSet。
         let transpiler_density = if std::env::var("WG_TRANSPILER").is_ok() {
-            let mut noises = crate::noise::NoiseSet::new();
-            let params = crate::density_builder::build_noise_params_from_file(&noise_params_path).ok();
-            if let Some(params) = params {
-                for (id, p) in &params {
-                    let mut rnd = db.random_deriver().split_str(id);
-                    let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
-                    noises.insert(id, sampler);
-                }
-                Some(crate::terrain::TranspilerDensity::new(noises, min_y, noise_height))
-            } else { None }
+            build_transpiler_noises(&db, &noise_params_path, &wg_dir)
+                .map(|noises| crate::terrain::TranspilerDensity::new(noises, min_y, noise_height))
         } else { None };
         // DFC 宏观采样器（WG_DFC env 时启用；优先级 > WG_TRANSPILER；零退化铁律：默认关）
         let dfc_density = if std::env::var("WG_DFC").is_ok() {
@@ -191,17 +215,11 @@ impl WorldgenHandle {
         // GPU channels 角点源（WG_GPU_CHANNELS env 时启用；X2 260903-05；优先级最高；默认关）。
         // fallback = TranspilerDensity（独立 NoiseSet，同语义 diff0 路径）。
         let gpu_channels = if std::env::var("WG_GPU_CHANNELS").is_ok() {
-            let mut fb_noises = crate::noise::NoiseSet::new();
-            let params = crate::density_builder::build_noise_params_from_file(&noise_params_path).ok();
-            if let Some(params) = params {
-                for (id, p) in &params {
-                    let mut rnd = db.random_deriver().split_str(id);
-                    let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
-                    fb_noises.insert(id, sampler);
-                }
-                let fallback = crate::terrain::TranspilerDensity::new(fb_noises, min_y, noise_height);
-                crate::gpu_ffi::GpuChannelDensity::new(seed, &wg_dir, min_y, noise_height, fallback)
-            } else { None }
+            build_transpiler_noises(&db, &noise_params_path, &wg_dir)
+                .and_then(|fb_noises| {
+                    let fallback = crate::terrain::TranspilerDensity::new(fb_noises, min_y, noise_height);
+                    crate::gpu_ffi::GpuChannelDensity::new(seed, &wg_dir, min_y, noise_height, fallback)
+                })
         } else { None };
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
         let flooded = Arc::new(db.build_node(router.get("fluid_level_floodedness")?).ok()?);

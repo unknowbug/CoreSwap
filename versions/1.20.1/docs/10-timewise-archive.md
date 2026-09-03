@@ -2615,3 +2615,21 @@ W2 `gpu_ffi.cpp` C-ABI shim（build.ps1 `-Ffi`）+ W3 Rust 角点探针（bin-di
 - 错误链五段式 → `.investigations/lossless-accel/lossless-accel-errors.md`（subagent 草稿应用）。
 - 可复用判据（二进制产物无法从内容/时间戳判断新旧 + 逐位一致哨兵须配已知值哨兵点）→ build-tooling 发现 #12（260903-04）。
 - 状态：candidate（judge 待过）；confirmed 待用户。
+
+## 260903-06（lossless-accel P-A：ch0 跨语言通道级闭合——假残差定案 + transpiler 唯一缺陷定论）
+
+### ✅ C++ CPU ch0 oracle 建立 + 三方对拍全绿
+density_probe -dfDump（delegate 程序化提取自 overworld.json，避转录错）+ bin-diag ch0_gpu_dump：3 列 × 48 角点，GPU vs C++ major=0 max=1.795e-6（f32 ULP 级）；macro vs C++ major=0 max=5e-7 → GPU 与 macro 生产路径通道级均 = C++/Java 语义。✅
+
+### ✅ 假残差定案（supersedes 260903-05 残留 idk）
+「macro vs GPU ch0 残差 0.03-0.23」= 探针坐标混列假象（GPU 取 z=0、macro 取 z=16 误作同点）；C++ oracle 证实两点各自精确正确（(4,80,0)=-1.0966554 / (4,80,16)=-1.2163714）。✅ 已结案
+
+### ✅ transpiler 缺陷复确认（正确坐标下）
+transpiler vs C++ major=28/48，max=0.2299，y≥32 纯线性化步进 0.246875（YClampedGradient 线性分量）——缺陷确认在 transpiler 路径。✅
+
+### ✅ P-B 真根因定案 + 修复（supersedes bA 闭包压平归因）
+真根因 = worldgen_handle.rs NoiseSet 漏设 blended_noise（sample_blended_noise 返 0.0）；单点隔离探针（ch0_single_point.rs）证伪 cache_2d 闭包压平归因（生成函数全对、清缓存无效）。修复 = build_transpiler_noises()（blended_noise 数据驱动，两处构造共用）。修复后 transpiler≡macro 全列 diff=0；gpu_channel_probe 5×5 通道 major=0 + combine 抽样 major=0 → PASS，**WG_GPU_CHANNELS 生产门解锁**；fallback 改绑 DfcDensity 方案废弃。坑先前只记在 diag 注释侧（transpiler_slices_ch0.rs:33 等）未吸收进生产构造——错误台账 LL9。✅ 已结案
+
+### 📌 记录指引
+- 取代链条目（§15.4 两条）+ workflow-patterns 发现 #17（跨探针对比坐标钉死律 + 单点隔离复测补充要点）见 .artifacts/lossless-accel/pa-ch0-closure-260903-06.md。
+- 状态：candidate（judge 待过）；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。

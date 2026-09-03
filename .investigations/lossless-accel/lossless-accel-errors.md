@@ -74,3 +74,6 @@
 | LL7 spv 陈旧产物 | 多产物部分更新失配（spv 编译早于 D23 提交 5h，commit 9de661e 提交修复前 spv；重编即愈）→ build-tooling #12 |
 
 
+
+| LL8 三方对拍假残差 | 跨探针对比未钉死同列同坐标（GPU z=0 vs macro z=16 误作同点） |
+| LL9 transpiler ch0 线性化 | NoiseSet 漏设 blended_noise（坑记在诊断注释侧未吸收进生产构造）；.bA 静态配平归因误判 |

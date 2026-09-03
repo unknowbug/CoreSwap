@@ -1,0 +1,75 @@
+=== gpu_channel_probe (X2, 260903-05) seed=8576294172403134396 ===
+[GPU] 5 channel pipelines ready, splitTotal=8672 perSample=352
+[WG_GPU] engine ready (Channels, seed=8576294172403134396, spv=versions/1.20.1/data/worldgen/../../cpp/worldgen/gpu-assets/final_density_ch0.spv;versions/1.20.1/data/worldgen/../../cpp/worldgen/gpu-assets/final_density_ch1.spv;versions/1.20.1/data/worldgen/../../cpp/worldgen/gpu-assets/final_density_ch2.spv;versions/1.20.1/data/worldgen/../../cpp/worldgen/gpu-assets/final_density_ch3.spv;versions/1.20.1/data/worldgen/../../cpp/worldgen/gpu-assets/final_density_ch4.spv, outPerSample=5)
+--- chunk (0,0) ---
+  [C1] gpu corner fill (1225 pts + ~42MB split): 242.2 ms
+  gpu_ch0 vs cpu: major=[0, 1225, 1202, 1225, 1225] → best=cpu_ch0 (major=0, max=2.132e-6)
+  gpu_ch1 vs cpu: major=[1225, 0, 1225, 1224, 1225] → best=cpu_ch1 (major=0, max=3.105e-7)
+  gpu_ch2 vs cpu: major=[1202, 1225, 0, 1199, 1199] → best=cpu_ch2 (major=0, max=8.391e-9)
+  gpu_ch3 vs cpu: major=[1225, 1224, 1199, 0, 1200] → best=cpu_ch3 (major=0, max=7.670e-7)
+  gpu_ch4 vs cpu: major=[1225, 1225, 1199, 1200, 0] → best=cpu_ch4 (major=0, max=3.471e-7)
+  ch0 三方对拍（最差 5 角点）:
+    @(12,24,12) gpu=0.035223 cpu_ch0=0.035221 dfc=0.011270 |diff gpu-dfc=2.40e-2 cpu-dfc=2.40e-2
+    @(0,24,16) gpu=0.237894 cpu_ch0=0.237892 dfc=0.075979 |diff gpu-dfc=1.62e-1 cpu-dfc=1.62e-1
+    @(16,24,12) gpu=0.050278 cpu_ch0=0.050276 dfc=0.016087 |diff gpu-dfc=3.42e-2 cpu-dfc=3.42e-2
+    @(4,24,16) gpu=0.237582 cpu_ch0=0.237581 dfc=0.075879 |diff gpu-dfc=1.62e-1 cpu-dfc=1.62e-1
+    @(0,24,8) gpu=-0.151379 cpu_ch0=-0.151381 dfc=-0.048404 |diff gpu-dfc=1.03e-1 cpu-dfc=1.03e-1
+  combine 后抽样 major_diff=0
+--- chunk (-3,-5) ---
+  [C1] gpu corner fill (1225 pts + ~42MB split): 232.9 ms
+  gpu_ch0 vs cpu: major=[0, 1225, 1225, 1224, 1225] → best=cpu_ch0 (major=0, max=8.369e-7)
+  gpu_ch1 vs cpu: major=[1225, 0, 1225, 1225, 1225] → best=cpu_ch1 (major=0, max=3.069e-7)
+  gpu_ch2 vs cpu: major=[1225, 1225, 0, 1199, 1200] → best=cpu_ch2 (major=0, max=1.113e-8)
+  gpu_ch3 vs cpu: major=[1224, 1225, 1199, 0, 1200] → best=cpu_ch3 (major=0, max=5.378e-7)
+  gpu_ch4 vs cpu: major=[1225, 1225, 1200, 1200, 0] → best=cpu_ch4 (major=0, max=3.507e-7)
+  ch0 三方对拍（最差 5 角点）:
+    @(-40,216,-64) gpu=-5.548299 cpu_ch0=-5.548300 dfc=-0.458333 |diff gpu-dfc=5.09e0 cpu-dfc=5.09e0
+    @(-44,216,-76) gpu=-5.513870 cpu_ch0=-5.513871 dfc=-0.458333 |diff gpu-dfc=5.06e0 cpu-dfc=5.06e0
+    @(-48,216,-76) gpu=-5.501539 cpu_ch0=-5.501540 dfc=-0.458333 |diff gpu-dfc=5.04e0 cpu-dfc=5.04e0
+    @(-48,192,-72) gpu=-4.664272 cpu_ch0=-4.664273 dfc=-0.458333 |diff gpu-dfc=4.21e0 cpu-dfc=4.21e0
+    @(-48,192,-68) gpu=-4.673691 cpu_ch0=-4.673692 dfc=-0.458333 |diff gpu-dfc=4.22e0 cpu-dfc=4.22e0
+  combine 后抽样 major_diff=0
+--- chunk (45,-28) ---
+  [C1] gpu corner fill (1225 pts + ~42MB split): 284.1 ms
+  gpu_ch0 vs cpu: major=[0, 1225, 1225, 1225, 1225] → best=cpu_ch0 (major=0, max=5.562e-6)
+  gpu_ch1 vs cpu: major=[1225, 0, 1224, 1225, 1225] → best=cpu_ch1 (major=0, max=3.438e-7)
+  gpu_ch2 vs cpu: major=[1225, 1224, 0, 1200, 1200] → best=cpu_ch2 (major=0, max=9.629e-9)
+  gpu_ch3 vs cpu: major=[1225, 1225, 1200, 0, 1200] → best=cpu_ch3 (major=0, max=3.538e-7)
+  gpu_ch4 vs cpu: major=[1225, 1225, 1200, 1200, 0] → best=cpu_ch4 (major=0, max=4.436e-7)
+  ch0 三方对拍（最差 5 角点）:
+    @(736,72,-436) gpu=0.023112 cpu_ch0=0.023118 dfc=0.007403 |diff gpu-dfc=1.57e-2 cpu-dfc=1.57e-2
+    @(728,232,-440) gpu=-6.179200 cpu_ch0=-6.179195 dfc=-0.458333 |diff gpu-dfc=5.72e0 cpu-dfc=5.72e0
+    @(732,232,-440) gpu=-6.191500 cpu_ch0=-6.191496 dfc=-0.458333 |diff gpu-dfc=5.73e0 cpu-dfc=5.73e0
+    @(736,72,-448) gpu=-0.035660 cpu_ch0=-0.035665 dfc=-0.011414 |diff gpu-dfc=2.42e-2 cpu-dfc=2.43e-2
+    @(720,240,-444) gpu=-6.410800 cpu_ch0=-6.410795 dfc=-0.458333 |diff gpu-dfc=5.95e0 cpu-dfc=5.95e0
+  combine 后抽样 major_diff=0
+--- chunk (6553,-6554) ---
+  [C1] gpu corner fill (1225 pts + ~42MB split): 287.8 ms
+  gpu_ch0 vs cpu: major=[0, 1225, 1225, 1225, 1225] → best=cpu_ch0 (major=0, max=1.959e-5)
+  gpu_ch1 vs cpu: major=[1225, 0, 1225, 1225, 1225] → best=cpu_ch1 (major=0, max=4.717e-7)
+  gpu_ch2 vs cpu: major=[1225, 1225, 0, 1200, 1200] → best=cpu_ch2 (major=0, max=2.260e-8)
+  gpu_ch3 vs cpu: major=[1225, 1225, 1200, 0, 1200] → best=cpu_ch3 (major=0, max=4.957e-7)
+  gpu_ch4 vs cpu: major=[1225, 1225, 1200, 1200, 0] → best=cpu_ch4 (major=0, max=5.840e-7)
+  ch0 三方对拍（最差 5 角点）:
+    @(104852,160,-104856) gpu=-2.513306 cpu_ch0=-2.513326 dfc=-0.458333 |diff gpu-dfc=2.05e0 cpu-dfc=2.05e0
+    @(104852,176,-104848) gpu=-3.401343 cpu_ch0=-3.401361 dfc=-0.458333 |diff gpu-dfc=2.94e0 cpu-dfc=2.94e0
+    @(104852,136,-104852) gpu=-1.862393 cpu_ch0=-1.862409 dfc=-0.458333 |diff gpu-dfc=1.40e0 cpu-dfc=1.40e0
+    @(104864,104,-104848) gpu=-1.214314 cpu_ch0=-1.214330 dfc=-0.369023 |diff gpu-dfc=8.45e-1 cpu-dfc=8.45e-1
+    @(104856,216,-104856) gpu=-4.426143 cpu_ch0=-4.426128 dfc=-0.458333 |diff gpu-dfc=3.97e0 cpu-dfc=3.97e0
+  combine 后抽样 major_diff=0
+--- chunk (200,200) ---
+  [C1] gpu corner fill (1225 pts + ~42MB split): 298.0 ms
+  gpu_ch0 vs cpu: major=[0, 1225, 1225, 1225, 1225] → best=cpu_ch0 (major=0, max=9.633e-7)
+  gpu_ch1 vs cpu: major=[1225, 0, 1224, 1225, 1225] → best=cpu_ch1 (major=0, max=3.952e-7)
+  gpu_ch2 vs cpu: major=[1225, 1224, 0, 1200, 1200] → best=cpu_ch2 (major=0, max=1.575e-8)
+  gpu_ch3 vs cpu: major=[1225, 1225, 1200, 0, 1200] → best=cpu_ch3 (major=0, max=7.923e-7)
+  gpu_ch4 vs cpu: major=[1225, 1225, 1200, 1200, 0] → best=cpu_ch4 (major=0, max=6.192e-7)
+  ch0 三方对拍（最差 5 角点）:
+    @(3208,224,3200) gpu=-1.930844 cpu_ch0=-1.930845 dfc=-0.458333 |diff gpu-dfc=1.47e0 cpu-dfc=1.47e0
+    @(3212,240,3200) gpu=-2.165857 cpu_ch0=-2.165857 dfc=-0.458333 |diff gpu-dfc=1.71e0 cpu-dfc=1.71e0
+    @(3212,224,3208) gpu=-1.968871 cpu_ch0=-1.968871 dfc=-0.458333 |diff gpu-dfc=1.51e0 cpu-dfc=1.51e0
+    @(3212,224,3200) gpu=-1.946031 cpu_ch0=-1.946032 dfc=-0.458333 |diff gpu-dfc=1.49e0 cpu-dfc=1.49e0
+    @(3212,240,3216) gpu=-2.191030 cpu_ch0=-2.191031 dfc=-0.458333 |diff gpu-dfc=1.73e0 cpu-dfc=1.73e0
+  combine 后抽样 major_diff=0
+=== [PASS] 逐通道 + combine 对拍全绿（f32 口径）
+[device] NVIDIA GeForce RTX 4060 Laptop GPU

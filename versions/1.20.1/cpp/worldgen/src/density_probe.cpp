@@ -91,6 +91,49 @@ static std::string readFile(const std::string& path) {
 }
 
 int main(int argc, char** argv) {
+    // -dfDump 模式（260903-06 P-A ch0 oracle）：任意 DF JSON 文件按点采样列输出。
+    // 用法: density_probe -dfDump <seed> <worldgen dir> <df.json> <wx> <wz>
+    // 输出: 每行 "y %.17g"（y = -64..319 步 4；GPU 角点列取 y%8==0 子集）
+    // 语义: interp d000 ≡ delegate 在 cell min-corner 的点值（角点处 fx=fy=fz=0）。
+    if (argc >= 7 && std::string(argv[1]) == "-dfDump") {
+        uint64_t dseed = std::strtoull(argv[2], nullptr, 10);
+        std::string dwgDir = argv[3];
+        std::string dfPath = argv[4];
+        int wx = std::atoi(argv[5]), wz = std::atoi(argv[6]);
+        auto noiseParams = buildNoiseParams();
+        DensityBuilder builder(dseed, noiseParams);
+        std::string dfDir = dwgDir + "/data/minecraft/worldgen/density_function/overworld/";
+        builder.externalLoader = [&](const std::string& fullRef, const std::string& name) -> DF {
+            std::string path = dfDir + name + ".json";
+            std::ifstream probe(path);
+            if (!probe.good()) return nullptr;
+            return builder.parseFile(fullRef, readFile(path));
+        };
+        // 注册官方文件（循环引用保护，同下方主流程清单）
+        std::vector<std::string> dfFiles = {
+            "base_3d_noise", "continents", "depth", "erosion", "factor",
+            "jaggedness", "offset", "ridges", "ridges_folded", "sloped_cheese",
+            "caves/entrances", "caves/noodle", "caves/pillars",
+            "caves/spaghetti_2d_thickness_modulator", "caves/spaghetti_2d",
+            "caves/spaghetti_roughness_function",
+        };
+        for (const auto& f : dfFiles)
+            builder.registerFunction("minecraft:overworld/" + f, std::make_shared<DensityBuilder::LazyRef>());
+        for (const auto& f : dfFiles) {
+            std::string path = dfDir + f + ".json";
+            if (std::ifstream(path).good())
+                builder.registerFunction("minecraft:overworld/" + f, builder.parseFile("minecraft:overworld/" + f, readFile(path)));
+        }
+        JsonParser dp(readFile(dfPath));
+        DF tree = builder.buildNode(dp.parse());
+        if (!tree) { std::fprintf(stderr, "buildNode failed\n"); return 1; }
+        NoisePos pos; pos.x = wx; pos.z = wz;
+        for (int y = -64; y <= 319; y += 4) {
+            pos.y = y;
+            std::printf("%d %.17g\n", y, tree->sample(pos));
+        }
+        return 0;
+    }
     if (argc < 4) {
         std::fprintf(stderr, "usage: density_probe <seed> <vanilla.density> <worldgen dir>\n");
         return 1;

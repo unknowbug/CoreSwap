@@ -393,6 +393,20 @@ pub fn transpiler_cache_3d(id: usize, x: f64, y: f64, z: f64, compute: impl FnOn
     });
     v
 }
+
+/// 诊断：清空 thread_local transpiler 缓存（260903-06 P-B 判别探针用；非热路径，禁在生产每点调用）。
+#[doc(hidden)]
+pub fn transpiler_cache_clear_all() {
+    C2D_CACHE.with(|m| {
+        let mut m = m.borrow_mut();
+        for slot in m.iter_mut().flatten() {
+            let mut s = slot.borrow_mut();
+            s.keys = [i64::MIN; CACHE2D_CAP];
+            s.stamps = [0; CACHE2D_CAP];
+            s.tick = 0;
+        }
+    });
+}
 #[derive(Clone)]
 pub struct Cache2DData { pub arg: Arc<DensityFunction>, pub id: u32, pub mn: f64, pub mx: f64 }
 impl Cache2DData {

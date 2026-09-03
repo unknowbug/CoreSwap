@@ -9,7 +9,12 @@ fn main() {
     let h = WorldgenHandle::create_for_dim(seed, wg_dir, "overworld.json", "biome_params.json", 384).expect("handle");
     let td = h.transpiler_density().expect("WG_TRANSPILER not set");
     let macro_s = h.macro_sampler();
-    let st = td.build_slices_for(0, 0);
+    // 260903-06 判别：清缓存后重跑（若 transpiler 列转正确 → handle 进程内 C2D_CACHE 污染）
+    let clear = std::env::var("CH0_CLEAR").is_ok();
+    let st = {
+        if clear { WorldgenRust::density::transpiler_cache_clear_all(); }
+        td.build_slices_for(0, 0)
+    };
     let sm = macro_s.build_slices_for(0, 0);
     let gx = 5usize; let gz = 5usize;
     let (ix, iz) = (1usize, 4usize);
