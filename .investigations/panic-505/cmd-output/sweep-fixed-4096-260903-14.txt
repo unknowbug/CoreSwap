@@ -1,0 +1,18 @@
+=== estopt_mt_bench mode=sweep l2=true seed=8576294172403134396 64x64 chunks ===
+[block  0] chunks= 256 block_wall=7147ms hit_rate=86.9% hits=47916 misses=7194 inserts=7194 evictions=0 (cum evictions=0)
+[block  1] chunks= 512 block_wall=7157ms hit_rate=92.7% hits=51449 misses=4032 inserts=4032 evictions=0 (cum evictions=0)
+[block  2] chunks= 768 block_wall=6841ms hit_rate=92.4% hits=52084 misses=4310 inserts=4310 evictions=0 (cum evictions=0)
+[block  3] chunks=1024 block_wall=7099ms hit_rate=92.6% hits=49948 misses=3982 inserts=3982 evictions=0 (cum evictions=0)
+[block  4] chunks=1280 block_wall=7411ms hit_rate=91.8% hits=45636 misses=4090 inserts=4090 evictions=0 (cum evictions=0)
+[block  5] chunks=1536 block_wall=7101ms hit_rate=91.5% hits=45485 misses=4212 inserts=4212 evictions=0 (cum evictions=0)
+[block  6] chunks=1792 block_wall=7114ms hit_rate=91.8% hits=45959 misses=4122 inserts=4122 evictions=0 (cum evictions=0)
+[block  7] chunks=2048 block_wall=7629ms hit_rate=91.6% hits=44730 misses=4106 inserts=4106 evictions=0 (cum evictions=0)
+[block  8] chunks=2304 block_wall=7902ms hit_rate=92.2% hits=43375 misses=3655 inserts=3655 evictions=0 (cum evictions=0)
+[block  9] chunks=2560 block_wall=7916ms hit_rate=93.3% hits=45676 misses=3281 inserts=3281 evictions=0 (cum evictions=0)
+[block 10] chunks=2816 block_wall=8245ms hit_rate=92.5% hits=51225 misses=4167 inserts=4167 evictions=0 (cum evictions=0)
+[block 11] chunks=3072 block_wall=8179ms hit_rate=93.1% hits=51336 misses=3783 inserts=3783 evictions=0 (cum evictions=0)
+[block 12] chunks=3328 block_wall=8026ms hit_rate=93.0% hits=46337 misses=3478 inserts=3478 evictions=0 (cum evictions=0)
+[block 13] chunks=3584 block_wall=7920ms hit_rate=93.3% hits=45712 misses=3268 inserts=3268 evictions=0 (cum evictions=0)
+[block 14] chunks=3840 block_wall=7953ms hit_rate=92.4% hits=46308 misses=3784 inserts=3784 evictions=0 (cum evictions=0)
+[block 15] chunks=4096 block_wall=7892ms hit_rate=93.0% hits=50037 misses=3753 inserts=3753 evictions=0 (cum evictions=0)
+[total] wall=121534ms

@@ -333,3 +333,16 @@ V5 残差排查中 4 次「一步裁决探针」逐层收敛（biome 列对比 �
   2. **跨 session 单价稳定性可作收敛判定依据（fan-out 免触发）**：剩余差归因时，若「生产隐含单价跨 session 稳定」（8.5 vs 9.9µs，±16%），则主机制成本主导且无漂移，次级效应候选（b2 类）不构成与主机制并存的互斥候选 → core.fanout 触发条件（≥2 互斥候选）不满足，**免 fan-out**。本例 judge 复核认可（review-p2-p3-final §C：「作为收敛判定依据使用而非独立证实，符合触发条件」）。注意边界：该判据只免 fan-out，不构成对主机制的独立证实——结论仍需生产实测支撑。
 - **证据**：`.investigations/lossless-accel/cmd-output/est-price-p24-260903-12.txt`（hot 65/57ns、cold 5751/5721ns 原始输出）；单价核算见 `.artifacts/lossless-accel/est-l2-defaultflip-p2-260903-12.md` P2.4。
 
+
+## 发现 #26: 预加载/注册表与运行时查询集合同步——expect 型查表的缺失只在低频分支触发，小样本全绿≠无缺失，大 region sweep 是暴露手段（260903-14）
+
+- **现象**：estopt 64×64 sweep 至 ~2304-2560 chunk 处 panic：`surface_rules.rs:505 missing noise sampler`（260903-12 课题 #2）。此前所有小样本对比/回归全绿——同一二进制在 64×64 sweep 内稳定跑过 ~2300 chunk 才首次命中崩溃分支。
+- **根因（机制）**：overworld 预加载 noise key 静态清单（`worldgen_handle.rs` L272）缺 `minecraft:badlands_pillar_roof`，`place_badlands_pillar`（`surface_rules.rs:1372`）运行时 `get_noise` → `expect` panic。**预加载集合（启动期建表）与运行时查询集合（surface rule 里的 expect 型查表调用点）是两份独立维护的清单**——新增查表调用点时没有同步预加载来源，静态清单没有「运行时全集」的机械校验，缺项只能等运行时 expect 爆。触发面极窄（仅 eroded_badlands biome 列且侵蚀度 e>0），是典型低频分支。
+- **定位**：panic 点反查调用链（expect ← get_noise ← place_badlands_pillar ← 预加载清单），清单 grep 缺失 key 即闭合——expect panic 自带 key 名，链条短；难的不是定位而是**让崩溃先发生**（小样本永远到不了该分支）。
+- **修复**：预加载清单补一行。
+- **教训（可复用判据）**：
+  1. **新增任何 expect 型查表调用点（get_noise / get_rule / get_* → expect/unwrap）必须同步预加载/注册表来源**——同一 PR/同一 commit 内两处一起改；更优做法是启动期校验「运行时引用的 key ⊆ 预加载集合」（机械校验替代人肉同步）。
+  2. **expect 型缺失是小样本测试的盲区**：低频分支（罕见 biome/条件组合）触不到就测不到，「回归全绿」对缺失类缺陷**无证据力**——绿 ≠ 无缺失。
+  3. **大 region sweep 是暴露手段**：存档口径级大样本（数千 chunk）覆盖低频分支；对 expect 密集的代码路径，sweep 应作为常规回归而非一次性验证（本次正是常规 sweep 抓到）。
+- **同族**：#12（哨兵结论须配已知值哨兵点——「测试绿」同样要有覆盖面背书）、#14（大 region 预生成三件套前置——sweep 可执行的工程前提）。
+

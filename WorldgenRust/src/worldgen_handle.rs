@@ -269,9 +269,9 @@ impl WorldgenHandle {
                 let _ = db.get_noise_sampler(k);
             }
             if df_ns == "overworld" {
-                for k in ["minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:calcite",
-                          "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice", "minecraft:ice",
-                          "minecraft:surface_swamp"] {
+                for k in ["minecraft:badlands_surface", "minecraft:badlands_pillar", "minecraft:badlands_pillar_roof",
+                          "minecraft:calcite", "minecraft:gravel", "minecraft:powder_snow", "minecraft:packed_ice",
+                          "minecraft:ice", "minecraft:surface_swamp"] {
                     let _ = db.get_noise_sampler(k);
                 }
             } else if let Some(sr) = settings.get("surface_rule") {

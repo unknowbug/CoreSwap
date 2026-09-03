@@ -1,0 +1,70 @@
+=== estopt_mt_bench mode=sweep l2=true seed=8576294172403134396 64x64 chunks ===
+[block  0] chunks= 256 block_wall=7170ms hit_rate=86.9% hits=47916 misses=7194 inserts=7194 evictions=0 (cum evictions=0)
+[block  1] chunks= 512 block_wall=6816ms hit_rate=92.7% hits=51449 misses=4032 inserts=4032 evictions=0 (cum evictions=0)
+[block  2] chunks= 768 block_wall=7181ms hit_rate=92.4% hits=52084 misses=4310 inserts=4310 evictions=0 (cum evictions=0)
+[block  3] chunks=1024 block_wall=7302ms hit_rate=92.6% hits=49948 misses=3982 inserts=3982 evictions=0 (cum evictions=0)
+[block  4] chunks=1280 block_wall=7498ms hit_rate=91.8% hits=45636 misses=4090 inserts=4090 evictions=0 (cum evictions=0)
+[block  5] chunks=1536 block_wall=7413ms hit_rate=91.5% hits=45485 misses=4212 inserts=4212 evictions=0 (cum evictions=0)
+[block  6] chunks=1792 block_wall=7524ms hit_rate=91.8% hits=45959 misses=4122 inserts=4122 evictions=0 (cum evictions=0)
+[block  7] chunks=2048 block_wall=7991ms hit_rate=91.6% hits=44730 misses=4106 inserts=4106 evictions=0 (cum evictions=0)
+[block  8] chunks=2304 block_wall=8916ms hit_rate=92.2% hits=43375 misses=3655 inserts=3655 evictions=0 (cum evictions=0)
+
+thread 'main' (22752) panicked at src\surface_rules.rs:505:32:
+missing noise sampler
+stack backtrace:
+   0:     0x7ff730f67ea9 - std::backtrace_rs::backtrace::win64::trace
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\win64.rs:85
+   1:     0x7ff730f67ea9 - std::backtrace_rs::backtrace::trace_unsynchronized
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\..\..\backtrace\src\backtrace\mod.rs:66
+   2:     0x7ff730f67ea9 - std::sys::backtrace::_print_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:74
+   3:     0x7ff730f67ea9 - std::sys::backtrace::impl$0::print::impl$0::fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:44
+   4:     0x7ff730f75d51 - core::fmt::write
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\fmt\mod.rs:0
+   5:     0x7ff730f6b274 - std::io::default_write_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:626
+   6:     0x7ff730f6b274 - std::io::Write::write_fmt<std::sys::stdio::windows::Stderr>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\io\mod.rs:1730
+   7:     0x7ff730f5f065 - std::sys::backtrace::BacktraceLock::print
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:47
+   8:     0x7ff730f5f065 - std::panicking::default_hook::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:292
+   9:     0x7ff730f62f2a - std::panicking::default_hook
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:319
+  10:     0x7ff730f63133 - std::panicking::panic_with_hook
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:815
+  11:     0x7ff730f5f13e - std::panicking::panic_handler::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:688
+  12:     0x7ff730f5e0df - std::sys::backtrace::__rust_end_short_backtrace<std::panicking::panic_handler::closure_env$0,never$>
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\sys\backtrace.rs:182
+  13:     0x7ff730f5f54e - std::panicking::panic_handler
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:679
+  14:     0x7ff730f8585d - core::panicking::panic_fmt
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\panicking.rs:80
+  15:     0x7ff730f855a5 - core::panicking::panic_display
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\panicking.rs:259
+  16:     0x7ff730f855a5 - core::option::expect_failed
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\core\src\option.rs:2260
+  17:     0x7ff730f15778 - <WorldgenRust[a36660ba1443562d]::surface_rules::SurfaceBuilder>::build_surface
+  18:     0x7ff730ea34dd - <WorldgenRust[a36660ba1443562d]::worldgen_handle::WorldgenHandle>::fill_chunk_blocks
+  19:     0x7ff730e83ed3 - estopt_mt_bench[bfef62a8a832d0f4]::main
+  20:     0x7ff730e88cf6 - <std[8a6d8cd86c7d29b2]::sys::stdio::windows::Stderr as std[8a6d8cd86c7d29b2]::io::Write>::write_all
+  21:     0x7ff730e897fc - std[8a6d8cd86c7d29b2]::rt::lang_start::<()>::{closure#0}
+  22:     0x7ff730f61e00 - std::rt::lang_start_internal::closure$0
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\rt.rs:175
+  23:     0x7ff730f61e00 - std::panicking::catch_unwind::do_call
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:576
+  24:     0x7ff730f61e00 - std::panicking::catch_unwind
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panicking.rs:544
+  25:     0x7ff730f61e00 - std::panic::catch_unwind
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\panic.rs:359
+  26:     0x7ff730f61e00 - std::rt::lang_start_internal
+                               at /rustc/88d9e12ae178fab0fb5cc050a94da85685d449ea/library\std\src\rt.rs:171
+  27:     0x7ff730e8583c - main
+  28:     0x7ff730f7d92f - invoke_main
+                               at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:78
+  29:     0x7ff730f7d92f - __scrt_common_main_seh
+                               at D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  30:     0x7ff84230ccb7 - BaseThreadInitThunk
+  31:     0x7ff84258ad6c - RtlUserThreadStart
