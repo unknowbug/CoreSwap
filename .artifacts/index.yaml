@@ -730,7 +730,7 @@ entries:
   - id: 're-code:lossless-accel:pa-ch0-closure-260903-06'
     path: 'lossless-accel/pa-ch0-closure-260903-06.md'
     kind: analysis
-    status: candidate
+    status: confirmed
     # ch0 通道级闭合：GPU vs C++ oracle 144 点 major=0（max 1.795e-6）；macro 无缺陷；
     # 假残差定案（z=0/z=16 混列）+ transpiler 真根因=漏设 blended_noise（已修复，supersedes bA 归因）；
     # §15.4 两条 supersedes；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。

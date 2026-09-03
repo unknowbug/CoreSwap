@@ -1,7 +1,7 @@
 # P-A：ch0 跨语言通道级闭合（260903-06）
 
 - **课题**：lossless-accel / P-A「ch0 跨语言通道级闭合」
-- **status**：**candidate（建议）**——数据层三方对拍全绿 + 假残差定案有 C++ oracle 逐点背书；confirmed 待 judge 审查 + 用户拍板。
+- **status**：**confirmed（260903-06 用户拍板；judge 已过，CONCERN 清偿后提交 dc865fe）**——数据层三方对拍全绿 + 假残差定案有 C++ oracle 逐点背书。
 - **前包**：260903-05（commit 80c9e95）；fan-out 三候选 x2-ch0-b{A,B,C}-260903-05.md 合流：GPU 可信、transpiler cache_2d 过度缓存（density.rs:335）致 ch0 列常量化；残留 idk「macro vs GPU ch0 残差 0.03-0.23」。
 - **验证分层声明**：**Partial（oracle 探针级）**——新 oracle 工具（density_probe.cpp `-dfDump` 模式）+ GPU dump（bin-diag ch0_gpu_dump.rs）+ Rust macro 直采，通道级逐点数值对拍；非 final 层 block_probe 逐位 Full 口径。
 - **§9.7 验证可比性声明（三要素）**：
