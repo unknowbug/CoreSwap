@@ -242,4 +242,23 @@ V5 残差排查中 4 次「一步裁决探针」逐层收敛（biome 列对比 �
 - **来源定位**：lossless-accel P-C1 端到端三方对比（pc1-e2e-260903-08.md）；判别证据 = fair_comparison_corrected.txt:3-4 自注（08-29 Rust 侧为「无树花」口径）。
 - **观察**：08-29 结论「Rust 45.48 < Java 55，反快 1.2×」被后续 session 引用为「Rust 比 Java 快」的默认前提；同日同机同 region 重测（Rust 含 features 完整管线）实为 Rust 72-77ms vs Java 33ms——**慢 2.2×**，方向完全反转。根因不是哪次测错了，而是两次 Rust 侧 stage 覆盖不同（无树花 vs 全管线），历史数字无口径标注或标注未随结论流转，续推时口径失配。
 - **判据**：① 引用历史基准结论前第一动作 = 核对 stage 覆盖/口径标注与当前对比口径是否一致（§9.7「与既有口径可比性」的历史方向应用）；② **缺标注的历史数字一律视为不可比**，不得作为方向性前提续推（交接结论验证纪律的基准数字特例：假设不当公理，历史数字不当基线）；③ 采新基准时把口径自注写进产物文件本身——标注随数据走，不随会话记忆走（本例 fair_comparison_corrected.txt 自注救了归因）。
-- **同族**：§9.7 三要素、#14（阶段同源性）、#17（坐标维度对位）——本条补「历史结论跨 session 续推维度」。连锁开问题：Q-PD1（Rust features/carver 段 vs Java 差距大头，独立排查）。
+- **同族**：§9.7 三要素、#14（阶段同源性）、#17（坐标维度对位）——本条补「历史结论跨 session 续推维度」。连锁开问题：Q-PD1（Rust features/carver 段 vs Java 差距大头，独立排查）。（📌 260903-09 更新：Q-PD1 已闭合，方向假设被 supersedes——大头实为 aquifer 段，见 .artifacts/lossless-accel/qpd1-attribution-260903-09.md。）
+
+## 发现 #19: Java bench 前必须删 run\world——世界状态第四查；「快一个量级 + min≈0」是缓存假象签名（260903-09）
+
+- **时间/置信度/module**：260903-09，candidate，swe/re-code 测量通用。
+- **来源定位**：`.investigations/lossless-accel/cmd-output/qpd1-java-recheck-260903-09.md`（run A vs run B）；`.investigations/lossless-accel/q-pd1-260903-09.md`。
+- **观察（现象）**：Java WorldGenBench 在 `run\world` 残留时跑 region(200,200)：`total=764ms avg=2.98ms min=0`；删 `run\world` 后 fresh 生成：`total=10993ms median≈32ms`——第一次测出「快 ~60×」的假象级数字。
+- **根因**：world 残留时 bench 走服务器 chunk 系统，region 内 chunk 已生成 → 从磁盘加载（~1ms/chunk）而非走 worldgen 管线，测的是 IO 缓存不是生成性能。`benchSeed` 只改 bench 参数，不改 level.dat 里的世界状态（与「benchSeed 不改变世界 seed」同源）。
+- **定位**：run A 输出 min=0 + total 偏离前日基线一个量级 → 触发复核，fresh 重跑即闭合。
+- **修复**：bench 前 `Stop-Process java` + `Remove-Item run\world` 强制 fresh 生成。
+- **教训/如何利用**：**采集核对升级为四查**（seed/坐标/文件 + **世界状态**）——任何依赖 `run\world` 的 Java 侧测量，数据用于对比前必须确认 world 目录状态。假象签名：**同 region 二次 bench 快一个量级 + min≈0** → 立即怀疑缓存/残留，不作结论。同族：AGENTS.md「残留 java 进程占 world/端口」（同一 run\world 问题的性能测量面）。
+
+## 发现 #20: 死参数制造假判别——判别实验必须验证「自变量真被改变」（260903-09）
+
+- **时间/置信度/module**：260903-09，candidate，通用方法论。
+- **来源定位**：pc_e2e_bench.rs L18 解析 `WG_E2E_SEED` 后 L22 恒用常量 `SEED`；被污染结论 = pc-results-260903-08.md「negseed 判别 <3% → seed 非因素」（已 supersedes）。
+- **观察（现象）**：negseed 判别差 <3%，读作「seed 非因素」记入 confirmed artifact；次日本 session 基线复核顺带源码审查发现 env 解析后根本未接到使用点——两次运行同 seed，「差 <3%」是同变量重复测量的必然结果，不是判别结果。
+- **根因**：死参数（解析与使用点脱节/常量遮蔽）——实验在机制上未改变自变量；「两结果相近」被误读为「自变量无关」。失效静默：无告警、输出格式完全正常。
+- **定位**：交接纪律的「廉价独立验证」顺带 bin 源码审查发现；若运行时打印实际生效 seed 并断言处理组≠对照组也能当轮发现。
+- **教训/如何利用**：**判别实验前置自检——先验证「X 真被改变」再读结果**（打印生效值断言两侧不同，或给 X 一个已知强效应值做 sanity）。近零结果（如「差 <3%」）同时兼容「真无影响」与「假判别」，须用恒等式自检排除后者再下结论。同族：#14（stageMask 静默）、#18（口径核对）——本条补「自变量生效性」维度。

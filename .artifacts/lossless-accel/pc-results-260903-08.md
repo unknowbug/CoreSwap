@@ -16,3 +16,9 @@
 - **§15.4 supersedes**：无（本包不推翻已 confirmed 结论；对 260903-04 [fact2] 0.61× 的推翻属候选记录内标注，待 judge）。
 - **遗留 idk**：Java 55→33 漂移未归因；features 段耗时分布未测。
 - 过程：.investigations/lossless-accel/{pc2-retest,pc1-e2e}-260903-08.md + cmd-output/*260903-08*。
+
+---
+**§15.4 supersedes 指针（260903-09 追加，正文未改动）**：
+- 结论 4 中「开问题 Q-PD1：features/carver 段疑似大头」——已被 qpd1-attribution-260903-09.md 推翻：实测 features ≈0（噪声级）、carver 仅 ~8%，差距大头为 aquifer 段（~60%，62ms 口径）。
+- P-C1 中「negseed 判别 <3% → seed 非因素」——证据无效（superseded）：pc_e2e_bench.rs WG_E2E_SEED 解析后未使用（L22 恒用常量 SEED），negseed 运行实际未换 seed，同 seed 重复测量必然差 <3%。
+- 取代记录：.artifacts/lossless-accel/qpd1-attribution-260903-09.md（candidate，judge review-260903-09 通过）。

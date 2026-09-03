@@ -18,3 +18,7 @@ entries:
     path: 'route2-judge-260903-04.md'
     kind: review
     status: candidate
+  - id: 'lossless-accel:qpd1:attribution-260903-09'
+    path: 'qpd1-attribution-260903-09.md'
+    kind: analysis
+    status: candidate

@@ -1,0 +1,25 @@
+# qpd1 stage bench 原始输出（260903-09，两轮）
+
+工具：bin-diag/qpd1_stage_bench.rs → .tmp/qpd1_stage_bench.exe（rustc 单编）；seed=8576294172403134396 region=(200,200) size=8（64 chunks/配置，median）
+
+## 轮1
+[full] median=62.05
+[no-features] median=66.09
+[no-carver+features] median=59.64
+[no-surface+carver+features] median=52.99
+[no-orevein+surface+carver+features] median=52.75
+[no-aquifer+orevein+surface+carver+features] median=14.46
+[STAGE] density/interp=14.46 aquifer=38.29 orevein=0.24 surface=6.65 carver=6.45 features=-4.04
+[CHECK] sum=62.05 vs FULL=62.05 diff=0.00
+
+## 轮2（同序复跑，稳定性检验）
+[full] median=61.67
+[no-features] median=61.03
+[no-carver+features] median=56.01
+[no-surface+carver+features] median=50.52
+[no-orevein+surface+carver+features] median=51.58
+[no-aquifer+orevein+surface+carver+features] median=14.36
+[STAGE] density/interp=14.36 aquifer=37.22 orevein=-1.06 surface=5.50 carver=5.02 features=0.64
+[CHECK] sum=61.67 vs FULL=61.67 diff=0.00
+
+判读：aquifer/density/surface/carver 两轮 ±1ms 级一致；orevein/features 噪声级（|Δ|≤4ms）。
