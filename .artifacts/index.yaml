@@ -771,4 +771,4 @@ entries:
   - id: 're-code:panic-505:panic-fix-verdict-260903-14'
     path: 'panic-505/panic-fix-verdict-260903-14.md'
     kind: analysis
-    status: candidate
+    status: confirmed

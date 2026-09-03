@@ -1,7 +1,8 @@
-# panic-505 修复 verdict（260903-14，candidate）
+# panic-505 修复 verdict（260903-14，confirmed）
 
 > 承接 NEXT_SESSION 260903-13 未闭合课题 #1：surface_rules.rs:505 大 region panic `missing noise sampler`。
 > 架构计划：`.investigations/000-架构设计/架构计划-260903-14-surface505-panic立项.md`（用户已批准）。
+> **confirmed：用户拍板 260903-14（judge PASS + should-fix 清偿后）。**
 
 ## 结论（candidate）
 
