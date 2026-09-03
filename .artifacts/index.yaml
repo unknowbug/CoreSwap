@@ -735,6 +735,27 @@ entries:
     # 假残差定案（z=0/z=16 混列）+ transpiler 真根因=漏设 blended_noise（已修复，supersedes bA 归因）；
     # §15.4 两条 supersedes；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。
 
+  - id: 're-code:lossless-accel:est-shared-verdict-260903-12'
+    path: 'lossless-accel/est-shared-verdict-260903-12.md'
+    kind: analysis
+    status: candidate
+    # shared 臂裁决（260903-12）：WG_EST_SHARED est 语义与 Java vanilla 一致（共同列 64/64），off 臂系统性偏离（0/64）
+    # → shared = 真修正，candidate；新发现两臂共有角参数 +15 vs Java +16（scout #7 静态推断失真实锤）；
+    # 附带：大 region sweep panic surface_rules.rs:505 另立课题。
+
+  - id: 're-code:lossless-accel:est-l2-defaultflip-p2-260903-12'
+    path: 'lossless-accel/est-l2-defaultflip-p2-260903-12.md'
+    kind: analysis
+    status: candidate
+    # 翻默认三件套（260903-12）：Mutex 无争用退化（L2 加速比 2.55→3.12×随线程升）；淘汰无风险（2304 chunk 92% 稳定未触顶）；
+    # e2e stats 落盘 89.8%；P2.4 微测上界无效实锤（hot 60ns vs cold 5.7µs，形态差 95×，#21），观察闭合。建议与 +16 角修正联动翻默认。
+
+  - id: 're-code:lossless-accel:gpu-merge-revisit-260903-12'
+    path: 'lossless-accel/gpu-merge-revisit-260903-12.md'
+    kind: decision
+    status: candidate
+    # gpu-batch-merge 天花板重议（260903-12）：est L2 后 Rust 单线程 27.69 < Java 33、8 线程 ~4.5（~7×Java）——原目标差距消失，建议降级/搁置，待用户拍板。
+
   # === lossless-accel P-C 端到端 + 0.61× 复测（260903-08，confirmed）===
   - id: 're-code:lossless-accel:pc-results-260903-08'
     path: 'lossless-accel/pc-results-260903-08.md'

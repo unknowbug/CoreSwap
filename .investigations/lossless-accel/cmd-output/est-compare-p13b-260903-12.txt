@@ -1,0 +1,3 @@
+chunks compared=64  shared(+12)==java(+16): 63  diff: 1
+  (201,200) java@+16=56 shared@+12=48 off=55
+java x0-col vs x0+16-col est values differ: 3/64 chunks

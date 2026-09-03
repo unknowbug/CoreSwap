@@ -1,0 +1,12 @@
+=== arm off ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== arm shared ===
+[hash] 64 chunks agg=8bff408735f1560d
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== arm l2 ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4
+[l2] hits=10796 misses=1914 inserts=1914 evictions=0 (hit_rate=84.9%)
+=== arm shared+l2 ===
+[hash] 64 chunks agg=8bff408735f1560d
+[l2] hits=10858 misses=2017 inserts=2017 evictions=0 (hit_rate=84.3%)

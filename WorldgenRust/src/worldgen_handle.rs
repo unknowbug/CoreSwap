@@ -537,6 +537,22 @@ impl WorldgenHandle {
             est_at(cx * 16, cz * 16), est_at(cx * 16 + 15, cz * 16),
             est_at(cx * 16, cz * 16 + 15), est_at(cx * 16 + 15, cz * 16 + 15),
         ];
+        // 260903-12（默认关）：WG_EST_DUMP=<path> → 4 角 est 值逐条追加 dump（Java est 对比用 P1.2）
+        if let Ok(dump_path) = std::env::var("WG_EST_DUMP") {
+            let corner_params = [(cx * 16, cz * 16), (cx * 16 + 15, cz * 16), (cx * 16, cz * 16 + 15), (cx * 16 + 15, cz * 16 + 15)];
+            let mut line = format!("{},{}", cx, cz);
+            for (i, &(px, pz)) in corner_params.iter().enumerate() {
+                line.push_str(&format!(",c{}:{}:{}:{}", i, px, pz, surface_heights4[i]));
+            }
+            line.push('\n');
+            use std::sync::atomic::{AtomicBool, Ordering as Ao};
+            static TRUNC: AtomicBool = AtomicBool::new(false);
+            let trunc = !TRUNC.swap(true, Ao::SeqCst);
+            if let Ok(mut f) = std::fs::OpenOptions::new().create(true).write(true).truncate(trunc).append(!trunc).open(&dump_path) {
+                use std::io::Write;
+                let _ = f.write_all(line.as_bytes());
+            }
+        }
         let biome_at = |x: i32, y: i32, z: i32| -> String {
             let bp = NoisePos { x: (x >> 2) << 2, y: (y >> 2) << 2, z: (z >> 2) << 2 };
             self.biomesrc.biome(&bp)

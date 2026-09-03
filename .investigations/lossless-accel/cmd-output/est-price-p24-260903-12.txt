@@ -1,0 +1,8 @@
+=== est_price_probe mode=hot seed=8576294172403134396 ===
+[price] total_iters=70000 wall=0.005s ns/iter=65
+=== est_price_probe mode=cold seed=8576294172403134396 ===
+[price] total_iters=550764 wall=3.168s ns/iter=5751
+=== est_price_probe mode=hot seed=8576294172403134396 ===
+[price] total_iters=70000 wall=0.004s ns/iter=57
+=== est_price_probe mode=cold seed=8576294172403134396 ===
+[price] total_iters=550764 wall=3.151s ns/iter=5721

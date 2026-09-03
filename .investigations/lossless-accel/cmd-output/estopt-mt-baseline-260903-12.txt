@@ -1,0 +1,48 @@
+=== estopt_mt_bench mode=mt threads=1 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=1 wall=23405.3ms throughput=91.43ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=1 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=1 wall=9170.9ms throughput=35.82ms/chunk
+[l2] hits=51627 misses=5872 inserts=5872 evictions=0 (hit_rate=89.8%)
+=== estopt_mt_bench mode=mt threads=1 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=1 wall=9213.9ms throughput=35.99ms/chunk
+[l2] hits=51627 misses=5872 inserts=5872 evictions=0 (hit_rate=89.8%)
+=== estopt_mt_bench mode=mt threads=1 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=1 wall=24052.7ms throughput=93.96ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=2 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=2 wall=12611.6ms throughput=49.26ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=2 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=2 wall=4567.8ms throughput=17.84ms/chunk
+[l2] hits=51594 misses=5905 inserts=5872 evictions=0 (hit_rate=89.7%)
+=== estopt_mt_bench mode=mt threads=2 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=2 wall=4606.8ms throughput=18.00ms/chunk
+[l2] hits=51595 misses=5904 inserts=5872 evictions=0 (hit_rate=89.7%)
+=== estopt_mt_bench mode=mt threads=2 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=2 wall=12457.4ms throughput=48.66ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=4 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=4 wall=6640.2ms throughput=25.94ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=4 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=4 wall=2128.3ms throughput=8.31ms/chunk
+[l2] hits=51480 misses=6019 inserts=5872 evictions=0 (hit_rate=89.5%)
+=== estopt_mt_bench mode=mt threads=4 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=4 wall=2144.1ms throughput=8.38ms/chunk
+[l2] hits=51486 misses=6013 inserts=5872 evictions=0 (hit_rate=89.5%)
+=== estopt_mt_bench mode=mt threads=4 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=4 wall=6682.6ms throughput=26.10ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=8 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=8 wall=3652.7ms throughput=14.27ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== estopt_mt_bench mode=mt threads=8 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=8 wall=1148.5ms throughput=4.49ms/chunk
+[l2] hits=51352 misses=6147 inserts=5872 evictions=0 (hit_rate=89.3%)
+=== estopt_mt_bench mode=mt threads=8 l2=true seed=8576294172403134396 ===
+[wall] 256 chunks threads=8 wall=1183.2ms throughput=4.62ms/chunk
+[l2] hits=51389 misses=6110 inserts=5872 evictions=0 (hit_rate=89.4%)
+=== estopt_mt_bench mode=mt threads=8 l2=false seed=8576294172403134396 ===
+[wall] 256 chunks threads=8 wall=3584.4ms throughput=14.00ms/chunk
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)

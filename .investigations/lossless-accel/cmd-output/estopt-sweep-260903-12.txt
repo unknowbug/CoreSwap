@@ -1,0 +1,14 @@
+=== estopt_mt_bench mode=sweep l2=true seed=8576294172403134396 64x64 chunks ===
+[block  0] chunks= 256 block_wall=9208ms hit_rate=86.9% hits=47915 misses=7194 inserts=7194 evictions=0 (cum evictions=0)
+[block  1] chunks= 512 block_wall=9521ms hit_rate=92.7% hits=51449 misses=4032 inserts=4032 evictions=0 (cum evictions=0)
+[block  2] chunks= 768 block_wall=9089ms hit_rate=92.4% hits=52084 misses=4310 inserts=4310 evictions=0 (cum evictions=0)
+[block  3] chunks=1024 block_wall=8991ms hit_rate=92.6% hits=49948 misses=3982 inserts=3982 evictions=0 (cum evictions=0)
+[block  4] chunks=1280 block_wall=9305ms hit_rate=91.8% hits=45635 misses=4090 inserts=4090 evictions=0 (cum evictions=0)
+[block  5] chunks=1536 block_wall=9643ms hit_rate=91.5% hits=45484 misses=4212 inserts=4212 evictions=0 (cum evictions=0)
+[block  6] chunks=1792 block_wall=9423ms hit_rate=91.8% hits=45959 misses=4122 inserts=4122 evictions=0 (cum evictions=0)
+[block  7] chunks=2048 block_wall=9083ms hit_rate=91.6% hits=44729 misses=4106 inserts=4106 evictions=0 (cum evictions=0)
+[block  8] chunks=2304 block_wall=9124ms hit_rate=92.2% hits=43371 misses=3655 inserts=3655 evictions=0 (cum evictions=0)
+
+thread 'main' (1652) panicked at src\surface_rules.rs:505:32:
+missing noise sampler
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

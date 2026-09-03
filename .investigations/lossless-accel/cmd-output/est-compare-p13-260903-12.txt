@@ -1,0 +1,5 @@
+java entries=11877 conflicts=0  rust chunks=66
+compared region chunks=64
+[off]    match=0 diff=64
+[shared] match=64 diff=0
+java-missing columns=192
