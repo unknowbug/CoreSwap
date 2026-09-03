@@ -12,6 +12,9 @@ struct GpuDensityEngine::Impl {
     std::unique_ptr<VkRuntime> rt;  // Vulkan 运行时（组件）
     VkRuntime::Buffer coordBuf, permBuf, splitBuf, outBuf, valBuf;
     VkRuntime::Buffer npBuf, locBuf, derBuf, vfBuf, vkBuf, vnBuf;
+    int outPerSample = 1;           // X2：每采样点输出 float 数（1=final；>1=channels planar，=pipeline 数）
+    bool multiPipeline = false;     // X2 v3：多 pipeline（channels）模式
+    std::vector<VkPipeline> chPipelines;
     VkDescriptorSet ds = VK_NULL_HANDLE;
     int curCap = 0;                 // 当前 buffer 容量（N），不足时重建
     // seed 级常量数据（init 时从 backend 复制）
@@ -38,7 +41,7 @@ void GpuDensityEngine::Impl::ensureBuffers(int n) {
     coordBuf = rt->createBuffer((VkDeviceSize)n * 3 * sizeof(int32_t));
     permBuf = rt->createBuffer(permSize);
     splitBuf = rt->createBuffer((VkDeviceSize)n * backend.splitTotal * sizeof(float));
-    outBuf = rt->createBuffer((VkDeviceSize)n * sizeof(float));
+    outBuf = rt->createBuffer((VkDeviceSize)n * outPerSample * sizeof(float));
     valBuf = rt->createBuffer((VkDeviceSize)n * backend.perSample * sizeof(float));
     npBuf = rt->createBuffer((VkDeviceSize)splineNodePack.size() * sizeof(int32_t));
     locBuf = rt->createBuffer((VkDeviceSize)splineLocs.size() * sizeof(float));
@@ -60,7 +63,7 @@ void GpuDensityEngine::Impl::ensureBuffers(int n) {
                   backend.splineBindBase + 3, backend.splineBindBase + 4, backend.splineBindBase + 5};
     VkRuntime::Buffer bufs[11] = {coordBuf, permBuf, outBuf, splitBuf, valBuf, npBuf, locBuf, derBuf, vfBuf, vkBuf, vnBuf};
     VkDeviceSize sizes[11] = {
-        (VkDeviceSize)n * 3 * sizeof(int32_t), permSize, (VkDeviceSize)n * sizeof(float),
+        (VkDeviceSize)n * 3 * sizeof(int32_t), permSize, (VkDeviceSize)n * outPerSample * sizeof(float),
         (VkDeviceSize)n * backend.splitTotal * sizeof(float), (VkDeviceSize)n * backend.perSample * sizeof(float),
         (VkDeviceSize)splineNodePack.size() * sizeof(int32_t), (VkDeviceSize)splineLocs.size() * sizeof(float),
         (VkDeviceSize)splineDers.size() * sizeof(float), (VkDeviceSize)splineValF.size() * sizeof(float),
@@ -69,14 +72,42 @@ void GpuDensityEngine::Impl::ensureBuffers(int n) {
     curCap = n;
 }
 
-GpuDensityEngine::GpuDensityEngine(uint64_t seed, const std::string& spvPath) : m(std::make_unique<Impl>()) {
+GpuDensityEngine::GpuDensityEngine(uint64_t seed, const std::string& spvPath, int outPerSample) : m(std::make_unique<Impl>()) {
     auto& im = *m;
+    im.outPerSample = outPerSample > 0 ? outPerSample : 1;
     // 1. CpuBackend：noise samplers + perm + spline 数据（与 e2e 相同初始化）
     im.backend.init(seed);
     im.backend.collectPerm(im.perm);
     // 2. Vulkan 初始化 + pipeline 编译（~70-100s，一次性）
     im.rt = std::make_unique<VkRuntime>();
     im.rt->init();
+    // X2 v3（260903-05）：spvPath 含 ';' = 多 pipeline（每 channel 一个 spv，planar 输出 out[k*n+i]）。
+    // 形态史：单 shader 多 interp 输出两撞编译器墙（4MB OOM / 5 常量 root 自旋 >30min）——见
+    // gen_final_density_channels.py 头注。每 pipeline 单调用 = final shader 同构，编译安全。
+    if (spvPath.find(';') != std::string::npos) {
+        std::vector<std::string> paths;
+        size_t pos = 0;
+        while (pos <= spvPath.size()) {
+            size_t nxt = spvPath.find(';', pos);
+            if (nxt == std::string::npos) nxt = spvPath.size();
+            if (nxt > pos) paths.push_back(spvPath.substr(pos, nxt - pos));
+            pos = nxt + 1;
+        }
+        im.outPerSample = (int)paths.size();
+        im.multiPipeline = true;
+        for (auto& p : paths) im.chPipelines.push_back(im.rt->createPipelineEx(p));
+        std::fprintf(stderr, "[GPU] %zu channel pipelines ready, splitTotal=%d perSample=%d\n",
+                     im.chPipelines.size(), im.backend.splitTotal, im.backend.perSample);
+        // 3. seed 级常量（perm + spline 表）
+        im.permSize = (VkDeviceSize)im.perm.size() * sizeof(uint32_t);
+        im.splineNodePack.assign(im.backend.splineNodePack.begin(), im.backend.splineNodePack.end());
+        im.splineLocs.assign(im.backend.splineLocs.begin(), im.backend.splineLocs.end());
+        im.splineDers.assign(im.backend.splineDers.begin(), im.backend.splineDers.end());
+        im.splineValF.assign(im.backend.splineValF.begin(), im.backend.splineValF.end());
+        im.splineValKind.assign(im.backend.splineValKind.begin(), im.backend.splineValKind.end());
+        im.splineValNode.assign(im.backend.splineValNode.begin(), im.backend.splineValNode.end());
+        return;
+    }
     std::fprintf(stderr, "[GPU] compiling pipeline (one-time ~70-100s)...\n");
     im.rt->createPipeline(spvPath);
     std::fprintf(stderr, "[GPU] pipeline ready, splitTotal=%d perSample=%d splineBindBase=%d\n",
@@ -113,8 +144,16 @@ void GpuDensityEngine::fill(const int32_t* coords, int n, float* out) {
         im.backend.split(coords[3*s+0], coords[3*s+1], coords[3*s+2], splitCoord.data() + (size_t)s * im.backend.splitTotal);
     im.rt->upload(im.coordBuf, coords, (VkDeviceSize)n * 3 * sizeof(int32_t));
     im.rt->upload(im.splitBuf, splitCoord.data(), (VkDeviceSize)n * im.backend.splitTotal * sizeof(float));
+    // X2 v3：多 pipeline——每 channel 一个 dispatch（共享 coord/split/outBuf），planar 写 out[k*n+i]
+    if (im.multiPipeline) {
+        for (size_t k = 0; k < im.chPipelines.size(); k++) {
+            im.rt->dispatchPipeline(im.chPipelines[k], im.ds, (uint32_t)n);
+            im.rt->readback(im.outBuf, out + (size_t)k * n, (VkDeviceSize)n * sizeof(float));
+        }
+        return;
+    }
     im.rt->dispatch(im.ds, (uint32_t)n);
-    im.rt->readback(im.outBuf, out, (VkDeviceSize)n * sizeof(float));
+    im.rt->readback(im.outBuf, out, (VkDeviceSize)n * im.outPerSample * sizeof(float));
 }
 
 float GpuDensityEngine::sample(int x, int y, int z) {

@@ -31,6 +31,8 @@ impl DensityMacroSampler {
         Self { channels, combine, min_y, height, cell_w: 4, cell_h: 8,
             gx: (16/4+1) as usize, gy: (height/8+1) as usize, gz: (16/4+1) as usize }
     }
+    /// 公开 slices 构建（诊断对照用；布局与 TranspilerDensity 同构）
+    pub fn build_slices_for(&self, cx: i32, cz: i32) -> Vec<f64> { self.build_slices(cx, cz) }
     fn build_slices(&self, cx: i32, cz: i32) -> Vec<f64> {
         let nch = self.channels.len();
         let mut slices = vec![0.0f64; self.gx * self.gy * self.gz * nch];
@@ -183,12 +185,14 @@ pub trait DensitySource<S: ChunkDensitySampler> {
 }
 // 每 chunk 的宏观采样结果（slices 已构建，块级 O(1) 插值）
 pub struct ChunkDensity<'a, S: ChunkDensitySampler> {
-    sampler: &'a S,
-    slices: Vec<f64>,
+    pub(crate) sampler: &'a S,
+    pub(crate) slices: Vec<f64>,
 }
 impl<'a, S: ChunkDensitySampler> ChunkDensity<'a, S> {
     #[inline]
     pub fn sample(&self, pos: &NoisePos) -> f64 { self.sampler.sample_interp(&self.slices, pos) }
+    /// 诊断只读访问（bin-diag 单编 rustc 无法见 pub(crate) 字段）
+    pub fn slices(&self) -> &[f64] { &self.slices }
 }
 // 宏观采样器的块级插值接口（DensityMacroSampler / TranspilerDensity 实现）
 pub trait ChunkDensitySampler {
@@ -305,6 +309,10 @@ impl TranspilerDensity {
             gx: (16/4+1) as usize, gy: (height/8+1) as usize, gz: (16/4+1) as usize,
             nch: 5 } // final_density 5 channels（1 BlendDensity + 4 RangeChoice noodle）
     }
+    /// 诊断/回退只读访问（X2 GpuChannelDensity fallback 用）
+    pub fn noises(&self) -> &crate::noise::NoiseSet { &self.noises }
+    /// 公开 slices 构建（GpuChannelDensity CPU fallback 用；布局与 GPU 路径逐位同构）
+    pub fn build_slices_for(&self, cx: i32, cz: i32) -> Vec<f64> { self.build_slices(cx, cz) }
     fn build_slices(&self, cx: i32, cz: i32) -> Vec<f64> {
         let nch = self.nch;
         let mut slices = vec![0.0f64; self.gx * self.gy * self.gz * nch];

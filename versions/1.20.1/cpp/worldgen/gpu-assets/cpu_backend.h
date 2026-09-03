@@ -1019,8 +1019,14 @@ struct CpuBackend {
         GridSlot& s = gridSlots()[interpIdx];
         if (s.key != key) buildInterpGrid(interpIdx, chunkX, chunkZ);
         int gx = ix - chunkX * 16; int gy = iy - minY; int gz = iz - chunkZ * 16;
-        int cx = gx / 4; int cy = gy / 8; int cz = gz / 4;
-        float fx = (float)(gx % 4) / 4.0f; float fy = (float)(gy % 8) / 8.0f; float fz = (float)(gz % 4) / 4.0f;
+        int cx = gx / 4; int cz = gz / 4;
+        float fx = (float)(gx % 4) / 4.0f; float fz = (float)(gz % 4) / 4.0f;
+        int cy = gy / 8; float fy = (float)(gy % 8) / 8.0f;
+        // 边界钳制（LL8，260903-05）：grid 只覆盖节点 gy=0..48（y=minY..minY+384）；
+        // y=320 时 gy=384→cy=48→grid[49] 越界读；iy<minY 时 cy<0 负索引越界。
+        // 钳到边界 cell：fy=1.0 → 三线性恰返回 grid[48] 节点原值（fy=0.0 → grid[0]），边界语义 = 边界节点值。
+        if (cy > 47) { cy = 47; fy = 1.0f; }
+        if (cy < 0)  { cy = 0;  fy = 0.0f; }
         float d000 = s.grid[cy + 0][cz + 0][cx + 0];
         float d100 = s.grid[cy + 0][cz + 0][cx + 1];
         float d010 = s.grid[cy + 1][cz + 0][cx + 0];

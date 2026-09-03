@@ -11,12 +11,14 @@
 class GpuDensityEngine {
 public:
     // seed: 世界种子（与 wg_create 相同）；spvPath: final_density.spv 绝对路径
-    GpuDensityEngine(uint64_t seed, const std::string& spvPath);
+    // outPerSample（X2 260903-05）：每采样点输出 float 数——1=final（默认）；5=channels @ corners
+    //   （final_density_channels.spv，interleaved 布局 out[s*NCH+ch]，judge C3 已写死声明）
+    GpuDensityEngine(uint64_t seed, const std::string& spvPath, int outPerSample = 1);
     ~GpuDensityEngine();
     GpuDensityEngine(const GpuDensityEngine&) = delete;
     GpuDensityEngine& operator=(const GpuDensityEngine&) = delete;
 
-    // 批量求值：coords = n×3 int32（块坐标 x,y,z），out = n float（final_density）
+    // 批量求值：coords = n×3 int32（块坐标 x,y,z），out = n*outPerSample float
     void fill(const int32_t* coords, int n, float* out);
 
     // 单点采样（便捷；内部走 fill，N=1 低效仅诊断用）

@@ -51,6 +51,10 @@ pub struct WorldgenHandle {
     transpiler_density: Option<crate::terrain::TranspilerDensity>,
     // DFC 宏观采样器（lossless-accel P2a，WG_DFC env 时启用，优先级 > WG_TRANSPILER；None = 回退）
     dfc_density: Option<crate::terrain::DfcDensity>,
+    // GPU 密度源（路线② 260903-05，WG_GPU_DENSITY env 时启用，优先级 > WG_DFC；None = 回退）
+    gpu_density: Option<crate::gpu_ffi::GpuDensity>,
+    // GPU channels 角点源（X2 260903-05，WG_GPU_CHANNELS env 时启用，优先级最高；None = 回退）
+    gpu_channels: Option<crate::gpu_ffi::GpuChannelDensity>,
     barrier: Arc<DensityFunction>,
     flooded: Arc<DensityFunction>,
     spread: Arc<DensityFunction>,
@@ -179,6 +183,26 @@ impl WorldgenHandle {
         let dfc_density = if std::env::var("WG_DFC").is_ok() {
             Some(crate::terrain::DfcDensity::new(seed as u64))
         } else { None };
+        // GPU 密度源（WG_GPU_DENSITY env 时启用；优先级 > WG_DFC；零退化铁律：默认关）。
+        // 构造即 create（~75s 一次付）；失败 graceful fallback = None（回退 dfc/transpiler/macro）。
+        let gpu_density = if std::env::var("WG_GPU_DENSITY").is_ok() {
+            crate::gpu_ffi::GpuDensity::new(seed, &wg_dir, min_y)
+        } else { None };
+        // GPU channels 角点源（WG_GPU_CHANNELS env 时启用；X2 260903-05；优先级最高；默认关）。
+        // fallback = TranspilerDensity（独立 NoiseSet，同语义 diff0 路径）。
+        let gpu_channels = if std::env::var("WG_GPU_CHANNELS").is_ok() {
+            let mut fb_noises = crate::noise::NoiseSet::new();
+            let params = crate::density_builder::build_noise_params_from_file(&noise_params_path).ok();
+            if let Some(params) = params {
+                for (id, p) in &params {
+                    let mut rnd = db.random_deriver().split_str(id);
+                    let sampler = crate::noise::DoublePerlinNoiseSampler::new(&mut rnd, p);
+                    fb_noises.insert(id, sampler);
+                }
+                let fallback = crate::terrain::TranspilerDensity::new(fb_noises, min_y, noise_height);
+                crate::gpu_ffi::GpuChannelDensity::new(seed, &wg_dir, min_y, noise_height, fallback)
+            } else { None }
+        } else { None };
         let barrier = Arc::new(db.build_node(router.get("barrier")?).ok()?);
         let flooded = Arc::new(db.build_node(router.get("fluid_level_floodedness")?).ok()?);
         let spread = Arc::new(db.build_node(router.get("fluid_level_spread")?).ok()?);
@@ -301,7 +325,7 @@ impl WorldgenHandle {
 
         Some(WorldgenHandle {
             seed, min_y, height, noise_height, aquifers_enabled, sea_level,
-            tree, macro_sampler, transpiler_density, dfc_density, barrier, flooded, spread, lava, erosion, depth, init,
+            tree, macro_sampler, transpiler_density, dfc_density, gpu_density, gpu_channels, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
             splitter,
@@ -381,6 +405,13 @@ impl WorldgenHandle {
         out
     }
 
+    // 诊断/探针只读访问（X2 gpu_channel_probe 用；不改变生产行为）
+    pub fn gpu_channels_density(&self) -> Option<&crate::gpu_ffi::GpuChannelDensity> { self.gpu_channels.as_ref() }
+    // 诊断：transpiler 密度源只读访问（ch0 y 依赖性复核用）
+    pub fn transpiler_density(&self) -> Option<&crate::terrain::TranspilerDensity> { self.transpiler_density.as_ref() }
+    // 诊断：macro 采样器只读访问（生产默认路径 ch0 对照用）
+    pub fn macro_sampler(&self) -> &crate::terrain::DensityMacroSampler { &self.macro_sampler }
+
     // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver。
     // 返回 16*16*height 的 vanilla raw block id（索引 (y-min_y)*256 + z*16 + x）。
     pub fn fill_chunk_blocks(&self, cx: i32, cz: i32) -> Vec<BlockId> {
@@ -404,7 +435,11 @@ impl WorldgenHandle {
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = if let Some(dd) = &self.dfc_density {
+        let cd = if let Some(gc) = &self.gpu_channels {
+            fill_chunk(gc, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(gd) = &self.gpu_density {
+            fill_chunk(gd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(dd) = &self.dfc_density {
             fill_chunk(dd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         } else if let Some(td) = &self.transpiler_density {
             fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
@@ -498,7 +533,11 @@ impl WorldgenHandle {
         let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
-        let cd = if let Some(dd) = &self.dfc_density {
+        let cd = if let Some(gc) = &self.gpu_channels {
+            fill_chunk(gc, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(gd) = &self.gpu_density {
+            fill_chunk(gd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
+        } else if let Some(dd) = &self.dfc_density {
             fill_chunk(dd, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)
         } else if let Some(td) = &self.transpiler_density {
             fill_chunk(td, &mut va, &self.biomesrc, cx, cz, min_y, height, beard.as_ref(), self.noise_height)

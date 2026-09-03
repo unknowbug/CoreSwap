@@ -65,6 +65,37 @@ public:
         vkDestroyShaderModule(m_device, sm, nullptr);
     }
 
+    // X2（260903-05）多 pipeline 扩展：channels 每 channel 一个独立 spv/pipeline（共享 dsl/layout/buffers）。
+    VkPipeline createPipelineEx(const std::string& spvPath) {
+        std::vector<uint32_t> code = loadSpv(spvPath);
+        VkShaderModuleCreateInfo sc{}; sc.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO; sc.codeSize = code.size() * 4; sc.pCode = code.data();
+        VkShaderModule sm; VKRT_CHECK(vkCreateShaderModule(m_device, &sc, nullptr, &sm));
+        VkComputePipelineCreateInfo cp{}; cp.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        cp.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO; cp.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT; cp.stage.module = sm; cp.stage.pName = "main"; cp.layout = m_pipelineLayout;
+        VkPipeline p; VKRT_CHECK(vkCreateComputePipelines(m_device, VK_NULL_HANDLE, 1, &cp, nullptr, &p));
+        vkDestroyShaderModule(m_device, sm, nullptr);
+        return p;
+    }
+    // dispatch 指定 pipeline（其余与 dispatch 同：单 command buffer + fence 同步）
+    void dispatchPipeline(VkPipeline pipeline, const VkDescriptorSet& ds, uint32_t n) {
+        VkCommandPoolCreateInfo cp{}; cp.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO; cp.queueFamilyIndex = m_computeFamily;
+        VkCommandPool pool; VKRT_CHECK(vkCreateCommandPool(m_device, &cp, nullptr, &pool));
+        VkCommandBufferAllocateInfo ca{}; ca.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO; ca.commandPool = pool; ca.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY; ca.commandBufferCount = 1;
+        VkCommandBuffer cb; VKRT_CHECK(vkAllocateCommandBuffers(m_device, &ca, &cb));
+        VkCommandBufferBeginInfo begin{}; begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        VKRT_CHECK(vkBeginCommandBuffer(cb, &begin));
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &ds, 0, nullptr);
+        vkCmdDispatch(cb, (n + 255) / 256, 1, 1);
+        VKRT_CHECK(vkEndCommandBuffer(cb));
+        VkSubmitInfo si{}; si.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO; si.commandBufferCount = 1; si.pCommandBuffers = &cb;
+        VkFenceCreateInfo fc{}; fc.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        VkFence fence; VKRT_CHECK(vkCreateFence(m_device, &fc, nullptr, &fence));
+        VKRT_CHECK(vkQueueSubmit(m_queue, 1, &si, fence));
+        VKRT_CHECK(vkWaitForFences(m_device, 1, &fence, VK_TRUE, UINT64_MAX));
+        vkDestroyFence(m_device, fence, nullptr); vkDestroyCommandPool(m_device, pool, nullptr);
+    }
+
     // 创建 host-visible + coherent storage buffer
     Buffer createBuffer(VkDeviceSize size) {
         Buffer buf; buf.size = size;
@@ -129,6 +160,7 @@ public:
         if (m_device) {
             for (auto p : m_pools) vkDestroyDescriptorPool(m_device, p, nullptr);
             if (m_pipeline) vkDestroyPipeline(m_device, m_pipeline, nullptr);
+            for (auto p : m_extraPipelines) if (p) vkDestroyPipeline(m_device, p, nullptr);
             vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
             vkDestroyDescriptorSetLayout(m_device, m_dsl, nullptr);
             vkDestroyDevice(m_device, nullptr);
@@ -161,5 +193,6 @@ private:
     VkDescriptorSetLayout m_dsl = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkPipeline m_pipeline = VK_NULL_HANDLE;
+    std::vector<VkPipeline> m_extraPipelines;   // X2：createPipelineEx 产物（destroy 统一清理）
     std::vector<VkDescriptorPool> m_pools;
 };

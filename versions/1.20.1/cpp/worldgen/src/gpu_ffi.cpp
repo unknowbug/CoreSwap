@@ -29,6 +29,22 @@ __declspec(dllexport) void* gpu_ffi_create(uint64_t seed, const char* spvPath) {
     }
 }
 
+// X2（260903-05）：channels 引擎创建——outPerSample=5 时 fill 输出 n*5 float
+// （interleaved：out[s*NCH+ch]，ch 序 = channels_map.json interp_order）。
+__declspec(dllexport) void* gpu_ffi_create_ex(uint64_t seed, const char* spvPath, int32_t outPerSample) {
+    t_lastError.clear();
+    if (!spvPath) { t_lastError = "spvPath is null"; return nullptr; }
+    try {
+        return static_cast<void*>(new GpuDensityEngine(seed, std::string(spvPath), outPerSample));
+    } catch (const std::exception& e) {
+        t_lastError = std::string("create failed: ") + e.what();
+        return nullptr;
+    } catch (...) {
+        t_lastError = "create failed: unknown exception";
+        return nullptr;
+    }
+}
+
 __declspec(dllexport) void gpu_ffi_fill(void* h, const int32_t* coords, int32_t n, float* out) {
     t_lastError.clear();
     if (!h || !coords || !out || n <= 0) { t_lastError = "bad args"; return; }
