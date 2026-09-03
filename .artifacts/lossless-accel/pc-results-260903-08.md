@@ -1,7 +1,7 @@
 # P-C：端到端验证 + 0.61× 复测（260903-08）
 
 - **课题**：lossless-accel / P-C「端到端验证（WG_GPU_CHANNELS A/B vs Java）+ 0.61× 双线程异常无探针复测」
-- **status**：**candidate（260903-08 judge 建议通过；C1/C2/C3 已清偿——计数结构自洽补注、分窗口径补注、OFF 三跑存档 76.93/71.84/71.21）**——confirmed 待用户拍板。
+- **status**：**confirmed（260903-08 用户拍板；judge 已过 review-001，C1/C2/C3 清偿后提交 0ffc4c0/9384125）**——数据层证据：0.61× 双口径 5 轮复测未复现 + sync-check mismatch=0/6144 + 端到端三方 256 chunks。
 - **前包**：260903-06（dc865fe）P-A/P-B confirmed；本包基线 8046593。
 - **验证分层声明**：**Full（端到端 + 数据层）**——256 chunks 端到端 wall 实测三方 + GPU fill 同步语义污染-重填探针 + 调用计数断言；性能对比非逐位正确性口径（正确性沿用 P-A 通道级 confirmed）。
 - **§9.7 验证可比性声明（三要素）**：

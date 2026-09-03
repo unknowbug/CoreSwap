@@ -2646,4 +2646,5 @@ region(200,200) 16×16、单线程、区外预热、median 主判据：OFF 76.93
 同日有效对比：Rust 全管线（含 features）72-77ms vs Java FULL 33ms → 慢 ~2.2×。08-29「反快 1.2×」系 Rust 无树花口径不可比 → workflow-patterns 发现 #18。Q-PD1（draft）：features/carver 段疑似差距大头，独立排查。遗留 idk：Java 55→33 漂移未归因；features 段耗时分布未测。
 
 ### ✅ judge + 状态
-review-001（三源核对）：无 BLOCKER，建议升 candidate；C1（计数构成）/C2（预热取窗口径）/C3（OFF 复跑存档）已清偿。**status = candidate，confirmed 待用户拍板**。产物：.artifacts/lossless-accel/pc-results-260903-08.md + index.yaml；过程 .investigations/lossless-accel/{pc2-retest,pc1-e2e,review-001}-260903-08.md + cmd-output/*260903-08*。坑：误访问废弃 runtime 目录 E:\PYTHON\MC\versions\1.20.1\java（现行 = CoreSwap\runtime\1.20.1\java）→ build-tooling 环境坑补记；Rust 2021 闭包字段级捕获 → LL11。✅
+review-001（三源核对）：无 BLOCKER，建议升 candidate；C1（计数构成）/C2（预热取窗口径）/C3（OFF 复跑存档）已清偿。**status = confirmed（260903-08 用户拍板）**。产物：.artifacts/lossless-accel/pc-results-260903-08.md + index.yaml；过程 .investigations/lossless-accel/{pc2-retest,pc1-e2e,review-001}-260903-08.md + cmd-output/*260903-08*。坑：误访问废弃 runtime 目录 E:\PYTHON\MC\versions\1.20.1\java（现行 = CoreSwap\runtime\1.20.1\java）→ build-tooling 环境坑补记；Rust 2021 闭包字段级捕获 → LL11。✅
+
