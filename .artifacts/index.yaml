@@ -753,7 +753,7 @@ entries:
   - id: 're-code:lossless-accel:gpu-merge-revisit-260903-12'
     path: 'lossless-accel/gpu-merge-revisit-260903-12.md'
     kind: decision
-    status: confirmed  # 用户授予 260903-12（降级建议本身 confirmed，翻默认/执行动作仍待后续拍板）
+    status: confirmed  # 用户授予 260903-12；降级幅度用户修正=低优先级保留不删除（未来 10×+ 目标重议触发条件已确认）
     # gpu-batch-merge 天花板重议（260903-12）：est L2 后 Rust 单线程 27.69 < Java 33、8 线程 ~4.5（~7×Java）——原目标差距消失，建议降级/搁置，待用户拍板。
 
   # === lossless-accel P-C 端到端 + 0.61× 复测（260903-08，confirmed）===

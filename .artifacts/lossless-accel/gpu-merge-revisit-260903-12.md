@@ -21,4 +21,6 @@ gpu-batch-merge 立项时的目标差距（Rust 全管线慢于 Java，72-77 vs 
 
 ## 建议
 
-**降级/搁置 gpu-batch-merge**（从待办移除或标注「暂无需求」）：原目标（追平 Java）已由无损路径达成，GPU 路径引入的 dispatch/readback 成本（369ms/chunk，260903-08）在小批量下反而是负收益。若未来目标改为「大幅超越 Java 10×+」再重议。
+**gpu-batch-merge 降级为「低优先级保留」**（用户拍板 260903-12：不删除——未来确有「超越 Java 10×+」目标，届时 GPU 批量合并是候选路线）：
+- 当前不立项：追平 Java 已由 est L2 无损路径达成（27.69 vs 33ms/chunk），GPU 小批量 dispatch/readback（369ms/chunk）在现有目标下为负收益。
+- **重议触发条件（用户确认）**：目标升级为「大幅超越 Java 10×+」时重新立项——届时的量化门槛：8 线程 CPU 吞吐 ~4.5ms/chunk，10× Java（~3.3ms/chunk）需 GPU 批次摊薄后 readback+dispatch 摊销 < ~1ms/chunk 且计算侧不劣于 CPU（56 chunk 批次级摊销起算）。

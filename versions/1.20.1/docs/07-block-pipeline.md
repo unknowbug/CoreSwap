@@ -1132,11 +1132,11 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - 剩余差归因（P2.4）：est_price_probe 同代码 hot ~60ns/iter vs cold 5.7µs/iter（形态差 ~95×，workflow-patterns #21 量化实锤）；跨 session 生产隐含单价 8.5/9.9µs 稳定 → 剩余 ~1.5×（生产侧 aquifer/缓存压力）为 Partial 解释，已声明。
 - ⚠️ sweep 在 ~2304-2560 chunk 处 panic（`surface_rules.rs:505 missing noise sampler`）——数据截止于此，panic 另立课题，不影响 typical region 结论。
 
-### 📉 gpu-batch-merge 降级建议（candidate，待用户拍板）
+### 📉 gpu-batch-merge 降级为低优先级保留（用户拍板 260903-12）
 
 - 新基线（§9.7 同 region/size，256 chunks median；**Java 侧为跨 bench 近似比较**，judge D 标注）：Rust off 75.94 / **l2 27.69** / l2 8 线程 ~4.5 ms/chunk vs Java FULL ~32-33。
 - est L2 无损优化已消除立项时目标差距（260903-08：Rust 72-77 vs Java 33，慢 2.2×）→ 单线程恢复快 ~1.2× 方向（260903-10 大样本同向），8 线程 ≈ 7× Java（量级判断）。GPU 路径 dispatch/readback 成本（369ms/chunk）在小批量下为负收益。
-- **建议**：gpu-batch-merge 降级/搁置（从待办移除或标注「暂无需求」）；未来目标改为「大幅超越 Java 10×+」再重议。
+- **建议（用户拍板 260903-12）**：gpu-batch-merge **降级为低优先级保留，不删除**——未来确有「超越 Java 10×+」目标，届时重新立项。重议触发条件与量化门槛见 `.artifacts/lossless-accel/gpu-merge-revisit-260903-12.md`：10× Java ≈ 3.3ms/chunk，需 GPU 批次摊销后 readback+dispatch < ~1ms/chunk 且计算侧不劣于 CPU（~56 chunk 批次级摊销起算）。
 
 > 过程（P0 复现 → scout → 探针搭建 → 裁决 → 三件套 → P2.4 → 重议 → 两轮 judge）→ 10 时间线 260903-12 条；新课题四项（off −1 偏移 / surface_rules.rs:505 panic / +16 角修正 / 翻默认拍板）→ 10 时间线「新课题登记」。
 
