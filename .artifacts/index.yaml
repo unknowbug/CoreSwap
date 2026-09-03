@@ -734,3 +734,14 @@ entries:
     # ch0 通道级闭合：GPU vs C++ oracle 144 点 major=0（max 1.795e-6）；macro 无缺陷；
     # 假残差定案（z=0/z=16 混列）+ transpiler 真根因=漏设 blended_noise（已修复，supersedes bA 归因）；
     # §15.4 两条 supersedes；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。
+
+  # === lossless-accel P-C 端到端 + 0.61× 复测（260903-08，candidate）===
+  - id: 're-code:lossless-accel:pc-results-260903-08'
+    path: 'lossless-accel/pc-results-260903-08.md'
+    kind: analysis
+    status: candidate
+    # 0.61× 未复现（测量伪影候选）+ P0 fill 同步数据层升级 + 端到端三方 256 chunks：
+    # OFF 零退化 ✓；ON 369ms/chunk=小批量 dispatch/readback 成本（预热假说已检验排除）；
+    # 同日 vs Java：Rust 全管线 72-77 vs Java FULL 33（慢 2.2×，08-29 反快结论系无树花口径不可比）；开问题 Q-PD1。
+
+

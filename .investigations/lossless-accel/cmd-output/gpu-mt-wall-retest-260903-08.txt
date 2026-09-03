@@ -1,0 +1,19 @@
+=== gpu_mt_wall_retest (260903-08, P-C2) ===
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[n=8] round 1: serial=239.98ms parallel=231.34ms ratio(par/ser)=0.964×
+[n=8] round 2: serial=212.63ms parallel=206.63ms ratio(par/ser)=0.972×
+[n=8] round 3: serial=200.95ms parallel=198.60ms ratio(par/ser)=0.988×
+[n=8] round 4: serial=200.92ms parallel=210.52ms ratio(par/ser)=1.048×
+[n=8] round 5: serial=205.44ms parallel=200.44ms ratio(par/ser)=0.976×
+[n=8] MEDIAN serial=205.44ms parallel=206.63ms ratio=1.006× (mutex 真串行化预期 ≈1.0×)
+[n=6144] round 1: serial=27207.83ms parallel=26975.92ms ratio(par/ser)=0.991×
+[n=6144] round 2: serial=27396.14ms parallel=27444.79ms ratio(par/ser)=1.002×
+[n=6144] round 3: serial=28092.29ms parallel=27102.14ms ratio(par/ser)=0.965×
+[n=6144] round 4: serial=27509.87ms parallel=27205.65ms ratio(par/ser)=0.989×
+[n=6144] round 5: serial=28676.17ms parallel=30537.67ms ratio(par/ser)=1.065×
+[n=6144] MEDIAN serial=27509.87ms parallel=27205.65ms ratio=0.989× (mutex 真串行化预期 ≈1.0×)
+[sync-check] fill-return-immediate-valid: mismatch=0/6144 → SYNCHRONOUS（返回即可用）
+[count] total fill calls = 412
+=== done ===
+[device] NVIDIA GeForce RTX 4060 Laptop GPU

@@ -255,3 +255,8 @@ GPU 密度引擎 vs DFC-CPU oracle 6144 点 f32_exact 仅 43.26%、max_diff 0.55
 - **哨兵结论的反模式**：「同引擎 chunk(0,0) 全对 ≤7e-8」这类逐位一致只证明「该域内新旧产物恰好语义相同」，**一致域外产物可能陈旧**——哨兵点必须覆盖历史修过的错误签名域（负 chunk/饱和值）。
 - **家族谱系**：教训⑧（dump 对账须基于当前产物）→ 本条 #12（部署产物本身陈旧 + 提交新鲜度误导）；同文件 #6（mtime 不可靠→内容指纹）、#10（声明字段核对）、#11（声明 vs 内容实测）——共同上位原则：**「看起来对」的元数据一律不作产物健康判据，用可复现实测值验**。
 - 上游主记录：`.investigations/lossless-accel/route2-ffi-260903-04.md`（根因闭合节）。
+
+### 环境坑补记（260903-08，runtime 路径迁移事实）
+
+- **事实**：Java runtime 现位于 `E:\PYTHON\CoreSwap\runtime\1.20.1\java\`（gradle runServer + `GRADLE_USER_HOME=E:\PYTHON\CoreSwap\.gradle`）；`E:\PYTHON\MC\versions\1.20.1\java` 是**迁移前废弃目录**——260903-08 session 误访问一次（env-check 在案，无损害）。
+- **判据（避免再犯）**：① 交接文档写「未动/位置在 X」必须带绝对路径，目录迁移后须在旧位置留转发注记或删除废弃目录——「路径惯性」（按记忆路径访问）是迁移后首犯高发位；② 任何 runtime/工具链路径使用前先 `Test-Path` + 核对版本标记，不靠路径记忆。

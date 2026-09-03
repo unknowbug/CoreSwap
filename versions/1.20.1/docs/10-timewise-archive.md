@@ -2633,3 +2633,17 @@ transpiler vs C++ major=28/48，max=0.2299，y≥32 纯线性化步进 0.246875�
 ### 📌 记录指引
 - 取代链条目（§15.4 两条）+ workflow-patterns 发现 #17（跨探针对比坐标钉死律 + 单点隔离复测补充要点）见 .artifacts/lossless-accel/pa-ch0-closure-260903-06.md。
 - 状态：candidate（judge 待过）；WG_GPU_CHANNELS 门解锁待 judge + 用户确认。
+
+## 260903-08（lossless-accel P-C：0.61× 复测定案 + 端到端三方对比 + GPU ON 判读）
+
+### ✅ P-C2：0.61× 双线程异常未复现 = 测量伪影候选（supersedes 260903-04 [fact2]）
+无探针复测（bin-diag/gpu_mt_wall_retest.rs）：n=8/n=6144 双口径 × 5 轮 S/P 交替 × 中位数 → 1.006×/0.989×，轮间波动 0.964-1.065×，原 0.61× 落分布外且原测系单 shot 无中位 → 判测量伪影，Mutex 真串行化成立。附带发现原探针 fill_n=8 口径错（注释「8 chunk 批量」vs 实参 8 点/次）→ 错误台账 LL10。P0「fill 全同步串行」Degraded→数据层升级：sync-check mismatch=0/6144。✅
+
+### ✅ P-C1：端到端三方 256 chunks（§9.7 预声明，Full 层）
+region(200,200) 16×16、单线程、区外预热、median 主判据：OFF 76.93/71.84/71.21（三跑）→ 零退化 ✓（env 门控未改生产代码，git diff 佐证）；ON 369.28ms/chunk（慢 OFF 4.8×）= 每 chunk 小批量 dispatch+readback 同步往返成本——用户预热假说已检验：预热收益仅 ~20-25%（P-C2 完全热态 ~172ms 仍高于 CPU 管线），非预热伪影；批量合并列独立优化工作包。negseed 判别 <3% → seed 非因素。✅
+
+### 🔍 vs Java 33ms 慢 2.2× → 开问题 Q-PD1
+同日有效对比：Rust 全管线（含 features）72-77ms vs Java FULL 33ms → 慢 ~2.2×。08-29「反快 1.2×」系 Rust 无树花口径不可比 → workflow-patterns 发现 #18。Q-PD1（draft）：features/carver 段疑似差距大头，独立排查。遗留 idk：Java 55→33 漂移未归因；features 段耗时分布未测。
+
+### ✅ judge + 状态
+review-001（三源核对）：无 BLOCKER，建议升 candidate；C1（计数构成）/C2（预热取窗口径）/C3（OFF 复跑存档）已清偿。**status = candidate，confirmed 待用户拍板**。产物：.artifacts/lossless-accel/pc-results-260903-08.md + index.yaml；过程 .investigations/lossless-accel/{pc2-retest,pc1-e2e,review-001}-260903-08.md + cmd-output/*260903-08*。坑：误访问废弃 runtime 目录 E:\PYTHON\MC\versions\1.20.1\java（现行 = CoreSwap\runtime\1.20.1\java）→ build-tooling 环境坑补记；Rust 2021 闭包字段级捕获 → LL11。✅
