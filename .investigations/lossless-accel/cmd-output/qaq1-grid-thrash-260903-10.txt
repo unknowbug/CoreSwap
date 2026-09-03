@@ -1,0 +1,5 @@
+=== qaq1_grid_thrash_probe (260903-10) seed=8576294172403134396 ===
+[cold] 8 chunks: total=262.07ms per_chunk=32.76ms  GRID_ARG_SAMPLES 增量=0 (per chunk 0 角点采样)
+[warm] per_chunk=9.67ms  GRID_ARG_SAMPLES 增量=0
+[判读] 冷态增量 >> 暖态（数十×1225 级）→ b1' 单槽抖动成立
+[R4 更正 260903-10 judge]：末行 [判读] 为预写模板未随实测更新——实测增量双态=0，Interpolated 抖动机制不成立；结论见 qaq1-attribution-260903-10.md supersedes 节

@@ -1,0 +1,5 @@
+=== qaq1_surf_probe (260903-10) seed=8576294172403134396 ===
+[timing] 16 chunks median=67.93ms
+[surf] estimate_surface_height calls=3420 per_chunk=214 iterations=117478 per_chunk=7342 avg_iter/call=34.35
+[wl] calls=1762577 per_chunk=110161 miss=2782 (miss→get_fluid_level→surf est)
+[注] surf est 的调用者还有 get_fluid_level 内 13 偏移循环（列缓存去重后 calls≈去重列数）

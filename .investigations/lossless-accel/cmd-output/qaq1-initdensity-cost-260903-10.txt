@@ -1,0 +1,2 @@
+initial_density: 73420 samples in 6.56ms → 0.0893us/sample (acc=-57178.760)
+→ 7342 samples/chunk ≈ 0.66ms/chunk

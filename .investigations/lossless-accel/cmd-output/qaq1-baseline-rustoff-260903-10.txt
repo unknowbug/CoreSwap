@@ -1,0 +1,11 @@
+=== qpd1_stage_bench (260903-09) seed=8576294172403134396 region=(200,200) size=8 ===
+[warmup] 8 chunks done (区外)
+[FULL] skips=[] median=60.43ms
+[no-features] skips=["WG_SKIP_FEATURES"] median=59.32ms
+[no-carver+features] skips=["WG_SKIP_CARVER", "WG_SKIP_FEATURES"] median=55.77ms
+[no-surface+carver+features] skips=["WG_SKIP_SURFACE", "WG_SKIP_CARVER", "WG_SKIP_FEATURES"] median=51.16ms
+[no-orevein+surface+carver+features] skips=["WG_SKIP_OREVEIN", "WG_SKIP_SURFACE", "WG_SKIP_CARVER", "WG_SKIP_FEATURES"] median=48.84ms
+[no-aquifer+orevein+surface+carver+features] skips=["WG_SKIP_AQUIFER", "WG_SKIP_OREVEIN", "WG_SKIP_SURFACE", "WG_SKIP_CARVER", "WG_SKIP_FEATURES"] median=13.77ms
+[STAGE] density/interp=13.77 aquifer=35.07 orevein=2.32 surface=4.61 carver=3.55 features=1.11
+[CHECK] sum_parts=60.43 vs FULL=60.43 diff=0.00 (0.0%)
+=== done ===

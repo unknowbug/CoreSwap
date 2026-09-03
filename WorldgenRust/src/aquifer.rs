@@ -49,6 +49,20 @@ pub fn aquifer_bp_count_reset() -> [usize; 2] {
     BP_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
 }
 
+// WG_AQUIFERSURF（单线程诊断）：统计 estimate_surface_height 调用次数 + initial_density 迭代总次数
+//（Q-AQ1 260903-10：验证生产冷 surface_cache 下 get_fluid_level 成本假设）
+static SURF_WATCH: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+thread_local! {
+    static SURF_COUNT: std::cell::RefCell<[usize; 2]> = std::cell::RefCell::new([0, 0]); // [calls, iterations]
+}
+pub fn aquifer_surf_watch(on: bool) {
+    SURF_WATCH.store(on, std::sync::atomic::Ordering::Relaxed);
+    if on { SURF_COUNT.with(|c| *c.borrow_mut() = [0, 0]); }
+}
+pub fn aquifer_surf_count_reset() -> [usize; 2] {
+    SURF_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
+}
+
 #[derive(Clone, Copy)]
 pub struct FluidLevel { pub y: i32, pub block: i32 }
 impl FluidLevel {
@@ -273,7 +287,10 @@ impl Aquifer {
         if in_c { let cached = self.surface_cache[ci]; if cached != i32::MIN { return cached; } }
         let mut val = i32::MAX;
         let mut l = self.min_y + self.height;
+        let surf_watch = SURF_WATCH.load(std::sync::atomic::Ordering::Relaxed);
+        if surf_watch { SURF_COUNT.with(|c| c.borrow_mut()[0] += 1); }
         while l >= self.min_y {
+            if surf_watch { SURF_COUNT.with(|c| c.borrow_mut()[1] += 1); }
             if self.initial_density.sample(&NoisePos { x: bx, y: l, z: bz }) > 0.390625 { val = l; break; }
             l -= 8;
         }

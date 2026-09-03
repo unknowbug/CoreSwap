@@ -2663,3 +2663,21 @@ Q-PD1 归因：**差距大头 = aquifer 段**。supersedes pc1-e2e/pc-results-26
 - 新坑两条 → workflow-patterns 发现 #19（世界状态第四查 + 假象签名）/#20（死参数假判别 + 恒等式自检）。
 - 产物：.artifacts/lossless-accel/qpd1-attribution-260903-09.md（candidate，judge review-260903-09 通过）；过程 .investigations/lossless-accel/{q-pd1,knowledge-draft,review}-260903-09.md + cmd-output/qpd1-*。
 
+
+## 260903-10（Q-AQ1：aquifer 段 35ms/chunk 机制归因——est 冷扫描 × 全价 init 采样）
+
+### 🔍 探针链（六步）
+1. 基线锚定：FULL=60.43，aquifer 段 35.07（no-ore 48.84 − no-aquifer 13.77，落 Q-PD1 带）。
+2. 计数器采数（新 WG_AQUIFERBP/WL/SURF + 现成 COUNT）：apply≈68k/chunk（bp 815,747÷12）、wl 110k、barrier 仅 ~10/chunk；两批线性稳定。
+3. diag 微测：bp 2.5 + wl 3.7 + calcdensity ≈0 →「缺口 ~29ms」假设成立；冷缓存假设 A（surf est）被否（7342 采样×0.089µs 仅 0.66ms——该基线后被作废，见下）。
+4. fan-out b1/b2：b1 生产循环镜像探针 T3−T2=32.20≈35.07（缺口在 fill 循环内复现）、T3−T4=26.65（每 chunk 新建 Aquifer 冷态成本）；b2 审计否证 carver 级联主因（雕刻点仅 ~756 apply/chunk），交错 bench A|Coff=33.47 独立交叉验证。
+5. GRID_ARG_SAMPLES=0 反证 b1'「Interpolated 单槽抖动」（§4.2 凑数算术一并撤回）→ H* 重归因：est 冷扫描 × init 全价采样（重量叶 old_blended 24 octave 无缓存）。
+6. judge R2 调和：est 单价三口径（3557 上界 / **2117 新鲜进程实测** / 1646 假冷）→ est ≈15.4ms，占 counter-free 冷态超额 22.70ms 的 ~68%。
+
+### ✅ 结论（candidate，judge CONCERN 有条件通过，待用户 confirmed）
+机制：每 chunk 新建 Aquifer → surface_cache 冷 → wl miss 链 → est 全量扫描（Java NoiseChunk est 列缓存 chunk 级持久 vs Rust 每 chunk 丢弃）＝ aquifer 段成本主体。分解：est ~15.4 + 冷 miss/杂项 ~6-8 + 暖 apply ~5.5。supersedes：F5 基线 0.089µs、F4 漏 t_fl 表述、b1' 抖动机制、首版 26.1ms 量化（R2）。修复方向（另立优化包）：est 查表化/列缓存跨 chunk 持久化。
+
+### 📌 记录指引
+- 新坑 → workflow-patterns #21（微测形态 40× 假基线）/#22（自由参数凑数）/#23（证据摘要漏行）/#24（多臂顺序 bench 假交互）；指纹 → algorithm-fingerprints #16。
+- 产物：.artifacts/lossless-accel/qaq1-attribution-260903-10.md（candidate）+ index.yaml 登记；过程 .investigations/lossless-accel/{qaq1-evidence-pack,q-aq1,qaq1-b1-candidate,qaq1-b2-candidate,review-qaq1}-260903-10.md + cmd-output/qaq1-*（8 件）。
+- 🔍 遗留 b4：carver 机械成本列状态反直觉（全 Air 列 carver-on 贵 22.97 vs 实地形 10.62ms，机制未定位）；后续 aquifer 实验一律 carver 双臂同关。顺手修复：pc_e2e_bench.rs seed 死参数（#20 族）。

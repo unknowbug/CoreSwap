@@ -22,3 +22,7 @@ entries:
     path: 'qpd1-attribution-260903-09.md'
     kind: analysis
     status: confirmed
+  - id: 'lossless-accel:qaq1:attribution-260903-10'
+    path: 'qaq1-attribution-260903-10.md'
+    kind: analysis
+    status: candidate

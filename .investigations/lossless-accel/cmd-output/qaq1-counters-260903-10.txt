@@ -1,0 +1,6 @@
+=== qaq1_counter_probe (260903-10) seed=8576294172403134396 ===
+[timing] 16 chunks median=67.88ms
+[barrier] calls=167 per_chunk=10 rate_of_points=0.0%
+[wl] calls=1762577 per_chunk=110161 miss=2782 miss_rate=0.2%
+[bp] calls=13051956 per_chunk=815747 miss=4497 miss_rate=0.0% (miss→split_xyz+random)
+[check2] batch2 barrier=90 wl=1762333(2701) bp=12954144(4400) — 与批1对比看线性/稳定

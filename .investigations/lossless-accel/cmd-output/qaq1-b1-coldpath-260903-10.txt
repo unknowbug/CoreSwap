@@ -1,0 +1,12 @@
+qaq1_b1_coldpath_probe seed=8576294172403134396 chunk=(200,200):
+  [A  init tree scan-sample] total 1.39ms | ns/sample = 3557 | sink=687.999
+  [B  depth tree] total 0.01ms | ns/sample = 33 | sink=-706.371
+  [B1 factor tree] total 0.80ms | ns/sample = 2052 | sink=6026.487
+  [B2 sloped_cheese tree] total 0.94ms | ns/sample = 2395 | sink=345.475
+  [B3 base_3d_noise (old_blended)] total 0.31ms | ns/sample = 801 | sink=-192.376
+  [C pass0] get_fluid_level 98304 pts: 11.96ms | surf calls=208 iters=7265 | ns/iter=1646
+  [C pass1] get_fluid_level 98304 pts: 4.28ms | surf calls=0 iters=0 | ns/iter=0
+  cold-warm excess = 7.68ms | est iterations/pass1 = 7265 (implied per-sample = 1646ns)
+[判读] A 的 ns/sample ≫ 89ns（F5 口径）且 C cold−warm ≈ 20-30ms → H* 成立：
+       冷态超额 = est 全量扫描 × initial_density 全价采样（old_blended_noise 无缓存为主）；
+       F5 的 0.089µs/sample 为错误基线（作废）。

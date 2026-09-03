@@ -17,9 +17,9 @@ fn main() {
     let gpu = std::env::var("WG_GPU_CHANNELS").is_ok();
     let seed: i64 = std::env::var("WG_E2E_SEED").ok().and_then(|s| s.parse().ok()).unwrap_or(SEED);
     println!("=== pc_e2e_bench (260903-08) seed={} region=({},{}) size={} WG_GPU_CHANNELS={} ===",
-        SEED, ORIGIN.0, ORIGIN.1, SIZE, if gpu { "ON" } else { "OFF" });
+        seed, ORIGIN.0, ORIGIN.1, SIZE, if gpu { "ON" } else { "OFF" });
     let t0 = Instant::now();
-    let h = WorldgenHandle::create(SEED, WG_DIR).expect("create handle");
+    let h = WorldgenHandle::create(seed, WG_DIR).expect("create handle"); // 260903-10 修复：原恒用常量 SEED，WG_E2E_SEED 死参数（workflow-patterns #20）
     println!("[create] {:.1} ms", t0.elapsed().as_secs_f64() * 1e3);
 
     // 预热：8 chunks 在测量区外（region 400,400），兼触发懒加载缓存

@@ -1,0 +1,8 @@
+[cov] applied points/chunk = 64433
+Aquifer.apply 内部无污染分解（per chunk, seed=8576294172403134396 region=(200,200)）:
+  3x3 邻域 get_block_pos+距离: 2.52ms
+  get_fluid_level(全调用上界): 4.44ms
+  calculate_density(fluid logic): 0.00ms
+  get_water_level_at(1次/点): 3.68ms
+  apply 完整(逐点 d<=0, 含 final_density 采样): 13.51ms
+  可解释部分: 10.64ms; 剩余(分支+额外 wl 调用等): 2.87ms

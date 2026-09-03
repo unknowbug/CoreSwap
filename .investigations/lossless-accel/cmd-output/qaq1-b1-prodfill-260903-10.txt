@@ -1,0 +1,9 @@
+qaq1_b1_prodfill_probe seed=8576294172403134396 region=(200,200)+8chunks rounds=3 (per chunk, ms):
+  T0  macro grid build            :     5.71
+  T1  interp loop (no aquifer)    :     5.82
+  T2  interp + classify(skip)     :     5.96   (skip-纯classify开销 0.14)
+  T3  interp + classify(real,cold):    38.16   (aquifer 段=32.20; 每apply=62ns @applied≈65358/chunk)
+  T4  interp + classify(warm)     :    11.51   (每chunk新建成本=26.65)
+  T5  d<=0 direct aq.apply(cold)  :    32.79   (含采样; 首chunk d<=0点=64433)
+  counters (r0, per chunk): bp calls=784296 miss=251 | wl calls=105922 miss=158
+[判读] T3-T2 ≈ 35ms → b1 成立（fill 循环内部复现）；T3-T2 ≪ 35ms → 差异在 fill 循环外（b2/b3）

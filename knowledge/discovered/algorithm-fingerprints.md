@@ -420,3 +420,8 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 2. **吞吐探针结论有「采样密度域」**：同一引擎同一 shader 在某采样密度（网格角点 768 点）下实测 22-39x，**不能外推到更高密度（逐 block 98304 点）**——数据量 ∝ 点数，可行性随密度翻转。引用吞吐结论必须声明采样密度域。
 3. **多线程并发 GPU 调用必须互斥**：共享 buffer 上传/dispatch 无锁并发 → 驱动层 0xC0000005 进程级崩溃（**不是返回错误**，是崩溃）——GPU 资源并发是硬约束，任何多线程宿主（线程池/自适应并行）接入 GPU 路径 MUST 先加互斥（mutex/串行化），再谈性能。
 4. **负面结论也是知识（错误优先原则）**：接线正确（无崩溃、逻辑对）但吞吐不可行时，记录「为什么不可行」（带宽分析 + 数据账）比假装成功有价值——避免后人重复实现同一死局方案；负面结论同样要落五段式错误台账 + 时间线。
+
+## 发现 #16: aquifer est 冷扫描机制指纹——per-chunk 新建 Aquifer × 全价 init 采样 ≈ 15.4ms/chunk（冷态主体）
+- **时间/置信度/module**：260903-10，candidate，MC worldgen 性能指纹。
+- **指纹**：每 chunk 新建 Aquifer → surface_cache 冷 → get_water_level_at miss(~158/chunk) → get_fluid_level 13 offset 列（横跨 ≤5 x-chunk）→ 每列 estimate_surface_height ~34 次 initial_density 全价采样（SURF 计数器口径 214×34.35=7342 次/chunk × **2117ns/iter（R2 调和：新鲜进程实测）≈ 15.4ms，占 counter-free 冷态超额 22.70ms 的 ~68%**）；重量叶 = depth→sloped_cheese→base_3d_noise（old_blended_noise，24 octave/次，InterpolatedNoiseData::sample 无缓存）。对照：Java NoiseChunk 的 est 列缓存随 chunk 生命周期持久。init 子树无 interpolated 节点（GRID_ARG_SAMPLES=0 反证）。（首版「3557ns/26.1ms」口径被 judge R2 调和取代——原始 cmd-output：qaq1-r2-reconcile-260903-10.txt）
+- **如何利用**：冷−暖差大（~20ms+/chunk）签名 → 先查 est 扫描而非 apply 单价；修复方向 est 查表化/列缓存跨 chunk 持久化 > surface_cache 单独持久化。证据：.artifacts/lossless-accel/qaq1-attribution-260903-10.md。
