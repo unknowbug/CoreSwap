@@ -2656,7 +2656,7 @@ Rust OFF 两跑 median 70.23/73.49ms（落 08 日 71-77 稳定带）✓；Java f
 ### ✅ 分阶段差分（WG_SKIP_* 门控，两轮稳定）
 bin-diag/qpd1_stage_bench.rs（新，隔离区）：aquifer ~37ms/chunk（占 FULL ~60%，62ms 口径）；density/interp 底座 ~14.4ms（~23%）；surface ~5.5-6.7；carver ~5-6.5；orevein/features ≈0（噪声级）。两轮 ±1ms 级一致。✅
 
-### 🔍 结论（candidate，confirmed 待用户）
+### 🔍 结论（confirmed 260903-09 用户拍板）
 Q-PD1 归因：**差距大头 = aquifer 段**。supersedes pc1-e2e/pc-results-260903-08 两个方向假设（§15.4 双指针，原文不改）：①「features/carver 段疑似大头」②「negseed 判别 → seed 非因素」。Amdahl 读数：GPU density 优化端到端天花板 62→~47ms（仍慢 Java ~1.4×）→ 优化主攻转向 aquifer 段机制（邻居随机偏移/split/采样次数，复用 WG_AQUIFERCOUNT/WL/BP 计数器），新课题待立项。
 
 ### 📌 记录指引

@@ -1,6 +1,6 @@
 # Q-PD1 归因结论：Rust vs Java ~2.2× 差距分阶段定位（260903-09）
 
-- status: **candidate**（judge review-260903-09 通过；confirmed 待用户）
+- status: **confirmed**（260903-09 用户拍板；judge review-260903-09 通过 + 口径声明补丁已应用）
 - 验证分层：**Full（数据层差分实测，两轮稳定复现）**
 - §9.7 口径声明：载体 = Rust `fill_chunk_blocks` WG_SKIP_* 门控差分 + Java WorldGenBench FULL（fresh world）；覆盖面 = Rust 每配置 64 chunks median ×2 轮 / Java 256 chunks；可比性 = 同 seed 8576294172403134396、同 region (200,200)、同预热法，与 260903-08 pc-e2e 口径同族可比；与 08-29 无树花口径不可比。
 
