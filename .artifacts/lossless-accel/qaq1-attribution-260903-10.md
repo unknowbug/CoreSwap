@@ -1,6 +1,6 @@
 # Q-AQ1 归因结论：Rust aquifer 段 35ms/chunk 的机制分解（260903-10）
 
-- status: **candidate**（judge review-qaq1-260903-10：CONCERN 有条件通过，R1-R4 已应用；待用户 confirmed）
+- status: **confirmed**（260903-10 用户拍板；judge review-qaq1-260903-10 CONCERN 有条件通过，R1-R4 已应用）
 - 验证分层：**机制 = Full（冷−暖差分 + 计数器 + 反证链 + b2 独立交叉）；量化 = Partial（R2 调和后三口径并存，见结论 1①）**
 - §9.7 口径声明：载体 = 生产 fill 循环逐行镜像探针（qaq1_b1_prodfill_probe）+ 计数器（WG_AQUIFERBP/WL/SURF + GRID_ARG_SAMPLES）+ 冷路径微测（qaq1_r2_probe 双模式独立进程）；覆盖面 = seed 8576294172403134396 / region (200,200) / 8-16 chunks；可比性 = 与 Q-PD1 260903-09 stage 差分同族口径。
 
