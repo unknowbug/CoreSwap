@@ -22,16 +22,17 @@ The worldgen core has **migrated from C++ to Rust**. One `worldgen.dll` now ship
 
 **Why Rust:** one language for bridge + engine (no second toolchain), memory safety in a hot multi-threaded path, and a build-time **density-function transpiler** (vanilla JSON → specialized native code) that doubles as a correctness oracle — the transpiled pipeline is proven equivalent to the runtime interpreter to floating-point residual (<5e-7), catching semantic bugs invisible to production sampling.
 
-## Status (as of 2026-08-30, v1.0.19-beta)
+## Status (as of 2026-09-04, v1.0.23)
 
-- ✅ **Overworld NOISE+SURFACE in Rust**: density → aquifer → ore veins → surface rules → carvers. Block-level match vs vanilla **95.40%** (baseline engine) / **94.27%** (transpiler engine); density fields aligned to floating-point residual (<5e-7). Zero crashes, **verified in-game** (server + client)
-- ✅ **Build-time transpiler**: vanilla `density_function` JSON compiled to native code at build time; consistent with the runtime interpreter across a 98304-point full-chunk sweep (max diff <5e-7), block match 99.30%
-- ✅ **Multi-world**: the Nether runs through the same Rust engine (block match **74%** vs vanilla — lava-ocean fluid fill and bedrock-edge layers are known gaps; overworld untouched). End: protection wired, engine not started
-- ✅ **Worldgen performance (measured)**: large-sample end-to-end runs measured the Rust pipeline at **~1.2× vanilla Java**; a 16-chunk in-engine JNI sweep (full pipeline incl. carvers + features, adaptive threading) ran at **~14 ms/chunk**. Density internals (dual-height cells, column caches, macro grid) are all lossless — no approximation
-- ✅ **Dual loader support — Fabric + Forge**: one jar for both. Fabric native; Forge via [Sinytra Connector](https://modrinth.com/mod/connector) (jar structure verified identical to the Connector-tested 1.0.18; 400+ modpacks tested there)
+- ✅ **Overworld fully native**: density → aquifer → ore veins → surface rules → carvers → features. End-to-end **save-path block match ≈ 99.0%** vs vanilla (3-sample avg 99.01%, large-region sweeps; residual is an isolated floating-point edge band around the density zero-crossing, not terrain structure); density fields aligned to floating-point residual (<5e-7). Verified in-game (server + client)
+- ✅ **Nether fully native**: end-to-end block match **99.9992%** (two 4×4 regions, 16 mismatched blocks total, all traced to a closed density-edge mechanism); extreme coordinates verified (±30M corners, 98.85–99.85%)
+- ✅ **Worldgen performance — faster than vanilla Java**: large-sample end-to-end benchmark (256 chunks, fresh world, stable medians) puts the Rust pipeline at **~28 ms/chunk vs vanilla Java's ~32–33 ms/chunk** — and after the aquifer-estimation rewrite (-63.5% on that stage) real-world chunk loading is **player-verified noticeably faster than vanilla**, on top of full parallelism (adaptive worker pool, shared-column caches). No approximation anywhere — all gains are lossless
+- ✅ **Self-contained jar**: the mod jar bundles the complete worldgen dataset (849 files) + the native dll — drop it into `mods/`, no configuration, no external data folder; extraction is version-hashed and self-updating
+- ✅ **Startup safety net**: every noise sampler the surface engine can query is validated against the preload table at startup — a missing key fails fast at boot with an exact diagnostic instead of crashing mid-gameplay in a rare biome
+- ✅ **Dual loader support — Fabric + Forge**: one jar for both. Fabric native; Forge via [Sinytra Connector](https://modrinth.com/mod/connector) (400+ modpacks tested there)
 - ✅ **Pairs with Sodium/Iris**: Sodium owns rendering (FPS), CoreSwap owns generation (chunk loading) — complementary, no conflict
-- 📦 Download: [Releases](https://github.com/unknowbug/CoreSwap/releases) — `1.0.19-beta` is a **pre-release (beta)** channel build
-- 🔭 Roadmap: Nether fluid fill + bedrock edges, End engine, LIGHT stage, entity AI (Brain / Goal / Pathfinding) in Rust
+- 📦 Download: [Releases](https://github.com/unknowbug/CoreSwap/releases) — `1.0.23`
+- 🔭 Roadmap: End engine, LIGHT stage, entity AI (Brain / Goal / Pathfinding) in Rust
 
 ## Installation
 
@@ -123,7 +124,7 @@ The Rust core reconstructs the density field following vanilla's exact semantics
 2. ✅ **Block layer**: density → block states (surface rules + chunk fill)
 3. ✅ **Integration**: installable Fabric mod / server plugin
 4. ✅ **Multi-world**: Nether engine + in-game dimension dispatch (End next)
-5. **Nether polish**: fluid fill (lava oceans), bedrock edge layers
+5. ✅ **Nether polish**: conversion-surface drift, basalt/blackstone conversion bands and lava-ocean interface closed (99.9992% end-to-end)
 6. **Entity AI / pathfinding**: second core to nativify
 
 ## Credits

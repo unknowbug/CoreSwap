@@ -23,16 +23,17 @@ worldgen 核心已**从 C++ 迁移到 Rust**。现在一个 `worldgen.dll` 打�
 
 **为什么换 Rust**：桥 + 引擎同一门语言（少一条工具链）、热多线程路径的内存安全、以及 build-time **密度函数 transpiler**（vanilla JSON → 专用原生代码）兼职正确性裁判——transpiled 管线与运行时解释器证明等价（浮点残差 <5e-7），能抓到生产采样域看不见的语义 bug。
 
-## 当前状态（2026-08-30，v1.0.19-beta）
+## 当前状态（2026-09-04，v1.0.23）
 
-- ✅ **主世界 NOISE+SURFACE（Rust）**：密度 → 含水层 → 矿脉 → 表面规则 → 雕刻器。块级对齐 vanilla **95.40%**（基线引擎）/ **94.27%**（transpiler 引擎）；密度场对齐至浮点残差（<5e-7）。零崩溃，**游戏内实测通过**（服务端 + 客户端）
-- ✅ **Build-time transpiler**：vanilla `density_function` JSON 构建期编译成专用原生函数；与运行时解释器全 chunk 98304 点对比一致（max diff <5e-7），块级一致 99.30%
-- ✅ **多世界**：下界走同一 Rust 引擎（块级对齐 **74%**——熔岩海流体填充与基岩边缘层为已知差距；主世界不受影响）。末地：保护已接线，引擎未启动
-- ✅ **世界生成性能（实测）**：大样本端到端实测 Rust 管线 **~1.2× vanilla Java**；16 chunk 引擎内 JNI 全管线（含雕刻器 + 装饰，自适应线程）实测 **~14ms/chunk**。密度内部优化（双高度 cell、列缓存、宏观网格）全部无损——不靠近似
-- ✅ **双加载器支持——Fabric + Forge**：一个 jar 两边通用。Fabric 原生；Forge 经 [Sinytra Connector](https://modrinth.com/mod/connector)（jar 结构与 Connector 实测过的 1.0.18 逐条目一致；该版本 400+ mod 包实测）
+- ✅ **主世界全原生**：密度 → 含水层 → 矿脉 → 表面规则 → 雕刻器 → 装饰。端到端**存档口径块级对齐 ≈ 99.0%**（大 region sweep 三采样均值 99.01%；残差为密度零面附近的浮点擦边带，非地形结构差）；密度场对齐至浮点残差（<5e-7）。游戏内实测通过（服务端 + 客户端）
+- ✅ **下界全原生**：端到端块级对齐 **99.9992%**（两个 4×4 region 共 16 块失配，全部归因已闭合的密度擦边机制）；极限坐标已验证（±30M 角点，98.85–99.85%）
+- ✅ **世界生成性能——快过 vanilla Java**：大样本端到端基准（256 chunk、全新世界、稳定中位数）Rust 管线 **~28 ms/chunk vs vanilla Java ~32–33 ms/chunk**；含水层 est 重写（该阶段 -63.5%）后，真实游戏区块加载**玩家实测明显快于原版**，且自带完整并行（自适应 worker 池 + 跨 chunk 共享缓存）。全部收益无损——不靠近似
+- ✅ **jar 自包含**：mod jar 内置完整 worldgen 数据集（849 文件）+ 原生 dll——丢进 `mods/` 即用，零配置、无需外部数据目录；解压带版本哈希自更新
+- ✅ **启动期安全网**：surface 引擎可查询的每个噪声采样器都在启动期对照预加载表机械校验——缺 key 在启动即 fail-fast 并给出精确诊断，而不是在稀有 biome 游玩中途崩溃
+- ✅ **双加载器支持——Fabric + Forge**：一个 jar 两边通用。Fabric 原生；Forge 经 [Sinytra Connector](https://modrinth.com/mod/connector)（该环境 400+ mod 包实测）
 - ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——互不冲突
-- 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.19-beta` 为 **pre-release（beta）通道**构建
-- 🔭 路线：下界流体填充 + 基岩边缘、末地引擎、光照（LIGHT）、实体 AI（Brain / Goal / 寻路）Rust 化
+- 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.23`
+- 🔭 路线：末地引擎、光照（LIGHT）、实体 AI（Brain / Goal / 寻路）Rust 化
 
 ## 安装教程
 
@@ -124,7 +125,7 @@ Rust 核心与 vanilla 完全同构地重建密度场：
 2. ✅ **方块层**：density → block states（表面规则 + 区块填充）
 3. ✅ **集成**：可安装 Fabric mod / 服务端插件
 4. ✅ **多世界**：下界引擎 + 游戏内维度分派（末地下一步）
-5. **下界打磨**：流体填充（熔岩海）、基岩边缘层
+5. ✅ **下界打磨**：转换面漂移、玄武岩/黑石转换带与熔岩海界面对比闭合（端到端 99.9992%）
 6. **实体 AI / 寻路**：下一个原生化的核心
 
 ## 致谢
