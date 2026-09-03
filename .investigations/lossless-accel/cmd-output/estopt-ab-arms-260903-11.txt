@@ -1,0 +1,17 @@
+=== estopt_ab off (new build, default path) 260903-11 ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4
+[l2] hits=0 misses=0 inserts=0 evictions=0
+
+=== HEAD baseline (git stash a3c0154, estopt_hash.rs) ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4   <- 与新代码 off 臂逐位一致 = 默认路径零回归
+
+=== arm l2 ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4   <- = off 臂 = L2 精确值逐位一致
+[l2] hits=10796 misses=1914 inserts=1914 evictions=0 (hit_rate=84.9%)
+
+=== arm shared ===
+[hash] 64 chunks agg=8bff408735f1560d   <- != off：D1 角列量化 + D3 扫描域语义变化（预期，默认关）
+
+=== arm shared+l2 ===
+[hash] 64 chunks agg=8bff408735f1560d   <- = shared 臂，组合自洽
+[l2] hits=10858 misses=2017 inserts=2017 evictions=0 (hit_rate=84.3%)

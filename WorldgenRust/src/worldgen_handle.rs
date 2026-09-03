@@ -89,6 +89,9 @@ pub struct WorldgenHandle {
     // bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；0 = 未设置 → 回落 env 判定（兼容 bin-diag/probe）。
     // skip 方向 OR：flag 位或 env 任一命中即 skip。存档链路由 CppBridge 设 flag，standalone 工具零改动。
     pub flags: std::sync::atomic::AtomicU32,
+    // b1-b 跨 chunk est L2（260903-11，默认关）：OnceLock 惰性建（首次 fill 时按 WG_EST_L2 env 决定），
+    // Arc 跨 chunk 共享；挂 handle → (seed,params) 代际隔离天然成立。blend 闸门见 aquifer::BLEND_ACTIVE。
+    est_l2: std::sync::OnceLock<Option<std::sync::Arc<std::sync::Mutex<crate::aquifer::EstL2>>>>,
 }
 
 // flags 位定义（与 wg_set_flags / Java CppBridge 对齐）
@@ -355,6 +358,7 @@ impl WorldgenHandle {
             feature_indexer,
             wg_dir,
             flags: std::sync::atomic::AtomicU32::new(0),
+            est_l2: std::sync::OnceLock::new(),
         })
     }
 
@@ -430,6 +434,22 @@ impl WorldgenHandle {
     // 诊断：macro 采样器只读访问（生产默认路径 ch0 对照用）
     pub fn macro_sampler(&self) -> &crate::terrain::DensityMacroSampler { &self.macro_sampler }
 
+    // b1-b（260903-11）：L2 惰性句柄——首次调用时创建（容量 DEFAULT_CAP），Arc 跨 chunk 共享。
+    // 调用方必须已判 WG_EST_L2（fill 路径 chunk 级判过）；进程内 env 判定时机统一在首次 fill。
+    fn est_l2_handle(&self) -> std::sync::Arc<std::sync::Mutex<crate::aquifer::EstL2>> {
+        let cell = self.est_l2.get_or_init(|| {
+            Some(std::sync::Arc::new(std::sync::Mutex::new(crate::aquifer::EstL2::new(crate::aquifer::EstL2::DEFAULT_CAP))))
+        });
+        cell.clone().expect("est_l2 lazily initialized to Some")
+    }
+    // 诊断：[hits, misses, inserts, evictions]（未启用/未初始化 → [0,0,0,0]）
+    pub fn est_l2_stats(&self) -> [usize; 4] {
+        match self.est_l2.get() {
+            Some(Some(l2)) => l2.lock().map(|m| m.stats()).unwrap_or([0; 4]),
+            _ => [0; 4],
+        }
+    }
+
     // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver。
     // 返回 16*16*height 的 vanilla raw block id（索引 (y-min_y)*256 + z*16 + x）。
     pub fn fill_chunk_blocks(&self, cx: i32, cz: i32) -> Vec<BlockId> {
@@ -451,6 +471,10 @@ impl WorldgenHandle {
         // WG_SKIP_AQUIFER（诊断）chunk 级判断一次（避免每点 env 查询污染热路径）
         let skip_aquifer = std::env::var("WG_SKIP_AQUIFER").is_ok();
         let mut va = VanillaAquifer { aq, enabled: self.aquifers_enabled, skip_aquifer, sea_level: self.sea_level };
+        // b1-b（260903-11，默认关）：WG_EST_L2 → 注入跨 chunk est L2（chunk 级 env 判一次，热路径零 env 查询）
+        if std::env::var("WG_EST_L2").is_ok() {
+            va.aq.set_est_l2(Some(self.est_l2_handle()));
+        }
         // Beardifier（结构密度修正）：读当前 chunk 的 beardifier（RwLock 读，clone 避免持锁跨 fill_chunk）
         let beard = self.beardifiers.read().unwrap().get(&(cx, cz)).cloned();
         let cd = if let Some(gc) = &self.gpu_channels {
@@ -492,12 +516,22 @@ impl WorldgenHandle {
 
         // 3. build_surface（具体 block id：grass/sand/terracotta 等）
         let heightmap: Vec<i32> = cd.surface_height.to_vec();
-        let est_at = |x: i32, z: i32| -> i32 {
-            let mut est = i32::MAX;
-            for y in (min_y..min_y + self.noise_height).rev().step_by(8) {
-                if self.init.sample(&NoisePos { x, y, z }) > 0.390625 { est = y; break; }
+        // b1-a（260903-11，默认关）：WG_EST_SHARED → est_at 复用 va.aq 的 surface_cache
+        //（对齐 Java：SURFACE 阶段走 sampler.estimateSurfaceHeight 同一张 map，ChunkNoiseSampler.java:222-226）。
+        // 差异 A/B（WG_EST_SHARED 的语义变化，judge D1/D3）：
+        //  D1 角列量化：旧路径 +15 直采；共享路径 (x>>2)<<2 量化（Java 语义）
+        //  D3 扫描域：旧路径 min_y+noise_height；共享路径 min_y+height（overworld 384 同值；nether 128<256，收敛仅限 overworld 生产路径）
+        let est_shared = std::env::var("WG_EST_SHARED").is_ok();
+        let mut est_at = |x: i32, z: i32| -> i32 {
+            if est_shared {
+                va.aq.estimate_surface_height(x, z)
+            } else {
+                let mut est = i32::MAX;
+                for y in (min_y..min_y + self.noise_height).rev().step_by(8) {
+                    if self.init.sample(&NoisePos { x, y, z }) > 0.390625 { est = y; break; }
+                }
+                est
             }
-            est
         };
         let surface_heights4 = vec![
             est_at(cx * 16, cz * 16), est_at(cx * 16 + 15, cz * 16),

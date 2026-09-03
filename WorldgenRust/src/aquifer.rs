@@ -78,6 +78,55 @@ const CACHE_DIM: i32 = 32;
 const CACHE_OFF_X: i32 = 12;
 const CACHE_OFF_Z: i32 = 4;
 
+// b1-b blend 旁路闸门（260903-11）：Rust 未实现 blend（density.rs:626-628 blend 类 DF 均为
+// no-blending 语义常数），est 为纯函数；未来实现 blend 时置 true → L2 全量旁路（防 blend
+// per-chunk density 污染跨 chunk 缓存，ChunkNoiseSampler.java:142-154 对应语义）。
+pub const BLEND_ACTIVE: bool = false;
+
+// b1-b：跨 chunk est L2 精确值缓存（Java 语义外的纯性能优化，默认关 WG_EST_L2）。
+// est = f(seed, noise_params, 量化列) 纯函数 → 跨 chunk 缓存逐位安全（blend 闸门见上）。
+// 淘汰：FIFO 环（容量上限硬界，语义同 clock——淘汰只影响命中率不影响正确性，重算同值）。
+// epoch：实例挂 WorldgenHandle（每 (seed,params) 一个 handle）→ 代际隔离天然成立。
+pub struct EstL2 {
+    map: std::collections::HashMap<u64, i32>,
+    order: std::collections::VecDeque<u64>,
+    cap: usize,
+    pub hits: usize,
+    pub misses: usize,
+    pub inserts: usize,
+    pub evictions: usize,
+}
+
+impl EstL2 {
+    // 131072 条 × (8B key + 4B val + 开销) ≈ 2-4MB 硬上限（b1 设计 §2.3）
+    pub const DEFAULT_CAP: usize = 131072;
+    pub fn new(cap: usize) -> EstL2 {
+        EstL2 { map: std::collections::HashMap::with_capacity(cap / 2), order: std::collections::VecDeque::with_capacity(cap), cap, hits: 0, misses: 0, inserts: 0, evictions: 0 }
+    }
+    fn key(bx: i32, bz: i32) -> u64 {
+        ((bx as u64 & 0xFFFF_FFFF) << 32) | (bz as u64 & 0xFFFF_FFFF)
+    }
+    pub fn get(&mut self, bx: i32, bz: i32) -> Option<i32> {
+        let r = self.map.get(&Self::key(bx, bz)).copied();
+        if r.is_some() { self.hits += 1; } else { self.misses += 1; }
+        r
+    }
+    pub fn put(&mut self, bx: i32, bz: i32, v: i32) {
+        let k = Self::key(bx, bz);
+        if self.map.contains_key(&k) { return; }
+        if self.map.len() >= self.cap {
+            if let Some(old) = self.order.pop_front() {
+                self.map.remove(&old);
+                self.evictions += 1;
+            }
+        }
+        self.map.insert(k, v);
+        self.order.push_back(k);
+        self.inserts += 1;
+    }
+    pub fn stats(&self) -> [usize; 4] { [self.hits, self.misses, self.inserts, self.evictions] }
+}
+
 pub struct Aquifer {
     barrier: Arc<DensityFunction>,
     fluid_floodedness: Arc<DensityFunction>,
@@ -94,6 +143,8 @@ pub struct Aquifer {
     water_levels: Vec<FluidLevel>,
     surface_cache: Vec<i32>,
     cache_cx: i32, cache_cz: i32,
+    // b1-b 跨 chunk est L2（默认 None=关；WorldgenHandle 按 env 注入，Arc 跨 chunk 共享）
+    est_l2: Option<Arc<std::sync::Mutex<EstL2>>>,
 }
 
 impl Aquifer {
@@ -123,6 +174,16 @@ impl Aquifer {
             surface_cache: vec![i32::MIN; (CACHE_DIM * CACHE_DIM) as usize],
             cache_cx: floor_div(chunk_start_x, 16),
             cache_cz: floor_div(chunk_start_z, 16),
+            est_l2: None,
+        }
+    }
+
+    // b1-b：注入跨 chunk est L2（None=关）。Aquifer::new 签名保持不变（30+ 调用点零改动）。
+    pub fn set_est_l2(&mut self, l2: Option<Arc<std::sync::Mutex<EstL2>>>) { self.est_l2 = l2; }
+    pub fn est_l2_stats(&self) -> [usize; 4] {
+        match &self.est_l2 {
+            Some(l2) => l2.lock().map(|m| m.stats()).unwrap_or([0; 4]),
+            None => [0; 4],
         }
     }
 
@@ -285,6 +346,17 @@ impl Aquifer {
         let iz = (bz >> 2) - self.cache_cz * 4 + CACHE_OFF_Z;
         let (in_c, ci) = (ix >= 0 && ix < CACHE_DIM && iz >= 0 && iz < CACHE_DIM, (ix * CACHE_DIM + iz) as usize);
         if in_c { let cached = self.surface_cache[ci]; if cached != i32::MIN { return cached; } }
+        // b1-b：per-chunk 缓存 miss → 查跨 chunk L2（命中则回填本 chunk 缓存；blend 闸门）
+        if let Some(l2) = &self.est_l2 {
+            if !BLEND_ACTIVE {
+                if let Ok(mut m) = l2.lock() {
+                    if let Some(v) = m.get(bx, bz) {
+                        if in_c { self.surface_cache[ci] = v; }
+                        return v;
+                    }
+                }
+            }
+        }
         let mut val = i32::MAX;
         let mut l = self.min_y + self.height;
         let surf_watch = SURF_WATCH.load(std::sync::atomic::Ordering::Relaxed);
@@ -295,6 +367,12 @@ impl Aquifer {
             l -= 8;
         }
         if in_c { self.surface_cache[ci] = val; }
+        // b1-b：计算结果写回跨 chunk L2（精确值，重算同值 → 淘汰只影响命中率）
+        if let Some(l2) = &self.est_l2 {
+            if !BLEND_ACTIVE {
+                if let Ok(mut m) = l2.lock() { m.put(bx, bz, val); }
+            }
+        }
         val
     }
 

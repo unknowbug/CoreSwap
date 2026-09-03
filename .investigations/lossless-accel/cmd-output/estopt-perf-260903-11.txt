@@ -1,0 +1,15 @@
+=== qaq1_surf_probe baseline (no gates) 260903-11 ===
+[timing] 16 chunks median=70.54ms
+[surf] calls=3420 per_chunk=214 iterations=117478 per_chunk=7342 avg_iter/call=34.35
+[wl] calls=1762577 per_chunk=110161 miss=2782
+
+=== qaq1_surf_probe WG_EST_L2 on ===
+[timing] 16 chunks median=27.22ms   <- -43.32ms/chunk
+[surf] calls=799 per_chunk=50 iterations=27445 per_chunk=1715 avg_iter/call=34.35   <- est 迭代 -76.6%
+[wl] calls=1762577 per_chunk=110161 miss=2782
+
+=== pc_e2e_bench 256 chunks baseline ===
+[RESULT] chunks=256 total=20421.8ms avg=79.77ms median=75.94ms min=26.48ms max=157.68ms
+
+=== pc_e2e_bench 256 chunks WG_EST_L2 ===
+[RESULT] chunks=256 total=7551.0ms avg=29.50ms median=27.69ms min=23.82ms max=81.15ms
