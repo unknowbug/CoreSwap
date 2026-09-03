@@ -2681,3 +2681,21 @@ Q-PD1 归因：**差距大头 = aquifer 段**。supersedes pc1-e2e/pc-results-26
 - 新坑 → workflow-patterns #21（微测形态 40× 假基线）/#22（自由参数凑数）/#23（证据摘要漏行）/#24（多臂顺序 bench 假交互）；指纹 → algorithm-fingerprints #16。
 - 产物：.artifacts/lossless-accel/qaq1-attribution-260903-10.md（candidate）+ index.yaml 登记；过程 .investigations/lossless-accel/{qaq1-evidence-pack,q-aq1,qaq1-b1-candidate,qaq1-b2-candidate,review-qaq1}-260903-10.md + cmd-output/qaq1-*（8 件）。
 - 🔍 遗留 b4：carver 机械成本列状态反直觉（全 Air 列 carver-on 贵 22.97 vs 实地形 10.62ms，机制未定位）；后续 aquifer 实验一律 carver 双臂同关。顺手修复：pc_e2e_bench.rs seed 死参数（#20 族）。
+
+## 260903-11（est 查表化优化包：est_at 共享 + 跨 chunk est L2，candidate @ 0949402）
+
+> 承接 260903-10 Q-AQ1「修复方向（另立优化包）」；过程 `.investigations/lossless-accel/est-opt/`；结果快照 `.artifacts/lossless-accel/est-opt-result-260903-11.md`（candidate）。
+
+- ✅ **P0 交接验证**：复跑 qaq1_surf_probe（新鲜进程），iterations 7342 / avg 34.35 / miss 2782 逐项一致，median 72.84 在方差内 → Q-AQ1 est 冷扫描量级可继承（§15.3 廉价独立验证）。
+- ❌→✅ **P1 调研误读两例被核对推翻（高价值，详见 workflow-patterns #25）**：① G5「fill/carver 各自 Aquifer::new 不共享」系 subagent 引用 :547（诊断 API）错位，生产路径 :446 唯一构造——主会话差点按假差距点投入实现，被设计 worker 代码核对推翻（G5 supersedes 入 k3-k2-verdict）；② K3「Java 步长 4」系常量记忆错，实际 4×size_vertical=8，与 Rust 一致（疑点解除）。P1 文档原文不改，裁决记录 supersedes。
+- ✅ **P2 fan-out：b2 主形态判死 → 分叉塌缩单线 b1**：b2 粗表逐位一致硬约束下不成立（唯一逐位安全形态 ⊂ b1-b）；K2 blend 旁路等价成立（blend 类 DF 全为 no-blending 常数，density.rs:626-628；原「blending_active 字段」引用系 b1 拟新增字段，judge R3 补正）；新增 D3 扫描域差异（est_at noise_height vs Aquifer height，仅 nether 有差，overworld 同 384）。
+- ✅ **实现（commit 0949402，门控默认关）**：b1-b EstL2 精确值缓存（量化列 key / FIFO 131072 上限 / 代际挂 handle / blend 闸门；`WG_EST_L2` 门控）；b1-a est_at 共享（`WG_EST_SHARED`，对齐 Java ChunkNoiseSampler.java:222-226）；探针 bin-diag/estopt_ab.rs（四臂 hash A/B + L2 统计）。
+- ✅ **四臂验证**（§9.7：载体=fill_chunk_blocks 全管线；覆盖面=64 chunks A/B + 256 chunks e2e region(200,200) seed 8576294172403134396；历史口径同 pc_e2e 260903-08 可比）：off 臂 == HEAD 基线（64-chunk 聚合 hash 相等 + stash 重建基线）；l2 臂 hash 逐位一致；16 chunks est 迭代 7342→1715（−76.6%）；**256 chunks e2e median 75.94→27.69ms（−63.5%）**。shared 臂 hash 变化（D1 角列量化修正 + D3 扫描域）——默认关，翻默认前 MUST Java 逐位验证。
+- ✅ **judge 两次审查 PASS**：P2 选型（有条件）+ P5 交付（4 CONCERN 无 BLOCK，建议 candidate）：C1 L2 stats 口径修正（e2e 行未落盘，外推表述作废）/ C2 零回归证据载体标注（聚合 hash，非 block_probe 全量 diff）/ C3 未执行清单显式声明 / 代码抽查 8 项全过。
+- 📝 **观察（不反推机制定论）**：e2e 收益（−48ms/chunk）超 est 微测上界（15.5ms）——生产冷路径 est 实际单价 ≈11µs/iter vs 微测 2117ns（working set 失配，workflow-patterns #21 补充案例）。
+- 🔍 **未闭合**：shared 臂疑似修正既有 surface 错位 bug（需 Java 逐位裁决，独立小包）；b1-b 翻默认前置（mt_fill Mutex 基线 + 大 region 淘汰 + e2e l2 stats 落盘）；nether est_at 扫描域（D3）未收敛（生产仅 overworld，显式声明）。
+
+### 📌 记录指引
+- 通用模式 → workflow-patterns #25（静态调研结论失真两例）+ #21 补充案例（working set 维度）。
+- 产物：.artifacts/lossless-accel/est-opt-result-260903-11.md（candidate + index.yaml 登记）；裁决/验证 k3-k2-verdict / p0-handover-verify / cmd-output/estopt-{ab-arms,perf}-260903-11.txt。
+- 状态：candidate（judge 建议授予），confirmed 留用户；翻默认（WG_EST_L2 / WG_EST_SHARED）均不在授予范围。
