@@ -2812,3 +2812,20 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 产物：`.investigations/panic-505/`（panic-errors.md + knowledge-drafts/260903-14/ + cmd-output/）。
 - 状态：修复验证完成 + judge PASS；confirmed 留用户拍板。
 
+## 260904-01（启动期 noise key 机械校验 + CoreSwapFixHelper 解压根治）
+
+> 承接 260903-14 发现 #26 判据 1（启动期机械校验）与 #15 根治方向（解压死路）。过程产物 `.investigations/preload-check/`（verdict + preload-check-errors.md E1-E3 + review + cmd-output/）；judge 审查 PASS with should-fix（2 项已清偿：panic 输出落盘 + 四臂 §9.7 口径补齐）。
+
+### ✅ 结论定案（candidate，confirmed 待用户拍板）
+
+- **启动期机械校验**：`collect_rule_noise_keys` 机械收集 rule 树 + `ENGINE_NOISE_KEYS` 就近维护引擎调用点清单 + `create_for_dim` 启动期断言（运行时引用 ⊆ 预加载集合，缺失即 panic）。盲区诚实声明：引擎路径不在树内，清单是唯一事实源。通用模式 → workflow-patterns 发现 #27。
+- **解压根治**：routeRel 双兼容路由（data→原版 / minecraft→data/ 前缀）+ 资源整体重排 = 权威 `versions/1.20.1/data/worldgen`（845 文件）+ 顶层 4 json（共 849）。根因修正：#15 所载「布局不一致」只是次因，**主因 = 资源集不完整（只有 biome/，无 noise_settings），解压分支结构性死路**——历史全靠 `-PcppWorldgenDir` 绕过。通用模式 → build-tooling 发现 #16。
+- **验证（Full 层）**：四臂 hash `f2b1a3932c6e589e` 与 260903-14 逐臂一致（零语义回归）；4096 chunk sweep 无 panic（16 block hits/misses 与基线逐项同）；负向测试删 calcite → 启动 panic exit=101 精确报缺 key；删 %TEMP% 缓存实测 marker 出现、849 文件齐；jar 内 dll sha256 = 最新构建。
+- **错误**：E1 bin-diag 旧 exe 假阴性 ×2（`cargo build --release` 不编译 bin-diag——探针用前必单编/核时间戳）；E2 collect 循环 NoiseThreshold 臂无 break 死循环（负向测试立功）；E3 #15 根因不完整（资源集不完整为主因）。详见 preload-check-errors.md 五段式 + 速查表。
+- **交付**：`runtime/1.20.1/java/build/libs/coreswap-1.20.1-1.0.22.jar`（内置完整 worldgen-data + 新 dll）。
+
+### 📌 记录指引
+
+- 通用模式 → workflow-patterns 发现 #27（启动期断言落地形态 + 负向测试假阴性危险度）、build-tooling 发现 #16（#15 根治复盘 + 死分支信号 + E1）。
+- 状态：修复验证完成 + judge PASS（should-fix 已清偿）；confirmed 留用户拍板。
+

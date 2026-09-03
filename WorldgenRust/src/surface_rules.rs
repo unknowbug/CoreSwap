@@ -41,6 +41,22 @@ fn col_key(x: i32, z: i32) -> i64 {
     ((((x as u32) as u64) << 32) ^ (z as u32 as u64)) as i64
 }
 
+// #26 判据 1（260904-01）：overworld 引擎路径 noise key 单一事实源——**紧邻下方 get_noise
+// 引擎调用点维护**（place_badlands_pillar 等不在 rule 树内，启动断言的机械收集覆盖不到，
+// 新增引擎 get_noise 调用点必须同步在此加一行）。worldgen_handle::create 预加载遍历本清单。
+// 注：rule 树内引用（NoiseThreshold 条件）由 collect_rule_noise_keys 启动期机械核对，无需本清单。
+pub const ENGINE_NOISE_KEYS: &[&str] = &[
+    "minecraft:badlands_surface",
+    "minecraft:badlands_pillar",
+    "minecraft:badlands_pillar_roof",
+    "minecraft:calcite",
+    "minecraft:gravel",
+    "minecraft:powder_snow",
+    "minecraft:packed_ice",
+    "minecraft:ice",
+    "minecraft:surface_swamp",
+];
+
 // ========== 条件枚举（对齐 C++ surface.h L34-124 / L210-296）==========
 #[derive(Clone)]
 pub enum SurfaceCond {
@@ -154,17 +170,16 @@ fn warn_unknown_noise_key(key: &str) {
 }
 
 // C2（2026-09-07，judge CONCERN：step4 预加载表数据驱动化）：遍历 surface_rule JSON，
-// 收集所有 noise_threshold 条件引用的 noise key（构建期一次性调用，非热路径）。
+// 收集所有引用的 noise key（构建期一次性调用，非热路径）。
 // 递归结构与 parse_surface_rule/parse_surface_cond 的节点形态一一对应：
 // rule = sequence / condition(if_true + then_run)；cond = not(invert) / noise_threshold(noise 字段) / 其他叶子。
+// #26 判据 1 泛化（260904-01）：不再只认 noise_threshold 类型——任何带 "noise" 字符串字段的
+// 节点都收（noise_threshold / vertical_gradient / 未来新增节点类型自动覆盖），
+// 消除「collect_noise_keys 只收单一字段」的缺项盲区（NEXT 260903-14 未闭合课题 1）。
 pub fn collect_noise_keys(j: &crate::json::JsonValue, out: &mut Vec<String>) {
-    if let Some(t) = j.get("type").and_then(|t| t.as_str()) {
-        if t.contains("noise_threshold") {
-            if let Some(n) = j.get("noise").and_then(|n| n.as_str()) {
-                if !out.iter().any(|k| k == n) {
-                    out.push(n.to_string());
-                }
-            }
+    if let Some(n) = j.get("noise").and_then(|n| n.as_str()) {
+        if !out.iter().any(|k| k == n) {
+            out.push(n.to_string());
         }
     }
     if let Some(seq) = j.get("sequence") {
@@ -182,6 +197,37 @@ pub fn collect_noise_keys(j: &crate::json::JsonValue, out: &mut Vec<String>) {
     }
     if let Some(i) = j.get("invert") {
         collect_noise_keys(i, out);
+    }
+}
+
+// #26 判据 1（260904-01）：对**已构建**的 SurfaceRule 树收集全部运行时会查
+// noise_samplers 的 key（目前唯一来源 = NoiseThreshold 条件；VerticalGradient 走
+// splitter 不查 sampler，不算）。启动期用：运行时引用 key ⊆ 预加载集合断言的
+// 「运行时引用」一侧的事实源——规则在代码里改动时无需同步手工清单，此函数自动覆盖。
+pub fn collect_rule_noise_keys(rule: &SurfaceRule, out: &mut Vec<String>) {
+    match rule {
+        SurfaceRule::Block(_) | SurfaceRule::TerracottaBands => {}
+        SurfaceRule::Seq(rules) => {
+            for r in rules {
+                collect_rule_noise_keys(r, out);
+            }
+        }
+        SurfaceRule::Cond { cond, rule } => {
+            let mut c = cond;
+            loop {
+                match c {
+                    SurfaceCond::NoiseThreshold { noise_key, .. } => {
+                        if !out.iter().any(|k| k == noise_key) {
+                            out.push(noise_key.clone());
+                        }
+                        break;
+                    }
+                    SurfaceCond::Not(inner) => c = &**inner,
+                    _ => break,
+                }
+            }
+            collect_rule_noise_keys(rule, out);
+        }
     }
 }
 

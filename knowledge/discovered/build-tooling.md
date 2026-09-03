@@ -324,3 +324,30 @@ runServer 预生成 64×64 大 region 时 watchdog（`max-tick-time` 默认 6000
 - **修复**：run 命令补 `-PcppWorldgenDir=...`（workaround）；资源布局与 marker 不一致未改，列为升级点。
 - **教训**：**跑存档口径 run 照抄历史 run 的完整参数清单，不要凭 build.gradle 属性列表自行裁剪**——属性列表只声明「存在」，不声明「必带」；裁掉的可能是历史踩坑后的必带项。同族：#8（gradle -P→-D 映射遗漏静默不生效）、#9（缺映射行静默不生效）——本条补「不能反向从属性列表推断可省略项」维度。根治方向（升级点）：marker 路径与资源布局对齐，或解压失败 fail-fast 时提示带 `-PcppWorldgenDir`。
 
+## 发现 #16: 「绕过项永远在用的分支 = 死分支」信号——#15 根治复盘：解压死路主因是资源集不完整而非布局；bin-diag 旧 exe 假阴性——探针用前必须核产物时间戳（260904-01）
+
+- **发现时间**：260904-01；**置信度**：candidate（judge PASS with should-fix 已清偿，Full 层验证闭环）；**module**：build-tooling / 资源打包 + 二进制产物新鲜度。
+
+### 现象
+
+① 发现 #15 记载的 `-PcppWorldgenDir` 死路（解压 marker 永远不存在）按当时根治方向修复：routeRel 布局双兼容（`data` 开头 → wgDir 原版布局；`minecraft` 开头 → `wgDir/data/` 拼接旧布局）——修复后解压成功，但 `noise_settings/overworld.json` **仍不存在**，解压产物 `worldgen/` 下只有 `biome/`（68 文件）。② 同 session 负向测试（删 noise key 验证启动断言生效）连续两次"未触发 panic"——改了源码重编后探针行为完全不变。
+
+### 根因（为什么错）
+
+① **#15 的根因记载不完整**：mod 资源 `worldgen-data/` 里**根本没有 noise_settings/density_function 等完整数据集**（完整权威集 = `versions/1.20.1/data/worldgen` 845 文件）——marker 指向的文件在 jar 里结构性不存在，布局只是次因。路由修好等于把路修通到一片空地。② `cargo build --release` **只编译 `src/bin/`，不编译 `src/bin-diag/`**（后者按临时区纪律特意隔离出默认构建，AGENTS §八.13）——estopt_ab.exe 是前一天的旧产物，静态链接旧 lib 代码，源码改动对它完全无效。两次"未触发"全是假阴性。
+
+### 定位（怎么发现的）
+
+① 解压产物逐层列目录 + 对照权威目录 `versions/1.20.1/data/worldgen`（845 vs 68 文件清点）。② `Get-Item exe | LastWriteTime`——时间戳早于本次改动即穿帮（发现 #6 内容指纹判据的时间戳变体）。
+
+### 修复
+
+① 资源整体重排：`src/main/resources/worldgen-data` = 权威 `versions/1.20.1/data/worldgen`（自带 data/ 层，845 文件）+ 顶层 4 json；routeRel 保留双兼容路由（旧布局目录用户可指 data/ 层目录）；fail-fast 报错 2 处补 `-PcppWorldgenDir` 绕过提示。② 按 bin-diag 单编纪律 `rustc --edition 2024 ... --extern WorldgenRust=target\release\libWorldgenRust.rlib -o target\release\estopt_ab.exe`。
+
+### 教训
+
+- **「绕过项永远在用的分支 = 死分支信号」**：历史全靠 `-PcppWorldgenDir` 绕过的解压分支，本身就提示该分支从未工作过——修 root cause 前先确认**分支的输入数据是否存在**，再修路由/布局/逻辑（次因）。
+- **文档记载的根因要验证到"能闭合"为止，不能到"能解释"为止**——#15 的解释（布局不一致）能自洽但修完不闭合（E3）；修复闭合才是根因完整的唯一证明。
+- **bin-diag 探针每次用前必须单编或核产物时间戳**：`cargo build --release` 不触达 bin-diag；「我编译过了」不是产物新鲜度证据（时间戳/哈希才是）。错误签名「改了源码但探针行为不变」先查这个。
+- 同族：#6（fs::copy 保留 mtime——产物判新旧用内容指纹）、#8/#9（映射遗漏静默不生效）；AGENTS §八.13 bin-diag 隔离纪律的配套判据。
+

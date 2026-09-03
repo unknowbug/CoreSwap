@@ -1,0 +1,6 @@
+=== NEG-TEST: calcite removed from ENGINE_NOISE_KEYS ===
+=== estopt_ab arm shared=true l2=true seed=8576294172403134396 ===
+
+thread 'main' (14720) panicked at src\worldgen_handle.rs:348:17:
+[surface] noise preload 校验失败：规则引用但未预加载的 key ["minecraft:calcite"]（settings 'overworld'，check preload table / OVERWORLD_NOISE_KEYS in worldgen_handle.rs）
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
