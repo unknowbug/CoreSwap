@@ -519,27 +519,35 @@ impl WorldgenHandle {
         // b1-a（260903-11，默认关）：WG_EST_SHARED → est_at 复用 va.aq 的 surface_cache
         //（对齐 Java：SURFACE 阶段走 sampler.estimateSurfaceHeight 同一张 map，ChunkNoiseSampler.java:222-226）。
         // 差异 A/B（WG_EST_SHARED 的语义变化，judge D1/D3）：
-        //  D1 角列量化：旧路径 +15 直采；共享路径 (x>>2)<<2 量化（Java 语义）
+        //  D1 角列量化：两臂角参数均已修正为 Java SURFACE 四角 (i+1)<<4（+16，260903-13）；
+        //    shared 路径 estimate_surface_height 内部再 (x>>2)<<2 量化（Java 语义，+16 量化不变）
         //  D3 扫描域：旧路径 min_y+noise_height；共享路径 min_y+height（overworld 384 同值；nether 128<256，收敛仅限 overworld 生产路径）
         let est_shared = std::env::var("WG_EST_SHARED").is_ok();
         let mut est_at = |x: i32, z: i32| -> i32 {
             if est_shared {
                 va.aq.estimate_surface_height(x, z)
             } else {
+                // 260903-13 修 −1 偏移（judge A1，260903-12）：对齐 Java NoiseChunk.computePreliminarySurfaceLevel
+                //（forge sources NoiseChunk.java:174）：for(l = min_y+height; l >= min_y; l -= cellHeight)
+                // → 首采样点 320、含下界 -64。旧写法半开区间 rev 首点 319（319,311,… vs Java 320,312,…）。
                 let mut est = i32::MAX;
-                for y in (min_y..min_y + self.noise_height).rev().step_by(8) {
+                let mut y = min_y + self.noise_height;
+                while y >= min_y {
                     if self.init.sample(&NoisePos { x, y, z }) > 0.390625 { est = y; break; }
+                    y -= 8;
                 }
                 est
             }
         };
+        // 260903-13 角参数 +16（Java MaterialRules.java:496-499 chunkToBlockCoord(i+1) = (i+1)<<4），
+        // 取代旧 +15（#25 第三例：+15 量化 +12 ≠ Java +16）
         let surface_heights4 = vec![
-            est_at(cx * 16, cz * 16), est_at(cx * 16 + 15, cz * 16),
-            est_at(cx * 16, cz * 16 + 15), est_at(cx * 16 + 15, cz * 16 + 15),
+            est_at(cx * 16, cz * 16), est_at(cx * 16 + 16, cz * 16),
+            est_at(cx * 16, cz * 16 + 16), est_at(cx * 16 + 16, cz * 16 + 16),
         ];
         // 260903-12（默认关）：WG_EST_DUMP=<path> → 4 角 est 值逐条追加 dump（Java est 对比用 P1.2）
         if let Ok(dump_path) = std::env::var("WG_EST_DUMP") {
-            let corner_params = [(cx * 16, cz * 16), (cx * 16 + 15, cz * 16), (cx * 16, cz * 16 + 15), (cx * 16 + 15, cz * 16 + 15)];
+            let corner_params = [(cx * 16, cz * 16), (cx * 16 + 16, cz * 16), (cx * 16, cz * 16 + 16), (cx * 16 + 16, cz * 16 + 16)];
             let mut line = format!("{},{}", cx, cz);
             for (i, &(px, pz)) in corner_params.iter().enumerate() {
                 line.push_str(&format!(",c{}:{}:{}:{}", i, px, pz, surface_heights4[i]));

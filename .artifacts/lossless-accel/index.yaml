@@ -30,3 +30,19 @@ entries:
     path: 'est-opt-result-260903-11.md'
     kind: implementation
     status: confirmed
+  - id: 'lossless-accel:estopt:offscan-cornerfix-260903-13'
+    path: 'off-scan-cornerfix-verdict-260903-13.md'
+    kind: analysis
+    status: candidate
+  - id: 'lossless-accel:estopt:est-shared-verdict-260903-12'
+    path: 'est-shared-verdict-260903-12.md'
+    kind: analysis
+    status: confirmed
+  - id: 'lossless-accel:estopt:l2-defaultflip-p2-260903-12'
+    path: 'est-l2-defaultflip-p2-260903-12.md'
+    kind: analysis
+    status: confirmed
+  - id: 'lossless-accel:estopt:gpu-merge-revisit-260903-12'
+    path: 'gpu-merge-revisit-260903-12.md'
+    kind: analysis
+    status: confirmed

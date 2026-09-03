@@ -1,0 +1,16 @@
+=== arm off ===
+=== estopt_ab arm shared=false l2=false seed=8576294172403134396 ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== arm shared ===
+=== estopt_ab arm shared=true l2=false seed=8576294172403134396 ===
+[hash] 64 chunks agg=8bff408735f1560d
+[l2] hits=0 misses=0 inserts=0 evictions=0 (hit_rate=n/a)
+=== arm l2 ===
+=== estopt_ab arm shared=false l2=true seed=8576294172403134396 ===
+[hash] 64 chunks agg=74f5dfc4eede8ef4
+[l2] hits=10796 misses=1914 inserts=1914 evictions=0 (hit_rate=84.9%)
+=== arm shared+l2 ===
+=== estopt_ab arm shared=true l2=true seed=8576294172403134396 ===
+[hash] 64 chunks agg=8bff408735f1560d
+[l2] hits=10858 misses=2017 inserts=2017 evictions=0 (hit_rate=84.3%)
