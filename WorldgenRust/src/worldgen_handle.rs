@@ -108,7 +108,7 @@ pub const FLAG_SKIP_CARVER: u32 = 1 << 0;
 pub const FLAG_SKIP_FEATURES: u32 = 1 << 1;
 pub const FLAG_SKIP_SURFACE: u32 = 1 << 2;
 
-// #26 判据 1（260904-01）：overworld surface 噪声 key 单一事实源在 surface_rules.rs
+// #26 判据 1（260903-15）：overworld surface 噪声 key 单一事实源在 surface_rules.rs
 // （ENGINE_NOISE_KEYS，紧邻 get_noise 引擎调用点就近维护）——本文件只 use。
 // 启动期断言：collect_rule_noise_keys 收集规则树运行时引用 key ⊆ 预加载集合（base 3 之外），
 // 缺失即 panic。根因背景：260903-14 panic 505——place_badlands_pillar 运行时查
@@ -276,7 +276,7 @@ impl WorldgenHandle {
                 let _ = db.get_noise_sampler(k);
             }
             if df_ns == "overworld" {
-                // #26 判据 1（260904-01）：清单提为单一事实源常量——预加载来源唯一，
+                // #26 判据 1（260903-15）：清单提为单一事实源常量——预加载来源唯一，
                 // 运行时引用侧由 collect_rule_noise_keys 在下方启动期断言自动核对，
                 // 新增查表调用点只需改本清单，漏项在启动即 panic（不再低频分支运行时崩）。
                 for k in OVERWORLD_NOISE_KEYS {
@@ -332,7 +332,7 @@ impl WorldgenHandle {
             }
         };
 
-        // #26 判据 1（260904-01）启动期机械校验：运行时引用 noise key ⊆ 预加载集合。
+        // #26 判据 1（260903-15）启动期机械校验：运行时引用 noise key ⊆ 预加载集合。
         // 规则树运行时查 sampler 的 key（collect_rule_noise_keys 自动收集，含未来新增节点）
         // 若未预加载，宁可在 create 时 panic 也不留到低频分支运行时崩（panic 505 教训）。
         {

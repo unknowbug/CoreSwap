@@ -346,10 +346,10 @@ V5 残差排查中 4 次「一步裁决探针」逐层收敛（biome 列对比 �
   3. **大 region sweep 是暴露手段**：存档口径级大样本（数千 chunk）覆盖低频分支；对 expect 密集的代码路径，sweep 应作为常规回归而非一次性验证（本次正是常规 sweep 抓到）。
 - **同族**：#12（哨兵结论须配已知值哨兵点——「测试绿」同样要有覆盖面背书）、#14（大 region 预生成三件套前置——sweep 可执行的工程前提）。
 
-## 发现 #27: 启动期断言「运行时引用 key ⊆ 预加载集合」——#26 判据 1 的落地形态；机械收集必须诚实声明盲区；负向测试是断言生效的唯一证明，且其假阴性比假阳性更危险（260904-01）
+## 发现 #27: 启动期断言「运行时引用 key ⊆ 预加载集合」——#26 判据 1 的落地形态；机械收集必须诚实声明盲区；负向测试是断言生效的唯一证明，且其假阴性比假阳性更危险（260903-15）
 
-- **时间/置信度/module**：260904-01，candidate（judge PASS with should-fix 已清偿），通用方法论。
-- **来源定位**：`.investigations/preload-check/`（verdict-preload-check-260904-01.md + preload-check-errors.md E1/E2 + review）；承接发现 #26（260903-14 预加载缺项 panic）。
+- **时间/置信度/module**：260903-15，candidate（judge PASS with should-fix 已清偿），通用方法论。
+- **来源定位**：`.investigations/preload-check/`（verdict-preload-check-260903-15.md + preload-check-errors.md E1/E2 + review）；承接发现 #26（260903-14 预加载缺项 panic）。
 
 ### 观察（落地形态）
 

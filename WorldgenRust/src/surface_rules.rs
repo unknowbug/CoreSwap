@@ -41,7 +41,7 @@ fn col_key(x: i32, z: i32) -> i64 {
     ((((x as u32) as u64) << 32) ^ (z as u32 as u64)) as i64
 }
 
-// #26 判据 1（260904-01）：overworld 引擎路径 noise key 单一事实源——**紧邻下方 get_noise
+// #26 判据 1（260903-15）：overworld 引擎路径 noise key 单一事实源——**紧邻下方 get_noise
 // 引擎调用点维护**（place_badlands_pillar 等不在 rule 树内，启动断言的机械收集覆盖不到，
 // 新增引擎 get_noise 调用点必须同步在此加一行）。worldgen_handle::create 预加载遍历本清单。
 // 注：rule 树内引用（NoiseThreshold 条件）由 collect_rule_noise_keys 启动期机械核对，无需本清单。
@@ -173,7 +173,7 @@ fn warn_unknown_noise_key(key: &str) {
 // 收集所有引用的 noise key（构建期一次性调用，非热路径）。
 // 递归结构与 parse_surface_rule/parse_surface_cond 的节点形态一一对应：
 // rule = sequence / condition(if_true + then_run)；cond = not(invert) / noise_threshold(noise 字段) / 其他叶子。
-// #26 判据 1 泛化（260904-01）：不再只认 noise_threshold 类型——任何带 "noise" 字符串字段的
+// #26 判据 1 泛化（260903-15）：不再只认 noise_threshold 类型——任何带 "noise" 字符串字段的
 // 节点都收（noise_threshold / vertical_gradient / 未来新增节点类型自动覆盖），
 // 消除「collect_noise_keys 只收单一字段」的缺项盲区（NEXT 260903-14 未闭合课题 1）。
 pub fn collect_noise_keys(j: &crate::json::JsonValue, out: &mut Vec<String>) {
@@ -200,7 +200,7 @@ pub fn collect_noise_keys(j: &crate::json::JsonValue, out: &mut Vec<String>) {
     }
 }
 
-// #26 判据 1（260904-01）：对**已构建**的 SurfaceRule 树收集全部运行时会查
+// #26 判据 1（260903-15）：对**已构建**的 SurfaceRule 树收集全部运行时会查
 // noise_samplers 的 key（目前唯一来源 = NoiseThreshold 条件；VerticalGradient 走
 // splitter 不查 sampler，不算）。启动期用：运行时引用 key ⊆ 预加载集合断言的
 // 「运行时引用」一侧的事实源——规则在代码里改动时无需同步手工清单，此函数自动覆盖。

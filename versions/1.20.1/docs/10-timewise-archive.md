@@ -2812,7 +2812,7 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 产物：`.investigations/panic-505/`（panic-errors.md + knowledge-drafts/260903-14/ + cmd-output/）。
 - 状态：修复验证完成 + judge PASS；confirmed 留用户拍板。
 
-## 260904-01（启动期 noise key 机械校验 + CoreSwapFixHelper 解压根治）
+## 260903-15（启动期 noise key 机械校验 + CoreSwapFixHelper 解压根治）
 
 > 承接 260903-14 发现 #26 判据 1（启动期机械校验）与 #15 根治方向（解压死路）。过程产物 `.investigations/preload-check/`（verdict + preload-check-errors.md E1-E3 + review + cmd-output/）；judge 审查 PASS with should-fix（2 项已清偿：panic 输出落盘 + 四臂 §9.7 口径补齐）。
 

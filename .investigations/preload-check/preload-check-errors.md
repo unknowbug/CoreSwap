@@ -1,4 +1,4 @@
-# preload-check 错误台账（260904-01）
+# preload-check 错误台账（260903-15）
 
 ## E1: 负向测试跑在旧 exe 上——两次"未触发 panic"均无效
 - **现象**：删 `badlands_pillar_roof` 后 estopt_ab 正常出 hash 不 panic；换删 calcite 仍不 panic。

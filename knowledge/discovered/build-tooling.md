@@ -324,9 +324,9 @@ runServer 预生成 64×64 大 region 时 watchdog（`max-tick-time` 默认 6000
 - **修复**：run 命令补 `-PcppWorldgenDir=...`（workaround）；资源布局与 marker 不一致未改，列为升级点。
 - **教训**：**跑存档口径 run 照抄历史 run 的完整参数清单，不要凭 build.gradle 属性列表自行裁剪**——属性列表只声明「存在」，不声明「必带」；裁掉的可能是历史踩坑后的必带项。同族：#8（gradle -P→-D 映射遗漏静默不生效）、#9（缺映射行静默不生效）——本条补「不能反向从属性列表推断可省略项」维度。根治方向（升级点）：marker 路径与资源布局对齐，或解压失败 fail-fast 时提示带 `-PcppWorldgenDir`。
 
-## 发现 #16: 「绕过项永远在用的分支 = 死分支」信号——#15 根治复盘：解压死路主因是资源集不完整而非布局；bin-diag 旧 exe 假阴性——探针用前必须核产物时间戳（260904-01）
+## 发现 #16: 「绕过项永远在用的分支 = 死分支」信号——#15 根治复盘：解压死路主因是资源集不完整而非布局；bin-diag 旧 exe 假阴性——探针用前必须核产物时间戳（260903-15）
 
-- **发现时间**：260904-01；**置信度**：candidate（judge PASS with should-fix 已清偿，Full 层验证闭环）；**module**：build-tooling / 资源打包 + 二进制产物新鲜度。
+- **发现时间**：260903-15；**置信度**：candidate（judge PASS with should-fix 已清偿，Full 层验证闭环）；**module**：build-tooling / 资源打包 + 二进制产物新鲜度。
 
 ### 现象
 

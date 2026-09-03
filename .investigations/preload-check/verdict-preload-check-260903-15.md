@@ -1,8 +1,8 @@
-# verdict-preload-check-260904-01 — 启动期 noise key 机械校验 + FixHelper 解压根治
+# verdict-preload-check-260903-15 — 启动期 noise key 机械校验 + FixHelper 解压根治
 
-- session: 260904-01
+- session: 260903-15
 - 状态: **candidate**（Full 层验证完成，confirmed 待用户拍板）
-- 架构计划: `.investigations/000-架构设计/架构计划-260904-01-startup-check-and-fixhelper.md`
+- 架构计划: `.investigations/000-架构设计/架构计划-260903-15-startup-check-and-fixhelper.md`
 
 ## 变更
 
@@ -25,9 +25,9 @@
 
 | 判据 | 结果 |
 |---|---|
-| 四臂 hash 零语义回归 | ✅ estopt_ab（新单编 exe）四臂（env 强制 00/01/10/11）hash 全部 `f2b1a3932c6e589e` 与 260903-14 confirmed 逐臂一致（cmd-output/estopt-ab-4arms-260904-01.txt）。§9.7 口径：载体=bin-diag 单编 exe；覆盖面=四臂全跑（should-fix 清偿后）；可比性=与 260903-14 同 seed 同法同哨兵值 |
-| 4096 chunk sweep 无 panic | ✅ wall=128101ms，4096/4096，16 block hits/misses 与 260903-14 基线（.investigations/panic-505/cmd-output/sweep-fixed-4096-260903-14.txt）逐项相同（cmd-output/sweep-fixed-4096-260904-01.txt） |
-| ① 校验生效证明（#20 死参数判据） | ✅ 删 `minecraft:calcite` → 启动即 panic exit=101，精确报 `["minecraft:calcite"]`，panic 输出已落盘（cmd-output/negtest-calcite-260904-01.txt）；恢复后 hash 复验一致 |
+| 四臂 hash 零语义回归 | ✅ estopt_ab（新单编 exe）四臂（env 强制 00/01/10/11）hash 全部 `f2b1a3932c6e589e` 与 260903-14 confirmed 逐臂一致（cmd-output/estopt-ab-4arms-260903-15.txt）。§9.7 口径：载体=bin-diag 单编 exe；覆盖面=四臂全跑（should-fix 清偿后）；可比性=与 260903-14 同 seed 同法同哨兵值 |
+| 4096 chunk sweep 无 panic | ✅ wall=128101ms，4096/4096，16 block hits/misses 与 260903-14 基线（.investigations/panic-505/cmd-output/sweep-fixed-4096-260903-14.txt）逐项相同（cmd-output/sweep-fixed-4096-260903-15.txt） |
+| ① 校验生效证明（#20 死参数判据） | ✅ 删 `minecraft:calcite` → 启动即 panic exit=101，精确报 `["minecraft:calcite"]`，panic 输出已落盘（cmd-output/negtest-calcite-260903-15.txt）；恢复后 hash 复验一致 |
 | ② 解压分支闭合 | ✅ 删 %TEMP%\coreswap-data → extractWorldgenDir 成功，marker 出现，849 文件齐，blocks.json 落位 target 根 |
 | dll 打包一致性 | ✅ 最终构建 jar 内 native/worldgen.dll sha256 = WorldgenRust/target/release/WorldgenRust.dll（972041E6...，neg-test 往返后重打包复验） |
 | gradle build | ✅ BUILD SUCCESSFUL（coreswap-1.20.1-1.0.22.jar） |

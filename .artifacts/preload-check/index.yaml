@@ -1,10 +1,10 @@
 entries:
-  - id: preload-check-260904-01
+  - id: preload-check-260903-15
     title: 启动期 noise key 机械校验 + FixHelper 解压根治（#26 判据1 落地 + #15 根治）
     status: candidate
-    session: 260904-01
+    session: 260903-15
     date: 2026-09-04
-    verdict: .investigations/preload-check/verdict-preload-check-260904-01.md
+    verdict: .investigations/preload-check/verdict-preload-check-260903-15.md
     errors: .investigations/preload-check/preload-check-errors.md
     cmd_output: .investigations/preload-check/cmd-output/
     changes:
@@ -18,4 +18,4 @@ entries:
       - 负向测试：删 calcite → 启动期 panic 精确报缺失 key
       - 解压分支：删缓存实测 marker 出现、849 文件齐
       - jar 内 dll sha256 = 最新构建
-    judge: .investigations/preload-check/review-preload-check-260904-01.md
+    judge: .investigations/preload-check/review-preload-check-260903-15.md

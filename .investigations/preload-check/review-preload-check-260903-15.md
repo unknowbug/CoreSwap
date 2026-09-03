@@ -1,4 +1,4 @@
-# review-preload-check-260904-01 — judge 审查意见（原样落盘）
+# review-preload-check-260903-15 — judge 审查意见（原样落盘）
 
 > judge 结论：**PASS with should-fix**（should-fix 2 项已由主会话清偿，见文末附注）
 
@@ -30,6 +30,6 @@
 - 推荐状态：candidate；补齐缺口 1、2 后可提交用户 confirmed；非重大转向无需重开。
 
 ## 附注（清偿记录，主会话补）
-- should-fix 1：负向 panic 输出落盘 `cmd-output/negtest-calcite-260904-01.txt`（exit=101，精确报 ["minecraft:calcite"]）。
+- should-fix 1：负向 panic 输出落盘 `cmd-output/negtest-calcite-260903-15.txt`（exit=101，精确报 ["minecraft:calcite"]）。
 - should-fix 2：四臂 env 强制（00/01/10/11）全跑，hash 全 `f2b1a3932c6e589e`，落盘覆盖原文件；verdict 补 §9.7 三要素声明。
 - 卫生项：`.tmp-negtest.txt` 已删；neg-test 往返后最终源码重打包，jar 内 dll sha256 复验 = 最新构建（972041E6...）。
