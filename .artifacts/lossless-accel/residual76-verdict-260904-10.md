@@ -60,4 +60,4 @@ docs/06 L62/L94 记 surface default 判定「==stone」；一手 SurfaceBuilder.
 
 ## 7. 置信度
 
-根因/修复/验证数字 **confirmed**（judge 先行 + 用户拍板 2026-09-04）。剩余 12 三项归因 candidate（探针级）。剩余 12 三项归因 candidate（探针级）。
+根因/修复/验证数字 **confirmed**（judge 先行 + 用户拍板 2026-09-04）。剩余 12 三项归因 candidate（探针级）。
