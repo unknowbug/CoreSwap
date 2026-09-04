@@ -36,3 +36,5 @@
 > 260904-03 追加：workflow-patterns 新增**发现 #32**（gradle daemon 复用吞掉客户端 env——env 门控判别实验的死同值风险；#20 的 env/daemon 实例扩展）。
 
 > 260904-05 追加：workflow-patterns 新增**发现 #33/#34/#35**（载具可比性——跨载具残差禁止互引 §9.7 具体化；feature 消融经谓词耦合——归零式 A/B 对 feature 课题无效；量级核算排除法定位写者）；build-tooling 新增**发现 #17**（block_probe 调用契约三坑：argv[3] vanilla 参照 / wgDir data\minecraft\ 层 / -save 无 biome 段格式）。
+
+> 260905 追加：workflow-patterns 新增**发现 #36**（验证探针与生产执行体不同源——C++ block_probe ≠ Rust worldgen.dll，排除结论禁止跨执行体迁移；残差归因前核「执行体三元组」：加载文件/构建产源/构建时间 vs 修复时间）。

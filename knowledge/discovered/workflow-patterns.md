@@ -562,3 +562,28 @@ feature 序列非独立：ore feature 的 **target 谓词实时读当前方块**
 
 1. 定位写者优先做**包络核算**（origin 域 + 最大展宽/偏移 → 可写坐标域），一轮算术替代多轮探针；「包络外 = 确定排除」是排除法里少有的确定性判据。
 2. 同族：#22（自由参数凑数反模式——乘数要有独立实测来源）；本条是量级核算在「写者定位」上的正向用法（#22 是反例警示）。
+
+---
+
+## 发现 #36: 验证探针与生产执行体不同源——「同是 C++/Rust 实现≠同一实现」，排除结论不能跨执行体迁移（260905）
+
+- **发现时间**：260905。**发现者**：出界 dirt 写者 fan-out（b2 worker）+ judge 勘误转化。**置信度**：candidate（多源静态交叉一致：Java 源 + gradle + C++ + Rust 源 + 台账；E1-E6）。**module**：通用方法论（残差归因 / 载具-执行体核对）。
+- **来源定位**：`.investigations/lossless-accel/fanout-writer-260905/b2-dll-probe-parity.md`（E1-E6）+ `.investigations/lossless-accel/vehicle-verdict-260905.md`「⚠️ 勘误与取代记录」第 1 条（执行体口径勘误）。
+
+### 观察（现象）
+
+出界 dirt 写者排查中，用 C++ block_probe 的 NOISE+SURFACE 导出在样本 cell 全为 stone，据此排除「本侧写入」；但 mod 载具实际执行体是 **Rust WorldgenRust.dll 改名 worldgen.dll**（build.gradle L27-47 硬编码拷贝，2026-08-30 C++→Rust 转向）——对 C++ 实现的排除**不覆盖 Rust 实现**，排除结论差点直接迁移成「本侧无写者」的错误归因。
+
+### 根因（机制）
+
+载具核对只查了「阶段拦截面」（哪些阶段被拦截/执行），没查「执行体产物来源」——探针（C++ block_probe.exe，build-msvc 产物）与生产（jar 内 native/worldgen.dll，cargo 产物）是**两套独立代码库的两个构建产物**，非同一实现的新旧版本。「在 X 实现上验证了 Y 行为不存在」是关于 X 的命题；Y 在生产路径是否发生取决于生产执行体，两命题之间无传递关系。叠加因素：现役 dll（EC4A9AED…，260903-03 构建）早于 stage-skip 修复（2026-09-08），旧 dll features 全量运行——构建时间 vs 关键修复时间的错位是第二个独立假阴性来源。
+
+### 定位（怎么发现）
+
+judge 对载具裁决的执行体口径勘误 + b2 候选的加载链溯源：CppWorldgen.java 的 System.load 来自 mod jar `native/worldgen.dll`（extractNativeDll），build.gradle processResources 显示该 dll 的产源 = cargo（Rust 主线），与 block_probe 的 C++ 产物不同源。
+
+### 教训 / 可复用判据
+
+1. **残差归因前 MUST 核「执行体三元组」**：① 实际加载的库文件（从加载代码 System.load/dll 搜索路径追，不从配置名推断）；② 构建产源（build.ps1/C++ 还是 cargo/Rust，查打包脚本硬编码拷贝源）；③ 构建时间 vs 关键修复（如 stage-skip）时间——晚于修复才有该修复语义。
+2. **「在 X 实现上排除」禁止迁移为「Y 实现排除」**；跨实现复用排除结论前需在 Y 上重做最小验证。
+3. 同族：#33（载具可比性——本条补「执行体同源性」维度，#33 核覆盖面、本条核执行体身份）、#16（bin-diag 产物时间戳——「我编译过了≠产物对」同族）、#14（探针阶段同源性）；AGENTS「build-msvc 唯一权威」约束的是 C++ 验证工具链，生产 mod 链路 2026-08-30 起已切 Rust 主线——文档权威声明与生产现实分叉时以加载链实测为准。
