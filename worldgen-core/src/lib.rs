@@ -27,8 +27,7 @@ pub mod placement;         // FEATURES 阶段调度（IntProvider + PlacementMod
 pub mod feature;           // FEATURES 阶段 Feature 类（Ore/Disk/Spring/FreezeTop/UnderwaterMagma）
 pub mod feature_loader;    // FEATURES 阶段数据加载 + 调度（ConfiguredFeature + PlacedFeatureIndexer）
 
-// JNI 桥（Java wg.CppWorldgen 调用，对齐 C++ jni_bridge.cpp）
-pub mod jni_bridge;
+// JNI 桥已迁至 versions/<ver>/rust 薄壳（260905-01 workspace 拆分；core 保持版本无关）。
 
 // build-time 编译的 density 函数（build.rs transpiler 生成，MVP）
 #[path = "generated/vanilla_density_functions.rs"]

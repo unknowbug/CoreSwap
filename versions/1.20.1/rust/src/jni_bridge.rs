@@ -10,7 +10,7 @@ use jni::objects::{JClass, JIntArray, JObjectArray, JString};
 use jni::sys::{jint, jlong};
 use jni::{Env, EnvUnowned};
 
-use crate::api::{
+use WorldgenRust::api::{
     wg_clear_beardifier, wg_create, wg_density_points_per_chunk, wg_density_xz_interval,
     wg_density_y_interval, wg_destroy, wg_fill_blocks_multi, wg_fill_density, wg_get_flags,
     wg_height, wg_min_y, wg_set_beardifier, wg_set_flags,

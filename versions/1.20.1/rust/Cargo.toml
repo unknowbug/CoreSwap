@@ -1,0 +1,15 @@
+[package]
+name = "worldgen"
+version = "0.1.0"
+edition = "2024"
+
+# 1.20.1 版本薄壳：JNI 胶水（Java_wg_CppWorldgen_*）。
+# cdylib 产物 = target/release/worldgen.dll（workspace target 落仓库根），build.gradle 直接打包。
+# 未来新 MC 版本 = 复制本目录到 versions/<新ver>/rust + 换数据，worldgen-core 算法层共享。
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+WorldgenRust = { path = "../../../worldgen-core" }
+jni = "0.22.4"

@@ -1,0 +1,9 @@
+[package]
+name = "WorldgenRust"
+version = "0.1.0"
+edition = "2024"
+
+# 260905-01 workspace 拆分：本 crate = 跨版本共享算法引擎（rlib）。
+# JNI/版本胶水在 versions/<ver>/rust 薄壳（cdylib worldgen.dll）。
+[lib]
+crate-type = ["rlib"]

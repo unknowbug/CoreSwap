@@ -1,0 +1,8 @@
+# CoreSwap Rust workspace（260905-01 拆分：worldgen-core 共享引擎 + versions/<ver>/rust 每版本薄壳）
+# 未来新 MC 版本 = 新建 versions/<ver>/rust 薄壳 + 换数据，不动 worldgen-core 算法层。
+[workspace]
+resolver = "2"
+members = [
+    "worldgen-core",
+    "versions/1.20.1/rust",
+]
