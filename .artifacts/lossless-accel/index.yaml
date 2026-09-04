@@ -2,6 +2,21 @@ schema_version: 1
 project: CoreSwap
 module: lossless-accel
 entries:
+  # §15.4 取代记录（260904-02 卫生动作）：route2 GPU 通道子轨（tricut .bA/.bB/.bC + judge）随 GPU 批量化
+  # 三候选全灭（p05b-verdict confirmed，commit d6b04fe）实质失效，全子轨作废。
+  # 以下四条原条目按取代链纪律不删不改，仅由本取代记录指向。
+  - id: 'lossless-accel:route2:superseded-by-gpu-p05b'
+    path: '../perf-status-map/scout-性能现状地图-260904-02.md'
+    kind: supersedes
+    status: confirmed
+    supersedes:
+      - 'lossless-accel:route2:tricut-bA'
+      - 'lossless-accel:route2:tricut-bB'
+      - 'lossless-accel:route2:tricut-bC'
+      - 'lossless-accel:route2:judge-260903-04'
+    superseded_by:
+      - '../vulkan-gpu-operator/index.yaml#p05b-verdict'
+    reason: 'GPU 批量化三候选全灭 confirmed——route2 GPU 通道 pathway 失去立项前提，子轨整体作废（非逐件否证）'
   - id: 'lossless-accel:route2:tricut-bA'
     path: 'route2-tricut.bA.md'
     kind: analysis
@@ -44,5 +59,10 @@ entries:
     status: confirmed
   - id: 'lossless-accel:estopt:gpu-merge-revisit-260903-12'
     path: 'gpu-merge-revisit-260903-12.md'
+    kind: analysis
+    status: confirmed
+
+  - id: 'lossless-accel:estopt:p2full-regression-260904-03'
+    path: 'p2full-regression-verdict-260904-03.md'
     kind: analysis
     status: confirmed

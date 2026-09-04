@@ -32,3 +32,5 @@ supersedes: 无（修复对象是 260903-12 judge A1 发现的生产 bug + #25 �
 
 - 全量 block_probe 存档口径回归未跑（本轮验证载体 = est 角列 + 四臂 hash；如翻默认后需存档口径 Full 证据，下轮补）。
 - surface_rules.rs:505 panic 课题未动（下轮立项，MUST recode-scout 前置）。
+
+> **[闭合指针 260904-03]** 遗留第 1 条（全量 block_probe 存档口径回归）已闭合：见 `p2full-regression-verdict-260904-03.md`（candidate）——99.1526% 一致，default==off 同 SHA256，翻默认零语义差在存档口径复证；既有残差登记为独立待查项（07 篇「存档口径残差模式化 260904-03」小节）。

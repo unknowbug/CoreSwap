@@ -1,0 +1,26 @@
+[ref] seed=8576294172403134396 size=4 origin=(200,200) min_y=-64 h=384 chunks=16
+[cpp] seed=8576294172403134396 size=4 origin=(200,200) min_y=-64 h=384 chunks=16
+[sanity] header + layout match: True
+[diff] mismatch block cells = 13328 / 1572864 (99.1526% identical)
+[diff] per-chunk: [((12, 12), 858), ((12, 13), 1045), ((12, 14), 1347), ((12, 15), 964), ((13, 12), 584), ((13, 13), 850), ((13, 14), 1269), ((13, 15), 822), ((14, 12), 633), ((14, 13), 868), ((14, 14), 959), ((14, 15), 713), ((15, 12), 450), ((15, 13), 884), ((15, 14), 668), ((15, 15), 414)]
+[diff] top (ref,cpp) block-id pairs:
+   ref=1 cpp=9 n=4165
+   ref=37 cpp=34 n=1687
+   ref=1 cpp=34 n=1581
+   ref=37 cpp=9 n=1359
+   ref=32 cpp=0 n=520
+   ref=2 cpp=9 n=439
+   ref=34 cpp=9 n=399
+   ref=1 cpp=37 n=355
+   ref=4 cpp=9 n=331
+   ref=1 cpp=32 n=217
+   ref=2 cpp=34 n=215
+   ref=6 cpp=9 n=205
+   ref=4 cpp=34 n=193
+   ref=0 cpp=32 n=170
+   ref=43 cpp=1 n=158
+   ref=6 cpp=34 n=154
+   ref=970 cpp=0 n=116
+   ref=1 cpp=8 n=94
+   ref=1 cpp=0 n=90
+   ref=37 cpp=251 n=81

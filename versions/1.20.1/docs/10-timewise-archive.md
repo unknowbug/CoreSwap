@@ -2829,3 +2829,26 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 通用模式 → workflow-patterns 发现 #27（启动期断言落地形态 + 负向测试假阴性危险度）、build-tooling 发现 #16（#15 根治复盘 + 死分支信号 + E1）。
 - 状态：修复验证完成 + judge PASS（should-fix 已清偿）；confirmed 留用户拍板。
 
+
+## 260904-03（翻默认后 block_probe 存档口径 Full 回归——遗留闭合 + 既有残差模式化）
+
+> 承接 off-scan-cornerfix-verdict-260903-13.md:31-33 遗留（翻默认当时仅 Partial 声明）。采集 = 三 run（vanilla 参照 / cppReplace 默认开 / double-0 反转）+ 逐位对比。过程产物 `.investigations/lossless-accel/knowledge-drafts/260904-03/` + `cmd-output/cmp_full2-260904-03.txt` + `arm-compare-260904-03.txt`。
+
+### ✅ 主结论（confirmed，260904-03 用户拍板）
+
+- 翻默认后生产 dll 存档口径 **FULL 回归无回归**：default 臂 vs vanilla 参照 99.1526% 一致（13328/1572864 cell，16/16 chunk，aquifer stone↔water 互换族特征）；default==off 同 SHA256 与 260903-13 四臂零语义差自洽。§9.7 载体=WGB2 FULL 存档口径 4×4 单区域、覆盖面=16 chunk×98304 cell、与 260903-13 est 角列口径不可直接比数值。
+- 生产 dll sha256 EC4A9AED…C8FC3（晚于全部生产改动）；参照四要素 + seed 三查核对通过。
+
+### 🔍 既有残差登记（独立待查项，非本回归阻塞）
+
+- stone↔water 等互换模式（ref=1→9 n=4165 等 top 对）为**新观察的量化模式**——量级已由 260903-14 记录（99.0107% 带），模式签名未记录过；机制候选：aquifer floodedness/流面高度/表面级联（未验证，下轮残差 y 分布直方图先行）。Run2==Run3 ⇒ 残差与 est 优化无关。
+
+### ⚠️ 流程瑕疵与局限（诚实声明）
+
+- Run1 参照被 Run2 同名覆盖后 run1b 重采（LL12，无数据混入）；Run3 走复用 daemon，env 透传未验证 → 「default==off 同 hash」只作旁证（LL13/#32 族，死判别风险）；两 run 均 [AQF-J] NPE 每 chunk（两臂同现，Java 探针侧既有噪声，非 cppReplace 引入）。
+
+### 📌 记录指引
+
+- 结论 → `.artifacts/lossless-accel/p2full-regression-verdict-260904-03.md` + 260903-13 遗留项闭合指针。
+- 残差登记 → 07 篇追加「存档口径残差模式化」小节（补充非取代 260903-14 记录）。
+- 通用模式 → workflow-patterns 发现 #32（daemon env 死同值）；错误 → lossless-accel-errors.md LL12/LL13。

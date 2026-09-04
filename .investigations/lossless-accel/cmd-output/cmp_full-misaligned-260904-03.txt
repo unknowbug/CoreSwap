@@ -1,0 +1,21 @@
+[ref] magic=b'WGB2' seed=8576294172403134396 size=4 origin=(200,200) min_y=-64 height=384 len=3243362
+[cpp] magic=b'WGB2' seed=8576294172403134396 size=4 origin=(200,200) min_y=-64 height=384 len=3243362
+[sanity] header match: True
+[diff] mismatch bytes = 13529 / 3243330 (99.5829% identical)
+[diff] mismatch cells = 7681 / 810832
+[diff] top (ref,cpp) pairs:
+   ref=16777472 cpp=150997248 n=876
+   ref=65537 cpp=589833 n=657
+   ref=16777472 cpp=570434048 n=288
+   ref=2424869 cpp=2228258 n=277
+   ref=620766464 cpp=570434048 n=269
+   ref=2424869 cpp=589833 n=243
+   ref=65537 cpp=2228258 n=223
+   ref=620766464 cpp=150997248 n=214
+   ref=2097184 cpp=0 n=131
+   ref=16777472 cpp=16779520 n=130
+   ref=16777472 cpp=150995200 n=114
+   ref=33554944 cpp=150997248 n=97
+   ref=65537 cpp=65545 n=90
+   ref=570434048 cpp=150997248 n=82
+   ref=65537 cpp=589825 n=82

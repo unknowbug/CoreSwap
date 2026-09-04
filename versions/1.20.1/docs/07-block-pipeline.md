@@ -1189,3 +1189,24 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 > 通用模式 → workflow-patterns 发现 #26（预加载/注册表与运行时查询集合同步——expect 型查表缺失在低频分支才触发，大 region sweep 是暴露手段）；build-tooling 发现 #15（run 存档口径照抄历史参数清单，`-PcppWorldgenDir` 必带）。
 
+
+## 存档口径残差模式化（260904-03）
+
+> 补充既有「存档口径 3 采样」（260903-14 节）记录——**量级已记录，本节补模式签名**；无 §15.4 取代关系（量级读数互相兼容）。
+
+### 🔍 现象量化（seed 8576294172403134396，4×4 @ chunk(200,200)，WGB2 FULL 存档口径）
+
+- cppReplace（Rust dll）vs vanilla 参照：**13328/1572864 cell 差，99.1526% 一致**；差异遍布全 16 chunk（414–1347 cell/chunk）。
+- top 互换对（ref→cpp）：**1(stone)→9(water) n=4165**、37→34 n=1687、1→34 n=1581、37→9 n=1359、32→0 n=520、2→9 n=439、34→9 n=399——主体为 stone/deepslate 族 ↔ water/air 互换，**aquifer/深板岩族特征**（液面判定与深板岩分层交界处方块身份互换，非坐标错位形态）。
+- est off 臂（double-0，判别力受限见 verdict 局限①）与默认臂逐位一致 ⇒ **残差与 est 优化/翻默认无关**（既有差异，est 语义无关性独立复证）。
+- 载体/覆盖面/可比性（§9.7）：WGB2 FULL 存档口径 4×4 单区域；16 chunk×98304 cell；与 260903-14 存档口径 3 采样同族载体但区域不同，不可直接数值比（99.15% 落其 99.01% 同族带附近）。
+
+### 机制候选（均未验证，续推前 MUST 廉价独立验证）
+
+1. aquifer floodedness 判定输入/语义差（stone→water 单向占大头，指向流体判定未触发：floodedness 采样 / barrier 噪声 / 邻居 blob 选择）。
+2. 流面高度/est 网格在深板岩过渡带边界翻转（#15 零面擦边格签名族）。
+3. surface/carver 级联（低先验，需残差 y 分布数据）。
+
+### 下轮探针
+
+残差 y 分布直方图先行（最廉价）→ AQF-APPLY 型配对（注意 AQF-J NPE 既有噪声 + 07 篇 L291 反射 CellCache 不可信铁律）→ 互斥候选 ≥2 按 fan-out 纪律并行。
