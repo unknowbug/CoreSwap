@@ -780,3 +780,10 @@ curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_c
 2. **「逐行对拍零偏离」的覆盖面声明必须显式**：静态对拍覆盖的是函数体公式，**链路构造参数**（splitter/random provider 派生、per-chunk 实例装配、seed 传入路径）不在其覆盖面内——交接此类结论时 MUST 附覆盖面声明，接收方不得当全称公理续推（v0.20 §9.7 覆盖面要素 + §16.3 廉价独立验证的实例）。
 3. **同文件同构调用是零成本就地对照**：排查某管线缺失的 split/派生时，先 grep 同文件同库的其他调用点（ore 的 split_str("minecraft:ore")）——形态差异一行可见。
 4. 勘探阶段结构性发现（双向并存 → D4）比直觉假设（「系统性偏低」= 输入漂移）更可靠；scout 的「任务假设与签名存在张力」提示是分叉信号，应触发判别探针而非顺原假设续推。
+
+## 发现 #44: 载具间实装分歧按「同一 Java 机制多点接线」核对——C++ 已对齐机制 Rust 侧可整体缺失
+- **发现时间**：260904-10　**发现者**：core-worker（residual-1830 收口）　**置信度**：candidate
+- **来源定位**：`.artifacts/lossless-accel/residual76-verdict-260904-10.md`；根因 = Java surface 收 BiomeAccess（hashSeed=sha256_asLong + 8 邻域 zoom，MaterialRules L464 精确块坐标采样），Rust surface 单元直读漏 zoom；而 C++ `biomeCellKey` 4 站点全部 hashed 已对齐。
+- **观察**：跨载具（C++/Rust 双实现）课题里，「C++ 已对齐某 Java 机制」不构成「Rust 也已对齐」的证据——两载具实装各自接线，同功能站点的接线清单可以单侧缺失。本轮 76 残差在 C++ 侧历史上已闭合，若以「C++ 无此问题」续推 Rust 会直接漏掉真根因。
+- **判据**：残差呈「交界处微族双向漂移」且单侧载具独有 → 优先怀疑该载具漏接某 Java 机制层；核对方式 = 对同一 Java 机制 diff 两侧载具所有功能站点（surface/carver/feature/…）的接线清单（seed 裸值 vs hashSeed、块级 vs cell 直读逐站点列出）；反向利用：C++ 侧曾闭合的同类课题修复 commit 就是 Rust 侧接线检查清单。
+- **如何利用**：跨载具对齐课题开工第一步先产出两侧「同功能站点接线清单」再分析残差；发现单侧缺站点即候选根因（本轮一轮定位）。

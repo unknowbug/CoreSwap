@@ -187,3 +187,9 @@ Java `for(l=top; l>=bottom; l-=step)` 是**含两端**的递减扫描；移植 R
 - **定位**：混淆栈直接指向 mixin transformer，异常类名即包内类名。
 - **修复**：`WgCap` 移到 `wg.bench.AquiferDumpProbe` 公有嵌套类（非 mixin 包）。
 - **教训**：mixin 包内**只放 mixin 配置声明的 transformer 类**；任何辅助/工具/数据类（含 static nested、常量类）放普通包——mixin 包边界 = 字节码处理边界，不是普通 Java 包可见性边界。
+
+## 发现 #13: docs 记载的判定口径与一手源码失准——以 docs 口径为修复依据前先 P0 一手源码核对（简条）
+- **发现时间**：260904-10　**置信度**：candidate
+- **观察**：docs/06 L62/L94 记 surface default 判定「==stone」，一手 SurfaceBuilder.java L181-183 实为「非空非流体」。.b4 候选曾以 docs 口径推出「需改码」，P0 核对证伪——Rust/C++ 本就与一手一致，无需改。
+- **判据**：docs/主题篇是二手转述，作为**修复依据**（要动代码）前必须对一手源码核对；作为排查线索使用则无需——判据 =「这个口径要花钱（改码）吗？要则一手核对」。
+- **处置**：docs/06 追加修正小节（不覆盖原文）；本条仅记录判据。

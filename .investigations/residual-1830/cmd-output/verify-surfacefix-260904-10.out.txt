@@ -1,0 +1,22 @@
+seeds: ref=8576294172403134396 new=8576294172403134396 prev=8576294172403134396
+[ref<->off-aquifix-09 (baseline)] total=1572864 mism=76 match=99.995%
+    gravel -> sand: 49
+    sand -> gravel: 24
+    water -> dirt: 1
+    granite -> gravel: 1
+    gravel -> water: 1
+[ref<->off-surfacefix-10] total=1572864 mism=12 match=99.999%
+    gravel -> sand: 9
+    water -> dirt: 1
+    granite -> gravel: 1
+    gravel -> water: 1
+
+residual: 76 -> 12  (fixed 64/76)
+=== spot checks (ref | prev | new) ===
+  (236,36,248): gravel | sand | gravel
+  (244,35,197): gravel | sand | gravel
+  (238,35,193): sand | gravel | sand
+  (239,36,192): sand | gravel | sand
+  (237,41,224): granite | gravel | gravel
+  (237,42,224): gravel | water | water
+  (198,18,198): water | dirt | dirt

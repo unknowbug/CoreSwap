@@ -2866,3 +2866,16 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 🔍 **新残留 76 登记**：gravel→sand 49 / sand→gravel 24 / 零星 3——surface 材质微族，与 aquifer 无关，独立小课题（未立项）。
 - 状态：修复 = **confirmed（用户实机确认 260904-09 21:23；judge PASS）**；现役 dll 基线 0D247E03 → 5E2ACB7F（resources 已同步）。
 - 过程 bug 台账 4 条（门控死锁 / mixin 包禁嵌套类 / 中间名映射 / cmp 键含对比字段）见 investigate 文件；通用模式 → workflow-patterns #43、compiler-idioms #11/#12。
+
+## 260904-10（残留 76 surface 微族收口）✅ 已结案（candidate，confirmed 待用户）
+- ✅ scout：D-1~D-6 勘探 + .b1~.b5 候选（.investigations/residual-1830/scout-residual76-260904-10.md）
+- ✅ 盘上双臂直读 dump：76 签名三排除——dtop 全 0（❌.b1 列顶级联）/ biome 通道双侧同（❌.b3）/ surface_rules.rs 无 rev()（❌ off-by-one）
+- ✅ fan-out 双 worker：.b2 噪声 patch 静态排除（VanillaSurfaceRules.java L263-270 深海分支无噪声条件）；.b4 腔底语义覆盖不了 3 块（❌），副产物炸出 docs/06 ==stone 口径失准
+- ✅ P0 一手源码核对：SurfaceBuilder.java L181-183 isDefaultBlock = 非空非流体（≠docs/06 L62/L94）；Rust/C++ 本就一致，无需改码
+- ✅ res76_probe 七通道探针：零星 3 块归因 ore_vein 域 1 / aquifer 域 2
+- ✅ 真根因：Java surface 收 BiomeAccess（ChunkRegion hashSeed=sha256_asLong + 8 邻域 jitter，MaterialRules L464 块坐标采样），Rust surface 单元直读漏 zoom；C++ biomeCellKey 4 站点已 hashed——Rust↔C++ 实装分歧
+- ✅ 修复 commit ab56706：biome_at_surface 仅接 build_surface + sha256 移植 biome_hash_seed；dll 基线 5E2ACB7F→6B31129E
+- ✅ decisive 全新 world 重导：76→12（99.999%；sand→gravel 24 全闭合；gravel→sand 49→9）
+- ✅ judge review：review-residual76-260904-10.md，建议 candidate（C-1/C-2 已补）
+- 🔍 剩余 12：ore_vein 1 + aquifer 2（归因已明未立案）+ gravel→sand 9（未立案）
+- 🔍 open：Rust carver/feature biome_pick_cell(self.seed) 用裸 seed（C++ 4 站点全 hashed）——实装分歧，风险中，未动

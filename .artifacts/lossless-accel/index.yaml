@@ -139,3 +139,9 @@ entries:
     path: 'heightmap-criterion-divergence-260904-06.md'
     kind: analysis
     status: draft  # Rust terrain.rs d>0 vs C++/Java 非 air；修复另立微计划
+
+  # === 260904-10 残留 76 surface 微族收口（candidate，judge 建议 candidate：review-residual76-260904-10.md）===
+  - id: 'lossless-accel:residual76-verdict-260904-10'
+    path: 'residual76-verdict-260904-10.md'
+    kind: decision
+    status: candidate  # 根因=Rust surface biome 缺 BiomeAccess zoom；修复 ab56706；decisive 76→12；confirmed 待用户
