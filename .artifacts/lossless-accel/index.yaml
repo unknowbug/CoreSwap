@@ -124,6 +124,14 @@ entries:
     path: '../lossless-accel/fanout-curtain-260904-06/review-judge-curtain-supersedes-260904-06.md'
     kind: review
     status: candidate
+  - id: 'lossless-accel:oob-redo-verdict-260904-06'
+    path: 'oob-redo-verdict-260904-06.md'
+    kind: decision
+    status: candidate  # OOB 残差=幻影课题（布局事故）；supersedes writer-verdict-260905/260904-06/curtain-verdict-260904-06；judge 待审
+    supersedes:
+      - 'lossless-accel:writer-verdict-260905'
+      - 'lossless-accel:writer-verdict-260904-06'
+      - 'lossless-accel:curtain-verdict-260904-06'
   - id: 'lossless-accel:heightmap-criterion-divergence-260904-06'
     path: 'heightmap-criterion-divergence-260904-06.md'
     kind: analysis

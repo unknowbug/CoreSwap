@@ -40,3 +40,5 @@
 > 260905 追加：workflow-patterns 新增**发现 #36**（验证探针与生产执行体不同源——C++ block_probe ≠ Rust worldgen.dll，排除结论禁止跨执行体迁移；残差归因前核「执行体三元组」：加载文件/构建产源/构建时间 vs 修复时间）。
 
 > 260904-06 追加：workflow-patterns 新增**发现 #37/#38/#39**（env 判别生效证据必须行为化——常规日志行不作 env 开关证据 + 开关分支加独立一次性日志；worker 判读源码语义前核 env 默认值方向——「=0 反转」型误读造死参数假判别，#20 家族；参照自身缺陷辨识——「mod≠参照」≠「mod 错」，对照基线自身要对 vanilla 校验，#16 对偶面）+ **#36 补充案例**（交接结论廉价验证第二例：NEXT_SESSION「现役 dll 早于 stage-skip 修复」被 dumpbin /exports + git 时间戳一轮推翻）。
+
+> 260904-06 追加（二）：workflow-patterns 新增**发现 #40/#41/#42**（blocks 列读布局纪律——y-major 权威 blocks.h:69 + 已知地形 sanity 自检，幻影列剖面造「幻幕帘」推翻错课题；judge 独立重跑复用同一变换代码 = 复现同一 bug，独立复算必须独立实现；「0<d」式静态机制断言未实测当公理，一轮 dump 证伪——布局事故三连教训，源自 incident-layout-260904-06）；algorithm-fingerprints 新增**发现 #17**（aquifer barrier margin 机制指纹——|d|≈0.02 微负带 = margin stone 高发区，「stone 但 d≤0」≠ bug）。

@@ -1,90 +1,119 @@
-# 知识库草稿：幕帘线（260904-06，judge PASS-with-conditions / candidate）
+# 知识库草稿 v2：幕帘线（260904-06，按 incident-layout-260904-06 布局事故修订）
 
 > 产出者：core.worker 知识库 subagent（260904-06）。主会话负责应用；本文件仅草稿，不改任何正式文件。
+> **v2 修订说明**：v1 基于 P4「ref 列含 131 stone 族」读数产出；该读数已被布局事故证伪为 x-major 误读伪影（正确 y-major 重读 = 全 air，原始前提「vanilla 无幕帘」是对的）——v1 的 #40 例证叙事不成立，全文重写。v1 的 #41（静态断言）/algorithm-#17（margin 指纹）保留且证据换为布局无关硬数据。
 > 依据：SUBAGENT-KNOWLEDGE-GUIDE.md（价值门 + 载体映射 + 自检清单）。
-> 背景材料：curtain-verdict-260904-06.md（candidate，supersedes writer-verdict 结论 3）+ p4-reference-check-260904-06.md（事实底账）+ review-judge-curtain-supersedes-260904-06.md（judge，含误读源头定位）。
+> 背景材料：incident-layout-260904-06.md（布局事故一手记录）+ review-judge-curtain-supersedes-260904-06.md + p4-reference-check-260904-06.md（被污染底账，保留作事故证据）。
 
-## 价值门筛选结论
+## 价值门筛选结论（v2）
 
-| 候选 | 价值判定 | 载体 | 编号续接 |
+| 编号 | 内容 | 价值判定 | 载体 |
 |---|---|---|---|
-| 候选 1：参照存在性判定单向盲区 | **高价值**（归因链整体建立在误读上 + 可复用判据 + 反模式） | knowledge/discovered/workflow-patterns.md | 发现 **#40** |
-| 候选 2：「0<d」式机制断言未实测当公理 | **高价值**（与 #40 同一事故的对偶面：一处盲区 + 一处未实测断言共同坍塌整条课题；判据可独立复用） | knowledge/discovered/workflow-patterns.md | 发现 **#41**（与 #40 互引，不并入——机制不同：#40 是「参照读什么漏什么」，#41 是「断言跳过数据层实测」） |
-| 候选 3：aquifer barrier margin 机制指纹 | **中价值（简写）**——算法/机制指纹，跨臂复用（「stone 但 d≤0 ≠ bug」直接免排查） | knowledge/discovered/algorithm-fingerprints.md | 发现 **#17** |
+| **#40** | blocks 列读布局纪律——y-major 权威（blocks.h:69）+ 列剖面脚本第一行引权威 + 已知地形 sanity 自检；「幻影列剖面」签名 | **高价值**（数据完整性反模式 + 可复用判据，#13 家族） | workflow-patterns.md |
+| **#41** | judge 独立重跑复用同一变换代码 = 复现同一 bug——独立复算必须独立实现变换 | **高价值**（审查方法论漏洞，本事故让「双错一致通过」成为现实） | workflow-patterns.md |
+| **#42** | 「0<d」式静态机制断言未经数据层实测当公理续推——一轮生产密度 dump 即证伪（d 全负为**布局无关硬数据**，此发现不随事故作废且更硬） | **高价值** | workflow-patterns.md |
+| **#17** | aquifer barrier margin 机制指纹（简写） | 中价值，保留（机制链布局无关） | algorithm-fingerprints.md |
 
-低价值项未收录：本列 32 块同型残差明细、grass/water 交替剖面、granite@y217 写者 idk——均为课题特定一次性结论，归 ore desync 课题与 verdict idk 登记，不进知识库。
+低价值/作废不收录：v1 的「参照存在性盲区」条目整体撤销（其例证 131 stone 族块 = 布局伪影，叙事不成立；「参照无 X 需独立复验」的抽象判据本身仍合理但本例不再是实证支撑，待有真实证例再立条——**不凭已证伪的事例立知识**）；32 块残差/grass-water 剖面/granite idk 等课题特定结论随 curtain-verdict 波及重算，均不进知识库。
 
 ---
 
-## 一、workflow-patterns.md 追加文本（续接发现 #40，插到发现 #39 之后）
+## 一、workflow-patterns.md 追加文本（续接发现 #39 之后，插入三条）
 
 ```markdown
-## 发现 #40: 参照存在性判定的单向盲区——「参照无 X」断言只查差异族从不查背景族，整条归因链可建立在误读上（260904-06）
+## 发现 #40: blocks 列读布局纪律——y-major 权威（blocks.h:69），列剖面脚本第一行引权威 + 已知地形 sanity 自检，否则产出「幻影列剖面」（260904-06）
 
-- **发现时间**：260904-06（锚 git 924e934）。**发现者**：主会话 decisive probe（P4）+ judge 误读源头定位。**置信度**：candidate（单轮事故实锤，judge 三源核对通过；confirmed 留人类）。**module**：通用方法论（残差归因 / 参照解读）。
-- **来源定位**：`.investigations/lossless-accel/fanout-curtain-260904-06/p4-reference-check-260904-06.md`（Facts #3）+ `review-judge-curtain-supersedes-260904-06.md` §2.4（误读源头：convergence 轮 `ref_col_check_260904-06.py` 只查 dirt/sand/gravel 差异族，从未核对 stone 族）+ `.artifacts/lossless-accel/curtain-verdict-260904-06.md`（取代裁决）。
+- **发现时间**：260904-06（布局事故）。**发现者**：ore-scout W-A 候选质疑 → 主会话查 blocks.h:69 实证。**置信度**：candidate（一手法证：grep 污染脚本清单 + y-major 重读快照；confirmed 留人类）。**module**：通用方法论（数据完整性 / 探针输出 sanity；#13 家族）。
+- **来源定位**：`.investigations/lossless-accel/incident-layout-260904-06.md`（根因 + 污染清单 + 正确重读快照）；布局权威 = `blocks.h:64-70`（`index = (y−minY)*256 + z*16 + x`，y-major），同式佐证 `block_probe.cpp:127`、Rust `b1_column_trace.rs:69`。
 
 ### 观察（现象）
 
-幕帘课题前提「vanilla y≥201 无 stone」源自 convergence 轮对同一参照 .blocks 的解读——该轮对比脚本（ref_col_check_260904-06.py）只数了 dirt/sand/gravel（差异族），从未数 stone（背景族）。实际 vanilla 参照列 (195,199) y180-319 含 **131 个 stone 族块**（stone 99 + granite 24 + copper_ore 7 + iron_ore 1，复验脚本 `ref_check_p4_260904-06.py` 输出）。「vanilla 无 stone」被整条课题当成公理，推导出「幕帘 = C++/Rust 共有 vanilla 偏离、真根因上移 NOISE」的 writer-verdict 结论 3——P4 一次存在性复验即推翻整个课题前提（§15.4 取代裁决）。
+`.blocks` 为 **y-major** 布局，但多个列读分析脚本用 **x-major**（`x = idx//(H*16); z = (idx//H)%16; y = idx%H`）——把 16×16×384 立方体沿错误轴读成「列」，产生幻影列剖面。实锤后果：p4 复验读出「ref 列 (195,199) y180-319 含 131 stone 族块」并据此推翻课题前提（curtain-verdict 取代裁决）；正确布局重读**全 air**（ref/cpp 同）——「vanilla 无幕帘」原始前提本来就对，所谓「幻幕帘」是布局 bug 伪影。grep `\* \(H\*16\)` 清出污染脚本 ≥7 个，波及 3 份裁决（writer-verdict-260905 / writer-verdict-260904-06 / curtain-verdict-260904-06）的坐标性结论。
 
 ### 证据
 
-- judge 独立重跑 ref_check_p4 + xcheck_p4 复现关键数字（review-judge §3）：stone:99/granite:24/copper:7/iron:1，32 diffs 精确等于带内 ore 族总数；
-- 参照 .blocks 本身无解析错误（idx = 3*(H*16)+7*H+(y−(−64))，seed 双臂同 8576294172403134396）——误读属「读了但看错对象」（只查差异族），不是解析 bug；
-- 正向教训：b1 worker 的 idk「vanilla 无 stone 引用自 convergence，本臂未独立复验」（`.investigations/lossless-accel/fanout-writer-260904-06/b1-surface-oob-writer.md` §6）事前命中该 bug——诚实声明纪律起到风险标记作用（judge §6 确认）。
+- 正确重读快照（incident §「正确重读快照」）：ref y180-319 全 air（140 块）；ref↔cpp 全列 diff 仅 22（y−45..−44 cave_air↔deepslate、y6-31 andesite/diorite↔stone = cpp 无 FEATURE 阶段预期差，非 desync）。
+- 布局无关数据不受影响：WG_DBDEBUG 生产密度 dump（按 y 直印）(195,199) 列 y192-318 全负（−0.02/−0.46）；block_probe 引擎内 TOTAL（95.03%）。
+- 臂间对比数值本身真实（同错位索引两侧一致错），但**位置归属全错**——错布局下的「一致」与「差异」都不能按坐标引用。
 
 ### 根因（机制）
 
-残差归因常用「vanilla 无 X」式存在性判定，但对比脚本天然沿「差异族」清单查（本次 diff 是什么就查什么），**从不查「背景族」**（stone 在本课题是假设的背景块，无人想到要数它）。存在性断言一旦从「mod ≠ 参照在差异族上」间接反推出「参照无 X」，就绕过了任何直接观测——参照里本来就有 X 时，归因链的地基（幕帘是偏离）整体悬空。#39 核「参照输出对不对」，本条核「参照里到底有没有被断言『无』的东西」——同一「参照解读」风险面的存在性维度。
+脚本作者按「直觉列序」写索引分解（x 优先），未引布局权威；错误索引不报错——idx 仍在合法范围内，只是三维归属错乱，输出是一套自洽的假剖面（错位重映射，与 #17 跨探针坐标钉死律同族：打印/引用的坐标 ≠ 数据真实坐标）。没有 sanity 自检（如打印已知地形：海平面 y62-63 应为水），假剖面一路进入裁决链。
 
 ### 如何利用
 
-1. **判据（写进归因检查单）**：任何「参照无 Y」断言 MUST 用独立脚本/独立口径做一次存在性复验（直接数参照里 Y 到底有没有），**禁止从「mod ≠ 参照」反推存在性**。成本一轮以内（本例一个 ~20 行脚本），漏做的代价 = 整条课题归因作废。
-2. 复验脚本要**族级别全覆盖**（至少列出参照列的 id 直方图），不能只数当前差异族——差异族清单本身依赖被检验的前提。
-3. 家族索引：#39（参照自身缺陷辨识——对偶面）/ #13（探针输出 sanity check）/ #3（块级真相验证法——本条是其「先看参照本身」分支）/ #18（跨 session 数字不可续推——本条是其「参照解读结论」特例）。
+1. **判据（写进列剖面脚本模板）**：第一行注释引布局权威（blocks.h:69，y-major：`idx=(y−minY)*256+z*16+x`）+ 启动即 sanity 自检——打印已知地形特征（海平面 y62-63 水 / 表面草）对不上立即停，不出数据。
+2. 新脚本接触 .blocks 前先查权威，禁止从旧脚本抄索引分解（旧脚本可能已是污染源——本例 7 个脚本互相抄同一错式）。
+3. 可疑剖面先做「已知地形 sanity」再归因：剖面里出现与已知地形矛盾的内容（如海平面以上大段 stone）时，第一嫌疑是读法不是 worldgen。
+4. 家族索引：#17（跨探针对比坐标钉死律——打印坐标≠采样坐标）/ #13（探针输出 sanity check）/ #3（块级真相验证法）/ #12（对拍解析产物非输入原文）。
 
-## 发现 #41: 「0<d」式机制断言未经数据层实测当公理续推——一轮生产密度 dump 即证伪（260904-06）
+## 发现 #41: judge 独立重跑复用同一变换代码 = 复现同一个 bug——独立复算必须独立实现变换（260904-06）
 
-- **发现时间**：260904-06（锚 git 924e934）。**发现者**：P-B1-2 判别探针执行中顺藤发现（负值）→ 主会话 P4 复验。**置信度**：candidate（生产 dump + 点采双载体交叉证伪；confirmed 留人类）。**module**：通用方法论（机制断言验证纪律；与 #40 同一事故的对偶面）。
-- **来源定位**：`.investigations/lossless-accel/fanout-curtain-260904-06/p4-reference-check-260904-06.md`（Facts #1/#2）+ `.artifacts/lossless-accel/curtain-verdict-260904-06.md` §裁决 1。
+- **发现时间**：260904-06（布局事故复盘）。**发现者**：主会话 incident 记录教训 #2 + 本次 v2 知识库草稿提炼。**置信度**：candidate（单次实锤：judge 用受污染脚本 ref_check_p4/xcheck_p4 复算，「复现」了同一布局 bug 的输出，双错一致通过审查；confirmed 留人类）。**module**：通用方法论（审查独立性 / judge 基线）。
+- **来源定位**：`.investigations/lossless-accel/incident-layout-260904-06.md`（污染清单含 ref_check/xcheck_p4 + 教训 2）+ `review-judge-curtain-supersedes-260904-06.md` §3（judge 重跑同一脚本核对数字）。
 
 ### 观察（现象）
 
-「幕帘带 = 0<d≤0.39」作为机制描述贯穿幕帘课题（writer-verdict 结论 3 及其上游归因），从未对生产执行体实测过 d 值。WG_DBDEBUG 生产密度 dump 一轮实测：C++ 幕帘带 d **全负**（y256-318 = −0.024995，y192-255 = −0.458333，y180-319 无一正值），density_probe 点采 %.17g 与生产一致——前提当轮证伪；stone 实际来自 aquifer barrier margin（`density+e>0` 翻转，aquifer.h:121-137 / worldgen_api.cpp:1040 消费环）。
+curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_check_p4 与 xcheck_p4，复现全部关键数字（131 stone 族 / 32 diffs），据此确认 P4 证据可靠。但这些脚本正是污染源（x-major 误读）——重跑验证的是「脚本输出可复现」，不是「变换语义正确」。布局事故曝光后，审查通过的证据整体作废。
+
+### 证据
+
+- judge §3 明确「重跑 ref_check_p4 → stone:99…与 p4 Facts #3 完全一致」——一致是真的一致，一致的对象是同一个 bug 的输出；
+- 审查其余环节（逻辑链闭合性、措辞、idk 诚实性）不受影响——失效面精确限于「数据读数抽核」维度的独立性。
+
+### 根因（机制）
+
+「独立重跑」的独立性锚在**执行者**（换人跑）而非**实现**（换代码）——复用被审方的变换代码时，实现层 bug 在审查双方共享，任何读数级核对都必然通过。独立性的价值恰在覆盖实现错误，故实现层必须是审查方自己的第二实现（哪怕 10 行）。
+
+### 如何利用
+
+1. **判据（judge 基线补强）**：涉及数据变换（索引/坐标/单位换算/过滤条件）的读数抽核，judge MUST 用**自写独立实现**复算关键数字（关键 = 决定结论方向的 2-3 个），不许执行被审方脚本替代；「输出可复现」≠「变换正确」。
+2. 审查意见里显式声明复算所用实现（文件/是否自写），使独立性可审计。
+3. 成本可控：本例独立复算 = 一个 ~10 行的 y-major 读块脚本；独立实现还能反向暴露权威文档歧义（两边对不上先查布局权威）。
+4. 家族索引：#40（本条的直接触发事故）/ judge 审查基线三源核对（AGENTS 九——本条补其③验证记录维度的独立性要求）/ #25（静态结论须算术实锚——同「结论需独立锚」家族）。
+
+## 发现 #42: 「0<d」式静态机制断言未经数据层实测当公理续推——一轮生产密度 dump 即证伪（260904-06）
+
+- **发现时间**：260904-06。**发现者**：P-B1-2 判别探针执行中顺藤发现（负值）。**置信度**：candidate（生产 dump + 点采双载体交叉；**布局无关硬数据**，不随布局事故作废）。**module**：通用方法论（机制断言验证纪律）。
+- **来源定位**：`.investigations/lossless-accel/incident-layout-260904-06.md`（「仍成立」清单：WG_DBDEBUG 按 y 直印不经 blocks 布局）+ `.investigations/lossless-accel/fanout-curtain-260904-06/p4-reference-check-260904-06.md` Facts #1/#2（读数本身有效，仅其 stones 参照解读作废）。
+
+### 观察（现象）
+
+「幕帘带 = 0<d≤0.39」作为机制描述贯穿幕帘课题及上游归因，从未对生产执行体实测过 d 值。WG_DBDEBUG 生产密度 dump 一轮实测：列 (195,199) y192-318 密度**全负**（y256-318 = −0.024995，y192-255 = −0.458333），density_probe 点采 %.17g 与生产一致——「0<d」前提当轮证伪。此读数按 y 直印、不经过 .blocks 布局，是布局事故中明确存活的硬数据。
 
 ### 证据
 
 - 生产 dump（`.tmp/p2full/cpp-dbdebug-195-199-260904-06.txt`）与点采（`cpp-fdcol-195-199.txt`）双载体交叉一致；
-- 负值量级与 b1 静态理论地板（−0.025/−0.458）逐位吻合（judge §2.1）——静态推导能预测正确值，恰说明「d 的符号」这类**可实测命题**不该停留在静态描述。
+- 负值量级与 b1 静态理论地板（−0.025/−0.458）逐位吻合——静态推导能预测正确值，恰说明「d 的符号」这类**可实测命题**不该停留在静态描述。
 
 ### 根因（机制）
 
-「0<d」是从 Java 源码静态读出的符号级断言，在课题内被降格为背景描述反复引用，无人把它当「待实测假设」——机制断言的置信度应当与证据层匹配：静态读码 ≠ 数据层实测（trace/probe），而下游归因把它用成了公理。与 #40 叠加形成双故障：一处参照误读（#40）+ 一处未实测断言（本条），共同支撑了「幕帘 = 共有偏离」的错误结论。
+「0<d」是从 Java 源码静态读出的符号级断言，在课题内被降格为背景描述反复引用，无人把它当「待实测假设」——机制断言的置信度应与证据层匹配：静态读码 ≠ 数据层实测（trace/probe），下游归因把它用成了公理。本案的连带教训：被实测推翻的断言（d>0）与被布局污染的参照解读（131 stone 族）曾共同支撑同一份裁决——断言层与数据层错误会互相掩护，实测硬数据（布局无关载体）是拆穿的关键。
 
 ### 如何利用
 
-1. **符号级机制断言（「X 带内 d>0」「此路径恒 return」类）进入归因链前 MUST 一次数据层实测**（env 门控 dump / 点采探针，一轮以内）；实测与静态读数冲突时以实测为准并回溯引用点。
-2. 课题结案/取代时检查：被依赖的机制描述里有几条从未实测过？未实测的逐条标注「static-only」再结案。
-3. 家族索引：#40（参照存在性盲区——本事故另一面）/ #25（Java 常量必须追取值源头——同「静态结论需锚定」家族）/ #17（跨探针对比坐标钉死律）/ AGENTS「交接结论验证纪律」（§16.3 廉价独立验证的机制断言特例）。
+1. **判据**：符号级机制断言（「X 带内 d>0」「此路径恒 return」类）进入归因链前 MUST 一次数据层实测（env 门控 dump / 点采探针，一轮以内）；实测与静态读数冲突时以实测为准并回溯引用点。
+2. 课题结案/取代时清点：被依赖的机制描述里有几条从未实测过？未实测的逐条标「static-only」再结案。
+3. 裁决依赖的硬数据优先选布局/变换无关载体（按 y 直印的 dump、引擎内计数），使裁决对下游读法 bug 免疫。
+4. 家族索引：#25（Java 常量追取值源头）/ #17（跨探针对比坐标钉死律）/ #40（布局纪律——同一裁决的另一半教训）/ AGENTS 交接结论验证纪律（§16.3 廉价独立验证的机制断言特例）。
 ```
 
 INDEX.md 同步行（追加到 260904-06 追加段之后）：
 
 ```markdown
-> 260904-06 追加（二）：workflow-patterns 新增**发现 #40/#41**（参照存在性判定的单向盲区——「参照无 X」MUST 独立复验禁止从差异族反推；「0<d」式机制断言未经数据层实测当公理续推，一轮 dump 证伪——幕帘课题前提坍塌两对面，源自 curtain-verdict-260904-06 取代裁决）。
+> 260904-06 追加（二）：workflow-patterns 新增**发现 #40/#41/#42**（blocks 列读布局纪律——y-major 权威 blocks.h:69 + 已知地形 sanity 自检，幻影列剖面造「幻幕帘」推翻错课题；judge 独立重跑复用同一变换代码 = 复现同一 bug，独立复算必须独立实现；「0<d」式静态机制断言未实测当公理，一轮 dump 证伪——布局事故三连教训，源自 incident-layout-260904-06）。
 ```
 
 ---
 
-## 二、algorithm-fingerprints.md 追加文本（中价值简写，续接发现 #17）
+## 二、algorithm-fingerprints.md 追加文本（中价值简写，续接发现 #17；v2 换布局无关证据）
 
 ```markdown
 ## 发现 #17: aquifer barrier margin 机制指纹——|d|≈0.02 微负带是 margin stone 高发区，「stone 但 d≤0」≠ bug（260904-06）
 
-- **时间/置信度/module**：260904-06，candidate（生产 dump + 静态结构互证；confirmed 留人类），MC worldgen 机制指纹。
-- **指纹**：aquifer `apply` 在 d≤0 时唯一把 block 翻成 stone 的路径是 barrier margin（`density+e>0` 三连 -1 翻转，aquifer.h:121-137 / aquifer.rs:327-338，三方零偏离——b3 十七项）→ **|d| 极小（≈0.02，如 −0.024995 带）的 stone 带是 margin 高发区的签名**；「该处有 stone 但 d≤0」不是 bug，先查 margin 而非density 写者。C++ 消费环：worldgen_api.cpp:1040（block<0 → stone）。
-- **如何利用**：高 y stone 带排查时先看 d 剖面——d 全负 + 幕帘形态 → 直接归 margin（aquifer 高位水口袋 ~16 间距伴生），跳过「density 写者缺失」方向；d 显著正的 stone 才查 surface/ore 写者。注意 Rust 侧已知分叉：margin→air 丢 barrier stone（b3 发现，只影响幕帘构成）。证据：.investigations/lossless-accel/fanout-curtain-260904-06/p4-reference-check-260904-06.md + .artifacts/lossless-accel/curtain-verdict-260904-06.md。
+- **时间/置信度/module**：260904-06，candidate（生产密度 dump + 静态结构互证，均布局无关；confirmed 留人类），MC worldgen 机制指纹。
+- **指纹**：aquifer `apply` 在 d≤0 时唯一把 block 翻成 stone 的路径是 barrier margin（`density+e>0` 三连 -1 翻转，aquifer.h:121-137 / aquifer.rs:327-338，三方零偏离——b3 十七项静态对拍）→ **|d| 极小（≈0.02，如 −0.024995 带）的 stone 带是 margin 高发区的签名**；「该处有 stone 但 d≤0」不是 density 写者 bug，先查 margin。C++ 消费环：worldgen_api.cpp:1040（block<0 → stone）。实测锚：WG_DBDEBUG 生产密度 (195,199) 列 y192-318 全负（−0.025/−0.458 带，按 y 直印、布局无关）。
+- **如何利用**：stone 带排查先看 d 剖面——d 微负（|d|≈0.02）+ 带状 → 直接归 margin（aquifer 高位水口袋 ~16 间距伴生），跳过「density 写者缺失」方向；d 显著正的 stone 才查 surface/ore 写者。注意 Rust 侧已知分叉：margin→air 丢 barrier stone（b3 发现，只影响幕帘构成）。证据：.investigations/lossless-accel/incident-layout-260904-06.md（硬数据存活清单）+ p4-reference-check-260904-06.md Facts #1。
 ```
 
 INDEX.md 同步行（algorithm-fingerprints 分类行末追加）：
@@ -95,15 +124,12 @@ INDEX.md 同步行（algorithm-fingerprints 分类行末追加）：
 
 ---
 
-## 三、草稿自检清单（SUBAGENT-KNOWLEDGE-GUIDE §四）
+## 三、草稿自检清单（SUBAGENT-KNOWLEDGE-GUIDE §四，v2）
 
-- [x] 价值门：候选 1/2 高价值详写，候选 3 中价值简写；一次性结论（32 块明细/grass-water 剖面/granite idk）未写知识库
-- [x] 五段式：#40/#41 均含观察（现象具体：131 块构成 / d 全负数值）/根因（机制层面：差异族查法盲区 / 断言置信度错配）/定位（复验脚本 + judge 重跑）/教训（判据进如何利用）
-- [x] 根因为机制层非现象复述
-- [x] 定位含诊断方法（ref_check_p4 独立脚本、WG_DBDEBUG dump、judge 独立重跑）
-- [x] 判错经验沉淀：「参照无 Y MUST 独立复验」「机制断言 MUST 数据层实测」两条可复用判据
-- [x] 被排除假说标注：writer-verdict 结论 3 以 supersedes 记录保留（原文不删不改），b3 P-4 预测标 ❌ 属 judge C5（主会话收敛时执行）
-- [x] 载体正确：#40/#41 → workflow-patterns；#17 → algorithm-fingerprints；无 docs 主题篇内容（课题结论归 verdict/ore 课题，非本草稿职责）
-- [x] 数字全部来自主会话提供的实测记录（verdict / p4 / judge 三文），无编造无占位符
-- [x] 格式与目标文件末尾现状对齐（#37-#39 与 algorithm-#16 格式逐字段比对；编号续接 #40/#41/#17 已核空位）
+- [x] 价值门：#40/#41/#42 高价值详写，#17 中价值简写；v1「参照存在性盲区」随例证证伪**整体撤销**（不凭已证伪事例立知识）；课题特定一次性结论不进知识库
+- [x] 五段式：三条 workflow 发现均含观察（现象具体）/根因（机制层：直觉索引无权威、独立性锚错层、断言置信度错配）/定位（grep 法证 + 重读快照 + 布局无关载体）/教训（判据进如何利用）
+- [x] 定位含可复用诊断方法（grep `\* \(H\*16\)` 清单法、已知地形 sanity、独立实现复算）
+- [x] 被证伪内容显式标注：P4 131 stone 族读数、curtain-verdict 裁决理由标记作废/存疑；布局无关硬数据（d 全负、引擎内 TOTAL）单独存活清单
+- [x] 数字全部来自主会话提供的实测/事故记录（incident / judge / p4），无编造无占位符
+- [x] 格式与目标文件末尾现状对齐（#37-#39 与 algorithm-#16 格式逐字段比对；编号续接 #40/#41/#42/#17 已核空位）
 - [x] 未改任何正式文件（本草稿为唯一产出）

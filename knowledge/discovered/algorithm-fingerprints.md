@@ -425,3 +425,9 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - **时间/置信度/module**：260903-10，confirmed（260903-10 用户拍板），MC worldgen 性能指纹。
 - **指纹**：每 chunk 新建 Aquifer → surface_cache 冷 → get_water_level_at miss(~158/chunk) → get_fluid_level 13 offset 列（横跨 ≤5 x-chunk）→ 每列 estimate_surface_height ~34 次 initial_density 全价采样（SURF 计数器口径 214×34.35=7342 次/chunk × **2117ns/iter（R2 调和：新鲜进程实测）≈ 15.4ms，占 counter-free 冷态超额 22.70ms 的 ~68%**）；重量叶 = depth→sloped_cheese→base_3d_noise（old_blended_noise，24 octave/次，InterpolatedNoiseData::sample 无缓存）。对照：Java NoiseChunk 的 est 列缓存随 chunk 生命周期持久。init 子树无 interpolated 节点（GRID_ARG_SAMPLES=0 反证）。（首版「3557ns/26.1ms」口径被 judge R2 调和取代——原始 cmd-output：qaq1-r2-reconcile-260903-10.txt）
 - **如何利用**：冷−暖差大（~20ms+/chunk）签名 → 先查 est 扫描而非 apply 单价；修复方向 est 查表化/列缓存跨 chunk 持久化 > surface_cache 单独持久化。证据：.artifacts/lossless-accel/qaq1-attribution-260903-10.md。
+
+## 发现 #17: aquifer barrier margin 机制指纹——|d|≈0.02 微负带是 margin stone 高发区，「stone 但 d≤0」≠ bug（260904-06）
+
+- **时间/置信度/module**：260904-06，candidate（生产密度 dump + 静态结构互证，均布局无关；confirmed 留人类），MC worldgen 机制指纹。
+- **指纹**：aquifer `apply` 在 d≤0 时唯一把 block 翻成 stone 的路径是 barrier margin（`density+e>0` 三连 -1 翻转，aquifer.h:121-137 / aquifer.rs:327-338，三方零偏离——b3 十七项静态对拍）→ **|d| 极小（≈0.02，如 −0.024995 带）的 stone 带是 margin 高发区的签名**；「该处有 stone 但 d≤0」不是 density 写者 bug，先查 margin。C++ 消费环：worldgen_api.cpp:1040（block<0 → stone）。实测锚：WG_DBDEBUG 生产密度 (195,199) 列 y192-318 全负（−0.025/−0.458 带，按 y 直印、布局无关）。
+- **如何利用**：stone 带排查先看 d 剖面——d 微负（|d|≈0.02）+ 带状 → 直接归 margin（aquifer 高位水口袋 ~16 间距伴生），跳过「density 写者缺失」方向；d 显著正的 stone 才查 surface/ore 写者。注意 Rust 侧已知分叉：margin→air 丢 barrier stone（b3 发现，只影响幕帘构成）。证据：.investigations/lossless-accel/incident-layout-260904-06.md（硬数据存活清单）+ p4-reference-check-260904-06.md Facts #1。
