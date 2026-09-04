@@ -801,7 +801,7 @@ entries:
   - id: 're-code:lossless-accel:residual9-verdict-260904-13'
     path: 'lossless-accel/residual9-verdict-260904-13.md'
     kind: decision
-    status: candidate  # judge 同意 candidate 260904-13（复跑复现 12→3）；confirmed 待用户
+    status: confirmed  # 用户拍板 260904-13（judge 同意 candidate；decisive 12→3，match 100.000%）
     # 根因：MC MultiNoise 分类器 = 1e-4 定点 long 域（toLong(v*10000F)），定点域精确平局由树序取先；
     # Rust biome.rs f64 全精度未量化 → 平局点出 1e-9 假严格差 → 刀锋分类翻转（gravel↔sand 9 块）。
     # 修复：biome.rs noise_to_long + i64 距离 + 参数表序平局。decisive 12→3（残 ore_vein 1 + aquifer 2 独立课题）。

@@ -1,6 +1,6 @@
 # residual9-verdict-260904-13 — 残 9 gravel→sand 收口（H2 定点分类根因 + 修复 + decisive）
 
-- 状态：**candidate（judge 同意，260904-13）；confirmed 待用户拍板**
+- 状态：**confirmed（用户拍板 260904-13）**；judge 同意 candidate 在前
 - judge：同意 candidate（复跑 verify 复现 12→3；附 3 项非阻断补正——idk 注释已加、commit 待落、脚本哈希笔误已更）
 - 日期：260904-13（实际 2026-09-04 22:24-23:30，Get-Date 锚定）
 - 前置三元组 ✓：开工时现役 dll=A82B7A8D（与 260904-12 交接一致）；git @ aab1181 干净
