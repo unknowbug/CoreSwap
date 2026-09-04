@@ -47,6 +47,7 @@ impl BiomeSource for MacroBiome {
 // 生产句柄：一次 seed 初始化（构建全部 noise samplers + density 树 + biome + surface）。
 pub struct WorldgenHandle {
     pub seed: i64,
+    pub biome_access_seed: i64, // BiomeAccess.hashSeed(seed)（sha256-asLong；ChunkRegion L102 同构）
     pub min_y: i32,
     pub height: i32,
     pub noise_height: i32, // 噪声高度（settings noise.height；nether 128 < world 256——density 采样有效域，上方留 air）
@@ -385,7 +386,8 @@ impl WorldgenHandle {
         let uniform_carver_list = biomesrc.bc.uniform_carver_list();
 
         Some(WorldgenHandle {
-            seed, min_y, height, noise_height, aquifers_enabled, sea_level,
+            seed, biome_access_seed: crate::biome::biome_hash_seed(seed),
+            min_y, height, noise_height, aquifers_enabled, sea_level,
             tree, macro_sampler, transpiler_density, dfc_density, gpu_density, gpu_channels, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
@@ -608,12 +610,30 @@ impl WorldgenHandle {
             let bp = NoisePos { x: (x >> 2) << 2, y: (y >> 2) << 2, z: (z >> 2) << 2 };
             self.biomesrc.biome(&bp)
         };
+        // surface 规则 biome 输入（260904-10 残留 76 主族根因修复）：
+        // Java 生产 surface 收到的是 region.getBiomeAccess()（ChunkRegion L102，seed 经
+        // BiomeAccess.hashSeed=sha256-asLong）→ MaterialRuleContext.initVerticalContext L464 用
+        // posToBiome.apply(精确块坐标) → BiomeAccess.getBiome 8 邻域 jitter 选点（非单元直读）。
+        // C++ 侧 biomeCellKey（worldgen_api.cpp L1080）同构；此前 Rust surface 用单元直读漏 zoom。
+        // 注意：与 carver/feature 侧 biome_at_jitter（裸 self.seed，L702/829）seed 口径不同——
+        // 该疑点本轮无残差证据支撑，不动（#36 覆盖面声明；见残留 76 verdict）。
+        let biome_at_surface = |x: i32, y: i32, z: i32| -> String {
+            let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
+            let bp = NoisePos { x: px << 2, y: py << 2, z: pz << 2 };
+            self.biomesrc.biome(&bp)
+        };
         let biome_temp = |id: &str| -> f64 { crate::surface_rules::biome_temperature(id) };
         let initial_density_at = |x: i32, y: i32, z: i32| -> f64 { self.init.sample(&NoisePos { x, y, z }) };
         let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
         if flags & FLAG_SKIP_SURFACE == 0 && std::env::var("WG_SKIP_SURFACE").is_err() {
             self.sb.build_surface(&mut col, &self.rule, cx * 16, cz * 16, &heightmap, &surface_heights4,
-                                  &biome_at, &|x, y, z| ((x as i64) << 32) ^ (z as i64), &biome_temp, min_y, height, &initial_density_at);
+                                  &biome_at_surface,
+                                  &|x, y, z| {
+                                      let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
+                                      // 对齐 C++ biomeCellKey packing（u32 截断防负坐标符号扩展）
+                                      ((px as u32 as i64) << 40) | ((py as u32 as i64) << 20) | (pz as u32 as i64)
+                                  },
+                                  &biome_temp, min_y, height, &initial_density_at);
         }
 
         // 4. carver（洞穴雕刻，17×17 邻域）——句柄 flag 或 env 任一命中即 skip
