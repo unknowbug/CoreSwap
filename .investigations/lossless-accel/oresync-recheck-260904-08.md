@@ -33,6 +33,12 @@
 - 探针纪律事故自查：第一次重导命中旧 world 缓存（chunk FULL 0-1ms，#19 家族）——备份 world 为 world.bak-260904-08-fixprobe 后重导，pregen 24s 确认全新生成
 - 三查：log worldSeed=8576294172403134396 ✓ header seed ✓ origin (200,200) size 4 ✓
 
+## 残留流体族实机确认（260904-08，用户 -Vanilla A/B 第二轮）
+- (205,22,239) 一带（水洞群 196~216 / y14~30 / z236~242）：CS = 封闭小型**干**洞窟；vanilla = 大型**水**洞窟—— aquifer 淹没判定/流体水平系统性差异（非零星块差，整洞水面级）
+- 残差 1830 分解：water→air 314 / stone→water 217 / water→stone 182 / air→water 170（集中该洞群 ~700）+ deepslate→air 106 + 零散 surface 小族 ~300
+- 状态：**实机 confirmed 差异存在**；是否立项修复待用户决定（用户初判"实际游玩几乎感觉不到"）
+- 候选方向（未查证，仅登记）：aquifer fluid_level/floodedness 噪声域、get_noise_based_fluid_level 的 est 输入、或 aquifer 缓存跨 chunk 边界语义——静态 17 项对拍零偏离（上轮 b3）但运行时表现分叉，说明分歧在**输入或缓存语义**而非公式本身
+
 ## 命令记录
 - python .tmp/p2full/recon_b1_260904-08.py（TOTAL/per-chunk/pairs）
 - python .tmp/p2full/recon_b1b_260904-08.py（y>200=0 / cppNS 对账 / 列 air）
