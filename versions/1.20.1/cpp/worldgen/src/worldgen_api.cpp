@@ -1610,6 +1610,16 @@ static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chu
                 // PlacedFeature.generate（懒加载 placed_feature JSON）
                 wg::PlacedFeature* pf = getPlacedFeature(h, fid);
                 if (!pf) continue;
+                // 诊断门控（WG_FEATURE_SKIP=ore_dirt,ore_gravel,disk_）：跳过匹配 feature 的 generate，
+                // 保留 setDecoratorSeed（每 feature seed 独立重置，不影响后续 feature 的 RNG 序列）——归零实验用
+                if (getenv("WG_FEATURE_SKIP")) {
+                    static std::vector<std::string> skipList;
+                    static bool init = false;
+                    if (!init) { init = true; std::string s = getenv("WG_FEATURE_SKIP"); for (char* tok = strtok(s.data(), ","); tok; tok = strtok(nullptr, ",")) skipList.push_back(tok); }
+                    bool skip = false;
+                    for (const auto& pat : skipList) if (fid.find(pat) != std::string::npos) { skip = true; break; }
+                    if (skip) continue;
+                }
                 if (getenv("WG_FEATURELOG") && fid.find("ore_granite") != std::string::npos) {
                     std::fprintf(stderr, "[MODS] chunk(%d,%d) %s mods=%zu step=%d\n", chunkX, chunkZ, fid.c_str(), pf->modifiers.size(), k);
                 }
@@ -1646,11 +1656,15 @@ static void applyCarversAndFeatures(WorldgenHandle& h, BlockColumn& col, int chu
                 auto genFn = [&](wg::FeaturePlacementContext& fcx, int gx, int gy, int gz) -> bool {
                     wg::ConfiguredFeature* cf = getConfiguredFeature(h, pf->configuredFeature);
                     if (!cf) return false;
-                    if (getenv("WG_FEATURELOG") && pf->configuredFeature.find("ore_granite") != std::string::npos) {
-                        std::fprintf(stderr, "[ORIGIN] fid=%s origin=(%d,%d,%d)\n", pf->configuredFeature.c_str(), gx, gy, gz);
-                    }
-                    if (getenv("WG_FEATURELOG") && pf->configuredFeature.find("underwater_magma") != std::string::npos) {
-                        std::fprintf(stderr, "[ORIGIN] fid=%s origin=(%d,%d,%d)\n", pf->configuredFeature.c_str(), gx, gy, gz);
+                    {
+                        const std::string& cfn = pf->configuredFeature;
+                        bool audit = cfn.find("ore_granite") != std::string::npos
+                                  || cfn.find("ore_dirt") != std::string::npos
+                                  || cfn.find("ore_gravel") != std::string::npos
+                                  || cfn.find("disk_") != std::string::npos;
+                        if (getenv("WG_FEATURELOG") && audit) {
+                            std::fprintf(stderr, "[ORIGIN] fid=%s origin=(%d,%d,%d)\n", cfn.c_str(), gx, gy, gz);
+                        }
                     }
                     if (cf->type.find("ore") != std::string::npos) {
                         int type = cf->type.find("scattered_ore") != std::string::npos ? 1 : 0;
