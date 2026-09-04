@@ -1,7 +1,7 @@
 # residual76-verdict-260904-10 — 残留 76 surface 微族收口 verdict
 
 - **课题**：260904-10 残留 76（aquifer splitter 修复后的 surface 残差：gravel→sand 49 / sand→gravel 24 / 零星 3）
-- **状态**：**candidate**（confirmed 待用户拍板）
+- **状态**：**confirmed**（用户拍板 2026-09-04 22:1x，judge review-residual76-260904-10.md 先行通过）
 - **验证分层**：Full（存档口径 blocks 全量逐位，见 §6 可比性声明）
 - **日期标签**：260904-10（锚宿主真实时间 2026-09-04 21:26-22:0x，Get-Date 复核 ✓）
 
@@ -60,4 +60,4 @@ docs/06 L62/L94 记 surface default 判定「==stone」；一手 SurfaceBuilder.
 
 ## 7. 置信度
 
-根因/修复/验证数字 **candidate**（judge 已过）；confirmed 待用户拍板。剩余 12 三项归因 candidate（探针级）。
+根因/修复/验证数字 **confirmed**（judge 先行 + 用户拍板 2026-09-04）。剩余 12 三项归因 candidate（探针级）。剩余 12 三项归因 candidate（探针级）。

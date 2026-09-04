@@ -144,4 +144,4 @@ entries:
   - id: 'lossless-accel:residual76-verdict-260904-10'
     path: 'residual76-verdict-260904-10.md'
     kind: decision
-    status: candidate  # 根因=Rust surface biome 缺 BiomeAccess zoom；修复 ab56706；decisive 76→12；confirmed 待用户
+    status: confirmed  # 根因=Rust surface biome 缺 BiomeAccess zoom；修复 ab56706；decisive 76→12；judge 过（review-residual76-260904-10.md）；用户拍板 confirmed（260904-10）
