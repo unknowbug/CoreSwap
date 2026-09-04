@@ -229,7 +229,9 @@ impl AquiferSource for VanillaAquifer {
         }
         // skip_aquifer（诊断，chunk 级判断一次）：跳过真实 aquifer，直接 Air（保留原诊断语义）
         if self.skip_aquifer { return BlockKind::Air; }
-        match self.aq.apply(x, y, z, d) { 1 => BlockKind::Water, 2 => BlockKind::Lava, _ => BlockKind::Air }
+        // -1 = barrier/margin（stone）：对齐 C++ worldgen_api.cpp:1041-1043（block<0 → oreVein → stone）；
+        // 旧写法归 Air 丢 barrier stone（Rust 单臂偏离，260904-07 确立）
+        match self.aq.apply(x, y, z, d) { 1 => BlockKind::Water, 2 => BlockKind::Lava, -1 => BlockKind::Rock, _ => BlockKind::Air }
     }
 }
 
@@ -276,7 +278,10 @@ pub fn fill_chunk<D: DensitySource<S>, S: ChunkDensitySampler, A: AquiferSource,
                 if let Some(b) = beard { d += b.sample(x, y, z); }
                 let kind = aqua.classify(x, y, z, d);
                 cd.blocks[(lx + lz*16 + ly*256) as usize] = kind;
-                if top == i32::MIN && d > 0.0 { top = y; }
+                // heightmap 判据：非 air（水计入）——对齐 C++ worldgen_api.cpp:1045 (block != air)
+                // = Java Heightmap.java:24 NOT_AIR ( !isAir() )；旧 d>0 不计水 = Rust 单臂偏离
+                //（heightmap-criterion-divergence-260904-06，海底床面材质族 ~12000 块的根因）
+                if top == i32::MIN && kind != BlockKind::Air { top = y; }
             }
             cd.surface_height[(lz*16+lx) as usize] = top;
             // biome：该列地表处 floor 对齐采样

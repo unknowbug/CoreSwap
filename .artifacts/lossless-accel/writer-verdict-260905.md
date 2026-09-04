@@ -1,5 +1,7 @@
 # 出界 dirt 写者裁决（260905 · STEP 2 收敛 · 状态 candidate · 已过 judge 260905：可保留，待运行时确证不得升级）
 
+> **superseded-by**（260904-06 补，judge M1）: `.artifacts/lossless-accel/oob-redo-verdict-260904-06.md` —— 本 verdict 全部结论为 x-major 布局伪影（幻影课题），被布局事故后 y-major 正确重推导整体取代（原文不删不改，先例 residual-signature-verdict-260904-04）
+
 > 验证分层声明：**探针实测只排除 C++ block_probe 的 NOISE+SURFACE**；对 mod 载具实际执行体（Rust）的 NOISE/SURFACE 排除 = b1 静态闭环（Degraded）。judge 260905 意见：①「双跑」为最佳解释而非数据集定点证实（升级前需 dumpbin 核 dll 导出表 + stage-skip 重导消融）；②「Rust feature origin 分叉」降格为 working hypothesis（未做 Rust↔Java origin 对拍）。
 
 ## 裁决（working conclusion，非定论）

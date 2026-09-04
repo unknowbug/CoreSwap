@@ -3,6 +3,8 @@
 > status: draft（事实一手；波及重算待办）
 > 触发：ore-scout W-A 候选（列布局未核）→ 主会话查 blocks.h:69 实证
 
+> **勘误注记（260904-08，judge M2）**：dump 文件内 chunk keys = (12..15, 12..15)（block 坐标 192..255），与 header origin=(200,200) 及文件名 `_200_200` 语义不一致——导出器以请求块坐标写 header、以 chunk 坐标写 keys，二者并存。四臂 key 一致，不影响任何结论；读文件时以 chunk key 实测配对为准（知识 #11 家族）。
+
 ## 根因（机制）
 
 `.blocks` 文件布局 = **y-major**：`index = (y−minY)*256 + z*16 + x`（`blocks.h:64-70` 权威；`block_probe.cpp:127` blockDump 同式；Rust `b1_column_trace.rs:69` 同式）。而多个列读分析脚本用 **x-major**：`x = idx//(H*16); z = (idx//H)%16; y = idx%H`——把 16×16×384 的立方体读成沿错误轴的「列」，产生**幻影列剖面**。

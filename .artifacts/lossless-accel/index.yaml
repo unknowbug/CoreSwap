@@ -77,6 +77,7 @@ entries:
     kind: analysis
     status: candidate  # judge 260905：双跑=最佳解释，运行时确证（dumpbin + stage-skip 重导）前不得升级
     # ⚠️ 260904-06 布局事故波及：列级坐标归因（OOB 样本/列签名）待正确布局重推导；臂间差异数值本身有效
+    superseded_by: 'lossless-accel:oob-redo-verdict-260904-06'  # judge M1（260904-08）：整体取代——x-major 布局伪影（幻影课题）
   - id: 'lossless-accel:judge-260905'
     path: '../lossless-accel/review-260905-writer-vehicle-verdicts.md'
     kind: review
@@ -88,6 +89,7 @@ entries:
     kind: decision
     status: candidate  # 写者=Rust SURFACE；双跑伪影假设结案；移交 NOISE 幕帘新线
     # ⚠️ 260904-06 布局事故波及：E1/E2 列级证据的位置归属待正确布局重推导；WG_SKIP_SURFACE 消融的臂间差异信号仍有效
+    superseded_by: 'lossless-accel:oob-redo-verdict-260904-06'  # judge M1（260904-08）：整体取代终链——列读数全为 x-major 布局伪影
     supersedes:
       - 'lossless-accel:writer-verdict-260905'  # 双跑 best-explanation 被运行时确证推翻
   - id: 'lossless-accel:judge-260904-06-writer'
@@ -120,6 +122,7 @@ entries:
     path: 'curtain-verdict-260904-06.md'
     kind: decision
     status: draft  # ⚠️ 裁决理由（P4 列读）被布局事故作废——正确布局下 ref 列 y180-319 全 air，「vanilla 无幕帘」原前提成立；见 ../lossless-accel/incident-layout-260904-06.md
+    superseded_by: 'lossless-accel:oob-redo-verdict-260904-06'  # judge M1（260904-08）：其 judge PASS 复算亦受污染（双错一致通过，知识 #41）
   - id: 'lossless-accel:judge-curtain-supersedes-260904-06'
     path: '../lossless-accel/fanout-curtain-260904-06/review-judge-curtain-supersedes-260904-06.md'
     kind: review
@@ -127,7 +130,7 @@ entries:
   - id: 'lossless-accel:oob-redo-verdict-260904-06'
     path: 'oob-redo-verdict-260904-06.md'
     kind: decision
-    status: candidate  # OOB 残差=幻影课题（布局事故）；supersedes writer-verdict-260905/260904-06/curtain-verdict-260904-06；judge 待审
+    status: candidate  # OOB 残差=幻影课题（布局事故）；supersedes writer-verdict-260905/260904-06/curtain-verdict-260904-06；judge PASS（260904-08 review-oob-redo-260904-08.md，独立复算 #41 全吻合；confirmed 待人类）
     supersedes:
       - 'lossless-accel:writer-verdict-260905'
       - 'lossless-accel:writer-verdict-260904-06'
