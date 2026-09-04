@@ -397,3 +397,11 @@ BlockProbe 重导（未删 run\world）导出顺利完成、产物落盘，但�
 - 判据：任何「重导」类采集，导出完成后核对日志：① pregen 时长存在且为秒级；② 每 chunk 耗时非毫秒级近零——任一缺失即缓存命中，本次产物作废重导（先删 run\world，#19 前置）。
 - 上位原则（同族合流）：产物「在盘」≠「本次执行体生成」≠「当前语义」——#16（旧 exe 假阴性）、#12（二进制产物哨兵点验）、#6（mtime 不可靠用内容指纹）、#19（删 world）与本条同族：每一环「产物是否由当前代码/当前运行产生」都必须有独立证据，不作默认假设。
 - 与 AGENTS「seed 三查」同层级：seed 核对管「数据语义对不对」，本条耗时签名管「生成过程真没真发生」——两道关卡独立，都要过。
+
+## 发现 #19: -PblockProbe.full=true 静默不生效——build.gradle 映射名实为 blockProbeFull，#8 家族三犯形态（260904-13）
+- 现象：decisive ref vs off-fix13 报 78107 mism（12→78107 假回归）；日志缺 "pre-generated FULL region" 行，chunk 逐条 "FULL in 0-1ms"（旧 world 缓存形态，#18 家族签名）。命令带的是 -PblockProbe.full=true。
+- 根因：build.gradle 映射行实为 blockProbeFull（camelCase），blockProbe.full（点分）映射不到任何属性 → FULL 口径静默缺失、carver 邻域预生成未执行；gradle 对未消费 -P 零告警。
+- 定位：① 核 build.gradle 映射行；② 日志行为化证据（pregen 行不在场，#37/#18 判据）；③ A/B 隔离定责法——旧 dll 同命令复跑得 78116≠12 ⇒ 环境口径问题非代码回归；78116−78107=9 恰等于修复点数，形成意外旁证（口径修好后修复收益=9，与 verdict 一致；旁证不可单独定责）。
+- 修复：改 -PblockProbeFull=true 后 mism=3，12→3。
+- 教训：新 -P 参数首次使用必须核对映射行 + 日志行为化证据（#8 家族三实锤：手工清单遗漏 / rustStages 缺映射 / 点分驼峰不匹配——同根因三形态）。判据：① -P 用前 grep build.gradle 精确映射名；② 口径开关须有一次性日志行在场（#37）；③ 大面积异常残差先旧执行体同命令复跑做 A/B 隔离。
+- 证据：.artifacts/lossless-accel/residual9-verdict-260904-13.md §3/§4.2 + .tmp/p2full/off-fix13-260904-13/。

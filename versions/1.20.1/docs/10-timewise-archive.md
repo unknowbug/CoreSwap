@@ -2879,3 +2879,9 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ judge review：review-residual76-260904-10.md，建议 candidate（C-1/C-2 已补）；用户拍板 confirmed
 - 🔍 剩余 12：ore_vein 1 + aquifer 2（归因已明未立案）+ gravel→sand 9（未立案）
 - 🔍 open：Rust carver/feature biome_pick_cell(self.seed) 用裸 seed（C++ 4 站点全 hashed）——实装分歧，风险中，未动
+
+## 260904-13（残 9 gravel→sand 收口，residual12→13 链条）✅ 已结案（candidate，judge 同意；confirmed 待用户拍板）
+- probeA（260904-12）三排除→H2 唯一存活；probeB C++ 对照臂 12/12 逐位一致 + Java storage 9/9 deep_ocean → 锁死分类器层；mnDump 直读 NoiseValuePoint 得平局铁证 5041（1e-4 定点 long 域）
+- 根因：Rust biome.rs f64 全精度未量化 → 平局点 1e-9 假严格差；修复 = noise_to_long + i64 距离 + 参数表序平局（dll 19D21219→561AFF49 注释终版）
+- decisive 12→3（match 100.000%）；途中 -PblockProbe.full 假回归 78107 经旧 dll 同命令 A/B 隔离定责（78116−78107=9 恰为修复点）
+- 剩余 3（ore_vein 1 + aquifer 2）各自立案；H1 zoom pick 全局普查 open（残 9 簇已间接覆盖）；bareseed 收口 confirmed 仍待用户

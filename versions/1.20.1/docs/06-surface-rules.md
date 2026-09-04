@@ -213,3 +213,24 @@ private static boolean isDefaultBlock(BlockState state) {
 - block_probe -288：+10777 块闭合、新增 mismatch 仅 13 块（净收益 99.88%）
 - 8576 99.9994% / 3200 99.9997% 零退化（无结构输入时行为不变）
 - 产物：`.investigations/-288-unclosed/cmd-output/bp288_beard_run.txt`、`.investigations/-288-unclosed/beardifier-verdict.md`（§三 3.3 闭合分布）
+
+## 260904-13 已验证结论（追加 6）：biome 分类定点量化——residual 12→9→3 收口（candidate，judge 同意）
+
+### 根因
+- MultiNoise biome 分类器在 **1e-4 定点 long 域**运算（`MultiNoiseUtil.toLong(v)=(long)(v*10000F)`，输入先过 float）；Rust biome.rs 原用 f64 全精度算距离且未量化输入 → 定点域的精确平局在 f64 下变成 ~1e-9 假严格差 → 刀锋点分类翻转（通用指纹见 knowledge/discovered/algorithm-fingerprints.md 发现 #18）
+
+### 平局铁证（残 9 簇，pick cell (59,9,62)，同 seed 同 6d t=0.200031787）
+- Java NoiseValuePoint 直读 raw longs：dist(deep_ocean)=dist(deep_lukewarm)=**5041，精确平局** → 树序取先 = deep_ocean（参数表 line 12 < line 16，vanilla gravel ✓）；C++ 同点同判 deep_ocean ✓；Rust f64 差 1.01e-9 → deep_lukewarm（sand ✗，唯一例外）
+
+### 修复（WorldgenRust/src/biome.rs）
+- `noise_to_long(v) = ((v as f32) * 10000.0) as i64`（含 float 中转，同构 C++ noiseToLong）
+- SearchTreeNode 携带量化 `lparams: Vec<[i64;2]>`，叶子/enclosing 距离改 i64 运算
+- 平局裁决按**参数表行序取先**（Java/C++「树序第一个」的等价近似）
+- dll 基线：A82B7A8D → 561AFF49
+
+### decisive（4×4@200,200，benchSeed=8576294172403134396，seed 三查 ✓）
+- **残 9 gravel→sand 全灭：12 → 3，match=100.000%**（ref<->off-fix13 mism=3）
+- 剩余 3 块归因不变：ore_vein 1 + aquifer 2——**独立课题，不混入本结论**（各自立案）
+- 排查插曲：-PblockProbe.full 假回归 78107 已定责环境口径（build-tooling 发现 #19），非代码回归
+
+证据：`.artifacts/lossless-accel/residual9-verdict-260904-13.md`；`.investigations/residual13/probeB-h2-260904-13.md`；原始输出 `.tmp/p2full/res13-*.log` / `off-fix13-260904-13/`。

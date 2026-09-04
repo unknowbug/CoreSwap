@@ -48,3 +48,5 @@
 > 260904-09 追加：workflow-patterns 新增**发现 #43**（交接「静态公式逐项零偏离」当公理续推输入/缓存侧——真根因是链路构造参数层一行缺失（aquifer splitter 漏 split_str("minecraft:aquifer")）；判据：双向残差签名优先怀疑随机派生/组合选择层、「逐行对拍」必须附覆盖面声明（不含 splitter/random provider 派生等装配参数）、同文件同构调用是零成本就地对照）；compiler-idioms 新增**发现 #11/#12**（诊断门控鸡生蛋死锁 + mixin 包禁非 mixin 类）。来源：.investigations/residual-1830/（残留 1830 收口，decisive 1830→76）。
 
 > 260904-10 追加：workflow-patterns 新增**发现 #44**（载具间实装分歧按「同一 Java 机制多点接线」核对——C++ 已对齐机制（BiomeAccess zoom）Rust 侧可整体缺失，跨载具课题先 diff 两侧同功能站点接线清单；来源：残留 76 surface biome 缺 BiomeAccess 收口）；compiler-idioms 新增**发现 #13**（docs 口径失准当修复依据须先一手源码核对——docs/06 ==stone vs 一手非空非流体）。来源：.artifacts/lossless-accel/residual76-verdict-260904-10.md（decisive 76→12）。
+
+> 260904-13 追加：algorithm-fingerprints 新增**发现 #18**（MultiNoise 分类器 1e-4 定点 long 域——f64 复刻平局点假严格差分类翻转，残 9 实例）；workflow-patterns 新增**发现 #45**（同输入异分类三源隔离法 + NoiseValuePoint long 定点反射直读 + 探针 quart 直采≠生产块坐标语义）；build-tooling 新增**发现 #19**（-PblockProbe.full 点分名静默不生效，映射实为 blockProbeFull，#8 家族三犯 + A/B 隔离定责法）。来源：.artifacts/lossless-accel/residual9-verdict-260904-13.md（decisive 12→3）。

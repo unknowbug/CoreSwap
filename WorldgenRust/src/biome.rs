@@ -17,28 +17,72 @@ struct BiomeEntry {
     biome: String,
     ranges: Vec<[f64; 2]>,  // temperature, humidity, continentalness, erosion, depth, weirdness
     offset: f64,
+    idx: usize, // 参数表行序（平局裁决序，260904-13）
+}
+
+// 260904-13 残 9 H2 根因修复：Java MultiNoiseUtil 在 1e-4 定点 long 域运算（toLong(v)= (long)(v*10000F)，
+// 输入先过 float）。Rust 此前用 f64 全精度距离 → 定点域精确平局（如残 9 簇 deep_ocean/deep_lukewarm
+// 平局 5041）在 f64 下变成 1e-9 假严格差 → 分类翻转（gravel→sand 残差）。
+// 修复：输入与参数双向量化 i64 + i64 距离；平局按参数表序（Java/C++ 树序第一个的等价近似，残 9 一致）。
+#[inline]
+fn noise_to_long(v: f64) -> i64 {
+    ((v as f32) * 10000.0f32) as i64 // C++ biome.h L155 同构：(long)(v * 10000.0F)
+}
+
+#[inline]
+fn long_range_distance(noise: i64, range: &[i64; 2]) -> i64 {
+    let l = noise - range[1];
+    let m = range[0] - noise;
+    if l > 0 { l } else { m.max(0) }
 }
 
 // ===== SearchTree（KD-tree，对齐 vanilla MultiNoiseUtil.SearchTree）=====
 // 7 维（6 参数 + offset）。TreeBranchNode 存 enclosing 范围，getResultingNode 用子树距离剪枝。
 #[derive(Clone)]
 enum SearchTreeNode {
-    Branch { params: Vec<[f64; 2]>, sub: Vec<SearchTreeNode> },
-    Leaf { params: Vec<[f64; 2]>, value: String },
+    Branch { params: Vec<[f64; 2]>, lparams: Vec<[i64; 2]>, sub: Vec<SearchTreeNode> },
+    Leaf { params: Vec<[f64; 2]>, lparams: Vec<[i64; 2]>, value: String, idx: usize },
+}
+
+fn lenclosing(sub: &[SearchTreeNode]) -> Vec<[i64; 2]> {
+    let mut params = vec![[i64::MAX, i64::MIN]; NDIMS]; // 空范围哨兵
+    for node in sub {
+        let lp = match node {
+            SearchTreeNode::Branch { lparams, .. } | SearchTreeNode::Leaf { lparams, .. } => lparams,
+        };
+        for i in 0..NDIMS {
+            if lp[i][0] > lp[i][1] { continue; } // 空范围哨兵
+            if params[i][0] > params[i][1] {
+                params[i][0] = lp[i][0];
+                params[i][1] = lp[i][1];
+            } else {
+                if lp[i][0] < params[i][0] { params[i][0] = lp[i][0]; }
+                if lp[i][1] > params[i][1] { params[i][1] = lp[i][1]; }
+            }
+        }
+    }
+    params
+}
+
+fn entry_lparams(e: &BiomeEntry) -> Vec<[i64; 2]> {
+    let mut lp: Vec<[i64; 2]> = e.ranges.iter()
+        .map(|r| if r[0].is_nan() { [i64::MAX, i64::MIN] } else { [noise_to_long(r[0]), noise_to_long(r[1])] })
+        .collect();
+    let o = noise_to_long(e.offset);
+    lp.push([o, o]);
+    lp
 }
 
 impl SearchTreeNode {
-    // 子树 enclosing 距离（点不在子树任何维度范围内则累加，否则 0）
-    fn get_squared_distance(&self, vals: &[f64; 7]) -> f64 {
-        let mut dist = 0.0;
+    // 子树 enclosing 距离（i64 定点域；点不在子树任何维度范围内则累加，否则 0）
+    fn get_squared_distance(&self, vals: &[i64; 7]) -> i64 {
+        let mut dist: i64 = 0;
         match self {
-            SearchTreeNode::Branch { params, .. } | SearchTreeNode::Leaf { params, .. } => {
+            SearchTreeNode::Branch { lparams, .. } | SearchTreeNode::Leaf { lparams, .. } => {
                 for i in 0..NDIMS {
-                    let r = params[i];
-                    if r[0].is_nan() { continue; }
-                    let l = vals[i] - r[1];
-                    let m = r[0] - vals[i];
-                    let dd = if l > 0.0 { l } else { m.max(0.0) };
+                    let r = &lparams[i];
+                    if r[0] > r[1] { continue; } // 空范围哨兵（NAN 等价）
+                    let dd = long_range_distance(vals[i], r);
                     dist += dd * dd;
                 }
             }
@@ -46,22 +90,22 @@ impl SearchTreeNode {
         dist
     }
 
-    // 递归搜索最近叶子（剪枝：子树距离 >= best 则跳过）
-    fn get_resulting_node(&self, vals: &[f64; 7], best_dist: &mut f64, best: &mut String) {
+    // 递归搜索最近叶子（i64 距离；平局按参数表序 idx 取先——对齐 Java/C++ 树序第一个语义）
+    // @anchor.idk("平局 idx 序裁决是 Java 树遍历序的近似：跨 seed 出现跨树分支精确平局且参数表低 idx 行在遍历序后位时，可能与 vanilla 翻转（judge 260904-13 b3）；若未来出现成对互换型 biome 残差，第一嫌疑此处")
+    fn get_resulting_node(&self, vals: &[i64; 7], best_dist: &mut i64, best: &mut (String, usize)) {
         match self {
-            SearchTreeNode::Leaf { params, value } => {
-                let mut dist = 0.0;
+            SearchTreeNode::Leaf { lparams, value, idx, .. } => {
+                let mut dist: i64 = 0;
                 for i in 0..NDIMS {
-                    let r = params[i];
-                    if r[0].is_nan() { continue; }
-                    let l = vals[i] - r[1];
-                    let m = r[0] - vals[i];
-                    let dd = if l > 0.0 { l } else { m.max(0.0) };
+                    let r = &lparams[i];
+                    if r[0] > r[1] { continue; }
+                    let dd = long_range_distance(vals[i], r);
                     dist += dd * dd;
                 }
-                if dist < *best_dist {
+                if dist < *best_dist || (dist == *best_dist && *idx < best.1) {
                     *best_dist = dist;
-                    *best = value.clone();
+                    best.0 = value.clone();
+                    best.1 = *idx;
                 }
             }
             SearchTreeNode::Branch { sub, .. } => {
@@ -79,13 +123,15 @@ impl SearchTreeNode {
 // 构建 SearchTree（对齐 vanilla createNode：size<=6 排序，否则按维度分桶）
 fn build_search_tree(entries: &[BiomeEntry]) -> SearchTreeNode {
     if entries.is_empty() {
-        return SearchTreeNode::Leaf { params: vec![[f64::NAN; 2]; NDIMS], value: "minecraft:plains".to_string() };
+        return SearchTreeNode::Leaf { params: vec![[f64::NAN; 2]; NDIMS], lparams: vec![[i64::MAX, i64::MIN]; NDIMS], value: "minecraft:plains".to_string(), idx: usize::MAX };
     }
     if entries.len() == 1 {
         let e = &entries[0];
         let mut params = e.ranges.clone();
         params.push([e.offset, e.offset]);
-        return SearchTreeNode::Leaf { params, value: e.biome.clone() };
+        let mut lparams = entry_lparams(e);
+        let idx = e.idx;
+        return SearchTreeNode::Leaf { params, lparams, value: e.biome.clone(), idx };
     }
     if entries.len() <= 6 {
         // 排序（按各维中点绝对值之和）
@@ -101,10 +147,13 @@ fn build_search_tree(entries: &[BiomeEntry]) -> SearchTreeNode {
         let sub: Vec<SearchTreeNode> = sorted.iter().map(|e| {
             let mut params = e.ranges.clone();
             params.push([e.offset, e.offset]);
-            SearchTreeNode::Leaf { params, value: e.biome.clone() }
+            let lparams = entry_lparams(e);
+            let idx = e.idx;
+            SearchTreeNode::Leaf { params, lparams, value: e.biome.clone(), idx }
         }).collect();
         let params = enclosing(&sub);
-        return SearchTreeNode::Branch { params, sub };
+        let lparams = lenclosing(&sub);
+        return SearchTreeNode::Branch { params, lparams, sub };
     }
     // 分桶：选使 range 长度和最小的维度，按该维中点分桶
     let mut best_dim = 0;
@@ -151,7 +200,8 @@ fn build_search_tree(entries: &[BiomeEntry]) -> SearchTreeNode {
         build_search_tree(&chunk_owned)
     }).collect();
     let params = enclosing(&sub);
-    SearchTreeNode::Branch { params, sub }
+    let lparams = lenclosing(&sub);
+    SearchTreeNode::Branch { params, lparams, sub }
 }
 
 // 计算子树 enclosing 范围（7 维）
@@ -334,7 +384,7 @@ impl BiomeClassifier {
                 ranges.push(params.map(|p| read_box(&p.get(key).unwrap_or(&JsonValue::Null))).unwrap_or([f64::NAN; 2]));
             }
             let offset = params.and_then(|p| p.get("offset")).and_then(|o| o.as_f64()).unwrap_or(0.0);
-            rows.push(BiomeEntry { biome, ranges, offset });
+            rows.push(BiomeEntry { biome, ranges, offset, idx: rows.len() });
         }
         let tree = build_search_tree(&rows);
         BiomeClassifier { tree, carvers: std::collections::BTreeMap::new(), features: std::collections::BTreeMap::new() }
@@ -479,30 +529,32 @@ impl BiomeClassifier {
         if l > 0.0 { l } else { m.max(0.0) }
     }
 
-    // 对齐 vanilla NoiseHypercube.getSquaredDistance：6 维平方距离 + offset²，找最近邻
-    // 优化：SearchTree（KD-tree 剪枝）
+    // 对齐 vanilla MultiNoiseUtil：1e-4 定点 long 域最近邻（残 9 H2 修复，260904-13）
     pub fn biome_of(&self, tempf: &DensityFunction, humf: &DensityFunction, contf: &DensityFunction,
         erof: &DensityFunction, depthf: &DensityFunction, weirdf: &DensityFunction, pos: &NoisePos) -> String {
-        let t = tempf.sample(pos); let h = humf.sample(pos); let c = contf.sample(pos);
-        let e = erof.sample(pos); let d = depthf.sample(pos); let w = weirdf.sample(pos);
-        let vals = [t, h, c, e, d, w, 0.0]; // 7 维（offset 采样点=0）
-        let mut best_dist = f64::INFINITY;
-        let mut best = "minecraft:plains".to_string();
+        let vals = [
+            noise_to_long(tempf.sample(pos)), noise_to_long(humf.sample(pos)),
+            noise_to_long(contf.sample(pos)), noise_to_long(erof.sample(pos)),
+            noise_to_long(depthf.sample(pos)), noise_to_long(weirdf.sample(pos)),
+            0i64, // offset 采样点=0
+        ];
+        let mut best_dist = i64::MAX;
+        let mut best = ("minecraft:plains".to_string(), usize::MAX);
         self.tree.get_resulting_node(&vals, &mut best_dist, &mut best);
-        best
+        best.0
     }
 
-    /// 诊断：同 biome_of，但额外返回判定距离与 6 维采样值（biome 分类精度排查用，非热路径）
+    /// 诊断：同 biome_of，但额外返回判定距离（定点域 raw i64）与 6 维采样值（biome 分类精度排查用，非热路径）
     pub fn biome_of_debug(&self, tempf: &DensityFunction, humf: &DensityFunction, contf: &DensityFunction,
         erof: &DensityFunction, depthf: &DensityFunction, weirdf: &DensityFunction, pos: &NoisePos)
         -> (String, f64, [f64; 6]) {
         let t = tempf.sample(pos); let h = humf.sample(pos); let c = contf.sample(pos);
         let e = erof.sample(pos); let d = depthf.sample(pos); let w = weirdf.sample(pos);
-        let vals = [t, h, c, e, d, w, 0.0];
-        let mut best_dist = f64::INFINITY;
-        let mut best = "minecraft:plains".to_string();
+        let vals = [noise_to_long(t), noise_to_long(h), noise_to_long(c), noise_to_long(e), noise_to_long(d), noise_to_long(w), 0i64];
+        let mut best_dist = i64::MAX;
+        let mut best = ("minecraft:plains".to_string(), usize::MAX);
         self.tree.get_resulting_node(&vals, &mut best_dist, &mut best);
-        (best, best_dist, [t, h, c, e, d, w])
+        (best.0, best_dist as f64, [t, h, c, e, d, w])
     }
 }
 

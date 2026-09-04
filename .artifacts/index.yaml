@@ -796,3 +796,13 @@ entries:
     # 根因：worldgen_handle aquifer splitter 直传顶层 random_deriver()，漏 split_str("minecraft:aquifer").next_splitter()
     #（Java NoiseConfig.java:54）→ blob 随机偏移全错 → 干/水双向互换 + carver 域 deepslate→air 投影。
     # 现役 dll 基线更新：0D247E03 → 5E2ACB7F（resources 已同步）。残余 76（gravel↔sand surface 微族）独立未立项。
+
+  # === residual13（残 9 gravel→sand 定点分类收口，260904-13）===
+  - id: 're-code:lossless-accel:residual9-verdict-260904-13'
+    path: 'lossless-accel/residual9-verdict-260904-13.md'
+    kind: decision
+    status: candidate  # judge 同意 candidate 260904-13（复跑复现 12→3）；confirmed 待用户
+    # 根因：MC MultiNoise 分类器 = 1e-4 定点 long 域（toLong(v*10000F)），定点域精确平局由树序取先；
+    # Rust biome.rs f64 全精度未量化 → 平局点出 1e-9 假严格差 → 刀锋分类翻转（gravel↔sand 9 块）。
+    # 修复：biome.rs noise_to_long + i64 距离 + 参数表序平局。decisive 12→3（残 ore_vein 1 + aquifer 2 独立课题）。
+    # 现役 dll 基线更新：A82B7A8D → 561AFF49（resources 已同步）。

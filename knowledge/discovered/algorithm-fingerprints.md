@@ -431,3 +431,10 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - **时间/置信度/module**：260904-06，candidate（生产密度 dump + 静态结构互证，均布局无关；confirmed 留人类），MC worldgen 机制指纹。
 - **指纹**：aquifer `apply` 在 d≤0 时唯一把 block 翻成 stone 的路径是 barrier margin（`density+e>0` 三连 -1 翻转，aquifer.h:121-137 / aquifer.rs:327-338，三方零偏离——b3 十七项静态对拍）→ **|d| 极小（≈0.02，如 −0.024995 带）的 stone 带是 margin 高发区的签名**；「该处有 stone 但 d≤0」不是 density 写者 bug，先查 margin。C++ 消费环：worldgen_api.cpp:1040（block<0 → stone）。实测锚：WG_DBDEBUG 生产密度 (195,199) 列 y192-318 全负（−0.025/−0.458 带，按 y 直印、布局无关）。
 - **如何利用**：stone 带排查先看 d 剖面——d 微负（|d|≈0.02）+ 带状 → 直接归 margin（aquifer 高位水口袋 ~16 间距伴生），跳过「density 写者缺失」方向；d 显著正的 stone 才查 surface/ore 写者。注意 Rust 侧已知分叉：margin→air 丢 barrier stone（b3 发现，只影响幕帘构成）。证据：.investigations/lossless-accel/incident-layout-260904-06.md（硬数据存活清单）+ p4-reference-check-260904-06.md Facts #1。
+
+## 发现 #18: MC 1.20.1 MultiNoise biome 分类器是 1e-4 定点 long 域运算——f64 全精度复刻在精确平局点出 ~1e-9 假严格差，分类翻转（260904-13）
+- 时间/置信度/module：260904-13，candidate（Java mnDump NoiseValuePoint 直读 + 三源同点互证 + decisive 12→3；confirmed 留人类），MC worldgen 算法指纹。
+- 指纹：MultiNoiseUtil.toLong(v)=(long)(v*10000F)（先过 float），NoiseValuePoint 字段（temperatureNoise() 等）为 long 定点 getter、无 double getter；SearchNode 距离比较在 1e-4 定点 long 域，定点域精确平局由树遍历序取先（参数表行序靠前者胜）。f64 全精度复刻且不量化输入 → 同一输入定点域本应精确平局的两候选出 ~1e-9 假严格差 → 分类翻转。
+- 实例：残 9 gravel→sand（seed 8576294172403134396，pick cell (59,9,62)，t=0.200031787）：定点域 dist(deep_ocean)=dist(deep_lukewarm)=5041 精确平局 → 树序取 deep_ocean（gravel ✓）；f64 穷举差 1.01e-9 → deep_lukewarm（sand ✗）。
+- 判据：分类边界残差 + dbg_dist 呈「定点量化粒度」量级（如 5041 原始 i64、或 1e-9~1e-5 f64 微差）→ 先怀疑量化语义缺失，再查采样链。
+- 如何利用：任何 MultiNoise 分类器复刻必须复刻 toLong 量化（含 float 中转）+ long 域距离 + 平局取树序先——「数学更精确」的浮点距离 = 更错。证据：.artifacts/lossless-accel/residual9-verdict-260904-13.md + .tmp/p2full/res13-mndump4-260904-13.log。

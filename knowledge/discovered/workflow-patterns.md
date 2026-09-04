@@ -787,3 +787,10 @@ curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_c
 - **观察**：跨载具（C++/Rust 双实现）课题里，「C++ 已对齐某 Java 机制」不构成「Rust 也已对齐」的证据——两载具实装各自接线，同功能站点的接线清单可以单侧缺失。本轮 76 残差在 C++ 侧历史上已闭合，若以「C++ 无此问题」续推 Rust 会直接漏掉真根因。
 - **判据**：残差呈「交界处微族双向漂移」且单侧载具独有 → 优先怀疑该载具漏接某 Java 机制层；核对方式 = 对同一 Java 机制 diff 两侧载具所有功能站点（surface/carver/feature/…）的接线清单（seed 裸值 vs hashSeed、块级 vs cell 直读逐站点列出）；反向利用：C++ 侧曾闭合的同类课题修复 commit 就是 Rust 侧接线检查清单。
 - **如何利用**：跨载具对齐课题开工第一步先产出两侧「同功能站点接线清单」再分析残差；发现单侧缺站点即候选根因（本轮一轮定位）。
+
+## 发现 #45: 「同输入异分类」三源隔离法 + NoiseValuePoint 反射直读通道 + 探针坐标语义隔离（260904-13）
+- candidate（residual12→13 全链实证）；三子模式：
+- 45a 三源隔离法：同 seed 同 pick 同 6d 下 C++/Java/Rust 分类不一致 → 先确认三方距离运算域（定点 vs 浮点）再查采样链（O(1) vs O(链长)，先做便宜的）。配套：穷举语义「数学正确」候选 vs 树遍历语义实际胜者冲突时，穷举语义不可作 ground truth（本例穷举⇒deep_lukewarm，Java/C++ 实际⇒deep_ocean，错的是穷举本身）。
+- 45b NoiseValuePoint 无 double getter（全 long 定点字段）；反射 dump 方法表确认签名后取 *Noise() long getter 是唯一直读通道（mnDump 探针 -Pbiome6mnDump=x,y,z）。定性判据：直读值为 4-5 位整数（t=2000）而非 [-1,1] 浮点 → 到手即定点域原值。
+- 45c 探针直采 router DF 用 quart 坐标语义（t=0.1121）≠ 生产 biome 链 (px<<2) 块坐标语义（t=0.200032）——打印坐标≠采样坐标，BIOME6 直采值与分类输入不可互比（#17 坐标钉死律新实例：同探针两输出通道语义不同）。破局 = 生产语义路径（MultiNoiseSampler.sample 反射）直读。
+- 证据：.investigations/residual13/probeB-h2-260904-13.md + .artifacts/lossless-accel/residual9-verdict-260904-13.md §4.1/§4.3。
