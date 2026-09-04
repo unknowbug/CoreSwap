@@ -1,7 +1,7 @@
 # verdict-preload-check-260903-15 — 启动期 noise key 机械校验 + FixHelper 解压根治
 
 - session: 260903-15
-- 状态: **candidate**（Full 层验证完成，confirmed 待用户拍板）
+- 状态: **confirmed**（Full 层验证完成，用户拍板 260904-04）
 - 架构计划: `.investigations/000-架构设计/架构计划-260903-15-startup-check-and-fixhelper.md`
 
 ## 变更

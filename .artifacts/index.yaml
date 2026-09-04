@@ -772,3 +772,8 @@ entries:
     path: 'panic-505/panic-fix-verdict-260903-14.md'
     kind: analysis
     status: confirmed
+
+  - id: 're-code:preload-check:preload-check-260903-15'
+    path: 'preload-check/index.yaml'
+    kind: analysis
+    status: confirmed  # 用户授予 260904-04（连同 panic-505 一并拍板）

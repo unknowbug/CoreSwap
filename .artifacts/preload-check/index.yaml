@@ -1,7 +1,7 @@
 entries:
   - id: preload-check-260903-15
     title: 启动期 noise key 机械校验 + FixHelper 解压根治（#26 判据1 落地 + #15 根治）
-    status: candidate
+    status: confirmed
     session: 260903-15
     date: 2026-09-04
     verdict: .investigations/preload-check/verdict-preload-check-260903-15.md

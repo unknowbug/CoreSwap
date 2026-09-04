@@ -4,7 +4,7 @@
 > 架构计划：`.investigations/000-架构设计/架构计划-260903-14-surface505-panic立项.md`（用户已批准）。
 > **confirmed：用户拍板 260903-14（judge PASS + should-fix 清偿后）。**
 
-## 结论（candidate）
+## 结论（confirmed，用户拍板 260903-14）
 
 - **根因**：overworld surface 规则预加载 noise key 清单（worldgen_handle.rs L272-274 静态 8 key）缺 `minecraft:badlands_pillar_roof`——`place_badlands_pillar`（surface_rules.rs:1372，Java L214 对拍点）运行时 `get_noise` → :505 `expect` panic。仅 eroded_badlands biome 列且 e>0 时触发 → sweep 至 ~2304-2560 chunk 进入 badlands 区域才崩（延迟触发自洽）。
 - **修复**：清单补 `"minecraft:badlands_pillar_roof"`（一行）。
