@@ -806,3 +806,10 @@ entries:
     # Rust biome.rs f64 全精度未量化 → 平局点出 1e-9 假严格差 → 刀锋分类翻转（gravel↔sand 9 块）。
     # 修复：biome.rs noise_to_long + i64 距离 + 参数表序平局。decisive 12→3（残 ore_vein 1 + aquifer 2 独立课题）。
     # 现役 dll 基线更新：A82B7A8D → 561AFF49（resources 已同步）。
+
+  - id: 're-code:lossless-accel:bareseed-verdict-260904-13'
+    path: 'lossless-accel/bareseed-verdict-260904-13.md'
+    kind: decision
+    status: confirmed  # 用户拍板 260904-13（judge 三项 PASS 260904-12；decisive Δ0 无回归；修复 commit d942e4b）
+    # 根因：carver/feature biome_at_jitter 用裸 self.seed，Java region 级 BiomeAccess 统一 hashSeed → 接线统一为 biome_access_seed。
+    # 区域内无可观察效应（#20 死参数自检），但跨区域/跨 seed 语义风险消除。
