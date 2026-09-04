@@ -4,7 +4,7 @@ index:
 entries:
   - id: vulkan-gpu-operator-p05-verdict
     title: GPU 算子重立项 Phase 0.5 判决——批量化前提不成立 + shared 臂假开销根因定论
-    status: candidate          # confirmed 待用户拍板
+    status: confirmed           # 用户拍板 260903-16（"OK，明白了，确认"）
     judge: PASS (4 CONCERN 记录卫生，已清偿)  # review-260903-16-shared-arm-rootcause.md
     date: 260903-16
     conclusions:
