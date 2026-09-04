@@ -192,6 +192,7 @@ est=24 语义：preliminary surface（阈值 0.39）落在 y≈24，而 NOISE �
 
 - **原 43/11「OOB」本质收窄为：两臂在同一幕帘上的作画边界微差（43 点 / 数万幕帘点）**——不是 mod 特有病理。
 - **对 vanilla 的真根因上移到 NOISE**：vanilla 该区域 y≥~201 无 stone（vanilla 表面 ~200），而 C++/Rust NOISE 都给出 d>0 幕帘 → **「0<d≤0.39 幕帘」是 C++ 与 Rust 共有的 NOISE↔vanilla 分叉，是比 surface 写者更大的靶子**。与上轮「Rust NOISE 对齐 C++」不矛盾——两者可能一起偏离 vanilla（C++ 探针与 vanilla 未在幕帘区逐位对比过）。
+  > ⚠️ **已被取代（260904-06 幕帘线）**：「vanilla y≥201 无 stone」为参照误读（P4 实测 131 stone 族块），幕帘 = vanilla 正常机制（aquifer barrier margin，d 实测全负）；本段推论作废。见 `.artifacts/lossless-accel/curtain-verdict-260904-06.md`。
 
 ### 9.4 剩余分叉与下一步（收敛建议）
 

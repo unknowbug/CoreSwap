@@ -1,7 +1,7 @@
 # 写者裁决 v2：OOB dirt/sand 写者 = Rust SURFACE（candidate，260904-06）
 
 > **supersedes**: `writer-verdict-260905.md`（双跑伪影 best-explanation）
-> **superseded-by**: （无）
+> **superseded-by**: `curtain-verdict-260904-06.md`（仅结论 3 与结论 1 中的「幕帘 = 共有 vanilla 偏离」表述被取代——P4 实测参照误读；结论 1/2 不受影响，见 review-judge-curtain-supersedes-260904-06.md §波及面）
 > **推翻理由一行**: stageMask=3 修复链路运行时重导后 OOB dirt 未消失、E1 跳过 Rust SURFACE 后 (195,199) 列 dirt/sand/gravel 全清空——写者是 Rust SURFACE 而非双跑伪影。
 > **status**: candidate（judge PASS-with-conditions，review-judge-260904-06-writer.md，C1-C6 补正已应用；confirmed 留人类）
 > **§9.7 口径**: 载体 = mod cppReplace 链（dll ec4a9aed，stageMask=3）block_probe FULL 导出 vs C++ NOISE+SURFACE 导出；覆盖面 = 4×4 @ chunk(200,200) seed 8576294172403134396；与 260905 轮口径可比（同域同 seed，执行体状态不同已在文中声明）。

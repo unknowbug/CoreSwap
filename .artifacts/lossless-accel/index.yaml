@@ -92,3 +92,39 @@ entries:
     path: '../lossless-accel/fanout-writer-260904-06/review-judge-260904-06-writer.md'
     kind: review
     status: candidate
+
+  # === 260904-06 幕帘线（scout + fan-out b1/b2/b3 + P4 参照复验 + 取代裁决，judge PASS-with-conditions C1-C5 已应用）===
+  - id: 'lossless-accel:curtain-scout-260904-06'
+    path: '../lossless-accel/curtain-scout-260904-06/map.md'
+    kind: scout
+    status: draft  # P3 表述已被 b2 勘误；P4 判据命中真 bug
+  - id: 'lossless-accel:curtain-b1-density-tree'
+    path: '../lossless-accel/fanout-curtain-260904-06/b1-density-tree.md'
+    kind: analysis
+    status: draft  # B1 停推：对象消失（P4 参照误读）；§2 静态预测被数据逐位吻合佐证
+  - id: 'lossless-accel:curtain-b2-est-divergence'
+    path: '../lossless-accel/fanout-curtain-260904-06/b2-est-divergence.md'
+    kind: analysis
+    status: draft  # B2 排除出幕帘成因集（维持有效）；idk-4 已闭合
+  - id: 'lossless-accel:curtain-b3-aquifer-fluid'
+    path: '../lossless-accel/fanout-curtain-260904-06/b3-aquifer-fluid.md'
+    kind: analysis
+    status: draft  # B3 原命题排除（维持有效）；P-4 已证伪标注；Rust margin→air 单臂偏离为其独立贡献
+  - id: 'lossless-accel:curtain-p4-reference-check'
+    path: '../lossless-accel/fanout-curtain-260904-06/p4-reference-check-260904-06.md'
+    kind: analysis
+    status: candidate  # 判定性事实底账（judge 独立重跑复现）
+  - id: 'lossless-accel:curtain-verdict-260904-06'
+    path: 'curtain-verdict-260904-06.md'
+    kind: decision
+    status: candidate  # 幕帘=vanilla 正常机制；取代 writer-verdict-260904-06 结论 3；judge PASS-with-conditions
+    supersedes:
+      - 'lossless-accel:writer-verdict-260904-06'  # 仅结论 3（幕帘=共有 vanilla 偏离）；结论 1/2 不受影响
+  - id: 'lossless-accel:judge-curtain-supersedes-260904-06'
+    path: '../lossless-accel/fanout-curtain-260904-06/review-judge-curtain-supersedes-260904-06.md'
+    kind: review
+    status: candidate
+  - id: 'lossless-accel:heightmap-criterion-divergence-260904-06'
+    path: 'heightmap-criterion-divergence-260904-06.md'
+    kind: analysis
+    status: draft  # Rust terrain.rs d>0 vs C++/Java 非 air；修复另立微计划

@@ -108,3 +108,7 @@ final = min(squeeze(0.64·interpolated(blend_density(inner))), noodle)（`overwo
 - vanilla 该域「无 stone」引用自 convergence 裁决，本臂未独立复验参照 .blocks（map §5 P4 保留，未做）。
 - C++ 运行时 worldgenDir 实参是否恒指 `versions\1.20.1\data\worldgen` 同目录：由调用方传入（worldgen_api.cpp:345），本臂未追 Java 装载侧——若两臂实际读不同 JSON 拷贝，B1a 的「共享」前提削弱，需先核实（廉价：block_probe 日志或装载侧 grep）。
 - 本产物为纯静态审查，无数据层验证轮次；retry 计数不适用（未进入验证循环）。
+
+## 7. 终局标注（260904-06 幕帘线收敛）
+
+**对象消失，停推**：P-B1-2 执行中 P4 参照复验证实「vanilla y≥201 无 stone」为参照误读（实测 131 stone 族块），幕帘 = vanilla 正常机制（aquifer barrier margin，C++ 生产密度实测全负且与本文 §2 静态预测 −0.458/−0.025 逐位吻合）——B1「共有密度抬升」失去对象，本文候选不再推进。idk-108（未独立复验参照）即命中真 bug 的诚实声明。见 `.artifacts/lossless-accel/curtain-verdict-260904-06.md`。

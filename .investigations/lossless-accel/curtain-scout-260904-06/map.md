@@ -1,6 +1,7 @@
 # NOISE stone 幕帘（0<d≤0.39，y≈192-318）勘探地图（260904-06，recode.scout）
 
 > status: draft（勘探产物，只含代码位置与互斥候选盘点，不下结论）
+> ⚠️ **课题前提已被取代（260904-06 幕帘线收敛）**：本文所载「vanilla y≥201 无 stone / 共有 vanilla 偏离」框架为参照误读——P4 实测 vanilla 参照列含 131 stone 族块，幕帘 = vanilla 正常机制（aquifer barrier margin）。本文代码位置/探针盘点仍有效，「共有偏离」相关推论作废。见 `.artifacts/lossless-accel/curtain-verdict-260904-06.md`。
 > 范围：「C++/Rust 共有 vanilla 偏离」新调查线的前置机理地图 + 探针盘点
 > 前置裁决（已定，勿重查）：`.artifacts/lossless-accel/writer-verdict-260904-06.md` + `../fanout-writer-260904-06/convergence-260904-06.md`
 > 约束遵守：只读勘探，未修改任何源码/数据；本文为唯一产物。

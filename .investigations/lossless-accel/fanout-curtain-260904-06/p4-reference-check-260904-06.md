@@ -9,7 +9,7 @@
    y256-318 = **−0.02**（b1 理论地板 −0.025 同量级），y192-255 = −0.46，y180-319 **全负**。
    → **「幕帘 = 0<d」前提在 C++ 臂证伪**。C++ 导出的幕帘 stone 不来自 d>0，只能来自 aquifer barrier margin（`density+e>0` 翻转，aquifer.h:121-137）——|d|=0.02 正是 margin 高发区。
 2. **点采 vs 生产一致**：density_probe -dfDump final_density @ (195,199) y192-232 = −0.458 恒定（≈生产 −0.46）——插值语义无异常。
-3. **P4 命中：vanilla 参照列 (195,199) y180-319 含 99 个 stone 族块**（stone 99 + granite 24 + copper_ore 7 + iron_ore 1，`.tmp/p2full/ref_check_p4_260904-06.py` 输出）——**「vanilla y≥201 无 stone」为参照误读，writer-verdict-260904-06「真根因上移 NOISE」推理前提失效**。
+3. **P4 命中：vanilla 参照列 (195,199) y180-319 含 131 个 stone 族块**（stone 99 + granite 24 + copper_ore 7 + iron_ore 1（judge C2 措辞补正：族总数 131，「99」仅 stone 单项），`.tmp/p2full/ref_check_p4_260904-06.py` 输出）——**「vanilla y≥201 无 stone」为参照误读，writer-verdict-260904-06「真根因上移 NOISE」推理前提失效**。
 4. **幕帘在三方都存在**：vanilla ref / C++ 导出 / mod 导出同列同带均有 stone 幕帘 → **幕帘 = vanilla 正常机制产物，非 C++/Rust 共有偏离**。 aquifer 高位水口袋（~16 间距）+ barrier margin stone 在 vanilla 同构存在（b3 已证 aquifer 三方 17 项零偏离——自洽）。
 5. **真实残差现形（本列 y180-319，32 块全部同型）**：`C++ stone ← vanilla granite/copper_ore/iron_ore`——**C++ 缺高 y granite/copper 写者**（y 185-231，超出 oreVein y≤50 硬门 ore_vein.h:46；也超出 b3 亲核的 feature 上界 granite 128 / copper 112——vanilla y 217-229 granite 的写者身份成为新 idk）。
 6. 列剖面另见 grass/water 交替（y 67-214 段，两臂逐位一致）——真实地形或 id 映射问题未查（新 idk，#8 raw id 家族嫌疑）。

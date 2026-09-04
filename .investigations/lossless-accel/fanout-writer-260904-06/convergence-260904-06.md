@@ -10,6 +10,7 @@
 - mod NOISE（与 C++ 共有）在 y≈192-318 产出「stone 幕帘」：stone/granite/copper_ore 交替 run，run 间含水层 water 口袋（col(195,198)：water @ 197,212,228,244,261,277,~16 间距）→ **16 周期 = 幕帘 run + aquifer 流体打断的复合结构**。
 - 两臂 surface 都在幕帘上刷 dirt（E2 臂全列 OOB dirt 4618 点）；mod↔C++ 的 43/11 只是作画边界微差。
 - **真根因上移 NOISE**：vanilla 该区域 y≥201 无 stone → 「0<d≤0.39 幕帘」是 C++/Rust 共有的 NOISE↔vanilla 分叉（新调查线，未开）。
+  > ⚠️ **已被取代（260904-06 幕帘线）**：本行为参照误读——P4 实测 vanilla ref 列 (195,199) y180-319 含 131 stone 族块；幕帘 = vanilla 正常机制（aquifer barrier margin）。见 `.artifacts/lossless-accel/curtain-verdict-260904-06.md`。
 - **(d) m2 裁决（judge C3 整合）**：est 本体六维零语义差（步长 8/域 [320,-64]/阈值 0.390625/DF=without_jaggedness/哨兵 INT32_MAX/四角 +16）；**唯一真分叉 = heightmap 填充判据**：C++ `block != air`（含水）vs Rust `d > 0.0`（不含水）→ 仅「顶块=水」的开放海洋列两臂扫描起点/fluid_height 不同（(244) 列 sda=48/fluid_height=MIN 即此签名）。195 列（顶块 stone）不受此影响，指向 m1 NOISE 分类边界或规则树内容差 → **新线范围须含：海洋列 heightmap 判据分叉（部分 (244) 类差异归属此处，不能全记 NOISE 幕帘）**。
 - **⚠️ 结构写者混杂警示（judge C4，源自 b2 §3.2）**：vanilla ref 列 (195,199) 自有深 dirt @ -59..-42，超出 features 可达域——新线三方列剖面对比 MUST 控制 structures（fossil/trail_ruins/ocean_ruins 等）混杂，避免把结构写入误归 NOISE/surface。
 - id 970 = **deepslate**（applied 于 y=-58 ≤0 深板岩梯度，合理）。

@@ -71,7 +71,7 @@
 - **P-1（est 高位）**：seed 8576294172403134396 / chunk(200,200) 域幕帘列（如 195,199）的 est ≳ 200。若实测 est ≈ 30-60（正常海洋），则水口袋不可能由 aquifer 产生 → 复合结构模型崩塌，B3/B2 全线升级重查。
 - **P-2（Rust stone=d>0 恒等式）**：Rust 幕帘列 stone 集合 == {y : d>0}（terrain.rs:232 路径推论）。出现 stone 但 d≤0 的点 → classify/消费环另有 bug。
 - **P-3（C++ margin 贡献上限）**：C++ 幕帘列 stone ⊇ {d>0}，超出部分仅存在于 y ≤ est+20 区段且伴随 [AQF-e] SOLID 轨迹；y > est+20 区段 C++ 与 Rust stone 集合相同。
-- **P-4（vanilla 空)）**：vanilla 同列 initialDensity 在 192-318 全 ≤ 0.390625 且无 stone/口袋（convergence 已有世界图景，此为独立自证 P4）。
+- **P-4（vanilla 空)）**：~~vanilla 同列 initialDensity 在 192-318 全 ≤ 0.390625 且无 stone/口袋~~ **❌ 已证伪（260904-06）**：P4 实测 vanilla ref 列 (195,199) y180-319 含 131 stone 族块——「vanilla 无 stone」前提为参照误读；幕帘 = vanilla 正常机制。见 `.artifacts/lossless-accel/curtain-verdict-260904-06.md`。
 
 探针模板（全部主会话执行， Degraded→Partial/Full 升级凭此）：
 1. **est 实测（P-1）**：C++ `WG_ESTDUMP=1 WG_ESTDUMP_X=195 WG_ESTDUMP_Z=199`（worldgen_api.cpp:1090-1097）；Rust `WG_EST_DUMP=<path>` 四角（worldgen_handle.rs:587-601）；vanilla RouterProbe ESH 同列。三查 seed/坐标语义先行（scout map B6）。
