@@ -1,0 +1,6 @@
+# Phase 0.5 实验② — CPU 基线对照（l2-only 臂，260903-16，主会话执行）
+# 探针: pc_e2e_bench.exe；env WG_EST_L2=1 WG_EST_SHARED=0；同 seed/region/256 chunks
+[RESULT] chunks=256 total=7521.3ms avg=29.38ms median=27.50ms min=23.84ms max=80.84ms
+# 判读: 27.50 ≈ 27.69（estopt-perf-260903-11 l2-only 历史）→ H1 成立：
+#   **shared 臂(default)额外中位开销 ~10.2ms/chunk（37.67 vs 27.50）**，min 基本不变（23.84 vs 24.53）→ 尾部变重。
+#   机器漂移(H2)排除。同机同日三臂: l2-only 27.50 / default(l2+shared) 37.67。

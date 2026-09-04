@@ -1,0 +1,14 @@
+# Phase 0.5 实验① — qpd1 段级分解（l2+shared default 口径，260903-16，主会话执行）
+# 探针: qpd1_stage_bench.exe（rustc 单编当日）；seed=8576294172403134396 region=(200,200) 64 chunks/配置
+# 口径(§9.7): 与 260903-09 q-pd1（off 臂 62ms）同探针同 region 可比；本轮=default（WG_EST_L2+SHARED 已翻默认）
+=== qpd1_stage_bench (260903-09) seed=8576294172403134396 region=(200,200) size=8 ===
+[FULL] median=25.87ms
+[no-features] median=25.51ms
+[no-carver+features] median=25.99ms
+[no-surface+carver+features] median=20.97ms
+[no-orevein+surface+carver+features] median=19.86ms
+[no-aquifer+orevein+surface+carver+features] median=14.06ms
+[STAGE] density/interp=14.06 aquifer=5.80 orevein=1.11 surface=5.02 carver=-0.48 features=0.35
+[CHECK] sum_parts=25.87 vs FULL=25.87 diff=0.00 (0.0%)   ← 差分自洽通过，工具健康
+# 关键读数: l2+shared 口径下 density/interp 底座 = 14.06ms（占 54%，最大单段）；
+#   aquifer 段 est L2 后仅 5.80ms（off 臂曾 ~37ms）

@@ -1,0 +1,22 @@
+index:
+  topic: vulkan-gpu-operator
+  session: 260903-16
+entries:
+  - id: vulkan-gpu-operator-p05-verdict
+    title: GPU 算子重立项 Phase 0.5 判决——批量化前提不成立 + shared 臂假开销根因定论
+    status: candidate          # confirmed 待用户拍板
+    judge: PASS (4 CONCERN 记录卫生，已清偿)  # review-260903-16-shared-arm-rootcause.md
+    date: 260903-16
+    conclusions:
+      - "GPU 批量化 (a)合批/(c)混合 出局：fill 固定成本 F≈8ms/fill 仅 ~0.6% 收益空间；n=6144 时 88% 为边际计算（c≈0.233ms/点，与 260903-08 旧读数一致，结构未漂移）"
+      - "GPU (b) 全树单 dispatch 唯一活口但 Amdahl 封顶：可替换段 = density/interp 底座 14.06ms/chunk（qpd1 l2+shared default 口径，占 54%）；有意义需 <4.5ms（对标 8 线程）；挂起待重估"
+      - "shared 臂假开销根因定论（supersedes p05-worker-解读 H1）：default 37.67 vs l2-only 27.50 的 +10ms = 并发 GPU bench 测量污染，非实现开销；机制上 shared 臂不可能 +10ms（4 角调用、缓存命中、miss 路径与非 shared 逐行等价）"
+      - "CPU default 基线更正：~27.5-28.5ms/chunk（干净三臂：l2-only 27.50 / default 复跑 28.46 / qpd1 FULL 25.87[64ch 口径]）；37.67 作废"
+    superseded:
+      - target: .investigations/vulkan-gpu-operator/p05-worker-解读-260903-16.md#H1
+        reason: "H1（shared 臂固有开销）被并发污染归因推翻——37.67 为孤例离群，与 GPU bench 共存 wall 是唯一异常"
+    evidence:
+      - .investigations/vulkan-gpu-operator/cmd-output/（5 份，见各文件 §9.7 口径声明）
+      - .investigations/vulkan-gpu-operator/shared-arm-errors.md（E1）
+      - .investigations/vulkan-gpu-operator/review-260903-16-shared-arm-rootcause.md
+      - .investigations/vulkan-gpu-operator/scout-管线地图-260903-16.md

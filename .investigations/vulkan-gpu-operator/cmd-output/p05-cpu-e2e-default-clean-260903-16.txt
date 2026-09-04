@@ -1,0 +1,10 @@
+# Phase 0' 复核实验 — pc_e2e default 臂干净复跑（260903-16，主会话执行，无并发任务）
+[RESULT] chunks=256 total=7683.0ms avg=30.01ms median=28.46ms min=24.35ms max=82.50ms
+# 判读: 28.46 ≈ l2-only 27.50 ≈ qpd1 FULL(default) 25.87 → 同一水平。
+#   早前 37.67 判定为**并发污染**（与 gpu_mt_wall_retest 70-100s 管线编译+412 次 fill 同时段后台并发）。
+#   shared 臂无固有开销，H1 推翻；CPU default 基线应为 ~27.5-28.5ms/chunk（非 37.67）。
+# 三臂汇总（同机同日 260903-16）:
+#   l2-only          27.50（干净）
+#   default 干净复跑  28.46（干净）
+#   default 首跑      37.67（污染，作废）
+#   qpd1 FULL 64ch   25.87（default 干净，64 chunk 口径略低）

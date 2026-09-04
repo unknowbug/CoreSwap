@@ -1,0 +1,24 @@
+# Phase 0.5 V1 廉价验证 — GPU fill wall 复跑（260903-16，主会话执行）
+# 探针: gpu_mt_wall_retest.exe（rustc 单编 2026-09-04 10:47，#16 ✅）
+# 口径: seed=-8248318472910187742 spv=final_density.spv dll=gpu_ffi.dll；8 chunks 1568 角点集
+# 设备: NVIDIA GeForce RTX 4060 Laptop GPU
+=== gpu_mt_wall_retest (260903-08, P-C2) ===
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[n=8] round 1: serial=205.82ms parallel=193.70ms ratio(par/ser)=0.941×
+[n=8] round 2: serial=197.09ms parallel=194.74ms ratio(par/ser)=0.988×
+[n=8] round 3: serial=204.57ms parallel=192.78ms ratio(par/ser)=0.942×
+[n=8] round 4: serial=192.01ms parallel=190.27ms ratio(par/ser)=0.991×
+[n=8] round 5: serial=191.61ms parallel=193.34ms ratio(par/ser)=1.009×
+[n=8] MEDIAN serial=197.09ms parallel=193.34ms ratio=0.981× (mutex 真串行化预期 ≈1.0×)
+[n=6144] round 1: serial=29279.50ms parallel=28486.40ms ratio(par/ser)=0.973×
+[n=6144] round 2: serial=28425.51ms parallel=28851.27ms ratio(par/ser)=1.015×
+[n=6144] round 3: serial=28727.68ms parallel=28322.86ms ratio(par/ser)=0.986×
+[n=6144] round 4: serial=28201.01ms parallel=29193.63ms ratio(par/ser)=1.035×
+[n=6144] round 5: serial=28932.27ms parallel=28556.92ms ratio(par/ser)=0.987×
+[n=6144] MEDIAN serial=28727.68ms parallel=28556.92ms ratio=0.994× (mutex 真串行化预期 ≈1.0×)
+[sync-check] fill-return-immediate-valid: mismatch=0/6144 → SYNCHRONOUS（返回即可用）
+[count] total fill calls = 412
+=== done ===
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+# 换算: n=8 ~9.85ms/fill（每 fill 8 点）；n=6144 ~1436ms/fill —— 与 260903-08 旧读数（~10 / ~1375ms）同量级，GPU fill 固定成本结构未漂移

@@ -1,0 +1,9 @@
+# Phase 0.5 V1 廉价验证 — CPU e2e 基线复跑（260903-16，主会话执行）
+# 探针: pc_e2e_bench.exe（rustc 单编 2026-09-04 10:47，target/release，#16 新鲜度核对 ✅）
+# 口径: seed=8576294172403134396 region=(200,200) 16x16=256 chunks 单线程 WG_GPU_CHANNELS=OFF（默认）
+# 口径声明(§9.7): 载体=pc_e2e_bench 全管线 fill_chunk_blocks；覆盖面=256 chunks 大样本中位数；
+#   与既有口径可比性=与 260903-08 pc1-e2e（off 臂 76.93ms）同探针同 region 同 seed 可比；
+#   与 NEXT_SESSION 27.69ms（estopt_mt_bench/est L2 口径）载体不同——可比性待 worker 判读。
+[create] 109.1 ms
+[warmup] 8 chunks done (region 400,400, 区外)
+[RESULT] chunks=256 total=9485.0ms avg=37.05ms median=37.67ms min=24.53ms max=88.44ms
