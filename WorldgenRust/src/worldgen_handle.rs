@@ -615,8 +615,9 @@ impl WorldgenHandle {
         // BiomeAccess.hashSeed=sha256-asLong）→ MaterialRuleContext.initVerticalContext L464 用
         // posToBiome.apply(精确块坐标) → BiomeAccess.getBiome 8 邻域 jitter 选点（非单元直读）。
         // C++ 侧 biomeCellKey（worldgen_api.cpp L1080）同构；此前 Rust surface 用单元直读漏 zoom。
-        // 注意：与 carver/feature 侧 biome_at_jitter（裸 self.seed，L702/829）seed 口径不同——
-        // 该疑点本轮无残差证据支撑，不动（#36 覆盖面声明；见残留 76 verdict）。
+        // 注意：carver/feature 侧 biome_at_jitter 原用裸 self.seed（L722/849），与 Java region 级
+        // BiomeAccess（hashSeed）口径不符——260904-12 已统一改 biome_access_seed（裸 seed 疑点收口，
+        // decisive 重导验证中）。
         let biome_at_surface = |x: i32, y: i32, z: i32| -> String {
             let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
             let bp = NoisePos { x: px << 2, y: py << 2, z: pz << 2 };
@@ -719,7 +720,7 @@ impl WorldgenHandle {
         };
         // biomeAtJitter：8 邻域 jitter（applyMaterialRule 用）
         let biome_at_jitter = |x: i32, y: i32, z: i32| -> String {
-            let (px, py, pz) = crate::biome::biome_pick_cell(self.seed, x, y, z);
+            let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
             let bp = NoisePos { x: px << 2, y: py << 2, z: pz << 2 };
             self.biomesrc.biome(&bp)
         };
@@ -846,7 +847,7 @@ impl WorldgenHandle {
         };
         // biomeAtJitter：8 邻域 jitter（posToBiome 用）
         let biome_at_jitter = |x: i32, y: i32, z: i32| -> String {
-            let (px, py, pz) = crate::biome::biome_pick_cell(self.seed, x, y, z);
+            let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
             let bp = NoisePos { x: px << 2, y: py << 2, z: pz << 2 };
             self.biomesrc.biome(&bp)
         };
