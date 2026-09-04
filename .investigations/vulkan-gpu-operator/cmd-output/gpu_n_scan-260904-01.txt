@@ -1,0 +1,45 @@
+=== gpu_n_scan (260903-17, GPU-(b) re-eval) ===
+[meta] strict-serial single-thread; seed=-8248318472910187742; per-chunk pts=768 (corner 口径同 260903-04/08)
+[meta] build-time: see exe LastWriteTime (核 #16: bin-diag 用前必须核产物时间戳)
+[GPU] compiling pipeline (one-time ~70-100s)...
+[GPU] pipeline ready, splitTotal=8672 perSample=352 splineBindBase=6
+[n=768] round 1/7: 169.76ms
+[n=768] round 2/7: 188.13ms
+[n=768] round 3/7: 200.43ms
+[n=768] round 4/7: 201.09ms
+[n=768] round 5/7: 179.28ms
+[n=768] round 6/7: 178.85ms
+[n=768] round 7/7: 188.08ms
+[n=768] chunks=1 MEDIAN=188.08ms  per-pt=0.2449ms  per-chunk(768pt)=188.08ms
+[n=6144] round 1/7: 1383.68ms
+[n=6144] round 2/7: 1434.75ms
+[n=6144] round 3/7: 1374.77ms
+[n=6144] round 4/7: 1446.64ms
+[n=6144] round 5/7: 1390.65ms
+[n=6144] round 6/7: 1496.23ms
+[n=6144] round 7/7: 1461.64ms
+[n=6144] chunks=8 MEDIAN=1434.75ms  per-pt=0.2335ms  per-chunk(768pt)=179.34ms
+[n=49152] round 1/7: 11609.43ms
+[n=49152] round 2/7: 11420.25ms
+[n=49152] round 3/7: 11448.64ms
+[n=49152] round 4/7: 11308.67ms
+[n=49152] round 5/7: 11188.91ms
+[n=49152] round 6/7: 11402.33ms
+[n=49152] round 7/7: 11603.38ms
+[n=49152] chunks=64 MEDIAN=11420.25ms  per-pt=0.2323ms  per-chunk(768pt)=178.44ms
+[n=196608] round 1/7: 46652.28ms
+[n=196608] round 2/7: 45626.84ms
+[n=196608] round 3/7: 46580.06ms
+[n=196608] round 4/7: 45794.78ms
+[n=196608] round 5/7: 45325.24ms
+[n=196608] round 6/7: 45797.18ms
+[n=196608] round 7/7: 45651.61ms
+[n=196608] chunks=256 MEDIAN=45794.78ms  per-pt=0.2329ms  per-chunk(768pt)=178.89ms
+--- marginal cost (相邻档差分) ---
+[768→6144] marginal=0.2319ms/pt  delta_t=1246.67ms
+[6144→49152] marginal=0.2322ms/pt  delta_t=9985.51ms
+[49152→196608] marginal=0.2331ms/pt  delta_t=34374.53ms
+[sanity] n=768 output nonzero: 768/768 (非零面需 >0)
+=== done (strict serial, no concurrent bench during run) ===
+[device] NVIDIA GeForce RTX 4060 Laptop GPU
+[verify-rec] 采集完成核验（260904-01 补记，judge CONCERN-3）：exe=WorldgenRust/target/release/gpu_n_scan.exe LastWriteTime=2026-09-04 12:00:07（rustc 单编后核，#16）；采集方式=后台单任务串行、运行期间无其他 bench/后台 job（#28）；wall-clock 记录=同日 12:01-12:12 区间（job pwsh-6 完成）；输出 768/768 非零，exit 0

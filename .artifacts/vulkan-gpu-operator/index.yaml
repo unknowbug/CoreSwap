@@ -1,6 +1,6 @@
 index:
   topic: vulkan-gpu-operator
-  session: 260903-16
+  session: 260904-01        # session-history: 260903-16 → 260904-01
 entries:
   - id: vulkan-gpu-operator-p05-verdict
     title: GPU 算子重立项 Phase 0.5 判决——批量化前提不成立 + shared 臂假开销根因定论
@@ -20,3 +20,30 @@ entries:
       - .investigations/vulkan-gpu-operator/shared-arm-errors.md（E1）
       - .investigations/vulkan-gpu-operator/review-260903-16-shared-arm-rootcause.md
       - .investigations/vulkan-gpu-operator/scout-管线地图-260903-16.md
+  - id: vulkan-gpu-operator-p05b-verdict
+    title: GPU (b) 全树单 dispatch 终局出局——n 扫描边际成本全档平坦，批量摊薄不存在
+    status: confirmed            # 用户拍板 260904-01（"OK，确认"，含「无损复用当前管线派全灭」范围界定）；judge PASS-with-CONCERN（review-260904-01-p05b.md，4 CONCERN 已清偿）
+    date: 260904-01
+    conclusions:
+      - "(b) 全树单 dispatch 终局出局：n 扫描（768/6144/49152/196608 点，严格串行，260904-01）边际成本 0.2319/0.2322/0.2331 ms/pt 在测量噪声内平坦——当前 shader 管线下放大批次至 256 chunks 边际无摊薄趋势，(b) 立项前提（放大批次摊薄）被否决（注：本条限于当前管线，不构成对 shader 重写降 c 本身的判决）"
+      - "per-chunk 折算 178.4–188.1ms（768pt corner 口径），距 (b) 立项判据 <4.5ms/chunk（260903-12 重议条件）差 ~40×；vs CPU default 基线 27.5–28.5ms/chunk 慢 ~6.3–6.5×——(b) 即使立项亦负收益"
+      - "旧读数结构一致性核验通过（廉价独立验证）：本轮 n=6144 per-pt 0.2335 与 260903-16 c≈0.233 吻合（<0.3%）；旧 F≈8ms 为 n=8 小批固定成本口径，本轮最小档 n=768 不适用该两点分解（反推截距 ~10ms 量级一致，仅作数量级核验，不作 F 更新）——结构未漂移"
+      - "GPU 批量化三候选全灭收束：(a)/(c) 260903-16 出局 + (b) 本轮出局；当前 GPU density 通路仅保留诊断/对拍价值，性能主线回归 CPU 侧（C2ME 式 DFC 编译直排方向）"
+    superseded:
+      - target: ".artifacts/vulkan-gpu-operator/index.yaml#vulkan-gpu-operator-p05-verdict (conclusions[1]『(b) 唯一活口但挂起待重估』)"
+        reason: "n 扫描证据否决挂起前提：49152+ 点边际成本不下降（0.2322 ms/pt），重估条件已判定，(b) 由挂起改终局出局"
+    judge: "PASS-with-CONCERN（4 CONCERN 已清偿，见 review-260904-01-p05b.md）"
+    evidence:
+      - .investigations/vulkan-gpu-operator/cmd-output/gpu_n_scan-260904-01.txt   # 严格串行(#28)，末尾含 [verify-rec] 核验补记（exe 2026-09-04 12:00:07，#16/#29）
+      - .investigations/vulkan-gpu-operator/p05b-worker-解读-n扫描-260903-17.md   # worker 草稿；文中日期标签 260903-17 经 CONCERN-4 修正为 260904-01（留痕见 review）
+      - .investigations/vulkan-gpu-operator/review-260904-01-p05b.md
+      - .investigations/vulkan-gpu-operator/scout-管线地图-260903-16.md
+    comparability_9_7:
+      carrier: "gpu_ffi_fill 同步调用含 readback（split 上传 + 5 通道串行 dispatch + fence 等待 + readback 全链）"
+      coverage: "corner 采样点密度值（768pt/chunk，同 260903-04/08 口径）；不含后续 trilerp/combine/surface/carver 阶段"
+      consistency: "与 260903-08/16 同 seed(-8248318472910187742)/同 spv/同 gpu_ffi.dll/同坐标口径，结构对比成立"
+    sanity:
+      - "n=768 输出 768/768 非零"
+      - "seed=-8248318472910187742 同 260903-04/08 口径"
+      - "device: RTX 4060 Laptop；严格串行无并发 bench（#28）"
+    retry: 1
