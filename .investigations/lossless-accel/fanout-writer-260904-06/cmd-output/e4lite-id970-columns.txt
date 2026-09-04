@@ -1,0 +1,63 @@
+# [header] seed=8576294172403134396 | dll=WorldgenRust.dll sha256=ec4a9aed... (2026-09-03 23:47) | stageMask=3 | java resources 同 hash | benchOrigin=(200,200) size=4 FULL
+(a) id 970 = deepslate ; id 970 in blocks.json keys: ['minecraft:deepslate']
+(b) E1 arm col(195,199) non-air runs (y,name,len), y>190 or y<-40:
+   y=-64 stone x8
+   y=-56 granite x6
+   y=-50 iron_ore x2
+   y=-48 stone x11
+   y=192 stone x6
+   y=198 water x1
+   y=199 copper_ore x3
+   y=202 granite x4
+   y=206 iron_ore x1
+   y=207 granite x1
+   y=208 stone x9
+   y=217 granite x7
+   y=224 stone x13
+   y=237 granite x4
+   y=241 stone x15
+   y=256 granite x1
+   y=257 stone x28
+   y=285 copper_ore x1
+   y=286 stone x14
+   y=300 copper_ore x2
+   y=302 stone x13
+   y=315 granite x1
+   y=316 copper_ore x2
+   y=318 stone x2
+   total stone-family blocks in column: 332; highest solid y: 318
+(b) E1 arm col(195,198) non-air runs (y,name,len), y>190 or y<-40:
+   y=-64 stone x4
+   y=-60 water x1
+   y=-59 stone x11
+   y=-48 gravel x2
+   y=-46 stone x2
+   y=-44 water x1
+   y=-43 stone x11
+   y=192 stone x3
+   y=197 water x1
+   y=198 stone x13
+   y=212 water x2
+   y=214 stone x14
+   y=228 water x2
+   y=230 stone x1
+   y=231 granite x3
+   y=234 stone x7
+   y=241 copper_ore x2
+   y=243 stone x1
+   y=244 water x3
+   y=247 granite x4
+   y=251 stone x6
+   y=257 copper_ore x3
+   y=260 stone x1
+   y=261 water x2
+   y=263 granite x6
+   y=269 stone x8
+   y=277 water x2
+   y=279 granite x7
+   y=286 stone x8
+   y=294 granite x9
+   y=303 stone x7
+   y=310 granite x10
+   total stone-family blocks in column: 351; highest solid y: 310
+

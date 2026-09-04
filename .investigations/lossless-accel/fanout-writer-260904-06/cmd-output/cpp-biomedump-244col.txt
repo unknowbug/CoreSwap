@@ -1,0 +1,11 @@
+# [header] seed=8576294172403134396 | dll=WorldgenRust.dll sha256=ec4a9aed... (2026-09-03 23:47) | stageMask=3 | java resources 同 hash | benchOrigin=(200,200) size=4 FULL
+
+[BIOME] (244,-60,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-59,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-58,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-57,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-56,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-55,244) = minecraft:deep_lukewarm_ocean
+[BIOME] (244,-54,244) = minecraft:deep_lukewarm_ocean
+
+

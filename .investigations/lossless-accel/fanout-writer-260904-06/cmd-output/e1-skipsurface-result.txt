@@ -1,0 +1,24 @@
+# [header] seed=8576294172403134396 | dll=WorldgenRust.dll sha256=ec4a9aed... (2026-09-03 23:47) | stageMask=3 | java resources 同 hash | benchOrigin=(200,200) size=4 FULL
+[E1 decisive] WG_SKIP_SURFACE=1 arm vs C++ NOISE+SURFACE: OOB stone-family->dirt/sand y>200 n=243  y<-32 n=111
+   ('HI', 195, 214, 198, 'stone', 'dirt')
+   ('HI', 195, 215, 198, 'stone', 'dirt')
+   ('HI', 195, 230, 198, 'stone', 'dirt')
+   ('HI', 195, 231, 198, 'granite', 'dirt')
+   ('HI', 195, 247, 198, 'granite', 'dirt')
+   ('HI', 195, 263, 198, 'granite', 'dirt')
+   ('HI', 195, 279, 198, 'granite', 'dirt')
+   ('HI', 195, 280, 198, 'granite', 'dirt')
+   ('HI', 195, 293, 198, 'stone', 'dirt')
+   ('HI', 195, 294, 198, 'granite', 'dirt')
+   ('HI', 195, 295, 198, 'granite', 'dirt')
+   ('HI', 195, 296, 198, 'granite', 'dirt')
+   ('HI', 195, 309, 198, 'stone', 'dirt')
+   ('HI', 195, 310, 198, 'granite', 'dirt')
+   ('HI', 195, 311, 198, 'granite', 'dirt')
+   ('HI', 195, 312, 198, 'granite', 'dirt')
+   ('LO', 195, -59, 199, 'stone', 'dirt')
+   ('LO', 195, -58, 199, 'stone', 'dirt')
+   ('LO', 195, -57, 199, 'stone', 'dirt')
+   ('LO', 195, -56, 199, 'granite', 'dirt')
+[E1] column (195,199) dirt/sand/gravel: []
+

@@ -80,3 +80,15 @@ entries:
     path: '../lossless-accel/review-260905-writer-vehicle-verdicts.md'
     kind: review
     status: candidate
+
+  # === 260904-06 写者裁决 v2（candidate，judge PASS-with-conditions C1-C6 已应用）===
+  - id: 'lossless-accel:writer-verdict-260904-06'
+    path: 'writer-verdict-260904-06.md'
+    kind: decision
+    status: candidate  # 写者=Rust SURFACE；双跑伪影假设结案；移交 NOISE 幕帘新线
+    supersedes:
+      - 'lossless-accel:writer-verdict-260905'  # 双跑 best-explanation 被运行时确证推翻
+  - id: 'lossless-accel:judge-260904-06-writer'
+    path: '../lossless-accel/fanout-writer-260904-06/review-judge-260904-06-writer.md'
+    kind: review
+    status: candidate

@@ -1,0 +1,5 @@
+# [header] seed=8576294172403134396 | dll=WorldgenRust.dll sha256=ec4a9aed... (2026-09-03 23:47) | stageMask=3 | java resources 同 hash | benchOrigin=(200,200) size=4 FULL
+e2 sha: 2ff71249e9c5cf97  off sha: 2ff71249e9c5cf97
+[E2'] (195,199) col E2-vs-off diffs = 0: []
+[E2'] OOB dirt/sand in E2 arm: y>200 n=4618  y<-32 n=1261
+
