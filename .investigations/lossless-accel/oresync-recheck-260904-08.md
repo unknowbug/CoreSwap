@@ -21,6 +21,18 @@
 - Rust terrain.rs:279 判据 d>0（水不计）→ surface 规则的 surface_depth/基准面错位 → 床面材质族错位
 - 判定探针 = T3 修复后重导 off 臂重跑本对比（decisive probe）
 
+## T3 修复与 decisive probe（260904-08，commit 2bc6503）
+- 修复两处（WorldgenRust/src/terrain.rs）：
+  - :234 aquifer.classify：apply 返回 -1（barrier/margin）→ `BlockKind::Rock`（原归 Air 丢 barrier stone）
+  - :284 surface_height 判据：`d>0` → `kind != Air`（水计入；= C++ :1045 / Java Heightmap.java:24 NOT_AIR）
+- 新 dll sha256 = 0D247E03…（已同步 MC java resources；注意：run_rust_client.ps1 走 -PcppLib 直连 target/release，resources 仅 jar 链路需要）
+- **decisive probe**（ref↔off-fixed，全新 world 重导 19:24，seed 三查过）：mismatch 13328 → **1830**（99.153%→99.884%）
+  - 床面 (236,198)：y35 gravel/y34 stone = vanilla 精确恢复
+  - 煤矿脉 (209-212,20,229-232)：16/16 恢复（ore desync 在本域随 heightmap 修复消失——旧 ore 差异是 heightmap 连带，非独立 ore 放置 bug）
+- **残留 1830 新族**（下一阶段课题）：water→air 314 / stone→water 217 / water→stone 182 / air→water 170（aquifer 流体域 ~883）、deepslate→air 106（carver 域?）、stone→dirt 85 / stone→grass_block 66 / stone→air 53 / dirt→stone 51 / gravel→sand 49（零散 surface/feature 小族）
+- 探针纪律事故自查：第一次重导命中旧 world 缓存（chunk FULL 0-1ms，#19 家族）——备份 world 为 world.bak-260904-08-fixprobe 后重导，pregen 24s 确认全新生成
+- 三查：log worldSeed=8576294172403134396 ✓ header seed ✓ origin (200,200) size 4 ✓
+
 ## 命令记录
 - python .tmp/p2full/recon_b1_260904-08.py（TOTAL/per-chunk/pairs）
 - python .tmp/p2full/recon_b1b_260904-08.py（y>200=0 / cppNS 对账 / 列 air）
