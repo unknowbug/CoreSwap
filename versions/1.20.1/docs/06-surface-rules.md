@@ -59,7 +59,7 @@ vx = wy - s + 1
 每块：isAir → q=0, r=MIN；isFluid → r=wy+1；default → q++, initVertical(q, vx, r, ...) → rule.apply(ctx)
 ```
 
-- **s 语义**（Java 144-150）：从 wy-1 向下找第一个**非默认块**（默认块=stone），`s = v+1`。
+- **s 语义**（Java 144-150）：从 wy-1 向下找第一个**非默认块**（默认块=stone）（⚠️ 已修正，见文末 260904-12 小节），`s = v+1`。
 - **initVerticalContext 参数顺序**：(stoneDepthAbove=q, stoneDepthBelow=vx, fluidHeight=r, x, y, z)。
 - `default` 块才应用规则；`rule.apply` 返回 -1 保持原样。
 
@@ -91,7 +91,33 @@ return (int)floor(lerp2(fx, fz, 4角高度));   // 4 角 = chunk 四角 estimate
 ## 已验证的坑
 
 - **mr7 误放 mr8 分支**：C++ 曾把 taiga/ice_spikes/mushroom/mr 塞进 mr7 结尾，导致非表面位置也生成 grass_block（dirt→grass 200 块）——**对照 Java 时逐行核对规则归属，别只比对分支数**。
-- **s 判定集合**：Java `isDefaultBlock`（==stone）vs C++ 早期只认 air/water/lava——非默认块（gravel 等）的处理集合必须一致。
+- **s 判定集合**：Java `isDefaultBlock`（==stone）vs C++ 早期只认 air/water/lava——非默认块（gravel 等）的处理集合必须一致。（⚠️ 已修正，见文末 260904-12 小节）
+
+## 修正：isDefaultBlock 判定集合（260904-12 追加）
+
+**原表述（保留不删，见上方 L62/L94 标记）**：「默认块=stone」「`isDefaultBlock`（==stone）」。
+
+**一手源码事实**（yarn sources，SurfaceBuilder.java L181-183，1.20.1）：
+
+```java
+private static boolean isDefaultBlock(BlockState state) {
+    return !state.isAir() && state.getFluidState().isEmpty();
+}
+```
+
+判定集合 = **非空、非流体**（任何非 air 非 fluid 块都算「默认块」，s-scan 可继续向下），**不是 ==stone**。
+
+**影响**：Rust（surface_rules.rs ~L1304）/ C++（surface.h ~L781）现有「非空非流体」实装本就与 Java 一致，**无需改码**——错的只是本篇 docs 口径。对应 residual76 收口中被排除的假说「isDefaultBlock 口径差」（❌）。
+
+**证据路径**：
+- 一手源码快照：`.investigations/residual-1830/cmd-output/java-sscan-source-SurfaceBuilder-1.20.1.txt`（L181-183）
+- 结论来源：`.artifacts/lossless-accel/residual76-verdict-260904-10.md`（P0 附带结论，confirmed 260904-12）
+- 判据：knowledge/discovered/compiler-idioms.md **发现 #13**——docs 口径当修复依据前必须一手源码核对（本例为该判据的正面应用：核对在先，避免了无谓改码）。
+
+---
+
+（以上为 260904-12 修正小节；以下回归原文列表）
+
 - 验证方法：`[sf2]` 打印 before/after + biome 对照；或直接对差异块驱动 buildSurface（08 篇）。
 
 ## 2026-08-08 已验证结论（自 10 时间线归档提炼，完整过程见 10-timewise-archive.md）

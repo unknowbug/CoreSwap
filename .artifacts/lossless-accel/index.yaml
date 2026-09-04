@@ -145,3 +145,9 @@ entries:
     path: 'residual76-verdict-260904-10.md'
     kind: decision
     status: confirmed  # 根因=Rust surface biome 缺 BiomeAccess zoom；修复 ab56706；decisive 76→12；judge 过（review-residual76-260904-10.md）；用户拍板 confirmed（260904-10）
+
+  # === 260904-12 裸 seed 收口 + 残 9 探针 A（过程产物在 .investigations/residual12/）===
+  - id: 'lossless-accel:bareseed-fix-260904-12'
+    path: '../.investigations/residual12/probeA-260904-12.md'
+    kind: analysis
+    status: draft  # 裸 seed 接线修复 d942e4b：decisive 12→12 无回归 + #20 自检过（seed_pick_dump 667/768 pick 差）；残 9 探针 A：H1/H3/H4 排除，H2（deep_ocean↔deep_lukewarm 分类刀锋，dbg_dist 5.2e-5）唯一存活，Java 臂 ground truth 未采
