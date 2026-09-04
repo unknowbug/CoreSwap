@@ -18,3 +18,4 @@ WGB2 FULL 存档口径 4×4 @ chunk(200,200)，16 chunk×98304 cell，seed 85762
 
 ## 取代链（§15.4）
 supersedes 07-block-pipeline.md「存档口径残差模式化(260904-03)」定性 + 10-timewise-archive L2844（取代记录已就地标注，260904-05 落盘）。
+superseded_by（260905 部分取代）：`.artifacts/lossless-accel/writer-verdict-260905.md` —— 本 verdict 中「mod 载具出界 dirt 写者未定位」课题已收敛（最佳解释 = Rust features 双跑伪影），mod 载具残差课题结案重定向至 block_probe C++ 全程载具（ore 矿石族 desync）；本 verdict 的 id 纠错与三候选封闭结论不变。

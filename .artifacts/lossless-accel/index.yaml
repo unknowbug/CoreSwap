@@ -66,3 +66,17 @@ entries:
     path: 'p2full-regression-verdict-260904-03.md'
     kind: analysis
     status: confirmed
+
+  # === 260905 载具裁决 + 出界 dirt 写者裁决（candidate，judge 已过：可保留待运行时确证）===
+  - id: 'lossless-accel:vehicle-verdict-260905'
+    path: 'vehicle-verdict-260905.md'
+    kind: decision
+    status: candidate  # judge 260905 可保留；含勘误记录（执行体=Rust dll）
+  - id: 'lossless-accel:writer-verdict-260905'
+    path: 'writer-verdict-260905.md'
+    kind: analysis
+    status: candidate  # judge 260905：双跑=最佳解释，运行时确证（dumpbin + stage-skip 重导）前不得升级
+  - id: 'lossless-accel:judge-260905'
+    path: '../lossless-accel/review-260905-writer-vehicle-verdicts.md'
+    kind: review
+    status: candidate

@@ -20,3 +20,8 @@
 - 注：上轮 [ORIGIN] 审计用 C++ FEATURELOG（worldgen_api.cpp），测的是 **block_probe 载具** 的 C++ feature origin——「ore_dirt 零出界」结论只适用 C++ 载具，不适用 mod 载具（mod 载具 ore origin 是 Java 算的，与 vanilla 相同）。
 
 状态：draft→candidate 待 judge。证据源：本文件引用的 4 处静态读码。
+
+## ⚠️ 勘误与取代记录（260905 judge 后补，原文不改写）
+1. **执行体口径勘误**：本篇「C++ 执行 NOISE（含 vein）+ SURFACE」对**被分析的残差数据集不成立**——现役 dll（EC4A9603 前后 EC4A9AED，260903-03）实为 **Rust WorldgenRust.dll 改名**（build.gradle L27-47，2026-08-30 C++→Rust 转向），mod 载具 NOISE+SURFACE 执行体 = Rust；且旧 dll 无 stage-skip，其 features 亦全量运行（见 writer-verdict-260905 / b2 证据 E1-E6）。本篇读码结论只对**修复后代码**成立。
+2. **STEP 2 推论取代**：本篇「对 STEP 2 的直接推论」（写者候选收窄至 C++ 侧/Java 谓词）被 writer-verdict-260905 取代——写者最佳解释 = Rust features 双跑。
+3. **§9.7 三要素补声明**：载体 = Java 存档导出 WGB2 FULL（mod cppReplace，旧 Rust dll）；覆盖面 = 4×4 chunk @ (200,200) 全阶段；可比性 = 仅与同载体 260904-03/04 口径可比，与 C++ block_probe 载体不可比。
