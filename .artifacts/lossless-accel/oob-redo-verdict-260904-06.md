@@ -1,9 +1,9 @@
-# OOB 残差课题重推导裁决：无残差（幻影课题）（candidate，260904-06）
+# OOB 残差课题重推导裁决：无残差（幻影课题）（confirmed，260904-06）
 
 > **supersedes**: `writer-verdict-260905.md`（双跑伪影 best-explanation）+ `writer-verdict-260904-06.md`（写者=Rust SURFACE）+ `curtain-verdict-260904-06.md`（幕帘=vanilla 机制）——三者核心证据均为布局误读伪影
 > **superseded-by**: （无）
 > **推翻理由一行**: 正确布局（blocks.h:69 y-major）重读全部臂导出：mod↔vanilla FULL OOB 区（y>200|y<-32）0 diff、surface 写者 y>200 贡献 0、cppNS y>200 0 diff——「OOB dirt 写者/幕帘/双跑伪影」均不存在，系 x-major 列读脚本制造的幻影数据（incident-layout-260904-06.md）。
-> **status**: candidate（judge 待审；confirmed 留人类）
+> **status**: confirmed（judge PASS 260904-08 review-oob-redo-260904-08.md 独立复算全吻合；用户实机 A/B 后拍板 confirmed 260904-08）
 > **§9.7 口径**: 载体 = coltool.py（y-major 权威实现，含 header/sanity 自检）对既有臂导出逐字节重读；覆盖面 = seed 8576294172403134396 / 4×4 @ chunk(200,200) 全部 98304×16 块位 × 5 臂（ref/mod/e1/e2/cppNS）；与既有口径同域同 seed，但读数变换已修正（其可比性以 incident 记录为准）。
 
 ## 裁决
