@@ -353,8 +353,11 @@ impl WorldgenHandle {
         }
 
         let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf };
+        // aquifer splitter：Java NoiseConfig.java:54 aquiferRandomDeriver = randomDeriver.split(Identifier("aquifer")).nextSplitter()
+        //（260904 修复：原直传顶层 random_deriver() 漏 aquifer 字符串 split → blob 随机偏移全错，残留 1830 根因；
+        //  对照 ore 管线 L261 的 split_str("minecraft:ore") 同构）
         let splitter = match db.random_deriver() {
-            RsSplitter::Xoro(s) => s.clone(),
+            RsSplitter::Xoro(s) => s.split_str("minecraft:aquifer").next_splitter(),
             // 下界（legacy）aquifer 禁用——aquifer 字段需 XoroshiroSplitter 类型，占位值不影响输出
             RsSplitter::Legacy(_) => crate::xoroshiro::XoroshiroRandom::new(seed as u64).next_splitter(),
         };
@@ -500,6 +503,8 @@ impl WorldgenHandle {
         // 1. fill_chunk（宏观：density + aquifer 分类）
         // multi-channel 宏观采样器（cell grid 采样 density，对齐 Java NoiseChunk；thread_local slices 缓存每 chunk 重建一次）
         // WG_TRANSPILER 时用 transpiler 生成代码采样（build-time 编译 density 树），否则用 DensityMacroSampler。
+        // WG_AQDUMP：seed 头（OnceLock 只打一次；门控关时一次原子 load）
+        crate::aquifer::aqdump_seed(self.seed);
         let mut aq = crate::aquifer::Aquifer::new(
             self.barrier.clone(), self.flooded.clone(), self.spread.clone(), self.lava.clone(),
             self.erosion.clone(), self.depth.clone(), self.init.clone(), self.splitter.clone(),

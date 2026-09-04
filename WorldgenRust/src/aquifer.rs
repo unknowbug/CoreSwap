@@ -63,6 +63,166 @@ pub fn aquifer_surf_count_reset() -> [usize; 2] {
     SURF_COUNT.with(|c| { let mut c = c.borrow_mut(); let r = *c; *c = [0, 0]; r })
 }
 
+// ===== WG_AQDUMP（残留 1830 判别探针，260904 worker 草稿，主会话应用）：点文件驱动 aquifer 全链路 dump =====
+// 门控：env WG_AQDUMP=<点文件路径>（行格式 `x y z`，# 注释）。进程级读一次（OnceLock）；
+// apply 入口一次命中判断；门控关时热路径仅多 1 次原子 load/点（对齐诊断门控铁律）。
+// 输出：stdout 单行，字段名/顺序与 Java AquiferDumpProbeMixin 逐字段一致
+//（.investigations/residual-1830/probe-delivery.md §1 契约）。seed 头：aqdump_seed()（worldgen_handle 每 chunk 调，OnceLock 只打一次）。
+static AQDUMP_ON: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn aqdump_points() -> Option<&'static std::collections::HashSet<(i32, i32, i32)>> {
+    static DUMP: std::sync::OnceLock<Option<std::collections::HashSet<(i32, i32, i32)>>> =
+        std::sync::OnceLock::new();
+    DUMP.get_or_init(|| {
+        let path = std::env::var("WG_AQDUMP").ok()?;
+        let txt = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("[AQDUMP] cannot read {}: {}", path, e));
+        let mut set = std::collections::HashSet::new();
+        for line in txt.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') { continue; }
+            let mut it = line.split_whitespace();
+            if let (Some(a), Some(b), Some(c)) = (it.next(), it.next(), it.next()) {
+                if let (Ok(x), Ok(y), Ok(z)) = (a.parse(), b.parse(), c.parse()) { set.insert((x, y, z)); }
+            }
+        }
+        AQDUMP_ON.store(true, std::sync::atomic::Ordering::Relaxed);
+        eprintln!("[AQDUMP] enabled: {} points from {}", set.len(), path);
+        Some(set)
+    })
+    .as_ref()
+}
+
+/// seed 头（供三查）：worldgen_handle fill_chunk 入口每 chunk 调一次；仅首次实际打印。
+pub fn aqdump_seed(seed: i64) {
+    if !AQDUMP_ON.load(std::sync::atomic::Ordering::Relaxed) { return; }
+    static ONCE: std::sync::OnceLock<()> = std::sync::OnceLock::new();
+    ONCE.get_or_init(|| println!("AQDUMP seed={}", seed));
+}
+
+fn aqdump_hit(x: i32, y: i32, z: i32) -> bool {
+    // 先触发 points 初始化（env 存在性 OnceLock 判定，修复 worker 草稿的 ON-置位鸡生蛋死锁）
+    static ENV_ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    if !*ENV_ON.get_or_init(|| std::env::var("WG_AQDUMP").is_ok()) { return false; }
+    aqdump_points().map_or(false, |s| s.contains(&(x, y, z)))
+}
+
+// 判别收集器：apply 入口建（点命中时）、出口统一打印——覆盖全部早退分支，避免逐分支 printf。
+// 字段 None → 打 na；i32::MAX 哨兵 → 打 MAX（不误当坐标）。
+struct AqDump {
+    x: i32, y: i32, z: i32, density: f64,
+    flooded_raw: Option<f64>, flooded: Option<f64>,
+    spread_raw: Option<f64>, spread_rnd: Option<i32>, spread_base: Option<i32>,
+    erosion: Option<f64>, depth: Option<f64>, gate: Option<bool>,
+    barrier: Option<f64>,
+    bl: Option<u8>, fw: Option<f64>, est: Option<String>,
+    fl2: Option<(i32, i32)>, fl3: Option<(i32, i32)>, fl4: Option<(i32, i32)>,
+    o: Option<i32>, p: Option<i32>, q: Option<i32>,
+    r: Option<String>, s: Option<String>, t: Option<String>,
+    d: Option<f64>, fq: Option<f64>, gpq: Option<f64>,
+    cd_e: Option<f64>, e: Option<f64>, cd_g: Option<f64>, g: Option<f64>,
+    cd_h: Option<f64>, h: Option<f64>,
+    decision: String,
+}
+impl AqDump {
+    fn new(x: i32, y: i32, z: i32, density: f64) -> AqDump {
+        AqDump { x, y, z, density, flooded_raw: None, flooded: None, spread_raw: None, spread_rnd: None,
+            spread_base: None, erosion: None, depth: None, gate: None, barrier: None, bl: None, fw: None,
+            est: None, fl2: None, fl3: None, fl4: None, o: None, p: None, q: None, r: None, s: None, t: None,
+            d: None, fq: None, gpq: None, cd_e: None, e: None, cd_g: None, g: None, cd_h: None, h: None,
+            decision: "na".to_string() }
+    }
+}
+
+thread_local! {
+    static AQDUMP: std::cell::RefCell<Option<Box<AqDump>>> = std::cell::RefCell::new(None);
+    static AQDUMP_SUPPRESS: std::cell::Cell<bool> = std::cell::Cell::new(false);
+}
+
+fn aqd() -> bool {
+    if !AQDUMP_ON.load(std::sync::atomic::Ordering::Relaxed) { return false; }
+    // water-over-lava 检查直调 get_fluid_level 的链路值不捕获（非 fl2 首链）
+    if AQDUMP_SUPPRESS.with(|s| s.get()) { return false; }
+    true
+}
+
+fn note_decision(s: &str) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.decision = s.to_string(); } });
+}
+fn note_triplet(o: i32, p: i32, q: i32) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.o = Some(o); d.p = Some(p); d.q = Some(q); } });
+}
+fn note_blob(slot: u8, pos: i64, fl: &FluidLevel) {
+    if !aqd() { return; }
+    let txt = format!("({},{},{}|{},{})", Aquifer::unpack_x(pos), Aquifer::unpack_y(pos), Aquifer::unpack_z(pos), fl.y, fl.block);
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() {
+        match slot { 1 => { d.fl2 = Some((fl.y, fl.block)); d.r = Some(txt); }
+                     2 => { d.fl3 = Some((fl.y, fl.block)); d.s = Some(txt); }
+                     _ => { d.fl4 = Some((fl.y, fl.block)); d.t = Some(txt); } }
+    }});
+}
+fn note_d(v: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.d = Some(v); } }); }
+fn note_fq(v: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.fq = Some(v); } }); }
+fn note_gpq(v: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.gpq = Some(v); } }); }
+fn note_cde(cd: f64, e: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.cd_e = Some(cd); d.e = Some(e); } }); }
+fn note_cdg(cd: f64, g: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.cd_g = Some(cd); d.g = Some(g); } }); }
+fn note_cdh(cd: f64, h: f64) { if !aqd() { return; } AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { d.cd_h = Some(cd); d.h = Some(h); } }); }
+fn note_flooded(raw: f64, clamped: f64) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { if d.flooded_raw.is_none() { d.flooded_raw = Some(raw); d.flooded = Some(clamped); } } });
+}
+fn note_spread(raw: f64, rnd: i32, base: i32) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { if d.spread_raw.is_none() { d.spread_raw = Some(raw); d.spread_rnd = Some(rnd); d.spread_base = Some(base); } } });
+}
+fn note_gate(er: f64, dp: Option<f64>, gate: bool) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { if d.gate.is_none() { d.erosion = Some(er); d.depth = dp; d.gate = Some(gate); } } });
+}
+fn note_chain(est: i32, bl: bool, fw: Option<f64>) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() {
+        if d.est.is_none() {
+            d.est = Some(if est == i32::MAX { "MAX".to_string() } else { est.to_string() });
+            d.bl = Some(if bl { 1 } else { 0 });
+            d.fw = fw;
+        }
+    }});
+}
+fn note_est_early() {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { if d.est.is_none() { d.est = Some("early(k>o)".to_string()); } } });
+}
+fn note_barrier(v: f64) {
+    if !aqd() { return; }
+    AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().as_mut() { if d.barrier.is_none() { d.barrier = Some(v); } } });
+}
+
+fn ff(v: Option<f64>) -> String { match v { Some(v) => format!("{:.6}", v), None => "na".to_string() } }
+fn fi(v: Option<i32>) -> String { match v { Some(i32::MAX) => "MAX".to_string(), Some(v) => v.to_string(), None => "na".to_string() } }
+fn ffs(v: &Option<String>) -> String { v.clone().unwrap_or_else(|| "na".to_string()) }
+
+impl AqDump {
+    fn print(&self) {
+        let fl = |v: &Option<(i32, i32)>| match v { Some((y, b)) => format!("({},{})", y, b), None => "na".to_string() };
+        let b01 = |v: Option<bool>| match v { Some(true) => "1".to_string(), Some(false) => "0".to_string(), None => "na".to_string() };
+        println!("AQDUMP x={} y={} z={} density={:.6} floodedRaw={} flooded={} spreadRaw={} spreadRnd={} spreadBase={} erosion={} depth={} gate={} barrier={} bl={} f={} est={} fl2={} fl3={} fl4={} opq=({},{},{}) r={} s={} t={} d={} fq={} gpq={} cdE={} e={} cdG={} g={} cdH={} h={} decision={}",
+            self.x, self.y, self.z, self.density,
+            ff(self.flooded_raw), ff(self.flooded), ff(self.spread_raw), fi(self.spread_rnd), fi(self.spread_base),
+            ff(self.erosion), ff(self.depth), b01(self.gate), ff(self.barrier),
+            match self.bl { Some(v) => v.to_string(), None => "na".to_string() },
+            ff(self.fw), ffs(&self.est),
+            fl(&self.fl2), fl(&self.fl3), fl(&self.fl4),
+            fi(self.o), fi(self.p), fi(self.q),
+            ffs(&self.r), ffs(&self.s), ffs(&self.t),
+            ff(self.d), ff(self.fq), ff(self.gpq),
+            ff(self.cd_e), ff(self.e), ff(self.cd_g), ff(self.g), ff(self.cd_h), ff(self.h),
+            self.decision);
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct FluidLevel { pub y: i32, pub block: i32 }
 impl FluidLevel {
@@ -292,11 +452,19 @@ impl Aquifer {
     fn max_distance(i: i32, a: i32) -> f64 { 1.0 - (a - i).abs() as f64 / 25.0 }
 
     pub fn apply(&mut self, block_x: i32, block_y: i32, block_z: i32, density: f64) -> i32 {
-        if density > 0.0 { return -1; }
-        let mut fluid_block;
-        let mut fluid_y;
-        if block_y < -54 { fluid_block = LAVA; fluid_y = -54; } else { fluid_block = WATER; fluid_y = 63; }
-        if fluid_block == LAVA { return fluid_block; }
+        // WG_AQDUMP：入口建收集器、出口统一打印（carver apply(pos,0.0) 同路复用，deepslate→air 顺带覆盖）
+        let hit = aqdump_hit(block_x, block_y, block_z);
+        if hit { AQDUMP.with(|c| *c.borrow_mut() = Some(Box::new(AqDump::new(block_x, block_y, block_z, density)))); }
+        let r = self.apply_inner(block_x, block_y, block_z, density);
+        if hit { AQDUMP.with(|c| { if let Some(d) = c.borrow_mut().take() { d.print(); } }); }
+        r
+    }
+
+    fn apply_inner(&mut self, block_x: i32, block_y: i32, block_z: i32, density: f64) -> i32 {
+        if density > 0.0 { note_decision("Rock:density>0"); return -1; }
+        let fluid_block;
+        if block_y < -54 { fluid_block = LAVA; } else { fluid_block = WATER; }
+        if fluid_block == LAVA { note_decision("BLOCK:2"); return fluid_block; }
 
         let l = floor_div(block_x - 5, 16);
         let m = floor_div(block_y + 1, 12);
@@ -314,29 +482,49 @@ impl Aquifer {
             else if p >= ag { t = s; s = ab; q = p; p = ag; }
             else if q >= ag { t = ab; q = ag; }
         }}}
+        note_triplet(o, p, q);
 
         let fl2 = self.get_water_level_at(r);
+        note_blob(1, r, &fl2);
         let d = Self::max_distance(o, p);
+        note_d(d);
         let bs = fl2.get_block_state(block_y);
-        if d <= 0.0 { return bs; }
-        if bs == WATER && self.get_fluid_level(block_x, block_y - 1, block_z).get_block_state(block_y - 1) == LAVA { return bs; }
+        if d <= 0.0 { note_decision(&format!("BLOCK:{}", bs)); return bs; }
+        if bs == WATER {
+            // water-over-lava 直调 get_fluid_level：suppress（该链非 fl2 首链，不捕获）
+            AQDUMP_SUPPRESS.with(|s| s.set(true));
+            let lava_check = self.get_fluid_level(block_x, block_y - 1, block_z);
+            AQDUMP_SUPPRESS.with(|s| s.set(false));
+            if lava_check.get_block_state(block_y - 1) == LAVA { note_decision("BLOCK:1"); return bs; }
+        }
 
         let fl3 = self.get_water_level_at(s);
+        note_blob(2, s, &fl3);
         let mut md = MutableDouble::new();
-        let e = d * self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl3);
-        if density + e > 0.0 { return -1; }
+        let cd_e = self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl3);
+        let e = d * cd_e;
+        note_cde(cd_e, e);
+        if density + e > 0.0 { note_decision("null:density+e>0"); return -1; }
 
         let fl4 = self.get_water_level_at(t);
+        note_blob(3, t, &fl4);
         let f = Self::max_distance(o, q);
+        note_fq(f);
         if f > 0.0 {
-            let g = d * f * self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl4);
-            if density + g > 0.0 { return -1; }
+            let cd_g = self.calculate_density(block_x, block_y, block_z, &mut md, fl2, fl4);
+            let g = d * f * cd_g;
+            note_cdg(cd_g, g);
+            if density + g > 0.0 { note_decision("null:density+g>0"); return -1; }
         }
         let g2 = Self::max_distance(p, q);
+        note_gpq(g2);
         if g2 > 0.0 {
-            let h = d * g2 * self.calculate_density(block_x, block_y, block_z, &mut md, fl3, fl4);
-            if density + h > 0.0 { return -1; }
+            let cd_h = self.calculate_density(block_x, block_y, block_z, &mut md, fl3, fl4);
+            let h = d * g2 * cd_h;
+            note_cdh(cd_h, h);
+            if density + h > 0.0 { note_decision("null:density+h>0"); return -1; }
         }
+        note_decision(&format!("BLOCK:{}", bs));
         bs
     }
 
@@ -392,7 +580,7 @@ impl Aquifer {
             let rr = if !(qq < -2.0) && !(qq > 2.0) {
                 if !md.has {
                     if BARRIER_WATCH.load(std::sync::atomic::Ordering::Relaxed) { BARRIER_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
-                    let pos = NoisePos { x: block_x, y: block_y, z: block_z }; let tv = self.barrier.sample(&pos); md.v = tv; md.has = true; tv
+                    let pos = NoisePos { x: block_x, y: block_y, z: block_z }; let tv = self.barrier.sample(&pos); note_barrier(tv); md.v = tv; md.has = true; tv
                 } else { md.v }
             } else { 0.0 };
             return 2.0 * (rr + qq);
@@ -426,7 +614,7 @@ impl Aquifer {
             let n = self.estimate_surface_height(l, mm);
             let o = n + 8;
             let bl2 = off[0] == 0 && off[1] == 0;
-            if bl2 && k > o { return default_fl; }
+            if bl2 && k > o { note_est_early(); return default_fl; }
             let bl3 = j > o;
             if bl3 || bl2 {
                 let fl2 = FluidLevel::default_level(o);
@@ -444,12 +632,25 @@ impl Aquifer {
     fn get_fluid_block_y(&self, block_x: i32, block_y: i32, block_z: i32, default_fl: &FluidLevel, surface_height_estimate: i32, bl: bool) -> i32 {
         let pos = NoisePos { x: block_x, y: block_y, z: block_z };
         let (mut d, mut e): (f64, f64);
-        if self.erosion.sample(&pos) < -0.225f32 as f64 && self.depth.sample(&pos) > 0.9f32 as f64 {
+        // WG_AQDUMP：method_43718 门展开（保 Java && 短路语义：erosion 不满足时 depth 不采样 → depth=na）
+        let er = self.erosion.sample(&pos);
+        let mut dp = None;
+        let gate = if er < -0.225f32 as f64 {
+            let dv = self.depth.sample(&pos);
+            dp = Some(dv);
+            dv > 0.9f32 as f64
+        } else { false };
+        note_gate(er, dp, gate);
+        if gate {
             d = -1.0; e = -1.0;
+            note_chain(surface_height_estimate, bl, None); // 门命中：flooded/f 未采样 → na
         } else {
             let ii = surface_height_estimate + 8 - block_y;
             let f = if bl { lerp_clamp2(ii as f64, 0.0, 64.0, 1.0, 0.0) } else { 0.0 };
-            let g = clamp(self.fluid_floodedness.sample(&pos), -1.0, 1.0);
+            let g_raw = self.fluid_floodedness.sample(&pos);
+            let g = clamp(g_raw, -1.0, 1.0);
+            note_flooded(g_raw, g); // clamp 前原值 + clamp 后（判别边界震荡）
+            note_chain(surface_height_estimate, bl, Some(f)); // first-wins = fl2 首链
             let h = map2(f, 1.0, 0.0, -0.3, 0.8);
             let kk = map2(f, 1.0, 0.0, -0.8, 0.4);
             d = g - kk; e = g - h;
@@ -465,8 +666,10 @@ impl Aquifer {
         let m = floor_div(block_z, 16);
         let n = l * 40 + 20;
         let pos = NoisePos { x: k, y: l, z: m };
-        let d = self.fluid_spread.sample(&pos) * 10.0;
+        let raw = self.fluid_spread.sample(&pos);
+        let d = raw * 10.0;
         let p = round_down_to_multiple(d, 3);
+        note_spread(raw, p, n);
         let q = n + p;
         surface_height_estimate.min(q)
     }
