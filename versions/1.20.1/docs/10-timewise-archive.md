@@ -2864,5 +2864,5 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **根因 + 修复**：`worldgen_handle.rs` aquifer splitter 漏 `split_str("minecraft:aquifer").next_splitter()`（Java NoiseConfig.java:54 链）——一行修复。
 - ✅ **decisive probe**（全新 world 重导，dll 5E2ACB7F，seed 三查 ✓）：**1830 → 76（99.995%）**；流体族/deepslate→air 全消。
 - 🔍 **新残留 76 登记**：gravel→sand 49 / sand→gravel 24 / 零星 3——surface 材质微族，与 aquifer 无关，独立小课题（未立项）。
-- 状态：修复 = candidate（judge + 用户 confirmed 待走）；生产 dll 基线 0D247E03 → 5E2ACB7F 待 confirmed 后同步 resources。
+- 状态：修复 = **confirmed（用户实机确认 260904-09 21:23；judge PASS）**；现役 dll 基线 0D247E03 → 5E2ACB7F（resources 已同步）。
 - 过程 bug 台账 4 条（门控死锁 / mixin 包禁嵌套类 / 中间名映射 / cmp 键含对比字段）见 investigate 文件；通用模式 → workflow-patterns #43、compiler-idioms #11/#12。

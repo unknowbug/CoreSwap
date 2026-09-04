@@ -787,3 +787,12 @@ entries:
     path: 'lossless-accel/vehicle-verdict-260905.md'
     kind: decision
     status: candidate  # mod cppReplace=混合载具（feature 由 Java vanilla）；生产语义=C++ 全程；judge 待过
+
+  # === residual-1830（aquifer splitter 派生缺失收口，260904-09，f41555d + 57fde94）===
+  - id: 're-code:residual-1830:verdict-260904-09'
+    path: 'lossless-accel/residual1830-verdict-260904-09.md'
+    kind: analysis
+    status: confirmed  # 用户实机确认 260904-09（judge PASS；decisive 1830→76 = 99.884%→99.995%，同 ref 载体同域可比）
+    # 根因：worldgen_handle aquifer splitter 直传顶层 random_deriver()，漏 split_str("minecraft:aquifer").next_splitter()
+    #（Java NoiseConfig.java:54）→ blob 随机偏移全错 → 干/水双向互换 + carver 域 deepslate→air 投影。
+    # 现役 dll 基线更新：0D247E03 → 5E2ACB7F（resources 已同步）。残余 76（gravel↔sand surface 微族）独立未立项。
