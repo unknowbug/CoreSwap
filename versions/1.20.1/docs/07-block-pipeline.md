@@ -1198,6 +1198,7 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 - cppReplace（Rust dll）vs vanilla 参照：**13328/1572864 cell 差，99.1526% 一致**；差异遍布全 16 chunk（414–1347 cell/chunk）。
 - top 互换对（ref→cpp）：**1(stone)→9(water) n=4165**、37→34 n=1687、1→34 n=1581、37→9 n=1359、32→0 n=520、2→9 n=439、34→9 n=399——主体为 stone/deepslate 族 ↔ water/air 互换，**aquifer/深板岩族特征**（液面判定与深板岩分层交界处方块身份互换，非坐标错位形态）。
+  - ⚠️ **supersedes（260904-05）**：本行 id 注读有误——blocks.json 实测 9=dirt、32=water、34=sand、37=gravel（数字 n 本身无误）：top 对实为 **stone→dirt / gravel→sand / stone→sand / gravel→dirt / water→air / granite→dirt / sand→dirt**，「aquifer 液面互换」定性被推翻。真签名 = blob 状 stone/gravel/花岗岩族→dirt/sand 置换（最大连通域 615 cell，全 y 均匀每 y≈35），指针见下方「存档口径残差真签名改判」小节。
 - est off 臂（double-0，判别力受限见 verdict 局限①）与默认臂逐位一致 ⇒ **残差与 est 优化/翻默认无关**（既有差异，est 语义无关性独立复证）。
 - 载体/覆盖面/可比性（§9.7）：WGB2 FULL 存档口径 4×4 单区域；16 chunk×98304 cell；与 260903-14 存档口径 3 采样同族载体但区域不同，不可直接数值比（99.15% 落其 99.01% 同族带附近）。
 
@@ -1207,6 +1208,19 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 2. 流面高度/est 网格在深板岩过渡带边界翻转（#15 零面擦边格签名族）。
 3. surface/carver 级联（低先验，需残差 y 分布数据）。
 
+> ⚠️ **supersedes（260904-05 探针裁决轮）**：上述三候选**全部封闭**——残差 y 分布全高均匀（每 y≈35）与液面/est 边界带/surface 阶段均不符；真机制 = blob 状置换（见「存档口径残差真签名改判」小节），本候选清单仅存档。
+
 ### 下轮探针
 
 残差 y 分布直方图先行（最廉价）→ AQF-APPLY 型配对（注意 AQF-J NPE 既有噪声 + 07 篇 L291 反射 CellCache 不可信铁律）→ 互斥候选 ≥2 按 fan-out 纪律并行。
+
+## 存档口径残差真签名改判（260904-04 探针裁决 + 260904-05 落盘）
+
+> supersedes 本篇「存档口径残差模式化（260904-03）」小节的「aquifer/深板岩族特征」定性与三机制候选（§15.4 取代链：原文不删不改，取代记录已就地标注）。状态：candidate（探针裁决轮 + judge 待过）。裁决 verdict 落点建议：`.artifacts/lossless-accel/residual-signature-verdict-260904-04.md`（欠账待补登记）。
+
+### ✅ 改判内容
+
+- **id 注读纠错**：260904-03 top 对「1(stone)→9(water)」系 id 映射误读——blocks.json 实测 **9=dirt、32=water、34=sand、37=gravel、2=granite**。top 对真实含义 = stone→dirt n=4165 / gravel→sand n=1687 / stone→sand n=1581 / gravel→dirt n=1359 / water→air n=520 / granite→dirt n=439 / sand→dirt n=399。
+- **真签名**：blob 状 stone/gravel/花岗岩族 → dirt/sand **置换**（最大连通域 615 cell）；y 分布全高均匀（每 y≈35）——与 aquifer 液面（应有 y 带）、est 深板岩过渡边界带、surface 阶段（应集中浅层）均不符。
+- **三候选封闭**：❌ aquifer floodedness / ❌ 流面 est 翻转 / ❌ surface-carver 级联（y 均匀分布直接排除后两者；分布形态与液面带不符排除前者）。
+- §9.7 口径：同 260904-03（WGB2 FULL 存档口径 4×4 @ chunk(200,200)，16 chunk×98304 cell）。

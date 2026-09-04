@@ -777,3 +777,13 @@ entries:
     path: 'preload-check/index.yaml'
     kind: analysis
     status: confirmed  # 用户授予 260904-04（连同 panic-505 一并拍板）
+
+  # === aquifer 残差签名改判 + 载具裁决（260904-04/05，candidate）===
+  - id: 're-code:lossless-accel:residual-signature-verdict-260904-04'
+    path: 'lossless-accel/residual-signature-verdict-260904-04.md'
+    kind: analysis
+    status: candidate  # 探针裁决轮；id 误读纠错 + 三候选封闭 + 消融无效；judge 待过
+  - id: 're-code:lossless-accel:vehicle-verdict-260905'
+    path: 'lossless-accel/vehicle-verdict-260905.md'
+    kind: decision
+    status: candidate  # mod cppReplace=混合载具（feature 由 Java vanilla）；生产语义=C++ 全程；judge 待过
