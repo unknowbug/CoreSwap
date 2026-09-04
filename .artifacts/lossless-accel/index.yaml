@@ -130,7 +130,7 @@ entries:
   - id: 'lossless-accel:oob-redo-verdict-260904-06'
     path: 'oob-redo-verdict-260904-06.md'
     kind: decision
-    status: candidate  # OOB 残差=幻影课题（布局事故）；supersedes writer-verdict-260905/260904-06/curtain-verdict-260904-06；judge PASS（260904-08 review-oob-redo-260904-08.md，独立复算 #41 全吻合；confirmed 待人类）
+    status: confirmed  # OOB 残差=幻影课题（布局事故）；supersedes writer-verdict-260905/260904-06/curtain-verdict-260904-06；judge PASS（260904-08 独立复算 #41 全吻合）；用户实机对拍后拍板 confirmed（260904-08）
     supersedes:
       - 'lossless-accel:writer-verdict-260905'
       - 'lossless-accel:writer-verdict-260904-06'
