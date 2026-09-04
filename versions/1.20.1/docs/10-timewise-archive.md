@@ -2853,3 +2853,16 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 结论 → `.artifacts/lossless-accel/p2full-regression-verdict-260904-03.md` + 260903-13 遗留项闭合指针。
 - 残差登记 → 07 篇追加「存档口径残差模式化」小节（补充非取代 260903-14 记录）。
 - 通用模式 → workflow-patterns 发现 #32（daemon env 死同值）；错误 → lossless-accel-errors.md LL12/LL13。
+
+## 260904-09（residual-1830 破案：aquifer splitter 派生链一行缺失——1830→76）
+
+> 过程产物 `.investigations/residual-1830/`（investigate-260904-09.md 全链 + scout-aquifer-map.md + 探针 bug 台账）。
+
+- ✅ **廉价独立验证**：dll 三元组（0D247E03 双处一致）+ witness 坐标（205,22,239）双口径核对——交接结论验证纪律执行（§16.3）。
+- ✅ **scout 勘探**（subagent）：aquifer 全链管线地图——静态公式 17 项零分歧、缓存臂全闭；关键结构发现：残差**双向并存** → 指 blob 三元组差或阈值震荡；纠正「est 4 角插值」过时假设（两侧均列扫描）。
+- ✅ **判别探针**：Rust WG_AQDUMP + Java AquiferDumpProbeMixin，12 点判别 opq/r/s/t 全异 → D4（blob 邻域随机选择差）实锤。
+- ✅ **根因 + 修复**：`worldgen_handle.rs` aquifer splitter 漏 `split_str("minecraft:aquifer").next_splitter()`（Java NoiseConfig.java:54 链）——一行修复。
+- ✅ **decisive probe**（全新 world 重导，dll 5E2ACB7F，seed 三查 ✓）：**1830 → 76（99.995%）**；流体族/deepslate→air 全消。
+- 🔍 **新残留 76 登记**：gravel→sand 49 / sand→gravel 24 / 零星 3——surface 材质微族，与 aquifer 无关，独立小课题（未立项）。
+- 状态：修复 = candidate（judge + 用户 confirmed 待走）；生产 dll 基线 0D247E03 → 5E2ACB7F 待 confirmed 后同步 resources。
+- 过程 bug 台账 4 条（门控死锁 / mixin 包禁嵌套类 / 中间名映射 / cmp 键含对比字段）见 investigate 文件；通用模式 → workflow-patterns #43、compiler-idioms #11/#12。

@@ -757,3 +757,26 @@ curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_c
 2. 课题结案/取代时清点：被依赖的机制描述里有几条从未实测过？未实测的逐条标「static-only」再结案。
 3. 裁决依赖的硬数据优先选布局/变换无关载体（按 y 直印的 dump、引擎内计数），使裁决对下游读法 bug 免疫。
 4. 家族索引：#25（Java 常量追取值源头）/ #17（跨探针对比坐标钉死律）/ #40（布局纪律——同一裁决的另一半教训）/ AGENTS 交接结论验证纪律（§16.3 廉价独立验证的机制断言特例）。
+
+## 发现 #43: 交接「静态公式逐项零偏离」当公理续推输入/缓存侧——「逐行对拍」必须覆盖链路构造参数（splitter/random deriver 派生），双向残差签名优先怀疑随机派生/组合选择层（260904-09）
+
+- **发现时间**：260904-09；**发现者**：core.worker（residual-1830 课题，用户驱动）
+- **来源定位**：`WorldgenRust/src/worldgen_handle.rs` aquifer splitter 直传顶层 `random_deriver()`，漏 `split_str("minecraft:aquifer").next_splitter()`（Java NoiseConfig.java:54 对应链）；过程产物 `.investigations/residual-1830/`
+- **置信度**：candidate（decisive probe 1830→76 双过，judge 待走）
+- **module**：workflow
+
+### 观察
+- 残留 1830（流体族 ~700 + deepslate→air 106 + surface ~300）。scout 勘探结论：公式/结构层 **17 项逐行零分歧**、缓存臂全闭（均为精确值缓存）——下游据此把嫌疑收敛到「输入数值差/缓存」。
+- 真根因不在任何已对拍公式内，而在**公式之外的一行构造参数**：aquifer 采样器的 splitter 派生链缺一级（漏 split_str("minecraft:aquifer").next_splitter()）→ splitter 种子错 → 全部 blob 随机偏移错 → 液面/距离场全链分叉。
+- 修复 = 一行；decisive probe 1830 → 76（双向互换族全消）。
+
+### 证据
+- 判别探针 12/12 点 opq/r/s/t 全异 → D4（blob 邻域选择差）实锤；同文件 ore 管线 L261 的 `split_str("minecraft:ore")` 是**同构调用的就地对照**——本文件内就有正确写法可 diff，无需跨源。
+- 残差四族**双向并存**（water→air 与 air→water、stone→water 与 water→stone 同时出现）——单向偏移（floodedness 低等输入漂移）应产单向签名；双向互换是「随机组合选择层选错对象」的特征签名。
+- 静态零偏离本身是真的，但它只覆盖**采样函数体**；splitter 派生层不属于任何一条被对拍公式，「零偏离」因此不构成对该层的排除。
+
+### 如何利用（可复用判据）
+1. **双向残差签名 → 优先怀疑随机派生/组合选择层**（blob 选择、feature 放置序、splitter 派生、iterator 序），其次才是阈值边界震荡；单向漂移才先查输入数值。
+2. **「逐行对拍零偏离」的覆盖面声明必须显式**：静态对拍覆盖的是函数体公式，**链路构造参数**（splitter/random provider 派生、per-chunk 实例装配、seed 传入路径）不在其覆盖面内——交接此类结论时 MUST 附覆盖面声明，接收方不得当全称公理续推（v0.20 §9.7 覆盖面要素 + §16.3 廉价独立验证的实例）。
+3. **同文件同构调用是零成本就地对照**：排查某管线缺失的 split/派生时，先 grep 同文件同库的其他调用点（ore 的 split_str("minecraft:ore")）——形态差异一行可见。
+4. 勘探阶段结构性发现（双向并存 → D4）比直觉假设（「系统性偏低」= 输入漂移）更可靠；scout 的「任务假设与签名存在张力」提示是分叉信号，应触发判别探针而非顺原假设续推。

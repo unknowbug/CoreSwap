@@ -171,3 +171,19 @@ Java `for(l=top; l>=bottom; l-=step)` 是**含两端**的递减扫描；移植 R
 
 
 
+
+## 发现 #11: 诊断门控 flag 在初始化器内唯一置位——「先查 flag 才 init」鸡生蛋死锁（260904-09）
+
+- **现象**：WG_AQDUMP 门控零输出，stderr 连 `[AQDUMP] enabled` 行都没有——门控从未激活，且无任何报错。
+- **根因**：worker 草稿把唯一置位点写在初始化器里：`aqdump_hit` 先查 `AQDUMP_ON`（false）才初始化 points/激活门控——flag 永远 false，初始化永远不发生。
+- **定位**：stderr 无 enabled 行 → 顺门控生命周期静态走查首次调用路径，发现置位点在死分支内。
+- **修复**：改为 env **存在性** `OnceLock` 先判（env 存在 → 门控激活），与初始化解耦。
+- **教训**：诊断门控的设计模式——**激活判据（env 存在性）与数据初始化必须分离，激活判据不得依赖被它门控的初始化器**；上机前静态走一遍「首次调用路径」（谁第一个读 flag、flag 在哪置位、可达吗）。与「死参数制造假判别」（workflow-patterns #20）同族：门控没生效 ≠ 机制无差异。
+
+## 发现 #12: mixin 包禁止任何非 mixin 类（含 static nested）——IllegalClassLoadError 的直接判据（260904-09）
+
+- **现象**：Java 启动即 `IllegalClassLoadError: WgCap cannot be referenced directly`。
+- **根因**：辅助类 `WgCap` 放在 mixin 包（wg.bench.mixin.*）内——mixin transformer 对包内类做字节码织入处理，非 mixin 目标类（含 static nested）被引用即类加载失败。
+- **定位**：混淆栈直接指向 mixin transformer，异常类名即包内类名。
+- **修复**：`WgCap` 移到 `wg.bench.AquiferDumpProbe` 公有嵌套类（非 mixin 包）。
+- **教训**：mixin 包内**只放 mixin 配置声明的 transformer 类**；任何辅助/工具/数据类（含 static nested、常量类）放普通包——mixin 包边界 = 字节码处理边界，不是普通 Java 包可见性边界。
