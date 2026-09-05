@@ -1,0 +1,146 @@
+name: "🐛 报告 Bug"
+title: "[Bug] "
+description: 报告 CoreSwap 的缺陷：崩溃、世界生成错误、与原版不一致的行为等。
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告！请保持每项回答简洁、可复现、基于实际观察到的证据。
+        如果某一项确实无法从现有证据回答，请填写 `信息不足`。
+        每次提交只报告一个问题；多个问题请分开提交。
+
+  - type: dropdown
+    attributes:
+      label: 问题类型
+      description: 选择最符合的类别。
+      options:
+        - "崩溃（游戏退出或卡死）"
+        - "世界生成错误（错误的地形 / 结构 / 生物群系）"
+        - "与原版行为不一致（世界内容错误但无崩溃）"
+        - "性能问题（卡顿、生成过慢）"
+        - "其他"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 问题描述
+      description: 一句话说清什么坏了，只描述观察到的现象。
+      placeholder: 示例：使用某种子进入新世界后，沼泽生物群系全部生成为裸石，无植被。
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 复现步骤
+      description: 最短的确定性复现路径。
+      placeholder: |
+        示例：
+        1. 安装 CoreSwap <版本> 与 <加载器>
+        2. 创建新世界，输入种子 -4172144997902289642
+        3. 前往坐标 X=1200 Z=-3500
+        4. 观察沼泽生物群系地表
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 世界种子（Seed）
+      description: 出现问题的世界种子。与问题无关可填"无"。
+      placeholder: 示例：-4172144997902289642
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 坐标 / 维度
+      description: 问题发生的坐标与维度（主世界 / 下界 / 末地 / 自定义维度）。与问题无关可填"无"。
+      placeholder: 示例：X=1200 Z=-3500，主世界；或"自定义维度 example:dim"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 预期行为
+      description: 以原版 Minecraft 1.20.1 的行为为参照描述预期结果。
+      placeholder: 示例：原版 1.20.1 同种子同坐标的沼泽地表为草方块 + 橡树 + 睡莲。
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 实际行为
+      description: 只描述观察到的结果，附上可见报错或证据。
+      placeholder: 示例：地表全部为裸石；附日志出现 `surface_rule` 相关告警。
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: CoreSwap 版本
+      description: 出现问题的 CoreSwap 精确版本。请不要使用 `latest` 之类的无意义值。
+      placeholder: 示例：coreswap-1.20.1-1.0.24
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: 加载方式
+      description: CoreSwap 是如何被加载进游戏的。
+      options:
+        - "Fabric（原生安装）"
+        - "Forge + Sinytra Connector"
+        - "NeoForge"
+        - "开发环境（IDE 运行）"
+        - "其他"
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: 加载器版本
+      description: Fabric Loader / Forge / Connector 的具体版本。
+      placeholder: 示例：Forge 47.4.21 + Connector-1.0.0-beta.49+1.20.1
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 已安装的其他 mod
+      description: 与问题可能相关的 mod 及其版本（若纯净安装请填"无"）。
+
+  - type: textarea
+    attributes:
+      label: 错误日志
+      description: 与问题相关的日志（崩溃报告 / latest.log 关键段）。没有有效日志的 issue 可能被要求补充，谢谢理解。
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: 影响面
+      description: 谁受影响、严重程度、发生频率（必现 / 偶发 / 特定条件）。
+      placeholder: |
+        示例：
+        影响：所有使用自定义维度的整合包玩家
+        严重度：高（世界不可玩）
+        频率：必现（3/3 次尝试）
+
+  - type: checkboxes
+    attributes:
+      label: 检查清单
+      options:
+        - label: 我已在 [Issue 列表](https://github.com/unknowbug/CoreSwap/issues)中搜索过，未发现重复报告。
+          required: true
+        - label: 我已尝试排除其他 mod 冲突（或确认无法排除，并在上方说明了原因）。
+          required: true
+        - label: 我报告的问题针对 CoreSwap 本体。
+          required: true
+        - label: （可选）我愿意提交 PR 以帮助修复该问题。
+          required: false
+
+  - type: markdown
+    attributes:
+      value: "最后，感谢您抽出时间报告问题！——AI 分诊助手会先行预处理，人工维护者会最终确认。"
