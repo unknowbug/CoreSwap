@@ -894,8 +894,10 @@ impl WorldgenHandle {
                 // FeaturePlacementContext
                 // 260905-06：block_at 接入本 chunk 列（idk-7 链：block_predicate_filter/would_survive
                 // 需读实况方块；此前恒 None → 谓词全 false → 树全灭）。
-                // 安全性：col 为本 chunk 独占列（apply_features 单线程独占），闭包只读；
-                // 与 octx 的 &mut 访问发生在不同时点（谓词读/放置写交错，无并发别名）。
+                // 安全性（并发不变量，judge C-4）：col 为 apply_features 独占参数，本指针不跨线程共享、
+                // 闭包只读且仅在本次调用栈内存活（fctx 同域销毁）；与 octx 的 &mut 写访问交错发生在
+                // 不同时点（谓词读 / 放置写），无同时别名访问。
+                // 已知语义偏差（judge C-3）：越界（邻 chunk）返回 -1 = 保守拒绝，Java 读邻 chunk 实况。
                 let col_ptr: *const crate::blocks::BlockColumn = &*col;
                 let block_at_col = move |bx: i32, by: i32, bz: i32| -> i32 {
                     let lx = bx - cx * 16;

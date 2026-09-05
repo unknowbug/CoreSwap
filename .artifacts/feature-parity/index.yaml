@@ -37,8 +37,20 @@ entries:
     title: "原始输出归档（v8 判决 + cargo test light）"
     status: draft
     date: 260905-05
+  - id: FEA-6
+    file: "../../.artifacts/feature-parity/judge-verdict-260905-06.md"
+    title: "judge 审查：260905-06 idk-7 实装（三源核对 + C-1~C-4 条件）"
+    status: draft
+    verdict: "APPROVE-WITH-CONDITIONS：C-1/C-2 已补全（v10 可复现 119,198/−30.5% + dump hash 留痕），C-3/C-4 已登记"
+    date: 260905-06
+  - id: FEA-7
+    file: "../../.tmp/feature-parity-260905-06/"
+    title: "确定性 dump 载体判决链（v10=119,198/−30.5% 可复现 + v11=740 chunks/164,309 块 + v12 双向分解 + dump-hashes.txt）"
+    status: draft
+    date: 260905-06
 standing:
-  - "idk-7：✅ 已实装（260905-06，commit 244d680）——selector/patch 嵌套生成 + placed 链语义 + predicate_type/heightmap/block_at 修复 + jungle placers；树残差 171,442→118,697（确定性 dump 口径）"
+  - "idk-7：✅ 已实装（260905-06，commit 244d680，judge APPROVE-WITH-CONDITIONS 条件已核销）——树残差 171,442→119,198（确定性 dump 口径，可复现）"
+  - "语义偏差（judge C-3）：mega 分支原木不入 trunk_set（影响 TrunkVine 候选集）；block_at 越界 -1 vs Java 邻 chunk 实况"
   - "R-1：decorator 同 Y 序 = Java HashSet 桶序（未定界；vine 残差 rust少 21,961 主候选）"
   - "树位置对齐：oak rust多 38,250 / jungle rust少 22,611 —— RNG 流或放置判定残差（260905-06 v12 分解）"
   - "vines feature（minecraft:vines 藤蔓墙）+ leaves distance 属性位编码未实装"
