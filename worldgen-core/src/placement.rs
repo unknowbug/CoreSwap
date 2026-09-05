@@ -458,6 +458,11 @@ pub struct PlacedFeature {
     pub id: String,                        // "minecraft:ore_granite_upper"
     pub modifiers: Vec<PlacementModifier>,
     pub configured_feature: String,        // 引用的 configured_feature id
+    // 260905-12 patch 空 id 修复：内嵌 feature 为内联 configured 对象时（patch_grass 等 19 个
+    // random_patch 系），configured_feature 为空串，此处持有直接解析的 configured 实体
+    // （Java 语义 = Holder.direct，无 id 直发；generate 侧优先于 id 查 cache）。
+    // Box：CF(selector)→PlacedFeature→CF 递归断环。
+    pub inline_configured: Option<Box<crate::feature_loader::ConfiguredFeature>>,
     pub step: i32,                         // GenerationStep.Feature ordinal（biome features 列表索引）
     pub global_index: i32,                 // PlacedFeatureIndexer 全局索引（p）
 }
@@ -495,13 +500,22 @@ impl PlacedFeature {
         let v = v?;
         if let Some(id) = v.as_str() {
             return Some(PlacedFeature { id: id.to_string(), modifiers: Vec::new(),
-                configured_feature: id.to_string(), step: 0, global_index: -1 });
+                configured_feature: id.to_string(), step: 0, global_index: -1,
+                inline_configured: None });
         }
+        // 内嵌 feature 三形态：字符串 id（查 cache）/ 内联 configured 对象（直接解析持有）/
+        // 缺失（空串，运行时 miss 告警）。260905-12 前只支持前者的字符串与后者，内联对象
+        // 被静默吞成空 id → generate_nested miss ×31（patch_grass_forest 域）。
+        let inner = v.get("feature");
+        let inline_cf = inner
+            .filter(|f| f.as_object().is_some())
+            .map(|f| Box::new(crate::feature_loader::ConfiguredFeature::parse("", f, blocks)));
         let mut pf = PlacedFeature {
             id: String::new(),
             modifiers: Vec::new(),
-            configured_feature: v.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
+            configured_feature: inner.and_then(|f| f.as_str()).unwrap_or("").to_string(),
             step: 0, global_index: -1,
+            inline_configured: inline_cf,
         };
         if let Some(mods) = v.get("placement").and_then(|p| p.as_array()) {
             for m in mods {

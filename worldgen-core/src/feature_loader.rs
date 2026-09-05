@@ -224,6 +224,7 @@ impl FeatureCache {
             configured_feature: root.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
             step: 0,
             global_index: -1,
+            inline_configured: None,
         };
         if let Some(mods) = root.get("placement") {
             if let Some(arr) = mods.as_array() {
@@ -265,6 +266,7 @@ impl FeatureCache {
                 configured_feature: root.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
                 step: 0,
                 global_index: -1,
+                inline_configured: None,
             };
             if let Some(mods) = root.get("placement") {
                 if let Some(arr) = mods.as_array() {
@@ -327,6 +329,7 @@ impl FeatureCache {
                 configured_feature: root.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
                 step: 0,
                 global_index: -1,
+                inline_configured: None,
             };
             if let Some(mods) = root.get("placement").and_then(|p| p.as_array()) {
                 for m in mods {
@@ -427,6 +430,10 @@ pub fn generate_configured(
                     let sy = random.next_int_bound(k) - random.next_int_bound(k);
                     let sz = random.next_int_bound(j) - random.next_int_bound(j);
                     if pc.feature.generate(ctx, random, x + sx, y + sy, z + sz, |c2, r2, gx, gy, gz| {
+                        // 260905-12：内联 configured 对象（Holder.direct）直发，无 id 不查 cache
+                        if let Some(icf) = &pc.feature.inline_configured {
+                            return generate_configured(icf, c2, octx, r2, gx, gy, gz, biome_temp, biome_rainfall, cache);
+                        }
                         generate_nested(&pc.feature.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
                     }) {
                         placed_any = true;
@@ -469,6 +476,13 @@ fn generate_nested(
     biome_temp: f32, biome_rainfall: f32,
 ) -> bool {
     if let Some(pf) = cache.placed.get(nested_id) {
+        // 260905-12：placed 内嵌 configured 为内联对象时 configured_feature 为空串，直发实体。
+        // ⚠️ 死防御分支（judge WARN 260905-12）：当前 1.20.1 数据 placed JSON 的内联对象 feature
+        // 为 0 个，本分支不可达；且此处绕过 pf.generate placement 链（Java 语义应先链后 configured）。
+        // 残差专项（FEA-11）开工前如需启用：改镜像 random_patch 分支，走 pf.generate 完整链。
+        if let Some(icf) = &pf.inline_configured {
+            return generate_configured(icf, ctx, octx, random, x, y, z, biome_temp, biome_rainfall, cache);
+        }
         let cf_id = pf.configured_feature.clone();
         return pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
             match cache.configured.get(&cf_id) {

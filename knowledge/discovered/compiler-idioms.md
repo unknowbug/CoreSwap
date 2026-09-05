@@ -214,3 +214,19 @@ light_data.json 中 18 个条目 opacity 为 -1（语义：不透明度哨兵/�
 - **修复**：快路径判据改为**判全字 `v==0`**（且 `table[0]==(0,0)`），任何非零位都回退完整查表路径。修复后 4 用例 golden 全等 PASS。
 - **教训/判据**：① 对位打包值做类别快路径，**必须判全字为零，或显式声明并验证「其余位必为零」的不变量**。② 与 #8（布尔经 as_f64 恒 false）、#14（负值经 u8 parse 静默 clamp）同家族：**「标量跨域/跨表示的静默语义腐蚀」**——共同点 = 解析/判断「成功」且零告警。③ 合成边界用例（构造字段间取值组合）是 golden 用例集的必备成分，纯真实数据可能永远不触发该分支。
 - 交叉引用：#8、#14（同族）。
+
+## 发现 #16: JSON 字段「类型形态枚举不全」静默腐蚀——feature 字段三形态只支持一种，内联对象被吞成空 id（260905-12）
+
+- **发现时间**：260905-12；**发现者**：core.worker 草稿（feature-parity patch_grass 内联修复课题）+ 主会话应用；**来源定位**：`.investigations/feature-parity/260905-12-patch-grass-inline-fix.md` + `worldgen-core/src/placement.rs`（PlacedFeature::parse_inline）/ `feature_loader.rs`（generate_configured/generate_nested）git diff；**置信度**：candidate（修复前后基线对照实锤，judge/confirmed 待走）；**module**：re-code / swe（数据驱动解析器 / 跨语言 JSON 语义）。
+
+### 观察/根因
+patch_grass 系 **24 个内联点位**（18 个 patch_*.json + 6 个 flower*.json random_patch/flower 系 configured feature，patch_berry_bush/patch_cactus/patch_grass_jungle/patch_large_fern 等）的 `feature` 字段是**内联 configured feature 对象**（Java 语义 = `Holder.direct`，无 id 直发），不是 id 字符串。`parse_inline` 只按字符串形态解析（`as_str().unwrap_or("")`）→ 内联对象静默变**空串 id** → 运行时 `generate_nested("")` → placed/configured cache 双 miss → 空 id 告警 ×N（该参照区 miss=8766）。解析期零告警——与 #8（布尔 as_f64 恒 false）、#14（负值 parse_u8 clamp）同家族：**JSON 字段类型形态枚举不全 = 静默语义腐蚀家族**。#8 是布尔收窄、#14 是符号性收窄，本条是「字段值可能是复合对象而 parse 只支持标量形态」的**结构性**收窄；共同点 = 解析「成功」返回 + 零告警，语义已损失。
+
+### 证据
+- 修复前 features_probe release × recheck 参照（6×6）miss=8766 / match 94.99%；修复后 miss=0 / match 94.78%（stash/pop 单变量基线对照，同 seed 同参照同二进制载体）。
+- 修复 = `PlacedFeature` 增 `inline_configured: Option<Box<ConfiguredFeature>>`（Box 断 CF→PlacedFeature→CF 递归环）；parse_inline 对 object 形态直接 `ConfiguredFeature::parse("", obj)` 持有实体；generate 侧 inline Some 时直发、优先于 id 查 cache（对齐 Java Holder.direct 直发非查表语义）。
+
+### 如何利用
+- **判据（形态枚举全覆盖）**：数据驱动解析器对「id 引用型」字段（placement/configured 的 `feature`、`config` 内嵌等）必须显式枚举**全部三形态**——① id 字符串（查表）② 内联对象（直接解析持有，Holder.direct 语义）③ 缺失（才允许告警/缺省）。只写 `as_str().unwrap_or("")` 一种读法 = 隐含假设「永远是字符串」，移植 Java 时先核对 `Holder` 的 direct/reference 双形态。
+- **判据（空 id = 解析层缺陷签名）**：运行时 miss 告警必须带 id 内容检查——**空 id/空串 key 的 miss 是解析层缺陷签名，不是运行时层问题**（运行时层缺 key 应是有名 id）；见空串 miss 先回解析层 dump 产物，不查 cache 实现。
+- 交叉引用：#8（布尔恒 false，同族第一例）、#14（负值 clamp，同族第二例）、workflow-patterns #12（对拍解析产物而非 JSON 原文——本例假阴性同样被该缺口掩盖）。

@@ -1,7 +1,7 @@
 # .artifacts/feature-parity/index.yaml — feature parity 课题产物索引
 topic: feature-parity
 created: 260905-05
-updated: 260905-06
+updated: 260905-12
 baseline: "239,594 diff instances / 1829 chunks / 3009 comparable (ab A/B 受控口径, v8)"
 # 260905-06 修订：v9 实证跨 run vanilla 噪声 241,080 与信号同阶 → v8 口径仅可验无回归；
 # 收敛裁决改用确定性载体（idk7_region_dump 2193 chunks vs 固定 vanilla 快照，v10 口径）
@@ -66,6 +66,12 @@ entries:
     status: candidate
     verdict: "candidate（judge APPROVE-WITH-CONDITIONS，C1-C4 核销 260905-10）；supersedes FEA-9「WG_CA_MIN 默认关」表述（env_enabled 实为默认开）；confirmed 待用户拍板"
     date: 260905-10
+  - id: FEA-11
+    file: "../../.artifacts/feature-parity/candidate-patchgrass-260905-12.md"
+    title: "patch_grass 系空 id miss 修复（260905-12）——内联 configured 对象（Holder.direct）被 parse_inline 吞成空串 id；24 内联点位（18 patch + 6 flower）；miss 8766→0 基线对照 + RNG 中性证明"
+    status: confirmed
+    verdict: "confirmed（用户拍板 260905-12）；judge APPROVE-WITH-CONDITIONS 条件核销（index 登记/计数更正/死分支注记）；badlands −0.21% 残差划界 patch 选型/biome 门域（fan-out 候选 4 项）；代码锚 commit 见 git log 260905-12"
+    date: 260905-12
 standing:
   - "idk-7：✅ 已实装（260905-06，commit 244d680，judge APPROVE-WITH-CONDITIONS 条件已核销）——树残差 171,442→119,198（确定性 dump 口径，可复现）"
   - "语义偏差（judge C-3）：mega 分支原木不入 trunk_set（影响 TrunkVine 候选集）；block_at 越界 -1 vs Java 邻 chunk 实况"
@@ -75,3 +81,4 @@ standing:
   - "anchor_biome 口径（chunk biome vs posToBiome jitter）未定界"
   - "fancy_oak = LargeOak placer 对（验证口径待拍板）"
   - "S3：✅ 已核销（260905-06，commit 627efc0，light_data.json 白名单入库）"
+  - "patch 选型/biome 门残差（260905-12）：badlands 参照区 rust 多放 grass/tall_grass（修复激活暴露）——fan-out 候选 4 项见 FEA-11"

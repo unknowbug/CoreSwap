@@ -2947,13 +2947,6 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 📌 **open**：S3 data/ 管理策略（须用户拍板）；树族残差 R-1/idk-7 收敛立项；7× 首载漂移（承前）。
 
 
-# 【草稿】10-timewise-archive.md 时间线追加条目（260905-06）
-
-> 供主会话应用：追加到 `versions/1.20.1/docs/10-timewise-archive.md` 末尾。每条带状态标注。
-> 本文件为草稿，正式 docs 未改动。
-
----
-
 ## 260905-06（实际 2026-09-05：树族残差收敛 — idk-7 实装 + 四 bug 修复 + 载体转折）✅ 判据链闭合（candidate）
 
 > 过程产物 `.investigations/feature-parity/260905-06-errors.md` + `.tmp/feature-parity-260905-06/`；结论 → 13 篇 260905-06 小节；通用模式 → workflow-patterns #51/#52、build-tooling #23/#24（草稿）。
@@ -2984,3 +2977,13 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 🔍 **open（流程）**：workflow-patterns #53、build-tooling #25、13 篇 260905-10 小节草稿待主会话应用 + judge；candidate-beehive 待 judge + 用户拍板。
 
 ---
+
+## 260905-12（实际 2026-09-05：feature parity——mixin chunk 过滤改造 + patch_grass 系内联 configured 修复 + badlands 参照区残差边界划分）✅ 修复完成 judge 通过（candidate，APPROVE-WITH-CONDITIONS 条件已核销；confirmed 待用户）
+
+> 过程产物 `.investigations/feature-parity/260905-12-patch-grass-inline-fix.md`（架构计划 `.investigations/000-架构设计/架构计划-260905-12.md` 方案 C 已批准）；产物档案 `.artifacts/feature-parity/candidate-patchgrass-260905-12.md`（FEA-11）；通用模式 → compiler-idioms 发现 #16。
+
+- ✅ **mixin chunk 过滤改造**：SEEDLOG/TREEDIAG Java 通道全量噪声整改落地（承接 260905-10 #25 整改方向，runtime/ local-only）：新增 wg.bench.WgDiag（ThreadLocal 当前 chunk + WG_DIAGCHUNK/wg.diagchunk 目标过滤 + 一次性 banner），population 行恒写 curChunk、THJ/BEE 走线程当前 chunk 门、CNT/SQX/SQZ 走 pos chunk 门，SEEDLOG population 行不滤（锚点）；编译绿。运行时效果验证（噪声 -99% + banner）并入下轮 java 采集（🔍 未验）。
+- ✅ **patch_grass 系空 id miss 修复**：NEXT_SESSION 未闭合课题 #3（`generate_nested: unknown id (placed+configured miss): ` 空 id）——根因 = **24 内联点位**（18 patch_*.json + 6 flower*.json）的内嵌 `feature` 字段为**内联 configured 对象**（Holder.direct），`parse_inline` 只支持字符串形态 → 静默吞成空串 id → cache 双 miss。修复 = `PlacedFeature.inline_configured: Option<Box<ConfiguredFeature>>`（Box 断递归环）+ object 形态直接解析持有 + generate 侧直发优先于查表（generate_nested inline 分支加死防御注记：当前数据 0 个 placed 内联对象不可达）。基线对照（stash/pop 单变量，features_probe release × recheck 6×6 参照）：**miss 8766 → 0**（match 94.99% → 94.78%）。环境注意：debug 构建 chunkrandom.rs:169 溢出 panic 为既有问题非本修复引入；rlib mtime 红旗本轮为 #6 假阳性（fs::copy 保留 mtime），已用内容指纹核验。
+- ✅ **badlands 参照区 −0.21% 残差边界划分（§9.7 + judge #3 因果标注）**：修复后 rust 在该参照区新放 7241 grass + 261 tall_grass、vanilla 全 0——**修复激活放置后暴露的上游差异，非本修复语义错误**（RNG 中性已证：BlockStateProvider Simple/Weighted 消费 0/1 同 Java，judge 专项核对 tree.rs:49-63），属「patch feature 选择 / biome 门」域；fan-out 候选 4 项（① biome feature 列表数据/映射差 ② dripstone_caves step9 patch_grass_plain + biome 门差 ③ patch_grass vs patch_grass_badlands 选型差 ④ unsupported placement modifier + features 顺序/global_index 差）→ 按分叉即 fan-out 纪律**不在主会话自推**，留待专项（可与 jungle_l 采集共用 java 侧证据）。match 口径声明：features_probe vs vanilla FULL 6×6，与 v18 口径（2193 chunks treediag）不可比。
+- ✅ **judge 审查**：APPROVE-WITH-CONDITIONS（260905-12）——三源核对通过 + RNG 中性专项证明；条件三项（index 登记 FEA-11 / 「19 个」→24 计数更正 / generate_nested 死分支注记）当场核销。
+- 🔍 **open**：patch 选型/biome 门专项未立项（FEA-11 残差 4 候选）；mixin 过滤运行时效果待验；confirmed 待用户拍板。
