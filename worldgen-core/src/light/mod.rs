@@ -55,6 +55,9 @@ fn dom_unpack(i: usize) -> (usize, usize, usize) {
 pub struct LightEngine {
     /// (opacity, emission) by block id
     table: Vec<(u8, u8)>,
+    /// table[0] == (0,0) 时 fill 可走「air 快路径」（id==0 且无 luminance ⇒ op/em 全 0，
+    /// 免查表 + 免 col_max 条件写）；真实 light_data 下恒成立，非默认 (0,0) 时自动禁用。
+    air_fast: bool,
     scratch: RefCell<Scratch>,
 }
 
@@ -63,6 +66,8 @@ struct Scratch {
     block_light: Vec<u8>,
     sky_light: Vec<u8>,
     queue: Vec<u32>,
+    /// 每域列 (x + z*DOM) 的最高不透明 y（无则 -1）——fill 同趟收集，sky 阶段复用
+    col_max: Vec<i32>,
 }
 
 impl LightEngine {
@@ -97,12 +102,14 @@ impl LightEngine {
         }
 
         Ok(LightEngine {
+            air_fast: table[0] == (0, 0),
             table,
             scratch: RefCell::new(Scratch {
                 opacity: Vec::new(),
                 block_light: Vec::new(),
                 sky_light: Vec::new(),
                 queue: Vec::new(),
+                col_max: Vec::new(),
             }),
         })
     }
@@ -176,7 +183,7 @@ fn light_compute_inner(
     }
 
     let mut sc = engine.scratch.borrow_mut();
-    let Scratch { opacity, block_light, sky_light, queue } = &mut *sc;
+    let Scratch { opacity, block_light, sky_light, queue, col_max } = &mut *sc;
 
     let _t0 = phases.as_mut().map(|_| std::time::Instant::now());
 
@@ -188,26 +195,47 @@ fn light_compute_inner(
     sky_light.clear();
     sky_light.resize(BLOCKS9_LEN, 0);
     queue.clear();
+    col_max.clear();
+    col_max.resize(DOM * DOM, -1);
 
     // 1. blocks9 → 域 opacity/emission。ABI：低 24 位 = raw id，高 8 位 = luminance 真值
     //    （state 级，Java 侧提供；为 0 时回退数据表 emission —— 表仍作 id 级回退源）。
     //    同时收集 block light 种子（emission>0）。
-    for c in 0..9usize {
-        for y in 0..WORLD_H {
-            for lz in 0..16usize {
+    //    round2：dom-major 重排（写侧连续，消 dom_index 乘法散写），同趟收集 col_max
+    //    （每列最高不透明 y，sky 阶段的 15-区间即 col_max+1..383，省一趟 O(N) opacity 读）。
+    for y in 0..WORLD_H {
+        let yb = y * 256;
+        for z in 0..DOM {
+            let cz = z >> 4;
+            let lz = z & 15;
+            let row = (y * DOM + z) * DOM;
+            let colrow = z * DOM;
+            for cx in 0..3usize {
+                let c = cz * 3 + cx;
+                let base = c * CHUNK_CELLS + yb + lz * 16;
+                let d = row + cx * 16;
                 for lx in 0..16usize {
-                    let v = blocks9[blocks9_index(c, y, lx, lz)] as u32;
+                    let v = blocks9[base + lx] as u32;
+                    let i = d + lx;
+                    // air 快路径：v==0（id=0 且 luminance=0，luminance 高位非 0 不得走此路径）
+                    // 且 table[0]==(0,0) ⇒ op/em 全 0。⚠️ id==0 但 lum>0 是合法光源，必须落查表。
+                    if engine.air_fast && v == 0 {
+                        // opacity[i] 保持 0（scratch 清零语义）；block_light 同
+                        continue;
+                    }
                     let id = (v & 0x00FF_FFFF) as i32;
                     let lum = (v >> 24) as u8;
                     let (op, mut em) = engine.lookup(id);
                     if lum > 0 {
                         em = lum;
                     }
-                    let i = dom_index((c % 3) * 16 + lx, y, (c / 3) * 16 + lz);
                     opacity[i] = op;
                     if em > 0 {
                         block_light[i] = em;
                         queue.push(i as u32);
+                    }
+                    if op > 0 {
+                        col_max[colrow + cx * 16 + lx] = y as i32;
                     }
                 }
             }
@@ -228,17 +256,14 @@ fn light_compute_inner(
 
     queue.clear();
 
-    // 3. sky light：柱状直落（opacity 0 一路 15，遇 opacity>0 停）+ BFS 水平/向下扩散
+    // 3. sky light：柱状直落（opacity 0 一路 15，遇 opacity>0 停）+ BFS 水平/向下扩散。
+    //    round2：直落区间直接取 col_max——首不透明格 = 列最大 y（fill 已按 y 升序取 max），
+    //    故 15-区间 = [col_max+1, 383]，与原「自上而下 blocked 扫描」逐位等价且免 opacity 读。
     for z in 0..DOM {
         for x in 0..DOM {
-            let mut blocked = false;
-            for y in (0..WORLD_H).rev() {
-                let i = dom_index(x, y, z);
-                if opacity[i] > 0 {
-                    blocked = true;
-                } else if !blocked {
-                    sky_light[i] = 15;
-                }
+            let lo = (col_max[z * DOM + x] + 1) as usize; // col_max=-1 → 0（全空列整柱 15）
+            for y in lo..WORLD_H {
+                sky_light[(y * DOM + z) * DOM + x] = 15;
             }
         }
     }
@@ -248,20 +273,40 @@ fn light_compute_inner(
     }
     let _t3 = phases.as_mut().map(|_| std::time::Instant::now());
 
-    // 种子收缩优化：只让「边界 15」进队——某 15 格存在 6 邻域中 sky<15 的格才需要传播。
-    // 内部 15 格的传播是 no-op（邻域全 15，try_spread 的 new_level>light[n] 恒 false），
-    // 语义与全量进队逐位等价；扫描仍是 O(N)，但省掉数十万队列格的 6 邻域展开。
-    for i in 0..BLOCKS9_LEN {
-        if sky_light[i] == 15 {
-            let (x, z, y) = dom_unpack(i);
-            let boundary = (x > 0 && sky_light[i - 1] < 15)
-                || (x + 1 < DOM && sky_light[i + 1] < 15)
-                || (z > 0 && sky_light[i - DOM] < 15)
-                || (z + 1 < DOM && sky_light[i + DOM] < 15)
-                || (y > 0 && sky_light[i - DOM * DOM] < 15)
-                || (y + 1 < WORLD_H && sky_light[i + DOM * DOM] < 15);
-            if boundary {
-                queue.push(i as u32);
+    // 种子收缩 round2：边界种子集合用列区间算术直接枚举（消 round1 的 O(N)×6 邻域全扫）。
+    // 等价性论证：每列 15-区间 [lo, 383] 连续（lo = col_max+1），故格 (x,z,y)（y∈区间）的
+    // 6 邻域存在 sky<15 ⇔ ①y==lo（列底，下方 = col_max 不透明格 sky=0；lo==0 时无下方邻）
+    // 或 ②∃ 水平邻列其 lo_nb > y（y 不在邻列区间内；y+1<15 不可能，区间向上连续到顶）。
+    // 与 round1 逐格扫描收集的种子集合严格恒等；传播单调 + 不动点唯一 ⇒ BFS 结果逐位一致。
+    for z in 0..DOM {
+        for x in 0..DOM {
+            let lo = col_max[z * DOM + x] + 1;
+            if lo >= WORLD_H as i32 {
+                continue; // 空 15-区间（列顶即不透明）
+            }
+            let mut bottom_covered = false;
+            let nbs = [
+                (x > 0).then(|| (x - 1, z)),
+                (x + 1 < DOM).then(|| (x + 1, z)),
+                (z > 0).then(|| (x, z - 1)),
+                (z + 1 < DOM).then(|| (x, z + 1)),
+            ];
+            for nb in nbs.into_iter().flatten() {
+                let (nx, nz) = nb;
+                let hi = (col_max[nz * DOM + nx] + 1).min(WORLD_H as i32) - 1;
+                if hi >= lo {
+                    // 补集区间 [lo, hi]：这些 y 在本列是 15 而邻列 <15 → 边界种子
+                    for y in lo..=hi {
+                        queue.push(((y as usize * DOM + z) * DOM + x) as u32);
+                    }
+                    if lo == 0 {
+                        bottom_covered = true; // lo==0 时底格无下方邻，由区间覆盖
+                    }
+                }
+            }
+            if !bottom_covered && lo > 0 {
+                // 列底格恒为边界（下方 sky=0）；lo==0 且无区间则该列无任何种子（全柱 15 且邻列亦全 15）
+                queue.push(((lo as usize * DOM + z) * DOM + x) as u32);
             }
         }
     }

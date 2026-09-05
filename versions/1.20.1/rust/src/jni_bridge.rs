@@ -246,6 +246,20 @@ const LIGHT_BLOCKS9_LEN: usize = 9 * 16 * 16 * 384; // 884736
 const LIGHT_OUT_LEN: usize = 24 * 2048; // 49152
 const LIGHT_FLAGS_LEN: usize = 48;
 
+// round2：JNI 侧缓冲 thread_local 复用（light 线程池每线程一份，免每 chunk ~4MB 分配）。
+// 每次使用前 b9 会被 get_int_array_region 全量覆写；ob/os/of 由 light_compute 全量写出
+// （export_center 对每 section 先 fill 再写，flags 全 48 字节写），无跨调用脏数据残留。
+thread_local! {
+    static LIGHT_B9: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; LIGHT_BLOCKS9_LEN]);
+    static LIGHT_OB: std::cell::RefCell<Vec<u8>> =
+        std::cell::RefCell::new(vec![0u8; LIGHT_OUT_LEN]);
+    static LIGHT_OS: std::cell::RefCell<Vec<u8>> =
+        std::cell::RefCell::new(vec![0u8; LIGHT_OUT_LEN]);
+    static LIGHT_OF: std::cell::RefCell<Vec<u8>> =
+        std::cell::RefCell::new(vec![0u8; LIGHT_FLAGS_LEN]);
+}
+
 // 光照引擎初始化：解析 light_data.json → LightEngine handle。解析失败返回 0。
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_wg_CppWorldgen_lightInit<'frame>(
@@ -297,39 +311,53 @@ pub extern "system" fn Java_wg_CppWorldgen_lightCompute<'frame>(
             {
                 return Ok(-2);
             }
-            let mut b9 = vec![0i32; LIGHT_BLOCKS9_LEN];
-            env.get_int_array_region(&blocks9, 0, &mut b9)?;
-            let engine = unsafe { &*(handle as *const LightEngine) };
-            let mut ob = vec![0u8; LIGHT_OUT_LEN];
-            let mut os = vec![0u8; LIGHT_OUT_LEN];
-            let mut of = vec![0u8; LIGHT_FLAGS_LEN];
+            LIGHT_B9.with(|tl_b9| {
+                LIGHT_OB.with(|tl_ob| {
+                    LIGHT_OS.with(|tl_os| {
+                        LIGHT_OF.with(|tl_of| -> Result<jint, Error> {
+                            let mut b9 = tl_b9.borrow_mut();
+                            env.get_int_array_region(&blocks9, 0, &mut b9)?;
+                            let engine = unsafe { &*(handle as *const LightEngine) };
+                            let mut ob = tl_ob.borrow_mut();
+                            let mut os = tl_os.borrow_mut();
+                            let mut of = tl_of.borrow_mut();
 
-            // panic 兜底：Rust panic 绝不跨 FFI 边界（JVM 会崩），捕获后返回 -3
-            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                WorldgenRust::light::light_compute(engine, &b9, &mut ob, &mut os, &mut of)
-            }));
-            match res {
-                Ok(Ok(())) => {}
-                Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
-                Err(p) => {
-                    // 诊断：panic 内容打到 stderr（一次性定位用，量级 = 每次失败一行）
-                    let msg = p
-                        .downcast_ref::<&str>()
-                        .map(|s| *s)
-                        .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
-                        .unwrap_or("<non-string panic>");
-                    eprintln!("[LightRust][RUST-PANIC] light_compute panicked: {}", msg);
-                    return Ok(-3);
-                }
-            }
-            // jni 0.22 set_byte_array_region 要 &[i8]：u8→i8 数值保持转换（jni 侧 javabyte 同为 8 位）
-            let ob8: Vec<i8> = ob.into_iter().map(|b| b as i8).collect();
-            let os8: Vec<i8> = os.into_iter().map(|b| b as i8).collect();
-            let of8: Vec<i8> = of.into_iter().map(|b| b as i8).collect();
-            env.set_byte_array_region(&out_block, 0, &ob8)?;
-            env.set_byte_array_region(&out_sky, 0, &os8)?;
-            env.set_byte_array_region(&out_flags, 0, &of8)?;
-            Ok(0)
+                            // panic 兜底：Rust panic 绝不跨 FFI 边界（JVM 会崩），捕获后返回 -3
+                            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                WorldgenRust::light::light_compute(engine, &b9, &mut ob, &mut os, &mut of)
+                            }));
+                            match res {
+                                Ok(Ok(())) => {}
+                                Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
+                                Err(p) => {
+                                    // 诊断：panic 内容打到 stderr（一次性定位用，量级 = 每次失败一行）
+                                    let msg = p
+                                        .downcast_ref::<&str>()
+                                        .map(|s| *s)
+                                        .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                                        .unwrap_or("<non-string panic>");
+                                    eprintln!("[LightRust][RUST-PANIC] light_compute panicked: {}", msg);
+                                    return Ok(-3);
+                                }
+                            }
+                            // u8/i8 布局同宽，免逐字节转换拷贝（jni 0.22 set_byte_array_region 要 &[i8]）
+                            let ob8: &[i8] = unsafe {
+                                std::slice::from_raw_parts(ob.as_ptr() as *const i8, ob.len())
+                            };
+                            let os8: &[i8] = unsafe {
+                                std::slice::from_raw_parts(os.as_ptr() as *const i8, os.len())
+                            };
+                            let of8: &[i8] = unsafe {
+                                std::slice::from_raw_parts(of.as_ptr() as *const i8, of.len())
+                            };
+                            env.set_byte_array_region(&out_block, 0, ob8)?;
+                            env.set_byte_array_region(&out_sky, 0, os8)?;
+                            env.set_byte_array_region(&out_flags, 0, of8)?;
+                            Ok(0)
+                        })
+                    })
+                })
+            })
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }
