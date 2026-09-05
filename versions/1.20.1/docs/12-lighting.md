@@ -24,3 +24,43 @@
 - ❌ fallback 收不到 propagateLight——.b1 DENY（残差在 pregen 边界 + 拉取语义）
 - ❌ 光照内核 BFS 缺陷——G1 exact 100%（blocks 一致域）
 - ❌ isLightOn 缺失是 rust 侧 bug——vanilla/rust 双侧存档均无此键（.tmp/net 源树疑非 1.20.1）
+
+## D3 性能优化 round1（种子收缩）——内核 5.80→3.72ms（1.56×），e2e 回退收窄至 1.74×（260905-04）
+
+> 状态：candidate（C1-C4 judge 条件已落实，judge 收尾 APPROVE-WITH-CONDITIONS；「e2e 不回退」严格判据仍 FAIL，confirmed 待用户拍板）
+> 口径声明（§9.7）：内核微基准载体 = `light_bench_real.rs` 链接 rlib 96a33b09；数据 = 真实 blocks9（vanilla WGB2 4×4@200 seed 8576294172403134396 抽 3×3）；256 chunks 批 wall，预热 8。与 260905-03 合成口径 6.88ms **不可比**（数据分布不同，仅量级对照）。
+
+### 措施：sky BFS 边界 15 种子收缩
+`worldgen-core/src/light/mod.rs`：原实现把全部 sky==15 cell（数十万）无差别进队；改为只让「边界 15」（6 邻域存在 sky<15 的 15 格）进队。
+
+语义等价论证要点：
+1. **内部 15 格零贡献**：内部 15 格的 6 邻域在扫描时刻已全 15，且 BFS 光照单调不降 → `try_spread` 的 `new_level > light[n]` 恒 false → 出队后零展开贡献；
+2. **BFS 单调不动点与入队顺序无关**：光照传播是单调松弛，最终不动点唯一，入队集合中剔除零贡献种子不改变不动点 → 结果逐位不变。
+
+同步改造：`light_compute` 委托 `light_compute_inner`（phases Option）+ `#[doc(hidden)] light_compute_phased` + PhaseTimings 探针（生产路径传 None 零开销）。
+
+### golden 逐位不变对照方法（C4，可复用）
+- 优化前：冻结 pre-opt rlib（96a33b09）跑 4 用例（synthetic + 3 真实 region）→ `golden_pre.txt`；优化后同 rlib 路径复跑 → `golden_post.txt`；FNV hash 逐用例等值 = PASS。
+- 本轮 4 用例 hash 全等；region_a 与 blocks9_real 的 sky/flags hash 相同为合理非异常（相邻 flat plains，sky 直落同构、block 通道不同）。
+
+### 数据
+- 内核：blocks9_real **5.796 → 3.723 ms/chunk（1.56×）**；region_a 3.732 / region_b 3.645。
+- e2e（C3，四臂交替 ON/OFF/ON/OFF，同机同 seed，删 world + RCON stop）：ON median **23.46s** vs OFF median **13.52s** = **1.74× 回退**（g3 基线 2.4×，收窄 29%）；绝对开销 17.3s→9.9s。可比性：四臂 worldgen 模式行一致、dll 同版（1955840）、ON 臂 lightInit ok、fallback=0。
+- 未达原「内核 ≥2×」判据；剩余大头 = sky_seed_bfs / fill / sky_fall 三者均 O(N) 全域扫描（内存带宽型）。下一层候选（未实施）：边界扫描与 sky_fall/fill 融合、fill 直读 blocks9 布局、均质 section 跳过（需边界白名单）。Java 收集循环（884736 getBlockState/chunk ≈5.6s）成 e2e 下一大头。
+
+### Phase 分解（C2，post-opt，64 chunks 均值）
+| phase | blocks9_real | region_a |
+|---|---|---|
+| sky_seed_bfs（含边界扫描） | 1819.5 µs (48.3%) | 1846.8 µs (48.7%) |
+| fill | 925.7 µs (24.6%) | 919.7 µs (24.3%) |
+| sky_fall | 796.8 µs (21.2%) | 798.3 µs (21.1%) |
+| export | 210.8 µs (5.6%) | 211.3 µs (5.6%) |
+| block_bfs | 13.3 µs (0.4%) | 15.1 µs (0.4%) |
+
+### 链条（猜测→验证→排除→发现）
+1. **猜测**：内核 BFS 为 e2e 开销主体。**验证**：真实 blocks9 口径复核 = 5.796ms/chunk，量级成立 → 归因可继承。
+2. **猜测**：内部 15 格种子是冗余。**验证**：单调性 + 邻域论证 → golden 4 用例逐位不变（C4）+ 内核 1.56×。
+3. **排除**：❌ 合成口径 6.88ms 直接作优化基线——真实口径 5.80ms，不可比（calibration 复核取代，§15.4）。
+4. **发现**：e2e 回退 1.74× 仍未达「不回退」严格判据——剩余为 O(N) 全域扫描 + Java 收集循环，算法级降维是下一层。
+
+判据状态：「e2e 不回退」严格判据**仍 FAIL**，待用户拍板（接受收窄/继续 round2/其他）。

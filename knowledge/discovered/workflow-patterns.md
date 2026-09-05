@@ -815,3 +815,22 @@ curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_c
 ## 发现 #36 家族补充案例（交接结论廉价验证第三例，260905-03）
 
 交接结论「G2 残差 = fallback 收不到 propagateLight（调用缺失）」经 fan-out .b1 一轮 DENY：残差 0/448 全部位于 pregen 边界 + vanilla 光照传播是**拉取语义**（无主动 propagate 调用链）——假设与机制形态直接冲突，一轮廉价验证（全量 447 chunk palette 对比 + 传播语义核对）推翻。真实根因 = **worldgen feature 放置分歧**（树叶/藤蔓/矿石/安山岩，judge 全量 palette 对比归因）；光照内核在 blocks 一致域无缺陷（G1 exact 100%，口径：pregen 域 2025 chunk 光照 MCA 逐位）。判据复述（#36 原文 + §16.3）：交接的「机制方向/根因方向」类结论开工前 MUST 一轮廉价独立验证——本案验证动作（传播语义 + 残差分布位置）成本一轮即改写课题方向；证据：`.investigations/light-opt/g2-convergence-260905-03.md`。
+
+## 发现 #47: 性能优化的「golden 逐位不变对照法」+ 单调松弛 BFS 的边界种子等价剔除论证模板（260905-04）
+
+- **发现时间**：260905-04；**发现者**：core.worker 草稿（light-opt D3 round1）；**来源定位**：`.investigations/light-opt/d3-opt-round1-260905-04.md` + d3-opt-calibration-260905-04.md；**置信度**：candidate（C4 golden 4 用例全等 + 内核 1.56× 实测，judge APPROVE-WITH-CONDITIONS；confirmed 留人类）；**module**：workflow / 性能优化。
+
+### 观察
+性能优化最大的风险不是「没提速」而是「改了语义」。本轮对光照内核 BFS 做种子收缩（数十万种子→仅边界 15），全程用两条互补模式保住正确性：
+
+**47a golden 逐位不变对照法（工作流模式）**：任何声称「语义等价」的性能优化，验证协议固定为三步——① 优化前冻结旧产物（rlib/exe）跑代表性用例集，输出逐位 hash（FNV）存 golden_pre；② 优化后同一用例集复跑出 golden_post；③ 逐用例 hash 等值 + diff 为空 = PASS，**任何一例不等即 FAIL，无豁免**。用例集须覆盖输入分布多样性（本轮 synthetic + 3 真实 region；纯合成用例会漏真实分布路径）。配套纪律：用例间 hash 相同要先论证「合理非异常」（本轮 region_a 与 blocks9_real sky/flags hash 同 = 相邻 flat plains 同构），不能默认当巧合放行。
+
+**47b 边界种子等价剔除论证模板（算法指纹）**：单调松弛图算法（BFS 光照传播类）中，「把满足 P 的全部节点入队」收缩为「只把满足 P 且触发条件可能为真的边界节点入队」是语义等价变换，论证必须同时给出两支：① **零贡献证明**——被剔除节点在算法谓词下恒不产生展开（内部 15 格邻域全 15 + 光照单调不降 → new_level>light[n] 恒 false）；② **不动点唯一性**——最终结果是不动点且与入队顺序/集合中零贡献成员无关。两支齐备后才允许 golden 对照兜底；只靠 golden 不等价于论证（用例覆盖不到的路径仍可能错）。
+
+### 如何利用
+1. 凡「语义等价」声称的优化（去冗余/跳过/融合/缓存），47a 三步是最低验证门槛——先冻结 golden 再动代码，禁止「改完再补基线」。
+2. 判别签名：优化后 golden 不等 → 等价论证有漏洞，先查 47b 两支哪支不成立（通常②的隐藏前提是邻域谓词在扫描时刻的状态，非终态）。
+3. 家族索引：#29（一次性 bench 探针时间戳——同为「结论可复现性」纪律）、#18（跨口径数字不可比——golden 冻结保证同口径）、algorithm-fingerprints #17（微负带签名——同为「先论证再实测」的机制指纹思路）。
+
+### 证据
+C4：golden_pre/golden_post 4 用例 FNV hash 全等；性能：blocks9_real 5.796→3.723ms（1.56×）；e2e 1.74× 回退（g3 2.4×）。来源文件同上。

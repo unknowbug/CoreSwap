@@ -2899,3 +2899,17 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ❌ **D3 双 FAIL**：内核 6.88ms/chunk（合成数据）、e2e 回退 2.4×（29.7 vs 12.4s/2025 chunks），主体 = 内核 BFS——性能待办。
 - ✅ **G3c PASS**：nether/end 64+64 chunks 生成 + 高度守卫回退 vanilla（bottomY=0 span=16）+ 无新 crash。
 - 🔍 open：rust 首载漂移 7× 待办；D3 性能优化未立项；feature parity 新课题（树叶/藤蔓/矿石/安山岩放置分歧，是否属既有挂起域待用户裁定）；101/447 影子传播未解释残差候选（推断级）。
+
+## 260905-04（D3 光照优化 round1：口径复核 + 种子收缩实施）✅ 判据部分闭合（candidate，judge APPROVE-WITH-CONDITIONS；「e2e 不回退」严格判据 FAIL 待用户拍板）
+
+> 过程产物 `.investigations/light-opt/`（d3-opt-calibration-260905-04.md + d3-opt-round1-260905-04.md + e2e-results.txt）。实际时间 2026-09-05 09:41-10:1x；收尾 commit 92d9b7b。
+
+- ✅ **口径复核**：真实 blocks9（vanilla WGB2 4×4@200 抽 3×3）替代合成口径——内核 5.796ms/chunk（交接合成口径 6.88ms 量级成立但不可比，仅作对照）；「内核 BFS 为 e2e 开销主体」归因廉价验证后可继承（§9.7 三要素声明落盘）；残余 ≈5.6s = Java 收集循环 + JNI。
+- ✅ **judge 方向定论 C1-C4**：C1 种子收缩路线（不用 out_flags，无边界正确性风险）/ C2 PhaseTimings 探针 / C3 内核 3 region + e2e 交替 4 臂 / C4 golden 逐位不变。
+- ✅ **种子收缩实施**：sky BFS 只入队「边界 15」（内部 15 格零贡献 + 单调不动点与入队顺序无关论证）→ light_compute 委托 light_compute_inner + phased 探针（生产零开销）。
+- ✅ **golden 冻结/比对**：pre rlib（96a33b09）冻结 4 用例 golden_pre.txt → post 复跑 golden_post.txt，FNV hash 全等 = PASS（逐位不变）。
+- ✅ **e2e 四臂交替**：ON 23.497/23.429s，OFF 13.486/13.557s（复现 ±0.07s）→ ON median 23.46s vs OFF 13.52s = **1.74× 回退**（g3 基线 2.4×，收窄 29%；绝对开销 17.3→9.9s）。可比性三查过：模式行一致、dll 同版、fallback=0。
+- ✅ **内核数据**：blocks9_real 5.796→3.723ms（1.56×，未达 ≥2× 判据）；phase 分解 sky_seed_bfs 48% / fill 24% / sky_fall 21% / export 6% / block_bfs 0.4%——剩余均为 O(N) 全域扫描（内存带宽型）。
+- ✅ **judge 收尾**：APPROVE-WITH-CONDITIONS（C1-C4 全落实）；严格判据 FAIL 如实上报。
+- ✅ commit 92d9b7b（种子收缩 + phased 探针 + bench/golden 产物）。
+- 🔍 open：「e2e 不回退」严格判据待用户拍板；round2 候选（边界扫描融合 / fill 直读布局 / 均质 section 跳过）未排期；Java 收集循环 ≈5.6s 成 e2e 下一大头（secondary 方向）。
