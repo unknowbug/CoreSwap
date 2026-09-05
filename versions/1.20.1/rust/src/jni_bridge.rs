@@ -236,3 +236,100 @@ pub extern "system" fn Java_wg_CppWorldgen_clearBeardifier<'frame>(
         Ok(())
     });
 }
+
+// ---- 光照 ABI（wg_light_*，D4 协议：Java 传 3×3 邻域方块，Rust 独立重算整 3×3 光照只回写中心 chunk）----
+// ⚠️ 未编译验证。JNI 边界禁止 panic 崩 JVM：lightCompute 内 light_compute 用 catch_unwind 兜底返回 -3。
+
+use WorldgenRust::light::{LightEngine, LightError};
+
+const LIGHT_BLOCKS9_LEN: usize = 9 * 16 * 16 * 384; // 884736
+const LIGHT_OUT_LEN: usize = 24 * 2048; // 49152
+const LIGHT_FLAGS_LEN: usize = 48;
+
+// 光照引擎初始化：解析 light_data.json → LightEngine handle。解析失败返回 0。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightInit<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, data_json_path: JString,
+) -> jlong {
+    unowned_env
+        .with_env(|env| -> Result<jlong, Error> {
+            let path = env.get_string(&data_json_path)?.to_string();
+            match LightEngine::from_json_file(&path) {
+                Ok(engine) => Ok(Box::into_raw(Box::new(engine)) as jlong),
+                Err(_) => Ok(0),
+            }
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+// 回收 LightEngine handle（handle=0 为 no-op）。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightDestroy<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+) {
+    let _ = unowned_env.with_env(|_env: &mut Env| -> Result<(), Error> {
+        if handle != 0 {
+            drop(unsafe { Box::from_raw(handle as *mut LightEngine) });
+        }
+        Ok(())
+    });
+}
+
+// 单 chunk 全量光照：blocks9（9 chunk raw id，chunkIdx=dz*3+dx，chunk 内 (y+64)*256+z*16+x）
+// → outBlock/outSky（中心 chunk 双通道，24 section × 2048 B）+ outFlags（48 B，每 section [blockFlag, skyFlag]）。
+// 返回：0 成功；-1 handle 空；-2 数组长度错；-3 内核 panic（catch_unwind 兜底）；-4 JNI 错误。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightCompute<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+    blocks9: JIntArray, out_block: jni::objects::JByteArray, out_sky: jni::objects::JByteArray,
+    out_flags: jni::objects::JByteArray,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
+            }
+            // 长度校验（先于任何拷贝/分配）
+            if env.get_array_length(&blocks9)? as usize != LIGHT_BLOCKS9_LEN
+                || env.get_array_length(&out_block)? as usize != LIGHT_OUT_LEN
+                || env.get_array_length(&out_sky)? as usize != LIGHT_OUT_LEN
+                || env.get_array_length(&out_flags)? as usize != LIGHT_FLAGS_LEN
+            {
+                return Ok(-2);
+            }
+            let mut b9 = vec![0i32; LIGHT_BLOCKS9_LEN];
+            env.get_int_array_region(&blocks9, 0, &mut b9)?;
+            let engine = unsafe { &*(handle as *const LightEngine) };
+            let mut ob = vec![0u8; LIGHT_OUT_LEN];
+            let mut os = vec![0u8; LIGHT_OUT_LEN];
+            let mut of = vec![0u8; LIGHT_FLAGS_LEN];
+
+            // panic 兜底：Rust panic 绝不跨 FFI 边界（JVM 会崩），捕获后返回 -3
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                WorldgenRust::light::light_compute(engine, &b9, &mut ob, &mut os, &mut of)
+            }));
+            match res {
+                Ok(Ok(())) => {}
+                Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
+                Err(p) => {
+                    // 诊断：panic 内容打到 stderr（一次性定位用，量级 = 每次失败一行）
+                    let msg = p
+                        .downcast_ref::<&str>()
+                        .map(|s| *s)
+                        .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                        .unwrap_or("<non-string panic>");
+                    eprintln!("[LightRust][RUST-PANIC] light_compute panicked: {}", msg);
+                    return Ok(-3);
+                }
+            }
+            // jni 0.22 set_byte_array_region 要 &[i8]：u8→i8 数值保持转换（jni 侧 javabyte 同为 8 位）
+            let ob8: Vec<i8> = ob.into_iter().map(|b| b as i8).collect();
+            let os8: Vec<i8> = os.into_iter().map(|b| b as i8).collect();
+            let of8: Vec<i8> = of.into_iter().map(|b| b as i8).collect();
+            env.set_byte_array_region(&out_block, 0, &ob8)?;
+            env.set_byte_array_region(&out_sky, 0, &os8)?;
+            env.set_byte_array_region(&out_flags, 0, &of8)?;
+            Ok(0)
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
