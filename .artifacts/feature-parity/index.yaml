@@ -56,9 +56,9 @@ entries:
     date: 260905-06
   - id: FEA-9
     file: "../../.artifacts/feature-parity/candidate-ca-260905-09.md"
-    title: "c-A 跨 chunk feature 读/写钩子 candidate（judge APPROVE + 3 前置核销；WG_CA_MIN 默认关）"
-    status: candidate
-    verdict: "judge APPROVE（.investigations/feature-parity/260905-09-judge-ca.md）；代码锚 commit df6be6c；残余差 IDK-cA1/cA2 + vine 过冲 E-cA2 + patch_grass_forest 空 id 独立缺陷"
+    title: "c-A 跨 chunk feature 读/写钩子（用户 confirmed 260905-09）——judge APPROVE + 3 前置核销；WG_CA_MIN 默认关（翻默认另需端到端性能对比）"
+    status: confirmed
+    verdict: "confirmed（用户拍板 260905-09）；代码锚 commit df6be6c；残余差 IDK-cA1/cA2 + vine 过冲 E-cA2 + patch_grass_forest 空 id 独立缺陷"
     date: 260905-09
 standing:
   - "idk-7：✅ 已实装（260905-06，commit 244d680，judge APPROVE-WITH-CONDITIONS 条件已核销）——树残差 171,442→119,198（确定性 dump 口径，可复现）"

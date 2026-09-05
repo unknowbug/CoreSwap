@@ -23,5 +23,5 @@
 - patch_grass_forest 空 id generate_nested miss ×31：独立缺陷（random_patch 内嵌对象解析），待登记修复
 
 ## 状态
-- **candidate（待用户拍板；未做 confirmed）**
-- 翻默认（WG_CA_MIN 常开）另需：E-cA2 + 端到端性能对比 + 用户 confirmed
+- **confirmed（用户拍板 260905-09，工作块收口时授权）**；原 candidate 记录保留于上
+- 翻默认（WG_CA_MIN 常开）另需：E-cA2 + 端到端性能对比 + 用户 confirmed（本次 confirmed 不含翻默认）
