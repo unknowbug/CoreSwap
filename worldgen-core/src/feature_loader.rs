@@ -267,6 +267,55 @@ impl FeatureCache {
             }
             self.placed.insert(id.to_string(), pf);
         }
+        // —— 260905-06 idk-7 递归补载：selector 的内层是 placed feature id（如 jungle_bush），
+        // 不在任何 biome features 列表 → 主循环不加载 → 运行时 cache.placed miss。
+        // 遍历已加载 configured 的 selector，递归补载内层 placed（及其 configured），到不动点。
+        let mut queue: Vec<String> = Vec::new();
+        for cf in self.configured.values() {
+            if let Some(sc) = &cf.selector_config {
+                for (_, pf) in &sc.features { queue.push(pf.configured_feature.clone()); }
+                if let Some(d) = &sc.default_feature { queue.push(d.configured_feature.clone()); }
+            }
+        }
+        let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+        while let Some(placed_id) = queue.pop() {
+            if !seen.insert(placed_id.clone()) { continue; }
+            if self.placed.contains_key(&placed_id) { continue; }
+            let name = placed_id.strip_prefix("minecraft:").unwrap_or(&placed_id).to_string();
+            let path = format!("{}/data/minecraft/worldgen/placed_feature/{}.json", wg_dir, name);
+            let Ok(txt) = std::fs::read_to_string(&path) else { continue };
+            let Ok(root) = crate::json::parse(&txt) else { continue };
+            let mut pf = PlacedFeature {
+                id: placed_id.clone(),
+                modifiers: Vec::new(),
+                configured_feature: root.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
+                step: 0,
+                global_index: -1,
+            };
+            if let Some(mods) = root.get("placement").and_then(|p| p.as_array()) {
+                for m in mods {
+                    if let Some(pm) = PlacementModifier::parse(m, blocks) { pf.modifiers.push(pm); }
+                }
+            }
+            // 内层 placed 引用的 configured 也补载
+            let cf_key = pf.configured_feature.clone();
+            if !cf_key.is_empty() && !self.configured.contains_key(&cf_key) {
+                let cname = cf_key.strip_prefix("minecraft:").unwrap_or(&cf_key).to_string();
+                let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+                if let Ok(ctxt) = std::fs::read_to_string(&cpath) {
+                    if let Ok(croot) = crate::json::parse(&ctxt) {
+                        let cf = ConfiguredFeature::parse(&cf_key, &croot, blocks);
+                        // 嵌套 selector（selector 内层 placed → configured 又是 selector）继续入队
+                        if let Some(sc) = &cf.selector_config {
+                            for (_, ipf) in &sc.features { queue.push(ipf.configured_feature.clone()); }
+                            if let Some(d) = &sc.default_feature { queue.push(d.configured_feature.clone()); }
+                        }
+                        self.configured.insert(cf_key, cf);
+                    }
+                }
+            }
+            self.placed.insert(placed_id, pf);
+        }
     }
 }
 
@@ -308,19 +357,18 @@ pub fn generate_configured(
     } else if cf.type_name == "minecraft:random_selector" {
         match &cf.selector_config {
             Some(sc) => {
-                // ⚠️ 占位公式（idk-7 未裁决）：「逐项 nextFloat() < chance 即选即返，否则 default」
-                // 形态来自 JSON 结构推断——S6 动工前必须以 RandomSelectorFeature.java 核对，
-                // 核对前本分支结果只可用于 smoke 不可用于对拍。
+                // 260905-06 idk-7 取证落地（RandomSelectorFeature.java L22-28，mojmap 一手源）：
+                // 逐项 nextFloat()<chance 即选即返（后续项不消费 RNG）；全落空走 default（不抽选择 RNG）。
                 for (chance, pf) in &sc.features {
                     if random.next_float() < *chance {
                         return pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
-                            generate_nested(c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                            generate_nested(&pf.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
                         });
                     }
                 }
                 match &sc.default_feature {
                     Some(pf) => pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
-                        generate_nested(c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                        generate_nested(&pf.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
                     }),
                     None => false,
                 }
@@ -330,17 +378,25 @@ pub fn generate_configured(
     } else if cf.type_name == "minecraft:random_patch" || cf.type_name == "minecraft:flower" {
         match &cf.patch_config {
             Some(pc) => {
-                // ⚠️ 占位公式（idk-7 未裁决）：tries 循环 + nextInt(2*xz+1)-xz 偏移形态为推断。
-                // 且嵌套 placed 完整 placement 链（含 in_square/count）的 RNG 流连续性未核对。
-                let tries = pc.tries;
-                for _ in 0..tries {
-                    let sx = pc.xz_spread.get(random);
-                    let sy = pc.y_spread.get(random);
-                    let sz = pc.xz_spread.get(random);
-                    let _ = (sx, sy, sz); // 偏移合成方式待 RandomPatchFeature.java 裁决后落地
-                    // S7 落地点：pf.generate(ctx, random, x+?, y+?, z+?, ...)
+                // 260905-06 idk-7 取证落地（RandomPatchFeature.java L15-33，yarn 一手源）：
+                // tries 循环（feature JSON 字段，非 placement Count）；每 try 恒 6 次 nextInt：
+                // nextInt(j)-nextInt(j) 差分（j=xz_spread+1）x→y→z（k=y_spread+1），值域 [-spread,+spread] 三角分布。
+                // 内层 = PlacedFeature.generateUnregistered：链执行但 biome modifier 禁用（placedFeature=empty 会 throw；
+                // Rust biome filter 为透传实现，无 throw 面——1.20.1 数据内嵌 placed 只用 block_predicate_filter，无实际差异）。
+                let j = pc.xz_spread + 1;
+                let k = pc.y_spread + 1;
+                let mut placed_any = false;
+                for _ in 0..pc.tries {
+                    let sx = random.next_int_bound(j) - random.next_int_bound(j);
+                    let sy = random.next_int_bound(k) - random.next_int_bound(k);
+                    let sz = random.next_int_bound(j) - random.next_int_bound(j);
+                    if pc.feature.generate(ctx, random, x + sx, y + sy, z + sz, |c2, r2, gx, gy, gz| {
+                        generate_nested(&pc.feature.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                    }) {
+                        placed_any = true;
+                    }
                 }
-                false
+                placed_any // Java: return i > 0
             }
             None => false,
         }
@@ -361,8 +417,14 @@ pub fn generate_configured(
 }
 
 // 嵌套 placed → configured 的二次分发（selector/patch 内层用；保持同一 random 流）
-// configured 引用经 cache 只读查找；未知 id 显式告警。
+// 260905-06 接线：configured 引用经 cache 查找后回 generate_configured（递归支持嵌套 selector/patch）。
+// 嵌套分发（selector/patch 内层用；保持同一 random 流）。
+// 260905-06 idk-7 语义修正：selector 的 features[].feature / default 是 **placed feature id**
+// （Java WeightedPlacedFeature/PlacedFeature Holder——内层有自己的 placement 链要消费同一 RNG 流）；
+// patch 内嵌对象（parse_inline 展开过 modifiers）的 configured_feature 字段则是 configured id。
+// 统一策略：先查 placed（有 placement 链则完整走链），miss 再查 configured 直发。
 fn generate_nested(
+    nested_id: &str,
     ctx: &FeaturePlacementContext,
     random: &mut crate::chunkrandom::ChunkRandom,
     x: i32, y: i32, z: i32,
@@ -370,11 +432,21 @@ fn generate_nested(
     cache: &FeatureCache,
     biome_temp: f32, biome_rainfall: f32,
 ) -> bool {
-    // pf.generate 闭包只给坐标，configured id 由 parse_inline 时记入 PlacedFeature.configured_feature
-    // 实现注记：PlacedFeature 需增 pub embedded_configured: Option<ConfiguredFeature>（内嵌对象时）
-    // 或 configured_feature: String（id 引用时经 cache.get_configured 查）。
-    // 本函数体在接线时二选一实现；此处仅声明签名与告警路径：
-    eprintln!("[feature-loader] generate_nested hit (S6/S7 接线点)");
-    let _ = (ctx, random, x, y, z, octx, cache, biome_temp, biome_rainfall);
+    if let Some(pf) = cache.placed.get(nested_id) {
+        let cf_id = pf.configured_feature.clone();
+        return pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
+            match cache.configured.get(&cf_id) {
+                Some(cf) => generate_configured(cf, c2, octx, r2, gx, gy, gz, biome_temp, biome_rainfall, cache),
+                None => {
+                    eprintln!("[feature-loader] generate_nested: unknown configured id: {cf_id} (via placed {nested_id})");
+                    false
+                }
+            }
+        });
+    }
+    if let Some(cf) = cache.configured.get(nested_id) {
+        return generate_configured(cf, ctx, octx, random, x, y, z, biome_temp, biome_rainfall, cache);
+    }
+    eprintln!("[feature-loader] generate_nested: unknown id (placed+configured miss): {nested_id}");
     false
 }

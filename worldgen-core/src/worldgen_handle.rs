@@ -882,17 +882,40 @@ impl WorldgenHandle {
                 }
                 // PlacedFeature（创建时已预加载，运行只读无锁）
                 let pf = self.feature_cache.placed.get(&fid).cloned();
-                let pf = match pf { Some(pf) => pf, None => continue };
+                let pf = match pf {
+                    Some(pf) => pf,
+                    None => {
+                        if std::env::var("WG_FEATURELOG").is_ok() {
+                            eprintln!("[FEATURE] MISS placed cache: {fid}");
+                        }
+                        continue
+                    }
+                };
                 // FeaturePlacementContext
+                // 260905-06：block_at 接入本 chunk 列（idk-7 链：block_predicate_filter/would_survive
+                // 需读实况方块；此前恒 None → 谓词全 false → 树全灭）。
+                // 安全性：col 为本 chunk 独占列（apply_features 单线程独占），闭包只读；
+                // 与 octx 的 &mut 访问发生在不同时点（谓词读/放置写交错，无并发别名）。
+                let col_ptr: *const crate::blocks::BlockColumn = &*col;
+                let block_at_col = move |bx: i32, by: i32, bz: i32| -> i32 {
+                    let lx = bx - cx * 16;
+                    let lz = bz - cz * 16;
+                    if lx < 0 || lx >= 16 || lz < 0 || lz >= 16 || by < min_y || by >= min_y + height {
+                        return -1;
+                    }
+                    unsafe { (*col_ptr).at(lx, by, lz) }
+                };
                 let fctx = crate::placement::FeaturePlacementContext {
                     biome_at: Some(biome_at),
-                    ocean_floor: None,
+                    // 260905-06：接 ocean_floor（此前 None → heightmap(OCEAN_FLOOR) 静默直通 y=min_y
+                    // → selector 内层 would_survive 全 false → 树全灭）
+                    ocean_floor: Some(&ocean_floor),
                     world_surface: Some(heightmap),
                     min_y, height,
                     pos_to_biome: Some(&biome_at_jitter),
                     chunk_start_x: cx * 16,
                     chunk_start_z: cz * 16,
-                    block_at: None,
+                    block_at: Some(&block_at_col),
                     // 260905-05（patch §3.8）：Biome modifier 锚定 biome = 当前 chunk biome
                     anchor_biome: Some(cur_biome_id.clone()),
                 };
@@ -911,7 +934,15 @@ impl WorldgenHandle {
                 };
                 // ConfiguredFeature（创建时已预加载，运行只读无锁）
                 let cf = self.feature_cache.configured.get(&pf.configured_feature).cloned();
-                let cf = match cf { Some(cf) => cf, None => continue };
+                let cf = match cf {
+                    Some(cf) => cf,
+                    None => {
+                        if std::env::var("WG_FEATURELOG").is_ok() {
+                            eprintln!("[FEATURE] MISS configured cache: {} (placed {})", pf.configured_feature, fid);
+                        }
+                        continue
+                    }
+                };
                 let biome_temp_f = biome_temp(&cur_biome_id) as f32;
                 // 260905-05（patch §2.4）：generate_configured 增 cache 实参（preload 后只读共享引用，
                 // apply_features 阶段 cache 不再写——无可变借用冲突）

@@ -64,13 +64,15 @@ impl BlockStateProvider {
     }
 }
 
-// ===== TrunkPlacer（L1：straight + large_oak(fancy)；其余类型告警跳过）=====
+// ===== TrunkPlacer（L1：straight + large_oak(fancy) + mega_jungle(giant)；其余告警跳过）=====
 #[derive(Clone)]
 pub enum TrunkPlacer {
     /// minecraft:straight_trunk_placer（TrunkPlacer.java:54-56 高度 + StraightTrunkPlacer.java:30-40）
     Straight { base_height: i32, rand_a: i32, rand_b: i32 },
     /// minecraft:fancy_trunk_placer（= LargeOakTrunkPlacer.java:38-88）
     LargeOak { base_height: i32, rand_a: i32, rand_b: i32 },
+    /// minecraft:mega_jungle_trunk_placer（260905-06：GiantTrunkPlacer.java:31-53 + MegaJungleTrunkPlacer.java:31-52）
+    MegaJungle { base_height: i32, rand_a: i32, rand_b: i32 },
     /// 数据集出现但 L1 未实现 → 显式告警（不静默丢弃）
     Unsupported { type_name: String },
 }
@@ -84,6 +86,8 @@ impl TrunkPlacer {
             TrunkPlacer::Straight { base_height: f("base_height"), rand_a: f("height_rand_a"), rand_b: f("height_rand_b") }
         } else if type_name.contains("fancy_trunk_placer") {
             TrunkPlacer::LargeOak { base_height: f("base_height"), rand_a: f("height_rand_a"), rand_b: f("height_rand_b") }
+        } else if type_name.contains("mega_jungle_trunk_placer") {
+            TrunkPlacer::MegaJungle { base_height: f("base_height"), rand_a: f("height_rand_a"), rand_b: f("height_rand_b") }
         } else {
             eprintln!("[tree] unsupported trunk placer type: {type_name}");
             TrunkPlacer::Unsupported { type_name }
@@ -95,7 +99,8 @@ impl TrunkPlacer {
     fn get_height(&self, random: &mut ChunkRandom) -> i32 {
         match self {
             TrunkPlacer::Straight { base_height, rand_a, rand_b }
-            | TrunkPlacer::LargeOak { base_height, rand_a, rand_b } => {
+            | TrunkPlacer::LargeOak { base_height, rand_a, rand_b }
+            | TrunkPlacer::MegaJungle { base_height, rand_a, rand_b } => {
                 base_height + random.next_int_bound(rand_a + 1) + random.next_int_bound(rand_b + 1)
             }
             TrunkPlacer::Unsupported { .. } => 0,
@@ -103,13 +108,17 @@ impl TrunkPlacer {
     }
 }
 
-// ===== FoliagePlacer（L1：blob + fancy(=LargeOakFoliagePlacer)；其余告警）=====
+// ===== FoliagePlacer（L1：blob + fancy(=LargeOakFoliagePlacer) + bush + jungle；其余告警）=====
 #[derive(Clone)]
 pub enum FoliagePlacer {
     /// minecraft:blob_foliage_placer（BlobFoliagePlacer.java:32-57）
     Blob { radius: IntProv, offset: IntProv, height: i32 },
     /// minecraft:fancy_foliage_placer（LargeOakFoliagePlacer.java:26-46，blob 子类）
     LargeOak { radius: IntProv, offset: IntProv, height: i32 },
+    /// minecraft:bush_foliage_placer（260905-06：BushFoliagePlacer.java:31-49，blob 子类）
+    Bush { radius: IntProv, offset: IntProv, height: i32 },
+    /// minecraft:jungle_foliage_placer（260905-06：JungleFoliagePlacer.java:27-66）
+    Jungle { radius: IntProv, offset: IntProv, height: i32 },
     Unsupported { type_name: String },
 }
 // radius/offset 用 placement::IntProvider（别名避免与枚举名冲突）
@@ -126,39 +135,46 @@ impl FoliagePlacer {
             FoliagePlacer::Blob { radius, offset, height }
         } else if type_name.contains("fancy_foliage_placer") {
             FoliagePlacer::LargeOak { radius, offset, height }
+        } else if type_name.contains("bush_foliage_placer") {
+            FoliagePlacer::Bush { radius, offset, height }
+        } else if type_name.contains("jungle_foliage_placer") {
+            FoliagePlacer::Jungle { radius, offset, height }
         } else {
             eprintln!("[tree] unsupported foliage placer type: {type_name}");
             FoliagePlacer::Unsupported { type_name }
         }
     }
 
-    /// getRandomHeight：blob/fancy 恒常量（BlobFoliagePlacer.java:50-52），0 消费
+    /// getRandomHeight：blob/fancy/bush/jungle 恒常量，0 消费
     fn get_random_height(&self) -> i32 {
         match self {
-            FoliagePlacer::Blob { height, .. } | FoliagePlacer::LargeOak { height, .. } => *height,
+            FoliagePlacer::Blob { height, .. } | FoliagePlacer::LargeOak { height, .. }
+            | FoliagePlacer::Bush { height, .. } | FoliagePlacer::Jungle { height, .. } => *height,
             FoliagePlacer::Unsupported { .. } => 0,
         }
     }
     /// getRandomRadius（FoliagePlacer.java:68-70）：radius.get(random)，消费随 IntProvider 类型
     fn get_random_radius(&self, random: &mut ChunkRandom) -> i32 {
         match self {
-            FoliagePlacer::Blob { radius, .. } | FoliagePlacer::LargeOak { radius, .. } => radius.get(random),
+            FoliagePlacer::Blob { radius, .. } | FoliagePlacer::LargeOak { radius, .. }
+            | FoliagePlacer::Bush { radius, .. } | FoliagePlacer::Jungle { radius, .. } => radius.get(random),
             FoliagePlacer::Unsupported { .. } => 0,
         }
     }
     /// 主 generate 外层的 offset.get(random)（FoliagePlacer.java:48,72-74）
     fn get_random_offset(&self, random: &mut ChunkRandom) -> i32 {
         match self {
-            FoliagePlacer::Blob { offset, .. } | FoliagePlacer::LargeOak { offset, .. } => offset.get(random),
+            FoliagePlacer::Blob { offset, .. } | FoliagePlacer::LargeOak { offset, .. }
+            | FoliagePlacer::Bush { offset, .. } | FoliagePlacer::Jungle { offset, .. } => offset.get(random),
             FoliagePlacer::Unsupported { .. } => 0,
         }
     }
 
-    /// 树叶层生成。tree_node = (center_y 绝对坐标, foliage_radius, giant_trunk=false)
-    /// 消费点：仅每层四角 nextInt(2)（blob）/ fancy 层角判定无消费 —— s1-semantics idk-2
+    /// 树叶层生成。tree_node = (center_x, center_y, center_z, foliage_radius, giant_trunk)
+    /// 消费点：仅每层四角 nextInt(2)（blob/bush）；jungle 非 giant 首层 1 次 nextInt(2)；fancy 无
     fn generate_foliage(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
                         cfg: &TreeFeatureConfig, tree_node_y: i32, tree_node_radius: i32,
-                        center_x: i32, center_z: i32, foliage_height: i32, radius: i32,
+                        center_x: i32, center_z: i32, giant: bool, foliage_height: i32, radius: i32,
                         trunk_set: &Vec<[i32; 3]>, leaves_set: &mut Vec<[i32; 3]>) {
         let offset = self.get_random_offset(random); // 1 次等价 IntProvider 消费（constant → 0 draw）
         match self {
@@ -167,7 +183,7 @@ impl FoliagePlacer {
                 for i in 0..=foliage_height as i64 {
                     let ii = offset - i as i32;
                     let j = std::cmp::max(radius + tree_node_radius - 1 - java_div(ii, 2), 0);
-                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, j, ii, trunk_set, leaves_set);
+                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, j, ii, giant, trunk_set, leaves_set);
                 }
             }
             FoliagePlacer::LargeOak { .. } => {
@@ -175,21 +191,40 @@ impl FoliagePlacer {
                 for i in 0..=foliage_height as i64 {
                     let ii = offset - i as i32;
                     let j = radius + if ii != offset && ii != offset - foliage_height { 1 } else { 0 };
-                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, j, ii, trunk_set, leaves_set);
+                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, j, ii, giant, trunk_set, leaves_set);
+                }
+            }
+            FoliagePlacer::Bush { .. } => {
+                // BushFoliagePlacer.java:38-45：j = radius + nodeRadius - 1 - i（无 /2、无 max0）
+                for i in 0..=foliage_height as i64 {
+                    let ii = offset - i as i32;
+                    let j = radius + tree_node_radius - 1 - ii;
+                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, j, ii, giant, trunk_set, leaves_set);
+                }
+            }
+            FoliagePlacer::Jungle { .. } => {
+                // JungleFoliagePlacer.java:39-49：i = giant ? foliageHeight : 1 + nextInt(2)（1 消费）
+                // k = radius + nodeRadius + 1 - j；j 从 offset 到 offset-i（含）
+                let i = if giant { foliage_height } else { 1 + random.next_int_bound(2) };
+                for j in 0..=i as i64 {
+                    let jj = offset - j as i32;
+                    let k = radius + tree_node_radius + 1 - jj;
+                    self.generate_square(ctx, random, cfg, center_x, center_z, tree_node_y, k, jj, giant, trunk_set, leaves_set);
                 }
             }
             FoliagePlacer::Unsupported { .. } => {}
         }
     }
 
-    /// FoliagePlacer.generateSquare（FoliagePlacer.java:101-115）：非 giant，dx,dz ∈ [-r, r]
+    /// FoliagePlacer.generateSquare（FoliagePlacer.java:101-115）：giant 时范围扩到 r+1（i=1）
     fn generate_square(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
-                       cfg: &TreeFeatureConfig, cx: i32, cz: i32, cy: i32, r: i32, y: i32,
+                       cfg: &TreeFeatureConfig, cx: i32, cz: i32, cy: i32, r: i32, y: i32, giant: bool,
                        trunk_set: &Vec<[i32; 3]>, leaves_set: &mut Vec<[i32; 3]>) {
         if r < 0 { return; }
-        for dx in -r..=r {
-            for dz in -r..=r {
-                if self.is_position_invalid(random, dx, y, dz, r) { continue; }
+        let ext = if giant { 1 } else { 0 };
+        for dx in -r..=(r + ext) {
+            for dz in -r..=(r + ext) {
+                if self.is_position_invalid(random, dx, y, dz, r, giant) { continue; }
                 let (px, py, pz) = (cx + dx, cy + y, cz + dz);
                 if place_foliage_block(ctx, random, cfg, px, py, pz) {
                     leaves_set.push([px, py, pz]);
@@ -199,19 +234,31 @@ impl FoliagePlacer {
         let _ = trunk_set; // hasPlacedBlock 仅 hanging-leaves 变体使用；blob/fancy 不用
     }
 
-    /// isPositionInvalid → isInvalidForLeaves（FoliagePlacer.java:84-96 + 两 placer 覆写）
-    fn is_position_invalid(&self, random: &mut ChunkRandom, dx: i32, y: i32, dz: i32, r: i32) -> bool {
-        let (ax, az) = (dx.abs(), dz.abs());
+    /// isPositionInvalid → isInvalidForLeaves（FoliagePlacer.java:84-96 + 各 placer 覆写）
+    fn is_position_invalid(&self, random: &mut ChunkRandom, dx: i32, y: i32, dz: i32, r: i32, giant: bool) -> bool {
+        // FoliagePlacer.java:87-93：giant 归一化 min(|dx|,|dx-1|)
+        let (ax, az) = if giant {
+            (std::cmp::min(dx.abs(), (dx - 1).abs()), std::cmp::min(dz.abs(), (dz - 1).abs()))
+        } else {
+            (dx.abs(), dz.abs())
+        };
         match self {
             // blob：四角才判；nextInt(2) 恒消费（|| 短路在 nextInt 之后），y==0 必 invalid
             FoliagePlacer::Blob { .. } => {
                 if ax == r && az == r { random.next_int_bound(2) == 0 || y == 0 } else { false }
             }
             // fancy：圆盘判定，无随机消费（LargeOakFoliagePlacer.java:44-46）
-            // MathHelper.square(dx + 0.5f) + MathHelper.square(dz + 0.5f) > r*r
             FoliagePlacer::LargeOak { .. } => {
                 let fx = dx as f32 + 0.5; let fz = dz as f32 + 0.5;
                 fx * fx + fz * fz > (r as f32) * (r as f32)
+            }
+            // bush：BushFoliagePlacer.java:47-49：仅角判 nextInt(2)，无 y==0 子句
+            FoliagePlacer::Bush { .. } => {
+                ax == r && az == r && random.next_int_bound(2) == 0
+            }
+            // jungle：JungleFoliagePlacer.java:62-64：无随机；dx+dz>=7 或圆盘外
+            FoliagePlacer::Jungle { .. } => {
+                ax + az >= 7 || ax * ax + az * az > r * r
             }
             FoliagePlacer::Unsupported { .. } => true,
         }
@@ -464,10 +511,10 @@ impl TreeFeatureConfig {
         // ⑥ 高度验收（TreeFeature.java:76）
         let clipped = self.minimum_size.get_min_clipped_height();
         if !(o >= i || clipped.map_or(false, |c| o >= c)) { return false; }
-        // ⑦ trunk（含 setToDirt；straight=TreeFeature 序，LargeOak 见下）
+        // ⑦ trunk（含 setToDirt；straight=TreeFeature 序，LargeOak/MegaJungle 见各 fn）
         let mut trunk_set: Vec<[i32; 3]> = Vec::new();
         let mut leaves_set: Vec<[i32; 3]> = Vec::new();
-        let tree_nodes: Vec<(i32, i32, i32, i32)> = match &self.trunk_placer {
+        let tree_nodes: Vec<(i32, i32, i32, i32, bool)> = match &self.trunk_placer {
             TrunkPlacer::Straight { .. } => {
                 self.set_to_dirt(ctx, random, bx, by - 1, bz);
                 for iy in 0..o {
@@ -477,16 +524,20 @@ impl TreeFeatureConfig {
                         trunk_set.push([bx, by + iy, bz]);
                     }
                 }
-                vec![(bx, by + o, bz, 0)] // TreeNode(pos.up(height), 0, false)
+                vec![(bx, by + o, bz, 0, false)] // TreeNode(pos.up(height), 0, false)
             }
             TrunkPlacer::LargeOak { .. } => {
                 self.large_oak_trunk(ctx, random, bx, by, bz, o, &mut trunk_set)
+                    .into_iter().map(|(x, y, z, r)| (x, y, z, r, false)).collect()
+            }
+            TrunkPlacer::MegaJungle { .. } => {
+                self.mega_jungle_trunk(ctx, random, bx, by, bz, o, &mut trunk_set)
             }
             TrunkPlacer::Unsupported { .. } => return false,
         };
         // ⑧ foliage（逐 node；TreeFeature.java:81）
-        for (nx, ny, nz, nr) in &tree_nodes {
-            self.foliage_placer.generate_foliage(ctx, random, self, *ny, *nr, *nx, *nz, j, l, &trunk_set, &mut leaves_set);
+        for (nx, ny, nz, nr, ng) in &tree_nodes {
+            self.foliage_placer.generate_foliage(ctx, random, self, *ny, *nr, *nx, *nz, *ng, j, l, &trunk_set, &mut leaves_set);
         }
         // ⑨ decorators（TreeFeature.java:151-155；须 trunk/leaves 非空）
         if !trunk_set.is_empty() || !leaves_set.is_empty() {
@@ -500,6 +551,56 @@ impl TreeFeatureConfig {
         // 登记为 palette 对比已知偏差源（patch §九）；属性位接线后按 BFS 距离改写。
         let _ = (&trunk_set, &leaves_set);
         true
+    }
+
+    /// GiantTrunkPlacer.generate（GiantTrunkPlacer.java:31-53）+ MegaJungleTrunkPlacer 分支（:31-52）。
+    /// 2×2 巨干：dirt 四角 base，柱体 (0,0)(1,0)(1,1)(0,1) 顶列缺 (i=height-1 无 +1)。
+    /// MegaJungle 附加横向分支：i 从 height-2-nextInt(4) 起、步长 2+nextInt(4)，每支 1 次 nextFloat
+    /// + 5 个 getAndSetState（l/2 整除）+ TreeNode(j,i,k, radius=-2, 非 giant)。
+    fn mega_jungle_trunk(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
+                         sx: i32, sy: i32, sz: i32, height: i32, trunk_set: &mut Vec<[i32; 3]>) -> Vec<(i32, i32, i32, i32, bool)> {
+        // GiantTrunkPlacer.java:35-39：base dirt 四角
+        self.set_to_dirt(ctx, random, sx, sy - 1, sz);
+        self.set_to_dirt(ctx, random, sx + 1, sy - 1, sz);
+        self.set_to_dirt(ctx, random, sx, sy - 1, sz + 1);
+        self.set_to_dirt(ctx, random, sx + 1, sy - 1, sz + 1);
+        // GiantTrunkPlacer.java:41-50：2×2 柱
+        let mut place_log = |tx: i32, ty: i32, tz: i32, trunk_set: &mut Vec<[i32; 3]>| {
+            if can_replace(ctx, tx, ty, tz) {
+                let state = self.trunk_provider.get(random);
+                ctx.set_block(tx, ty, tz, state);
+                trunk_set.push([tx, ty, tz]);
+            }
+        };
+        for iy in 0..height {
+            place_log(sx, sy + iy, sz, trunk_set);            // (0,i,0)
+            if iy < height - 1 {
+                place_log(sx + 1, sy + iy, sz, trunk_set);    // (1,i,0)
+                place_log(sx + 1, sy + iy, sz + 1, trunk_set);// (1,i,1)
+                place_log(sx, sy + iy, sz + 1, trunk_set);    // (0,i,1)
+            }
+        }
+        let mut nodes = vec![(sx, sy + height, sz, 0, true)]; // TreeNode(pos.up(height), 0, true)
+        // MegaJungleTrunkPlacer.java:39-51：横向枝干
+        let two_pi = std::f32::consts::PI * 2.0;
+        let mut i = height - 2 - random.next_int_bound(4);
+        while i > height / 2 {
+            let f = random.next_float() as f32 * two_pi;
+            let mut j = 0i32;
+            let mut k = 0i32;
+            for l in 0..5i32 {
+                j = (1.5f32 + f.cos() * l as f32) as i32;
+                k = (1.5f32 + f.sin() * l as f32) as i32;
+                let (px, py, pz) = (sx + j, sy + i - 3 + l / 2, sz + k);
+                if can_replace(ctx, px, py, pz) {
+                    let state = self.trunk_provider.get(random);
+                    ctx.set_block(px, py, pz, state);
+                }
+            }
+            nodes.push((sx + j, sy + i, sz + k, -2, false));
+            i -= 2 + random.next_int_bound(4);
+        }
+        nodes
     }
 
     /// TreeFeature.getTopPosition（TreeFeature.java:92-109）：0 随机消费；失败层 i → 返回 i-2（可为负）
@@ -645,7 +746,8 @@ fn can_replace_or_is_log(ctx: &OreFeatureContext, x: i32, y: i32, z: i32) -> boo
 }
 
 // ===== 树系嵌套 feature 配置（selector / patch / simple_block）=====
-/// random_selector（⚠️ generate 公式为占位：idk-7 未裁决，S6 动工前补 RandomSelectorFeature.java 取证）
+/// random_selector（260905-06 idk-7 取证落地：RandomSelectorFeature.java L22-28，mojmap 一手源：
+/// 逐项 nextFloat()<chance 即选即返；全落空走 default 不抽选择 RNG）
 #[derive(Clone)]
 pub struct RandomSelectorConfig {
     pub features: Vec<(f32, crate::placement::PlacedFeature)>, // (chance, 内嵌 placed)
@@ -663,17 +765,21 @@ impl RandomSelectorConfig {
                 }
             }
         }
-        let default_feature = v.get("default_feature").and_then(|d| crate::placement::PlacedFeature::parse_inline(Some(d), blocks));
+        // 260905-06：JSON codec 字段是 "default"（RandomFeatureConfiguration），旧码误读 "default_feature" 恒 None；
+        // 两者都试（防历史数据双写形态）
+        let default_feature = v.get("default").or_else(|| v.get("default_feature"))
+            .and_then(|d| crate::placement::PlacedFeature::parse_inline(Some(d), blocks));
         Some(RandomSelectorConfig { features, default_feature })
     }
 }
 
-/// random_patch / flower（⚠️ generate 公式为占位：idk-7 未裁决，S7 动工前补 RandomPatchFeature.java 取证）
+/// random_patch / flower（260905-06 idk-7 取证落地：RandomPatchFeature.java L15-33，yarn 一手源）
+/// tries 来自 feature JSON 字段（非 placement Count）；xz/y spread 为 plain int（非 IntProvider）
 #[derive(Clone)]
 pub struct RandomPatchConfig {
     pub tries: i32,
-    pub xz_spread: IntProv,
-    pub y_spread: IntProv,
+    pub xz_spread: i32,
+    pub y_spread: i32,
     pub feature: crate::placement::PlacedFeature,
 }
 impl RandomPatchConfig {
@@ -681,8 +787,8 @@ impl RandomPatchConfig {
         let v = v?;
         Some(RandomPatchConfig {
             tries: v.get("tries").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
-            xz_spread: IntProv::parse(v.get("xz_spread")),
-            y_spread: IntProv::parse(v.get("y_spread")),
+            xz_spread: v.get("xz_spread").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+            y_spread: v.get("y_spread").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
             feature: crate::placement::PlacedFeature::parse_inline(v.get("feature"), blocks)?,
         })
     }

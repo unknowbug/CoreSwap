@@ -138,7 +138,7 @@ pub struct FeaturePlacementContext<'a> {
 }
 
 // ===== BlockPredicate（Java world/gen/blockpredicate/*，S1 idk-5）=====
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum BlockPredicate {
     MatchingBlocks { offset: [i32; 3], ids: Vec<i32> },
     MatchingFluids { offset: [i32; 3], ids: Vec<i32> },
@@ -156,7 +156,10 @@ pub enum BlockPredicate {
 impl BlockPredicate {
     pub fn parse(v: Option<&JsonValue>, blocks: &BlockRegistry) -> BlockPredicate {
         let v = match v { Some(v) => v, None => return BlockPredicate::AlwaysTrue };
-        let type_name = v.get("predicate_type").and_then(|t| t.as_str()).unwrap_or("").to_string();
+        // 260905-06：block predicate JSON 的类型字段是 "type"（Java BlockPredicateType codec），
+        // 旧码误读 "predicate_type" → type_name 恒空 → 全部落 Unsupported → 树/patch 内层全灭
+        let type_name = v.get("type").or_else(|| v.get("predicate_type"))
+            .and_then(|t| t.as_str()).unwrap_or("").to_string();
         let offset = || {
             let o = v.get("offset");
             [
@@ -296,8 +299,11 @@ impl PlacementModifier {
                 let lx = x - ctx.chunk_start_x;
                 let lz = z - ctx.chunk_start_z;
                 let top = if lx >= 0 && lx < 16 && lz >= 0 && lz < 16 { hm[(lz * 16 + lx) as usize] } else { ctx.min_y - 1 };
-                if top <= ctx.min_y - 1 { return vec![]; } // Java k > bottomY（高度图无效）
-                vec![[x, top, z]]
+                // 260905-06 off-by-one 修正（ChunkRegion.getTopY L422-425 一手源：sampleHeightmap + 1
+                // = 最高实体方块上方第一个空气位；旧码返回实体方块本身 → 树/patch 全部落进地表被拒）
+                let k = top + 1;
+                if k <= ctx.min_y { return vec![]; } // Java k > bottomY（高度图无效）
+                vec![[x, k, z]]
             }
             PlacementModifier::Biome => {
                 // Java BiomeFilter：posToBiome(pos) ∈ feature 集。Rust 以 anchor_biome 对比采样 biome；
