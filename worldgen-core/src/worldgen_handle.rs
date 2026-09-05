@@ -102,6 +102,13 @@ pub struct WorldgenHandle {
     // b1-b 跨 chunk est L2（260903-13 翻默认：默认启用，WG_EST_L2=0 关）：OnceLock 惰性建（首次 fill 时按 env 决定），
     // Arc 跨 chunk 共享；挂 handle → (seed,params) 代际隔离天然成立。blend 闸门见 aquifer::BLEND_ACTIVE。
     est_l2: std::sync::OnceLock<Option<std::sync::Arc<std::sync::Mutex<crate::aquifer::EstL2>>>>,
+    // c-A-min（260905-09，方案 260905-08-cA-block-boundary.md §4；WG_CA_MIN=1 门控，默认关待验证）：
+    // 邻 chunk 地形列缓存（noise+surface+carver，无 feature——对齐 Java「FEATURES 时邻 chunk ≥ post-carver
+    // 地形态」时序保证，IDK-cA1：邻 chunk feature 时序近似为无）。block_at 越界读改走此缓存。
+    terrain_cache: std::sync::Mutex<HashMap<(i32, i32), std::sync::Arc<crate::blocks::BlockColumn>>>,
+    // c-A-write（同门控）：跨 chunk 写缓冲——Java center 写邻 chunk 无条件持久（ProtoChunk 落盘）；
+    // 目标 chunk features 开始前 overlay。顺序残余差 IDK-cA2：先于 center 生成的邻 chunk 收不到 overlay。
+    pending_cross_writes: std::sync::Mutex<HashMap<(i32, i32), Vec<(usize, BlockId)>>>,
 }
 
 // flags 位定义（与 wg_set_flags / Java CppBridge 对齐）
@@ -403,6 +410,8 @@ impl WorldgenHandle {
             wg_dir,
             flags: std::sync::atomic::AtomicU32::new(0),
             est_l2: std::sync::OnceLock::new(),
+            terrain_cache: std::sync::Mutex::new(HashMap::new()),
+            pending_cross_writes: std::sync::Mutex::new(HashMap::new()),
         })
     }
 
@@ -494,9 +503,36 @@ impl WorldgenHandle {
         }
     }
 
-    // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver。
+    // 完整区块生成（方块层）：fill_chunk（宏观）→ BlockColumn → build_surface → carver → features。
     // 返回 16*16*height 的 vanilla raw block id（索引 (y-min_y)*256 + z*16 + x）。
     pub fn fill_chunk_blocks(&self, cx: i32, cz: i32) -> Vec<BlockId> {
+        let min_y = self.min_y;
+        let height = self.height;
+        // 步骤 1-4（宏观+orevein+surface+carver）——c-A 起与邻 chunk 地形列生成共用同一实现
+        let (mut col, heightmap) = self.fill_terrain_column(cx, cz);
+        let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
+        // surface 规则外的 feature 侧 biome 输入（与 fill_terrain_column 内 carver 用同源语义）
+        let biome_at = |x: i32, y: i32, z: i32| -> String {
+            let bp = NoisePos { x: (x >> 2) << 2, y: (y >> 2) << 2, z: (z >> 2) << 2 };
+            self.biomesrc.biome(&bp)
+        };
+
+        // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
+        let skip_features = flags & FLAG_SKIP_FEATURES != 0 || std::env::var("WG_SKIP_FEATURES").is_ok();
+        if !skip_features {
+            let n_features = self.apply_features(&mut col, cx, cz, &heightmap, &biome_at);
+            if std::env::var("WG_FEATURELOG").is_ok() {
+                eprintln!("[FEATURE] chunk({},{}) placed {} blocks", cx, cz, n_features);
+            }
+        }
+
+        col.data().to_vec()
+    }
+
+    // 步骤 1-4 地形列（宏观 density+aquifer+orevein → BlockColumn → build_surface → carver，无 features）
+    // + WORLD_SURFACE_WG heightmap。c-A-min（260905-09）：邻 chunk 越界读复用本实现
+    //（Java 时序保证：FEATURES 时邻 chunk ≥ post-carver 地形态；feature 时序近似无 IDK-cA1）。
+    fn fill_terrain_column(&self, cx: i32, cz: i32) -> (crate::blocks::BlockColumn, Vec<i32>) {
         let min_y = self.min_y;
         let height = self.height;
         let air = self.blocks.id("minecraft:air");
@@ -644,16 +680,7 @@ impl WorldgenHandle {
             self.apply_carvers(&mut col, cx, cz, &mut va.aq, &biome_at);
         }
 
-        // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
-        let skip_features = flags & FLAG_SKIP_FEATURES != 0 || std::env::var("WG_SKIP_FEATURES").is_ok();
-        if !skip_features {
-            let n_features = self.apply_features(&mut col, cx, cz, &heightmap, &biome_at);
-            if std::env::var("WG_FEATURELOG").is_ok() {
-                eprintln!("[FEATURE] chunk({},{}) placed {} blocks", cx, cz, n_features);
-            }
-        }
-
-        col.data().to_vec()
+        (col, heightmap)
     }
 
     // bin-diag 增量 API（2026-09-08，soul_selector_probe 用；不改任何现有行为）：
@@ -814,6 +841,26 @@ impl WorldgenHandle {
         self.carver_cache.get(id).cloned()
     }
 
+    // c-A-min：邻 chunk 地形列（带缓存；region 顺序扫描下摊销后每 chunk 约 +1 次地形成本）。
+    // 缓存只存地形列（无 feature），锁临界区极短；fill_terrain_column 自身不触缓存 → 无重入死锁。
+    fn neighbor_terrain(&self, cx: i32, cz: i32) -> std::sync::Arc<crate::blocks::BlockColumn> {
+        const CAP: usize = 256; // ~25MB 上限（每列 16*16*384*i32 ≈ 98KB），超限整体清空（region 局部性下安全）
+        if let Ok(cache) = self.terrain_cache.lock() {
+            if let Some(a) = cache.get(&(cx, cz)) {
+                return a.clone();
+            }
+        }
+        let (col, _hm) = self.fill_terrain_column(cx, cz);
+        let arc = std::sync::Arc::new(col);
+        if let Ok(mut cache) = self.terrain_cache.lock() {
+            if cache.len() >= CAP {
+                cache.clear();
+            }
+            cache.insert((cx, cz), arc.clone());
+        }
+        arc
+    }
+
     // FEATURES 阶段：装饰层（矿石/disk/spring/freeze_top/underwater_magma）。
     // 对齐 C++ applyCarversAndFeatures 的 FEATURES 部分（worldgen_api.cpp L1584-1674）。
     // 简化：set = 当前 chunk biome（Java 是 3×3 chunk 所有 biome section）；structure 部分跳过。
@@ -824,6 +871,34 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let mut placed_count = 0;
+
+        // c-A-min/write（260905-09，方案 260905-08-cA-block-boundary.md §4/§6；WG_CA_MIN=1 门控，默认关待验证）
+        let ca_min = crate::worldgen_handle::env_enabled("WG_CA_MIN");
+        if ca_min {
+            // c-A-write：features 前 overlay 邻 chunk 先行生成的跨 chunk 写入（Java 写持久语义）
+            if let Ok(mut pc) = self.pending_cross_writes.lock() {
+                if let Some(v) = pc.remove(&(cx, cz)) {
+                    for (idx, state) in v {
+                        let ly = (idx / 256) as i32;
+                        let lz = ((idx % 256) / 16) as i32;
+                        let lx = (idx % 16) as i32;
+                        *col.at_mut(lx, min_y + ly, lz) = state;
+                    }
+                }
+            }
+        }
+        // c-A 诊断计数（WG_CA_LOG=1 chunk 级门控输出；零门控成本）
+        static CA_OUT_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        static CA_PENDING_WRITES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let ca_log = std::env::var("WG_CA_LOG").is_ok();
+        if ca_log { CA_OUT_READS.store(0, std::sync::atomic::Ordering::Relaxed); CA_PENDING_WRITES.store(0, std::sync::atomic::Ordering::Relaxed); }
+        // c-A-write 回调：越界写 → pending 缓冲（Mutex 短临界区；本 chunk 自身写不走此路径）
+        let pending_cross_cb = |tcx: i32, tcz: i32, idx: i32, state: i32| {
+            if ca_log { CA_PENDING_WRITES.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+            if let Ok(mut pc) = self.pending_cross_writes.lock() {
+                pc.entry((tcx, tcz)).or_default().push((idx as usize, state));
+            }
+        };
 
         // OCEAN_FLOOR_WG 高度图：每列从顶向下扫，跳过 air/water/lava，取第一个固体 y（海底/地表）。
         // Ore/disk/spring 用 getOceanFloorTopY 判断放置位置（Java OCEAN_FLOOR_WG 构建于 carver 前）。
@@ -929,13 +1004,25 @@ impl WorldgenHandle {
                 // 不同时点（谓词读 / 放置写），无同时别名访问。
                 // 已知语义偏差（judge C-3）：越界（邻 chunk）返回 -1 = 保守拒绝，Java 读邻 chunk 实况。
                 let col_ptr: *const crate::blocks::BlockColumn = &*col;
+                let self_ref: &Self = self;
                 let block_at_col = move |bx: i32, by: i32, bz: i32| -> i32 {
                     let lx = bx - cx * 16;
                     let lz = bz - cz * 16;
-                    if lx < 0 || lx >= 16 || lz < 0 || lz >= 16 || by < min_y || by >= min_y + height {
+                    if by < min_y || by >= min_y + height {
                         return -1;
                     }
-                    unsafe { (*col_ptr).at(lx, by, lz) }
+                    if lx >= 0 && lx < 16 && lz >= 0 && lz < 16 {
+                        unsafe { (*col_ptr).at(lx, by, lz) }
+                    } else if ca_min {
+                        // c-A-min：邻 chunk 越界读 → 地形列缓存（noise+surface+carver，无 feature；
+                        // 对齐 Java「FEATURES 时邻 chunk ≥ post-carver 地形态」时序保证）
+                        if ca_log { CA_OUT_READS.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+                        let t = self_ref.neighbor_terrain(bx >> 4, bz >> 4);
+                        t.at(bx - (bx >> 4) * 16, by, bz - (bz >> 4) * 16)
+                    } else {
+                        // 已知语义偏差（judge C-3）：越界返回 -1 = 保守拒绝
+                        -1
+                    }
                 };
                 // Fix-2（.b2b）：Biome modifier 允许集闭包——jitter 点 biome 的 feature 集含 fid
                 let biome_allows = |bx: i32, by: i32, bz: i32, fid: &str| -> bool {
@@ -968,7 +1055,9 @@ impl WorldgenHandle {
                     ocean_floor: Some(&ocean_floor),
                     world_surface: Some(heightmap),
                     region_col_at: None,
-                    pending_cross: None,
+                    // c-A-min：octx 侧任意点读（树冠 can_replace 等）与 fctx.block_at 同源路由
+                    block_at_ext: if ca_min { Some(&block_at_col) } else { None },
+                    pending_cross: if ca_min { Some(&pending_cross_cb) } else { None },
                 };
                 // ConfiguredFeature（创建时已预加载，运行只读无锁）
                 let cf = self.feature_cache.configured.get(&pf.configured_feature).cloned();
@@ -997,6 +1086,11 @@ impl WorldgenHandle {
                 };
                 pf.generate(&fctx, &mut feat_random, cx * 16, min_y, cz * 16, generate_configured);
             }
+        }
+        if ca_log {
+            eprintln!("[CA] chunk({},{}) out_reads={} pending_writes={} placed={}", cx, cz,
+                CA_OUT_READS.load(std::sync::atomic::Ordering::Relaxed),
+                CA_PENDING_WRITES.load(std::sync::atomic::Ordering::Relaxed), placed_count);
         }
         placed_count
     }

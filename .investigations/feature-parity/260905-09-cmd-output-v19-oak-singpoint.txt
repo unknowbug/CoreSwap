@@ -1,0 +1,59 @@
+chunk (37,-16): oak_leaves van=307 rust=1019 diff=+712
+oak_log van=28 rust=51  birch_leaves van=55 rust=0
+extra(rust-only)=905  missing(java-only)=193  common=114
+
+[vanilla block directly under each extra leaf]
+  ?: 858
+  minecraft:oak_leaves: 21
+  minecraft:birch_leaves: 21
+  minecraft:birch_log: 5
+
+[extra leaves by Y bucket (rust)]
+  y~72: 105
+  y~76: 295
+  y~80: 306
+  y~84: 199
+
+[extra leaves by Chebyshev dist to nearest rust oak_log]
+  d=1: 232
+  d=2: 337
+  d=3: 242
+  d=4: 71
+  d=5: 17
+  d=6: 6
+
+oak_log positions identical: False; van-only logs=22 rust-only logs=45
+  rust-only log (4, 72, 11)
+  rust-only log (10, 76, 1)
+  rust-only log (4, 74, 11)
+  rust-only log (13, 79, 7)
+  rust-only log (10, 77, 9)
+  rust-only log (9, 82, 7)
+  rust-only log (12, 81, 8)
+  rust-only log (12, 83, 8)
+  rust-only log (12, 72, 8)
+  rust-only log (12, 78, 9)
+  van-only  log (0, 76, 6)
+  van-only  log (15, 71, 15)
+  van-only  log (14, 79, 14)
+  van-only  log (7, 71, 14)
+  van-only  log (15, 73, 15)
+  van-only  log (0, 73, 6)
+  van-only  log (3, 71, 8)
+  van-only  log (0, 75, 6)
+  van-only  log (7, 73, 14)
+  van-only  log (15, 75, 15)
+
+[missing leaves by dist to nearest rust oak_log]
+  d=0: 2
+  d=1: 11
+  d=2: 34
+  d=3: 54
+  d=4: 60
+  d=5: 18
+  d=6: 11
+  d=7: 1
+  d=None: 2
+
+sample extra (rust-only) leaves: [(2, 74, 11), (2, 74, 12), (2, 74, 13), (2, 75, 9), (2, 75, 10), (2, 75, 11), (2, 75, 12), (2, 75, 13), (3, 74, 11), (3, 74, 12), (3, 74, 13), (3, 75, 10), (3, 75, 11), (3, 75, 12), (3, 75, 13), (3, 76, 11), (3, 76, 12), (3, 77, 11), (4, 74, 0), (4, 74, 1)]
+sample missing (java-only) leaves: [(0, 74, 4), (0, 74, 5), (0, 74, 7), (0, 74, 8), (0, 74, 11), (0, 74, 12), (0, 74, 13), (0, 74, 14), (0, 74, 15), (0, 75, 4), (0, 75, 5), (0, 75, 7), (0, 75, 8), (0, 75, 11), (0, 75, 12), (0, 75, 13), (0, 75, 14), (0, 75, 15), (0, 76, 5), (0, 76, 7)]

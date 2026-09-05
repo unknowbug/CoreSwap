@@ -1,0 +1,28 @@
+header: region x[-2,40] z[-26,24] miny=-64 h=384
+chunks compared: 2193 (vanilla chunks with >=400 blocks counted)
+[region total signed rust-java]
+  minecraft:oak_leaves: +29830
+  minecraft:oak_log: +197
+  minecraft:jungle_leaves: -15151
+  minecraft:vine: -16829
+  minecraft:jungle_log: -2453
+  minecraft:birch_leaves: -1964
+
+[top 15 worst by |oak_leaves diff|]
+  chunk (28, -19): oak_l +977 oak_log +51 jungle_l -305 vine -265 jungle_log -72 birch_l +0
+  chunk (24, -7): oak_l +879 oak_log +21 jungle_l -104 vine -115 jungle_log -14 birch_l +0
+  chunk (35, -8): oak_l +863 oak_log +41 jungle_l -134 vine -150 jungle_log +61 birch_l +0
+  chunk (32, -9): oak_l +738 oak_log +40 jungle_l -161 vine -128 jungle_log -31 birch_l +0
+  chunk (29, -21): oak_l +736 oak_log +21 jungle_l -61 vine +33 jungle_log +85 birch_l +0
+  chunk (28, -22): oak_l +736 oak_log +35 jungle_l -460 vine -529 jungle_log -236 birch_l +0
+  chunk (24, -13): oak_l +724 oak_log +16 jungle_l -281 vine -307 jungle_log -30 birch_l +0
+  chunk (27, -11): oak_l +722 oak_log +56 jungle_l +23 vine +87 jungle_log +25 birch_l +0
+  chunk (37, -16): oak_l +712 oak_log +23 jungle_l +0 vine +0 jungle_log +0 birch_l -55
+  chunk (34, -8): oak_l +687 oak_log +24 jungle_l -175 vine -190 jungle_log -27 birch_l +0
+  chunk (26, -8): oak_l +673 oak_log +28 jungle_l +63 vine +37 jungle_log +20 birch_l +0
+  chunk (29, -16): oak_l +671 oak_log +16 jungle_l -332 vine -302 jungle_log -101 birch_l +0
+  chunk (34, -7): oak_l +659 oak_log +25 jungle_l -146 vine -66 jungle_log +35 birch_l +0
+  chunk (29, -10): oak_l +648 oak_log +45 jungle_l -348 vine -291 jungle_log -94 birch_l +0
+  chunk (26, -14): oak_l +621 oak_log +23 jungle_l -220 vine -200 jungle_log -111 birch_l +0
+
+oak chunks with |diff|>500: positive(rust more)=28 negative=1

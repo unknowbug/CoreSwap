@@ -146,6 +146,9 @@ pub struct OreFeatureContext<'a> {
     pub region_col_at: Option<&'a dyn Fn(i32, i32) -> Option<&'a [i32]>>,
     // pending 跨 chunk 写入（Java 语义：A 后生成覆盖 B）——回调 (chunkX, chunkZ, 块索引, state)
     pub pending_cross: Option<&'a dyn Fn(i32, i32, i32, i32)>,
+    // c-A-min（260905-09）：任意点读钩子（含邻 chunk 地形列；与 FeaturePlacementContext.block_at 同源闭包）。
+    // None = 旧语义（region_col_at / -1）。优先级高于 region_col_at。
+    pub block_at_ext: Option<&'a dyn Fn(i32, i32, i32) -> i32>,
 }
 
 impl<'a> OreFeatureContext<'a> {
@@ -160,6 +163,10 @@ impl<'a> OreFeatureContext<'a> {
     pub fn block_at(&self, wx: i32, wy: i32, wz: i32) -> i32 {
         let idx = self.local_idx(wx, wy, wz);
         if idx >= 0 { return self.col.at(wx - self.chunk_start_x, wy, wz - self.chunk_start_z); }
+        // c-A-min：任意点读钩子（邻 chunk 地形列缓存路由）
+        if let Some(f) = self.block_at_ext {
+            return f(wx, wy, wz);
+        }
         // 跨 chunk 读（两阶段）
         if let Some(region_col_at) = self.region_col_at {
             let cx = wx >> 4;

@@ -1,0 +1,243 @@
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[feature-loader] unknown configured feature type: minecraft:lake (minecraft:lake_lava)
+[feature-loader] unknown configured feature type: minecraft:lake (minecraft:lake_lava)
+[feature-loader] unknown configured feature type: minecraft:geode (minecraft:amethyst_geode)
+[feature-loader] unknown configured feature type: minecraft:monster_room (minecraft:monster_room)
+[feature-loader] unknown configured feature type: minecraft:monster_room (minecraft:monster_room)
+[feature-loader] unknown configured feature type: minecraft:multiface_growth (minecraft:glow_lichen)
+[placement] unsupported block predicate type: minecraft:any_of
+[feature-loader] unknown configured feature type: minecraft:bamboo (minecraft:bamboo_some_podzol)
+[placement] unsupported block predicate type: minecraft:any_of
+[feature-loader] unknown configured feature type: minecraft:vines (minecraft:vines)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:forest_flowers)
+[tree] unsupported tree decorator type: minecraft:beehive
+[feature-loader] unknown placement modifier type: minecraft:noise_threshold_count
+[feature-loader] unknown placement modifier type: minecraft:noise_threshold_count
+[feature-loader] unknown placement modifier type: minecraft:noise_threshold_count
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[tree] unsupported tree decorator type: minecraft:beehive
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_short)
+[feature-loader] unknown placement modifier type: minecraft:carving_mask
+[feature-loader] unknown configured feature type: minecraft:kelp (minecraft:kelp)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_tall)
+[feature-loader] unknown configured feature type: minecraft:multiface_growth (minecraft:sculk_vein)
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[feature-loader] unknown placement modifier type: minecraft:noise_threshold_count
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:blue_ice (minecraft:blue_ice)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_tall)
+[feature-loader] unknown configured feature type: minecraft:kelp (minecraft:kelp)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_tall)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:desert_well (minecraft:desert_well)
+[placement] unsupported block predicate type: minecraft:any_of
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:pointed_dripstone)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:forest_flowers)
+[feature-loader] unknown configured feature type: minecraft:ice_spike (minecraft:ice_spike)
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:bamboo (minecraft:bamboo_no_podzol)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_short)
+[feature-loader] unknown configured feature type: minecraft:vegetation_patch (minecraft:moss_patch_ceiling)
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[feature-loader] unknown configured feature type: minecraft:block_column (minecraft:cave_vine)
+[feature-loader] unknown configured feature type: minecraft:random_boolean_selector (minecraft:lush_caves_clay)
+[feature-loader] unknown configured feature type: minecraft:vegetation_patch (minecraft:moss_patch)
+[feature-loader] unknown configured feature type: minecraft:root_system (minecraft:rooted_azalea_tree)
+[feature-loader] unknown configured feature type: minecraft:vines (minecraft:vines)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_mid)
+[feature-loader] unknown configured feature type: minecraft:random_boolean_selector (minecraft:mushroom_island_vegetation)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_short)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_slightly_less_short)
+[placement] unsupported block predicate type: minecraft:any_of
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:warm_ocean_vegetation)
+[feature-loader] unknown configured feature type: minecraft:sea_pickle (minecraft:sea_pickle)
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[tree] unsupported tree decorator type: minecraft:beehive
+[FEATURE] chunk(37,-16) step=1 p=0 fid=minecraft:lake_lava_underground
+[FEATURE] chunk(37,-16) step=1 p=1 fid=minecraft:lake_lava_surface
+[FEATURE] chunk(37,-16) step=2 p=2 fid=minecraft:amethyst_geode
+[FEATURE] chunk(37,-16) step=3 p=2 fid=minecraft:monster_room
+[FEATURE] chunk(37,-16) step=3 p=3 fid=minecraft:monster_room_deep
+[FEATURE] chunk(37,-16) step=6 p=0 fid=minecraft:ore_dirt
+[FEATURE] fid=minecraft:ore_dirt placed at (603,2,-252)
+[FEATURE] fid=minecraft:ore_dirt placed at (599,57,-247)
+[FEATURE] chunk(37,-16) step=6 p=1 fid=minecraft:ore_gravel
+[FEATURE] fid=minecraft:ore_gravel placed at (593,-56,-253)
+[FEATURE] fid=minecraft:ore_gravel placed at (605,-4,-253)
+[FEATURE] fid=minecraft:ore_gravel placed at (594,17,-249)
+[FEATURE] fid=minecraft:ore_gravel placed at (606,-33,-243)
+[FEATURE] fid=minecraft:ore_gravel placed at (593,24,-250)
+[FEATURE] chunk(37,-16) step=6 p=2 fid=minecraft:ore_granite_upper
+[FEATURE] chunk(37,-16) step=6 p=3 fid=minecraft:ore_granite_lower
+[FEATURE] fid=minecraft:ore_granite placed at (603,41,-242)
+[FEATURE] fid=minecraft:ore_granite placed at (592,48,-254)
+[FEATURE] chunk(37,-16) step=6 p=4 fid=minecraft:ore_diorite_upper
+[FEATURE] chunk(37,-16) step=6 p=5 fid=minecraft:ore_diorite_lower
+[FEATURE] fid=minecraft:ore_diorite placed at (592,48,-255)
+[FEATURE] fid=minecraft:ore_diorite placed at (606,24,-245)
+[FEATURE] chunk(37,-16) step=6 p=6 fid=minecraft:ore_andesite_upper
+[FEATURE] fid=minecraft:ore_andesite placed at (598,64,-253)
+[FEATURE] chunk(37,-16) step=6 p=7 fid=minecraft:ore_andesite_lower
+[FEATURE] fid=minecraft:ore_andesite placed at (603,18,-250)
+[FEATURE] fid=minecraft:ore_andesite placed at (595,24,-255)
+[FEATURE] chunk(37,-16) step=6 p=8 fid=minecraft:ore_tuff
+[FEATURE] fid=minecraft:ore_tuff placed at (603,-30,-245)
+[FEATURE] fid=minecraft:ore_tuff placed at (601,-34,-252)
+[FEATURE] chunk(37,-16) step=6 p=9 fid=minecraft:ore_coal_upper
+[FEATURE] chunk(37,-16) step=6 p=10 fid=minecraft:ore_coal_lower
+[FEATURE] fid=minecraft:ore_coal_buried placed at (598,62,-248)
+[FEATURE] fid=minecraft:ore_coal_buried placed at (603,46,-244)
+[FEATURE] fid=minecraft:ore_coal_buried placed at (601,70,-247)
+[FEATURE] fid=minecraft:ore_coal_buried placed at (599,61,-250)
+[FEATURE] fid=minecraft:ore_coal_buried placed at (602,62,-247)
+[FEATURE] chunk(37,-16) step=6 p=11 fid=minecraft:ore_iron_upper
+[FEATURE] chunk(37,-16) step=6 p=12 fid=minecraft:ore_iron_middle
+[FEATURE] fid=minecraft:ore_iron placed at (598,-12,-253)
+[FEATURE] fid=minecraft:ore_iron placed at (600,40,-251)
+[FEATURE] fid=minecraft:ore_iron placed at (599,16,-245)
+[FEATURE] fid=minecraft:ore_iron placed at (597,24,-250)
+[FEATURE] fid=minecraft:ore_iron placed at (607,35,-254)
+[FEATURE] fid=minecraft:ore_iron placed at (604,-15,-251)
+[FEATURE] fid=minecraft:ore_iron placed at (607,14,-253)
+[FEATURE] fid=minecraft:ore_iron placed at (597,29,-247)
+[FEATURE] fid=minecraft:ore_iron placed at (592,23,-242)
+[FEATURE] fid=minecraft:ore_iron placed at (605,-22,-249)
+[FEATURE] chunk(37,-16) step=6 p=13 fid=minecraft:ore_iron_small
+[FEATURE] fid=minecraft:ore_iron_small placed at (599,-1,-256)
+[FEATURE] fid=minecraft:ore_iron_small placed at (600,41,-244)
+[FEATURE] fid=minecraft:ore_iron_small placed at (593,-36,-242)
+[FEATURE] fid=minecraft:ore_iron_small placed at (599,16,-250)
+[FEATURE] fid=minecraft:ore_iron_small placed at (597,-16,-243)
+[FEATURE] fid=minecraft:ore_iron_small placed at (599,20,-252)
+[FEATURE] fid=minecraft:ore_iron_small placed at (596,-34,-242)
+[FEATURE] chunk(37,-16) step=6 p=14 fid=minecraft:ore_gold
+[FEATURE] fid=minecraft:ore_gold_buried placed at (599,-46,-250)
+[FEATURE] fid=minecraft:ore_gold_buried placed at (602,-42,-247)
+[FEATURE] fid=minecraft:ore_gold_buried placed at (605,-46,-243)
+[FEATURE] fid=minecraft:ore_gold_buried placed at (602,10,-254)
+[FEATURE] chunk(37,-16) step=6 p=15 fid=minecraft:ore_gold_lower
+[FEATURE] fid=minecraft:ore_gold_buried placed at (595,-51,-254)
+[FEATURE] chunk(37,-16) step=6 p=16 fid=minecraft:ore_redstone
+[FEATURE] fid=minecraft:ore_redstone placed at (605,-62,-242)
+[FEATURE] fid=minecraft:ore_redstone placed at (602,-26,-243)
+[FEATURE] fid=minecraft:ore_redstone placed at (594,-26,-250)
+[FEATURE] fid=minecraft:ore_redstone placed at (595,-51,-255)
+[FEATURE] chunk(37,-16) step=6 p=17 fid=minecraft:ore_redstone_lower
+[FEATURE] fid=minecraft:ore_redstone placed at (596,-60,-251)
+[FEATURE] fid=minecraft:ore_redstone placed at (600,-51,-249)
+[FEATURE] chunk(37,-16) step=6 p=18 fid=minecraft:ore_diamond
+[FEATURE] fid=minecraft:ore_diamond_small placed at (598,-25,-253)
+[FEATURE] fid=minecraft:ore_diamond_small placed at (598,-30,-254)
+[FEATURE] fid=minecraft:ore_diamond_small placed at (596,-5,-242)
+[FEATURE] fid=minecraft:ore_diamond_small placed at (601,-49,-246)
+[FEATURE] chunk(37,-16) step=6 p=19 fid=minecraft:ore_diamond_large
+[FEATURE] chunk(37,-16) step=6 p=20 fid=minecraft:ore_diamond_buried
+[FEATURE] fid=minecraft:ore_diamond_buried placed at (595,-43,-254)
+[FEATURE] chunk(37,-16) step=6 p=21 fid=minecraft:ore_lapis
+[FEATURE] fid=minecraft:ore_lapis placed at (605,-5,-243)
+[FEATURE] fid=minecraft:ore_lapis placed at (607,30,-248)
+[FEATURE] chunk(37,-16) step=6 p=22 fid=minecraft:ore_lapis_buried
+[FEATURE] fid=minecraft:ore_lapis_buried placed at (595,43,-247)
+[FEATURE] fid=minecraft:ore_lapis_buried placed at (607,60,-243)
+[FEATURE] fid=minecraft:ore_lapis_buried placed at (602,-28,-254)
+[FEATURE] fid=minecraft:ore_lapis_buried placed at (605,-37,-243)
+[FEATURE] chunk(37,-16) step=6 p=24 fid=minecraft:ore_copper
+[FEATURE] fid=minecraft:ore_copper_small placed at (607,26,-256)
+[FEATURE] fid=minecraft:ore_copper_small placed at (607,54,-248)
+[FEATURE] fid=minecraft:ore_copper_small placed at (594,57,-243)
+[FEATURE] fid=minecraft:ore_copper_small placed at (596,59,-244)
+[FEATURE] fid=minecraft:ore_copper_small placed at (602,16,-248)
+[FEATURE] fid=minecraft:ore_copper_small placed at (596,7,-256)
+[FEATURE] fid=minecraft:ore_copper_small placed at (599,45,-250)
+[FEATURE] fid=minecraft:ore_copper_small placed at (602,12,-251)
+[FEATURE] fid=minecraft:ore_copper_small placed at (594,51,-246)
+[FEATURE] fid=minecraft:ore_copper_small placed at (595,60,-248)
+[FEATURE] fid=minecraft:ore_copper_small placed at (607,58,-253)
+[FEATURE] fid=minecraft:ore_copper_small placed at (600,68,-256)
+[FEATURE] fid=minecraft:ore_copper_small placed at (599,66,-241)
+[FEATURE] chunk(37,-16) step=6 p=25 fid=minecraft:underwater_magma
+[FEATURE] chunk(37,-16) step=6 p=29 fid=minecraft:disk_sand
+[FEATURE] chunk(37,-16) step=6 p=30 fid=minecraft:disk_clay
+[FEATURE] chunk(37,-16) step=6 p=31 fid=minecraft:disk_gravel
+[FEATURE] chunk(37,-16) step=8 p=0 fid=minecraft:spring_water
+[FEATURE] chunk(37,-16) step=8 p=1 fid=minecraft:spring_lava
+[FEATURE] chunk(37,-16) step=9 p=0 fid=minecraft:glow_lichen
+[FEATURE] chunk(37,-16) step=9 p=17 fid=minecraft:forest_flowers
+[FEATURE] chunk(37,-16) step=9 p=20 fid=minecraft:trees_birch_and_oak
+[FEATURE] fid=minecraft:trees_birch_and_oak placed at (602,72,-244)
+[FEATURE] fid=minecraft:trees_birch_and_oak placed at (602,70,-255)
+[FEATURE] fid=minecraft:trees_birch_and_oak placed at (596,71,-245)
+[FEATURE] fid=minecraft:trees_birch_and_oak placed at (604,72,-248)
+[FEATURE] chunk(37,-16) step=9 p=49 fid=minecraft:flower_default
+[FEATURE] chunk(37,-16) step=9 p=51 fid=minecraft:patch_grass_forest
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[feature-loader] generate_nested: unknown id (placed+configured miss): 
+[FEATURE] chunk(37,-16) step=9 p=60 fid=minecraft:patch_grass_badlands
+[FEATURE] chunk(37,-16) step=9 p=63 fid=minecraft:brown_mushroom_normal
+[FEATURE] chunk(37,-16) step=9 p=64 fid=minecraft:red_mushroom_normal
+[FEATURE] chunk(37,-16) step=9 p=71 fid=minecraft:patch_sugar_cane
+[FEATURE] chunk(37,-16) step=9 p=72 fid=minecraft:patch_pumpkin
+[FEATURE] chunk(37,-16) step=10 p=0 fid=minecraft:freeze_top_layer
+[FEATURE] fid=minecraft:freeze_top_layer placed at (592,-64,-256)
+[CA] chunk(37,-16) out_reads=2558 pending_writes=2437 placed=78
+[FEATURE] chunk(37,-16) placed 78 blocks

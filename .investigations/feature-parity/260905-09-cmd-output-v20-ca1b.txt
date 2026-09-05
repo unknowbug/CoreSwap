@@ -1,0 +1,14 @@
+[zero-change check] ca0 vs pfix: diff chunks = 0 / 2193
+  PASS: 重构零语义变化（gate off == 260905-08 pfix 基线）
+
+[ca1 (WG_CA_MIN=1) tree-family signed rust-java]
+  minecraft:oak_leaves: +31662
+  minecraft:jungle_leaves: -12027
+  minecraft:vine: +2134
+  minecraft:jungle_log: -2129
+  minecraft:oak_log: -124
+  minecraft:birch_leaves: -1712
+
+[pfix 基线对照] oak_l +29830 jungle_l -15151 vine -16829 jungle_log -2453 oak_log +197 birch_l -1964
+
+[ca1 vs ca0] diff chunks = 2193 / 2193

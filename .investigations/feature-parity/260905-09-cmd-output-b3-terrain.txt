@@ -1,0 +1,64 @@
+=== terrain top diff (vegetation-excluded), seed 8576294172403134396 ===
+
+chunk (36,-17): columns diff=0/256
+
+chunk (36,-16): columns diff=0/256
+
+chunk (36,-15): columns diff=0/256
+
+chunk (37,-17): columns diff=0/256
+
+chunk (37,-16): columns diff=0/256
+
+chunk (37,-15): columns diff=0/256
+
+chunk (38,-17): columns diff=0/256
+
+chunk (38,-16): columns diff=0/256
+
+chunk (38,-15): columns diff=0/256
+
+=== chunk (37,-16) 16x16 dy map (rust_y - van_y, '.' = 0) ===
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+ .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
+
+[van-only oak_log edge-bucket dist (0=touches edge)]
+  bucket 0: 11
+  bucket 1: 6
+  bucket 3: 5
+[rust-only oak_log edge-bucket dist]
+  bucket 1: 8
+  bucket 2: 4
+  bucket 3: 14
+  bucket 4: 9
+  bucket 5: 3
+  bucket 6: 5
+  bucket 7: 2
+
+[rust-only logs: terrain dy at their column]
+  log (4, 71, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (4, 72, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (4, 73, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (4, 74, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (4, 75, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (4, 76, 11): col dy=0 van_top=(70, 'minecraft:grass_block') rust_top=(70, 'minecraft:dirt')
+  log (7, 81, 8): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
+  log (8, 78, 9): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
+  log (8, 81, 8): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
+  log (8, 82, 6): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
+  log (9, 78, 9): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
+  log (9, 80, 8): col dy=0 van_top=(71, 'minecraft:grass_block') rust_top=(71, 'minecraft:grass_block')
