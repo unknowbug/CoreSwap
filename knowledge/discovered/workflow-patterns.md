@@ -962,3 +962,31 @@ vanilla05 vs vanilla06: common=5313 双侧完整=3009 diff chunks=1617 total=241
 `.artifacts/feature-parity/candidate-beehive-260905-10.md` §3（交接口径修正①）；`worldgen_handle.rs:876`（env_enabled 消费点）；`.tmp/feature-parity-260905-10/`（region_bee.bin ≡ region_bee_ca.bin 哈希留痕）。
 
 ---
+
+
+## 发现 #54: mixin 内 ThreadLocal 门坐标语义错位——「过滤生效但目标零输出 + 对照打点正常」签名；#17 跨探针坐标钉死律的 mixin 内部版（260905-13）
+
+- **时间/置信度/module**：260905-13；candidate（v2 采集实测：过滤 24109→30 行生效、[CNT]/[SQX] 正常 30 行、[THJ]/[TREESET]/[CORN-*] 全零，根因定位后修复验证）；workflow-patterns / 探针坐标语义（#17 家族 mixin 内部版）。
+
+### 现象（现象→根因）
+WgDiag mixin 采集（chunk 过滤 TARGET=(29,-16)）：banner=1、诊断行已被过滤（全量 24109→目标 30 行），说明过滤门「生效」；但 [CNT]/[SQX]（posAllowed 门）30 行正常，[THJ]/[TREESET]/[CORN-*]（curAllowed 门）**全零**——同一 mixin、同一 ThreadLocal 源，两套门一活一死。
+
+### 根因（机制层面）
+`ChunkRandom.setPopulationSeed` 的 (x,z) 入参是 **chunk 起始 block 坐标**（实测 log `population ... chunk 464 -256` = chunk (29,-16)×16），mixin 在该调用点把原样坐标存入 ThreadLocal，curAllowed 门直接与 chunk 坐标 (29,-16) 比较永不相等；而 posAllowed 系打点自带 `>>4` 换算，侥幸正确。**同一 mixin 内部就存在两套坐标域**（block 坐标 vs chunk 坐标），不止跨探针之间（#17）。
+
+### 定位（怎么发现的）
+诊断行构成分解：CNT 有 THJ 无 → 唯一差异变量是 curAllowed(posAllowed) → 顺 ThreadLocal 写入源回溯到 population 行，用行内坐标 (464,-256)=16×(29,-16) 反证入参语义。三核验中「banner + 过滤」都过、唯独目标输出为零，把嫌疑收敛到门本身而非采集链路。
+
+### 修复
+`WgDiag.curAllowed` 改 `(a[0]>>4)==TARGET_X && (a[1]>>4)==TARGET_Z`。
+
+### 教训/判据
+1. **判据签名（MUST）**：「过滤生效但目标零输出 + 同源对照打点正常」= 坐标语义错位标准签名——两条门的差异变量就是换算差异，直接对拍两门输入即可定位，不用怀疑采集链路。
+2. 「同一个 chunk」在 MC 里至少 block/chunk 两套坐标 + 起始/中心两种锚点——**ThreadLocal 传递也必须钉死坐标语义**（#17 的 mixin 内部版：钉死律从「跨探针」下沉到「同探针两条门之间」）。
+3. 「过滤生效」只证明门在比较，不证明比较的双方语义一致。
+4. 家族索引：#17（上游）、#13（探针零输出先查过滤/驱动条件——本条补「过滤生效仍零输出」的下一层）。
+
+### 证据
+`.investigations/jungle-l/260905-13-errors.md` E5；`.tmp/jungle-l-260905-13/wgdiag-run-v2.log`（v3/E5 批）。
+
+

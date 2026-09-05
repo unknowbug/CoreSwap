@@ -438,3 +438,13 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - 实例：残 9 gravel→sand（seed 8576294172403134396，pick cell (59,9,62)，t=0.200031787）：定点域 dist(deep_ocean)=dist(deep_lukewarm)=5041 精确平局 → 树序取 deep_ocean（gravel ✓）；f64 穷举差 1.01e-9 → deep_lukewarm（sand ✗）。
 - 判据：分类边界残差 + dbg_dist 呈「定点量化粒度」量级（如 5041 原始 i64、或 1e-9~1e-5 f64 微差）→ 先怀疑量化语义缺失，再查采样链。
 - 如何利用：任何 MultiNoise 分类器复刻必须复刻 toLong 量化（含 float 中转）+ long 域距离 + 平局取树序先——「数学更精确」的浮点距离 = 更错。证据：.artifacts/lossless-accel/residual9-verdict-260904-13.md + .tmp/p2full/res13-mndump4-260904-13.log。
+
+
+## 发现 #19: jungle 树 blob/bush 叶层角消费基线——bush 每棵 9 次（r=0 退化角仍消费 1 次 nextInt(2)）（260905-13，简记）
+
+- jungle_tree blob（h=4，j 序 [1,1,2,2]）：每棵 **16 次**角消费（4 层×4 角；勘误 s1-semantics:386 的 8 次——i/2 向零截断漏算负分支，已被两侧 trace 证实）。
+- jungle_bush（r 序 [0,1,2]）：每棵 **9 次**——r=0 层 `dx==radius&&dz==radius` 在 dx=dz=0 时**仍成立**，退化角照样消费 1 次 nextInt(2)；Java 侧 mixin 对拍必须同样覆盖 r=0 退化角，否则 9 行基线对不上。
+- trace 比对键：(y, r, |dx|, |dz|) 元组序列逐行一致（Java mixin 打 |dx|，Rust 打带符号——口径差声明，§9.7）。
+- 证据：`.investigations/jungle-l/b3-shortcircuit-trace.md` §四a/§五（Java 45 行=5 棵×9、Rust 90 行=10 棵×9，逐棵同构 → J3 短路族两域核销）。
+
+

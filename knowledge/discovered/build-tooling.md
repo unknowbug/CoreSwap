@@ -525,3 +525,27 @@ versions/1.20.1/data/*   # 再重排除其内容
 `.investigations/feature-parity/260905-10-interim.md`（WG_TREEDIAG Java 通道三坑 + 首跑 0 输出根因）；`.tmp/feature-parity-260905-10/treediag_java_run.ps1`（-Ptreediag→vmArg 映射实现）；`.artifacts/feature-parity/candidate-beehive-260905-10.md` §4（采集效率整改）。
 
 ---
+
+
+## 发现 #25 补充案例（260905-13）：sysprop 名 ≠ env 名是两个命名域——`-D` 大小写/点号逐字对上才算数（jungle-l E1）
+
+- **时间/置信度/module**：260905-13；candidate（三核验全败 → 读消费端 static 块逐行核对实锤）；build-tooling（#25① sysprop/env 域差的第二犯，补「名字逐字」维度）。
+
+- **现象**：`JAVA_TOOL_OPTIONS="-DWG_DIAGCHUNK=29,-16"` 采集，banner 0 行、24109 行全量未过滤——本次 -D 通道选对了（读侧就是 sysprop），但**名字没对上**：`-DWG_DIAGCHUNK` 建的是 sysprop `WG_DIAGCHUNK`，消费端读 sysprop `wg.diagchunk` 或 env `WG_DIAGCHUNK`；JAVA_TOOL_OPTIONS 的 -D 不创建环境变量 → 两条都不命中 → 按「未设目标=全量」走全量，banner（防死参数哨兵）按设计不打。
+- **根因**：sysprop 域与 env 域是**两个独立命名域**，`-DFOO=1` 只建 sysprop `FOO`；域选对后名字仍须**逐字**对上（大小写、点号/下划线），任一错位即死参数——无报错无告警，哨兵不设计就完全静默。
+- **定位**：三核验（banner/过滤/目标行）全败 → 停止调 mixin，读 WgDiag.java static 块读取表达式 + build.gradle 映射表逐行核对。
+- **修复**：v2 改 `-Dwg.diagchunk=29,-16`；补 build.gradle `-Pdiagchunk → -Dwg.diagchunk` 映射行（原本缺失，`-Pdiagchunk` 首跑中同样是死参数——#8 家族缺映射行再证）。
+- **判据**：门控参数接线四查 = ①通道域（sysprop vs env）②名字逐字（大小写/点号）③-P→-D 映射行在位（#8/#19）④行为化哨兵（banner/首行标记，#37）——四查全过才承认「自变量真被改变」。
+- **证据**：`.investigations/jungle-l/260905-13-errors.md` E1。
+
+## 发现 #23 补充案例（260905-13）：mtime 两面都不可信，内容指纹哨兵是唯一可靠手段；diagnose 顺序 = 先哨兵后重编（jungle-l E3）
+
+- **时间/置信度/module**：260905-13；candidate（exe 字符串哨兵 False→重编→True 实锤）；build-tooling（#23 第三犯，判据收敛升级：#6 说「mtime 不可信用内容指纹」、#23 说「mtime 是唯一穿帮线索」——本例证明两面都不可靠，内容指纹才是终审）。
+
+- **现象**：J1 修复 + TREESET/CORN 打点后 `cargo build --offline -p worldgen --release` 显示 Finished，rlib mtime 仍 21:59（按 #23 判据核 mtime 会误判「未重编」）；单编 exe 字符串哨兵 `TREESET` = False（确实陈旧）。
+- **根因**：`-p worldgen` 只保证薄壳包新，core 包（WorldgenRust）在 cargo 看来 fresh（改动时间戳未被识别，与 #6 mtime 红旗同族）→ rlib 陈旧。mtime 判断两面失效：#6 案例中 mtime 骗人「产物是新的」、本例 cargo 时间戳判定漏判使 rlib 实际是旧的——mtime 依赖的工具链状态本身不可靠。
+- **定位/修复**：显式 `cargo build --offline -p WorldgenRust --release` 后重单编 exe，哨兵 True；重跑采集 TREESET 15 行正常。
+- **判据（升级，MUST）**：产物新鲜度**只认内容指纹**（exe/rlib/dll 内 grep 本轮新增诊断字符串）；mtime 只作旁证不作裁决。诊断顺序固化：**先哨兵后重编**。
+- **证据**：`.investigations/jungle-l/260905-13-errors.md` E3。
+
+

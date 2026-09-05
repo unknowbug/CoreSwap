@@ -230,3 +230,24 @@ patch_grass 系 **24 个内联点位**（18 个 patch_*.json + 6 个 flower*.jso
 - **判据（形态枚举全覆盖）**：数据驱动解析器对「id 引用型」字段（placement/configured 的 `feature`、`config` 内嵌等）必须显式枚举**全部三形态**——① id 字符串（查表）② 内联对象（直接解析持有，Holder.direct 语义）③ 缺失（才允许告警/缺省）。只写 `as_str().unwrap_or("")` 一种读法 = 隐含假设「永远是字符串」，移植 Java 时先核对 `Holder` 的 direct/reference 双形态。
 - **判据（空 id = 解析层缺陷签名）**：运行时 miss 告警必须带 id 内容检查——**空 id/空串 key 的 miss 是解析层缺陷签名，不是运行时层问题**（运行时层缺 key 应是有名 id）；见空串 miss 先回解析层 dump 产物，不查 cache 实现。
 - 交叉引用：#8（布尔恒 false，同族第一例）、#14（负值 clamp，同族第二例）、workflow-patterns #12（对拍解析产物而非 JSON 原文——本例假阴性同样被该缺口掩盖）。
+
+
+## 发现 #17: Fabric 反射字符串不重映射——双名解析三规则（BUG-001 修复模式沉淀）（260905-13）
+
+- **时间/置信度/module**：260905-13；candidate（mappings.tiny build.10 直查实证 + dev 编译绿；**生产 intermediary 运行时未实测，Degraded 声明**——名字对来自权威 mappings，机制层为 Fabric 铁律）；compiler-idioms / Fabric·mixin 反射域（#12 mixin 包纪律的姊妹面）。
+
+### 根因（机制）
+Fabric tiny-remapper 只重映射 .class 常量池里的**引用**，**字符串字面量不映射**——`getDeclaredField("pieceIterator")` 类反射名字开发环境（Yarn）命中、生产环境（intermediary）必 NoSuchFieldException。字段、方法、**类名三层的反射字符串全部中招**。
+
+### 三规则（缺一不可）
+1. **字段/方法名都带双名**：`(yarnName, intermediaryName)` 顺序 try——如 `("pieceIterator","field_28744")`、`("box","comp_682")`、`("getMinX","method_35415")`。**双名对照表从 mappings.tiny 直查，禁止凭记忆**（本例 yarn-1.20.1+build.10：field_28744/28745、comp_682/683/684、method_35415..35420、method_16609..16611）。
+2. **禁止 `Class.forName(Yarn名)`**：生产 intermediary 下**类名也不同**（`class_5817$class_7301` 等），双名救不了 forName——类引用必须编译期直引（remapper 重写）或运行时 `getClass()`（方法查找用实际类即可）。
+3. **静态缓存 + 日志节流**：反射结果存 static（Field volatile / Method ConcurrentHashMap），失败日志「同 key 首次全打 + 每 1000 次汇总 1 条」——反射热路径首错全打刷爆日志，全不打则静默降级（BUG-001 事故形态：降级路径必须留可观测痕迹）。
+
+### 如何利用
+任何 Fabric/mod 环境反射访问 mapped 类：按三规则套模板（wgField/wgMethod 双 try + 缓存 + 节流），写后必须在**生产（intermediary）运行时**验证一次——开发环境全绿不构成证据。
+
+### 证据
+`runtime/1.20.1/java/src/main/java/wg/bench/CppBridge.java:149-243`（BUG-001 修复实现）；`.investigations/jungle-l/judge-verdict-260905-13.md`（judge APPROVE-WITH-CONDITIONS，修复代码保留）。
+
+
