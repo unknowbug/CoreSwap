@@ -15,7 +15,15 @@ run/
 *.a
 
 # 生成数据 + 本地工具链（不入库）
+# 注意：目录级规则 `data/` 会 prune 目录，子文件无法用 ! 重包含——白名单链仅对 versions/1.20.1/data 子树放宽
 data/
+**/data/*
+!versions/1.20.1/data
+versions/1.20.1/data/*
+!versions/1.20.1/data/worldgen
+versions/1.20.1/data/worldgen/*
+# 例外（260905-06，用户拍板 S3）：手工维护的 worldgen 配置白名单入库，防修复静默丢失
+!versions/1.20.1/data/worldgen/light_data.json
 tools/
 
 # IDE
