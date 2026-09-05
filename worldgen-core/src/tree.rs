@@ -245,7 +245,11 @@ impl FoliagePlacer {
         match self {
             // blob：四角才判；nextInt(2) 恒消费（|| 短路在 nextInt 之后），y==0 必 invalid
             FoliagePlacer::Blob { .. } => {
-                if ax == r && az == r { random.next_int_bound(2) == 0 || y == 0 } else { false }
+                if ax == r && az == r {
+                    // WG_TREEDIAG（260905-13 .b3）：角消费打点（=1 行 1 次消费）
+                    if crate::placement::treediag_enabled() { eprintln!("[CORN-BLOB] y={y} r={r} dx={dx} dz={dz}"); }
+                    random.next_int_bound(2) == 0 || y == 0
+                } else { false }
             }
             // fancy：圆盘判定，无随机消费（LargeOakFoliagePlacer.java:44-46）
             FoliagePlacer::LargeOak { .. } => {
@@ -254,7 +258,10 @@ impl FoliagePlacer {
             }
             // bush：BushFoliagePlacer.java:47-49：仅角判 nextInt(2)，无 y==0 子句
             FoliagePlacer::Bush { .. } => {
-                ax == r && az == r && random.next_int_bound(2) == 0
+                if ax == r && az == r {
+                    if crate::placement::treediag_enabled() { eprintln!("[CORN-BUSH] y={y} r={r} dx={dx} dz={dz}"); }
+                    random.next_int_bound(2) == 0
+                } else { false }
             }
             // jungle：JungleFoliagePlacer.java:62-64：无随机；dx+dz>=7 或圆盘外
             FoliagePlacer::Jungle { .. } => {
@@ -585,6 +592,13 @@ impl TreeFeatureConfig {
         }
         // ⑨ decorators（TreeFeature.java:151-155；须 trunk/leaves 非空）
         if !trunk_set.is_empty() || !leaves_set.is_empty() {
+            // WG_TREEDIAG（260905-13 .b2 实验模板）：集合插入序 dump（Java 侧对照 = Generator ctor Y 排序后 list）
+            if crate::placement::treediag_enabled() {
+                eprintln!("[TREESET] t=({},{},{}) trunk={}", bx, by, bz,
+                    trunk_set.iter().map(|p| format!("{}:{},{}", p[0], p[1], p[2])).collect::<Vec<_>>().join("|"));
+                eprintln!("[TREELEAF] t=({},{},{}) leaves={}", bx, by, bz,
+                    leaves_set.iter().map(|p| format!("{}:{},{}", p[0], p[1], p[2])).collect::<Vec<_>>().join("|"));
+            }
             for d in &self.decorators {
                 d.generate(ctx, random, &trunk_set, &leaves_set);
             }
@@ -640,6 +654,9 @@ impl TreeFeatureConfig {
                 if can_replace(ctx, px, py, pz) {
                     let state = self.trunk_provider.get(random);
                     ctx.set_block(px, py, pz, state);
+                    // MegaJungleTrunkPlacer.java:46 getAndSetState → biConsumer2 → set2（log 集）：
+                    // 横向枝干 log 必须入 trunk_set（TrunkVine 消费 + RNG 流级联），260905-13 scout J1 修复。
+                    trunk_set.push([px, py, pz]);
                 }
             }
             nodes.push((sx + j, sy + i, sz + k, -2, false));
