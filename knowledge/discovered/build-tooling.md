@@ -423,3 +423,11 @@ BlockProbe 重导（未删 run\world）导出顺利完成、产物落盘，但�
 1. 跨版本解析 MCA 前先核该版本的 chunk 键集合（1.18+: 无 xPos；高度 span、section 索引基也随版本变）。
 2. python 手写二进制 reader 铁律：用**推进式**读取（`pos += size` 显式推进或 `BytesIO.read(n)` 自推进），`unpack_from` 只用于「偷看不消费」场景。
 3. 家族索引：#12（spv 多产物哨兵）、#11（配对以内容实测为准）；本条补「解析器自身推进状态」维度。
+
+## 发现 #21: e2e_run 复用脚本的外部状态依赖——RCON 配置被上轮收口重置 off，stop 静默失败强杀世界（260905-04）
+
+- **现象**：本轮 e2e 四臂运行中 `e2e_run` 脚本 stop 阶段静默失败，server 进程被强杀（world 未优雅保存）；Done 计时在 stop 前完成、数值本身有效，但依赖世界快照/善后状态的用途已坏。回查 `run/server.properties`：`enable-rcon` 已被上一课题收口时的复原动作重置为 off。
+- **根因**：复用脚本对**外部可变配置**（server.properties 的 rcon 开关）有隐式依赖，而该配置会被其他课题「借出-复原」流程改动——脚本不自检依赖项在位，配置缺失时 stop 走不到优雅路径且无醒目报错（静默降级为强杀）。
+- **定位**：stop 失败 + 世界被杀 → 核对 server.properties 发现 enable-rcon=off；对照备份 run/server.properties.bak-g3 确认被上轮复原动作重置。
+- **修复**：恢复 `enable-rcon=true` + `rcon.password=coreswap`（备份保留，光照课题收口时再复原）。
+- **教训/判据**：① 复用脚本开工前核其外部依赖项在位（如 enable-rcon），禁止假设「上次的配置还在」。② 「stop 失败但主计时正常」≠ 无损——区分计时类用途与快照类用途对善后的不同要求。③ 借出-复原流程在多课题并行/交接时天然制造静默重置，复原动作应记录到交接（NEXT_SESSION）显眼处。

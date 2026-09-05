@@ -16,7 +16,7 @@
 - 机制候选（未验证，不当公理）：①start-region 装载前沿 chunk 在邻未就绪时被 relight（但 fallback=0 与邻缺失矛盾）；②rust 隐式数组（flag1/flag2 均 omitted key）被 vanilla 读回按缺键=15 物化，邻 chunk relight 传播后显式回写 → 序列化漂移固化。
 - @anchor.idk：LightStorage.enqueueSectionData 再传播语义（源不在手）仍未关闭——judge 遗留风险 #1，本 FAIL 使其升级为 G3 主阻断。
 
-## 结论（draft，对照实验后更新）
+## 结论（confirmed 2026-09-05 用户拍板——「二次重启收敛」口径；首载漂移 7× 列独立待办）
 
 - **G3 round-trip 严格判据（光照不变）对 vanilla 也不成立**：vanilla 对照组（gate OFF，同 seed 全新 world，同流程）首载漂移 = **17/2025（0.84%）**；rust 组 = 123/2025（6.07%，≈7×）。
 - **rust 二次重启收敛**：run2→run3 = **0/2025 变化**；首载漂移是一次性现象，之后稳定。

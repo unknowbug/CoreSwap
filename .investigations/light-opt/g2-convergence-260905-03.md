@@ -18,9 +18,9 @@
 - **worst 6 chunks 逐块 palette 对比**：真实差异 = 树木/藤蔓放置分歧——`jungle_leaves`/`oak_leaves`/`vine`/`jungle_log` 增减各 80-350 处/chunk（另 granite↔andesite 少量）。光照差是这些 blocks 差的忠实后果（叶 opacity=1、vine 遮挡）。
 - 附注（诚实声明）：(air,None) ~4000 处为本探针 unpack 的 data==None section 处理伪差，不计证据。
 
-## 收敛结论（candidate，judge APPROVE-WITH-CONDITIONS 已并入，待用户拍板）
+## 收敛结论（confirmed 2026-09-05 用户拍板；judge APPROVE-WITH-CONDITIONS 已并入）
 
-1. **光照内核在「blocks9 输入一致域」无缺陷（candidate，收窄表述）**——G1 exact 100% 仅覆盖 4×4@200 树冠一致区 + 静态审查，不为树冠差区域背书。
+1. **光照内核在「blocks9 输入一致域」无缺陷（confirmed，收窄表述）**——G1 exact 100% 仅覆盖 4×4@200 树冠一致区 + 静态审查，不为树冠差区域背书。
 2. **原 propagateLight 修复方向作废**（H1 对 flip 主导签名 DENY；对 prop 型 210 chunk 小差值 = UNCERTAIN-weak，最终排除依赖 `LightStorage.enqueueSectionData` 再传播语义源码核验——@anchor.idk 保持 open，随 G3 round-trip 一起关闭，MUST 跟踪）。
 3. **G2 残差真实根因 = worldgen feature/放置分歧（树冠 + 藤蔓 + 矿石/安山岩替换层）**——judge 全量 447 chunk palette 对比：346/447 chunk 有 blocks 差（kind 签名含 stone↔coal_ore、granite↔andesite，不只树叶）。新课题范围 MUST 覆盖矿石/替换层，否则判据改定义后矿石区复发。是否属既有挂起域待用户裁定（不在 260904-15 四项挂起清单内）。
 4. 对比口径修正规则：vanilla 缺 SkyLight 键=15（**推断级/Degraded：ChunkSerializer 一手源不在工作区**；vanilla 地下 Y0-2 缺键实为隐式 0 的撞平隐患保留登记）；rust 缺键=flag1 全 0（一手源实证：14307 均质-15 键/0 均质-0 键）。两侧缺键语义不同，不得统一填充。
