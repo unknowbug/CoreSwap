@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "使用问题 / Usage questions"
+    url: https://github.com/unknowbug/CoreSwap/discussions
+    about: "安装与使用问题请到这里讨论 / For setup and usage questions, please open a discussion first."
