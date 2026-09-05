@@ -89,3 +89,37 @@
 | anchor_biome 口径 | chunk biome 锚定 vs posToBiome jitter | 未核销（承前） |
 | fancy_oak | LargeOak placer 对齐验证口径待拍板 | 未核销（承前） |
 
+## 260905-10（实际 2026-09-05）：oak beehive 缺抽根因闭合 — BeehiveTreeDecorator 实装 + 三臂量化 ✅（candidate，待 judge + 用户拍板）
+
+> 过程产物：`.investigations/feature-parity/260905-10-{interim,oak-p2-bA,oak-p2-bB}.md` + `.tmp/feature-parity-260905-10/`；候选档案 `.artifacts/feature-parity/candidate-beehive-260905-10.md`。
+
+### 根因链（P2 逐树对拍 → fan-out 收口）
+
+- P2 逐树对拍（p=20 trees_birch_and_oak，chunk(37,-16)）：树1 base (602,-244) 两侧重合、**树2 起全部错位** → 级联正面证据，分叉在树1 generate 内部。
+- fan-out **.bA**（top-position/trunk 摆放语义差）**否证**：四点逐行对拍同构；**.bB**（selector/provider/replaceable）逐项排除。
+- **决定性发现（.bB 范围外）**：Rust 漏实现 `BeehiveTreeDecorator`——oak/birch bees 配置均带（TreeConfiguredFeatures.java:544,547,290,291），Java 恒 1 次 nextFloat/树，Rust parse 落 Unsupported no-op = **每棵树必少抽 1 次**，前序树缺抽使后续 getHeight 输入漂移（6vs7 trunk + 树2 起漂移同时解释）。
+- **实装**：`worldgen-core/src/tree.rs` TreeDecorator::Beehive（probability 0.002 恒 1 次门 → 候选 y==i logs × W/S/E → findFirst 空气位放置 bee_nest 朝南 → `2+nextInt(2)` + `ix×nextInt(599)` 蜂数消费）。修复后树1/树2 base 逐位重合。IDK：bee1 leaves[0]/logs[0] 取序首元素 vs y 极值近似；bee2 java shuffle 自有 Random 非确定序 vs rust 确定序（放置点可偶差、流不受影响）。
+
+### region 三臂量化（#52 确定性 dump 载体，seed 8576294172403134396，2193 chunks，v18 同口径 signed vs vanilla）
+
+| 臂 | oak_l | jungle_l | vine | jungle_log | birch_l | 备注 |
+|---|---|---|---|---|---|---|
+| pfix 基线（260905-08） | +29830 | -15151 | -16829 | -2453 | -1964 | |
+| c-A（ca1b，260905-09） | +31662 | -12027 | +2134 | -2129 | -1712 | |
+| **bee-only（CA=0）** | +28886 | -15151 | -16840 | -2453 | -1921 | jungle 域零变化（机制自洽）|
+| **bee+CA（默认态）** | +30807 | **-12055** | **+1972** | -2153 | **-973** | 最优臂；birch 较 ca1b 再收敛 739 |
+
+- §9.7 三要素：载体 = region name 域 signed vs vanilla / 覆盖面 = 2193 chunks 全域 / 可比性 = v18 同口径（与 260905-08/09 基线同族）。
+- bee_nest 0/0 两侧一致（gate 0.002 极少触发）；dump 哈希：bee+CA = 4D216088…C48FD（region_bee.bin ≡ region_bee_ca.bin，二次证明两臂同 env 态）；bee-only = 19BA41F4…953E474。
+- 残余主项：jungle_l -12055（beehive 不覆盖域）；树3+ 状态依赖短路与 R-1（HashSet 序）继续持有。
+
+### 交接口径修正（本轮廉价验证推翻交接两处）
+
+1. **WG_CA_MIN 实际默认开**（worldgen_handle.rs:876 `env_enabled`，unset→true）——FEA-9「默认关」表述不成立；两臂 dump 全等暴露（workflow-patterns #53 草稿：env 门控默认值强制三查）。
+2. pfix「树1 7 根 log」为主会话读数错误（y=78 是 leaves）。
+
+### 采集效率整改（已识别未实施）
+
+mixin chunk 过滤（population 行自带 x/z → static curChunk，噪声 -99%）+ spawn point 预置目标 chunk；结构性方案 = 单 chunk 直驱 harness 免 runServer（build-tooling #25 草稿③）。
+
+---

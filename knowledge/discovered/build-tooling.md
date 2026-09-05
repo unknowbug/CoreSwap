@@ -497,3 +497,31 @@ versions/1.20.1/data/*   # 再重排除其内容
 2. 记忆锚：「父目录被忽略 = 子文件白名单死刑」；「模式含斜杠 = 锚定，`**` 才跨层级」。
 3. 家族索引：#8（rustStages 缺映射）、#19（-P 点分驼峰不映射）、#22（gradle daemon 吞 env）——同族第四形态：**配置/规则层静默不生效，全部靠行为化核验兜底，无一例有报错**。证据：`.investigations/feature-parity/260905-06-errors.md`。
 
+## 发现 #25: runServer 采集三坑扩展——①mixin 门控 sysprop 映射（JAVA_TOOL_OPTIONS 的 -D 是 sysprop 非 env）②非 cancellable 方法 @Inject 禁 setReturnValue ③SEEDLOG 全量噪声 + spawn 区预生成拖慢采集（260905-10）
+
+- **时间/置信度/module**：260905-10（实际 2026-09-05）；candidate（三坑均本轮实测复现 + 修复验证）；build-tooling（#8/#19/#22/#32 家族扩展，Java 侧采集三坑第二辑）。
+
+### ① mixin 门控 sysprop 映射——JAVA_TOOL_OPTIONS 的 `-D` 是 sysprop 不是 env
+- **现象**：mixin 里 `System.getenv("wg.treediag")` 恒 null，WG_TREEDIAG 首跑 0 输出。
+- **根因**：env 壳（JAVA_TOOL_OPTIONS）注入的 `-D` 进的是 JVM **系统属性**域，`getenv` 读的是进程环境域——两个域名字再像也不互通；mixin 代码在目标 JVM 里跑，读不到宿主 shell 的 env 变量（#32 daemon 吞 env 的姊妹面：域不同）。
+- **定位**：哨兵法验证传播链（#22），逐环断在 env 壳→getenv 这一段。
+- **修复**：走 build.gradle `findProperty` → vmArg 映射：`-Ptreediag=1` → runServer vmArg `-Dwg.treediag=true`，mixin 侧改读 sysprop；**每新增一个 -P 门控必须同步加映射行**（#8/#19 家族铁律，缺行静默不生效）。
+
+### ② 非 cancellable 方法 @Inject 禁止 cir.setReturnValue——CancellationException 崩 feature 放置
+- **现象**：Square 的 RETURN 注入用 `cir.setReturnValue` → `CancellationException`，feature 放置直接崩。
+- **根因**：`getPositions` 返回 `Stream` 且**非 cancellable**——inject 回签不支持取消返回，`setReturnValue` 只对 cancellable callback 合法。
+- **修复**：改 `@Redirect`（本轮双 ordinal 打 [SQX]/[SQZ]）或 peek 包装旁路观测（防 stream 消费副作用）。
+- **判据**：给非 cancellable 方法做观测注入，只能选 @Redirect / peek 包装，**永远不用 setReturnValue**。
+
+### ③ runServer 采集慢两根因：全量 SEEDLOG 噪声 + spawn 区预生成
+- **现象**：runServer + SEEDLOG 全量打点 ~17min 才 Done（deadline 需 ≥25min）；spawn 区预生成 20min+。
+- **根因**：① SEEDLOG 对**所有** population 行打点，噪声 -99% 级冗余；② spawn point 固定导致预生成无法绕开。
+- **整改方向**（已识别未实施）：mixin chunk 过滤——population 行自带 x/z，static curChunk 比对即过滤（预期噪声 -99%）；spawn point 预置目标 chunk；结构性方案 = 单 chunk 直驱 harness 免 runServer。
+
+### 教训/判据
+家族索引：#8（-P→-D 映射遗漏）、#19（映射名点分驼峰不匹配）、#22（daemon 吞 env + 采集三坑第一辑）、#32（daemon 死同值）——同族第五形态延续：**门控/注入配置层静默不生效，全部无报错，只有行为化核验能兜底**。
+
+### 证据
+`.investigations/feature-parity/260905-10-interim.md`（WG_TREEDIAG Java 通道三坑 + 首跑 0 输出根因）；`.tmp/feature-parity-260905-10/treediag_java_run.ps1`（-Ptreediag→vmArg 映射实现）；`.artifacts/feature-parity/candidate-beehive-260905-10.md` §4（采集效率整改）。
+
+---

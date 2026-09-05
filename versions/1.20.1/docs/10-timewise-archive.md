@@ -2968,3 +2968,19 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 🔍 **open（残余清单更新）**：R-1 桶序（未核销）、vines feature（新）、distance 属性位（新）、树位置对齐（per-feature 随机序列定界）、anchor_biome 口径、fancy_oak 验证口径待拍板。
 - 🔍 **open（流程）**：knowledge #51/#52、build-tooling #23/#24 草稿待主会话应用 + judge；13 篇小节待应用。
 
+## 260905-10（实际 2026-09-05：P2 逐树对拍 → fan-out bA/bB → beehive 实装 → 三臂量化 → WG_CA_MIN 口径修正）✅ 根因链闭合（candidate）
+
+> 过程产物 `.investigations/feature-parity/260905-10-{interim,oak-p2-bA,oak-p2-bB}.md` + `.tmp/feature-parity-260905-10/`；结论 → 13 篇 260905-10 小节；通用模式 → workflow-patterns #53、build-tooling #25（草稿）。
+
+- ✅ **阶段 0 执行体三元组核对（#36 判据）**：release dll（18:12）不含 WG_CA_MIN 哨兵字节、rlib（19:17）含——ca0/ca1b 载体实为 bin-diag 单编 × rlib，不经 gradle runServer 的 dll；新登记风险：薄壳 dll 落后 rlib，runServer 采集前必须 `cargo build --offline -p worldgen --release` + processResources（rlib mtime > dll mtime 即红旗，#23 家族）。
+- ✅ **P2 逐树对拍（决定性数据）**：p=20 trees_birch_and_oak 树1 base (602,-244) 两侧重合、树2 起全部错位 → 级联正面证据，分叉在树1 generate 内部（p2_first_tree.py 等）。
+- ✅ **fan-out bA/bB 收口**：.bA（top-position/trunk 语义差）否证；.bB（selector/provider/replaceable）排除——**范围外高优先发现 = Rust 漏实现 BeehiveTreeDecorator**（每棵树必少抽 1 次 → getHeight 输入漂移链，同时解释 6vs7 + 树2 起漂移）。
+- ✅ **BeehiveTreeDecorator 实装**：tree.rs Beehive 变体 + parse + generate（0.002 恒 1 次门 / bee_nest 朝南 / 蜂数两段消费）；修复后树1/树2 base 逐位重合；IDK-bee1/bee2 留档。
+- ✅ **region 三臂量化**（#52 载体，2193 chunks，v18 口径）：bee-only oak +28886 / bee+CA 最优（oak +30807、jungle_l -12055、vine +1972、birch -973，较 ca1b birch 再收敛 739）；bee_nest 0/0 两侧一致；哈希留痕两份。
+- ❌→✅ **WG_CA_MIN 口径修正（第二犯，判据升级）**：采集臂按「默认关」设计对照实验，实际 worldgen_handle.rs:876 `env_enabled` = 默认开，两臂 dump 全等（4D216088…）暴露——workflow-patterns #53 强制三查（消费点直读/声明对照/行为化哈希哨兵）。另修正 pfix「树1 7 根 log」读数错误（y=78 是 leaves）。
+- ✅ **E-cA2 vine 镜像配对**：net +2127 掩盖 ~3.5 万块整体位移（excess 36033 / missing 33906）；依附配对分桶 a_log_both 3% / b_log_rust_only 28% / c_no_log 68% → 写/读腿时序域贡献可忽略（3% < 20% 阈值），vine 主体差与树结构级联同源（b1 域合流）。
+- ✅ **WG_TREEDIAG Java 通道三坑**（build-tooling #25 草稿）：①JAVA_TOOL_OPTIONS -D 是 sysprop 非 env → -Ptreediag=1 → vmArg 映射 ②非 cancellable 方法 setReturnValue → CancellationException，改双 ordinal @Redirect/peek ③SEEDLOG 全量噪声 ~17min + spawn 预生成 20min+ → 整改方向 mixin chunk 过滤。
+- 🔍 **open（残余清单）**：jungle_l -12055（beehive 不覆盖域）、树3+ 状态依赖短路（四角短路族）、R-1 HashSet 桶序、IDK-bee1/bee2、mixin chunk 过滤未实施。
+- 🔍 **open（流程）**：workflow-patterns #53、build-tooling #25、13 篇 260905-10 小节草稿待主会话应用 + judge；candidate-beehive 待 judge + 用户拍板。
+
+---

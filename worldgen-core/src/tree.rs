@@ -308,6 +308,7 @@ pub enum TreeDecorator {
     Cocoa { probability: f32 },   // f32：JSON f64 → f32 与 Java float 一致（勿混 f64）
     TrunkVine,
     LeaveVine { probability: f32 },
+    Beehive { probability: f32 }, // BeehiveTreeDecorator.java:43-75（260905-10 P2 缺抽修复）
     Unsupported { type_name: String },
 }
 
@@ -321,6 +322,8 @@ impl TreeDecorator {
             TreeDecorator::TrunkVine
         } else if type_name.contains("leave_vine") || type_name.contains("leaves_vine") {
             TreeDecorator::LeaveVine { probability: prob() }
+        } else if type_name.contains("beehive") {
+            TreeDecorator::Beehive { probability: prob() }
         } else {
             eprintln!("[tree] unsupported tree decorator type: {type_name}");
             TreeDecorator::Unsupported { type_name }
@@ -395,7 +398,46 @@ impl TreeDecorator {
                     }
                 }
             }
-            TreeDecorator::Unsupported { .. } => {}
+            TreeDecorator::Beehive { probability } => {
+                // BeehiveTreeDecorator.java:43-75：恒 1 次 nextFloat 门（0.002 配置）——RNG 消费对齐是主目的
+                if !(random.next_float() >= *probability) {
+                    // i = leaves 非空 ? max(leaves[0].y-1, logs[0].y+1)
+                    //              : min(logs[0].y+1+nextInt(3), logs[last].y)（leaves 空时多 1 消费）
+                    let i = if !leaves_set.is_empty() {
+                        let a = leaves_set.iter().map(|p| p[1]).max().unwrap_or(0);
+                        let b = trunk_set.iter().map(|p| p[1]).min().unwrap_or(0);
+                        // Java leaves[0]/logs[0] = 生成序首元素（非 y 极值）；此处用极值近似（idk-bee1）
+                        i32::max(a - 1, b + 1)
+                    } else {
+                        if trunk_set.is_empty() { return; }
+                        let lo = trunk_set.iter().map(|p| p[1]).min().unwrap_or(0);
+                        let hi = trunk_set.iter().map(|p| p[1]).max().unwrap_or(0);
+                        i32::min(lo + 1 + random.next_int_bound(3), hi)
+                    };
+                    // 候选 = y==i 的 log × 3 水平向（java GENERATE_DIRECTIONS = HORIZONTAL 流序 N,E,S,W 去 NORTH → E,S,W）
+                    // java Collections.shuffle 用自有 Random（非世界流，不消费；顺序不确定）→
+                    // rust 取确定序首候选（放置点可能偶差，RNG 流不受影响；idk-bee2）
+                    let nest = ctx.blocks.id("minecraft:bee_nest");
+                    let air = ctx.blocks.id("minecraft:air");
+                    // java GENERATE_DIRECTIONS = HORIZONTAL（N,E,S,W，Direction.java:499）去 NORTH → {E,S,W} 3 向
+                    'outer: for pos in trunk_set.iter().filter(|p| p[1] == i) {
+                        for (dx, dz) in [(1, 0), (0, 1), (-1, 0)] {
+                            let (bx, bz) = (pos[0] + dx, pos[2] + dz);
+                            if ctx.block_at(bx, i, bz) == air && ctx.block_at(bx, i, bz + 1) == air {
+                                ctx.set_block(bx, i, bz, nest);
+                                // java: ix = 2 + nextInt(2)；随后 ix 次 nextInt(599)（蜂实体 tick offset）
+                                let ix = 2 + random.next_int_bound(2);
+                                for _ in 0..ix { let _ = random.next_int_bound(599); }
+                                break 'outer; // java findFirst 只放一个蜂巢
+                            }
+                        }
+                    }
+                }
+            }
+            TreeDecorator::Unsupported { .. } => {
+                // WG_TREEDIAG（260905-10 P2）：漏实现 decorator 的缺失消费点标记（如 beehive 恒 1 次 nextFloat）
+                if crate::placement::treediag_enabled() { eprintln!("[BEE-MISS] unsupported decorator consumed nothing"); }
+            }
         }
     }
 }
@@ -496,6 +538,8 @@ impl TreeFeatureConfig {
         }
         // ①-③ 高度随机（TreeFeature.java:66-69；消费见 s1-semantics §1 idk-3 总表）
         let i = self.trunk_placer.get_height(random);            // 2 draws
+        // WG_TREEDIAG（260905-10 P2，b1 §4 模板）：getHeight 结果打点（与 placement [CNT]/[SQ] 同 env 门控）
+        if crate::placement::treediag_enabled() { eprintln!("[TH] {i} @ ({x},{y},{z})"); }
         let j = self.foliage_placer.get_random_height();          // blob/fancy：0
         let k = i - j;
         let _ = k;

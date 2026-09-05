@@ -1,0 +1,11 @@
+header: region x[-2,40] z[-26,24] miny=-64 h=384
+chunks compared: 2193
+[region total signed rust-java] beehive-fixed (vs pfix 基线: oak_l +29830 jungle_l -15151 vine -16829 jungle_log -2453 oak_log +197 birch_l -1964)
+  minecraft:oak_leaves: +30807
+  minecraft:oak_log: -239
+  minecraft:jungle_leaves: -12055
+  minecraft:vine: +1972
+  minecraft:jungle_log: -2153
+  minecraft:birch_leaves: -973
+  minecraft:birch_log: -95
+  minecraft:bee_nest: +0

@@ -60,6 +60,12 @@ entries:
     status: confirmed
     verdict: "confirmed（用户拍板 260905-09）；代码锚 commit df6be6c；残余差 IDK-cA1/cA2 + vine 过冲 E-cA2 + patch_grass_forest 空 id 独立缺陷"
     date: 260905-09
+  - id: FEA-10
+    file: "../../.artifacts/feature-parity/candidate-beehive-260905-10.md"
+    title: "c-B BeehiveTreeDecorator 实装（260905-10）——P2 逐树对拍根因闭合；region 量化 bee+CA 臂 birch -973/vine +1972/jungle -12055；WG_CA_MIN 默认开口径修正"
+    status: candidate
+    verdict: "candidate（judge APPROVE-WITH-CONDITIONS，C1-C4 核销 260905-10）；supersedes FEA-9「WG_CA_MIN 默认关」表述（env_enabled 实为默认开）；confirmed 待用户拍板"
+    date: 260905-10
 standing:
   - "idk-7：✅ 已实装（260905-06，commit 244d680，judge APPROVE-WITH-CONDITIONS 条件已核销）——树残差 171,442→119,198（确定性 dump 口径，可复现）"
   - "语义偏差（judge C-3）：mega 分支原木不入 trunk_set（影响 TrunkVine 候选集）；block_at 越界 -1 vs Java 邻 chunk 实况"

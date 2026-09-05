@@ -102,7 +102,9 @@ pub struct WorldgenHandle {
     // b1-b 跨 chunk est L2（260903-13 翻默认：默认启用，WG_EST_L2=0 关）：OnceLock 惰性建（首次 fill 时按 env 决定），
     // Arc 跨 chunk 共享；挂 handle → (seed,params) 代际隔离天然成立。blend 闸门见 aquifer::BLEND_ACTIVE。
     est_l2: std::sync::OnceLock<Option<std::sync::Arc<std::sync::Mutex<crate::aquifer::EstL2>>>>,
-    // c-A-min（260905-09，方案 260905-08-cA-block-boundary.md §4；WG_CA_MIN=1 门控，默认关待验证）：
+    // c-A-min（260905-09，方案 260905-08-cA-block-boundary.md §4；门控 WG_CA_MIN）：
+    // 260905-10 用户拍板：默认关（显式 is_ok_and 判存在，勿用 env_enabled——其 unset→true 默认开，#53 三查）。
+    // c-A 为行为修正（feature 跨 chunk 读写钩子）非诊断探针；性能 +68% 待优化后另议翻默认。
     // 邻 chunk 地形列缓存（noise+surface+carver，无 feature——对齐 Java「FEATURES 时邻 chunk ≥ post-carver
     // 地形态」时序保证，IDK-cA1：邻 chunk feature 时序近似为无）。block_at 越界读改走此缓存。
     terrain_cache: std::sync::Mutex<HashMap<(i32, i32), std::sync::Arc<crate::blocks::BlockColumn>>>,
@@ -872,8 +874,10 @@ impl WorldgenHandle {
         let height = self.height;
         let mut placed_count = 0;
 
-        // c-A-min/write（260905-09，方案 260905-08-cA-block-boundary.md §4/§6；WG_CA_MIN=1 门控，默认关待验证）
-        let ca_min = crate::worldgen_handle::env_enabled("WG_CA_MIN");
+        // c-A-min/write（260905-09，方案 260905-08-cA-block-boundary.md §4/§6）；
+        // 260905-10 用户拍板：默认关（WG_CA_MIN=1 显式启用）——c-A 性能代价 +68%（223.7s vs 133.3s dump 计时），
+        // 优化后另议翻默认；env 门控三查见 workflow-patterns #53（勿用 env_enabled，其默认开）
+        let ca_min = std::env::var("WG_CA_MIN").is_ok_and(|v| v != "0");
         if ca_min {
             // c-A-write：features 前 overlay 邻 chunk 先行生成的跨 chunk 写入（Java 写持久语义）
             if let Ok(mut pc) = self.pending_cross_writes.lock() {

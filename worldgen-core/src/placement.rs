@@ -278,19 +278,30 @@ pub enum PlacementModifier {
     },
 }
 
+/// WG_TREEDIAG（260905-10 P2 逐树 RNG 打点，b1 §4 模板）：进程级读 env 一次，热路径零成本。
+/// 默认关：显式判 env 存在（env_enabled 语义=默认开，勿套用——260905-09 纪律）。
+pub fn treediag_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var("WG_TREEDIAG").is_ok())
+}
+
 impl PlacementModifier {
     pub fn get_positions(&self, ctx: &FeaturePlacementContext, random: &mut ChunkRandom,
                          x: i32, y: i32, z: i32) -> Vec<[i32; 3]> {
         match self {
             PlacementModifier::Count(count) => {
                 let n = count.get(random);
+                if treediag_enabled() { eprintln!("[CNT] {n}"); }
                 (0..n).map(|_| [x, y, z]).collect()
             }
             PlacementModifier::RarityFilter(chance) => {
                 if *chance <= 0 || random.next_int_bound(*chance) == 0 { vec![[x, y, z]] } else { vec![] }
             }
             PlacementModifier::Square => {
-                vec![[x + random.next_int_bound(16), y, z + random.next_int_bound(16)]]
+                let dx = random.next_int_bound(16);
+                let dz = random.next_int_bound(16);
+                if treediag_enabled() { eprintln!("[SQ] {},{}", x + dx, z + dz); }
+                vec![[x + dx, y, z + dz]]
             }
             PlacementModifier::HeightRange(height) => {
                 let ny = height.get(random, ctx.min_y, ctx.height);
