@@ -1224,3 +1224,4 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - **真签名**：blob 状 stone/gravel/花岗岩族 → dirt/sand **置换**（最大连通域 615 cell）；y 分布全高均匀（每 y≈35）——与 aquifer 液面（应有 y 带）、est 深板岩过渡边界带、surface 阶段（应集中浅层）均不符。
 - **三候选封闭**：❌ aquifer floodedness / ❌ 流面 est 翻转 / ❌ surface-carver 级联（y 均匀分布直接排除后两者；分布形态与液面带不符排除前者）。
 - §9.7 口径：同 260904-03（WGB2 FULL 存档口径 4×4 @ chunk(200,200)，16 chunk×98304 cell）。
+- ❌ 已挂起（260904-15 用户拍板）：本篇挂起族 = aquifer 域 2（(198,18,198) water→dirt、(237,42,224) gravel→water，固/液边界真实方块级残差）+ ore_vein 域 1（(237,41,224)）——永久挂起，归因保持 candidate、坐标不删；光照/流体课题可引用为已知差异源；多世界新 seed 流下此族为残差放大候选（详注见 11 篇）。

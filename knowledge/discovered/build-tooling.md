@@ -405,3 +405,21 @@ BlockProbe 重导（未删 run\world）导出顺利完成、产物落盘，但�
 - 修复：改 -PblockProbeFull=true 后 mism=3，12→3。
 - 教训：新 -P 参数首次使用必须核对映射行 + 日志行为化证据（#8 家族三实锤：手工清单遗漏 / rustStages 缺映射 / 点分驼峰不匹配——同根因三形态）。判据：① -P 用前 grep build.gradle 精确映射名；② 口径开关须有一次性日志行在场（#37）；③ 大面积异常残差先旧执行体同命令复跑做 A/B 隔离。
 - 证据：.artifacts/lossless-accel/residual9-verdict-260904-13.md §3/§4.2 + .tmp/p2full/off-fix13-260904-13/。
+
+## 发现 #20: 1.20.1 chunk NBT 解析两坑——①chunk NBT 无 xPos 键（region 坐标+槽位推导）②python struct.unpack_from 直读 int64 不推进位置指针（260905-03）
+
+- **发现时间**：260905-03；**置信度**：candidate（2025 chunk 全量解析实锤，judge 待走）；**module**：build-tooling / MCA·NBT 工具链。
+
+### 现象
+① 按旧版经验在 chunk NBT 根 compound 找 `xPos` 键 → 键不存在，解析流程断言失败/坐标全错；② python 自写 NBT reader 用 `struct.unpack_from` 直读 TAG_Long / 长数组 → 解析若干 tag 后报 `bad tag`（非法 tag type），且报错位置随数据内容漂移。
+
+### 根因
+① 1.18+ chunk 格式移除了 `xPos`/`zPos` 键——chunk 坐标由 region 文件名坐标 + 槽位索引推导：`cx = rx*32 + (i & 31)`、`cz = rz*32 + (i >> 5)`（i = region 内 chunk 槽位序号）。用 1.17- 的格式心智找键必然落空。② `struct.unpack_from(buf, pos)` 从 pos 读值但**不返回也不修改 pos**——把 `unpack_from` 当「读且推进」用，位置指针停在原地，后续 tag header 从数据中间读起，tag type 命中非法值即 bad tag。这是解析失步（指针不前进），不是数据损坏。
+
+### 定位
+① 键缺失 → 查 MC wiki/反编译该版本 SerializedChunk 写入路径，确认键移除版本；② bad tag 位置漂移 + 报错点前必有一个 int64/长数组 tag → 打印每 tag 的 pos 前后值，发现 unpack 后 pos 不变即穿帮。
+
+### 教训/如何利用
+1. 跨版本解析 MCA 前先核该版本的 chunk 键集合（1.18+: 无 xPos；高度 span、section 索引基也随版本变）。
+2. python 手写二进制 reader 铁律：用**推进式**读取（`pos += size` 显式推进或 `BytesIO.read(n)` 自推进），`unpack_from` 只用于「偷看不消费」场景。
+3. 家族索引：#12（spv 多产物哨兵）、#11（配对以内容实测为准）；本条补「解析器自身推进状态」维度。

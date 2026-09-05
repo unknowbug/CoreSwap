@@ -231,6 +231,7 @@ private static boolean isDefaultBlock(BlockState state) {
 ### decisive（4×4@200,200，benchSeed=8576294172403134396，seed 三查 ✓）
 - **残 9 gravel→sand 全灭：12 → 3，match=100.000%**（ref<->off-fix13 mism=3）
 - 剩余 3 块归因不变：ore_vein 1 + aquifer 2——**独立课题，不混入本结论**（各自立案）
+- ❌ 已挂起（260904-15 用户拍板）：上述 ore_vein 1 + aquifer 2 永久挂起，归因保持 candidate、坐标不删；本行 match=100.000% 口径 = 单 seed 8576294172403134396 / 4×4@200 / 存档写入口径（blockProbe FULL，§9.7）——换 seed 同类残差不构成回归判据，C++ 载具 ore 族 desync 与本口径禁止互引。详注见 11 篇。
 - 排查插曲：-PblockProbe.full 假回归 78107 已定责环境口径（build-tooling 发现 #19），非代码回归
 
 证据：`.artifacts/lossless-accel/residual9-verdict-260904-13.md`；`.investigations/residual13/probeB-h2-260904-13.md`；原始输出 `.tmp/p2full/res13-*.log` / `off-fix13-260904-13/`。

@@ -813,3 +813,10 @@ entries:
     status: confirmed  # 用户拍板 260904-13（judge 三项 PASS 260904-12；decisive Δ0 无回归；修复 commit d942e4b）
     # 根因：carver/feature biome_at_jitter 用裸 self.seed，Java region 级 BiomeAccess 统一 hashSeed → 接线统一为 biome_access_seed。
     # 区域内无可观察效应（#20 死参数自检），但跨区域/跨 seed 语义风险消除。
+
+  # === workspace 拆分行为回归（260905-02，用户 confirmed）===
+  - id: 'swe:workspace-split:verdict-260905-02'
+    path: 'workspace-split/verdict-260905-02.md'
+    kind: decision
+    status: confirmed  # 用户拍板 260905-02（judge APPROVE；新/旧 dll 直接对比 0 diff；vanilla 残差 3 块为拆分前既有，落挂起域不拉起）
+    # 拆分基线：现役 dll 行为锚 = target/release/worldgen.dll（sha256 2A8915...，行为等价旧 561AFF49 包装代码）。

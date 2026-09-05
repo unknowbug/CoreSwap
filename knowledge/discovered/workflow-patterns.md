@@ -794,3 +794,24 @@ curtain-verdict 的 judge 审查按基线做了「独立重跑」：重跑 ref_c
 - 45b NoiseValuePoint 无 double getter（全 long 定点字段）；反射 dump 方法表确认签名后取 *Noise() long getter 是唯一直读通道（mnDump 探针 -Pbiome6mnDump=x,y,z）。定性判据：直读值为 4-5 位整数（t=2000）而非 [-1,1] 浮点 → 到手即定点域原值。
 - 45c 探针直采 router DF 用 quart 坐标语义（t=0.1121）≠ 生产 biome 链 (px<<2) 块坐标语义（t=0.200032）——打印坐标≠采样坐标，BIOME6 直采值与分类输入不可互比（#17 坐标钉死律新实例：同探针两输出通道语义不同）。破局 = 生产语义路径（MultiNoiseSampler.sample 反射）直读。
 - 证据：.investigations/residual13/probeB-h2-260904-13.md + .artifacts/lossless-accel/residual9-verdict-260904-13.md §4.1/§4.3。
+
+## 发现 #46: 跨实现光照/序列化对比的「缺键」语义不对称——vanilla 缺 SkyLight 键=隐式 15，Rust 接管侧缺键=flag1 全 0，统一填充制造整 section 0↔15 伪翻转（260905-03）
+
+- **发现时间**：260905-03；**发现者**：core.worker 草稿（light-opt G2 收敛课题）；**来源定位**：`.investigations/light-opt/g2-convergence-260905-03.md` + g2-fanout/b1|b2|b3 产物（rust MCA 实测 14307 个均质-15 键 / 0 个均质-0 键）；**置信度**：candidate（数据层实锤：全量 palette 对比 + rust 侧键分布统计，judge 待走）；**module**：workflow / 对比口径。
+
+### 观察
+对光照 MCA 做 diff 时，「某 section 缺 SkyLight 键」在两侧实现里的语义**不对称**：vanilla 序列化对均质 15 的 section 常省略键（缺键 = 隐式 15），而 Rust 接管光照后的序列化对「未计算/零」section 的表达是 flag1 全 0，缺键不隐式 15。若对比脚本按「缺键统一填某默认值」对齐两侧，会把大量本应 15 的 vanilla section 当 0 处理，制造「整 section 0↔15 伪翻转」——本轮实测 1.47M 假差异（口径：2025 chunk 全量光照 MCA 对比，统一填充口径下），核对缺键语义后归零。
+
+### 证据
+- rust MCA 统计：14307 个 section 键内容均质 15、0 个均质 0——Rust 侧「全暗」不写 0 键，缺键 ≠ 0；
+- vanilla 侧缺 SkyLight 键 section 复核 = 隐式 15（拉取语义/序列化省略）；
+- 统一填充 vs 语义感知填充两种 diff 口径对照：1.47M 假差异 ↔ 与 feature 放置真差异分离后残差 0/448（pregen 边界内）。
+
+### 如何利用（可复用判据）
+1. **判据**：任何跨实现（Java↔Rust/C++）的 NBT/序列化产物对比，开工第一动作 = 核对**两侧各自的序列化省略语义**（哪些值省键、省略时读方隐式默认是什么），禁止「缺键统一填默认值」的对齐实现。
+2. **签名**：diff 结果呈「整 section 集体翻转（0↔15 / 空↔满）」量级（数十万~百万级）而非零星点差 → 优先怀疑序列化语义口径错，不是实现错。
+3. 家族索引：#17（打印坐标≠采样坐标——同为「对比前先核两侧口径」家族）、#18（跨 session 基线口径不可比——载体可比性的序列化维度）。
+
+## 发现 #36 家族补充案例（交接结论廉价验证第三例，260905-03）
+
+交接结论「G2 残差 = fallback 收不到 propagateLight（调用缺失）」经 fan-out .b1 一轮 DENY：残差 0/448 全部位于 pregen 边界 + vanilla 光照传播是**拉取语义**（无主动 propagate 调用链）——假设与机制形态直接冲突，一轮廉价验证（全量 447 chunk palette 对比 + 传播语义核对）推翻。真实根因 = **worldgen feature 放置分歧**（树叶/藤蔓/矿石/安山岩，judge 全量 palette 对比归因）；光照内核在 blocks 一致域无缺陷（G1 exact 100%，口径：pregen 域 2025 chunk 光照 MCA 逐位）。判据复述（#36 原文 + §16.3）：交接的「机制方向/根因方向」类结论开工前 MUST 一轮廉价独立验证——本案验证动作（传播语义 + 残差分布位置）成本一轮即改写课题方向；证据：`.investigations/light-opt/g2-convergence-260905-03.md`。

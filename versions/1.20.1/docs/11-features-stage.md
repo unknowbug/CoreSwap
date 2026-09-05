@@ -35,3 +35,11 @@ FEATURES 阶段（Java `world/gen/feature`）在 NOISE→CARVERS→SURFACE 之�
 - 邻域 chunk 方块读取简化：只处理当前 chunk 内（Java ChunkSectionCache 惰性生成邻域）。
 
 > 对齐率（95.50%/95.54%）为当前快照，属低价值不写 docs 主内容，排查时参考 `.investigations/features-port/cmd-output/`。
+
+## 范围调整挂起决策（260904-15，用户拍板）
+
+- ⚠️ **supersedes（260904-15）**：本决策取代上方「已知限制」第一条「下次处理此阶段前先对齐 populationSeed/setDecoratorSeed」的指令性表述——该课题已永久挂起，不再作为前置动作；原正文不删不改（§15.4 取代链）。
+- **永久挂起 4 项**：① ore_vein 域 1（(237,41,224) CS pre=stone / vanilla granite）② aquifer 域 2（(198,18,198) water→dirt、(237,42,224) gravel→water）③ C++ 载具 ore 族 desync（22653/98.56%，block_probe 载具专属，两载具残差禁止互引 §9.7）④ populationSeed 1/13 疑点。
+- **挂起语义**：挂起 ≠ confirmed（归因保持 candidate，坐标与归因保留不删）≠ closed。
+- **口径声明（§9.7 三要素）**：现 match=100.000% 口径 = 单 seed 8576294172403134396 / 单区域 4×4@200 / 存档写入口径（gradle blockProbe FULL 载体）——未来换 seed 出现同类残差**不得误读为回归**。
+- 项①②为真实方块级残差（含水层固/液边界、vein pre 态），光照/流体课题可引用为已知差异源；多世界新 seed 流下被挂起族（aquifer 边界 / vein / biome.rs 定点平局 @anchor.idk 项）为残差放大候选。

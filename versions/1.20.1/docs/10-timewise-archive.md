@@ -2885,3 +2885,17 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 根因：Rust biome.rs f64 全精度未量化 → 平局点 1e-9 假严格差；修复 = noise_to_long + i64 距离 + 参数表序平局（dll 19D21219→561AFF49 注释终版）
 - decisive 12→3（match 100.000%）；途中 -PblockProbe.full 假回归 78107 经旧 dll 同命令 A/B 隔离定责（78116−78107=9 恰为修复点）
 - 剩余 3（ore_vein 1 + aquifer 2）各自立案；H1 zoom pick 全局普查 open（残 9 簇已间接覆盖）；bareseed 收口 confirmed 仍待用户
+
+## 260905-03（光照课题：G2 根因转向 + P2 收口）✅ 判据链闭合（candidate，judge APPROVE-WITH-CONDITIONS；confirmed 待用户）
+
+> 过程产物 `.investigations/light-opt/`（g2-convergence-260905-03.md + g2-fanout/b1|b2|b3 + d3-bench-260905-03.md）。
+
+- ✅ **G2 假设推翻**（fan-out .b1 DENY）：「fallback 收不到 propagateLight」——残差 0/448 在 pregen 边界 + vanilla 拉取语义；交接结论廉价验证纪律（§16.3）生效（#36 第三例）。
+- ✅ **G2 真根因**：worldgen feature 放置分歧（树叶/藤蔓/矿石/安山岩，judge 全量 447 chunk palette 对比）；光照内核 blocks 一致域无缺陷（G1 exact 100%）。
+- ✅ **对比口径判据**：MCA 缺键语义两侧不对称（vanilla 隐式 15 / rust flag1 全 0），统一填充 1.47M 假差异 → workflow-patterns #46。
+- ✅ **解析坑两枚**：1.20.1 chunk NBT 无 xPos（region+槽位推导）+ python unpack_from 不推进指针 → build-tooling #20。
+- ✅ **round-trip 判据重立**：1.20.1 存档无 isLightOn + 每启动必 relight →「二次重启收敛 + 相对基线」口径；首载漂移 vanilla 17/2025 vs rust 123/2025（7× 待办）；源码参照版本疑点（.tmp/net 非 1.20.1）→ f5-bugs #5。
+- ✅ **语义有损登记**：opacity:-1 → u8 clamp 0（18 条目，worldgen-core/src/light/mod.rs:121-125）→ compiler-idioms #14。
+- ❌ **D3 双 FAIL**：内核 6.88ms/chunk（合成数据）、e2e 回退 2.4×（29.7 vs 12.4s/2025 chunks），主体 = 内核 BFS——性能待办。
+- ✅ **G3c PASS**：nether/end 64+64 chunks 生成 + 高度守卫回退 vanilla（bottomY=0 span=16）+ 无新 crash。
+- 🔍 open：rust 首载漂移 7× 待办；D3 性能优化未立项；feature parity 新课题（树叶/藤蔓/矿石/安山岩放置分歧，是否属既有挂起域待用户裁定）；101/447 影子传播未解释残差候选（推断级）。
