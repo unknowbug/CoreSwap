@@ -1,8 +1,10 @@
 # .artifacts/feature-parity/index.yaml — feature parity 课题产物索引
 topic: feature-parity
 created: 260905-05
-updated: 260905-05
+updated: 260905-06
 baseline: "239,594 diff instances / 1829 chunks / 3009 comparable (ab A/B 受控口径, v8)"
+# 260905-06 修订：v9 实证跨 run vanilla 噪声 241,080 与信号同阶 → v8 口径仅可验无回归；
+# 收敛裁决改用确定性载体（idk7_region_dump 2193 chunks vs 固定 vanilla 快照，v10 口径）
 entries:
   - id: FEA-1
     file: b1-candidate-260905-05.md
@@ -36,8 +38,10 @@ entries:
     status: draft
     date: 260905-05
 standing:
-  - "idk-7：random_selector/random_patch 占位公式（generate_nested 未接线）——树族残差主要来源"
-  - "R-1：decorator 同 Y 序 = Java HashSet 桶序（近似方案在码，需声明口径）"
+  - "idk-7：✅ 已实装（260905-06，commit 244d680）——selector/patch 嵌套生成 + placed 链语义 + predicate_type/heightmap/block_at 修复 + jungle placers；树残差 171,442→118,697（确定性 dump 口径）"
+  - "R-1：decorator 同 Y 序 = Java HashSet 桶序（未定界；vine 残差 rust少 21,961 主候选）"
+  - "树位置对齐：oak rust多 38,250 / jungle rust少 22,611 —— RNG 流或放置判定残差（260905-06 v12 分解）"
+  - "vines feature（minecraft:vines 藤蔓墙）+ leaves distance 属性位编码未实装"
   - "anchor_biome 口径（chunk biome vs posToBiome jitter）未定界"
   - "fancy_oak = LargeOak placer 对（验证口径待拍板）"
-  - "S3：light_data.json 在 .gitignore data/ 域内，修复的版本控制策略待用户拍板"
+  - "S3：✅ 已核销（260905-06，commit 627efc0，light_data.json 白名单入库）"

@@ -2945,3 +2945,26 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **judge**（judge-verdict-260905-05.md，MUST 级 + 独立复算）：APPROVE-WITH-CONDITIONS——v8 复算 3009/1829/239594 逐位一致；S1（证据包过期→已刷新）/S2（index.yaml→已补 FEA-1~5）/S4（原始输出→已归档 cmd-output/）核销；S3（light_data.json 被 .gitignore data/ 域忽略，版本控制策略待用户拍板，最重）未核销。
 - 🔍 **残留 80/chunk 基线已立**：239,594/1829/3009 为 candidate 基线，后续 R-1/idk-7 收敛以此口径对表；per-feature 随机序列改变未逐 feature 定界（相对结论非绝对结论）。
 - 📌 **open**：S3 data/ 管理策略（须用户拍板）；树族残差 R-1/idk-7 收敛立项；7× 首载漂移（承前）。
+
+
+# 【草稿】10-timewise-archive.md 时间线追加条目（260905-06）
+
+> 供主会话应用：追加到 `versions/1.20.1/docs/10-timewise-archive.md` 末尾。每条带状态标注。
+> 本文件为草稿，正式 docs 未改动。
+
+---
+
+## 260905-06（实际 2026-09-05：树族残差收敛 — idk-7 实装 + 四 bug 修复 + 载体转折）✅ 判据链闭合（candidate）
+
+> 过程产物 `.investigations/feature-parity/260905-06-errors.md` + `.tmp/feature-parity-260905-06/`；结论 → 13 篇 260905-06 小节；通用模式 → workflow-patterns #51/#52、build-tooling #23/#24（草稿）。
+
+- ❌→✅ **cargo rlib 陈旧假绿一轮（定位链污染源）**：修复后 `cargo build -p worldgen` 多次 `Finished` 但 `libWorldgenRust.rlib` 未重编（mtime 数小时前）→ 新旧代码链同一陈旧 rlib 得「dump 逐字节一致」假象，浪费一轮对拍；字符串核验（新日志串缺失）实锤。修复 = 显式 `-p WorldgenRust` + mtime 核验判据（build-tooling #23 草稿）。教训：先破构建陈旧再谈行为一致。
+- ✅ **噪声基线前置测量（课题裁决载体转折）**：同方法论两批纯 vanilla 臂互比（v9）= **241,080 实例**，与「接管 vs vanilla」信号（239,594）**同阶且签名同形**（air/leaves/双向 ore）→ 跨 run A/B 只能验「无回归」，无量级裁决力（workflow-patterns #51 草稿）。
+- ✅ **确定性区域 dump 载体落地**：`worldgen-core/src/bin-diag/idk7_region_dump.rs`（bin-diag 隔离）纯实现生成整域 + 原始 id dump + blocks.json 映射 name 域 + SHA256 对拍（v10-v12 脚本链）——代码 diff 成为唯一变量（workflow-patterns #52 草稿）。
+- ✅ **idk-7 实装 + 四 bug 修复**：generate_nested 接线（placed/configured 语义修正）、BlockPredicate `"predicate_type"`→`"type"`（谓词全灭根因，Discriminant 打标定位）、selector default 键修正、heightmap off-by-one——五段式台账 `.investigations/feature-parity/260905-06-errors.md`（含错误→根因速查表）。
+- ✅ **jungle placers 实装**：jungle/mega jungle placer 补齐。
+- ✅ **残差裁决**：树族残差 **171,442→118,697（−30.8%）**——确定性 dump 口径（载体 = region name 域对 vanilla06 快照 / 覆盖面 = 2193 chunks 全域 / 可比性 = 同快照同脚本，§9.7 三要素随行）；跨 run A/B 口径（80/chunk）降级为回归门，两口径不可互换。
+- ✅ **gitignore 白名单修障**：`data/` 目录级规则 prune 使 `!` 重包含失效 + `data/*` 锚定语义坑——目录放行→内容重排除→文件白名单三段链式修复，`git check-ignore -v` 双向核验纪律（build-tooling #24 草稿；承接 260905-05 judge S3 阻塞项根因面）。
+- 🔍 **open（残余清单更新）**：R-1 桶序（未核销）、vines feature（新）、distance 属性位（新）、树位置对齐（per-feature 随机序列定界）、anchor_biome 口径、fancy_oak 验证口径待拍板。
+- 🔍 **open（流程）**：knowledge #51/#52、build-tooling #23/#24 草稿待主会话应用 + judge；13 篇小节待应用。
+

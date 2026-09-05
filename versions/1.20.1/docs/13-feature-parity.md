@@ -45,3 +45,47 @@
 - **同方法论受控 A/B**（workflow-patterns **#49**）：跨 run 存档/导出对比，完成度随停服时机/init 时序剧烈变化（同位置 andesite 551↔828 波动、空柱 213 个）——差异量级再大也不可作回归证据；必须同 fresh world / 同预生成域 / 同等待 / 同停服流程，再以**零改动正向对照**验伪（造零 rust 参与臂复现同签名即证伪归因——「14.8× 回归」即此被推翻为完成度伪影）。
 - **接管生效范围核**（workflow-patterns **#50**）：[CppBridge] init 晚于 Done → 同一存档内 pre-Done vanilla 区与 forceload 接管区两种装饰来源并存；判别实验第一动作 = 核接管生效的 chunk 范围（装饰级 WG_FEATURELOG 日志优先于统计口径推断）。
 - 对比一律 name 域（v3 口径），废弃跨 id 域对照（recheck 参照 C++ compact id 域错位，#9 家族）。
+
+
+# 【草稿】13-feature-parity.md 末尾追加小节（260905-06）
+
+> 供主会话应用：追加到 `versions/1.20.1/docs/13-feature-parity.md` 末尾。追加不覆盖。
+> 本文件为草稿，正式 docs 未改动。
+
+---
+
+## 260905-06（实际 2026-09-05）：树族残差收敛 — idk-7 实装 ✅ 判据链闭合（candidate，确定性 dump 口径）
+
+> 过程产物：`.investigations/feature-parity/260905-06-errors.md`（五段式错误台账）+ `.tmp/feature-parity-260905-06/`（v8-v12 脚本链 + dumpnew/dumpold）。
+> 载体转折：本块起量级裁决弃用跨 run 受控 A/B（噪声基线 241,080 ≈ 信号 239,594，同阶，workflow-patterns #51 草稿），改用**确定性区域 dump 载体**（#52 草稿）。
+
+### 完成内容
+
+- **idk-7 实装**：random_selector/random_patch 占位公式替换为 generate_nested 真实接线（placed/configured 两级语义修正 + selector default 修正）。
+- **四 bug 修复**（详见 `.investigations/feature-parity/260905-06-errors.md`）：① BlockPredicate `"predicate_type"`→`"type"` 键名错读（谓词全灭根因）② selector default 键错读 ③ generate_nested placed/configured 语义接反 ④ heightmap off-by-one。
+- **jungle placers 实装**：jungle tree / mega jungle placer 补齐。
+- **构建链修障**：`cargo -p` 依赖 rlib 陈旧假绿（build-tooling #23 草稿）——显式 `-p WorldgenRust` + mtime 核验纪律。
+
+### 残差收敛数字（确定性 dump 口径）
+
+**树族残差 171,442 → 118,697（−30.8%）**。§9.7 验证可比性声明三要素：
+
+| 要素 | 声明 |
+|---|---|
+| 载体 | region name 域，对 **vanilla06 固定快照**（纯实现直接生成，`worldgen-core/src/bin-diag/idk7_region_dump.rs` + SHA256 对拍） |
+| 覆盖面 | **2193 chunks 全域**（dumpnew/dumpold 交集全域） |
+| 可比性 | 同快照、同脚本链（v10_dump_vs_region / v11_dump_diff / v12_tree_breakdown），与 260905-05 的 171,442 基线同口径 |
+
+⚠️ 口径声明：本数字为**确定性载体上的量级收敛结论**；跨 run 受控 A/B（80/chunk 口径）仅保留作回归门，两口径不可互换（噪声基线同阶，#51）。
+
+### 残余清单（更新后的归因台账）
+
+| 项 | 内容 | 状态 |
+|---|---|---|
+| R-1 | decorator 同 Y 序 = Java HashSet 桶序（近似方案在码，口径需声明） | 未核销 |
+| vines feature | vine 放置 feature 未实装（独立残差源） | 新登记 |
+| distance 属性位 | 树干 blockstate distance 属性位差 | 新登记 |
+| 树位置对齐 | 树放置坐标逐位对齐（随机序列 per-feature 定界） | 未核销 |
+| anchor_biome 口径 | chunk biome 锚定 vs posToBiome jitter | 未核销（承前） |
+| fancy_oak | LargeOak placer 对齐验证口径待拍板 | 未核销（承前） |
+

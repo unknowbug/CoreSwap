@@ -441,3 +441,59 @@ BlockProbe 重导（未删 run\world）导出顺利完成、产物落盘，但�
 - **定位**：① 哨兵法——JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=...，JVM 启动必打「Picked up JAVA_TOOL_OPTIONS: ...」（各 run 日志 .err 首行实锤），哨兵在位而 WG_FEATURELOG 不在位 → 锁定通道差；② grep loom API 确认 RunConfigSettings 方法面；③ 超时时间点与命令实际完成时间对表。
 - **修复**：① env 传递走 JAVA_TOOL_OPTIONS（-D 属性通道，轮次间清理防污染）或 build.gradle -P→task environment() 映射（-PfeatureLog=1 已落地）；② forceload 预生成改 per-command 独立 rcon 连接 + 180s 超时 + 失败重试（pregen_forceload.py 的 rcon_one()）；③ 需 task 级 env 时在 run task（JavaExec）上用 environment()。
 - **教训/判据**：① gradle 链路传 env 第一动作 = 放哨兵验证传播——「客户端设了」≠「JVM 收到」≠「native 读到」，三段各自要证据；② loom 注入优先 -P 映射（#8 家族，核对映射名），RunConfigSettings.environment() 此路不通；③ rcon 长命令判据：服务器同步执行类命令一律独立连接 + 超时 ≥ 最坏耗时 + 重试。同族：build-tooling #19——「传递通道名实不符」家族，本条补进程 env 通道 + rcon 连接通道两维度。
+
+---
+
+## 发现 #23: `cargo build -p <薄壳>` 依赖 rlib 陈旧假绿——「Finished」不等于依赖包重编（260905-06）
+
+- **时间/置信度/module**：260905-06；candidate（exe/rlib 字符串核验实锤）；build-tooling / cargo·workspace 构建链（#16/#12「产物在盘 ≠ 当前代码」家族的 cargo 形态）。
+
+### 现象
+260905-01 workspace 拆分后的薄壳结构（`worldgen-core`（包名 WorldgenRust，rlib）+ `versions/1.20.1/rust`（cdylib 薄壳））下，改完 `worldgen-core` 源码后执行 `cargo build --offline -p worldgen --release`，多次输出 `Finished`（零告警零重编迹象），产物 worldgen.dll 正常产出、注入运行「成功」。但 `target/release/libWorldgenRust.rlib` 的 LastWriteTime 停留在数小时前——依赖包根本没重编，新旧源码链接的是**同一份陈旧 rlib**。本轮后果：带着真实 bug（BlockPredicate 字段名错读，见 feature-parity 错误台账 ①）的旧代码与「修复后」代码产出**逐字节一致的 dump**，形成「修复无效/行为无差异」假象，浪费一整轮对拍。
+
+### 根因
+`-p worldgen` 只把薄壳 cdylib 作为构建根——cargo 的增量/时间戳判断在某种状态下漏判了依赖 rlib 的过期（源码 mtime 与 rlib mtime 的判定被扰动，如 git 操作/批量 touch 后 mtime 关系反转），于是直接复用旧 rlib 链接。**「构建成功」= 图上被选中的目标编译链接成功，不保证依赖目标被重编**；薄壳 + workspace 的间接层把这层不透明化（用户盯着的是 dll，rlib 在背后）。
+
+### 定位（怎么发现的）
+排除法：dump 逐字节一致 → 先怀疑修复未生效 → 核产物链 mtime——`target/release/libWorldgenRust.rlib` 的 LastWriteTime 早于源码修改时间数小时 → 实锤；旁证 = 对 dll/rlib 做字符串核验，新日志串缺失（新代码里的诊断字符串不在二进制内）。「构建日志绿 + 产物在盘 + 运行成功」三绿俱全仍是假象，唯一可信的是**产物 mtime vs 源码 mtime + 内容指纹**。
+
+### 修复
+显式构建依赖包：`cargo build --offline -p WorldgenRust --release` 后再 build 薄壳（或改源码后必核 rlib mtime）；根治性核验 = `Get-Item target\release\libWorldgenRust.rlib` 的 LastWriteTime 晚于全部 worldgen-core 源码 mtime。
+
+### 教训/判据
+1. **判据（MUST）**：改源码后 build 前后必核最终链上每个中间产物的 LastWriteTime 晚于源码 mtime——薄壳/包装层结构下尤其如此（盯的产物与改的代码隔了一层）。
+2. 内容级旁证：新诊断字符串/新日志行必须在二进制里 grep 得到，缺失即陈旧产物（#12 哨兵点验思想的 cargo 形态）。
+3. 家族索引：#6（mtime 不可靠用内容指纹——互补：这里 mtime 是**唯一**穿帮线索，因为「一致」本身被当结论）、#16（旧 exe 假阴性）、#18（缓存命中耗时签名）、#19（gradle -P 静默不生效——同属「gitignore/build 工具链静默假绿」家族）；与 AGENTS 构建铁律（ninja 卡死/build.ps1 直链）同级：「构建系统信任必须落到产物证据」。
+4. 证据：`.investigations/feature-parity/260905-06-errors.md` 条目 ⑤ + 本轮 exe/rlib 字符串核验记录。
+
+---
+
+## 发现 #24: gitignore 目录级规则 prune 使 `!` 白名单失效——`data/` + 子文件 `!` 永不生效（260905-06）
+
+- **时间/置信度/module**：260905-06；candidate（`git check-ignore -v` 双向核验实锤）；build-tooling / gitignore 规则语义（#8/#19「配置静默不生效」家族的 gitignore 形态）。
+
+### 现象
+`.gitignore` 写了 `data/`（目录级忽略）后又试图用 `!data/light_data.json` 类白名单重包含——白名单**静默不生效**，文件仍被忽略（judge S3 阻塞项的根因面：light_data.json 不入库）。且把规则改成 `data/*` 试图「只忽略内容」时，含斜杠模式被**锚定到仓库根**，丢失了「任意层级 data 目录」的原语义。
+
+### 根因（git 两层机制）
+1. **目录 prune**：git 对目录级规则（`data/`）直接**不进入该目录**——目录被剪枝后，里面的文件的 `!` 重包含规则根本没有被评估的机会（文档明确：「It is not possible to re-include a file if a parent directory of that file is excluded」）。白名单要生效，前提是**父目录链全部未被忽略**。
+2. **锚定规则**：模式含非尾随斜杠（`data/*`）即相对 .gitignore 所在目录锚定，不带 `**` 就没有「任意层级」语义——`data/` 与 `data/*` 语义并不等价（前者任意层级目录、后者仅根下）。
+
+### 定位
+改完规则跑双向核验：`git check-ignore -v <白名单文件> <邻位应忽略文件>`——前者应无输出（未忽略）、后者应命中忽略规则行；再 `git status` 确认无 `??` 噪声。白名单文件仍报命中忽略规则即穿帮。
+
+### 修复（正确形态模板）
+```
+data/              # 保留：任意层级 data 目录整体忽略（现状语义）
+**/data/*          # 通用覆盖：任意层级 data 的内容（与上一行互补，防锚定误解）
+!versions/1.20.1/data    # 链式放行目标目录本身（父目录先不被忽略）
+versions/1.20.1/data/*   # 再重排除其内容
+!versions/1.20.1/data/light_data.json   # 精确白名单目标文件
+```
+要点：**目录放行 → 内容重排除 → 文件白名单**三段链式，缺一段即静默失效。
+
+### 教训/判据
+1. **判据（MUST）**：任何 gitignore 白名单改动，`git check-ignore -v` 双向核验（白名单文件 + 邻位文件）+ `git status` 无 `??` 噪声，缺一不算完成——gitignore 不生效**永远无告警**。
+2. 记忆锚：「父目录被忽略 = 子文件白名单死刑」；「模式含斜杠 = 锚定，`**` 才跨层级」。
+3. 家族索引：#8（rustStages 缺映射）、#19（-P 点分驼峰不映射）、#22（gradle daemon 吞 env）——同族第四形态：**配置/规则层静默不生效，全部靠行为化核验兜底，无一例有报错**。证据：`.investigations/feature-parity/260905-06-errors.md`。
+
