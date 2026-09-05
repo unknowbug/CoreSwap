@@ -1,0 +1,146 @@
+name: "🐛 Bug report"
+title: "[Bug] "
+description: Report CoreSwap defects: crashes, worldgen errors, vanilla mismatches.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing this report! Keep every answer concise, reproducible, and grounded in observed evidence.
+        If a field cannot be answered from the available evidence, respond with exactly `NOT_ENOUGH_INFO`.
+        Please only report one issue per submission.
+
+  - type: dropdown
+    attributes:
+      label: Bug type
+      description: Choose the category that best matches this report.
+      options:
+        - "Crash (game exits or hangs)"
+        - "Worldgen error (wrong terrain / structures / biomes)"
+        - "Vanilla mismatch (wrong world content, no crash)"
+        - "Performance issue (lag, slow generation)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Summary
+      description: One sentence on what is broken, based only on observed evidence.
+      placeholder: "Example: with a specific seed, all swamp biomes generate as bare stone with no vegetation."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Shortest deterministic repro path.
+      placeholder: |
+        Example:
+        1. Install CoreSwap <version> with <loader>
+        2. Create a new world with seed -4172144997902289642
+        3. Travel to X=1200 Z=-3500
+        4. Observe the swamp surface
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: World seed
+      description: Seed of the affected world. Use "N/A" if unrelated.
+      placeholder: "Example: -4172144997902289642"
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Coordinates / dimension
+      description: Where the problem occurs (Overworld / Nether / End / custom dimension). Use "N/A" if unrelated.
+      placeholder: "Example: X=1200 Z=-3500 Overworld; or custom dimension example:dim"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: Expected result, referenced against vanilla Minecraft 1.20.1.
+      placeholder: "Example: vanilla 1.20.1 with the same seed shows grass, oaks and lily pads on the swamp surface."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Actual behavior
+      description: Only the observed result, with visible errors or evidence.
+      placeholder: "Example: surface is entirely bare stone; log shows `surface_rule` warnings (attached)."
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: CoreSwap version
+      description: Exact CoreSwap version tested. Do not write `latest`.
+      placeholder: "Example: coreswap-1.20.1-1.0.24"
+    validations:
+      required: true
+
+  - type: dropdown
+    attributes:
+      label: Load method
+      description: How CoreSwap is loaded into the game.
+      options:
+        - "Fabric (native)"
+        - "Forge + Sinytra Connector"
+        - "NeoForge"
+        - "Dev environment (IDE)"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Loader version
+      description: Exact Fabric Loader / Forge / Connector version.
+      placeholder: "Example: Forge 47.4.21 + Connector-1.0.0-beta.49+1.20.1"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Other installed mods
+      description: Possibly relevant mods and versions ("None" if clean install).
+
+  - type: textarea
+    attributes:
+      label: Logs
+      description: Relevant logs (crash report / key excerpt of latest.log). Issues without usable logs may be asked to supplement.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Impact
+      description: Who is affected, severity, frequency (always / intermittent / edge case).
+      placeholder: |
+        Example:
+        Affected: all modpack players using custom dimensions
+        Severity: high (world unplayable)
+        Frequency: always (3/3 attempts)
+
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the [issue list](https://github.com/unknowbug/CoreSwap/issues) and found no duplicate.
+          required: true
+        - label: I have tried to rule out mod conflicts (or explained why I cannot, above).
+          required: true
+        - label: This report targets CoreSwap itself.
+          required: true
+        - label: (Optional) I am willing to submit a PR to help fix this.
+          required: false
+
+  - type: markdown
+    attributes:
+      value: "Thanks for your time! An AI triage assistant will pre-process this report; a human maintainer makes the final call."
