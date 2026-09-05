@@ -855,3 +855,21 @@ C4：golden_pre/golden_post 4 用例 FNV hash 全等；性能：blocks9_real 5.7
 
 ### 证据
 4 chunk × 98304 元素逐元素 0 diff（4× MATCH）；e2e 四臂 ON 中位 17.4s vs OFF 13.9s，绝对开销 ≈3.5s 与内核份额预测 3.2s 吻合。来源文件同上。
+
+---
+
+## 发现 #49: 交接/导出产物「完成度伪差」——同 seed 不同 run 的存档对比，装饰完成度随停服时机/init 时序剧烈变化，跨 run 对比必须先同方法论化 + 零改动正向对照验伪（260905-05）
+- 时间/置信度/module：260905-05，candidate（受控 A/B + 零 rust 参与正向对照双链互证，judge 已复算 APPROVE-WITH-CONDITIONS），workflow-patterns / sre 通用（#18 家族）。
+- **现象**：新旧 dll 对比得出「blob 爆炸 14.8× 回归」（2,298,206 实例差异，tuff/andesite/diorite/granite Y -1..4 全带均匀偏高）——看似严重代码回归。同位置不同 run 的 andesite 计数可在 551↔828 间波动；vanilla 参照 g1 有 2044 个整柱空 air chunk，3377 全域统计口径 60% 空对空。
+- **根因**：服务器 run 的存档/导出完成度不是确定性产物——chunk 管线推进到哪个阶段落盘取决于停服时机（Done 后 2s 停服 → spawn 排队 chunk 存成整柱 air，213 个）与接管 init 时序（[CppBridge] init 在 Done 之后 → pre-Done 区 vanilla 装饰、init 后 forceload 区才是接管装饰）。跨 run 对比实为不同完成度数据的伪对比。
+- **定位**：① fan-out b1/b2 双 DENY（静态机制无可达作用面）触发回数据层考古；② 零 rust 参与正向对照：ab-vanilla（纯 vanilla 臂）vs g1-vanilla = 2,292,126 实例差、签名与所谓「回归」完全一致——该臂零 rust 参与，伪影定案；③ WG_FEATURELOG 硬开实验直接看装饰级日志确认 init 时序。
+- **修复/规避**：同方法论受控 A/B（同 fresh world / 同 Done / 同 42-tile forceload 残差域 / region 收敛轮询 / 同停机拷贝，name 域对比）。判决：ab-vanilla vs ab-takeover = 239,594/1829 chunk = 80/chunk vs 旧口径 117/chunk，原「回归」实为净改善 ~32%。
+- **教训/判据**：① 跨 run 存档/导出对比第一动作 = 同方法论化（同 fresh world/同预生成域/同等待/同停服流程），方法论不同则差异量级再大也不可作回归证据；② 正向对照验伪——造零改动臂复现同签名即证伪归因（#16 对照基线归因法同族，本条补「时间/完成度维度」）；③ 装饰级日志优先于统计口径推断。同族：#18、build-tooling #18——「产物在盘 ≠ 可比数据」第三形态。
+
+## 发现 #50: 接管 init 晚于 Done → 同一存档内两种装饰来源并存——判别实验前必须先核「接管生效的 chunk 范围」（260905-05）
+- 时间/置信度/module：260905-05，candidate（WG_FEATURELOG 硬开实验直接观测），workflow-patterns / 混合接管架构通用。
+- **现象**：同一导出存档内，启动区（Done 前自然生成 chunk）与 forceload 预生成区装饰来源不同——前者 vanilla、后者接管（rust）；全域计数对比被混合口径污染。
+- **根因**：[CppBridge] init 触发在服务器 Done 之后——chunk 装饰归属由「生成时刻 init 是否已生效」决定，pre-Done 区天然逃过接管。
+- **定位**：WG_FEATURELOG（装饰级 env 门控日志）硬开 + 纯 rust features_probe 载体对照——init 行时间线后于 Done 行；按 chunk 生成时刻分区即可分辨两个装饰域。
+- **修复/规避**：受控采集把「接管生效范围」变成受控量——同 fresh world，Done 后统一 forceload 定向预生成（全部装饰 chunk 落在 init 后的接管域），停服拷贝。
+- **教训/判据**：任何「接管 vs vanilla」判别实验第一动作 = 核接管生效的 chunk 范围（装饰级日志优先于统计口径推断），确认对比集不含 pre-init vanilla 域。机制根因面同 #49。

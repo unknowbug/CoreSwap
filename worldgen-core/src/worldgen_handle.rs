@@ -893,6 +893,8 @@ impl WorldgenHandle {
                     chunk_start_x: cx * 16,
                     chunk_start_z: cz * 16,
                     block_at: None,
+                    // 260905-05（patch §3.8）：Biome modifier 锚定 biome = 当前 chunk biome
+                    anchor_biome: Some(cur_biome_id.clone()),
                 };
                 // OreFeatureContext（不持有 random，由 generate_configured 传入）
                 let mut octx = crate::feature::OreFeatureContext {
@@ -911,8 +913,11 @@ impl WorldgenHandle {
                 let cf = self.feature_cache.configured.get(&pf.configured_feature).cloned();
                 let cf = match cf { Some(cf) => cf, None => continue };
                 let biome_temp_f = biome_temp(&cur_biome_id) as f32;
+                // 260905-05（patch §2.4）：generate_configured 增 cache 实参（preload 后只读共享引用，
+                // apply_features 阶段 cache 不再写——无可变借用冲突）
+                let feature_cache_ref = &self.feature_cache;
                 let generate_configured = |_fctx: &crate::placement::FeaturePlacementContext, random: &mut ChunkRandom, gx: i32, gy: i32, gz: i32| -> bool {
-                    let r = crate::feature_loader::generate_configured(&cf, &fctx, &mut octx, random, gx, gy, gz, biome_temp_f, 0.5);
+                    let r = crate::feature_loader::generate_configured(&cf, &fctx, &mut octx, random, gx, gy, gz, biome_temp_f, 0.5, feature_cache_ref);
                     if r {
                         placed_count += 1;
                         if std::env::var("WG_FEATURELOG").is_ok() {

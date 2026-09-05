@@ -81,20 +81,47 @@ impl YOffset {
     }
 }
 
-// HeightProvider：uniform（min/max YOffset）——carver 用（Java UniformHeightProvider）
+// HeightProvider：uniform / trapezoid（Java UniformHeightProvider / TrapezoidHeightProvider）
+// 260905-05：增 plateau + trapezoid get（此前只有 uniform，height_range 的 trapezoid 数据解析即错）
 #[derive(Clone, Copy)]
-pub struct HeightProvider { pub min_offset: YOffset, pub max_offset: YOffset }
+pub struct HeightProvider {
+    pub min_offset: YOffset,
+    pub max_offset: YOffset,
+    pub trapezoid: bool,
+    pub plateau: i32,
+}
 impl HeightProvider {
     pub fn get(&self, r: &mut ChunkRandom, min_y: i32, height: i32) -> i32 {
         let i = self.min_offset.get_y(min_y, height);
         let j = self.max_offset.get_y(min_y, height);
-        if i == j { return i; }
-        // MathHelper.nextBetween(random, i, j) = random.nextInt(j-i+1) + i（ChunkRandom CHECKED 基类）
-        r.next_int_bound(j - i + 1) + i
+        if i > j { return i; }                                  // TrapezoidHeightProvider.java:52-55 warn 分支
+        if !self.trapezoid {
+            // UniformHeightProvider：MathHelper.nextBetween(random, i, j)
+            return r.next_int_bound(j - i + 1) + i;
+        }
+        // TrapezoidHeightProvider.java:56-64：k=j-i；plateau>=k → nextBetween(i,j)；
+        // 否则 i + nextBetween(0,m) + nextBetween(0,l)，l=(k-plateau)/2, m=k-l（每 nextBetween 恒 1 消费，共 2 次）
+        let k = j - i;
+        if self.plateau >= k {
+            r.next_int_bound(k + 1) + i
+        } else {
+            let l = (k - self.plateau) / 2;
+            let m = k - l;
+            i + r.next_int_bound(m + 1) + r.next_int_bound(l + 1)
+        }
     }
     pub fn parse(v: Option<&JsonValue>) -> HeightProvider {
-        let mut hp = HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 } };
+        let mut hp = HeightProvider {
+            min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 },
+            max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 },
+            trapezoid: false, plateau: 0,
+        };
         if let Some(v) = v {
+            let type_name = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+            hp.trapezoid = type_name.contains("trapezoid");
+            if hp.trapezoid {
+                hp.plateau = v.get("plateau").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32; // optionalFieldOf 0
+            }
             if v.as_object().is_some() && v.get("min_inclusive").is_some() && v.get("max_inclusive").is_some() {
                 hp.min_offset = YOffset::parse(v.get("min_inclusive"));
                 hp.max_offset = YOffset::parse(v.get("max_inclusive"));
@@ -224,7 +251,7 @@ pub struct CaveCarverConfig {
 impl CaveCarverConfig {
     fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> CaveCarverConfig {
         let mut c = CaveCarverConfig {
-            common: CarverConfig { probability: 0.0, y: HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 } }, y_scale: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 }, lava_level: YOffset { kind: YOffsetKind::Fixed, value: 0 }, replaceable_ids: vec![] },
+            common: CarverConfig { probability: 0.0, y: HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, trapezoid: false, plateau: 0 }, y_scale: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 }, lava_level: YOffset { kind: YOffsetKind::Fixed, value: 0 }, replaceable_ids: vec![] },
             horizontal_radius_multiplier: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 },
             vertical_radius_multiplier: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 },
             floor_level: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 },
@@ -257,7 +284,7 @@ pub struct RavineShape {
 impl RavineCarverConfig {
     fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> RavineCarverConfig {
         let mut c = RavineCarverConfig {
-            common: CarverConfig { probability: 0.0, y: HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 } }, y_scale: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 }, lava_level: YOffset { kind: YOffsetKind::Fixed, value: 0 }, replaceable_ids: vec![] },
+            common: CarverConfig { probability: 0.0, y: HeightProvider { min_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, max_offset: YOffset { kind: YOffsetKind::Fixed, value: 0 }, trapezoid: false, plateau: 0 }, y_scale: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 }, lava_level: YOffset { kind: YOffsetKind::Fixed, value: 0 }, replaceable_ids: vec![] },
             vertical_rotation: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 },
             shape: RavineShape {
                 distance_factor: FloatProvider { kind: FloatKind::Constant, a: 0.0, b: 0.0, plateau: 0.0 },

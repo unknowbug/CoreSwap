@@ -126,6 +126,10 @@ impl LightEngine {
 
 #[inline]
 fn parse_u8_field(v: &crate::json::JsonValue, key: &str, default: u8) -> u8 {
+    // 注意（260905-05）：负值（如 vanilla opacity -1 = VoxelShape 哑元）会被 clamp 成 0——
+    // 本引擎无 VoxelShape（已声明有损边界），负值语义无法表达。数据侧必须显式化 0..15
+    //（light_data.json 613-629 shulker→15、954 pointed_dripstone→0 已于 260905-05 修复），
+    // 新数据源禁止再出现负 opacity；如需恢复哨兵语义须扩展表结构。
     v.get(key)
         .and_then(|f| f.as_f64())
         .map(|n| n.clamp(0.0, 15.0) as u8)
@@ -471,5 +475,19 @@ mod tests {
         let mut os = vec![0u8; OUT_CHAN_LEN];
         let mut of = vec![0u8; FLAGS_LEN];
         light_compute(&engine, &b9, &mut ob, &mut os, &mut of).unwrap();
+    }
+
+    /// 防回归（260905-05）：light_data.json 负 opacity 显式化修复——
+    /// 潜影盒族（原 vanilla -1 哑元）应解析为 15，pointed_dripstone 应为 0，
+    /// 且全表无被 clamp 吞掉的负值（#14 静默语义腐蚀家族）。
+    #[test]
+    fn light_data_negative_opacity_explicitized() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../versions/1.20.1/data/worldgen/light_data.json");
+        let engine = LightEngine::from_json_file(path)
+            .expect("load real light_data.json");
+        for id in 613..=629 {
+            assert_eq!(engine.lookup(id), (15u8, 0u8), "shulker family id={id} 应为 opacity 15");
+        }
+        assert_eq!(engine.lookup(954), (0u8, 0u8), "pointed_dripstone 应为 opacity 0");
     }
 }

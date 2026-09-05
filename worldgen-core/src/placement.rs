@@ -30,19 +30,26 @@ impl IntProvider {
                 r.next_int_bound(b - a + 1) + a
             }
             IntProvider::Trapezoid(a, b, plateau) => {
-                // Java TrapezoidIntProvider.get = ceil(lerp(nextBetween(0, plateau-1), min, max) + nextFloat())
-                let f = if *plateau == 0 { 0 } else { r.next_int_bound(plateau + 1) };
-                let g = b - a;
-                let h = g - plateau;
-                let i = g - 2 * h;
-                let _ = i;
-                // Java 精确：return this.min + Math.floor(lerp(random.nextInt(plateau+1), min, max) + nextFloat())
-                let lerp_v = *a as f64 + (f as f64) / (*plateau as f64) * ((b - a) as f64);
-                (lerp_v + r.next_float() as f64).floor() as i32
+                // 修正（260905-05）：1.20.1 无 TrapezoidIntProvider（intprovider 目录 glob 实证 8 文件无此名）——
+                // 数据中的 trapezoid 是 height provider（TrapezoidHeightProvider.java:49-64）：
+                //   i>max → warn 返回 i；plateau>=k → nextBetween(i,j)；否则 i + nextBetween(0,m) + nextBetween(0,l)
+                //   l = (k-plateau)/2, m = k-l；nextBetween(min,max) = nextInt(max-min+1)+min = 每次恒 1 消费（共 2 次）
+                let k = b - a;
+                if k <= 0 { return *a; }
+                if *plateau >= k {
+                    r.next_int_bound(k + 1) + a              // nextBetween(i,j)
+                } else {
+                    let l = (k - plateau) / 2;
+                    let m = k - l;
+                    a + r.next_int_bound(m + 1) + r.next_int_bound(l + 1)
+                }
             }
             IntProvider::BiasedToBottom(a, b) => {
+                // 修正（260905-05）：BiasedToBottomIntProvider.java:39-41
+                //   return this.min + random.nextInt(random.nextInt(this.max - this.min + 1) + 1);
+                // 恒 2 次消费；旧实现「r.next_int_bound(inner + a)」公式错误（min 加在内层 bound 上）。
                 let inner = r.next_int_bound(b - a + 1);
-                r.next_int_bound(inner + a) // 近似（Java 更复杂）
+                a + r.next_int_bound(inner + 1)
             }
             IntProvider::WeightedList(weighted, total_weight) => {
                 if weighted.is_empty() { return 0; }
@@ -126,6 +133,117 @@ pub struct FeaturePlacementContext<'a> {
     pub chunk_start_z: i32,
     // 世界方块读取（block_predicate_filter 等用；null=不可读）
     pub block_at: Option<&'a dyn Fn(i32, i32, i32) -> i32>,
+    /// Biome modifier 锚定 biome（当前 chunk 的 biome 名；由 worldgen_handle 闭包填入）（260905-05 增补）
+    pub anchor_biome: Option<String>,
+}
+
+// ===== BlockPredicate（Java world/gen/blockpredicate/*，S1 idk-5）=====
+#[derive(Clone)]
+pub enum BlockPredicate {
+    MatchingBlocks { offset: [i32; 3], ids: Vec<i32> },
+    MatchingFluids { offset: [i32; 3], ids: Vec<i32> },
+    /// would_survive：state.canPlaceAt。树苗 = 下方 ∈ DIRT tag ∪ {farmland}（无光照判定，idk-5）
+    WouldSurvive { offset: [i32; 3], state_name: String, dirt_ids: Vec<i32> },
+    Solid { offset: [i32; 3] },
+    Replaceable { offset: [i32; 3] },
+    Not(Box<BlockPredicate>),
+    AllOf(Vec<BlockPredicate>),
+    AlwaysTrue,
+    /// 数据集出现但未实现的谓词 → 告警 + 恒 false（显式不静默）
+    Unsupported { type_name: String },
+}
+
+impl BlockPredicate {
+    pub fn parse(v: Option<&JsonValue>, blocks: &BlockRegistry) -> BlockPredicate {
+        let v = match v { Some(v) => v, None => return BlockPredicate::AlwaysTrue };
+        let type_name = v.get("predicate_type").and_then(|t| t.as_str()).unwrap_or("").to_string();
+        let offset = || {
+            let o = v.get("offset");
+            [
+                o.and_then(|o| o.get("x")).and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                o.and_then(|o| o.get("y")).and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                o.and_then(|o| o.get("z")).and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+            ]
+        };
+        let ids_of = |key: &str| -> Vec<i32> {
+            let mut ids = Vec::new();
+            if let Some(arr) = v.get(key).and_then(|b| b.as_array()) {
+                for b in arr { if let Some(s) = b.as_str() { ids.push(blocks.id(s)); } }
+            } else if let Some(s) = v.get(key).and_then(|b| b.as_str()) {
+                ids.push(blocks.id(s));
+            }
+            ids
+        };
+        if type_name.contains("matching_blocks") {
+            BlockPredicate::MatchingBlocks { offset: offset(), ids: ids_of("blocks") }
+        } else if type_name.contains("matching_fluids") {
+            BlockPredicate::MatchingFluids { offset: offset(), ids: ids_of("fluids") }
+        } else if type_name.contains("would_survive") {
+            let state_name = v.get("state").and_then(|s| s.get("Name")).and_then(|n| n.as_str()).unwrap_or("").to_string();
+            // DIRT tag ∪ {farmland}（idk-5；tag JSON 接线前硬编码 1.20.1 主体，数据边界声明 §九）
+            let dirt_ids = ["minecraft:dirt", "minecraft:grass_block", "minecraft:podzol", "minecraft:coarse_dirt",
+                "minecraft:mycelium", "minecraft:rooted_dirt", "minecraft:moss_block", "minecraft:mud",
+                "minecraft:muddy_mangrove_roots", "minecraft:farmland"]
+                .iter().map(|n| blocks.id(n)).collect();
+            BlockPredicate::WouldSurvive { offset: offset(), state_name, dirt_ids }
+        } else if type_name.contains("solid") {
+            BlockPredicate::Solid { offset: offset() }
+        } else if type_name.contains("replaceable") {
+            BlockPredicate::Replaceable { offset: offset() }
+        } else if type_name.contains("all_of") {
+            let mut preds = Vec::new();
+            if let Some(arr) = v.get("predicates").and_then(|p| p.as_array()) {
+                for p in arr { preds.push(BlockPredicate::parse(Some(p), blocks)); }
+            }
+            BlockPredicate::AllOf(preds)
+        } else if type_name.contains("not") {
+            BlockPredicate::Not(Box::new(BlockPredicate::parse(v.get("predicate"), blocks)))
+        } else if type_name.contains("true") {
+            BlockPredicate::AlwaysTrue
+        } else {
+            eprintln!("[placement] unsupported block predicate type: {type_name}");
+            BlockPredicate::Unsupported { type_name }
+        }
+    }
+
+    /// 判定。block_at 返回 -1（不可读）→ 除 AlwaysTrue 外一律 false（保守，防误放）。
+    pub fn test(&self, ctx: &FeaturePlacementContext, x: i32, y: i32, z: i32) -> bool {
+        // 应用适配（patch 引用 `crate::constants::AIR_ID`——本仓库无 constants 模块，改用
+        // blocks.rs 现成常量 AIR=0）；同时 ctx.block_at 为 Option<&dyn Fn> 不可直调，包一层闭包
+        let air = crate::blocks::AIR;
+        let block_at = |bx: i32, by: i32, bz: i32| -> i32 {
+            ctx.block_at.map_or(-1, |f| f(bx, by, bz))
+        };
+        match self {
+            BlockPredicate::AlwaysTrue => true,
+            BlockPredicate::Unsupported { type_name } => { let _ = type_name; false }
+            BlockPredicate::MatchingBlocks { offset, ids } => {
+                let cur = block_at(x + offset[0], y + offset[1], z + offset[2]);
+                cur >= 0 && ids.contains(&cur)
+            }
+            BlockPredicate::MatchingFluids { offset, ids } => {
+                let cur = block_at(x + offset[0], y + offset[1], z + offset[2]);
+                cur >= 0 && ids.contains(&cur)
+            }
+            BlockPredicate::WouldSurvive { offset, state_name, dirt_ids } => {
+                // SaplingBlock 无重写 → PlantBlock.canPlaceAt（idk-5）：下方 ∈ dirt ∪ farmland
+                let _ = state_name; // state 本体不参与 sapling 判定；非 PlantBlock 方块时需分派（登记 R-4）
+                let below = block_at(x + offset[0], y + offset[1] - 1, z + offset[2]);
+                below >= 0 && dirt_ids.contains(&below)
+            }
+            BlockPredicate::Solid { offset } => {
+                let cur = block_at(x + offset[0], y + offset[1], z + offset[2]);
+                cur >= 0 && cur != air // ⚠️ Java isSolid 近似（非空气即 solid，误差登记 §九）
+            }
+            BlockPredicate::Replaceable { offset } => {
+                let cur = block_at(x + offset[0], y + offset[1], z + offset[2]);
+                // REPLACEABLE tag 近似（air/植被/流体族）——与 tree::can_replace 同口径
+                cur == air
+            }
+            BlockPredicate::Not(inner) => !inner.test(ctx, x, y, z),
+            BlockPredicate::AllOf(preds) => preds.iter().all(|p| p.test(ctx, x, y, z)),
+        }
+    }
 }
 
 // PlacementModifier：返回输出位置（Java Stream<BlockPos>——惰性，Rust 展开为 Vec）
@@ -138,9 +256,20 @@ pub enum PlacementModifier {
     Heightmap(String),
     Biome,
     RandomOffset(IntProvider, IntProvider, IntProvider),
-    BlockPredicateFilter { is_fluid: bool, ids: Vec<i32> },
+    // 260905-05 重构：谓词树（替代旧 { is_fluid, ids }）
+    BlockPredicateFilter { predicate: BlockPredicate },
     SurfaceRelativeThreshold { heightmap_type: String, has_min: bool, has_max: bool, min_inclusive: i32, max_inclusive: i32 },
     NoiseBasedCount { max_count: i32, noise_name: String, scale: f64, count: IntProvider },
+    // —— 260905-05 增补（L0）——
+    /// surface_water_depth_filter（SurfaceWaterDepthFilterPlacementModifier.java:28-32）
+    SurfaceWaterDepthFilter(i32),
+    /// environment_scan（EnvironmentScanPlacementModifier.java:46-69）
+    EnvironmentScan {
+        down: bool,
+        max_steps: i32,
+        target: BlockPredicate,
+        allowed: Option<BlockPredicate>, // alwaysTrue 缺省 → None 表示恒真
+    },
 }
 
 impl PlacementModifier {
@@ -171,21 +300,48 @@ impl PlacementModifier {
                 vec![[x, top, z]]
             }
             PlacementModifier::Biome => {
-                // Java BiomePlacementModifier.getPositions：过滤 posToBiome.getBiome(pos) 在 features 集合内
-                // C++ 简化：posToBiome 判定位置 biome——Java 内部用 biomeAt（chunk biome）
-                // 简化：直接返回（biome 过滤由调用方预判）——Phase 3 先保留位置
-                vec![[x, y, z]]
+                // Java BiomeFilter：posToBiome(pos) ∈ feature 集。Rust 以 anchor_biome 对比采样 biome；
+                // biome_at 未接入（None）→ 保留位置（现状直通，不收紧，防回归 S2 前链路）。
+                match (ctx.biome_at, &ctx.anchor_biome) {
+                    (Some(f), Some(anchor)) => {
+                        let (sx, sz) = ((x >> 2) << 2, (z >> 2) << 2); // biome 4×4 对齐采样
+                        if f(sx, y, sz) == *anchor { vec![[x, y, z]] } else { vec![] }
+                    }
+                    _ => vec![[x, y, z]],
+                }
             }
             PlacementModifier::RandomOffset(ox, oy, oz) => {
                 vec![[x + ox.get(random), y + oy.get(random), z + oz.get(random)]]
             }
-            PlacementModifier::BlockPredicateFilter { is_fluid, ids } => {
-                if ctx.block_at.is_none() { return vec![[x, y, z]]; } // 无法读世界——保留
-                let cur = ctx.block_at.unwrap()(x, y, z);
-                if cur < 0 { return vec![]; }
-                for id in ids { if cur == *id { return vec![[x, y, z]]; } }
-                let _ = is_fluid;
-                vec![]
+            // —— 260905-05 增补 ——
+            PlacementModifier::SurfaceWaterDepthFilter(max_depth) => {
+                // Java L28-32：OCEAN_FLOOR 与 WORLD_SURFACE 双高度图差 <= maxWaterDepth（0 随机消费）
+                // （应用适配：patch 草稿曾带 max_depth==0 early-return，§3.3 注明为「错误保留项」，
+                //  建议删掉只走精确路径——已按注删除）
+                let (Some(of), Some(ws)) = (ctx.ocean_floor, ctx.world_surface) else { return vec![[x, y, z]]; };
+                let lx = x - ctx.chunk_start_x;
+                let lz = z - ctx.chunk_start_z;
+                if lx < 0 || lx >= 16 || lz < 0 || lz >= 16 { return vec![[x, y, z]]; } // 邻域——保留（登记）
+                let i = of[(lz * 16 + lx) as usize];
+                let j = ws[(lz * 16 + lx) as usize];
+                if j - i <= *max_depth { vec![[x, y, z]] } else { vec![] }
+            }
+            PlacementModifier::EnvironmentScan { down, max_steps, target, allowed } => {
+                // Java L46-69（0 随机消费）：先 allowed(起点) → 步进 target 命中即返回；步后超界/allowed 失败 break
+                let dir = if *down { -1 } else { 1 };
+                let ok_allowed = |p: i32| allowed.as_ref().map_or(true, |a| a.test(ctx, x, p, z));
+                if !ok_allowed(y) { return vec![]; }
+                let mut py = y;
+                for _ in 0..*max_steps {
+                    if target.test(ctx, x, py, z) { return vec![[x, py, z]]; }
+                    py += dir;
+                    if py < ctx.min_y || py >= ctx.min_y + ctx.height { return vec![]; } // isOutOfHeightLimit
+                    if !ok_allowed(py) { break; }
+                }
+                if target.test(ctx, x, py, z) { vec![[x, py, z]] } else { vec![] }
+            }
+            PlacementModifier::BlockPredicateFilter { predicate } => {
+                if predicate.test(ctx, x, y, z) { vec![[x, y, z]] } else { vec![] }
             }
             PlacementModifier::SurfaceRelativeThreshold { heightmap_type, has_min, has_max, min_inclusive, max_inclusive } => {
                 let hm = if heightmap_type.contains("OCEAN_FLOOR") { ctx.ocean_floor } else { ctx.world_surface };
@@ -231,27 +387,27 @@ impl PlacementModifier {
             let ox = m.get("xz_spread").map(|s| IntProvider::parse(Some(s))).unwrap_or(IntProvider::Constant(0));
             let oy = m.get("y_spread").map(|s| IntProvider::parse(Some(s))).unwrap_or(IntProvider::Constant(0));
             return Some(PlacementModifier::RandomOffset(ox, IntProvider::Constant(0), oy));
+        } else if type_name.contains("surface_water_depth_filter") {
+            // SurfaceWaterDepthFilterPlacementModifier.java:11-16
+            return Some(PlacementModifier::SurfaceWaterDepthFilter(
+                m.get("max_water_depth").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32));
+        } else if type_name.contains("environment_scan") {
+            // EnvironmentScanPlacementModifier.java:18-28
+            let down = m.get("direction_of_search").and_then(|x| x.as_str()) == Some("down");
+            let steps = m.get("max_steps").and_then(|x| x.as_f64()).unwrap_or(1.0) as i32;
+            let target = m.get("target_condition").map(|t| BlockPredicate::parse(Some(t), blocks))
+                .unwrap_or(BlockPredicate::AlwaysTrue);
+            let allowed = m.get("allowed_search_condition")
+                .map(|t| BlockPredicate::parse(Some(t), blocks)); // 缺省 alwaysTrue → None
+            return Some(PlacementModifier::EnvironmentScan { down, max_steps: steps, target, allowed });
         } else if type_name.contains("block_predicate_filter") {
+            // 重构：谓词树（取代旧 matching_fluids/matching_blocks 两写死分支）
             if let Some(pred) = m.get("predicate") {
-                let ptype = pred.get("predicate_type").and_then(|t| t.as_str()).unwrap_or("");
-                if ptype.contains("matching_fluids") {
-                    let mut ids = Vec::new();
-                    if let Some(fluids) = pred.get("fluids") {
-                        if let Some(arr) = fluids.as_array() {
-                            for f in arr { if let Some(s) = f.as_str() { ids.push(blocks.id(s)); } }
-                        }
-                    }
-                    return Some(PlacementModifier::BlockPredicateFilter { is_fluid: true, ids });
-                } else if ptype.contains("matching_blocks") {
-                    let mut ids = Vec::new();
-                    if let Some(blocks_node) = pred.get("blocks") {
-                        if let Some(arr) = blocks_node.as_array() {
-                            for b in arr { if let Some(s) = b.as_str() { ids.push(blocks.id(s)); } }
-                        }
-                    }
-                    return Some(PlacementModifier::BlockPredicateFilter { is_fluid: false, ids });
-                }
+                return Some(PlacementModifier::BlockPredicateFilter {
+                    predicate: BlockPredicate::parse(Some(pred), blocks),
+                });
             }
+            return None;
         } else if type_name.contains("surface_relative_threshold_filter") {
             let t = m.get("heightmap").and_then(|x| x.as_str()).unwrap_or("WORLD_SURFACE_WG").to_string();
             let min = m.get("min_inclusive").and_then(|x| x.as_f64());
@@ -268,6 +424,8 @@ impl PlacementModifier {
             let c = m.get("count").map(|x| IntProvider::parse(Some(x))).unwrap_or(IntProvider::Constant(0));
             return Some(PlacementModifier::NoiseBasedCount { max_count: mc, noise_name: n, scale: s, count: c });
         }
+        // —— 尾部：未知 modifier 显式告警（b2 S2，消除静默丢弃）——
+        eprintln!("[feature-loader] unknown placement modifier type: {type_name}");
         None
     }
 }
@@ -306,5 +464,28 @@ impl PlacedFeature {
         }
         visit(0, origin_x, origin_y, origin_z, self, ctx, random, &mut generate_configured, &placed_cell);
         placed_cell.get()
+    }
+
+    /// JSON 内嵌 placed feature（selector features[].feature / default_feature / patch 的 feature）：
+    /// 对象形式 {feature: <configured id 或内嵌>, placement: [...]} → 直接解析；
+    /// 字符串形式 → 返回只含 id 的壳（configured 经 FeatureCache 在 generate 侧查）。
+    pub fn parse_inline(v: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<PlacedFeature> {
+        let v = v?;
+        if let Some(id) = v.as_str() {
+            return Some(PlacedFeature { id: id.to_string(), modifiers: Vec::new(),
+                configured_feature: id.to_string(), step: 0, global_index: -1 });
+        }
+        let mut pf = PlacedFeature {
+            id: String::new(),
+            modifiers: Vec::new(),
+            configured_feature: v.get("feature").and_then(|f| f.as_str()).unwrap_or("").to_string(),
+            step: 0, global_index: -1,
+        };
+        if let Some(mods) = v.get("placement").and_then(|p| p.as_array()) {
+            for m in mods {
+                if let Some(pm) = PlacementModifier::parse(m, blocks) { pf.modifiers.push(pm); }
+            }
+        }
+        Some(pf)
     }
 }

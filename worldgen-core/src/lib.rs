@@ -26,6 +26,7 @@ pub mod worldgen_handle;   // 生产句柄（C ABI 的 Rust 侧实现）
 pub mod placement;         // FEATURES 阶段调度（IntProvider + PlacementModifier + PlacedFeature）
 pub mod feature;           // FEATURES 阶段 Feature 类（Ore/Disk/Spring/FreezeTop/UnderwaterMagma）
 pub mod feature_loader;    // FEATURES 阶段数据加载 + 调度（ConfiguredFeature + PlacedFeatureIndexer）
+pub mod tree;              // FEATURES 阶段 tree feature 族 + 树 decorator（260905-05 patch §1）
 pub mod light;             // 光照内核（1.20.1 双 FIFO 复刻，方案 B 单 chunk 全量重算；light_data.json 数据驱动）
 
 // JNI 桥已迁至 versions/<ver>/rust 薄壳（260905-01 workspace 拆分；core 保持版本无关）。

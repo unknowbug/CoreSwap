@@ -12,15 +12,22 @@ use crate::json::JsonValue;
 use crate::placement::{FeaturePlacementContext, PlacementModifier, PlacedFeature};
 
 // ===== ConfiguredFeature 解析（type 分发）=====
+// 260905-05：解除 2026-08-10 拍板注释（原 L50）——supersedes：G2 归因（g2-convergence-260905-03）
+// 判定树/植被残差为「feature 类型未实现」而非「调度错位」+ 本课题（b2-tree-plan-260905-05 / feature parity Phase 4）。
 #[derive(Clone)]
 pub struct ConfiguredFeature {
-    pub id: String,                 // "minecraft:ore_granite_upper"
-    pub type_name: String,          // "minecraft:ore" / "minecraft:scattered_ore" / "minecraft:disk" / ...
-    pub ore_config: OreFeatureConfig,     // ore / scattered_ore 用
-    pub disk_config: DiskFeatureConfig,   // disk 用
-    pub spring_config: SpringFeatureConfig, // spring_feature 用
-    pub magma_config: UnderwaterMagmaFeatureConfig, // underwater_magma 用
-    pub freeze_top: bool,           // freeze_top_layer 用
+    pub id: String,
+    pub type_name: String,
+    pub ore_config: OreFeatureConfig,
+    pub disk_config: DiskFeatureConfig,
+    pub spring_config: SpringFeatureConfig,
+    pub magma_config: UnderwaterMagmaFeatureConfig,
+    pub freeze_top: bool,
+    // —— tree/植被载荷（260905-05 新增；恰好一个 Some，其余 None）——
+    pub tree_config: Option<crate::tree::TreeFeatureConfig>,          // minecraft:tree
+    pub selector_config: Option<crate::tree::RandomSelectorConfig>,   // minecraft:random_selector
+    pub patch_config: Option<crate::tree::RandomPatchConfig>,         // minecraft:random_patch / flower
+    pub simple_block_config: Option<crate::tree::SimpleBlockConfig>,  // minecraft:simple_block
 }
 
 impl ConfiguredFeature {
@@ -35,6 +42,10 @@ impl ConfiguredFeature {
             spring_config: SpringFeatureConfig::parse(None, blocks),
             magma_config: UnderwaterMagmaFeatureConfig::parse(None, blocks),
             freeze_top: false,
+            tree_config: None,
+            selector_config: None,
+            patch_config: None,
+            simple_block_config: None,
         };
         if type_name.contains("ore") {
             cf.ore_config = OreFeatureConfig::parse(cfg, blocks);
@@ -46,8 +57,23 @@ impl ConfiguredFeature {
             cf.magma_config = UnderwaterMagmaFeatureConfig::parse(cfg, blocks);
         } else if type_name.contains("freeze_top_layer") {
             cf.freeze_top = true;
+        } else if type_name == "minecraft:tree" {
+            // 精确匹配（不用 contains：防 azalea_tree 等误伤；azalea_tree 在数据集 type 也是
+            // minecraft:tree，走同一分支由 placer/size 解析告警兜底）
+            cf.tree_config = crate::tree::TreeFeatureConfig::parse(cfg, blocks);
+            if cf.tree_config.is_none() {
+                eprintln!("[feature-loader] tree config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:random_selector" {
+            cf.selector_config = crate::tree::RandomSelectorConfig::parse(cfg, blocks);
+        } else if type_name == "minecraft:random_patch" || type_name == "minecraft:flower" {
+            cf.patch_config = crate::tree::RandomPatchConfig::parse(cfg, blocks);
+        } else if type_name == "minecraft:simple_block" {
+            cf.simple_block_config = crate::tree::SimpleBlockConfig::parse(cfg, blocks);
+        } else {
+            // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
+            eprintln!("[feature-loader] unknown configured feature type: {type_name} ({id})");
         }
-        // 树花植被（flower/random_patch/simple_block/tree/random_selector）不解析——2026-08-10 用户拍板范围外
         cf
     }
 }
@@ -222,13 +248,33 @@ impl FeatureCache {
                     self.configured.insert(pf.configured_feature.clone(), cf);
                 }
             }
+            // —— 260905-05 增补：selector/patch 内嵌 placed 的递归预加载——
+            // placed JSON 的 feature 字段可能是对象（内嵌 placed）而非 id 字符串；此时 configured_feature
+            // 为空串，内嵌体已在 PlacementModifier::parse 阶段随 PlacedFeature::parse_inline 解析，
+            // 其引用的 configured id 需在此登记到 self.configured（防运行时 cache miss）。
+            if let Some(emb) = root.get("feature").filter(|f| f.as_object().is_some()) {
+                let cid = emb.get("feature").and_then(|f| f.as_str()).unwrap_or("");
+                if !cid.is_empty() && !self.configured.contains_key(cid) {
+                    let cname = cid.strip_prefix("minecraft:").unwrap_or(cid);
+                    let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+                    if let Ok(ctxt2) = std::fs::read_to_string(&cpath) {
+                        if let Ok(croot2) = crate::json::parse(&ctxt2) {
+                            let cf = ConfiguredFeature::parse(cid, &croot2, blocks);
+                            self.configured.insert(cid.to_string(), cf);
+                        }
+                    }
+                }
+            }
             self.placed.insert(id.to_string(), pf);
         }
     }
 }
 
 // 生成分发（ConfiguredFeature.generate → Feature.generate）
-// 返回是否放置了方块
+// 返回是否放置了方块。
+// ⚠️ 签名变更（260905-05）：增 cache 参数——selector/patch 的内嵌 placed feature 走
+// PlacedFeature::generate（同一 RNG 流 DFS 语义）。F-1 教训：加参后所有调用点必须同批改
+// （本仓库唯一调用点 = worldgen_handle.rs L914-915 闭包，见 §2.4）。
 pub fn generate_configured(
     cf: &ConfiguredFeature,
     ctx: &FeaturePlacementContext,
@@ -236,6 +282,7 @@ pub fn generate_configured(
     random: &mut crate::chunkrandom::ChunkRandom,
     x: i32, y: i32, z: i32,
     biome_temp: f32, biome_rainfall: f32,
+    cache: &FeatureCache,
 ) -> bool {
     octx.origin_x = x; octx.origin_y = y; octx.origin_z = z;
     if cf.type_name.contains("ore") {
@@ -253,8 +300,81 @@ pub fn generate_configured(
         crate::feature::FreezeTopLayerFeature.generate(octx, biome_temp, biome_rainfall, random)
     } else if cf.type_name.contains("underwater_magma") {
         crate::feature::UnderwaterMagmaFeature.generate(octx, &cf.magma_config, random)
+    } else if cf.type_name == "minecraft:tree" {
+        match &cf.tree_config {
+            Some(tc) => crate::tree::TreeFeatureConfig::generate(tc, octx, random, x, y, z),
+            None => { eprintln!("[feature-loader] tree without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:random_selector" {
+        match &cf.selector_config {
+            Some(sc) => {
+                // ⚠️ 占位公式（idk-7 未裁决）：「逐项 nextFloat() < chance 即选即返，否则 default」
+                // 形态来自 JSON 结构推断——S6 动工前必须以 RandomSelectorFeature.java 核对，
+                // 核对前本分支结果只可用于 smoke 不可用于对拍。
+                for (chance, pf) in &sc.features {
+                    if random.next_float() < *chance {
+                        return pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
+                            generate_nested(c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                        });
+                    }
+                }
+                match &sc.default_feature {
+                    Some(pf) => pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
+                        generate_nested(c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                    }),
+                    None => false,
+                }
+            }
+            None => false,
+        }
+    } else if cf.type_name == "minecraft:random_patch" || cf.type_name == "minecraft:flower" {
+        match &cf.patch_config {
+            Some(pc) => {
+                // ⚠️ 占位公式（idk-7 未裁决）：tries 循环 + nextInt(2*xz+1)-xz 偏移形态为推断。
+                // 且嵌套 placed 完整 placement 链（含 in_square/count）的 RNG 流连续性未核对。
+                let tries = pc.tries;
+                for _ in 0..tries {
+                    let sx = pc.xz_spread.get(random);
+                    let sy = pc.y_spread.get(random);
+                    let sz = pc.xz_spread.get(random);
+                    let _ = (sx, sy, sz); // 偏移合成方式待 RandomPatchFeature.java 裁决后落地
+                    // S7 落地点：pf.generate(ctx, random, x+?, y+?, z+?, ...)
+                }
+                false
+            }
+            None => false,
+        }
+    } else if cf.type_name == "minecraft:simple_block" {
+        match &cf.simple_block_config {
+            Some(sc) => {
+                let state = sc.to_place.get(random);
+                if crate::tree::can_replace_pub(octx, x, y, z) { // 公开包装 tree::can_replace
+                    octx.set_block(x, y, z, state);
+                    true
+                } else { false }
+            }
+            None => false,
+        }
     } else {
-        // 生态装饰（flower/random_patch/simple_block/tree/random_selector）——2026-08-10 用户拍板范围外
         false
     }
+}
+
+// 嵌套 placed → configured 的二次分发（selector/patch 内层用；保持同一 random 流）
+// configured 引用经 cache 只读查找；未知 id 显式告警。
+fn generate_nested(
+    ctx: &FeaturePlacementContext,
+    random: &mut crate::chunkrandom::ChunkRandom,
+    x: i32, y: i32, z: i32,
+    octx: &mut crate::feature::OreFeatureContext,
+    cache: &FeatureCache,
+    biome_temp: f32, biome_rainfall: f32,
+) -> bool {
+    // pf.generate 闭包只给坐标，configured id 由 parse_inline 时记入 PlacedFeature.configured_feature
+    // 实现注记：PlacedFeature 需增 pub embedded_configured: Option<ConfiguredFeature>（内嵌对象时）
+    // 或 configured_feature: String（id 引用时经 cache.get_configured 查）。
+    // 本函数体在接线时二选一实现；此处仅声明签名与告警路径：
+    eprintln!("[feature-loader] generate_nested hit (S6/S7 接线点)");
+    let _ = (ctx, random, x, y, z, octx, cache, biome_temp, biome_rainfall);
+    false
 }

@@ -431,3 +431,13 @@ BlockProbe 重导（未删 run\world）导出顺利完成、产物落盘，但�
 - **定位**：stop 失败 + 世界被杀 → 核对 server.properties 发现 enable-rcon=off；对照备份 run/server.properties.bak-g3 确认被上轮复原动作重置。
 - **修复**：恢复 `enable-rcon=true` + `rcon.password=coreswap`（备份保留，光照课题收口时再复原）。
 - **教训/判据**：① 复用脚本开工前核其外部依赖项在位（如 enable-rcon），禁止假设「上次的配置还在」。② 「stop 失败但主计时正常」≠ 无损——区分计时类用途与快照类用途对善后的不同要求。③ 借出-复原流程在多课题并行/交接时天然制造静默重置，复原动作应记录到交接（NEXT_SESSION）显眼处。
+
+---
+
+## 发现 #22: Java 侧采集三坑合集——①gradle daemon 吞客户端 env（哨兵法验传播）②Loom RunConfigSettings 无 environment() ③rcon 单命令同步执行可超共享连接 10s 默认超时（260905-05）
+- 时间/置信度/module：260905-05，candidate（WG_FEATURELOG 两次未达 native + 脚本侧修复实跑验证），build-tooling / gradle·loom·rcon 采集链。
+- **现象**：① PowerShell 设 $env:WG_FEATURELOG 后 gradle runServer，native 侧两次未见 featurelog 输出；② loom RunConfigSettings 无 environment() 方法；③ rcon 发 forceload add 单条命令，共享连接在默认 10s 超时被掐断，命令实际还在服务器同步执行。
+- **根因**：① gradle daemon 复用——daemon 常驻进程 env 在启动时定型，客户端 shell 后设的 env 不传导到 runServer 派生 JVM；② loom RunConfigSettings DSL 未暴露 environment 注入，只有 run task 本体（JavaExec 型）的 environment() 可用；③ rcon 客户端读回包，但 forceload 类命令服务器同步执行完才回包，8×8 tile 循环单条可远超 10s；共享连接超时即断链并污染后续命令。
+- **定位**：① 哨兵法——JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=...，JVM 启动必打「Picked up JAVA_TOOL_OPTIONS: ...」（各 run 日志 .err 首行实锤），哨兵在位而 WG_FEATURELOG 不在位 → 锁定通道差；② grep loom API 确认 RunConfigSettings 方法面；③ 超时时间点与命令实际完成时间对表。
+- **修复**：① env 传递走 JAVA_TOOL_OPTIONS（-D 属性通道，轮次间清理防污染）或 build.gradle -P→task environment() 映射（-PfeatureLog=1 已落地）；② forceload 预生成改 per-command 独立 rcon 连接 + 180s 超时 + 失败重试（pregen_forceload.py 的 rcon_one()）；③ 需 task 级 env 时在 run task（JavaExec）上用 environment()。
+- **教训/判据**：① gradle 链路传 env 第一动作 = 放哨兵验证传播——「客户端设了」≠「JVM 收到」≠「native 读到」，三段各自要证据；② loom 注入优先 -P 映射（#8 家族，核对映射名），RunConfigSettings.environment() 此路不通；③ rcon 长命令判据：服务器同步执行类命令一律独立连接 + 超时 ≥ 最坏耗时 + 重试。同族：build-tooling #19——「传递通道名实不符」家族，本条补进程 env 通道 + rcon 连接通道两维度。

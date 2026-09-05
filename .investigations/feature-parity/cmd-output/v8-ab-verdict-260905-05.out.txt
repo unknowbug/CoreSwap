@@ -1,0 +1,21 @@
+chunks: vanilla=5313 takeover=5313 common=5313
+双侧地形完整=3009  diff chunks=1829  total=239594
+top deltas:
+  minecraft:air [rust少]: 26297
+  minecraft:air [rust多]: 23575
+  minecraft:oak_leaves [rust少]: 12676
+  minecraft:diorite [rust少]: 12366
+  minecraft:jungle_leaves [rust多]: 12252
+  minecraft:granite [rust多]: 12015
+  minecraft:andesite [rust多]: 11819
+  minecraft:oak_leaves [rust多]: 11293
+  minecraft:andesite [rust少]: 11140
+  minecraft:diorite [rust多]: 10629
+  minecraft:granite [rust少]: 10413
+  minecraft:jungle_leaves [rust少]: 10184
+  minecraft:vine [rust多]: 9492
+  minecraft:vine [rust少]: 6585
+  minecraft:water [rust多]: 5381
+  minecraft:water [rust少]: 4594
+Y top10: [(4, 58016), (5, 51210), (2, 28358), (0, 28164), (1, 21296), (3, 17566), (6, 10860), (-1, 8212), (-3, 7736), (-2, 7688)]
+worst: [(2594, (30, -16)), (2158, (25, -10)), (1944, (31, -17)), (1896, (28, -13)), (1852, (30, -19)), (1792, (27, -12))]

@@ -1,0 +1,43 @@
+# .artifacts/feature-parity/index.yaml — feature parity 课题产物索引
+topic: feature-parity
+created: 260905-05
+updated: 260905-05
+baseline: "239,594 diff instances / 1829 chunks / 3009 comparable (ab A/B 受控口径, v8)"
+entries:
+  - id: FEA-1
+    file: b1-candidate-260905-05.md
+    title: "b1 候选：count/IntProvider 采样语义"
+    status: draft
+    verdict: DENY
+    date: 260905-05
+    evidence: ".artifacts/feature-parity/b1-candidate-260905-05.md（静态一手对拍，Degraded）"
+  - id: FEA-2
+    file: b2-candidate-260905-05.md
+    title: "b2 候选：placement modifier 链/discard 层"
+    status: draft
+    verdict: 基本DENY（根因UNCERTAIN→后被取代记录闭合为伪影）
+    date: 260905-05
+  - id: FEA-3
+    file: judge-verdict-260905-05.md
+    title: "judge 审查：Phase 4b patch + Phase 5 验证链"
+    status: draft
+    verdict: APPROVE-WITH-CONDITIONS（S1-S4 核销见 .investigations/feature-parity/phase5-interim）
+    date: 260905-05
+  - id: FEA-4
+    file: "../../.investigations/feature-parity/phase5-interim-260905-05.md"
+    title: "Phase 5 受控 A/B 判决 + 「14.8× 回归」取代记录"
+    status: draft
+    verdict: "工作区 patch 无回归、净改善 32%/chunk（80 vs 117）；candidate 待用户拍板"
+    date: 260905-05
+    evidence: "cmd-output/v8-ab-verdict-260905-05.out.txt（judge 独立复算一致）"
+  - id: FEA-5
+    file: "../../.investigations/feature-parity/cmd-output/"
+    title: "原始输出归档（v8 判决 + cargo test light）"
+    status: draft
+    date: 260905-05
+standing:
+  - "idk-7：random_selector/random_patch 占位公式（generate_nested 未接线）——树族残差主要来源"
+  - "R-1：decorator 同 Y 序 = Java HashSet 桶序（近似方案在码，需声明口径）"
+  - "anchor_biome 口径（chunk biome vs posToBiome jitter）未定界"
+  - "fancy_oak = LargeOak placer 对（验证口径待拍板）"
+  - "S3：light_data.json 在 .gitignore data/ 域内，修复的版本控制策略待用户拍板"
