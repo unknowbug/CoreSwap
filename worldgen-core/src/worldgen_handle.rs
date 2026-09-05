@@ -303,6 +303,8 @@ impl WorldgenHandle {
         let biome_dir = format!("{}/data/minecraft/worldgen/biome", wg_dir);
         let _n = bc.load_carvers(&biome_dir);
         let _nf = bc.load_features(&biome_dir);
+        // 260905-08 E-C2：Java registry 枚举序（feature 全局 index 构建序，数据驱动）
+        let _no = bc.load_registry_order(&format!("{}/biome_registry_order.json", wg_dir));
 
         // 7. surface builder（Box::leak 让引用长期存活）
         let samplers = Box::leak(Box::new(db.noise_samplers().clone()));
@@ -840,9 +842,9 @@ impl WorldgenHandle {
                 }
             }
         }
-        // biomeAtNoJitter：chunk 角采样（无 jitter）
-        let biome_at_no_jitter = |cx2: i32, cz2: i32| -> String {
-            let bp = NoisePos { x: cx2 * 16, y: 0, z: cz2 * 16 };
+        // biomeAtNoJitter：无 jitter 直采（泛化 y 参数，Fix-1 3×3 全高并集用）
+        let biome_at_no_jitter = |wx: i32, wy: i32, wz: i32| -> String {
+            let bp = NoisePos { x: wx, y: wy, z: wz };
             self.biomesrc.biome(&bp)
         };
         // biomeAtJitter：8 邻域 jitter（posToBiome 用）
@@ -853,23 +855,51 @@ impl WorldgenHandle {
         };
         let biome_temp = |id: &str| -> f64 { crate::surface_rules::biome_temperature(id) };
 
-        // 当前 chunk biome
-        let cur_biome_id = biome_at_no_jitter(cx, cz);
-        let cur_features = self.biomesrc.bc.features_for(&cur_biome_id).to_vec();
-        if cur_features.is_empty() { return 0; }
+        // 当前 chunk biome（anchor_biome 保留：Fix-2 落地前 Biome modifier 仍需）
+        let cur_biome_id = biome_at_no_jitter(cx * 16, 0, cz * 16);
+        // Fix-1（.b2a）：Java ChunkGenerator.java:346-353 = 3×3 邻域 chunk 全高 biome 容器并集；
+        // 此前只用当前 chunk biome → 边界 chunk 缺邻域 biome 独有 feature（jungle −22,611 主候选）。
+        // Y 全高并集在本实现以 Y 切片近似（IDK-1：洞窟 biome 地表 step feature 可能漏）。
+        let mut biome_set: Vec<String> = Vec::new();
+        for nx in (cx - 1)..=(cx + 1) {
+            for nz in (cz - 1)..=(cz + 1) {
+                for gx in 0..4 { for gz in 0..4 {
+                    let wx = nx * 16 + gx * 4;
+                    let wz = nz * 16 + gz * 4;
+                    for wy in [0, 64, 128] {
+                        let b = biome_at_no_jitter(wx, wy, wz);
+                        if !biome_set.contains(&b) { biome_set.push(b); }
+                    }
+                }}
+            }
+        }
+        // 并集内各 biome 的 feature entry（Java :381 intSet = ∪ set 中各 entry 的 step k，
+        // entry = biome GenerationSettings 的 per-step feature 表，不去重 entry 本身）
+        // 260905-08：Fix-1 恢复（p 序修复后重新验证；此前单变量撤回态）
+        let mut entries: Vec<Vec<Vec<String>>> = Vec::new();
+        for b in &biome_set {
+            entries.push(self.biomesrc.bc.features_for(b).to_vec());
+        }
+        if entries.is_empty() { return 0; }
 
         // ChunkRandom(Xoroshiro base)（generateFeatures 用，与 carver 的 CHECKED 不同！）
         let mut feat_random = ChunkRandom::xoroshiro();
         // setPopulationSeed(worldSeed, blockX, blockZ)
         let population_seed = feat_random.set_population_seed(self.seed, cx * 16, cz * 16);
-        let max_step = cur_features.len();
-
         // 用全局 PlacedFeatureIndexer（Java 语义：p = lastIndex 在所有 biome features 中）
         // 构建后只读，&self 共享并发安全（无锁）
         let indexer = &self.feature_indexer;
+        let max_step = indexer.step_features.len(); // Fix-1：Java :358 max(values().length, i) ≥ 全局步数，此前按 biome feature 数提前截断
 
         for k in 0..max_step {
-            let int_set = indexer.int_set_for(&cur_features, k as i32);
+            // Java :381-395：intSet = ∪ 各 entry 的 indexMapping[step]，去重后排序
+            let mut int_set: Vec<i32> = Vec::new();
+            for e in &entries {
+                for p in indexer.int_set_for(e, k as i32) {
+                    if !int_set.contains(&p) { int_set.push(p); }
+                }
+            }
+            int_set.sort_unstable(); int_set.dedup(); // Java :394-395 toIntArray+sort
             for p in int_set {
                 // p = lastIndex → featureId = stepFeatures[k][p]
                 if k >= indexer.step_features.len() { continue; }
@@ -907,6 +937,11 @@ impl WorldgenHandle {
                     }
                     unsafe { (*col_ptr).at(lx, by, lz) }
                 };
+                // Fix-2（.b2b）：Biome modifier 允许集闭包——jitter 点 biome 的 feature 集含 fid
+                let biome_allows = |bx: i32, by: i32, bz: i32, fid: &str| -> bool {
+                    let b = biome_at_jitter(bx, by, bz);
+                    self.biomesrc.bc.features_for(&b).iter().any(|step| step.iter().any(|f| f == fid))
+                };
                 let fctx = crate::placement::FeaturePlacementContext {
                     biome_at: Some(biome_at),
                     // 260905-06：接 ocean_floor（此前 None → heightmap(OCEAN_FLOOR) 静默直通 y=min_y
@@ -918,8 +953,9 @@ impl WorldgenHandle {
                     chunk_start_x: cx * 16,
                     chunk_start_z: cz * 16,
                     block_at: Some(&block_at_col),
-                    // 260905-05（patch §3.8）：Biome modifier 锚定 biome = 当前 chunk biome
-                    anchor_biome: Some(cur_biome_id.clone()),
+                    // Fix-2（.b2b）：jitter 采样 + 允许集判定（替代 anchor_biome 近似，已删除）
+                    biome_allows: Some(&biome_allows),
+                    feature_id: Some(fid.clone()),
                 };
                 // OreFeatureContext（不持有 random，由 generate_configured 传入）
                 let mut octx = crate::feature::OreFeatureContext {

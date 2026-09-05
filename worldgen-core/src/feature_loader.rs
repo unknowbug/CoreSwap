@@ -102,12 +102,14 @@ impl PlacedFeatureIndexer {
     }
 
     // biomes: 每个 biome 的 features 列表（features[step][]）
+    // 260905-08 重写：Java PlacedFeatureIndexer.collectIndexedFeatures 精确移植 ——
+    // p 不是首现序，而是「biome 内相邻 feature 建边 → (step, featureIndex) 比较器 DFS 拓扑
+    // → 后序反转 → 按 step 分组」，p = step 内末位索引（lastIndexGetter）。E-C2 对拍实锤
+    // 首现序与 Java p 不一致（amethyst_geode java p=2 vs rust p=0 等）。
     pub fn build(&mut self, biomes_features: &[Vec<Vec<String>>]) {
         let mut next = 0;
-        let mut max_step = 0;
-        // 1. featureIndex（首现递增）——遍历顺序 = biomes 列表
+        // 1. featureIndex（Java Object2IntMap.computeIfAbsent：首现递增，仅作比较器 tie-breaker）
         for e in biomes_features {
-            max_step = max_step.max(e.len());
             for step in 0..e.len() {
                 for fid in &e[step] {
                     if !self.index.contains_key(fid) {
@@ -121,26 +123,60 @@ impl PlacedFeatureIndexer {
         for (fid, gidx) in &self.index {
             self.all_features[*gidx as usize] = fid.clone();
         }
-        // 2. stepFeatures：按 featureIndex 升序分组到 step
-        let mut all: Vec<(i32, i32, String)> = Vec::new();
+        // 2. 邻接：每个 biome 内 list（step 升序、step 内按 JSON 顺序）相邻节点建边
+        type Node = (i32, i32); // (step, featureIndex)
+        let mut adj: std::collections::BTreeMap<Node, std::collections::BTreeSet<Node>> = std::collections::BTreeMap::new();
         for e in biomes_features {
-            for step in 0..e.len() {
-                for fid in &e[step] {
+            let mut list: Vec<Node> = Vec::new();
+            for (j, step_feats) in e.iter().enumerate() {
+                for fid in step_feats {
                     if let Some(&gi) = self.index.get(fid) {
-                        all.push((step as i32, gi, fid.clone()));
+                        list.push((j as i32, gi));
                     }
                 }
             }
-        }
-        all.sort();
-        self.step_features = vec![Vec::new(); max_step];
-        for (st, _gi, fid) in all {
-            let st = st as usize;
-            if self.step_features[st].is_empty() || self.step_features[st].last() != Some(&fid) {
-                self.step_features[st].push(fid);
+            for w in list.windows(2) {
+                adj.entry(w[0]).or_default().insert(w[1]);
             }
         }
-        // 3. lastIndexMap（Java lastIndexGetter：map.put 覆盖 → 最后出现索引）
+        // 3. DFS（Java TopologicalSorts.sort：后序收集 + reverse；邻居按 (step,fidx) 升序——TreeSet 序）
+        fn dfs(
+            adj: &std::collections::BTreeMap<Node, std::collections::BTreeSet<Node>>,
+            visited: &mut std::collections::HashSet<Node>,
+            visiting: &mut std::collections::HashSet<Node>,
+            out: &mut Vec<Node>,
+            now: Node,
+        ) -> bool {
+            if visited.contains(&now) { return false; }
+            if visiting.contains(&now) { return true; }
+            visiting.insert(now);
+            if let Some(succ) = adj.get(&now) {
+                for &nxt in succ {
+                    if dfs(adj, visited, visiting, out, nxt) { return true; }
+                }
+            }
+            visiting.remove(&now);
+            visited.insert(now);
+            out.push(now);
+            false
+        }
+        let mut visited = std::collections::HashSet::new();
+        let mut visiting = std::collections::HashSet::new();
+        let mut order: Vec<Node> = Vec::new();
+        for &key in adj.keys() {
+            if !visited.contains(&key) {
+                dfs(&adj, &mut visited, &mut visiting, &mut order, key);
+            }
+        }
+        order.reverse();
+        // 4. 按 step 分组（Java builder：list.stream().filter(step == jx)）
+        let max_step = biomes_features.iter().map(|e| e.len()).max().unwrap_or(0);
+        self.step_features = vec![Vec::new(); max_step];
+        for (st, fidx) in &order {
+            let fid = self.all_features[*fidx as usize].clone();
+            self.step_features[*st as usize].push(fid);
+        }
+        // 5. lastIndexMap（Java lastIndexGetter：map.put 覆盖 → 最后出现索引）
         self.last_index_map = vec![HashMap::new(); max_step];
         for st in 0..self.step_features.len() {
             for (i2, fid) in self.step_features[st].iter().enumerate() {

@@ -48,6 +48,12 @@ entries:
     title: "确定性 dump 载体判决链（v10=119,198/−30.5% 可复现 + v11=740 chunks/164,309 块 + v12 双向分解 + dump-hashes.txt）"
     status: draft
     date: 260905-06
+  - id: FEA-8
+    file: "../../.artifacts/feature-parity/judge-verdict-260905-06.md"
+    title: "idk-7 实装 confirmed（用户授权 260905-06）——judge APPROVE-WITH-CONDITIONS 条件全核销，树残差 119,198/−30.5% 可复现"
+    status: confirmed
+    verdict: "confirmed（用户拍板）；代码锚 commit 244d680"
+    date: 260905-06
 standing:
   - "idk-7：✅ 已实装（260905-06，commit 244d680，judge APPROVE-WITH-CONDITIONS 条件已核销）——树残差 171,442→119,198（确定性 dump 口径，可复现）"
   - "语义偏差（judge C-3）：mega 分支原木不入 trunk_set（影响 TrunkVine 候选集）；block_at 越界 -1 vs Java 邻 chunk 实况"

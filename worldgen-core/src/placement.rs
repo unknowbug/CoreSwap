@@ -133,8 +133,11 @@ pub struct FeaturePlacementContext<'a> {
     pub chunk_start_z: i32,
     // 世界方块读取（block_predicate_filter 等用；null=不可读）
     pub block_at: Option<&'a dyn Fn(i32, i32, i32) -> i32>,
-    /// Biome modifier 锚定 biome（当前 chunk 的 biome 名；由 worldgen_handle 闭包填入）（260905-05 增补）
-    pub anchor_biome: Option<String>,
+    /// Fix-2（.b2b，Java BiomePlacementModifier.java:24-29）：允许集判定闭包
+    /// (x, y, z, feature_id) -> jitter 点 biome 的 features 是否含 fid；None = 未接线直通
+    pub biome_allows: Option<&'a dyn Fn(i32, i32, i32, &str) -> bool>,
+    /// 当前 feature id（biome_allows 判定用）
+    pub feature_id: Option<String>,
 }
 
 // ===== BlockPredicate（Java world/gen/blockpredicate/*，S1 idk-5）=====
@@ -306,14 +309,16 @@ impl PlacementModifier {
                 vec![[x, k, z]]
             }
             PlacementModifier::Biome => {
-                // Java BiomeFilter：posToBiome(pos) ∈ feature 集。Rust 以 anchor_biome 对比采样 biome；
-                // biome_at 未接入（None）→ 保留位置（现状直通，不收紧，防回归 S2 前链路）。
-                match (ctx.biome_at, &ctx.anchor_biome) {
-                    (Some(f), Some(anchor)) => {
-                        let (sx, sz) = ((x >> 2) << 2, (z >> 2) << 2); // biome 4×4 对齐采样
-                        if f(sx, y, sz) == *anchor { vec![[x, y, z]] } else { vec![] }
+                // Fix-2（.b2b）：Java BiomePlacementModifier.java:24-29 = AbstractConditional——
+                // 0 RNG 消费， BiomeAccess 8 邻域 jitter 采样 → 采样点 biome 的
+                // GenerationSettings.isFeatureAllowed(placedFeature) 允许集判定。
+                // 旧实现（260905-05 patch §3.8）= anchor_biome(中心 chunk biome) 4×4 对齐采样近似——
+                // 无位置级 biome 门，边界/混合 chunk 过放（oak_leaves + 残差主体机制假设）。
+                match (&ctx.biome_allows, &ctx.feature_id) {
+                    (Some(allows), Some(fid)) => {
+                        if allows(x, y, z, fid) { vec![[x, y, z]] } else { vec![] }
                     }
-                    _ => vec![[x, y, z]],
+                    _ => vec![[x, y, z]], // 未接线时直通（保持防御姿态）
                 }
             }
             PlacementModifier::RandomOffset(ox, oy, oz) => {

@@ -589,8 +589,9 @@ impl TreeFeatureConfig {
             let mut j = 0i32;
             let mut k = 0i32;
             for l in 0..5i32 {
-                j = (1.5f32 + f.cos() * l as f32) as i32;
-                k = (1.5f32 + f.sin() * l as f32) as i32;
+                // MegaJungleTrunkPlacer.java:43-44：MathHelper.cos/sin = 65536 项查表，非 libm
+                j = (1.5f32 + crate::carver::math_cos(f) * l as f32) as i32;
+                k = (1.5f32 + crate::carver::math_sin(f) * l as f32) as i32;
                 let (px, py, pz) = (sx + j, sy + i - 3 + l / 2, sz + k);
                 if can_replace(ctx, px, py, pz) {
                     let state = self.trunk_provider.get(random);

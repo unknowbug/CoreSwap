@@ -233,6 +233,10 @@ pub struct BiomeClassifier {
     // BTreeMap（原 HashMap）：all_features_lists 迭代序每进程随机 → PlacedFeatureIndexer 编号随机 →
     // nether features 放置运行间不确定（2796 块差，2026-08-30）——按键序确定。
     features: std::collections::BTreeMap<String, Vec<Vec<String>>>,
+    // 260905-08 E-C2：Java registry 枚举序（biomeSource.getBiomes() 迭代序 = ChunkGenerator 构建
+    // 全局 feature index 的顺序）。dict 序与它不同 → 同一 fid 全局 p 错位 → set_decorator_seed
+    // 种子错位（树位置对齐主候选根因）。空 = 未加载，回退 BTreeMap 字典序。
+    registry_order: Vec<String>,
 }
 
 fn read_box(v: &JsonValue) -> [f64; 2] {
@@ -387,7 +391,24 @@ impl BiomeClassifier {
             rows.push(BiomeEntry { biome, ranges, offset, idx: rows.len() });
         }
         let tree = build_search_tree(&rows);
-        BiomeClassifier { tree, carvers: std::collections::BTreeMap::new(), features: std::collections::BTreeMap::new() }
+        BiomeClassifier { tree, carvers: std::collections::BTreeMap::new(), features: std::collections::BTreeMap::new(), registry_order: Vec::new() }
+    }
+
+    // 260905-08：加载 Java biome registry 枚举序（biome_registry_order.json，数据驱动跨版本）。
+    // 缺失文件只告警并回退 BTreeMap 字典序（nether 等维度可各带自己的序文件）。
+    pub fn load_registry_order(&mut self, path: &str) -> usize {
+        match fs::read_to_string(path) {
+            Ok(txt) => {
+                let v = json_parse(&txt).expect("parse biome_registry_order");
+                self.registry_order = v.as_array().cloned().unwrap_or_default().into_iter()
+                    .filter_map(|e| e.as_str().map(|s| s.to_string())).collect();
+                self.registry_order.len()
+            }
+            Err(_) => {
+                eprintln!("[biome] registry_order file missing ({}), falling back to lexicographic order", path);
+                0
+            }
+        }
     }
 
     // 从 biome/*.json 加载 carvers.air（CARVERS 阶段用）。biome id "minecraft:plains" → plains.json。
@@ -493,8 +514,26 @@ impl BiomeClassifier {
     }
 
     // 返回所有 biome 的 features 列表（PlacedFeatureIndexer 构建用）
+    // 260905-08：按 Java registry 枚举序输出（registry_order 在前的先出；不在表中的 biome
+    // 保持字典序追加在其后——Java registry 只含 vanilla 集合，mod/自定义 biome 落后备）。
     pub fn all_features_lists(&self) -> Vec<Vec<Vec<String>>> {
-        self.features.values().cloned().collect()
+        if self.registry_order.is_empty() {
+            return self.features.values().cloned().collect();
+        }
+        let mut out: Vec<Vec<Vec<String>>> = Vec::new();
+        let mut covered: std::collections::HashSet<&str> = std::collections::HashSet::new();
+        for id in &self.registry_order {
+            if let Some(v) = self.features.get(id) {
+                out.push(v.clone());
+                covered.insert(id.as_str());
+            }
+        }
+        for (id, v) in &self.features {
+            if !covered.contains(id.as_str()) {
+                out.push(v.clone());
+            }
+        }
+        out
     }
 
     // 返回所有 unique carver id（预加载 carver 用）
