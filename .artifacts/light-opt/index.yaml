@@ -1,0 +1,41 @@
+schema_version: 1
+project: CoreSwap
+module: light-opt
+entries:
+  # 光照接管课题（P2 内核 + G2/G3 验证 + D3 性能优化）结论登记（260905-04 收口补登，judge standing 条件）
+  # 过程产物在 .investigations/light-opt/（本登记指向其中的结论性记录；docs 结论见 versions/1.20.1/docs/12-lighting.md）
+  - id: 'light-opt:g2:root-cause-260905-03'
+    path: '../../.investigations/light-opt/g2-convergence-260905-03.md'
+    kind: analysis
+    status: confirmed
+    note: 'G2 残差真根因 = worldgen feature 放置分歧；光照内核在 blocks 一致域无缺陷；原 propagateLight 修复方向作废'
+  - id: 'light-opt:g3:roundtrip-260905-03'
+    path: '../../.investigations/light-opt/g3-roundtrip-260905-03.md'
+    kind: analysis
+    status: confirmed
+    note: 'G3「二次重启收敛」口径 confirmed；首载漂移 7×（123 vs vanilla 17）为独立待办'
+  - id: 'light-opt:d3:bench-260905-03'
+    path: '../../.investigations/light-opt/d3-bench-260905-03.md'
+    kind: analysis
+    status: confirmed
+    note: 'D3 基线双 FAIL（内核 6.88ms 合成口径 + e2e 2.4×）——优化课题立项依据'
+  - id: 'light-opt:d3:round1-260905-04'
+    path: '../../.investigations/light-opt/d3-opt-round1-260905-04.md'
+    kind: implementation
+    status: confirmed
+    note: 'round1 种子收缩（边界 15）：内核 5.80→3.72ms；golden 逐位法（workflow-patterns #47）'
+  - id: 'light-opt:d3:round2-260905-04'
+    path: '../../.investigations/light-opt/d3-opt-round2-260905-04.md'
+    kind: implementation
+    status: confirmed
+    note: 'round2 全扫融合 + 收集/JNI 直采：内核 1.59ms（累计 3.65×）；e2e 回退 1.25×；双采集对拍 4×MATCH；commit e7d51b6'
+  - id: 'light-opt:d3:judge-260905-04'
+    path: '../../.investigations/light-opt/review-d3-round2-260905-04.md'
+    kind: review
+    status: confirmed
+    note: 'judge APPROVE-WITH-CONDITIONS，条件全部落实'
+  - id: 'light-opt:feature-parity:charter-260905-04'
+    path: '../../.investigations/light-opt/feature-parity-charter-260905-04.md'
+    kind: analysis
+    status: draft
+    note: 'feature parity 独立课题立项卡（260905-04 用户裁定新立）——课题本体尚未开工'

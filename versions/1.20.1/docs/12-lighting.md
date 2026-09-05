@@ -64,3 +64,39 @@
 4. **发现**：e2e 回退 1.74× 仍未达「不回退」严格判据——剩余为 O(N) 全域扫描 + Java 收集循环，算法级降维是下一层。
 
 判据状态：「e2e 不回退」严格判据**仍 FAIL**，待用户拍板（接受收窄/继续 round2/其他）。
+
+---
+
+## D3 性能优化 round2（全扫融合 + 收集/JNI 直采）——内核 3.72→1.59ms（3.65× 累计），e2e 回退收窄至 1.25×（260905-04）
+
+> 状态：**confirmed（2026-09-05 用户拍板）**；judge APPROVE-WITH-CONDITIONS（条件已全落实，见验证链）。
+> 口径声明（§9.7）：内核微基准载体 = `light_golden_dump` / `light_bench_real` rustc 直编链 rlib；数据 = blocks9_real 4×4@200 抽 3×3 + region_a/b + synthetic；256 chunks 批 wall，预热 8。真实数据内核口径 **1.587 ms/chunk**，与 round1 同载体可比（3.723→1.587 = 本轮 2.34×；自 round1 基线 5.796 累计 3.65×）。
+
+### 措施（三层）
+
+**内核（worldgen-core/src/light/mod.rs）三项融合**：
+1. **fill dom-major 重排 + col_max 同趟收集**：写侧连续（消 dom_index 乘法散写）；同趟记录每列最高不透明 y（`col_max`，Scratch 复用）。
+2. **sky_fall 纯写趟**：15-区间 = [col_max+1, 383]，与原自上而下 blocked 扫描逐位等价（首不透明格 = 列最大 y），免 O(N) opacity 读（0.80→0.30ms）。
+3. **边界种子区间算术**：15-区间每列连续 ⇒ 格为边界 ⇔ 列底（y==lo，下方不透明 sky=0；lo==0 无下方邻）或 ∃ 水平邻列 lo_nb>y——与 round1 O(N)×6 逐格扫描种子集合**严格恒等**，计算量 2304 列 × 4 邻区间（sky_seed_bfs 1.82→0.20ms）。
+
+**air 快路径**（⚠️ luminance 陷阱）：`v==0` 且 `table[0]==(0,0)` ⇒ 免查表 + 免 col_max 写；陷阱 = `id=0 + luminance>0` 是合法光源（`15<<24`），必须判**全字 v==0** 而非只判 id 位——首轮实现漏 luminance 位，被合成 golden 立即抓出（golden 逐位门的价值实证）。
+
+**Java 收集（ServerLightingProviderMixin.wgLightCollectBlocks）**：
+- **section 直采**：`nc.getSectionArray()` → 逐节 `isEmpty()` 短路（Arrays.fill(0)=AIR，与 WorldChunk#getBlockState L199-207 空节语义等价）/ `sec.getBlockState(x,ly,z)` 局部坐标——免 884736 次/chunk 的 BlockPos+世界坐标→section 换算。
+- **ThreadLocal 缓冲复用**：blocks9(3.5MB)+out(100KB) 每线程一份（原每 chunk 新分配 ~3.6MB，2025 chunks ≈ 7GB GC 压力）。
+
+**JNI（jni_bridge.rs lightCompute）**：thread_local 缓冲复用（b9/ob/os/of；脏数据安全性：b9 全量覆写、out 由 export_center 全量写出、失败路径不写 out 且 Java 侧回退不引用）+ u8→i8 视图转换（`from_raw_parts` 同宽免逐字节转换拷贝）。
+
+### 验证链（分层：内核 Full / Java+JNI Full / e2e）
+
+- **golden 逐位（C4）**：4 用例逐位一致 PASS（golden_pre 现场重冻自 HEAD 92d9b7b，与 round1 golden_post hash 交叉一致）。
+- **双采集对拍（judge 条件，已执行）**：新路 section 直采 vs 旧路 getBlockState，实机 gate ON 前 4 chunk 逐元素对比 = **4× MATCH（0/98304 diff）**；对拍后诊断已移除并复编通过。
+- **e2e 四臂（C3）**：交替 ON/OFF/ON/OFF，同机同 seed 8576294172403134396，删 world——ON 中位 17.4s vs OFF 中位 13.9s = **1.25× 回退**（round1 1.74×、g3 基线 2.4×）；绝对开销 ≈3.5s ≈ 内核份额预测（1.59ms×2025≈3.2s，吻合）→ **Java 收集/JNI 侧开销已基本消除**。
+- **judge**（review-d3-round2-260905-04.md）：APPROVE-WITH-CONDITIONS；must 条件双采集对拍已执行 ✓；should-fix：sec==null 措辞 ✓ / e2e n=2 噪声明示 ✓ / light 课题 .artifacts/index.yaml 登记（收口归档时补，standing）。
+
+### 数据与遗留
+
+- 内核 Phase 分解（post，含 Instant 开销）：fill 943µs(58%) / block_bfs 8.8 / sky_fall 300 / sky_seed_bfs 206 / export 157。
+- fill 仍为最大头（~0.94ms，lookup 查表 + col_max 写）；下一层候选（未实施）：palette 级批量展开（Java 侧）、opacity u8 表内联。
+- 降级声明：Java/JNI 侧收益未单独微基准（运行时验证须主会话/实机），以 e2e 四臂差值为证据；OFF 基线漂移 ±1.5s 属同量级噪声。
+- 过程/偏差 → 10-timewise-archive 260905-04 round2 条。

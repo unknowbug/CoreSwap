@@ -2913,3 +2913,18 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **judge 收尾**：APPROVE-WITH-CONDITIONS（C1-C4 全落实）；严格判据 FAIL 如实上报。
 - ✅ commit 92d9b7b（种子收缩 + phased 探针 + bench/golden 产物）。
 - 🔍 open：「e2e 不回退」严格判据待用户拍板；round2 候选（边界扫描融合 / fill 直读布局 / 均质 section 跳过）未排期；Java 收集循环 ≈5.6s 成 e2e 下一大头（secondary 方向）。
+
+---
+
+## 260905-04（D3 光照优化 round2：全扫融合 + 收集/JNI 直采）✅ 已结案（confirmed 2026-09-05 用户拍板；judge APPROVE-WITH-CONDITIONS 条件已全落实）
+
+> 过程产物 `.investigations/light-opt/d3-opt-round2-260905-04.md`；结论 → 12 篇 round2 小节。
+
+- ✅ **内核三项融合实施**：fill dom-major 重排 + col_max 同趟收集 / sky_fall 纯写趟（15-区间=[col_max+1,383]，逐位等价）/ 边界种子区间算术（2304 列×4 邻区间，与 round1 逐格扫描种子集合严格恒等）——内核 3.723→1.587ms/chunk。
+- ❌→✅ **air 快路径 bug 一轮（golden 逐位门立功）**：首轮只判 id 位==0，漏 `id=0 + luminance>0` 合法光源（`15<<24`）→ 合成 golden 立即抓出；修复 = 判全字 v==0。修正后复测 1.587ms 不变（golden_pre 重冻自 HEAD 92d9b7b，C4 4 用例逐位 PASS）。
+- ✅ **Java section 直采 + ThreadLocal + JNI thread_local/u8→i8 视图**：双采集对拍（4 chunk）= 4× MATCH 0/98304 diff，对拍后诊断移除复编通过（judge must 条件）。
+- ✅ **e2e 四臂交替**：ON 中位 17.4s vs OFF 13.9s = **1.25× 回退**（round1 1.74×，绝对开销 ≈3.5s ≈ 内核份额预测 3.2s）——Java 收集/JNI 侧开销基本消除。
+- ⚠️ **偏差记录（RCON）**：本轮 enable-rcon 已被重置 off → e2e_run stop 失败、世界被强杀；Done 计时在 stop 前完成，数值有效；已恢复 enable-rcon=true + rcon.password=coreswap（备份 run/server.properties.bak-g3，光课题收口时再复原）。
+- ✅ **judge**（review-d3-round2-260905-04.md）：APPROVE-WITH-CONDITIONS；should-fix 三项均落实/声明；后用户拍板 **confirmed**。
+- 📝 **降级声明**：Java/JNI 侧收益未单独微基准（运行时验证须实机），以 e2e 差值为证据；OFF 基线 ±1.5s 波动属噪声。
+- 🔍 open：light 课题 .artifacts/index.yaml 登记（收口归档时补）；fill 仍 58%（palette 级批量展开 / opacity u8 表内联，未实施）；首载漂移 7× 待办（承 round1）。
