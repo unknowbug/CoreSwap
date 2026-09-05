@@ -138,6 +138,36 @@ pub fn light_compute(
     out_sky: &mut [u8],
     out_flags: &mut [u8],
 ) -> Result<(), LightError> {
+    light_compute_inner(engine, blocks9, out_block, out_sky, out_flags, None)
+}
+
+/// 诊断用 phase 计时（bin-diag 专用，生产路径传 None 零开销）。
+/// 顺序：fill / block_bfs / sky_fall / sky_seed_bfs / export。
+#[doc(hidden)]
+pub struct PhaseTimings(pub [std::time::Duration; 5]);
+
+/// 诊断入口：同 light_compute，附 phase 级分解（C2，judge 条件）。
+#[doc(hidden)]
+pub fn light_compute_phased(
+    engine: &LightEngine,
+    blocks9: &[i32],
+    out_block: &mut [u8],
+    out_sky: &mut [u8],
+    out_flags: &mut [u8],
+) -> Result<PhaseTimings, LightError> {
+    let mut t = PhaseTimings(std::array::from_fn(|_| std::time::Duration::ZERO));
+    light_compute_inner(engine, blocks9, out_block, out_sky, out_flags, Some(&mut t.0))?;
+    Ok(t)
+}
+
+fn light_compute_inner(
+    engine: &LightEngine,
+    blocks9: &[i32],
+    out_block: &mut [u8],
+    out_sky: &mut [u8],
+    out_flags: &mut [u8],
+    mut phases: Option<&mut [std::time::Duration; 5]>,
+) -> Result<(), LightError> {
     if blocks9.len() != BLOCKS9_LEN {
         return Err(LightError::InputLen);
     }
@@ -147,6 +177,8 @@ pub fn light_compute(
 
     let mut sc = engine.scratch.borrow_mut();
     let Scratch { opacity, block_light, sky_light, queue } = &mut *sc;
+
+    let _t0 = phases.as_mut().map(|_| std::time::Instant::now());
 
     // clear+resize：scratch 跨调用复用，必须清零（resize 不覆盖已有元素）
     opacity.clear();
@@ -181,9 +213,18 @@ pub fn light_compute(
             }
         }
     }
+    if let Some(p) = phases.as_deref_mut() {
+        p[0] += _t0.map(|t| t.elapsed()).unwrap_or_default();
+    }
+    let _t1 = phases.as_mut().map(|_| std::time::Instant::now());
 
     // 2. block light：BFS（6 邻域，cost = max(1, opacity[邻])，无 sky 直落特例）
     bfs_propagate(block_light, opacity, queue, false);
+
+    if let Some(p) = phases.as_deref_mut() {
+        p[1] += _t1.map(|t| t.elapsed()).unwrap_or_default();
+    }
+    let _t2 = phases.as_mut().map(|_| std::time::Instant::now());
 
     queue.clear();
 
@@ -201,15 +242,42 @@ pub fn light_compute(
             }
         }
     }
+
+    if let Some(p) = phases.as_deref_mut() {
+        p[2] += _t2.map(|t| t.elapsed()).unwrap_or_default();
+    }
+    let _t3 = phases.as_mut().map(|_| std::time::Instant::now());
+
+    // 种子收缩优化：只让「边界 15」进队——某 15 格存在 6 邻域中 sky<15 的格才需要传播。
+    // 内部 15 格的传播是 no-op（邻域全 15，try_spread 的 new_level>light[n] 恒 false），
+    // 语义与全量进队逐位等价；扫描仍是 O(N)，但省掉数十万队列格的 6 邻域展开。
     for i in 0..BLOCKS9_LEN {
         if sky_light[i] == 15 {
-            queue.push(i as u32);
+            let (x, z, y) = dom_unpack(i);
+            let boundary = (x > 0 && sky_light[i - 1] < 15)
+                || (x + 1 < DOM && sky_light[i + 1] < 15)
+                || (z > 0 && sky_light[i - DOM] < 15)
+                || (z + 1 < DOM && sky_light[i + DOM] < 15)
+                || (y > 0 && sky_light[i - DOM * DOM] < 15)
+                || (y + 1 < WORLD_H && sky_light[i + DOM * DOM] < 15);
+            if boundary {
+                queue.push(i as u32);
+            }
         }
     }
     bfs_propagate(sky_light, opacity, queue, true);
 
+    if let Some(p) = phases.as_deref_mut() {
+        p[3] += _t3.map(|t| t.elapsed()).unwrap_or_default();
+    }
+    let _t4 = phases.as_mut().map(|_| std::time::Instant::now());
+
     // 4. 导出中心 chunk（域 x/z 16..32）+ 均质性 flags
     export_center(block_light, sky_light, out_block, out_sky, out_flags);
+
+    if let Some(p) = phases.as_deref_mut() {
+        p[4] += _t4.map(|t| t.elapsed()).unwrap_or_default();
+    }
 
     Ok(())
 }
