@@ -2928,3 +2928,20 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **judge**（review-d3-round2-260905-04.md）：APPROVE-WITH-CONDITIONS；should-fix 三项均落实/声明；后用户拍板 **confirmed**。
 - 📝 **降级声明**：Java/JNI 侧收益未单独微基准（运行时验证须实机），以 e2e 差值为证据；OFF 基线 ±1.5s 波动属噪声。
 - 🔍 open：light 课题 .artifacts/index.yaml 登记（收口归档时补）；fill 仍 58%（palette 级批量展开 / opacity u8 表内联，未实施）；首载漂移 7× 待办（承 round1）。
+
+## 260905-05（feature parity 课题：全天工作块——架构批准 → V1 验证 → fan-out → Phase 4 移植 → A/B 定案）✅ 判据链闭合（candidate，judge APPROVE-WITH-CONDITIONS；confirmed 已拍板）
+
+> 过程产物 `.investigations/feature-parity/`（phase4-status + phase5-interim-260905-05.md）+ `.artifacts/feature-parity/`（b1/b2 候选 + judge-verdict-260905-05.md）+ `.tmp/feature-parity-260905-05/`（导出脚本 + v8_ab_verdict.py 判决脚本）。
+
+- ✅ **架构批准**（Phase 0）：feature parity 立项独立课题（源自光照课题 G2 收敛的 feature 放置分歧转出）；tree 解禁 + 矿石规则层边界划定。
+- ✅ **V1 遗产验证**：G2 遗产签名复现——vanilla vs 旧 dll（g1）= 155,470 差异实例 / 1333 可比 chunk（=117/chunk），主签名 leaves/vine/log（Y4-6，10k 级）+ 中等 blob。
+- 🔍→✅ **双 scout + fan-out**：blob 差异定量切割后互斥候选 ≥2 → fan-out b1（count/IntProvider 采样）/ b2（modifier 链消耗 + discard_chance）。
+- ❌ **b1 DENY**：count/IntProvider 均 JSON 常量，无可达作用面；算术不支持（+142.6 块 ≈ +2.23 blob vs 尝试 2.17/chunk）。
+- ❌→📝 **b2 基本 DENY**：discard/count 子机制排除；set_decorator_seed 每 feature 独立播种，patch RNG 改动不传播（静态对拍结论仍有效，反向支持改动无大面积影响）。
+- ✅ **S1 一手源 + Phase 4a/4b 应用**：tree.rs ~700 行移植 + biome filter + trapezoid height + BiasedToBottom IntProvider + feature_loader/placement/worldgen_handle 配套改动。
+- ❌→✅ **「14.8× blob 回归」被取代（本工作块核心转折）**：初判「新 dll 2,298,206 实例 = 14.8× blob 爆炸回归」经三链互证推翻——①b1/b2 双 DENY 无可达作用面；②服务器考古（WG_FEATURELOG 硬开）：[CppBridge] init 发生在 Done 之后 → 启动区 = vanilla 装饰（knowledge #50）；③零 rust 参与正向对照：ab-vanilla vs g1-vanilla = 2,292,126 实例差、签名与「回归」完全一致 → **完成度伪影定案**（knowledge #49，g1 vanilla 参照缺 blob 装饰层 + 2044 空柱，3377 全域口径 60% 空对空不可比）。§15.4 取代记录落盘，原结论保留未改写。
+- ✅ **opacity clamp 修复**：light_data.json 负 opacity 显式化（613-629 条 -1→15、954 条→0），light/mod.rs clamp 注释 + 防回归单测（cargo test light:: 2 passed，judge 实跑复核）。
+- ✅ **受控 A/B 定案**：同方法论双臂（同 fresh world / 同 Done / 42-tile forceload 残差域 / region 收敛轮询 / 同停机拷贝，name 域口径）——ab-vanilla vs ab-takeover = **239,594 实例 / 1829 chunk（双侧完整 3009 可比）= 80/chunk** vs 旧口径 117/chunk，**净改善 ~32%**；主签名 = 树族（oak/jungle leaves + vine，Y4-6）+ 双向 ore 小残差（andesite/granite/diorite 各 1-1.2 万双向均衡）——与 idk-7 / R-1 已登记偏差源预期吻合，无 blob 爆炸。
+- ✅ **judge**（judge-verdict-260905-05.md，MUST 级 + 独立复算）：APPROVE-WITH-CONDITIONS——v8 复算 3009/1829/239594 逐位一致；S1（证据包过期→已刷新）/S2（index.yaml→已补 FEA-1~5）/S4（原始输出→已归档 cmd-output/）核销；S3（light_data.json 被 .gitignore data/ 域忽略，版本控制策略待用户拍板，最重）未核销。
+- 🔍 **残留 80/chunk 基线已立**：239,594/1829/3009 为 candidate 基线，后续 R-1/idk-7 收敛以此口径对表；per-feature 随机序列改变未逐 feature 定界（相对结论非绝对结论）。
+- 📌 **open**：S3 data/ 管理策略（须用户拍板）；树族残差 R-1/idk-7 收敛立项；7× 首载漂移（承前）。
