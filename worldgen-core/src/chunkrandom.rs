@@ -65,6 +65,21 @@ impl CheckedRandom {
     pub fn next_float(&mut self) -> f32 {
         (self.next(24) as f32) * 5.9604645E-8
     }
+
+    // Random.skip(int)（Random.java L101-105）：默认实现 = count 次 nextInt()，即 LCG 前进 count 步。
+    // EndIslands 种子链用（DensityFunctionTypes.java L633：random.skip(17292)）。
+    pub fn skip(&mut self, count: i64) {
+        for _ in 0..count { self.next(32); }
+    }
+
+    // BaseRandom.nextDouble() 默认实现（同 ChunkRandom::next_double 语义）：
+    // ((long)next(26) << 27 + next(27)) * 1.110223E-16F（float 乘法截断）
+    pub fn next_double(&mut self) -> f64 {
+        let i = self.next(26);
+        let j = self.next(27);
+        let l = ((i as i64) << 27) + (j as i64);
+        ((l as f32) * 1.110223E-16f32) as f64
+    }
 }
 
 // ChunkRandom：包装基类（CheckedRandom=LCG 或 Xoroshiro128PlusPlus）
@@ -149,7 +164,8 @@ impl ChunkRandom {
         self.set_seed(world_seed);
         let l = self.next_long() | 1;
         let m = self.next_long() | 1;
-        let n = ((block_x as i64) * l + (block_z as i64) * m) ^ world_seed;
+        // Java long 乘法/加法回绕——必须 wrapping（debug 溢出 panic 曾炸 end 大坐标 chunk，260906-04）
+        let n = ((block_x as i64).wrapping_mul(l).wrapping_add((block_z as i64).wrapping_mul(m))) ^ world_seed;
         self.set_seed(n);
         n
     }
@@ -166,7 +182,8 @@ impl ChunkRandom {
         self.set_seed(world_seed);
         let l = self.next_long();
         let m = self.next_long();
-        let n = ((chunk_x as i64) * l) ^ ((chunk_z as i64) * m) ^ world_seed;
+        // Java long 乘法回绕——必须 wrapping（同 set_population_seed，260906-04）
+        let n = ((chunk_x as i64).wrapping_mul(l)) ^ ((chunk_z as i64).wrapping_mul(m)) ^ world_seed;
         self.set_seed(n);
     }
 }

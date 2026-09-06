@@ -37,11 +37,38 @@ struct MacroBiome {
     erof: Arc<DensityFunction>,
     depthf: Arc<DensityFunction>,
     weirdf: Arc<DensityFunction>,
+    // end 维度（260906-04）：TheEndBiomeSource 位置判定（非 MultiNoise，02 篇）。
+    // true 时 biome() 走 end 分类；bc 仅承载 carvers/features 注册（判定不用）。
+    end_mode: bool,
 }
 impl BiomeSource for MacroBiome {
     fn biome(&self, pos: &NoisePos) -> String {
+        if self.end_mode {
+            return end_biome_of(&self.erof, pos);
+        }
         self.bc.biome_of(&self.tempf, &self.humf, &self.contf, &self.erof, &self.depthf, &self.weirdf, pos)
     }
+}
+
+// TheEndBiomeSource.getBiome（TheEndBiomeSource.java L67-87，02 篇 §1 逐行移植）：
+// 输入 = 块坐标（Rust 侧 biome_at 闭包传 (x>>2)<<2 对齐块坐标；Java 输入 biome 坐标 <<2 同值）。
+// section = 块坐标 >> 4（ChunkSectionPos.getSectionCoord）；biome 格 4 块 ⊂ section 16 块，
+// 对齐后同一 section 内判定一致 ⇒ 纯二维 section 粒度（cache_2d → y 无关）。
+fn end_biome_of(erof: &DensityFunction, pos: &NoisePos) -> String {
+    let sx = (pos.x >> 4) as i64;
+    let sz = (pos.z >> 4) as i64;
+    if sx * sx + sz * sz <= 4096 {
+        return "minecraft:the_end".to_string();
+    }
+    // 采样点 = section 中心块 (sx*2+1)*8（L76-77）；y 传 pos.y（cache_2d 忽略）
+    let n = ((sx * 2 + 1) * 8) as i32;
+    let o = ((sz * 2 + 1) * 8) as i32;
+    let d = erof.sample(&NoisePos { x: n, y: pos.y, z: o });
+    // 阈值边界归属（L79-84）：d==0.25 → midlands；d==-0.0625 → midlands；d==-0.21875 → barrens
+    if d > 0.25 { "minecraft:end_highlands".to_string() }
+    else if d >= -0.0625 { "minecraft:end_midlands".to_string() }
+    else if d < -0.21875 { "minecraft:small_end_islands".to_string() }
+    else { "minecraft:end_barrens".to_string() }
 }
 
 // 生产句柄：一次 seed 初始化（构建全部 noise samplers + density 树 + biome + surface）。
@@ -224,8 +251,11 @@ impl WorldgenHandle {
         // 3. router DF 树
         let tree = Arc::new(db.build_node(router.get("final_density")?).ok()?);
         // multi-channel 宏观采样器（对齐 Java NoiseChunk cell grid；fill_chunk 用 cell grid 采样 density）
-        // 网格只铺噪声高度（nether 128——y≥128 无密度语义，C++「双高度」修法）
-        let macro_sampler = crate::terrain::DensityMacroSampler::new(&tree, min_y, noise_height);
+        // cell 尺寸 = settings size_horizontal*4 / size_vertical*4（end 8×4 / overworld 4×8，260906-04）
+        let size_h = settings.get("noise").and_then(|n| n.get("size_horizontal")).and_then(|s| s.as_f64()).unwrap_or(1.0) as i32;
+        let size_v = settings.get("noise").and_then(|n| n.get("size_vertical")).and_then(|s| s.as_f64()).unwrap_or(2.0) as i32;
+        let macro_sampler = crate::terrain::DensityMacroSampler::with_cells(&tree, min_y, noise_height,
+            size_h * 4, size_v * 4);
         // transpiler 宏观采样器（WG_TRANSPILER env 时启用）：构建 NoiseSet + TranspilerDensity
         // transpiler 生成代码（generated_density）用 NoiseSet 采样（非 DensityFunction 树），需独立构建 NoiseSet。
         let transpiler_density = if std::env::var("WG_TRANSPILER").is_ok() {
@@ -307,8 +337,11 @@ impl WorldgenHandle {
         let blocks = BlockRegistry::load_from_json(&blocks_json)?;
 
         // 6. biome classifier + carvers + features（维度参数化：biome_params_file 决定 biome 参数）
+        // end（260906-04）：无 biome_params 文件（非 MultiNoise），bc 只承载 carvers/features；
+        // 判定走 MacroBiome.end_mode（TheEndBiomeSource 位置判定）。
+        let end_mode = df_ns == "end";
         let biome_params_path = format!("{}/../{}", wg_dir, biome_params_file);
-        let mut bc = BiomeClassifier::load(&biome_params_path);
+        let mut bc = if end_mode { BiomeClassifier::empty() } else { BiomeClassifier::load(&biome_params_path) };
         let biome_dir = format!("{}/data/minecraft/worldgen/biome", wg_dir);
         let _n = bc.load_carvers(&biome_dir);
         let _nf = bc.load_features(&biome_dir);
@@ -364,7 +397,7 @@ impl WorldgenHandle {
             }
         }
 
-        let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf };
+        let biomesrc = MacroBiome { bc, tempf, humf, contf, erof, depthf, weirdf, end_mode };
         // aquifer splitter：Java NoiseConfig.java:54 aquiferRandomDeriver = randomDeriver.split(Identifier("aquifer")).nextSplitter()
         //（260904 修复：原直传顶层 random_deriver() 漏 aquifer 字符串 split → blob 随机偏移全错，残留 1830 根因；
         //  对照 ore 管线 L261 的 split_str("minecraft:ore") 同构）
@@ -451,9 +484,15 @@ impl WorldgenHandle {
     // finalDensity 网格采样（wg_fill_density / fillDensity 用）：
     // size×size chunks，每 chunk POINTS_PER_CHUNK 点（XZ_INTERVAL/Y_INTERVAL 网格），chunk-major。
     /// 精确 density 采样（tree.sample 纯函数，无网格插值）——对齐 Java DensityProbe 的 df.sample 语义
-    pub fn sample_density_exact(&self, x: i32, y: i32, z: i32) -> f64 {
-        self.tree.sample(&crate::density::NoisePos { x, y, z })
+    pub fn sample_density_exact(&self, x: i32, y: i32, z: i32) -> f64 {        self.tree.sample(&crate::density::NoisePos { x, y, z })
     }
+    /// biome 采样（对外诊断/对拍用；输入块坐标，内部按 4 块对齐——与 fill 的 biome_at 同源语义）
+    pub fn biome_sample(&self, x: i32, y: i32, z: i32) -> String {
+        let bp = NoisePos { x: (x >> 2) << 2, y: (y >> 2) << 2, z: (z >> 2) << 2 };
+        self.biomesrc.biome(&bp)
+    }
+    /// block id → name（对外诊断/对拍用；blocks 字段私有）
+    pub fn block_name(&self, id: i32) -> &str { self.blocks.name(id) }
     pub fn fill_density(&self, min_chunk_x: i32, min_chunk_z: i32, size: i32) -> Vec<f64> {
         let xz = crate::api::density_xz_interval();
         let yi = crate::api::density_y_interval();
@@ -600,7 +639,12 @@ impl WorldgenHandle {
         }}}
 
         // 3. build_surface（具体 block id：grass/sand/terracotta 等）
-        let heightmap: Vec<i32> = cd.surface_height.to_vec();
+        // 空列哨兵映射（260906-04 end 接管）：surface_height 无 solid 列 = i32::MIN（terrain.rs:241），
+        // 直接进 build_surface 会让 o = MIN+1 在 biome_pick_cell(by-2) 溢出 panic（debug）/回绕（release）。
+        // Java 语义：WORLD_SURFACE_WG 空列 get = bottom-1（Heightmap 初始化 bottom-1），+1 = bottom。
+        // end 外岛空域大量全空气列（overworld 有基岩永不触发），故在此消费点统一映射 min_y-1。
+        let heightmap: Vec<i32> = cd.surface_height.to_vec()
+            .into_iter().map(|h| if h == i32::MIN { min_y - 1 } else { h }).collect();
         // b1-a（260903-13 翻默认，用户 confirmed）：est_at 默认复用 va.aq 的 surface_cache（对齐 Java：
         // SURFACE 阶段走 sampler.estimateSurfaceHeight 同一张 map，ChunkNoiseSampler.java:222-226）；
         // WG_EST_SHARED=0 反转关闭（回归旧独立扫描路径，诊断用）。

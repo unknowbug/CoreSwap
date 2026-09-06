@@ -386,6 +386,11 @@ impl DensityBuilder {
                 let interp = OctavePerlinNoiseSampler::new_legacy(&mut rnd, -7, &amp_i);
                 DensityFunction::InterpolatedNoise(InterpolatedNoiseData::new(lower, upper, interp, xzs, ys, xzf, yf, smear))
             }
+            // EndIslands（end）：Java NoiseConfig.java L105 worldSeed 直传（无 randomDeriver.split），
+            // legacy_random_source 门控只是 visitor 应用条件——end.json legacy=true 命中；构造即 worldSeed。
+            "minecraft:end_islands" => DensityFunction::EndIslands(std::sync::Arc::new(
+                crate::simplex_noise::EndIslandsNoise::new(self.seed as i64),
+            )),
             _ => return Err(format!("unsupported density type '{}' on node {:?}", t, v)),
         })
     }

@@ -21,6 +21,7 @@ pub mod md5;               // MD5（create_xoroshiro_seed_str 的 string 种子�
 pub mod xoroshiro;
 pub mod legacy_random;   // LegacyRandomSource（LCG）+ RsRandom/RsSplitter 统一枚举（M6 多世界随机分流）         // XoroshiroRandom + Xoroshiro128PlusPlus + Splitter（随机源）
 pub mod chunkrandom;       // ChunkRandom + CheckedRandom（CARVER 种子派生）
+pub mod simplex_noise;     // SimplexNoiseSampler + EndIslands（end 维度接管，260906-04）
 pub mod carver;            // CARVERS 阶段（洞穴雕刻）CaveCarver/RavineCarver
 pub mod worldgen_handle;   // 生产句柄（C ABI 的 Rust 侧实现）
 pub mod placement;         // FEATURES 阶段调度（IntProvider + PlacementModifier + PlacedFeature）

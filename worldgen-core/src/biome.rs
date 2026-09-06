@@ -376,6 +376,12 @@ pub fn biome_pick_cell(access_seed: i64, block_x: i32, block_y: i32, block_z: i3
 }
 
 impl BiomeClassifier {
+    // 空分类器（end 等 MultiNoise 域外维度，260906-04）：无 params 文件，biome 判定不走
+    // SearchTree（end 用 TheEndBiomeSource 位置判定，见 worldgen_handle MacroBiome end_mode）。
+    // carvers/features/registry_order 照常可加载（end 5 biome 的 json 在 biome/ 目录）。
+    pub fn empty() -> Self {
+        BiomeClassifier { tree: SearchTreeNode::Branch { params: Vec::new(), lparams: Vec::new(), sub: Vec::new() }, carvers: std::collections::BTreeMap::new(), features: std::collections::BTreeMap::new(), registry_order: Vec::new() }
+    }
     pub fn load(path: &str) -> Self {
         let txt = fs::read_to_string(path).expect("biome_params.json");
         let arr = json_parse(&txt).expect("parse biome_params").as_array().cloned().unwrap_or_default();

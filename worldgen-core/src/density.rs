@@ -522,6 +522,8 @@ pub enum DensityFunction {
     BlendDensity { input: Box<DensityFunction> },
     Wrapping { input: Box<DensityFunction> },
     InterpolatedNoise(InterpolatedNoiseData),
+    // EndIslands（end 维度 erosion 通道；worldSeed 直传 CheckedRandom+skip(17292)+Simplex，260906-04）
+    EndIslands(std::sync::Arc<crate::simplex_noise::EndIslandsNoise>),
     Lazy { target: Arc<Mutex<Option<Arc<DensityFunction>>>> },
     // multi-channel 竖切：combine 模式读已插值 channel 值（对齐 SteelMC `interpolated[idx]`）。
     // mn/mx = 对应 channel inner 的边界（块级 combine 外层操作短路判断用）。
@@ -628,6 +630,7 @@ impl DensityFunction {
             DensityFunction::BlendDensity { input } => input.sample_ctx(pos, interp),
             DensityFunction::Wrapping { input } => input.sample_ctx(pos, interp),
             DensityFunction::InterpolatedNoise(nd) => nd.sample(pos),
+            DensityFunction::EndIslands(e) => e.sample(pos.x, pos.z),
             DensityFunction::Lazy { target } => {
                 let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.sample_ctx(pos, interp) } else { 0.0 }
@@ -656,6 +659,7 @@ impl DensityFunction {
             DensityFunction::BlendDensity { input } => input.min_value(),
             DensityFunction::Wrapping { input } => input.min_value(),
             DensityFunction::InterpolatedNoise(nd) => -nd.max_val,
+            DensityFunction::EndIslands(_) => crate::simplex_noise::EndIslandsNoise::MIN_VALUE,
             DensityFunction::Lazy { target } => {
                 let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.min_value() } else { f64::NEG_INFINITY }
@@ -688,6 +692,7 @@ impl DensityFunction {
             DensityFunction::BlendDensity { input } => input.max_value(),
             DensityFunction::Wrapping { input } => input.max_value(),
             DensityFunction::InterpolatedNoise(nd) => nd.max_val,
+            DensityFunction::EndIslands(_) => crate::simplex_noise::EndIslandsNoise::MAX_VALUE,
             DensityFunction::Lazy { target } => {
                 let t = target.lock().unwrap();
                 if let Some(t) = t.as_ref() { t.max_value() } else { f64::INFINITY }
@@ -765,6 +770,7 @@ fn macrolize_into(df: &DensityFunction, channels: &mut Vec<Arc<DensityFunction>>
         DensityFunction::Wrapping { input } =>
             DensityFunction::Wrapping { input: Box::new(macrolize_into(input, channels)) },
         DensityFunction::InterpolatedNoise(nd) => DensityFunction::InterpolatedNoise(nd.clone()),
+        DensityFunction::EndIslands(e) => DensityFunction::EndIslands(e.clone()),
         DensityFunction::Lazy { target } => {
             // Lazy 内部可能含 Interpolated；递归 target（若已解析）
             let t = target.lock().unwrap();

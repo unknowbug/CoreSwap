@@ -27,9 +27,16 @@ thread_local! {
 }
 impl DensityMacroSampler {
     pub fn new(tree: &DensityFunction, min_y: i32, height: i32) -> Self {
+        // overworld 默认 cell 4×8（size_horizontal=1, size_vertical=2）
+        Self::with_cells(tree, min_y, height, 4, 8)
+    }
+    /// 维度参数化 cell 尺寸（260906-04 end 接管）：Java NoiseChunk cell = size_horizontal*4 ×
+    /// size_vertical*4。end.json size 2×1 → cell 8×4；硬编码 4×8 造成插值网格错位 →
+    /// 岛面系统性 +1 y 偏移（end A/B 首轮 16385 air mismatch 根因）。
+    pub fn with_cells(tree: &DensityFunction, min_y: i32, height: i32, cell_w: i32, cell_h: i32) -> Self {
         let (channels, combine) = macrolize_channels(tree);
-        Self { channels, combine, min_y, height, cell_w: 4, cell_h: 8,
-            gx: (16/4+1) as usize, gy: (height/8+1) as usize, gz: (16/4+1) as usize }
+        Self { channels, combine, min_y, height, cell_w, cell_h,
+            gx: (16/cell_w+1) as usize, gy: (height/cell_h+1) as usize, gz: (16/cell_w+1) as usize }
     }
     /// 公开 slices 构建（诊断对照用；布局与 TranspilerDensity 同构）
     pub fn build_slices_for(&self, cx: i32, cz: i32) -> Vec<f64> { self.build_slices(cx, cz) }
