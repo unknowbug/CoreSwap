@@ -1205,3 +1205,38 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **现象**：.b3 记「grep `MJTD/MJTG p=(469|(505` 在 pregen log 零命中」；judge 实测：(469) 确为 0 命中 ✓，**(505) 实有 31 命中**（与 pregen 505=Y h30 自洽）——grep 记录本身转录失真。
 - **判据（MUST）**：以「零命中/无输出」作判别证据前，先重跑核对记录与实测一致——错抄的零结果凭空制造「机制差异」证据，且常与已知真值本可自洽对照出来。
 - **家族索引**：#13（零/空输出先查测量层）——前两例是探针/过滤器真没打到，本例是**记录层转录失真**（工具其实有输出）。
+
+## 发现 #66（最高价值）: 同 dll 两种执行语义——native bin-diag（flags=0 特征全跑）与 vivo 出货 mod（stageMask=3 跳 Rust features/carver，Java vanilla 装饰器在 Rust 地形上跑）产出不同树集，诊断代理与生产执行体结论禁止互迁（260906-08）；candidate
+
+- **发现时间/发现者**：260906-08（实际 2026-09-06），fan-out 静态审查 worker 判定（candidate ~0.9，Degraded）+ judge 通过；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l E2a 收口。
+- **module**：workflow-patterns / 执行体三元组（#36 家族最重形态；#65 实机载体的机制层落底）
+- **现象**：同一 Rust dll，native bin-diag（`j5_tree_trace2.exe`，不 set_flags → flags=0 → 特征全跑）在 5×5 区域产 11 棵（与 260905-05 预测逐位吻合，跨 run/跨月确定性稳定）；vivo 出货 mod（log `stageMask=3 enabled=true`）实测命中点含 443/456（native 双臂均 N 产不出）、缺 483（native 双臂均 Y）——同 dll 两执行语义树集大面积不同。曾在 F3 判定前误将 vivo 样本当「Rust-off 执行体真值」并据此评估 ca_min（judge N-A 勘误作废）。
+- **根因（机制）**：① mixin 只拦 NOISE/SURFACE（NoiseChunkGeneratorMixin.java:63-137），feature/carver 阶段无任何拦截，Java vanilla 装饰器照常运行；② `stageMask=3 = FLAG_SKIP_CARVER|FLAG_SKIP_FEATURES`（worldgen_handle.rs:143-145，CppBridge.java resolveStageMask 默认 0b011），Rust 侧 fill_chunk_blocks 在 mask=3 时跳过自己的特征放置——Rust 产的 chunk 不含树；③ native bin-diag 从不 set_flags。综合：**vivo live 树集 = 纯 Java vanilla 树（执行序依赖）长在 Rust 地形上**，既非 Rust-off 也非 Java vanilla，是第三种生成器（Java-features-on-Rust-terrain）。
+- **如何利用（判据 MUST）**：
+  1. 判「Rust 臂」结论前**先核 flags/mask**：native 诊断代理（flags=0）与 vivo 出货 mod（mask=3）是两种执行语义，特征层结论禁止互迁——「诊断代理复现了」≠「vivo 会这样」。
+  2. 未受控实机观察不能作执行体真值（#64 合流）；Rust 臂真值以 native 受控 dump 为准，执行体三元组（#36）必须含 flags/mask 维度。
+  3. #65 家族补充案例（错误记录五段式·教训段）：本块 judge N-A——F3 判定前的旧判读（「Rust-off 三点缺失利好 ca_min」）在 F3 落地前未及时标注「待 F3 取代」，被 §15.4 勘误作废。教训：判定树上游有未决分叉时，下游判读落盘 MUST 带显式条件标注（「若 F3 成立则本条作废」类），防旧判读被当独立证据续引——属取代链纪律的**事前标注**面（§15.4 是事后双指针，此处补事前）。
+- **证据**：.investigations/jungle-l/e2a-rerun-260906-08.md（F3 判定 + §15.4 勘误 + T4 native off 重采 11 点逐位吻合）；NoiseChunkGeneratorMixin.java:63-137 / worldgen_handle.rs:143-145。
+
+## 发现 #67: vanilla features 固有 run 级非确定——同 seed 同代码同协议两 run mega 集仅 7/22 交集（19 vs 15），E0 矩阵证调度序漂移；features 层「单一 Java 基线」不存在，对齐判据 = 冻结顺序生成，不是复跑（260906-08）；candidate
+
+- **发现时间/发现者**：260906-08（实际 2026-09-06），E2a 同协议复跑 + E0 矩阵零成本复用 + judge 通过（judge 260906-07 预设判据第二分支命中）；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l。
+- **module**：workflow-patterns / 基线唯一性（#62/#63 家族收口：执行序依赖从「载具间」下沉到「run 间」）
+- **现象**：同 seed（8576294172403134396）、同 gradle runServer vanilla、同 5×5 forceload 协议原样复跑（E2a），mega 集基线 15 棵 vs E2a 19 棵，**交集仅 7**；关键点位（469,71,-230 / 505,72,-261）在两个 run 之间即翻转。E2a 日志 25/25 chunk 复用 E0 邻居矩阵：两 run FEATURES 完成序完全不同（基线目标 chunk 晚跑 vs E2a 目标 = #8），8 邻先完成数 0~5 非平凡分布——worker 调度序 run 间漂移直证。
+- **根因（机制）**：pregen 多线程 worker 调度，每 run chunk FEATURES 完成序随机（E0 已证调度序非空间序）→ 邻块实况状态 run 间不同 → can_replace 结果翻转。「run 级非确定」是 B1 机制（执行序依赖）的表现面，非 B1 降权——降权的应是对「单一 Java 基线」的执念，不是机制本身。
+- **如何利用（判据 MUST）**：
+  1. features 层对齐/回归判据用**冻结顺序生成**（确定性顺序载体，如 native bin-diag / #52 确定性 dump），禁止以「复跑 Java pregen 单 run」作基线——任何单 run Java 集只是分布的一个样本。
+  2. 单 run 判别实验（如分批 forceload）判别力自动下降：与基线差异不能唯一归因于实验变量，需多 run 采样分布对分布。
+  3. 「7 稳定交集」类表述须核第 3 样本：本块用户实机对拍 n=3 即见 479,71,-216 由 2Y 翻 N——小稳定核 + 大波动外围，稳定核宣称前先验分布。
+- **§9.7 口径声明**：载体 = 同执行体（gradle runServer vanilla）同协议两 run 的 [MJT0] 全序列对比；覆盖面 = chunks 27..31,-18..-14（MJT0 清单为区域过滤后口径）；与 -Vanilla 客户端/实机/Rust 各口径不可比。
+- **证据**：.investigations/jungle-l/e2a-rerun-260906-08.md（核心发现 + 交叉验证臂 + 三样本分布表）；.tmp/jungle-l-260906/j5_java_e2a_260906-08.ps1 + j5-java-e2a-260906-08.log。
+
+## 发现 #68: Java 特征 × Rust 地形的下游输入混杂——vivo feature 放置分歧含地形输入系统差 + 执行序波动两通道，未分解前禁止单通道归因（260906-08）；candidate（开放）
+
+- **发现时间/发现者**：260906-08（实际 2026-09-06），judge N-B 降级声明确立；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l。
+- **module**：workflow-patterns / 下游输入归因（#10 三阶段归因 / #14 阶段同源家族；#66 的开放面）
+- **现象**：vivo mod（Java 特征 × Rust 地形，见 #66）与 Java vanilla 的 feature 放置分歧（如 483,71,-230 vivo N vs Java 3/3 Y）无法归因单通道——「483 N = 执行序波动」是未分解候选。
+- **根因（机制）**：Java vanilla 装饰器在 Rust 地形上运行时，can_replace 等判定同时消费两路输入：① Java 特征流自身执行序（#67 run 级非确定）② Rust 地形块状态（地形输入系统差致 can_replace 失败）。两通道混在同一观测差里，单通道归因（「就是波动」/「就是地形差」）均无证明力。
+- **如何利用（判据 MUST）**：Java-features-on-Rust-terrain 形态下，feature 放置分歧**未做归因分解前禁止单通道归因**，维持 draft 候选；廉价判别臂 = native Rust 地形上跑 Java 特征探针（隔离地形变量）；「vivo 与 Java 同机制同波动」类同构宣称不升格。
+- **家族索引**：#10（三阶段归因）、#14（阶段同源）、#66（执行语义前提）、#67（通道 ① 的机制）。
+- **证据**：.investigations/jungle-l/e2a-rerun-260906-08.md（judge N-B 降级声明 + 连锁重定性节）。

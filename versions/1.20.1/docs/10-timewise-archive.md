@@ -3030,4 +3030,18 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **E0 邻居完成序矩阵**：pregen 内 25 chunk FEATURES 完成序 = 工作线程调度序非空间序，分歧 chunk 一个早跑邻未完成、一个极晚跑邻已完成——与交叉表形态吻合；judge 实跑 25/25 复现（可升 candidate，待修 N3 计数 3→4）。🔍 caveat：行号序≈时间序仅秒级精度（多 worker stdout 队列微扰），结论用远离序对故稳健。
 - ✅ **judge 审查（judge-verdict-260906-07）**：无阻塞级问题；勘误 N1——.b3「(505) MJTD/MJTG 零命中」系转录失真（实测 31 命中，(469) 才是真零命中）——#13 家族补充案例；N2-N5（坐标标签/E0 计数/「纯 vanilla」表述+第二变量+n=1/截图原件落盘）待主会话回写。
 - ✅ **观察误差成本实证**：用户一次未开旁观的目测复验即看错（后自纠）——B3 权重自判「弱」被 judge 回调至「中」；11 点表观察条件未确认旁观，精度降级标注（#64；叠加 #65 后该表为双重口径失真样本）。
-- 🔍 **open（judge 下一步最小闭环，经 #65 厘清后重排）**：E2a 同协议 pregen 复跑（run 级确定性钉死）→ E2b 分批 forceload（B1 机制判别）；-Vanilla 客户端复跑 n=1→2；j5-baseline §15.4 取代记录落盘；N1-N5 勘误回写；ca_min 决策保持冻结待 E2b 同口径 A/B。~~实机 mods 清单（.b2 E1）/505 孤例归属~~（经 #65 消解/坐实，撤销）。
+- 🔍 **open（judge 下一步最小闭环，经 #65 厘清后重排）**：~~E2a 同协议 pregen 复跑（run 级确定性钉死）→ E2b 分批 forceload（B1 机制判别）；-Vanilla 客户端复跑 n=1→2；j5-baseline §15.4 取代记录落盘；N1-N5 勘误回写；ca_min 决策保持冻结待 E2b 同口径 A/B。~~实机 mods 清单（.b2 E1）/505 孤例归属~~（经 #65 消解/坐实，撤销）。（E2a/n=3/T4/F3 已于 260906-08 执行完毕，见下条。）
+
+## 260906-08（实际 2026-09-06 20:15 起 Get-Date 锚定：jungle-l E2a 同协议复跑 → run 级非确定直证 → F3 执行语义判定 → 三项 confirmed 收口）✅ judge 通过 + 用户拍板三项 confirmed
+
+> 过程产物 `.investigations/jungle-l/e2a-rerun-260906-08.md`（必读主文档，含 judge N-A/N-B/N-C 应用记录）；脚本 `.tmp/jungle-l-260906/j5_java_e2a_260906-08.ps1` + j5-java-e2a-260906-08.log（协议 = j5_java_baseline_260906-06.ps1 原样，逐行 diff 证实）+ j5_rust_caminoff_260906-08.ps1；通用模式 → workflow-patterns #66/#67/#68（subagent 草稿 → 主会话应用，日期自推 09-08 已实锚修正）。
+
+- ✅ **E2a 同协议复跑 → run 级非确定直证**：同 seed（8576294172403134396）同代码同协议两 run，mega 集基线 15 vs E2a 19，交集仅 7；469/505 关键点在两 run 间即翻转。四查 PASS（含第四查 #62 Xoroshiro 判据复算逐位命中，双 population 行并存为已知双调用点签名）。E0 矩阵零成本复用：两 run FEATURES 完成序完全不同、8 邻先完成数 0~5 非平凡——调度序 run 间漂移直证，B1 机制表现面第二组数据层证据（#67）。
+- ✅ **用户实机对拍 n=3（受控观察 #64 合规）**：-Vanilla 客户端第 3 样本对 7 稳定交集点命中 6、**479,71,-216 翻 N**（橡树）——「7 稳定交集」降级「6 稳定 + 1 波动」，Java 分布形状 = 小稳定核 + 大波动外围；实机 modded 样本命中 3 缺 4（后续 F3 重定性）。
+- ✅ **T4 native off 受控重采**：`j5_tree_trace2.exe`（确定性顺序生成无调度噪声，exe 17:56 晚于全部源码，新鲜度哨兵 PASS）——Rust-off native 集 11 棵，**与 260905-05 预测清单逐位吻合**（含 469 Y / 505 Y）→ native off 生成确定性跨 run/跨月稳定；Rust-on（260906-06）16 棵与 off 交集仅 4。dll 版本确认：target/release/worldgen.dll 2,160,640 bytes，sha256 1B5AA1DE…，与 1.0.26 jar 内 native/worldgen.dll 逐字节一致（双重 hash 校对）。
+- ✅ **缓存/env 嫌疑排除（用户核对客户端 log + 世界存档）**：实机世界 20:51 新建（全部 region 当日创建）、dll sha 同、无 WG_CA_MIN env、log stageMask=3 enabled=true——冲突迫使重查 wiring。
+- ✅ **F3 fan-out 判定（candidate ~0.9，Degraded 静态审查；judge 四代码锚点逐一核实）**：① mixin 只拦 NOISE/SURFACE，feature/carver 阶段无拦截，Java vanilla 装饰器照常运行；② stageMask=3 = SKIP_CARVER|SKIP_FEATURES（worldgen_handle.rs:143-145），Rust 侧跳过自己的特征放置；③ native bin-diag 从不 set_flags → flags=0 特征全跑——**native 与 vivo 是两种执行语义（#36 家族最重形态，#66）**。综合：vivo live 树 = 纯 Java vanilla 树长在 Rust 地形上（第三种生成器）；中间误判段（执行体归属冲突）已被 F3 取代存档。judge N-B 降级：483 归因两通道（特征流执行序 vs 地形输入系统差）未分解，维持 draft 候选 → #68。
+- ✅ **judge 审查（三源核对 + 数据抽查 5+ 点零失配）**：通过，非阻塞 3 项已应用——N-A 勘误作废 F3 前旧判读（「Rust-off 三点缺失利好 ca_min」彼时误将 vivo 当 Rust-off）；N-B 归因分解挂靠 #10/#14 家族；N-C MJT0 清单区域过滤口径声明。
+- ✅ **用户拍板三项 confirmed**：① features 对齐非目标 + 出货架构（Rust 地形 + Java features/carver）= confirmed；② ca_min moot 化（挂起，材料保留给全接管配置）= confirmed；③ carver 维持 mask=3、接管列为 perf 候选课题（前置：残差归因——Rust carver 90.88% 挖洞重合未分离地形级联——+ 非 vanilla carver 检测回退 + replaceable 数据驱动化；触发条件 = profiling 占比值得）= confirmed。F3 wiring 判定 = candidate（N-B 开放）。
+- ✅ **#65 再取代提案（candidate，confirmed 方向）**：实机 modded（mask=3 默认 0b011）实为 **Java 特征 × Rust 地形**，既非 Rust-off 也非 Java vanilla——260905-05 的 11 点真值同此重定性，保留「260905-05 当次 run 的 stageMask 待核」条件；走 §15.4 取代链。
+- 🔍 **open**：#66-#68 知识库条目 confirmed 待用户复审；F3 两通道归因分解（廉价臂 = native Rust 地形 + Java 特征探针）；（可选 perf 课题）carver 残差归因 + 占比 profiling；E2b 分布对分布实验（或接受 run 级非确定已坐实而撤销）。
