@@ -618,13 +618,20 @@ impl TreeFeatureConfig {
     fn mega_jungle_trunk(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
                          sx: i32, sy: i32, sz: i32, height: i32, trunk_set: &mut Vec<[i32; 3]>) -> Vec<(i32, i32, i32, i32, bool)> {
         // GiantTrunkPlacer.java:35-39：base dirt 四角
+        if crate::placement::treediag_enabled() {
+            eprintln!("[MJT0] t=({}, {}, {}) h={}", sx, sy, sz, height);
+        }
         self.set_to_dirt(ctx, random, sx, sy - 1, sz);
         self.set_to_dirt(ctx, random, sx + 1, sy - 1, sz);
         self.set_to_dirt(ctx, random, sx, sy - 1, sz + 1);
         self.set_to_dirt(ctx, random, sx + 1, sy - 1, sz + 1);
         // GiantTrunkPlacer.java:41-50：2×2 柱
         let mut place_log = |tx: i32, ty: i32, tz: i32, trunk_set: &mut Vec<[i32; 3]>| {
-            if can_replace(ctx, tx, ty, tz) {
+            let ok = can_replace(ctx, tx, ty, tz);
+            if crate::placement::treediag_enabled() {
+                eprintln!("[MJTL] p=({}, {}, {}) ok={}", tx, ty, tz, ok);
+            }
+            if ok {
                 let state = self.trunk_provider.get(random);
                 ctx.set_block(tx, ty, tz, state);
                 trunk_set.push([tx, ty, tz]);
@@ -643,7 +650,13 @@ impl TreeFeatureConfig {
         let two_pi = std::f32::consts::PI * 2.0;
         let mut i = height - 2 - random.next_int_bound(4);
         while i > height / 2 {
+            if crate::placement::treediag_enabled() {
+                eprintln!("[MJTI] i={} h={}", i, height);
+            }
             let f = random.next_float() as f32 * two_pi;
+            if crate::placement::treediag_enabled() {
+                eprintln!("[MJTF] f={} bits={:#x}", f, f.to_bits());
+            }
             let mut j = 0i32;
             let mut k = 0i32;
             for l in 0..5i32 {
@@ -651,16 +664,30 @@ impl TreeFeatureConfig {
                 j = (1.5f32 + crate::carver::math_cos(f) * l as f32) as i32;
                 k = (1.5f32 + crate::carver::math_sin(f) * l as f32) as i32;
                 let (px, py, pz) = (sx + j, sy + i - 3 + l / 2, sz + k);
-                if can_replace(ctx, px, py, pz) {
+                let ok = can_replace(ctx, px, py, pz);
+                if crate::placement::treediag_enabled() && !ok {
+                    eprintln!("[MJTB-R] p=({}, {}, {}) l={}", px, py, pz, l);
+                }
+                if ok {
                     let state = self.trunk_provider.get(random);
                     ctx.set_block(px, py, pz, state);
                     // MegaJungleTrunkPlacer.java:46 getAndSetState → biConsumer2 → set2（log 集）：
                     // 横向枝干 log 必须入 trunk_set（TrunkVine 消费 + RNG 流级联），260905-13 scout J1 修复。
                     trunk_set.push([px, py, pz]);
+                    if crate::placement::treediag_enabled() {
+                        eprintln!("[MJTB] p=({}, {}, {}) l={}", px, py, pz, l);
+                    }
                 }
             }
             nodes.push((sx + j, sy + i, sz + k, -2, false));
-            i -= 2 + random.next_int_bound(4);
+            let ni1 = random.next_int_bound(4);
+            i -= 2 + ni1;
+            if crate::placement::treediag_enabled() {
+                eprintln!("[MJTS] i_new={} h={}", i, height);
+            }
+        }
+        if crate::placement::treediag_enabled() {
+            eprintln!("[MJTX] nodes={} t=({}, {}, {})", nodes.len(), sx, sy, sz);
         }
         nodes
     }
@@ -692,6 +719,9 @@ impl TreeFeatureConfig {
             && cur != ctx.blocks.id("minecraft:grass_block")
             && cur != ctx.blocks.id("minecraft:mycelium");
         // ⚠️ Feature.isSoil = dirt tag 全集；上方列表为其 1.20.1 主体（数据边界声明，见 §九）
+        if crate::placement::treediag_enabled() {
+            eprintln!("[MJTD] p=({}, {}, {}) soil={} fd={}", x, y, z, is_soil_not_grass_myc, self.force_dirt);
+        }
         if self.force_dirt || !is_soil_not_grass_myc {
             let state = self.dirt_provider.get(random);
             ctx.set_block(x, y, z, state);
