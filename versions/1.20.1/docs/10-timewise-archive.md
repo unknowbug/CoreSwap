@@ -2987,3 +2987,18 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **badlands 参照区 −0.21% 残差边界划分（§9.7 + judge #3 因果标注）**：修复后 rust 在该参照区新放 7241 grass + 261 tall_grass、vanilla 全 0——**修复激活放置后暴露的上游差异，非本修复语义错误**（RNG 中性已证：BlockStateProvider Simple/Weighted 消费 0/1 同 Java，judge 专项核对 tree.rs:49-63），属「patch feature 选择 / biome 门」域；fan-out 候选 4 项（① biome feature 列表数据/映射差 ② dripstone_caves step9 patch_grass_plain + biome 门差 ③ patch_grass vs patch_grass_badlands 选型差 ④ unsupported placement modifier + features 顺序/global_index 差）→ 按分叉即 fan-out 纪律**不在主会话自推**，留待专项（可与 jungle_l 采集共用 java 侧证据）。match 口径声明：features_probe vs vanilla FULL 6×6，与 v18 口径（2193 chunks treediag）不可比。
 - ✅ **judge 审查**：APPROVE-WITH-CONDITIONS（260905-12）——三源核对通过 + RNG 中性专项证明；条件三项（index 登记 FEA-11 / 「19 个」→24 计数更正 / generate_nested 死分支注记）当场核销。
 - 🔍 **open**：patch 选型/biome 门专项未立项（FEA-11 残差 4 候选）；mixin 过滤运行时效果待验；confirmed 待用户拍板。
+
+---
+
+## 260906-03（实际 2026-09-06 14:12 起工作块：BUG-002/issue #24——勘探 → 廉价验证 → 卡片 v3 合并 → 方案批准 → 实现 → Forge+Connector 生产验证）✅ 修复完成 judge 通过（candidate，confirmed 待用户）
+
+> 过程产物 `.investigations/multiworld-bug002/`（scout-map / worker-verdict / 方案 / cmd-output V1+V2）；通用模式 → workflow-patterns #55（草稿）；BUG 卡回写 → CoreSwap-Maint .artifacts/bugs/BUG-002-custom-dim-surface-skip.md（草稿待应用）。
+
+- ✅ **scout 勘探**（scout-map-260906-03.md）：接管拦截面全景——维度判定只有两类「形状指纹」（-64/384→overworld、0/256 且 !wgIsEnd()→nether），零 registry 识别；Rust 硬编码点 H1-H10 清单（生产端 create_for_dim 已参数化，缺口在 Java 判定层 + mod 维度数据不在资源层）；末地子疑点 = wgIsEnd() 裸反射失败静默 false → end（同 0/256 形状）被 nether 句柄误接管。
+- ✅ **worker 裁决 + V1 廉价实证**：worker-verdict-260906-03.md 判定「wgIsEnd() 反射在生产必失败」——字符串字面量 "biomeSource" 不被 remapper 重写，Forge 生产 SRG 成员名下 NoSuchFieldException → catch 静默 false；V1 grep ForgeGradle 缓存 tsrg 实锤 `f_62137_ biomeSource`（行 180533）——**judge 独立重跑勘误：首引 f_226623_ 为 Structure$GenerationContext 同名巧合，勿再引用**（cmd-output/v1-tsrg-biomeSource-260906-03.md）。
+- ✅ **BUG 卡 v3 合并**：卡片「引擎 4 硬缺口」（blocks.rs:41 unwrap_or(AIR)、default_block minecraft:stone、data/minecraft 命名空间硬编码、biome 表仅原版）+ 本块末地误接管机制闭环 = 双机制互补；4 缺口归长期多世界数据驱动线，不阻塞短期放行策略。
+- ✅ **方案批准**（方案-260906-03-放行策略.md，000-P2，用户拍板）：**资源感知自动放行**路线——按 noise_settings 注册 id 判定（settings RegistryEntry key，符号引用）替代形状指纹 + 裸反射；数据在资源层才接管、不在则放行 vanilla（mod 维度误接管机制性不可能）；end 暂放行 vanilla，end 接管 = 下一里程碑。
+- ✅ **实现**：NoiseChunkGeneratorMixin 维度判定重构——wgSettingsId()（RegistryEntry key）+ 接管集 {minecraft:overworld, minecraft:nether}；裸反射 wgIsEnd() 整体删除（静默 catch 同步消除）；放行维度打一次性说明日志（Set 去重防刷屏）；buildSurface 同步收紧。
+- ✅ **V2 生产验证**（cmd-output/v2-forge-connector-verification-260906-03.md，Forge 47.4.5 + Connector beta.49，seed 7691421705105351955 与报告者同种子）：7 判据全 PASS——① mixin 生产 APPLY 全绿（首启曾 APPLY FAILED：refmap 包路径笔误 world/gen/chunk/Chunk→world/chunk/Chunk，修正二启绿）② end `release to vanilla: settings=minecraft:end` ③ 末地零 nether-intercept（旧误接管指纹消失）④ end 地形 vanilla 化（y1=air/y55-58=end_stone，bedrock 未命中）⑤ nether 接管不回归 ⑥ overworld 接管不回归 ⑦ 因果端点闭合（V2 补齐 V1 遗留的运行时日志端点）。§9.7 降级声明随行：mod 维度未本地装载实体复测、未做报告者口径全维度 region A/B diff。
+- ✅ **judge 审查**：三源核对（.investigations 快照 + 代码 diff + V1/V2 验证记录）通过；f_226623_ 误引勘误；V1 边界（因果端点待 V2）已由 V2 核销。
+- 🔍 **open（降级/边界）**：mod 维度放行与 end 走同一代码路径（settings id ∉ 接管集）机制同源但未本地实体复测；报告者整合包 A/B 复测待报告者执行；end 接管（Rust end 管线 + biome 判定）= 下一里程碑；overworld 变体 settings（amplified 等）现被放行 vanilla（行为较此前被 overworld.json 错误接管更正确，边界已注记）。
