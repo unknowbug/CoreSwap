@@ -292,3 +292,14 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 ### 证据
 `02-end-biome-rules.md` §2.2/§2.4（DensityFunctionTypes.java L626-682、SimplexNoiseSampler.java L33-36、NoiseConfig.java L105 种子直传无 split）；对拍记录：review-002-final.md ①②（seed 7691421705105351955 / 12345 双侧全等）。
 
+
+## 发现 #20: MC-239059——BaseRandom.nextLong = (next(32)<<32) + next(32)，低位 j 有符号 int 符号扩展相加；漏符号扩展的签名 = 高位似近、低位全错（260906-06）；candidate
+
+- **发现时间**：260906-06；**置信度**：candidate（一手 yarn 源码引证 + Xoroshiro 复刻逐位命中实证）；**module**：re-code / Java 整数语义复刻。
+- **来源定位**：BaseRandom.java:33（nextLong 默认实现）+ ChunkRandom.java:31（next(bits) 基类分流）；实证 .tmp/jungle-l-260906/pop_feature_xoroshiro.py。
+- **观察/根因**：`BaseRandom.nextLong() = ((long)next(32) << 32) + next(32)`——第二个 `next(32)` 的返回值是 **int**，`+` 前经符号扩展提升为 long：j 为负（最高位 1）时高 32 位全 1。复刻时若按无符号拼接（`(h<<32) | j`），高位方程因 Xoroshiro 混淆仍可能近似命中，但低位恒错。
+- **如何利用**：
+  1. 复刻任何走 `nextLong()` 的 MC 随机链（含 setPopulationSeed）时：`((h as i64) << 32).wrapping_add(j as i64)`——j 必须 i64 符号扩展，不是 u32 拼接；与 #18（wrapping_* 回绕审计）同族配套。
+  2. **判错签名**：复算结果「高位似近、低位全错」→ 首查低位符号扩展（MC-239059），不查随机算法本体。本轮首版复刻即此签名，一轮定位。
+  3. 交叉引用：#19（nextDouble 乘法落 float 域）、workflow-patterns #61（双调用点——逐位吻合前先核调用点覆盖面）。
+- **证据**：BaseRandom.java:33 引证 + 逐位命中记录 .investigations/jungle-l/260906-06-errors.md E11 定位段。

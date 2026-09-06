@@ -820,3 +820,19 @@ entries:
     kind: decision
     status: confirmed  # 用户拍板 260905-02（judge APPROVE；新/旧 dll 直接对比 0 diff；vanilla 残差 3 块为拆分前既有，落挂起域不拉起）
     # 拆分基线：现役 dll 行为锚 = target/release/worldgen.dll（sha256 2A8915...，行为等价旧 561AFF49 包装代码）。
+
+  # === end 接管 CONCERN-2 回归闭环（260906-05 judge review-003 有条件通过，待用户 confirmed）===
+  - id: 'swe:end-takeover:concern2-regression-verdict-260906-04'
+    path: '../.investigations/end-takeover/concern2-regression-verdict-260906-04.md'
+    kind: decision
+    status: confirmed  # 用户拍板关闭 260906-05（judge review-003 有条件通过，C1/C2/C3 已补齐）；口径 = overworld/nether 共享路径无回归（确定性 dump SHA 双维度全等）；end 维度行为等价性按 C1 声明另行追溯
+
+  # === J5 基线重采 + E10 归属反转（260906-06，judge 通过候选待用户拍板）===
+  - id: 're-code:jungle-l:j5-baseline-260906-06'
+    path: '../.investigations/jungle-l/j5-baseline-260906-06.md'
+    kind: decision
+    status: confirmed  # 用户拍板 260906-06（「授权确认，更新NEXT」）：结论 A（E10 归属反转/双调用点机制）+ 第四查判据修正授予 confirmed；结论 B（执行序依赖）维持候选待 fan-out；ca_min 翻转不作决策输入
+    # 机制：setPopulationSeed 双调用点（generateFeatures=Xoroshiro / populateEntities=CheckedRandom），
+    # popseed_check2 绑定的是实体 pass → E10「污染 pass」归属反转（-4568 才是 FEATURES pass）。
+    # 新证据：实机 vs pregen 2/11 双向分歧 → Java 基线无唯一性（执行序依赖）。
+    # 关联：workflow-patterns #61/#62、compiler-idioms #20、E11/E12（260906-06-errors.md）。

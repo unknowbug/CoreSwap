@@ -1124,3 +1124,40 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 ### 证据
 `.investigations/end-takeover/260906-04-errors.md` 附条。
 
+
+## 发现 #60: 「共享路径恒等变换」类回归核查必走确定性 dump 载体——judge 建议的验证方式本身也要廉价预检（260906-05）；candidate
+
+- **发现时间/发现者**：260906-05（实际 2026-09-06），core.worker subagent 草稿 + 主会话应用；来源课题 CONCERN-2 回归闭环。
+- **module**：workflow-patterns / 回归核查载体选型（#51/#52 家族第二例 + 判据收敛）
+- **现象**：CONCERN-2 存档三臂对拍 1.0.25 vs 1.0.26 = ow 2206 / nether 21511 mismatch（疑似回归），但同 dll 两轮重跑互差 ow 5012 / nether 23025 与信号同阶。
+- **根因**：Forge+本环境跨 run Java 装饰层非确定性（OW 差异 top 全为 spruce/pine 树）混入比对对象——载体信噪比不足，对恒等变换类核查原理上不可裁决，非被测代码问题。
+- **定位**：先跑廉价预检（同 dll 重跑基线）→ 信号/噪声同阶即判载体不可裁决，切换而非加跑。
+- **修复**：纯 Rust 确定性区域 dump（idk7_region_dump ow + concern2_nether_dump nether，固定快照 + SHA256 对拍，无 Java 装饰）→ Rust 跨 run SHA 全等，旧代码 99b8034 vs HEAD 双维度 SHA 全等 → 无回归，证据强于原建议存档 A/B。
+- **判据（MUST ×2）**：① 恒等变换类回归核查一律走确定性 dump 载体；仅覆盖装饰层时用存档载体且前置噪声基线（#51）+ chunk 配对差分，信号/噪声同阶即弃比。② judge/交接建议里的「补跑 X 对比」执行前先 ≤一轮廉价预检（如同 dll 重跑）确认载体可裁决性，预检不过先换载体。
+- **证据**：.investigations/end-takeover/concern2-regression-verdict-260906-04.md + .tmp/concern2-260906/（三臂基线、ab 脚本、dump SHA、4 server log）；judge review-003 独立重算 SHA 吻合。
+
+## 发现 #61: 「复算逐位吻合」必须先证公式覆盖正确的调用点——同参数双调用点 × 不同随机源，错误的公式也能逐位吻合另一个 pass（260906-06）；candidate
+
+- **发现时间/发现者**：260906-06（实际 2026-09-06），core.worker subagent 草稿 + 主会话应用；来源课题 jungle-l J5 基线重采（E10 归属反转）。
+- **module**：workflow-patterns / 复算判据覆盖面（#43「逐行对拍必须附覆盖面声明」家族的随机源扩展）
+- **现象**：目标 chunk (29,-16) 日志内两条 population 行恒并存（-4568… / -2605…）；popseed_check2.py（java-LCG 复算）逐位命中 -2605，E10 据此判定 -2605 = 正确 seed FEATURES pass、-4568 = 「污染 pass」——归属完全颠倒。统计签名：5×5 forceload pregen 全序列 1154 population 行中 **529/625 chunk 双 pop 并存**——确定性单调用原理上不可能，判据本身必错。
+- **根因（机制）**：`setPopulationSeed(worldSeed, x, z)` 在 1.20.1 有**两个调用点、两个不同 baseRandom**：`ChunkGenerator.generateFeatures`（ChunkGenerator.java:344，Xoroshiro128PlusPlusRandom）与 `NoiseChunkGenerator.populateEntities`（NoiseChunkGenerator.java:462，CheckedRandom = 48 位 java LCG）。同 chunk 两个 pass 各产一条 pop。java-LCG 公式命中的是 populateEntities 行，Xoroshiro 公式命中的才是 FEATURES 行——**「逐位吻合」只证明「该公式与某条输出一致」，不证明「该公式对应目标 pass」**。
+- **定位（怎么发现的）**：① 双 pop 频次统计（529/625）触发「单调用假设证伪」；② 一手 yarn 源码 grep `setPopulationSeed` 调用点；③ ChunkRandom.next(bits) 基类分流核对（ChunkRandom.java:29-61）；④ Xoroshiro 复刻（pop_feature_xoroshiro.py）对「第一条」pop 逐位命中（-4568734542690011764 @ (464,-256)），与 mega 生成语义一致，交叉印证。
+- **教训/判据（MUST）**：
+  1. 任何「独立复算逐位比对」类核验（第四查、对拍、指纹比对）**先证公式/复刻覆盖正确的调用点**，再信逐位吻合；同参数不同实现的多次调用是逐位核验的天然盲区。
+  2. **双 pop 恒并存（同 chunk 两条 population 行）= 双调用点统计签名**；频次统计（非单例）是零成本的第一道「调用点覆盖面」体检。
+  3. 交接结论中的复算判据本身也要过「交接结论验证纪律」——E10 的判据未经调用点核对就续推了多个工作块（#43 家族第三犯面）。
+- **证据**：.investigations/jungle-l/260906-06-errors.md E11 + .investigations/jungle-l/j5-baseline-260906-06.md 核心发现 1 + .tmp/jungle-l-260906/pop_feature_xoroshiro.py（源码引证 ChunkGenerator.java:344 / NoiseChunkGenerator.java:462 / ChunkRandom.java:29-61）。
+
+## 发现 #62: seed 第四查判据修正（supersedes E10 popseed_check2 描述）——population 行身份验证用 Xoroshiro 公式（FEATURES pass）；且「Java 基线」存在执行序依赖，跨 run/跨执行序对比必须声明执行序口径（260906-06）；candidate
+
+- **发现时间/发现者**：260906-06，core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / 探针采集有效性核验（第四查升级 + §9.7 执行序扩展）
+- **supersedes 指针（§15.4）**：取代 E10（260906-05 补录）确立的第四查判据「可复用 popseed_check2.py 复算 populationSeed = 身份验证」——java-LCG 公式命中的是 populateEntities（CheckedRandom）pass，**不是**特征生成身份；正确判据 = Xoroshiro 公式复算（.tmp/jungle-l-260906/pop_feature_xoroshiro.py）逐位比对 = FEATURES pass 身份验证，java-LCG 行仅作 chunk 锚点。原条目事实核（双 pop 并存、第四查纪律方向）不变。取代详情：.investigations/jungle-l/260906-06-errors.md E11 + j5-baseline-260906-06.md「第四查判据修正」节。
+- **观察/根因**：
+  1. 判据部分 = #61 的直接推论（双调用点 × 不同随机源），身份验证公式必须绑定目标 pass 的 baseRandom 类型。
+  2. 执行序部分：同 seed（8576294172403134396）下 mega 放置在实机 vanilla、服务器 pregen、Rust 三载体间**双向分歧**（交叉表：实机Y/pregenN 与 实机N/pregenY 各 1/11）——can_replace 读取邻 chunk 实况，mega 放置依赖邻 chunk 生成时序，**不存在唯一「Java 基线」**（#49/#18 家族第三形态：跨 run 伪差的机制化）。
+- **如何利用（判据 MUST）**：
+  1. Java 探针 population 行身份验证：Xoroshiro 公式复算逐位比对（FEATURES pass）；java-LCG 命中行 = populateEntities 行，只作 chunk 锚点。
+  2. 跨 run / 跨执行序（实机 vs pregen vs 任意载具）对比 MUST 声明执行序口径（§9.7 载体三要素扩展第四要素：执行序）——口径不可比时禁止作决策输入（本轮 ca_min 翻转评估即因此不作决策输入）。
+- **证据**：.investigations/jungle-l/j5-baseline-260906-06.md 核心发现 2 + judge 后封闭判别交叉表（2/11 双向分歧）；.tmp/jungle-l-260906/j5_align_260906-06.py。

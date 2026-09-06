@@ -549,3 +549,19 @@ versions/1.20.1/data/*   # 再重排除其内容
 - **证据**：`.investigations/jungle-l/260905-13-errors.md` E3。
 
 
+
+## 发现 #25 补充案例（#61): 诊断工具归位声明——concern2_nether_dump 收编 bin-diag（260906-05）；candidate
+
+- **发现时间/发现者**：260906-05，core.worker subagent 草稿 + 主会话应用。
+- **现象**：CONCERN-2 新增 nether 确定性 dump 工具留在 .tmp/concern2-260906/，无主状态。
+- **判据（MUST）**：被知识库判据引用为「标准载体」的 .tmp 工具 MUST 声明归位（AGENTS.md §八.13），不留无主状态；留 .tmp 迟早灭失。
+- **修复**：收编 worldgen-core/src/bin-diag/nether_region_dump.rs（头注 anchor.source 指 verdict 证据链 + wg_dir 参数化 + rustc 单编验证 OK）；ow 侧 idk7_region_dump.rs 已在 bin-diag，同族增殖（第二份维度变体）时考虑维度参数化合并。
+- **证据**：.tmp/concern2-260906/concern2_nether_dump.rs（原件）→ worldgen-core/src/bin-diag/nether_region_dump.rs（收编版）。
+
+## 发现 #25 补充案例（#8/#25 家族，260906-06）：env+sysprop 双通道同时失效——daemon 吞 env × 照抄历史脚本漏 -P 映射行
+
+- **现象**：j5_java_baseline_260906-06.ps1 首跑退出 0、forceload 正常，但 [SEEDLOG]/[MJT0] 全零。
+- **根因**：只设 env（WG_SEEDLOG/WG_TREEDIAG）而 gradle daemon 复用吞掉新 env（#32）+ 照抄 wgdiag_firstrun.ps1 时漏 `-PseedLog=1 -Ptreediag=1`（build.gradle findProperty→vmArg 映射，#8/#25）——双通道同时失效。
+- **判别签名**：日志**零 [SEEDLOG] 行**（门未开）而非打点异常（门开无数据）；「诊断开关生效验证 = 输出行为化（#37）」再证：先验 1 行样本再等全量。
+- **修复**：gradle --stop 杀 daemon + 补 -P 通道重采（1154 population 行）。
+- **证据**：.investigations/jungle-l/260906-06-errors.md E12。
