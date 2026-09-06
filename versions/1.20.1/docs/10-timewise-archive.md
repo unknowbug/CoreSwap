@@ -3002,3 +3002,19 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **V2 生产验证**（cmd-output/v2-forge-connector-verification-260906-03.md，Forge 47.4.5 + Connector beta.49，seed 7691421705105351955 与报告者同种子）：7 判据全 PASS——① mixin 生产 APPLY 全绿（首启曾 APPLY FAILED：refmap 包路径笔误 world/gen/chunk/Chunk→world/chunk/Chunk，修正二启绿）② end `release to vanilla: settings=minecraft:end` ③ 末地零 nether-intercept（旧误接管指纹消失）④ end 地形 vanilla 化（y1=air/y55-58=end_stone，bedrock 未命中）⑤ nether 接管不回归 ⑥ overworld 接管不回归 ⑦ 因果端点闭合（V2 补齐 V1 遗留的运行时日志端点）。§9.7 降级声明随行：mod 维度未本地装载实体复测、未做报告者口径全维度 region A/B diff。
 - ✅ **judge 审查**：三源核对（.investigations 快照 + 代码 diff + V1/V2 验证记录）通过；f_226623_ 误引勘误；V1 边界（因果端点待 V2）已由 V2 核销。
 - 🔍 **open（降级/边界）**：mod 维度放行与 end 走同一代码路径（settings id ∉ 接管集）机制同源但未本地实体复测；报告者整合包 A/B 复测待报告者执行；end 接管（Rust end 管线 + biome 判定）= 下一里程碑；overworld 变体 settings（amplified 等）现被放行 vanilla（行为较此前被 overworld.json 错误接管更正确，边界已注记）。
+
+---
+
+## 260906-04（实际 2026-09-06 15:43 起 Get-Date 锚定：end 接管开发块——摸底 → 轻量架构 → G1-G3 开发 → 对拍 → 生产验证 → confirmed）✅ 已确认（用户授权确认；judge MUST review-002 推荐可 confirmed）
+
+> 过程产物 `.investigations/end-takeover/`（00 摸底 verdict / 01 rust 现状 / 02 biome 规则 / 03 资源闭包 / 001 架构计划-dev / 260906-04-errors.md 五段式台账 / review-001 摸底 judge / review-002-final 收尾 judge）；通用模式 → workflow-patterns #56-#59、compiler-idioms #18/#19（subagent 草稿 → 主会话应用）。
+
+- ✅ **摸底（scout + worker subagent，Partial 静态审查）**：NEXT_SESSION「create_for_dim 硬编码 overworld」方向描述经廉价验证判定**已过时**（260905-01 拆分后已全参数化，nether 实证跑通）——缺口定性中小，轻量架构 3 要点（Rust 内核 / Java 接管 / 验证闭环）经用户批准。硬缺口 = `minecraft:end_islands` DF 节点（含 SimplexNoiseSampler ~100 行新写）+ EndBiomeSource 位置判定分类器（非 MultiNoise，假设已验证：只读 erosion，阈值三段 + 中心 4096L，02 篇规则提取齐全）。
+- ✅ **G1 Rust 内核**：SimplexNoiseSampler（复用 noise.rs GRADIENTS 表）+ EndIslands（CheckedRandom(seed)+skip(17292)，worldSeed 直传无 split）+ density_builder 注册 `minecraft:end_islands`；EndBiomeSource 分类器 + create_for_dim 按 settingsName=end 路由（BiomeClassifier::empty 分流，end 无 biome_params）。
+- 🔍→✅ **错误链 E1-E3（台账五段式）**：E1 新 match arm 落 catch-all 后静默失效；E2 Java long 乘法回绕改 wrapping（debug 溢出断言=免费回绕审计器）；E3 空列 heightmap 哨兵 MIN 直入 build_surface（end 全空气列特有，消费点映射 min_y-1）。
+- ✅ **E4/关键发现——插值 cell 尺寸硬编码**：DensityMacroSampler 硬编码 cell 4×8（overworld size 1/2 值），end size 2/1 应为 8×4 → 存档 A/B 岛面系统性 +1y（16385 air mismatch）。修复 = with_cells 参数化（settings.size_horizontal/vertical ×4），overworld/nether 参数恒等故行为恒等（judge PASS-3 静态复核）。
+- ✅ **E5/生产坑——维度形状 ≠ noise.height**：end chunk 实形 0/256 与 nether 同形（noise.height=128 是域混淆）；settings id + endActive 双闸唯一判别（zeroShape 改名编码事实，workflow-patterns #58 详写）。另：Forge 维度存档路径 = `world/DIM1|DIM-1`（非 Fabric 式 `world/dimensions/<ns>/<dim>`）——清维度清错路径 = 静默 no-op，v1/v2/v3 存档污染根源。
+- ✅ **三端对拍链（同 seed 7691421705105351955）**：组件级 SimplexNoise/EndIslands 4 seed 数值全等（Java EndProbe 自包含真值 vs Rust；含 -0.84375/0.5625 边界点；跨语言比对必须数值化——格式假阴性教训 #59）→ 引擎级 rust dump vs vanilla 存档：首跑 35520 差（cell +1y 为主）→ cell 修复后 18529 差（100% = vanilla 黑石柱/传送门 feature 域，地形层零差）→ **生产端到端（Forge mod jar vs vanilla 臂 DIM1 存档）：36/36 chunk 逐位 0 差异**（ab_regions.py palette↔id 逐块全等，y0..127 口径声明 §9.7）。
+- ✅ **judge 终审（review-002-final，MUST 级）**：推荐 confirmed——三源核对 7 项全 ✅；**哈希更正声明：终版 dll sha256 = 1B5AA1DEA49445A2…（2160640B），早期记录 96AD0411 为 cell 修复前旧 dll**。
+- ✅ **收尾跟进（用户 confirmed 前/中执行）**：① nether 共享路径回归——vanilla 臂 vs 1.0.25 基线 dll = 712 差、vs 1.0.26 新 dll = 914 差（basalt/blackstone 家族，同区域 36 chunk），差异量级在既有「同 jar 重跑非确定容差」（#10 家族）范围内，且三处共享改动对 nether 静态恒等（cell 参数恒等/wrapping 位模式恒等/哨兵映射 nether 不可达）——判无回归；② README.md / README.zh-CN.md 更新（end 接管 + Forge 生产级 + WorldgenRust→worldgen-core 路径 + 1.0.26）。
+- 📌 **open**：报告者 1.0.26 复测反馈按 BUG 卡契约处理；D3 SHOULD judge 缺席记流程台账（被 MUST 覆盖）；对拍输出文件建议内嵌 seed/argv 头注（产物自证，下轮执行）。
