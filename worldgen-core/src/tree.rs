@@ -701,7 +701,13 @@ impl TreeFeatureConfig {
                     let (qx, qy, qz) = (px + kx, py + iy, pz + kz);
                     let ok = can_replace_or_is_log(ctx, qx, qy, qz)
                         && (self.ignore_vines || ctx.block_at(qx, qy, qz) != ctx.blocks.id("minecraft:vine"));
-                    if !ok { return iy - 2; }
+                    if !ok {
+                        // 临时探针（260906-05 J5 门层定位，用后删）：get_top_position 首失败块
+                        if crate::placement::treediag_enabled() {
+                            eprintln!("[TPFAIL] p=({}, {}, {}) iy={} id={}", qx, qy, qz, iy, ctx.block_at(qx, qy, qz));
+                        }
+                        return iy - 2;
+                    }
                 }
             }
         }
