@@ -836,3 +836,15 @@ entries:
     # popseed_check2 绑定的是实体 pass → E10「污染 pass」归属反转（-4568 才是 FEATURES pass）。
     # 新证据：实机 vs pregen 2/11 双向分歧 → Java 基线无唯一性（执行序依赖）。
     # 关联：workflow-patterns #61/#62、compiler-idioms #20、E11/E12（260906-06-errors.md）。
+
+  # === jungle-l fan-out 判别：执行序依赖直证（260906-07，judge 通过，候选待用户拍板）===
+  - id: 're-code:jungle-l:fanout-260906-07'
+    path: '../.investigations/jungle-l/fanout-260906-07/'
+    kind: decision
+    status: candidate  # judge 260906-07 无阻塞通过：.b1(限定版)/E0/V1 升 candidate，.b2/.b3-R2 维持 draft
+    # 决定性证据：-Vanilla 客户端（同 seed 8576294172403134396、loom+fabric-loader 载体、vanilla worldgen）
+    # 旁观复验两分歧点均 Y（Targeted jungle_log），vs pregen 批量 forceload 469=N →
+    # 「同 seed 同代码、不同加载载体 → mega 集单点翻转」运行时直证；E0 矩阵（25 chunk 调度序）方向吻合。
+    # 实机 505=N 成孤例 → .b2(mods)/.b3(观察) 待实机 mods 清单；ca_min 翻转决策维持冻结。
+    # 下一步：E2a 同协议复跑 / E2b 分批 forceload / R2-a region NBT 考古。
+    # 关联：judge-verdict-260906-07.md、j5-baseline-260906-06（结论 B 升级）。

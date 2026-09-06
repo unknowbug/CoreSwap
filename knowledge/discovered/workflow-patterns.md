@@ -1161,3 +1161,47 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   1. Java 探针 population 行身份验证：Xoroshiro 公式复算逐位比对（FEATURES pass）；java-LCG 命中行 = populateEntities 行，只作 chunk 锚点。
   2. 跨 run / 跨执行序（实机 vs pregen vs 任意载具）对比 MUST 声明执行序口径（§9.7 载体三要素扩展第四要素：执行序）——口径不可比时禁止作决策输入（本轮 ca_min 翻转评估即因此不作决策输入）。
 - **证据**：.investigations/jungle-l/j5-baseline-260906-06.md 核心发现 2 + judge 后封闭判别交叉表（2/11 双向分歧）；.tmp/jungle-l-260906/j5_align_260906-06.py。
+
+## 发现 #63: 同 seed 同代码、不同加载载体即可造成 mega 集单点翻转——运行时直证「不存在唯一 Java 基线」；载体家族内的加载方式差本身是最便宜判别臂，但「集成服 vs 专用服」是未声明第二变量，命题必须限定（260906-07）；candidate（命题限定版）
+
+- **发现时间/发现者**：260906-07，fan-out 三候选（.b1/.b2/.b3）+ V1 用户实跑复验 + judge 审查（judge-verdict-260906-07.md）+ 用户补充确认（实机载体身份）；core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / 判别载体选型与跨载体命题限定（#62 执行序口径的直接运行时实锤延伸）
+- **现象**：同 seed（8576294172403134396）下，用户以 `run_rust_client.ps1 -Vanilla`（loom + fabric-loader + fabric-api、vanilla worldgen、无 Rust dll）客户端旁观复验，(469,71,-230) 与 (505,72,-261) 均 Y（站树干正中 Targeted jungle_log + /seed 截图闭环）；而 pregen 批量 forceload（Java vanilla）基线 469=N/505=Y → **Java-vs-Java 同 seed 不同加载载体下 (469) 单点翻转**（#65 厘清后本条对比双方均为 Java vanilla worldgen，证据更纯粹）。
+- **根因（机制）**：mega 放置 can_replace 读取 3×3 邻 chunk 特征实况 → 放置结果依赖邻 chunk 生成时序；同 seed 同 vanilla worldgen 代码下，「同载体家族内不同加载方式」（客户端集成服渐进加载 vs 专用服一次性 forceload 批量）已足以改变 FEATURES 完成序 → 单点有无级翻转。E0 邻居矩阵（e0-neighbor-matrix-260906-07.md，judge 实跑 25/25 复现）：pregen 内 25 chunk FEATURES 完成序 = 工作线程调度序非空间序，分歧 chunk 一个早跑邻未完成、一个极晚跑邻已完成。
+- **如何利用（判据 MUST/SHOULD）**：
+  1. **判别臂经验**：需要「同代码不同执行环境」对照时，同载体家族内换加载方式（渐进 vs 批量 forceload）就是最便宜的一臂。但 **loom `-PcppVanilla` ≠ 纯 vanilla**（loader 硬接线）；「-Vanilla」载体仍含 fabric-api mixin，表述禁写「纯 vanilla」。
+  2. **命题限定（§9.7）**：翻转实验的差异变量是「加载方式包」（执行序+线程模型+加载入口合取），不能唯一归因单变量；「集成服 vs 专用服」必须声明为第二变量。可升 candidate 的命题形态：「同 seed 同代码、不同加载载体 → mega 集非唯一」。
+  3. **n=1 复跑规则**：升 candidate 前补一次同载体复跑（近零成本）钉死载体级稳定性、排除 run 级非确定；配套 E2a（同协议 pregen 复跑）先于 E2b（分批 forceload）。
+- **证据**：.investigations/jungle-l/fanout-260906-07/{v1-vanilla-client-evidence-260906-07.md, e0-neighbor-matrix-260906-07.md, judge-verdict-260906-07.md}；.tmp/jungle-l-260906/e0_neighbor_matrix_260906-07.py。
+
+## 发现 #64: 未受控观察条件下产生的「真值表」必须降级标注——一次未开旁观的目测复验即看错，观察误差权重不能先验自判太弱（260906-07）；candidate
+
+- **发现时间/发现者**：260906-07，V1 复验边界声明 + judge 倾向 2 附议 + 用户实机观察看错自纠；core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / 观察条件受控性（#17 坐标钉死律的观察侧对偶：坐标钉死 = 输入侧受控，旁观/F3 截图 = 观察侧受控）
+- **现象**：原始 11 点「实机真值表」（260906-05）采集时「是否开旁观」未确认/未记录；本轮用户一次未开旁观的目测复验即看错（505 点），后自纠。
+- **根因（机制）**：目测（非旁观、无 F3 Targeted Block）对「树有无/归属」判定误差渠道不可封死（远处大树、藤蔓遮挡、chunk 未加载均致漏看/误归属）；未受控观察把**观察器误差**混入**被测系统差异**，交叉表格子级判别力被静默稀释——且与 #65 叠加：该表当时还被误当「Java vanilla 基线」，双重口径失真。
+- **如何利用（判据 MUST）**：
+  1. 人工观察真值入对照表前，观察条件必须受控并记录（spectator + F3 Targeted Block + 截图含 /seed）；未确认受控的行 MUST 降级标注，不得与受控行同级参与判别。
+  2. 「观察误差」候选权重不要先验自判太弱——一次实际失察即可翻案；孤例/疑点优先受控复验一锤定音再谈归因。
+  3. 观察侧与输入侧同权受「钉死」纪律约束。
+- **证据**：v1-vanilla-client-evidence-260906-07.md 边界节 + judge-verdict-260906-07.md §三（B3 权重回调）+ j5-baseline-260906-06.md（11 点表观察条件未记录）。
+
+## 发现 #65（最高价值）: 「实机观察」≠「vanilla Java」——对拍清单来源载具必须先核执行体，装了接管 mod 的实机是另一执行体（260906-07）；candidate
+
+- **发现时间/发现者**：260906-07（用户补充确认触发），core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / 执行体三元组（#36 家族；#62 口径违例的根源认定）
+- **现象**：260906-05 的「实机 11 点真值」一直被当「Java vanilla 基线」与 pregen/rust 对比，得出「实机 vs pregen 2/11 双向分歧」；用户确认该实机 modded 实例**只装了 CoreSwap mod（Rust worldgen 接管）**——11 点实为 **Rust ca_min=off 生成数据**，不是 Java vanilla。
+- **根因（机制）**：载具标签按「哪台机器/谁在操作」记，未按「哪个执行体在生成」记——「用户实机 vanilla 世界」的表述（j5-baseline:21）把**装了接管 mod 的 Rust 执行体**误标为 Java vanilla 执行体。后续所有「Java 基线 vs 实机」对比实际是 Rust-vs-Java 跨执行体对比：① #62「双向分歧」的口径违例由此而来（当时误当同执行体执行序差）；② 505 孤例消解——505=N 是 Rust ca_min=off 正常输出（ca_min=on 才有 505 Y），非谜题；③ .b2/M2「接管 mod 在实机端」由推测坐实。
+- **如何利用（判据 MUST）**：
+  1. 任何对拍/对照清单的**来源载具行必须核并记录执行体三元组**（#36：加载文件/构建产源/构建时间）——「实机」「用户世界」「客户端」是机器/操作标签，不是执行体标签；装了接管 mod 的实机 = Rust 执行体。
+  2. 「实机 vs 参照」类分歧在跨执行体前 MUST 先问一句：实机侧到底在跑谁的 worldgen？（mixin 接管日志 / mods 清单 / jar 内容三选一核实，一行命令成本。）
+  3. 由此产生的既有结论修正走 §15.4 取代链：j5-baseline「用户实机 vanilla 世界」需取代记录（原结论不删，supersedes 指针 + 一行推翻理由）；#62 的「双向分歧」表述限定为「Rust(ca_min=off) vs Java pregen 跨执行体分歧」——其跨载体对比必须声明执行序口径的判据本身不变。
+- **家族索引**：#36（探针≠生产执行体；本条是其「实机观察侧」第三形态）；#62（口径违例根源）；#64（同表叠加观察条件失真——一份数据两重口径失真的复合案例）。
+- **证据**：用户确认陈述（260906-07 主会话转录）；.investigations/jungle-l/j5-baseline-260906-06.md:21（待取代表述）；fanout-260906-07/judge-verdict-260906-07.md（§三 倾向 2/3 在本确认后相应收窄）。
+
+### #13 家族补充案例（260906-07）：grep「证明性零结果」必须先核自身转录——错抄的零结果制造假判别证据
+
+- **来源**：fanout-260906-07/.b3-observer-upstream.md §0 + judge-verdict-260906-07.md N1（judge 实测勘误）。
+- **现象**：.b3 记「grep `MJTD/MJTG p=(469|(505` 在 pregen log 零命中」；judge 实测：(469) 确为 0 命中 ✓，**(505) 实有 31 命中**（与 pregen 505=Y h30 自洽）——grep 记录本身转录失真。
+- **判据（MUST）**：以「零命中/无输出」作判别证据前，先重跑核对记录与实测一致——错抄的零结果凭空制造「机制差异」证据，且常与已知真值本可自洽对照出来。
+- **家族索引**：#13（零/空输出先查测量层）——前两例是探针/过滤器真没打到，本例是**记录层转录失真**（工具其实有输出）。

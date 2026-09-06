@@ -3018,3 +3018,16 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **judge 终审（review-002-final，MUST 级）**：推荐 confirmed——三源核对 7 项全 ✅；**哈希更正声明：终版 dll sha256 = 1B5AA1DEA49445A2…（2160640B），早期记录 96AD0411 为 cell 修复前旧 dll**。
 - ✅ **收尾跟进（用户 confirmed 前/中执行）**：① nether 共享路径回归——vanilla 臂 vs 1.0.25 基线 dll = 712 差、vs 1.0.26 新 dll = 914 差（basalt/blackstone 家族，同区域 36 chunk），差异量级在既有「同 jar 重跑非确定容差」（#10 家族）范围内，且三处共享改动对 nether 静态恒等（cell 参数恒等/wrapping 位模式恒等/哨兵映射 nether 不可达）——判无回归；② README.md / README.zh-CN.md 更新（end 接管 + Forge 生产级 + WorldgenRust→worldgen-core 路径 + 1.0.26）。
 - 📌 **open**：报告者 1.0.26 复测反馈按 BUG 卡契约处理；D3 SHOULD judge 缺席记流程台账（被 MUST 覆盖）；对拍输出文件建议内嵌 seed/argv 头注（产物自证，下轮执行）。
+
+---
+
+## 260906-07（实际 2026-09-06 工作块：jungle-l mega 双向分歧 fan-out 收敛 + V1 决定性复验 + 实机载体身份厘清 + judge 审查）🔍 阶段性结案（B1/R1 升 candidate 命题限定版；#65 口径修正待取代记录落盘；E2a/E2b 未做）
+
+> 过程产物 `.investigations/jungle-l/fanout-260906-07/`（.b1/.b2/.b3 / e0-neighbor-matrix / v1-vanilla-client-evidence / judge-verdict，脚本 `.tmp/jungle-l-260906/e0_neighbor_matrix_260906-07.py`）；通用模式 → workflow-patterns #63/#64/#65 + #13 家族补充案例（草稿待主会话应用 + judge）。
+
+- ✅ **实机载体身份厘清（用户确认，最高优先发现）**：260906-05「实机 modded」实例只装 CoreSwap mod（Rust worldgen 接管）——原「实机 11 点真值」实为 **Rust ca_min=off** 生成数据，非 Java vanilla。后果：①「实机 vs pregen 2/11 双向分歧」= Rust vs Java 跨执行体对比（#62 口径违例根源，当时误当 Java 基线；#62 判据本身不变，表述待限定）；② **505 孤例消失**（=Rust ca_min=off 正常输出，on 才有 505 Y，.b2/.b3 归属竞赛随之消解）；③ .b2/M2「接管 mod 在实机端」坐实；④ j5-baseline:21「用户实机 vanilla 世界」需 §15.4 取代记录；⑤ V1 的 (469) 翻转证据是 Java-vs-Java，不受影响反而更纯粹。
+- ✅ **V1 -Vanilla 客户端复验（用户实跑，决定性）**：loom+fabric-loader+fabric-api、vanilla worldgen、无 Rust dll，同 seed（8576294172403134396）旁观复验——(469,71,-230) 与 (505,72,-261) 均 Y（Targeted jungle_log + /seed 截图闭环）；对照 pregen（Java vanilla）469=N/505=Y → 「同 seed 同代码、不同加载载体 → mega 集单点翻转」运行时直证，B1/R1 升 candidate（命题限定版；judge N4：集成服 vs 专用服第二变量须声明；loom -PcppVanilla≠纯 vanilla）。
+- ✅ **E0 邻居完成序矩阵**：pregen 内 25 chunk FEATURES 完成序 = 工作线程调度序非空间序，分歧 chunk 一个早跑邻未完成、一个极晚跑邻已完成——与交叉表形态吻合；judge 实跑 25/25 复现（可升 candidate，待修 N3 计数 3→4）。🔍 caveat：行号序≈时间序仅秒级精度（多 worker stdout 队列微扰），结论用远离序对故稳健。
+- ✅ **judge 审查（judge-verdict-260906-07）**：无阻塞级问题；勘误 N1——.b3「(505) MJTD/MJTG 零命中」系转录失真（实测 31 命中，(469) 才是真零命中）——#13 家族补充案例；N2-N5（坐标标签/E0 计数/「纯 vanilla」表述+第二变量+n=1/截图原件落盘）待主会话回写。
+- ✅ **观察误差成本实证**：用户一次未开旁观的目测复验即看错（后自纠）——B3 权重自判「弱」被 judge 回调至「中」；11 点表观察条件未确认旁观，精度降级标注（#64；叠加 #65 后该表为双重口径失真样本）。
+- 🔍 **open（judge 下一步最小闭环，经 #65 厘清后重排）**：E2a 同协议 pregen 复跑（run 级确定性钉死）→ E2b 分批 forceload（B1 机制判别）；-Vanilla 客户端复跑 n=1→2；j5-baseline §15.4 取代记录落盘；N1-N5 勘误回写；ca_min 决策保持冻结待 E2b 同口径 A/B。~~实机 mods 清单（.b2 E1）/505 孤例归属~~（经 #65 消解/坐实，撤销）。
