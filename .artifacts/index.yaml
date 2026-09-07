@@ -976,3 +976,19 @@ entries:
     #       dll sha 基线：7A411E013F2EAA25BCD96E5BB06999F84D252CA95AFD3D7E763DCD250F6A9FD1（2178560B，替换 87C35BD6/CCB5BD73/09A11F55）。
     # 关联：.investigations/realmod-e2e/（排查记录 + review-260907-09-001）、.tmp/realmod-smoke*-260907-09.log、
     #       .tmp/scan-*-260907-09.py、a-group-4-gaps-260907-05.md 缺口2/3/4、NEXT_SESSION 260907-08 开工点 1。
+
+  # === realmod 修复成果 Forge+Connector 生产环境 e2e 实测（260907-10，judge PASS-with-conditions 条件已应用）===
+  - id: 'swe:forge-prod-e2e-260907-10'
+    path: 'forge-prod-e2e-260907-10.md'
+    kind: engineering
+    status: candidate  # judge PASS-with-conditions 三条件已应用；confirmed 待用户拍板
+    # 内容：260907-09 realmod 修复成果（dll 7A411E01）在 Forge 47.4.5 + Sinytra Connector beta.49 生产（SRG）
+    #       端到端实测：V1 PASS（env CORESWAP_DEFAULT_BLOCK + -Dcpp.blockRegister=1 下 test_brick 672/144 sections，
+    #       post-Done forceload 16 chunks）+ V4 三元组/SRG 载体 PASS + V2/V3 §9.7 声明收口（不经生产特有层，
+    #       生产复跑判别力结构为零）。发现：生产/开发口径参数缺失第二实例（build-tooling #32，#28 家族）——
+    #       -Dcpp.blockRegister 门控 dev 经 gradle -P→-D 映射自动带入、生产裸 java 无携带 → 注册链下半断。
+    #       修复：user_jvm_args.txt +1 必带项（git 外）。
+    # 验证：三轮 boot 日志（.tmp/forge-prod-v1b-260907-10-boot.log PASS 轮）+ 扫描输出落盘（.tmp/scan-v1b-out-260907-10.log）
+    #       + judge 独立重算三元组逐位一致（review-260907-10-001）。
+    # 关联：.investigations/realmod-e2e/（review-260907-10-001 + knowledge-draft-260907-10）、
+    #       build-tooling #32/#31补充、workflow-patterns #33补充、架构计划-260907-10.md、NEXT_SESSION 260907-09 开工点 1。

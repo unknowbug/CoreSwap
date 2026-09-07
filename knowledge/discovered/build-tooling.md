@@ -665,3 +665,16 @@ marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却
 - **观察**：loom 子工程产物两套：devlibs 未 remap `<name>-dev.jar`（named）与 remapped 生产 jar。dev runServer 是 named 载体，run/mods 必须放 **-dev.jar**；remapped jar 放进去类名对不上。
 - **如何利用**：dev 环境内容 mod 验证 → `build/devlibs/*-dev.jar` 入 `run/mods/`；forge-server/Connector 才用 remapped jar。放错载体判别签名 = mod onInitialize 自证打印不出现。
 - **证据**：.artifacts/realmod-e2e-260907-09.md §1/§7（生产环境未测，idk 已声明）。
+
+**#31 补充案例（260907-10）**：remapped jar 进 Forge+Connector 生产 mods + post-Done forceload 观察判据第三轮复用确认——主线 `coreswap-1.0.26.jar` 与 content-test `content-test-1.0.0.jar` 均以 remapJar 产物进 `runtime/forge-server/mods/`（SRG 载体，boot 日志 `server-...-srg.jar` 在位），forceload 在 `Done (13.928s)` 之后触发（#80）。来源：.artifacts/forge-prod-e2e-260907-10.md §1/§2。
+
+## 发现 #32: 生产/开发口径参数缺失第二实例——`-Dcpp.blockRegister` 门控生产侧无携带，注册链下半断 → 惰性解析 miss 全 AIR（260907-10）
+
+- **时间/置信度/module**：260907-10；candidate；build-tooling / 生产口径参数清单（**#28「冒烟口径 ≠ 存档口径」家族第二实例**；#8「-P→-D 映射遗漏」家族跨口径形态）。
+- **来源定位**：.artifacts/forge-prod-e2e-260907-10.md §3；CppBridge.java:168（sysprop 门控默认关）。
+- **现象**：三轮对照——轮1/轮2 env override 行为化日志三维命中（`[WGH] env override ...`），但 region 扫描 test_brick 恒 **0**；boot 日志 `[BLOCKS] unknown block 'testcontent:test_brick' -> AIR (register via wg_register_block)` ×3 维度，全日志**无任何 `[BLOCKS-REG]` 行**。轮3（user_jvm_args.txt 追加 `-Dcpp.blockRegister=1`）后 test_brick = 672 命中 / 144 sections，`[BLOCKS-REG] ... java_raw=1003 rust_id(三域 1003) writeback=...` 在场。
+- **根因**：`CppBridge.registerModBlocks()` 被 `-Dcpp.blockRegister` sysprop 门控默认关。dev 口径 260907-09 经 gradle `-PblockRegister`→`-D` vmArg 映射自动带入；生产 run.bat 裸 java 口径无该映射环节 → mod 方块从未注册进 Rust registry → #79 惰性解析按名 miss → default_block 整片 AIR。机制层：**注册是链路独立的下半段**——env override（上半段，分支选择）生效 ≠ 方块名可解析（下半段，注册表内容）；两段由不同参数分别门控，只验上半段会误判「链路已通」。
+- **定位**：两段行为化日志组合判读——① `[WGH] env override` 命中（分支活）；② `[BLOCKS-REG]` 缺席 + `[BLOCKS] unknown block 'X' -> AIR` ×维度数（惰性解析 miss 直证）。注意：PASS 轮 boot 早期（世界创建时）也会出现 unknown 行（注册在其后），unknown 行**在场不作判别**，`[BLOCKS-REG]` 有无才是判别面。
+- **修复**：`runtime/forge-server/user_jvm_args.txt` 追加 `-Dcpp.blockRegister=1`（生产口径必带清单 +1）。注：值 `1` 同时解析为注册 limit=1，只注册首个 mod 块（test_lamp 恒 0 属预期）；多 mod 块验证时 limit 须调大。
+- **教训**：① 跨口径参数清单**按口径分组维护**，新门控参数（sysprop/env/`-P` 均同）加入时 MUST 同步登记每个口径的携带方式——映射环节本身是口径差异点；② **「单段行为化日志命中 ≠ 全链通」**——每个参数门控的段都要有自己的在场/缺席证据（#37 家族延伸）。
+- **证据**：`.tmp/forge-prod-v1-260907-10-boot.log`（FAIL 轮）vs `.tmp/forge-prod-v1b-260907-10-boot.log`（PASS 轮）；region 扫描 0 vs 672。
