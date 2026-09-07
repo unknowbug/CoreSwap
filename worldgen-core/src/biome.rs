@@ -433,7 +433,15 @@ impl BiomeClassifier {
                 Some((ns, s)) => (ns, s.to_string()),
                 None => ("minecraft", id.clone()),
             };
-            if id_ns != dir_ns { continue; }
+            if id_ns != dir_ns {
+                // 260907-09（缺口 4 修复）：同名 override——mod 目录（dir_ns≠minecraft）里存在与
+                // vanilla biome id 同短名的文件时允许覆盖加载（MC 惯例：mod 以
+                // data/<modid>/worldgen/biome/<vanilla_biome>.json 覆盖 vanilla 定义）。
+                // 260907-05 原实现直接 continue，vanilla biome 的同名覆盖恒被跳过（实测 hash 恒等）。
+                if dir_ns == "minecraft" { continue; }
+                let override_path = format!("{}/{}.json", biome_dir, name);
+                if !std::path::Path::new(&override_path).exists() { continue; }
+            }
             let path = format!("{}/{}.json", biome_dir, name);
             let txt = match fs::read_to_string(&path) {
                 Ok(t) => t,
@@ -498,7 +506,12 @@ impl BiomeClassifier {
                 Some((ns, s)) => (ns, s.to_string()),
                 None => ("minecraft", id.clone()),
             };
-            if id_ns != dir_ns { continue; }
+            if id_ns != dir_ns {
+                // 260907-09（缺口 4 修复）：同名 override，语义同 load_carvers。
+                if dir_ns == "minecraft" { continue; }
+                let override_path = format!("{}/{}.json", biome_dir, name);
+                if !std::path::Path::new(&override_path).exists() { continue; }
+            }
             let path = format!("{}/{}.json", biome_dir, name);
             let txt = match fs::read_to_string(&path) {
                 Ok(t) => t,
@@ -518,6 +531,9 @@ impl BiomeClassifier {
                 }
             }
             if !features.is_empty() {
+                if dir_ns != "minecraft" && id_ns == "minecraft" {
+                    eprintln!("[biome] override load {} from {}", id, biome_dir);
+                }
                 self.features.insert(id.clone(), features);
                 count += 1;
             }

@@ -496,6 +496,9 @@ pub struct SurfaceBuilder<'a> {
     terracotta_bands: Vec<BlockId>,
     // 260907-05（A 组缺口 2）：default_block 从 settings JSON 读（默认 stone，handle 创建期注入）
     default_block: BlockId,
+    // 260907-09：default_block 名字（惰性解析用——mod 方块在 handle 创建后才注册，
+    // 创建期 id() 解析会 miss 成 AIR；消费点按名字重解析，注册后自动命中）
+    default_block_name: String,
 }
 
 impl<'a> SurfaceBuilder<'a> {
@@ -547,11 +550,17 @@ impl<'a> SurfaceBuilder<'a> {
             blocks,
             terracotta_bands,
             default_block: blocks.id("minecraft:stone"),
+            default_block_name: "minecraft:stone".to_string(),
         }
     }
 
     // 260907-05：创建期注入 settings.default_block（JSON 优先，handle 调用）
     pub fn set_default_block(&mut self, id: BlockId) { self.default_block = id; }
+
+    // 260907-09：default_block 惰性按名解析——消费点每 chunk 调一次（HashMap 读，非热路径每块）。
+    // 名字已注册（含 mod 方块运行时注册）→ 命中其 id；未注册 → 走 blocks.id 的一次性告警 + 动态注册路径。
+    pub fn set_default_block_name(&mut self, name: String) { self.default_block_name = name; }
+    pub fn default_block_id(&self) -> BlockId { self.blocks.id(&self.default_block_name) }
 
     fn get_noise(&self, key: &str) -> &DoublePerlinNoiseSampler {
         self.samplers.get(key).expect("missing noise sampler").as_ref()
@@ -1232,7 +1241,7 @@ impl<'a> SurfaceBuilder<'a> {
             secondary_cache: Cell::new(0.0),
         };
 
-        let default_block = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
+        let default_block = self.default_block_id(); // 260907-09：惰性按名解析（mod 方块注册后自动命中）；260907-05 原 self.default_block
         let air_block = self.blocks.id("minecraft:air");
         let water_block = self.blocks.id("minecraft:water");
         let lava_block = self.blocks.id("minecraft:lava");
@@ -1409,7 +1418,7 @@ impl<'a> SurfaceBuilder<'a> {
         bottom_y: i32,
         world_top_y: i32,
     ) {
-        let default_block = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
+        let default_block = self.default_block_id(); // 260907-09：惰性按名解析
         let air_block = self.blocks.id("minecraft:air");
         let water_block = self.blocks.id("minecraft:water");
         // Java L210：e = min(|badlands_surface(x,0,z)*8.25|, badlands_pillar(x*0.2,0,z*0.2)*15.0)

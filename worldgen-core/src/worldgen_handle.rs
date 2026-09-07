@@ -202,7 +202,11 @@ impl WorldgenHandle {
                 "minecraft:stone".to_string()
             });
         // 诊断覆盖（260907-05，创建期读一次，非热路径；A/B 对拍默认块用，#20 恒等式自检随用随证）
-        if let Ok(ov) = std::env::var("CORESWAP_DEFAULT_BLOCK") { default_block_name = ov; }
+        // 260907-09：加一次性行为化日志（#37 判据：env 生效证据必须行为化，沉默 override 不可判别）
+        if let Ok(ov) = std::env::var("CORESWAP_DEFAULT_BLOCK") {
+            eprintln!("[WGH] env override CORESWAP_DEFAULT_BLOCK={} (was {})", ov, default_block_name);
+            default_block_name = ov;
+        }
         // 维度参数从 settings 读（非硬编码 overworld -64/384）
         let mut min_y = -64;
         let mut noise_height = 384;
@@ -389,6 +393,9 @@ impl WorldgenHandle {
         let default_block = blocks_leaked.id(&default_block_name);
         let mut sb = SurfaceBuilder::new(samplers, splitter, sea_level, blocks_leaked);
         sb.set_default_block(default_block);
+        // 260907-09：注入名字供消费点惰性解析——mod 方块在本 handle 创建后才经 wg_register_block_id
+        // 注册，创建期 id() 解析会 miss 成 AIR（realmod e2e 实测：整片地形被填成空气）。
+        sb.set_default_block_name(default_block_name.clone());
         // surface_rule：overworld 用已验证的代码规则；其他维度用 settings.surface_rule JSON 数据驱动（对齐 C++）
         let df_ns2 = df_ns.clone();
         let rule = if df_ns2 == "overworld" {
@@ -615,7 +622,7 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let air = self.blocks.id("minecraft:air");
-        let stone = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
+        let stone = self.sb.default_block_id(); // 260907-09：惰性按名解析（mod 方块创建后注册）；260907-05：settings.default_block（原硬编码 stone）
         let water = self.blocks.id("minecraft:water");
         let lava_id = self.blocks.id("minecraft:lava");
 
@@ -776,7 +783,7 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let air = self.blocks.id("minecraft:air");
-        let stone = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
+        let stone = self.sb.default_block_id(); // 260907-09：惰性按名解析；260907-05：settings.default_block（原硬编码 stone）
         let water = self.blocks.id("minecraft:water");
         let lava_id = self.blocks.id("minecraft:lava");
         let mut aq = crate::aquifer::Aquifer::new(

@@ -633,3 +633,35 @@ marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却
   3. handle=0 / enabled=false 是 CppBridge 数据路径失败的判别签名，注册类冒烟见到全 -1 先查它，不先查注册实现。
 - **家族索引**：#15（裁剪参数清单裁掉必带项——本条为其对偶形态）；#22（缓存 marker 单判）同属「历史判据跨场景复用前核归属」上位原则。
 - **证据**：.tmp/blockreg-smoke3-260907-08.log（enabled=false 全 -1）vs .tmp/blockreg-smoke4-260907-08.log（去参后 enabled=true stageMask=3 + 显式 id 1003 三句柄对齐）；.artifacts/jni-blockid-fix-260907-08.md 失败轮记录。
+
+## 发现 #29: RCON 协议 type 字段为 4 字节 int（length = len(payload)+10）——1 字节 type 帧被静默误解析，auth 偶然通过 + 命令超时假象（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（帧格式修正后 forceload/stop 全部立通）；build-tooling / RCON 客户端实现。
+- **现象**：自研 RCON 客户端发 forceload 后无响应，现象酷似「服务器主线程挂死」（smoke8-10 三轮）；但 auth 又时而「成功」，服务器端无报错，watchdog 无触发。
+- **根因**：RCON 帧格式 = `[length:int32][requestId:int32][type:int32][payload][0x00 0x00]`，type 与 requestId 都是 **4 字节小端 int**；客户端把 type 写成 1 字节 → 整帧长度与字节布局全错。服务器按 length 读取时帧边界错位，auth 包恰因短 payload + 错位边界「偶尔」被容忍，命令包则进入无响应/Unknown request——故障面在客户端编码，服务器完全无辜。
+- **定位**：不疑服务器（watchdog/日志干净）→ 最小字节帧核对协议规范，一眼看出 type 域 1B vs 4B。判别签名：「auth 偶然通过 + 命令一律超时 + 服务器侧零异常」三联 = 客户端帧格式错误，不是服务端问题。
+- **修复/判据**：
+  1. RCON 帧统一 int32 LE 编码 type/requestId，length = len(payload) + 10（4+4+4+2 尾零）。
+  2. 自研二进制协议客户端首通后，先发一条已知回显类命令（如 `list`）验证往返，再用于判别实验——帧格式错误会伪装成任何远端故障。
+  3. 「远端疑似挂死」先排除自研客户端编码：服务器日志/watchdog 干净时优先疑测量侧。
+- **家族索引**：与 #22（Java 侧 rcon 10s 共享连接超时）互补——#22 是超时口径坑，本条是帧编码坑，两者都伪装成「命令无响应」。
+- **证据**：.investigations/realmod-e2e/realmod-e2e-260907-09.md smoke8-10 轮次；.artifacts/realmod-e2e-260907-09.md §6。
+
+## 发现 #30（#23 家族新形态）: rustc 单编 bin-diag 链根路径 `target/release/libWorldgenRust.rlib` = 陈旧缓存——`cargo build -p worldgen` 不刷新依赖包根产物，必须链 deps 最新 hash rlib（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（mtime 对比 + 修正后诊断输出含新行为化日志实锤）；build-tooling / cargo 产物布局（#23 家族第四形态）。
+- **现象**：rustc 单编 bin-diag（如 diag_modns.exe）用 `--extern WorldgenRust=target/release/libWorldgenRust.rlib`，链接成功但诊断 exe 长时间反映旧代码行为——修复已进源码、cargo 构建显示 Finished，诊断结果却不变。
+- **根因**：`cargo build -p worldgen`（薄壳 cdylib）**不刷新依赖包 worldgen-core 的根路径产物** `target/release/libWorldgenRust.rlib`（历史遗留快照）；cargo 正常增量走 `target/release/deps/libWorldgenRust-<hash>.rlib`。rustc 手工单编引用根路径 rlib = 引用无构建图维护的陈旧文件。
+- **定位/判据**：**根 rlib mtime vs deps 目录最新 rlib mtime 对比**——根产物 mtime 早于源码最近修改即必陈旧；辅证 = 诊断 exe 输出缺少本轮新增的行为化日志行。
+- **修复/判据**：
+  1. rustc 单编 bin-diag 的 --extern 一律指向 deps 目录最新 hash rlib（`Get-ChildItem target\release\deps\libWorldgenRust-*.rlib | sort LastWriteTime | select -Last 1`），禁用根路径产物。
+  2. 「cargo 构建绿 + 诊断行为旧」组合 = 先查链接产物新鲜度，不先疑诊断代码。
+- **家族索引**：#23（cargo -p 依赖 rlib 陈旧假绿）第三形态；#16（bin-diag 旧 exe 假阴性）同族上位原则；#27（marker 新鲜度）。
+- **证据**：.artifacts/realmod-e2e-260907-09.md §5；.investigations/realmod-e2e/realmod-e2e-260907-09.md 执行体三元组段。
+
+## 发现 #31 简记: 测试载体判据——dev loom 子工程 jar 用 devlibs 未 remap 的 `-dev.jar` 进 dev run/mods（named 映射）；remapped jar 只进生产/Connector 场景（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（content-test 实测双向验证）；build-tooling / loom jar 载体选择。
+- **观察**：loom 子工程产物两套：devlibs 未 remap `<name>-dev.jar`（named）与 remapped 生产 jar。dev runServer 是 named 载体，run/mods 必须放 **-dev.jar**；remapped jar 放进去类名对不上。
+- **如何利用**：dev 环境内容 mod 验证 → `build/devlibs/*-dev.jar` 入 `run/mods/`；forge-server/Connector 才用 remapped jar。放错载体判别签名 = mod onInitialize 自证打印不出现。
+- **证据**：.artifacts/realmod-e2e-260907-09.md §1/§7（生产环境未测，idk 已声明）。

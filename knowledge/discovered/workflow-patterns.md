@@ -1378,3 +1378,37 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   3. 「sha 变了」在 Rust release 域不构成异常信号本身；异常信号 = 同一轮 rebuild 复核后仍与预期不符。
 - **家族索引**：#10（同 dll 重跑非确定容差——本条为构建产物 sha 形态）。
 - **证据**：260907-06 rebuild 记录（D9085130→DC8FF3A2）；260907-07 rebuild 复核（DC8FF3A2 与 NEXT_SESSION 记录逐位一致）。
+
+## 发现 #79（最高价值·错误优先）: 「创建期解析 + 运行期注册」类资源必须惰性/可重解析——default_block 创建期解析 mod 方块名 miss → 整片 AIR（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（实机数据层证据 + 修复后复现 570 段 + 对照臂双证）；workflow-patterns / 资源生命周期时序（跨语言接线通用）。
+- **现象**：真实内容 mod 方块 `testcontent:test_brick` 作 `CORESWAP_DEFAULT_BLOCK` 时，Rust 区块整片地形填成空气；日志 `[BLOCKS] unknown block 'testcontent:test_brick' -> AIR`（创建期一次性打印）。
+- **根因**：`WorldgenHandle::create_for_dim` 在**创建期**做 `blocks.id(default_block_name)` 解析，而 mod 方块注册（`wg_register_block_id`，CppBridge.registerModBlocks）发生在 SERVER_STARTED——**晚于 handle 创建**。创建期解析 miss → default_block 落到 AIR 兜底，后续每 chunk 地形填充全部继承空 id。机制层面：名字解析是一次性快照，注册是运行期增量——**跨创建边界的名字解析是时序陷阱**，两侧行为各自正确、组合即错。
+- **定位**：env override 行为化日志（smoke7 三维命中证明 env 链通、排除 env 死）+ 全空气 region 直方图（整片 AIR 而非局部缺失 → 指向 default_block 而非 surface/feature 层）→ 创建期 `unknown block` 日志行锁死解析时点。
+- **修复**：SurfaceBuilder 增 `default_block_name` 字段，消费点 `default_block_id()` **惰性按名解析（每 chunk 一次，非每块）**；worldgen_handle.rs（fill_terrain_column / diag_pre_surface_column）与 surface_rules.rs（build_surface / place_badlands_pillar）四个消费点改走惰性解析。默认路径（minecraft:stone/netherrack/end_stone）名字创建期已注册，解析结果恒等，零语义扰动（对照臂 `minecraft:coarse_dirt` 同法 570 段落世界双证）。cargo test 7/7。
+- **教训/判据**：
+  1. 任何「创建期解析 + 运行期注册」组合的资源（id 表/注册表/命名查找），解析必须惰性或可重解析，解析点必须晚于最晚注册时点——不为最晚注册者设计 = 对第一个 mod 内容即坏。
+  2. 「先注册后创建」的时序假设要写成结构保证（如 CppBridge.registerModBlocks 排 SERVER_STARTED），并在接线上声明依赖的时序窗口。
+  3. 整片统一异常（全 AIR/全 stone）优先怀疑 default/兜底值解析失败，而不是逐层地形逻辑。
+- **证据**：.investigations/realmod-e2e/realmod-e2e-260907-09.md（smoke2-12 轮次表）；.tmp/realmod-smoke11/12-260907-09.log；.artifacts/realmod-e2e-260907-09.md §2。
+
+## 发现 #80: spawn 预生成时序——SERVER_STARTED 之前 spawn 区块已由 vanilla 生成，vivo 写回验证必须 post-Done 触发新区块（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（smoke2-6 假象 → smoke12 post-Done forceload 实锤）；workflow-patterns / 验证载体时序判据。
+- **观察**：dev runServer 启动时 spawn 区块在 SERVER_STARTED（Rust handle 创建点）**之前**已由 vanilla 生成完毕——启动后直接观察 spawn 周边地形，看到的全是 vanilla 产物，与 Rust 接管是否生效无关。
+- **证据**：smoke2-6 设 env default_block 后「世界零变化」被误读为 env 死；smoke12 改用 RCON `forceload add 800 800 863 863`（post-Done 新区块）后同 env 下 728 chunks 中 test_brick 570 palette 段——同一 env、同一执行体，唯一变量是观察区块的生成时点。
+- **如何利用**：vivo Rust/接管层写回验证的观察对象**必须是 Done 之后触发生成的新区块**（forceload/RCON/tp 远坐标均可）；启动即看 spawn 区块的验证方案对「接管是否生效」无判别力。与 #50（接管 init 晚于 Done → 同存档两种来源并存）互补：#50 管装饰混入，本条管「spawn 区块整体不可用作判别臂」。
+- **家族索引**：#50（接管生效 chunk 范围核查）的时序面；#37（env 判别行为化）叠加因素。
+- **证据**：.investigations/realmod-e2e/realmod-e2e-260907-09.md §观察方法判据；.artifacts/realmod-e2e-260907-09.md §6。
+
+## 发现 #81: 「A=B 恒等」不能证明 env/覆盖分支生效——两臂可能同走旧路径，A=B 是 env 死与真恒等的公共观测（260907-09）
+
+- **时间/置信度/module**：260907-09；candidate（方法论补案例，因果链已闭合）；workflow-patterns / 判别实验设计（#20/#37 家族）。
+- **观察**：260907-05 A 组缺口 2 的「mod settings 路径 vs 短名路径 A=B 逐位恒等 = 零扰动」结论，在本块发现其 A=B 同样兼容「env/覆盖通道整个死了、两臂都走旧路径」——恒等观测无法区分「分支生效且零扰动」与「分支从未生效」。缺口 4 同名 biome override 的实测（修复前 8×8 AGG 恒等 = 覆盖恒被 skip）证实了该 idk 为真缺陷。
+- **根因**：A=B 恒等只证明「两臂输出相同」，不证明「被测分支在任一臂中被执行」。自变量（分支是否激活）从未被观测，B 臂的「mod 路径」在 skip 规则下实际退化为 vanilla 路径。
+- **如何利用（判据）**：
+  1. 分支/覆盖/env 类判别的闭环证据 = **行为化分支日志**（#37：如 `[biome] override load` ×5、`[WGH] env override` ×3）**加上** A/B hash 双向变化（生效臂 AGG ≠ baseline + 恒等副本回归 = baseline），二者缺一不可。
+  2. 「自变量真被改变」恒等式自检（#20）在覆盖/分支场景的形态：先证明分支被执行（单边改动使 hash 变），再谈恒等=零扰动。
+  3. 见到 A=B 恒等，先问「若分支死了，观测是否同样恒等？」——是则恒等无判别力。
+- **家族索引**：#20（死参数假判别）+ #37（env 行为化证据）+ #32（daemon 死同值）家族补案例。
+- **证据**：.artifacts/a-group-4-gaps-260907-05.md（原 A=B 交付）vs .artifacts/realmod-e2e-260907-09.md §4（修复后 AGG bea29a995b01b3d3 → 0bfff659653ce8a7 + override load ×5 行为化命中）。

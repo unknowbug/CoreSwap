@@ -960,3 +960,19 @@ entries:
     #       + next_id 推进 1004 不碰撞。dll sha 基线：87C35BD6520A1455C792E185DF10317DA1937172DABB36A98F3FED3D2424C776（替换 230B45A9/C7AD）。
     # 关联：build-tooling #28（-PcppWorldgenDir 口径反转）、compiler-idioms #21/#22、
     #       .tmp/verification-260907-08.log、.tmp/blockreg-smoke*-260907-08.log、NEXT_SESSION 260907-07 开工点 1。
+
+  # === 真实内容 mod 端到端实测（260907-09，judge PASS-with-conditions 条件已应用）===
+  - id: 'swe:realmod-e2e-260907-09'
+    path: 'realmod-e2e-260907-09.md'
+    kind: engineering
+    status: candidate  # judge PASS-with-conditions 条件 1/2 已应用（override 证据落盘 + 本条目）；confirmed 留用户
+    # 内容：content-test loom 子工程载体（testcontent:test_brick/lamp）+ 缺陷一修复（default_block 创建期解析
+    #       miss mod 方块 → SurfaceBuilder default_block_name 惰性按名解析，4 消费点）+ 缺陷二修复（biome.rs
+    #       缺口4 skip 规则使 vanilla biome 同名 override 恒跳过 → mod 目录 override 分支 + 行为化日志）
+    #       + N5 应用（writeback 反查按 rust_id）+ env.CORESWAP_DEFAULT_BLOCK 行为化打印。
+    # 验证：cargo test 7/7 + 实机 r.1.1 728 chunks test_brick 570 palette 段落世界（RCON forceload post-Done，
+    #       spawn 预生成在 SERVER_STARTED 前 = vanilla 的时序判据）+ 缺口3 原生两臂 hash 逐位恒等（bea29a99…）
+    #       + 缺口4 override 臂 0bfff659…≠baseline（.tmp/modns-override-260907-09.log）+ 恒等副本/baseline 零扰动双向回归。
+    #       dll sha 基线：7A411E013F2EAA25BCD96E5BB06999F84D252CA95AFD3D7E763DCD250F6A9FD1（2178560B，替换 87C35BD6/CCB5BD73/09A11F55）。
+    # 关联：.investigations/realmod-e2e/（排查记录 + review-260907-09-001）、.tmp/realmod-smoke*-260907-09.log、
+    #       .tmp/scan-*-260907-09.py、a-group-4-gaps-260907-05.md 缺口2/3/4、NEXT_SESSION 260907-08 开工点 1。
