@@ -13,7 +13,7 @@ use jni::{Env, EnvUnowned};
 use WorldgenRust::api::{
     wg_clear_beardifier, wg_create, wg_density_points_per_chunk, wg_density_xz_interval,
     wg_density_y_interval, wg_destroy, wg_fill_blocks_multi, wg_fill_density, wg_get_flags,
-    wg_height, wg_min_y, wg_set_beardifier, wg_set_flags,
+    wg_height, wg_min_y, wg_register_block, wg_set_beardifier, wg_set_flags,
 };
 
 const BLOCK_COUNT: usize = 16 * 16 * 384;
@@ -66,6 +66,25 @@ pub extern "system" fn Java_wg_CppWorldgen_destroy<'frame>(
         }
         Ok(())
     });
+}
+
+// 260907-07（C1 闭环前置）：mod 方块注册 JNI 接线——调用 wg_register_block（api.rs:90）。
+// 返回：该名字的 Rust 动态 id（已存在返回既有 id）；handle/name 无效返回 -1。
+// 注意：返回的是 Rust blocks.json max+1 起的动态 id，≠ Java raw id（方案 C 冒烟验证点，错位单独开卡）。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_registerBlock<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong, name: JString,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
+            }
+            let n = env.get_string(&name)?.to_string();
+            let c_name = std::ffi::CString::new(n).map_err(|_| Error::JavaException)?;
+            Ok(wg_register_block(handle as *mut c_void, c_name.as_ptr()))
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }
 
 // 句柄级阶段开关（双跑修复 2026-09-08）：Java CppBridge 在 init/initNether 后设 flag 关 Rust carver/features。

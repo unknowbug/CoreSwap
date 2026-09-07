@@ -1342,3 +1342,39 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   4. hash 报告必须带 hash↔文件名对应关系（本轮草稿曾把 nether/end 两 hash 对调转录，Get-FileHash 按文件名字母序输出，主会话应用时核对更正——#13 家族「转录失真」又一形态）。
 - **家族索引**：#48（双采集对拍）、#47（golden 逐位法）、#20（恒等式自检）、#18/#49（跨 run/跨版本基线不可续推——本条为其规避方案）、#37/#53（env 门控纪律）、#13（转录失真——hash↔文件名对应）。
 - **证据**：`.artifacts/a-group-4-gaps-260907-05.md` + `.tmp/a-group-260907-05/`（end A=B=D45E938E…，nether A=B=1AC5965B…，seed 12345 各 8×8 chunks，IDK7 确定性 dump）。
+
+---
+
+## 发现 #77: 「回滚 ≠ 引用面清理」——撤回完整性检查必须含引用面扫描（配置/脚本/probe 默认值的路径引用），源码 hunk 零残留不构成回滚完整（260907-07）；candidate
+
+- **发现时间/发现者**：260907-07，core.worker subagent 草稿 + 主会话应用。来源课题：260907-06 工作块事故复盘 + 260907-07 修复轮（judge PASS-with-conditions）。
+- **module**：workflow-patterns / 回滚撤回完整性（#36「执行体三元组/权威源核对」家族相邻但独立——#36 管「信谁」，本条管「回滚清干净没」）
+- **现象**：260907-06 把 Java 改动错误落到外部目录 E:\PYTHON\MC 后执行回滚：`git status` 零改动、源码 grep 零命中——「源码面」回滚干净。但构建配置/脚本里的外部路径引用**全部残留**：gradle.properties `org.gradle.java.home`、run_rust_client.ps1 `JAVA_HOME`×2、build.gradle `hs_err`×2、JniProbe/ReadWorldProbe 默认值——下一轮构建直接失败（"Java home invalid"），事故影响面跨界存活到后续工作块。
+- **根因（机制）**：「回滚完整性」被操作化为「源码 diff 消失」，但一次错误改动留下的痕迹不止 git 管理的源码 hunk——**路径类改动会扩散到 git 未跟踪或构建配置层**（gradle.properties/启动脚本/probe 默认参数），这些位置不在「源码回滚」的检查半径内，形成「hunk 零残留 ≠ 状态零残留」的检查盲区。与 #23 补充案例同构：**结论（回滚完成）的声明范围 ≠ 检查的覆盖范围**。
+- **定位**：下一轮构建失败（"Java home invalid"）回溯——失败签名直接指向残留的 java home 外部路径，grep `E:\PYTHON\MC` 于配置/脚本层逐处命中。
+- **修复**：260907-07 逐一清理残留引用面（gradle.properties×1 / run_rust_client.ps1×2 / build.gradle×2 / JniProbe / ReadWorldProbe → CoreSwap 路径或现役 JDK17 D:\Program Files\Java\jdk-17.0.12）。
+- **如何利用（判据 MUST）**：
+  1. 任何回滚/撤回动作的完整性检查 = **两层**：① 源码层（git status/diff 零改动）② **引用面层**——grep 撤回涉及的外部路径/旧值于：构建配置（gradle.properties/Cargo.toml/Makefile）、启动/辅助脚本（*.ps1/*.sh）、探针与诊断程序的默认值（DEFAULT_*）、文档交接件（NEXT_SESSION 等）。两层全绿才可声明「回滚完成」。
+  2. 涉路径的改动在**落地时**就应登记「引用清单」（改了哪几处路径引用）——回滚时按清单核对，而非事后 grep 碰运气。
+  3. 回滚后下一轮开工的首次构建/运行是引用面残留的最廉价探测点——失败即先查残留引用，不先查代码。
+- **家族索引**：#36（权威源核对——本条是其回滚场景的姊妹判据）、#23 补充案例（结论声明范围 ≠ 检查覆盖范围）、#24（配置层静默失效家族）。
+- **证据**：260907-06 事故回滚记录（git status 零改动 + grep 零命中 vs 构建失败）；260907-07 修复记录 + judge PASS-with-conditions。
+
+## 发现 #78（简记，中价值）: 代码注释内嵌日期 ≠ 时间戳权威——日期漂移家族的「注释形态」（260907-07）；draft
+
+- **发现时间/发现者**：260907-07，judge N8 观察提炼；core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / 日期溯源纪律（AGENTS.md §三.5 日期纪律家族——「日期 MUST 取宿主/git 时间戳」的代码域形态）
+- **是什么**：jni_bridge.rs 既有注释含「双跑修复 2026-09-08」——晚于该工作块实际日期（git 时间戳锚 2026-09-07 前后）。代码注释里手写的日期可与 git 提交时间戳不吻合（成因未查：预推日期/补写/转录漂移均可），但**权威性排序不变：git 时间戳 > 注释内嵌日期**。
+- **如何利用**：任何「某改动发生在何时」的溯源，以 `git log` 为准，注释日期只作线索；发现注释日期与 git 时间戳矛盾 = 日期漂移信号，顺手修正注释（低成本），不据注释日期做任何时序推断。
+- **证据**：jni_bridge.rs 注释「双跑修复 2026-09-08」vs 260907 工作块 git 时间戳；judge N8（260907-07）。
+
+## 发现 #10 补充案例（260907-07，第二例）：Rust release 重构建 sha 非确定性——dll sha 基线必须带记录日构建上下文，跨块基线引用前先 rebuild 复核
+
+- **时间/置信度/module**：260907-07；candidate（同源码 rebuild 两轮复现实锤）；workflow-patterns / 同 dll 重跑非确定容差（#10 判据在构建产物 sha 域的形态）。
+- **是什么**：同源码 HEAD 干净 `cargo build --release` 两次，worldgen.dll sha 不同：D9085130→DC8FF3A2（260907-06 记录）；260907-07 接线前 rebuild 复现 DC8FF3A2，与 NEXT_SESSION 记录逐位一致，完成跨块交叉验证。Rust release 产物 sha 不具备「同源码 ⇒ 同 sha」性质。
+- **如何利用（判据 MUST）**：
+  1. 引用历史 dll sha 基线时，**必须连同「记录日 + 构建命令 + 源码 HEAD」上下文一起引用**——裸 sha 无可比性声明（§9.7 三要素在 sha 域的落地）。
+  2. 跨工作块做 sha 一致性核验（如发版工单 hash 双重校对前），先在当前环境 **rebuild 一次复核基线**再比对，不直接拿历史 sha 判「不一致=事故」。
+  3. 「sha 变了」在 Rust release 域不构成异常信号本身；异常信号 = 同一轮 rebuild 复核后仍与预期不符。
+- **家族索引**：#10（同 dll 重跑非确定容差——本条为构建产物 sha 形态）。
+- **证据**：260907-06 rebuild 记录（D9085130→DC8FF3A2）；260907-07 rebuild 复核（DC8FF3A2 与 NEXT_SESSION 记录逐位一致）。

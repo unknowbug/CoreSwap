@@ -87,3 +87,5 @@
 > 260907-04 追加：build-tooling 新增**发现 #27**（缓存新鲜度 marker 单判 → 增量数据集静默退化——marker 语义是「新鲜度」非「完整性」，新增数据子集必须配新增 marker + 逐 marker 复检；#18 家族第四形态「缓存命中 ≠ 数据集完整」）+ **#23 补充案例·机制面二**（`-p` 构建图范围收窄——库 enum 加 variant 后 6 诊断 bin 破损近一月未暴露，判据 = 库公共 enum 加 variant 的 commit MUST workspace 全量 build 验证，-p 单包绿 ≠ 全量绿）。来源：.artifacts/tag-datadriven-260907-04.md + judge-tag-datadriven-260907-04.md（tag 数据驱动化，judge PASS-with-conditions）。
 
 > 260907-05 追加：workflow-patterns 新增**发现 #76**（同代码双臂 A/B——诊断 env 覆盖臂复刻改造前语义证行为恒等，免历史基线，绕开跨版本基线失效；hash 报告必须带 hash↔文件名对应，#13 转录失真新形态）。来源：.artifacts/a-group-4-gaps-260907-05.md（A 组 4 硬缺口，judge PASS-with-conditions）。
+
+> 260907-07 追加：workflow-patterns 新增**发现 #77**（「回滚 ≠ 引用面清理」——撤回完整性两层检查：源码层 + 引用面层（构建配置/脚本/probe 默认值路径引用 grep），260907-06 事故源码零残留但配置引用全残留致下轮构建直接失败）+ **发现 #78 简记**（代码注释内嵌日期 ≠ 时间戳权威，git 时间戳 > 注释日期，日期漂移家族注释形态）+ **#10 补充案例第二例**（Rust release 重构建 sha 非确定——dll sha 基线必须带记录日构建上下文，跨块引用前先 rebuild 复核）。来源：.artifacts/jni-wiring-260907-07.md（mod 方块注册 JNI 接线方案 C，judge PASS-with-conditions）。
