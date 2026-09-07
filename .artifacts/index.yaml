@@ -902,3 +902,12 @@ entries:
     # 口径修正：先前「7 starts」系 template 合并假口径（发现 #74）；「500 柱地面低 6 格」反向指针已补 f3-twochannel §10（N-5 闭合）。
     # 关联：workflow-patterns #74/#75、fanout-260907-01、f3-twochannel-260906-09。
 
+  # === B3 BB 坐标系成因复查（260907-03，judge PASS-with-conditions 条件已应用）===
+  - id: 're-code:jungle-l:b3-bb-coords-260907-03'
+    path: '../.investigations/jungle-l/b3-bb-coords-260907-03.md'
+    kind: analysis
+    status: candidate  # judge PASS-with-conditions（N-1 解析器无失步 / N-2 咬合链独立复算成立 / N-3 ocean_ruin 偏移解释充分 / N-4 口径归因已补 / N-5 双指针已落地 / N-6 candidate 恰当）；confirmed 待用户拍板
+    # 结论：children BB 即统一世界坐标，可直接做覆盖判断；#75 按 §15.4 取代（superseded-by 注记已落 workflow-patterns + INDEX + #74 交叉引用）。
+    # 采集：b3_bb_check_260907-03.py → chunky/b3_bb_check_260907-03.txt（6 结构类型各 1-2 例，双臂全同）。
+    # 关联：workflow-patterns #74/#75、children-ydist-260907-02、NEXT_SESSION 260907-02 开工点 2。
+

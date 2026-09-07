@@ -1316,7 +1316,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   1. 两臂 chunk structures 对比的实例唯一键 = **(template, ChunkX, ChunkZ)**；禁止按 template 名合并计数/取 children 最大实例——「7 vs 13」类实例数差异先查合并口径再查生成差。
   2. 结构放置路径覆盖面声明必须含 references 键：已生成 region 的 references 可为全空，「该区域无引用型放置」是合法结果而非采集缺陷；结构 span 证据以 starts 所在 chunk 覆盖集为准。
   3. 采集脚本只读 starts 不读 references = 覆盖面盲区，MUST §9.7 声明（#71 判据 3 的键级扩展）。
-- **家族索引**：#71（starts 零差裁决——本条是其 children/references 盲区的消解记录）、#72（口径陷阱家族）、#20（NBT 定位纪律）。
+- **家族索引**：#71（starts 零差裁决——本条是其 children/references 盲区的消解记录）、#72（口径陷阱家族）、#20（NBT 定位纪律）、#75（本条键覆盖伪差的坐标值受害实例——#75 引用的 BB 数值实属其他实例，见其 superseded-by 注记）。
 - **证据**：.investigations/jungle-l/children-ydist-260907-02.md §B1/B2 消解结果；.tmp/jungle-l-260906/chunky/children_per_start_260907-02.txt + references_dump_260907-02.txt。
 
 ## 发现 #75（简记，中价值）: structure NBT children BB 坐标系非统一世界系——BB 值不能直接当世界坐标做覆盖判断（260907-02）；draft
@@ -1326,3 +1326,5 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **是什么**：children BoundingBox 与 startChunk 世界坐标的吻合性**因结构类型而异**——monument、ruined_portal（含 ocean）等吻合世界系；mineshaft、ocean_ruin_warm 不吻合（疑似 piece 局部/累积生成系，生成期未经最终 offset 平移，成因未查）。因此 **BB 值不能直接当世界坐标做 chunk 覆盖/归属判断**；替代判据 = 用 startChunk 覆盖集（starts 所在 chunk 的引用集）做归属。同 region 混合两种坐标系，逐类型核对后才可用。
 - **如何利用**：任何「用结构 BB 反推方块归属/覆盖范围」的脚本，先对该结构类型做一次 startChunk↔BB 吻合性抽查（一个实例即可），不吻合即弃用 BB 归位路径；成因排查列为 open（B3，见 children-ydist-260907-02.md）。
 - **证据**：.investigations/jungle-l/children-ydist-260907-02.md Q1 证据链 3 + §B1/B2 消解结果第 5 条（B3 保持未消解声明）。
+
+> **⛔ superseded-by（260907-03，§15.4 取代记录，原结论正文不删不改）**：本条「children BB 坐标系非统一世界系/BB 不能直接当世界坐标」结论已被推翻——B3 复查（NBT 直读、双臂逐字节一致、judge PASS-with-conditions）证明 **children BB 本就是统一世界坐标**；本条记载的「mineshaft x111-243/z84-255、ocean_ruin_warm x418-456/z-17..22 不吻合」数值系 #74「同模板多实例合并口径键覆盖」伪差（BB 数值归属其他实例，条目本身错置），辅因「BB⊆startChunk 柱」预期错位不成立（mineshaft 多 chunk 跨越 / ocean_ruin 放置偏移越界均为合法形态）。**BB 可直接当世界坐标做覆盖判断**（含上述两种合法越界形态）。取代证据链：`.investigations/jungle-l/b3-bb-coords-260907-03.md`。
