@@ -1,6 +1,6 @@
 ---
 version: 1.0.26
-status: pending
+status: published
 date: 2026-09-06 17:10（Get-Date 锚定）
 ---
 ## 1. 构建产物
