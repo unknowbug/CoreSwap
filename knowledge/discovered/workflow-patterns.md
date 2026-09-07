@@ -1414,3 +1414,35 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   3. 见到 A=B 恒等，先问「若分支死了，观测是否同样恒等？」——是则恒等无判别力。
 - **家族索引**：#20（死参数假判别）+ #37（env 行为化证据）+ #32（daemon 死同值）家族补案例。
 - **证据**：.artifacts/a-group-4-gaps-260907-05.md（原 A=B 交付）vs .artifacts/realmod-e2e-260907-09.md §4（修复后 AGG bea29a995b01b3d3 → 0bfff659653ce8a7 + override load ×5 行为化命中）。
+
+---
+
+## 发现 #82: 性能负面结论的验证域覆盖面——宣布「X 路线全线不可行」前 MUST 盘点成本分布表核对被否样本对全集的覆盖面
+
+- **发现时间**：260908-02
+- **发现者**：scout-a + judge（GPU 介入点重勘探课题）
+- **来源定位**：`.investigations/gpu-reentry-260908-02/scout-a-cpu-cost-profile.md` §二 + `convergence-main-260908-02.md` §一 + `.investigations/perf-rework/gpu-accel-errors.md`（D24/D25/D27 无 aquifer 条目，grep 确认）
+- **置信度**：candidate
+- **module**: workflow
+
+**观察**：GPU 加速课题（260908-01 verdict，confirmed）三次否决（D24 逐块 fill 带宽死局 / D25 interp 角点结构不兼容 / D27 攒批摊销封顶 13%）的验证对象**全部集中在 density/interp 底座**——仅占 Rust FULL 62ms 的 ~23%（14.4ms/chunk）。而占 ~60% 的最大单阶段 aquifer（~35-37ms/chunk）**从未进入任何一次 GPU 课题验证域**（gpu-accel-errors.md 无 aquifer 条目）。一轮成本分布重勘探（scout-a）即发现「全线不可行」的问题定义漏掉了最大头，且 C2ME 有 AQUIFER_PREFILL 等 aquifer GPU kernel 的存在性先例从未被评估。
+
+**证据**：scout-a §二 GPU 课题评估覆盖标注表（aquifer/surface/carver/biome/feature 全部 ❌ 从未评估）；convergence §一三源交叉事实 1；judge review-convergence §审查点 1 确认引用准确、无取代冲突（重勘探落在原 verdict 留白③内）。
+
+**如何利用（判据）**：宣布「X 路线全线不可行 / 问题域无解」类**全域性负面结论**前，MUST 先盘点**成本/问题分布表**（各子项占比 × 各子项是否在已验证样本内），确认被否样本对全集的覆盖面；占比大头未被覆盖时，负面结论的表述 MUST 限定到已验证子域（「noise/density 管线现引擎形态」而非「GPU 加速不可行」），余下子域显式留白。本例的否决记录 D24/D25/D27 本身无错——错的是「verdict 范围外的读者/后续会话把『density 线路否决』读成『GPU 路线全线否决』」。同构于发现 #36（排除结论禁止跨执行体迁移）的「跨验证域」形态：排除结论 = 只对被验证子域成立。
+
+## 发现 #83: 性能分母分场景——延迟口径与吞吐摊销口径可差一个数量级以上，GPU/优化门槛核算必须绑定场景
+
+- **发现时间**：260908-02
+- **发现者**：addendum-denominator 实测 + judge（GPU 介入点重勘探课题）
+- **来源定位**：`.investigations/gpu-reentry-260908-02/addendum-denominator-c2me-260908-02.md` §A + `review-convergence-260908-02.md` C2b/C3b + `review-phase0-260908-02.md` J3
+- **置信度**：candidate（两端口径各有独立实测；四臂差分法本身实测成立）
+- **module**: workflow
+
+**观察**：同一阶段（aquifer）同一天同一 seed 的两次实测，口径差 **35×**：单 chunk **冷态延迟 35-37ms/chunk**（qpd1_stage_bench 隔离 bench）vs **暖区吞吐差分 1.02ms/chunk**（estopt_mt_bench T=10 四臂差分：WITH 7.43 − NO 6.41；T=1 差分 9.70，9.70/10≈0.97≈1.02 交叉自洽）。门槛核算用哪个分母直接翻转结论：暖区分母下 GPU 门槛回到 ~1ms 预算级（D27 同款，难）；冷区分母下门槛 ~1×（易）——GPU 的真实机会窗口在冷路径（世界加载/离线首遍），不在暖区稳态。此外门槛核算必须含**固定/互斥成本**（dispatch/readback 非零且结论绑定 kernel 形态不可迁移；与 CPU 多线程管线并存的 mutex 串行化开销——D24 P2-4 实锤），只比 kernel 单价 vs CPU 单价的对比式是漏项（judge 两轮同一意见 C3b/J3）。
+
+**证据**：addendum §A 四臂表（256 chunks，seed 同，暖区口径）；qpd1_stage_bench 冷态口径；交叉自洽验证 9.70/10 ≈ 1.02（并行扩展良好、无严重串行瓶颈）；review-phase0 J3 必改条件。
+
+**如何利用（判据）**：① **核算优化回本门槛时，分母 MUST 绑场景**——延迟敏感场景（单 chunk 冷态）用延迟分母，吞吐摊销场景（多线程稳态）用吞吐差分分母，混用口径会高估/低估优化空间一个数量级（#18「跨 session 数字不可比」的**同 session 跨口径**形态，§9.7 具体化）。② **四臂差分法**（同 T 下 WITH/NO 某阶段 × 多档 T，各臂 chunk 粒度交错——#24 顺序效应判据同用）是采集「某阶段多线程摊销分母」的廉价方法，无需逐阶段探针。③ GPU/异步加速的 gate 对比式 = 端到端成本（kernel + dispatch + readback + 与宿主管线互斥）× 规模 vs 对应场景 CPU 口径，缺任何一项即 gate 无效。
+
+**#53 补充案例**（260908-02，⚠️ 未结案待验）：estopt_mt_bench 运行时 `$env:WG_EST_L2` 已清空仍显示 `l2=true`——疑似该开关默认开（与 #53 原例方向相反的镜像形态：**「清空 env ≠ 恢复默认值预期」**，默认值方向必须消费点直读确认，env 清空本身不构成任何方向的证据）。待 api.rs 直读钉死后回填结案。来源：`.investigations/gpu-reentry-260908-02/addendum-denominator-c2me-260908-02.md` 注记 1 + `phase0-architecture-260908-02.md` §五③。
