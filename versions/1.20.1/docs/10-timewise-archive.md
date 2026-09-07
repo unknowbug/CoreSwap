@@ -3045,3 +3045,43 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **用户拍板三项 confirmed**：① features 对齐非目标 + 出货架构（Rust 地形 + Java features/carver）= confirmed；② ca_min moot 化（挂起，材料保留给全接管配置）= confirmed；③ carver 维持 mask=3、接管列为 perf 候选课题（前置：残差归因——Rust carver 90.88% 挖洞重合未分离地形级联——+ 非 vanilla carver 检测回退 + replaceable 数据驱动化；触发条件 = profiling 占比值得）= confirmed。F3 wiring 判定 = candidate（N-B 开放）。
 - ✅ **#65 再取代提案（candidate，confirmed 方向）**：实机 modded（mask=3 默认 0b011）实为 **Java 特征 × Rust 地形**，既非 Rust-off 也非 Java vanilla——260905-05 的 11 点真值同此重定性，保留「260905-05 当次 run 的 stageMask 待核」条件；走 §15.4 取代链。
 - 🔍 **open**：#66-#68 知识库条目 confirmed 待用户复审；F3 两通道归因分解（廉价臂 = native Rust 地形 + Java 特征探针）；（可选 perf 课题）carver 残差归因 + 占比 profiling；E2b 分布对分布实验（或接受 run 级非确定已坐实而撤销）。
+
+## 260906-09（实际 2026-09-06 23:39 Get-Date 锚定：jungle-l F3-1 判别臂两 run 采集 → 载体 PASS 复核 → 483 两通道归因 → judge 有条件通过）🔍 阶段性结案（通道② draft ~0.55；主判别臂未实施；500-234 直证待复现）
+
+> 过程产物 `.investigations/jungle-l/f3-twochannel-260906-09.md`（worker 判定主文档，含 §9.7 口径声明）；日志 `.tmp/jungle-l-260906/j5-f3rust-260906-09-f3r1.log` / f3r2.log（参照 260905-13 stagemask3.log）。
+
+- ✅ **F3-1 判别臂两 run 采集**：modded 载体（stageMask=3 = Rust 地形 + Java vanilla carver/特征）同 dll（1b5aa1de…，=1.0.26 出货）同 seed 同协议 f3r1/f3r2 两 run；载体四查全项 PASS（stageMask/dll sha/seed/population 1154 行/双 popseed 签名/时间窗），另补行为面论证——modded run 间集合相似 13/24≈54% 远高于 modded vs Java 8/30≈27%，行为上证明地形层为 Rust 系（judge 勘误原稿分母）。
+- ✅ **通道①（特征流执行序 run 级非确定）存在性直证（~0.95）**：f3r1∩f3r2 仅 6/31（分歧 81%），run 对分歧率样本 46%–81% 且发现**非可交换性**（跨月跨 dll 共享度反高于同日同 dll）——mega 集由 chunk 完成序路径依赖主导，单点概率模型（含主会话 ~0.25）只可作粗界。
+- ✅ **500,75,-234 地形漂移直证（数据层，通道②实证支点）**：同 seed 同点位 260905-13 modded h19 vs f3r2 h13（差 6 格）——新旧 dll 柱级地形差存在，dll 地形版本差由纯假设升格「已证实存在 × 影响面未测」活跃变量。
+- ✅ **native 执行语义源码澄清**：j5_tree_trace 从不 set_flags → flags=0 → carver+features 全跑（worldgen_handle.rs L725/L562）——native 臂 = 三全 Rust，「native off ≈ Rust 地形代理」口径不成立（#66 代码级依据），native 483 Y 对 Java 谓词零证明力。
+- ✅ **两通道归因结论（draft）**：通道②（Rust 地形输入差/dll 版本差）参与 483 类分歧倾向 YES 置信 ~0.55（judge 建议自 0.6 下调，已应用）——支撑：native 反证力削弱 + 今日 483 柱地形盲区 + 500-234 直证 + 1.0.26 overworld 回归未重跑（发版单自认）+ 版本相关翻转在纯通道①下无自然解释。
+- ✅ **judge 有条件通过（260906-09）**：条件披露 = 架构计划 T1 主判别臂（native Rust 地形 + Java 特征探针）本轮未实施，实际采集为两次完整 vivo 载体重复——归因分解完成一半，建议地形直比（今 dll native vs Java block_probe，chunk (30,-15)/(31,-14)）出结果后再决定是否需要。
+- ❌ **修正主会话三项观察**：①「~0.25 概率」量化不成立（改「双缺在通道①框架下不异常但非零信息量」）；②「共享点 h 全逐位同」需限定 Java 共享点位——modded 共享点存在 500-234 反例；③全日志前缀序列第三棵即分叉，「与 905-13 逐位同」仅区域过滤口径成立。
+- 🔍 **open**：①modded n≥3 重复采样盯 483（≥5/5 N → 通道②升 candidate；顺手复现 500-234 h13）；②地形直比（机制级，一步闭合通道②地形前提）；③N-B 原案隔离特征执行体判别臂；④init 晚于 Done 时序机制探针 + 905-13 dll→1.0.26 overworld 变更清单审阅；⑤共享点 h 全同 vs 500-234 反例张力是否 fan-out，待主会话评估。
+
+## 260906-09 深夜（实际 2026-09-06 深夜/07 凌晨工作块：jungle-l Chunky 双臂地形验证试验 → 载体转正 confirmed + 效率实测 → 首战区域级量化 → 三候选 fan-out 预置）✅ 载体/效率 confirmed；归因 draft
+
+> 过程产物 `.investigations/jungle-l/chunky-trial-260906-09.md`；采集 `.tmp/jungle-l-260906/chunky/`（双臂日志 + region-{coreswap,vanilla} 各 6 mca + diff 脚本）；载体条目 → build-tooling #26（subagent 草稿 → 主会话应用）。
+
+- ✅ **用户实机受控观察（liveobs-260906-09，截图已归档）**：483/500 焦点柱两臂**地表一致**（Rust live 483=Y jungle_log；500 两臂脚下地面一致）——通道②（地形输入差）参与 483 类分歧的证据面收窄，通道②降级走 §15.4 取代链（对 F3-1 通道② draft ~0.55 的口径修正，judge review-260906-09-liveobs.md PASS）。
+- ✅ **Chunky 双臂试验（用户建议）**：gradle runServer 同实例对称双臂（vanilla=`-PcppVanilla=1` / coreswap=stageMask=3）+ Chunky jar + 控制台命令 + region 程序化 diff；管线核验 PASS（#36）。
+- ✅ **载体转正 confirmed + 效率实测**：~4min/1089 chunks vs forceload ~27min/25 chunks（>40×）、零人力、region 可复用——转正为区域级地形验证标准载体（单点 sanity 保留 tp+F3）；使用前置三查 = 管线核验 / region+slot 定位 / 对比剔植被（build-tooling #26）。
+- ✅ **首战量化结果（全 seed 区域 33×33）**：有差 chunks **946/3025**；terrain=113k / veg=86k / air=51k——「Rust 地形=Vanilla」逐块意义上不成立，但量级属已知残差域（≈15 块/chunk）+ 焦点柱表层一致 → 定性为**已知地形残差域首次全区域量化**（非新差通道发现）。
+- 🔍 **三候选 fan-out 预置（互斥，未归因，禁止单通道结论）**：① blob 残差（andesite/diorite/granite ≈46k，已知残差域）② 洞穴级联（air/water——carver 级联 vs aquifer）③ **结构差 = 新开放面**（mineshaft 组件 ±整件级 + geode——mixin 拦 NOISE/SURFACE 对结构阶段影响未核，价值最高，查 Structures NBT）；矿石 ±1-3 疑为①下游非独立候选。待并行 worker（主会话不自推）。
+
+
+
+## 260907-01（实际 2026-09-07 Get-Date 锚定：jungle-l 柱全列直读 → chunky 地形差归因 fan-out（.b1/.b2）→ judge 有条件通过）✅ judge PASS-with-conditions（条件已应用）；无代码改动
+
+> 过程产物 `.investigations/jungle-l/column-read-260907-01.md`（柱直读）+ `.investigations/jungle-l/fanout-260907-01/`（convergence.md + .b1/.b2 candidate.md + review-260907-01.md）；数据 `.tmp/jungle-l-260906/chunky/diff_per_chunk_260907-01.txt` + structures_nbt_260907-01.txt；脚本 `.tmp/jungle-l-260906/column_read_260907-01.py` + collect_fanout_260907-01.py。**本块无任何 src 代码改动**（judge 三源核对 N：git diff 仅 .investigations/.artifacts/knowledge/docs）。通用模式 → workflow-patterns #71/#72/#73（subagent 草稿 → 主会话应用）。
+
+- ✅ **柱全列直读（开工点 1，region NBT 程序化直读，Full 载体）**：柱 (483,-230) 全列 y=-64→319 **零差**（地形+植被逐位全等）；柱 (500,-234) 差异 21 处**全部在 y=74-94 feature 层**（vanilla 整根 jungle_log + 树下 grass_block→dirt，coreswap 无树干），y≤73 地形逐位全等。
+- ✅ **交接结论廉价独立验证（STEP 1 纪律）**：通道②（Rust 地形输入差参与 483 柱分歧）draft ~0.55 → **支持降级**（483 柱全列地形零差直证地形输入一致）；blob 石残差 ≈15 块/chunk 不触及焦点柱。
+- ✅ **§15.4 取代记录**：「500 柱地面低 6 格」（f3-twochannel-260906-09 §5 树基高度代理推定）被本块 column-read 取代——region 载体下地形基座一致，差异为植被层。原结论未改写；**反向指针待 f3-twochannel-260906-09 归档时补注**（judge N-5 条件）。
+- ✅ **fan-out 双候选（互斥：地形差主力归属）**：.b1「blob 石残差域」**支持**——类型谱（granite/diorite/andesite 双向均衡 ≈48.7k）、量级带（≈15-16 块/chunk，judge N-6 降格「同量级带参照」：口径混合）、簇状空间分布三证据与 13 篇已知记录吻合，无需新机制。.b2「结构阶段独立第 5 通道」**证伪**——starts 层零差 + 块级签名 ~330 块/3025 chunk 与整件级差先验差一个数量级以上（判据 → #71）；geode 两臂均 Java vanilla feature 放置（mixin 只拦 NOISE/SURFACE 源码引证），geode 差 = 通道①/②下游表现面。children BoundingBox 盲区 §9.7 声明。
+- ✅ **air/water 桶归属（开工点 3）**：water 846 → aquifer 挂起域（11 篇）；cave_air 548 三分（geode 壳 ~180-260 / 结构语汇残余 ~330 未闭合 / 洞穴 carve 下游）——无独立新通道。全区域地形差完整归账已开封通道，**无第 5 归因通道**。
+- ✅ **judge 审查（review-260907-01，PASS-with-conditions）**：N-3「5.1k」修正为 name 双桶相加上界（→ #72）；N-4 口径疑点补第三成因（单 palette ±2048 近似 + section 跳过盲区）；N-5 取代链反向指针待补；N-6 量级表述降格；N-8 .b2 内部数字勘误（130→~200）。收敛主结论「无第 5 独立归因通道」建议 candidate。
+- 🔍 **open（未闭合采集项，不阻塞收口）**：① 13 mineshaft + 2 ruined_portal children BoundingBox dump（消解 ~330 块 cobble/cobweb/spawner 簇归属）；② grass_block↔dirt y 分布核查（树 below-dirt vs 表层 rule 差）；③ 全量对表重算（top8 截断 + ±2048 近似 + section 跳过三成因合并消解）；④ column_read 脚本两处外观 bug（air 前缀永真比较 / sanity 无条件打印，不影响差异数据）。
+- ✅ **用户拍板（260907-01 收口）**：① 本块收敛结论（.b1 支持 / .b2 证伪「无第 5 独立归因通道」+ air/water 桶归属 + 500 柱取代记录）**confirmed**（index.yaml 两条目已回写）；② **E2b 进入「撤销观察」状态**——不立即执行撤销，挂观察：后续若再出现需要 E2b（分批 forceload 载体）的判别场景则复评，无场景触发即按期正式撤销（材料：E2a + f3 双侧 run 级非确定直证）。
+
+

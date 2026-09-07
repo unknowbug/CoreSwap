@@ -565,3 +565,14 @@ versions/1.20.1/data/*   # 再重排除其内容
 - **判别签名**：日志**零 [SEEDLOG] 行**（门未开）而非打点异常（门开无数据）；「诊断开关生效验证 = 输出行为化（#37）」再证：先验 1 行样本再等全量。
 - **修复**：gradle --stop 杀 daemon + 补 -P 通道重采（1154 population 行）。
 - **证据**：.investigations/jungle-l/260906-06-errors.md E12。
+
+## 发现 #26: Chunky 双臂区域级地形验证载体——gradle runServer 同实例对称双臂 + region 程序化 diff，替代 forceload 人工观察（260906-09 深夜）；confirmed
+
+- **时间/置信度/module**：260906-09 深夜；confirmed（用户拍板「授权确认」转正，区域级地形验证标准载体）；build-tooling（验证载体升级，非错误条目）。
+- **是什么**：区域级地形 A/B 验证新载体——`gradle runServer` **同实例对称双臂**（vanilla 臂 `-PcppVanilla=1` / coreswap 臂默认 stageMask=3，切参数即换臂，排除跨实例变量）+ `run\mods` 放 Chunky 1.3.146（Fabric）jar + 控制台 `chunky world/center/radius/start` 命令（`Task finished ... 100.00%` = 确定性完成行，替代 sleep 猜时长）+ 生成落盘 region mca → python 程序化逐块 diff（每 section 每 palette 名计数差，chunk 用 region+slot 定位）。
+- **效率实测（confirmed）**：Chunky ~4min/1089 chunks（33×33）vs 旧 forceload 法 ~27min/25 chunks（5×5），覆盖面/时间比 >40×；零人力（旧法 tp+F3 逐点截图），region 全量落盘可复用——任意柱/块事后复查零成本。固定启动成本两法相同；**单点疑问仍以 tp+F3 法最快**（本载体定位 = 区域级，不替代单点 sanity）。
+- **前置三查（MUST，对比前逐项过）**：
+  1. **CppBridge init 行核 stageMask / dll 大小 / seed**——确认 Chunky 生成真走 mod 管线（本轮 stageMask=3、dll 2160640 = 1.0.26 出货，#36）；
+  2. **chunk 定位用 region 坐标 + 槽位推导，不信 NBT 内坐标**（#20：chunk NBT 无 xPos 键）；
+  3. **对比必须剔植被**——特征流非确定（#67，两臂 Chunky 生成均多线程），不剔会把树/植被差当地形差（本轮 oak/jungle leaves+log、vine ≈86k 差值全属此类）。
+- **证据**：`.investigations/jungle-l/chunky-trial-260906-09.md`（主文档）；`.tmp/jungle-l-260906/chunky/`（chunky-coreswap.log / chunky-vanilla.log / region-{coreswap,vanilla}/ 各 6 mca + chunky_diff_260906-09.py）。

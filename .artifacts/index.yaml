@@ -848,3 +848,57 @@ entries:
     # 实机 505=N 成孤例 → .b2(mods)/.b3(观察) 待实机 mods 清单；ca_min 翻转决策维持冻结。
     # 下一步：E2a 同协议复跑 / E2b 分批 forceload / R2-a region NBT 考古。
     # 关联：judge-verdict-260906-07.md、j5-baseline-260906-06（结论 B 升级）。
+
+  # === E2a run 级非确定直证 + F3 执行语义判定 + 三项 confirmed（260906-08，judge 通过 + 用户「授权确认」）===
+  - id: 're-code:jungle-l:e2a-rerun-260906-08'
+    path: '../.investigations/jungle-l/e2a-rerun-260906-08.md'
+    kind: decision
+    status: confirmed  # 三项用户拍板 260906-08（judge N-A/N-B/N-C 已应用）：①features 对齐非目标 + 出货架构（Rust 地形 + Java features/carver）= confirmed；②ca_min moot 化挂起 = confirmed；③carver 维持 mask=3、接管列 perf 候选 = confirmed
+    # E2a：同 seed 同协议两 run mega 集交集仅 7/22，E0 证调度序漂移 → vanilla features run 级非确定直证（#67）。
+    # F3（candidate ~0.9，Degraded 静态审查，judge 四锚点核实）：vivo stageMask=3 不跑 Rust 特征 → live 树 = 纯 Java vanilla 装饰器长在 Rust 地形上（#66，同 dll 两种执行语义，#36 家族最重形态）。
+    # #65 再取代（实机 = Java 特征 × Rust 地形）= candidate，保留「260905-05 当次 stageMask 待核」。
+    # 开放面：#68 两通道归因分解（judge N-B）→ 260906-09 F3-1 判别臂。
+    # 关联：workflow-patterns #66/#67/#68、10 时间线 260906-08 条。
+
+  # === F3 两通道归因分解（260906-09，judge 有条件通过，条件已应用；候选待用户拍板）===
+  - id: 're-code:jungle-l:f3-twochannel-260906-09'
+    path: '../.investigations/jungle-l/f3-twochannel-260906-09.md'
+    kind: analysis
+    status: candidate  # judge 有条件通过（数字勘误 + T1 缺位披露 + 置信度 0.6→0.55 已应用）；通道①（modded 载体 run 级非确定 = #67 背景通道）直证 ~0.9；通道②（dll 地形版本差参与 483）倾向 YES ~0.55 仍推断级
+    # 直证：483,71,-230 modded 2/2 N（Java 3/3 Y、native 双臂 Y h18）；469 run 间翻转；500,75,-234 h19→h13 = dll 地形版本漂移数据层实锤（第三候选升格）。
+    # 未闭合：483 柱今地形盲区；init 晚于 Done 时序机制；N-B 原隔离臂未实施（§7.3 保留）。
+    # 下一步廉序：地形直比（§7.2）> 重复采样盯 483（§7.1）> 1.0.25→1.0.26 变更审阅。
+    # 关联：workflow-patterns #69/#70、algorithm-fingerprints #20 简记。
+
+  # === Chunky 双臂地形对比载体转正 + 效率实测（260906-09，用户「授权确认」）===
+  - id: 're-code:jungle-l:chunky-trial-260906-09'
+    path: '../.investigations/jungle-l/chunky-trial-260906-09.md'
+    kind: decision
+    status: confirmed  # 用户拍板 260906-09：① Chunky 双臂法转正为区域级地形验证标准载体；② 效率实测 confirmed（单臂 ~4min/1089 chunks vs 旧法 ~27min/25，覆盖/时间比 >40×，零人力，region 可复用）
+    # 双臂对称：同 gradle 实例，vanilla 臂 -PcppVanilla=1，CoreSwap 臂默认 stageMask=3；管线核验 PASS（bridge 行 + dll 2160640 + seed）。
+    # 首战产出（draft，多候选待 fan-out）：946/3025 chunks 有差；terrain 113k（blob 石 46k=已知残差域）/veg 86k/air 51k；mineshaft+geode 结构差候选 = 新开放面（F3 wiring 第 5 阶段疑点）。
+    # 下一步：483/500 柱全列直读（零成本）→ blob/结构 fan-out。
+
+  # === 柱全列直读 + blob/结构 fan-out 收敛（260907-01）===
+  - id: 're-code:jungle-l:column-read-260907-01'
+    path: '../.investigations/jungle-l/column-read-260907-01.md'
+    kind: analysis
+    status: confirmed  # 用户「授权确认」260907-01：① 柱直读三结论 confirmed（483 柱全列零差→通道②降级直证；500 柱差异=feature 层；「地面低 6 格」取代记录生效，反向指针条件已注明）；judge PASS-with-conditions 条件已应用
+    # 载体：Chunky 双臂 region（#26 confirmed），seed 8576294172403134396，脚本 .tmp/jungle-l-260906/column_read_260907-01.py。
+
+  - id: 're-code:jungle-l:fanout-260907-01'
+    path: '../.investigations/jungle-l/fanout-260907-01/'
+    kind: decision
+    status: confirmed  # 用户「授权确认」260907-01（judge PASS-with-conditions 条件已应用）：① .b1 支持（地形差主力=已知 blob 石残差域 60-75% 粗界）② .b2 证伪（结构阶段非独立第 5 通道，归并入通道①/②下游）③ air→三分/water→aquifer 域——「无第 5 独立归因通道」confirmed
+    # 未闭合（后续采集项）：mineshaft/ruined_portal children BoundingBox dump（~330 块结构语汇残余）、grass_block↔dirt 5.1k y 分布核查、top8 截断口径全量对表。
+    # 关联：column-read-260907-01、f3-twochannel-260906-09、chunky-trial-260906-09。
+
+  # === children dump + dirt y 分布消解（260907-02，judge pending）===
+  - id: 're-code:jungle-l:children-ydist-260907-02'
+    path: '../.investigations/jungle-l/children-ydist-260907-02.md'
+    kind: analysis
+    status: confirmed  # 用户「授权确认」260907-02（judge 三项 PASS-with-conditions 条件已应用）；①语汇簇归属=mineshaft（spawner+cobweb+rail 一票定），通道(a) piece 布局层两臂零差、~330 块簇差=放置/暴露面 cascade；B1（references 两臂全空）+B2（24/24 实例 children id+BB 有序 IDENTICAL，逐实例键 (template,ChunkX,ChunkZ)）已消解，B3（BB 坐标系）保持未消解不阻塞；②dirt↔grass_block 2263 双向对分 y68-71 峰=树 below-dirt 泄漏，judge N-3 净化下界 ≈2.3k 闭环，表层 rule 差 ≤百块级 draft
+    # 采集：children_dump/children_per_start/references_dump/ydist_dirt 四脚本 + 输出全落 .tmp/jungle-l-260906/chunky/。
+    # 口径修正：先前「7 starts」系 template 合并假口径（发现 #74）；「500 柱地面低 6 格」反向指针已补 f3-twochannel §10（N-5 闭合）。
+    # 关联：workflow-patterns #74/#75、fanout-260907-01、f3-twochannel-260906-09。
+

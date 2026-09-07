@@ -447,4 +447,10 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - trace 比对键：(y, r, |dx|, |dz|) 元组序列逐行一致（Java mixin 打 |dx|，Rust 打带符号——口径差声明，§9.7）。
 - 证据：`.investigations/jungle-l/b3-shortcircuit-trace.md` §四a/§五（Java 45 行=5 棵×9、Rust 90 行=10 棵×9，逐棵同构 → J3 短路族两域核销）。
 
+## 发现 #20 简记: MJT0 树基高度 h 指纹作「两侧地形等价性」廉价探针（260906-09）；candidate
+
+- **指纹**：`[MJT0] t=(x,y,z) h=N` 行中的树基高 h = 放置点地表高度的可观测代理——**共享点位 h 逐位相同 = 局部地形等价的零成本直证**（无需 block_probe diff）；**单柱 h 版本间漂移 = dll 地形版本漂移的直证签名**（实例：500,75,-234 h19@260905-13 旧 dll → h13@f3r2 新 dll，同 seed 同 x,z 差 6 格）。
+- **边界**：h 只在「该 run 放了树」的柱上可观测——未放树柱（如 483,71,-230 于 f3r1/f3r2）是盲区，h 指纹不能外推到盲区柱（.investigations/jungle-l/f3-twochannel-260906-09.md §4.1-2）。
+- **证据**：f3-twochannel-260906-09.md §2.2-2/§4.3；Java 共享点 439 h23 / 443 h28 / 456 h14 / 451 h26 / 511 h16 / 500,-226 h11 逐位复核同。
+
 

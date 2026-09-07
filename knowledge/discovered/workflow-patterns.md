@@ -1240,3 +1240,89 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **如何利用（判据 MUST）**：Java-features-on-Rust-terrain 形态下，feature 放置分歧**未做归因分解前禁止单通道归因**，维持 draft 候选；廉价判别臂 = native Rust 地形上跑 Java 特征探针（隔离地形变量）；「vivo 与 Java 同机制同波动」类同构宣称不升格。
 - **家族索引**：#10（三阶段归因）、#14（阶段同源）、#66（执行语义前提）、#67（通道 ① 的机制）。
 - **证据**：.investigations/jungle-l/e2a-rerun-260906-08.md（judge N-B 降级声明 + 连锁重定性节）。
+
+## 发现 #69（#53/#37 家族延伸）: lazy/异步日志形态下「init 行时间戳」不作「接管生效时段」判据——日志时间戳不是行为证据，判据 = 行为面集合聚类 + init 行字段值核对（260906-09）；candidate
+
+- **发现时间/发现者**：260906-09，f3 载体有效性复核中确立；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l（F3 两通道归因）。
+- **module**：workflow-patterns / 日志证据效力（#53 env 门控默认值当公理 / #37 env 判别生效证据必须行为化 家族）
+- **现象**：modded 载体（gradle runServer + CoreSwap mod）日志中 `CppBridge init … enabled=true stageMask=3` 行的时间戳**晚于** `Done` 行，而区域内 chunk 生成（含 Rust 地形接管）明确发生在 Done 之前的 spawn 预生成窗口内。若按「init 行时间 = 接管开始时刻」读日志，会得出「spawn 期未接管、纯 Java 地形」的错误载体判定。ab-takeover.log、stagemask3.log 同形态（历史常态对照）。
+- **根因（机制）**：init 日志点与 dll 实际首次接管点的关系未核实——lazy/异步日志形态下，日志行的**打印时刻**不等于其所描述事件的**生效时刻**（机制未直证，⚠️ 未解释项留档：建议后续补首接管 chunk 的 WG 侧标记探针闭合）。⚠️ 因此本条判据刻意**不依赖**对时序机制的解释，而依赖行为面。
+- **如何利用（判据 MUST）**：
+  1. 判「接管生效时段/生效范围」**禁止用 init 行时间戳**；判据 = ① **行为面集合聚类**：产物集与同载体族历史 run 的共享度显著高于异载体（本案：与 260905-13 modded 共享 13/24≈54%，与 Java E2a 仅 8/30≈27%，向 modded 聚类 = 地形层确为 Rust 系）＋ ② **init 行字段值核对**（stageMask/sha256/seed 与预期执行体逐项一致）。两支齐备才 PASS。
+  2. 字段值核对只证「配置装载的是什么」，行为面聚类才证「实际跑的是谁」——前者是必要条件不是充分条件，同 #37「env 判别生效证据必须行为化」。
+  3. 配套纪律：PASS 判定若依赖行为面旁证而时序机制未闭合，MUST 显式留「未解释项」声明（本案 §1 ⚠️），防后续把「时序已解释」当已证续引。
+- **家族索引**：#53（env 默认值当公理）、#37（生效证据行为化）、#36（执行体三元组——字段值核对即其 sha/mask 维度）。
+- **证据**：.investigations/jungle-l/f3-twochannel-260906-09.md §1（四查直证 + 行为面补充论证 + 未解释项声明）；.tmp/jungle-l-260906/j5-f3rust-260906-09-f3r1.log / f3r2.log。
+
+## 发现 #70（#67 深化）: run 对集合共享度「非可交换性」——run 间非独立抛硬币，mega 集由 chunk 完成序路径依赖主导，单点概率模型只能作粗界（260906-09）；candidate
+
+- **发现时间/发现者**：260906-09，f3 两 run 数据 + 260905-13 modded 参照交叉对比中发现；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l。
+- **module**：workflow-patterns / 基线唯一性（#67 run 级非确定的统计形态深化）
+- **现象**：区域集 union 口径 run 对共享度——**跨 dll、跨月**的 modded run 对（260905-13 旧 dll febe913e ↔ f3r1 新 dll 1b5aa1de）共享 13/24≈**54%**；**同 dll 同日同协议**的 run 对（f3r1↔f3r2）交集仅 6/31≈**19%**。若各 run 为同机制独立采样（逐点独立抛硬币），成对共享度应相近——实测否，且方向反直觉（越「远」的 run 对反而越像）。
+- **根因（机制）**：mega 集由 **chunk 完成序的路径依赖**主导（#67/E0：调度序漂移 → 邻块实况差 → 翻转级联）。路径依赖系统里 run 间不独立、也不可交换：两个 run 的相似度取决于其完成序轨迹的相似度，与「同不同 dll」「同不同日」无关——共享度不是执行体等价性的单调函数（⚠️ 注意：54% 共享 + 共享点 h 逐位同**同时**是载体判定的行为面证据，见 #69；本条说明它**不能**继续外推为「逐点出现概率」）。
+- **如何利用（判据 MUST）**：
+  1. 对 run 级非确定现象做概率量化（「某点双缺概率 ~p」类）**禁止单点独立模型给单一数字**——只能给区间/粗界，且 MUST 声明该区间以独立性假设为前提（本案 both-N 区间 ~0.04–0.64，隐含 p=0.5 + 可交换两假设均未证）。
+  2. 「run 对共享度」可作**载体族聚类**的定性判据（远对 > 近对共享 = 非可交换签名；同载体族显著高于异载体 = 载体成立旁证），不可作执行体逐点等价性的定量判据。
+  3. 判别实验需要概率结论时，用**多 run 分布对分布**采样（n≥3），不用两 run 单对数字。
+- **家族索引**：#67（run 级非确定存在性——本条是其统计结构面）、#63（加载载体单点翻转）、#18（跨口径数字不可续推）。
+- **证据**：.investigations/jungle-l/f3-twochannel-260906-09.md §2/§3.2（交集 6 点逐位清单 + 三组 run 对分歧率 46%–81% + 非可交换性发现节）；参照 .tmp/jungle-l-260905-13/j5-rust-mjt-stagemask3.log。
+
+
+
+## 发现 #71: 「starts 层零差 + 块级签名量级先验对比」裁决结构差假设——无需 children dump 即可否定/压制「整件级差」，但 children 一致性是盲区须 §9.7 声明（260907-01）；candidate
+
+- **发现时间/发现者**：260907-01，fan-out .b2 worker 判定 + judge N-1/N-8 通过；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l（chunky 地形差归因 fan-out）。
+- **module**：workflow-patterns / 结构差量级先验判据
+- **观察**：chunky 双臂（vanilla vs stageMask=3）region 对比中，799/3025 chunk 有地形差，其中结构语汇残余仅 ~330 块（cobblestone 172 + mossy 101 + oak_planks/fence/rail/cobweb/spawner 零头），散布 ~8 chunk；而两臂 Structures NBT starts 层（键名 + status + id 三字段）逐项零差（mineshaft 13 / shipwreck 3 / … 完全相同）。
+- **证据/推理**：若存在「整件级结构 ±差」（某 mineshaft/ruined_portal 组件一臂生成一臂缺失），块级签名预期 = 数百块木板/栅栏连片 × 跨多 chunk（一个走廊组件即数百块材料）。实测 ~330 块/3025 chunk（~0.09 块/chunk）与该先验**差一个数量级以上** → 「整件级差」在 starts 层 + 量级先验双重否定。剩余 ~330 块 = feature 阶段相互作用差（geode 壳压 mineshaft 木板等，通道①/②下游），非独立第 5 通道。
+- **盲区（§9.7 诚实项，复用本判据时 MUST 同步声明）**：starts 三字段对比**未覆盖 children/pieces BoundingBox 明细**——「两臂 pieces 树逐件一致」未被直接验证，量级+形态检验只能间接压制、不能封死「starts 相同但 children 组装不同」的残余可能。闭案需 children dump（本块列为未闭合采集项，不阻塞收口）。
+- **如何利用（判据 MUST）**：
+  1. 任何「结构阶段差」疑点，先做**量级先验对比**再决定是否深挖：实测结构特征块差总量 ÷ chunk 数 vs 「整件级差」先验签名（数百块连片 × 多 chunk）——差一个数量级以上即可否定/压制整件级假设，零成本免 children dump。
+  2. starts 层零差（有无生成判定一致）与块级量级检验**两支齐备**才出否定结论；单支不裁决。
+  3. 量级先验否定**不等于结构差闭案**：children 一致性盲区 MUST 显式声明（§9.7），并给出消解采集项（children BoundingBox dump + 与异常块簇 chunk 交叉定位）。
+- **家族索引**：#66（执行体语义前提——本判据只在同执行体/已知语义两臂间有效）、#20（NBT 不信内坐标，region+slot 定位）、#26（chunky 双臂载体）。
+- **证据**：.investigations/jungle-l/fanout-260907-01/.b2/candidate.md（§1 量级相容性检验 + 盲区声明）、convergence.md（.b2 证伪裁决）、review-260907-01.md（N-1/N-8）。
+
+## 发现 #72: diff 统计「name 双桶相加」上界陷阱——两臂差异对的 name 计数直接相加是上界粗界；top-N 截断列表计数总和 vs 全量总数不自洽 = 口径疑点签名（260907-01）；candidate
+
+- **发现时间/发现者**：260907-01，fan-out .b1 worker §6③ 自查 + judge N-3/N-4 实证修正；core.worker subagent 草稿 + 主会话应用。来源课题 jungle-l（chunky 地形差归因 fan-out）。
+- **module**：workflow-patterns / 统计口径陷阱（#59 跨语言数值对拍 / #18 跨口径数字不可续推 家族的 diff 统计形态）
+- **现象**：① convergence 将 grass_block 2271 + dirt 2868 两桶 name 计数相加得「~5.1k 疑似树 below-dirt 泄漏」，被 judge N-3 修正为**上界粗界**——dirt 2868 混入 blob 族的 `gravel↔dirt` 成分，与 grass_block↔dirt 对无关；树 below-dirt 真实量级 ≈2.3k 起（grass_block 侧基本纯净）。② .b1 top 名计数总和 ≈7 万 vs terrain 全量 113k 不自洽——成因不止 top8 截断：judge N-4 补出第三成因 = 采集脚本对「单 palette 无 data 的 section 差异」按 ±2048 "unknown split" 近似计入 + 跨臂 section 不齐（Y 只在一臂存在）整段跳过的采集盲区。
+- **根因（机制）**：per-block diff 的「按 block name 分桶计数」与「按差异对 (A↔B) 分桶计数」是两种口径——同一 block name 可出现在多个差异对中（dirt 同属 grass_block↔dirt 与 gravel↔dirt），name 桶计数不等于任何单一机制的贡献量；两桶相加 = 对共享成分重复计账。截断/近似/跳过类采集近似则制造「局部可加、全局对不上」的缺口。
+- **如何利用（判据 MUST）**：
+  1. 归因量化（「某机制贡献 ~X 块」）**禁止用 name 桶计数直接相加**——要么按差异对口径统计，要么显式声明「上界粗界，含他族共享成分」，并给出净化下界（如本块 ≈2.3k）。
+  2. **「top-N 截断列表计数总和 vs 全量总数不自洽」本身是口径疑点签名**：发现即声明（不先修数据），把精确分账列为采集项；裁决若只依赖量级带/类型谱则粗界够用，需单点数字的结论必须等全量重算。
+  3. 采集脚本口径三查（写入采集器注释/交付声明）：截断（top-N）、近似（无 data section ±2048 计入）、盲区（跨臂 section 不齐整段跳过）——三者都会进 total，引用 total 前先问三者是否在声明中。
+- **家族索引**：#59（数值化比较禁字符串比对——采集层口径）、#18（跨口径数字不可续推）、#70（概率/占比一律区间粗界，非可交换性）。
+- **证据**：.investigations/jungle-l/fanout-260907-01/review-260907-01.md（N-3/N-4 全推理链）、.b1/candidate.md（§1 dirt 双重身份 + §6③）、convergence.md L27/L31-32（修正后表述）。
+
+## 发现 #73（简记，中价值）: fan-out worker 交付「让渡清单」实践——候选对辖区外证据只标归属建议不解释，主会话收敛时统一分账（260907-01）；draft
+
+- **发现时间/发现者**：260907-01，fanout-260907-01 .b1/.b2 实践提炼；core.worker subagent 草稿 + 主会话应用。
+- **module**：workflow-patterns / fan-out 交付契约
+- **是什么**：各 worker 候选在 §裁决 附**让渡清单**——凡不属本候选解释范围的差异簇，只标「签名 + 量级 + 建议归属桶」，不做解释、不计入本候选账（.b1 例：结构残留→.b2、geode→结构候选、aquifer→11 篇挂起域、grass_block↔dirt 暂挂待 y 分布核查）。主会话收敛时按清单统一分账，judge 核对「无同一块簇被两个桶同时认领」（N-2 通过项）。
+- **如何利用**：fan-out 候选模板增列「让渡清单」小节；收敛/审查第一步核让渡清单 ↔ 归属桶一一对应，防候选间越界归因与重复计账。与 #10 三阶段归因（通道归口）互补：#10 管「差归哪个通道」，本条管「候选间谁不许碰哪块账」。
+- **证据**：.investigations/jungle-l/fanout-260907-01/.b1/candidate.md（§4 让渡清单）+ convergence.md（air/water 桶归属）+ review-260907-01.md（N-2）。
+
+
+## 发现 #74: chunk structures starts 口径陷阱——template 名 ≠ 实例，对比键必须是 (template, ChunkX, ChunkZ)；references 键可为全空（260907-02）；candidate
+
+- **发现时间/发现者**：260907-02，chunky 双臂 B1/B2 消解采集（主会话采集 + core.worker 草稿 + 主会话应用）。来源课题 jungle-l（#71 盲区消解）。
+- **module**：workflow-patterns / 统计口径陷阱（#72 diff 分桶口径 / #18 跨口径数字不可续推 家族的 NBT 结构对比形态）
+- **现象**：mineshaft 区域对比按 template 名合并后得「7 starts / n=219 children」口径；扩到全部实例后实为 **13 个独立 start 实例**（同 template 多实例）——合并口径吞掉多实例、children 只保留最大实例的清单，7 vs 13 的差异纯属合并伪差。同时 chunk `structures.references` 键在已生成 region 中可**全空**（该区域无任何引用型结构放置），「没读到引用」≠「没读键」。
+- **根因（机制）**：chunk NBT `structures.starts` 以 template 名为键名，但同一 template 可有多个独立 start 实例共存于不同 chunk；按 template 名合并（dict 键覆盖/取最大）会静默丢弃其余实例及其 children。references 是独立的引用型放置路径，与 starts 并列，二者覆盖面不同。
+- **定位**：逐实例重采集——按 (template, ChunkX, ChunkZ) 三元组为唯一实例键重 dump（`children_per_start_260907-02.txt`，summary identical=24 diff=0）+ references 键直读（`references_dump_260907-02.txt`，两臂全空）。
+- **如何利用（判据 MUST）**：
+  1. 两臂 chunk structures 对比的实例唯一键 = **(template, ChunkX, ChunkZ)**；禁止按 template 名合并计数/取 children 最大实例——「7 vs 13」类实例数差异先查合并口径再查生成差。
+  2. 结构放置路径覆盖面声明必须含 references 键：已生成 region 的 references 可为全空，「该区域无引用型放置」是合法结果而非采集缺陷；结构 span 证据以 starts 所在 chunk 覆盖集为准。
+  3. 采集脚本只读 starts 不读 references = 覆盖面盲区，MUST §9.7 声明（#71 判据 3 的键级扩展）。
+- **家族索引**：#71（starts 零差裁决——本条是其 children/references 盲区的消解记录）、#72（口径陷阱家族）、#20（NBT 定位纪律）。
+- **证据**：.investigations/jungle-l/children-ydist-260907-02.md §B1/B2 消解结果；.tmp/jungle-l-260906/chunky/children_per_start_260907-02.txt + references_dump_260907-02.txt。
+
+## 发现 #75（简记，中价值）: structure NBT children BB 坐标系非统一世界系——BB 值不能直接当世界坐标做覆盖判断（260907-02）；draft
+
+- **发现时间/发现者**：260907-02，chunky 双臂 children dump 交叉核对；core.worker 草稿 + 主会话应用。来源课题 jungle-l。
+- **module**：workflow-patterns / NBT 内坐标纪律（#20「NBT 不信内坐标」家族）
+- **是什么**：children BoundingBox 与 startChunk 世界坐标的吻合性**因结构类型而异**——monument、ruined_portal（含 ocean）等吻合世界系；mineshaft、ocean_ruin_warm 不吻合（疑似 piece 局部/累积生成系，生成期未经最终 offset 平移，成因未查）。因此 **BB 值不能直接当世界坐标做 chunk 覆盖/归属判断**；替代判据 = 用 startChunk 覆盖集（starts 所在 chunk 的引用集）做归属。同 region 混合两种坐标系，逐类型核对后才可用。
+- **如何利用**：任何「用结构 BB 反推方块归属/覆盖范围」的脚本，先对该结构类型做一次 startChunk↔BB 吻合性抽查（一个实例即可），不吻合即弃用 BB 归位路径；成因排查列为 open（B3，见 children-ydist-260907-02.md）。
+- **证据**：.investigations/jungle-l/children-ydist-260907-02.md Q1 证据链 3 + §B1/B2 消解结果第 5 条（B3 保持未消解声明）。
