@@ -19,7 +19,8 @@
 
 ## 三、路线 B：CPU 冷路径优化（并列评估）
 
-- **B-1 old_blended 结果记忆化**：pure function，无宿主缓存（冷态重复采样同列/邻列重复坐标）；bounded LRU（跨 chunk Arc 共享，est L2 同款机制先例）→ est + density + surface 三处共同受益。工程量小，风险低（值不变，只加速）。**命中率未知，需计数探针定上界；探针 MUST 覆盖连片预生成的 L2 命中率爬升带（冷/暖混合中间态，judge J1）**。
+- **B-1 old_blended 结果记忆化**：pure function，无宿主缓存（冷态重复采样同列/邻列重复坐标）；bounded LRU（跨 chunk Arc 共享，est L2 同款机制先例）→ est + density + surface 三处共同受益。工程量小，风险低（值不变，只加速）。
+  - **✅ 命中率已实测（olb_hitrate_probe，260908-02，seed 同，单线程，key=(实例,x,y,z)）**：纯冷态 4 chunk dup_ratio=**19.0%**；连片爬升带 128/256/384/512 chunk 收敛 **33.0→34.5%**（est L2 命中 ~90% 同步可见）；map 未触 cap。**定性 = 中等收益**：老 OLB 采样量的 ~35% 可省，映射到 est 冷 ~15.4ms ≈ 省 ~4-5ms/chunk，不改变冷路径量级——B-1 是「值得做的小优化」而非「解决问题」。爬升带覆盖已满足 judge J1。
 - **B-2 est L2 扩容/持久化**：现 FIFO 131072 ≈ 4370 chunk 上限（evictions=0 在 256 chunk 内）；大 region 预生成/重复访问场景扩容或落盘持久化。工程量小。
 - **B-3 预热线程**：后台预计算 est 列（idle 时），把冷价移出关键路径。工程量中（线程/生命周期管理），语义零风险。
 - **收益上界**：est 冷 15.4 + 冷 miss 6-8 ≈ 21-23ms/chunk 冷态；B-1 命中率取决于坐标重复度（**需一轮计数探针定命中上界**，便宜）。

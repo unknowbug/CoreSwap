@@ -2,6 +2,7 @@
 // Phase 3 第 1 波：基础 op；第 2 波：SplineDF（Hermite）+ InterpolatedDF（grid 懒建缓存）。
 // 逐位对齐 C++ density.h（Hermite BK-001 / InterpolatedDF 4x4x8 cell 插值）。
 use std::cell::RefCell;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -14,6 +15,35 @@ static NEXT_CACHE_ID: AtomicU32 = AtomicU32::new(0);
 // 诊断：build_grid 的 arg 采样总次数（定位交替插值嵌套递归网格构建膨胀）
 #[doc(hidden)]
 pub static GRID_ARG_SAMPLES: AtomicU32 = AtomicU32::new(0);
+
+// ---- WG_OLB_STATS（260908-02 B-1 计数探针：old_blended 采样重复率，env 门控；关闭=单分支零成本）----
+use std::sync::atomic::{AtomicBool, AtomicU64};
+#[doc(hidden)]
+pub static OLB_WATCH: AtomicBool = AtomicBool::new(false);
+#[doc(hidden)]
+pub static OLB_TOTAL: AtomicU64 = AtomicU64::new(0);
+thread_local! {
+    #[doc(hidden)]
+    pub static OLB_MAP: RefCell<HashMap<(usize, i32, i32, i32), u32>> = RefCell::new(HashMap::new());
+    #[doc(hidden)]
+    pub static OLB_CAPPED: Cell<bool> = const { Cell::new(false) };
+}
+pub const OLB_MAP_CAP: usize = 8_000_000; // ~500MB 上界；超限停止插入（dup 统计饱和，报告溢出）
+pub fn olb_watch(on: bool) { OLB_WATCH.store(on, Ordering::Relaxed); }
+pub fn olb_reset() {
+    OLB_TOTAL.store(0, Ordering::Relaxed);
+    OLB_MAP.with(|m| m.borrow_mut().clear());
+    OLB_CAPPED.with(|c| c.set(false));
+}
+/// 返回 (total, unique, dup, capped)
+pub fn olb_stats() -> (u64, usize, u64, bool) {
+    let total = OLB_TOTAL.load(Ordering::Relaxed);
+    OLB_MAP.with(|m| {
+        let m = m.borrow();
+        let dup: u64 = m.values().map(|&c| (c - 1) as u64).sum();
+        (total, m.len(), dup, OLB_CAPPED.with(|c| c.get()))
+    })
+}
 
 /// ShiftDF（offset noise shift）构造：分配缓存 id（y 无关 Cache2D 缓存）。
 pub fn shift_df(noise: Arc<DoublePerlinNoiseSampler>, mode: ShiftMode) -> DensityFunction {
@@ -175,6 +205,17 @@ impl InterpolatedNoiseData {
     }
     // 对齐 C++ sampleImpl L411-473
     pub fn sample(&self, pos: &NoisePos) -> f64 {
+        if OLB_WATCH.load(Ordering::Relaxed) {
+            OLB_TOTAL.fetch_add(1, Ordering::Relaxed);
+            OLB_MAP.with(|m| {
+                let mut m = m.borrow_mut();
+                if m.len() < OLB_MAP_CAP {
+                    *m.entry((self as *const _ as usize, pos.x, pos.y, pos.z)).or_insert(0) += 1;
+                } else {
+                    OLB_CAPPED.with(|c| c.set(true));
+                }
+            });
+        }
         let d = pos.x as f64 * self.scaled_xz_scale;
         let e = pos.y as f64 * self.scaled_y_scale;
         let f = pos.z as f64 * self.scaled_xz_scale;
