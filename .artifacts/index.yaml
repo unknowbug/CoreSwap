@@ -926,7 +926,7 @@ entries:
   - id: 'swe:a-group-4-gaps-260907-05'
     path: 'a-group-4-gaps-260907-05.md'
     kind: engineering
-    status: candidate  # judge PASS-with-conditions（C1 mod JNI 接线后端到端实测 / C2 overworld 恒等为 Degraded 静态同源声明）；confirmed 待用户拍板
+    status: confirmed  # 用户「授权确认」260907-05（judge PASS-with-conditions：O1/O2 已应用，C1 mod JNI 接线后端到端实测 + C2 overworld Degraded 声明留后继闭环）
     # 内容：缺口1 blocks.rs 注册 API（wg_register_block）+ 未知名一次性告警；缺口2 default_block 读 settings JSON（4 消费点）；
     #       缺口3 settings_name "modid:name" 命名空间参数化 + feature/carver 路径按 id 命名空间解析；缺口4 biome 目录 dir_ns 化。
     # 验证：cargo test 6/6 + workspace 全量 build 绿 + nether/end 同代码双臂 A/B dump 逐位恒等（发现 #76）
