@@ -992,3 +992,17 @@ entries:
     #       + judge 独立重算三元组逐位一致（review-260907-10-001）。
     # 关联：.investigations/realmod-e2e/（review-260907-10-001 + knowledge-draft-260907-10）、
     #       build-tooling #32/#31补充、workflow-patterns #33补充、架构计划-260907-10.md、NEXT_SESSION 260907-09 开工点 1。
+
+  # === GPU 管线接入 Phase 1 摊销曲线 verdict（260908-01，judge PASS-with-conditions 条件已应用）===
+  - id: 're-code:gpu-integration:phase1-amortization-verdict-260908-01'
+    path: 'perf-rework/gpu-phase1-verdict-260908-01.md'
+    kind: engineering
+    status: confirmed  # 用户「授权确认」260908-01（范围 = noise/density GPU 接入，负面结论维持搁置；judge 5 条件已应用 + 口径注记：T=8 为扫描档非生产配置，生产=物理核-2=T=10，门槛数字为下界）
+    # 内容：GPU 攒批摊销曲线（n=768/6144/49152/196608，7 轮中位数，串行）——摊销收益封顶 ~13%
+    #       （per-pt 0.259→0.221ms），瓶颈 = 解释器式 kernel 单点求值成本 ~0.22ms/pt；带宽排除
+    #       （角点形态 0.16GB/s 未饱和，对 D24 形态限定非推翻）；门槛核算两口径 ~38×/~170×，
+    #       现引擎形态下无解 = C2ME 式专用 kernel 重设计为新立项级。
+    # 验证：dll fresh sha 14096A5A + 三件套复验全绿 + 两轮独立复现 <1% 偏差 + 260903-16 结构一致；
+    #       原始数据 cmd-output/gpu-n-scan-fresh-rerun.log。
+    # 关联：.investigations/perf-rework/gpu-phase1-amortization-260907-11.md + review-gpu-phase1-amortization-260907-11.md、
+    #       gpu-accel-errors.md（D24/D25/G）、gpu-merge-revisit-260903-12.md、架构计划-260907-11.md。
