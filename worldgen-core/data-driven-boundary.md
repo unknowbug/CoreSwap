@@ -14,6 +14,7 @@
 | block id | `blocks.json` | `BlockRegistry::load_from_json` |
 | placed/configured feature | `placed_feature/*.json` + `configured_feature/*.json` | `FeatureCache` |
 | configured carver | `configured_carver/*.json` | `carver_cache` |
+| 方块 tag（#minecraft:xxx 展开） | `tags/blocks/*.json`（170 文件，server jar 提取） | `BlockTagRegistry`（block_tags.rs，260907-04） |
 
 **跨版本**：换对应 JSON 数据文件即可。block id 统一经 `blocks.json` 解析（`blocks.id("minecraft:stone")`），MC 很少改 block 名 → 代码稳定。
 
@@ -21,26 +22,23 @@
 
 | 项 | 位置 | 说明 | 跨版本处理 |
 |---|---|---|---|
-| carver replaceable（`#minecraft:overworld_carver_replaceables` tag） | `carver.rs build_overworld_replaceable` | 硬编码 block 名数组（tag 无独立数据源） | 已加注释：核对新版本 tag 展开 |
-| feature RuleTest tag 展开（base_stone_overworld 等） | `feature.rs expand_tag` | 硬编码 tag 内容（无数据源） | 已加注释：核对新版本 tag |
+| ~~carver replaceable（`#minecraft:overworld_carver_replaceables` tag）~~ | ~~carver.rs~~ | **260907-04 已数据驱动**（block_tags JSON 优先；硬编码表降级为 fallback + golden 基准） | 换 tag JSON 即可 |
+| ~~feature RuleTest tag 展开（base_stone_overworld 等）~~ | ~~feature.rs~~ | **260907-04 已数据驱动**（同上，`expand_tag_fallback` 为兜底） | 换 tag JSON 即可 |
 
-**说明**：
-- 这些硬编码的是 **block 名称字符串**（经 `blocks.id()` 解析成 id），不是数字 id → id 已数据驱动
-- block 名称在 MC 版本间稳定（改名极少）；tag 内容可能变 → 跨版本只需核对 tag 展开
-- 因当前数据目录不含 `tags/blocks` 数据（tag 在完整 jar 的 data/），暂无法完全数据驱动
-- 若未来补充 tag 数据源，可进一步数据驱动（读 tags/blocks/*.json 展开）
+**残留说明（260907-04）**：
+- fallback 硬编码表**保留不删**（数据缺失不炸生成，用户拍板缺失策略 = fallback + 一次性日志）；golden 测试（block_tags.rs tests）保证 JSON 展开 ≡ fallback 集合。
+- `minecraft:netherrack` 在 1.20.1 **无 tag 文件**（feature 消费点走 fallback 硬编码——1.20.1 该 tag 确实不存在，非数据缺失）。
+- Java 侧部署：CoreSwapFixHelper 双 marker（noise_settings + tags/blocks）判缓存新鲜度，旧 tmp 缓存自动重解压。
 
-## 跨版本升级检查清单
+## 跨版本升级检查清单（260907-04 修订）
 
-1. 换 `blocks.json` / `biome_params.json` / `noise_settings/*.json` / `density_function/*.json`
-2. 检查 `carver.rs build_overworld_replaceable`（tag 变更）
-3. 检查 `feature.rs expand_tag`（tag 变更）
-4. 其余自动跟随数据文件
+1. 换 `blocks.json` / `biome_params.json` / `noise_settings/*.json` / `density_function/*.json` / `tags/blocks/*.json`（server jar 重新提取，脚本 `.investigations/tag-datadriven-260907-04/extract_tags.py`）
+2. 其余自动跟随数据文件（carver replaceable / feature tag 已 JSON 驱动，fallback 只是兜底基准，不需手改）
 
 ## 边界原则
 
 - **block id 一律数据驱动**（经 `blocks.id` 或从 JSON config 解析），不硬编码数字
-- **版本相关无数据源的 tag 展开**：代码硬编码但**集中管理 + 注释标注升级点**
+- **tag 展开已数据驱动**（260907-04）：JSON 优先，硬编码 fallback 表集中管理并作为 golden 等值基准
 - 算法/流程与版本无关的部分保持代码（不数据驱动）
 
 ## 多世界参数化（2026-08-29，对齐 C++ wg_create）

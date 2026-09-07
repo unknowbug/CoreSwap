@@ -82,6 +82,7 @@ fn node_type(df: &DensityFunction) -> String {
         DensityFunction::InterpolatedNoise(_) => "InterpolatedNoise",
         DensityFunction::Lazy { .. } => "Lazy",
         DensityFunction::ReadChannel { .. } => "ReadChannel",
+        DensityFunction::EndIslands(_) => "EndIslands",
     }
     .to_string()
 }

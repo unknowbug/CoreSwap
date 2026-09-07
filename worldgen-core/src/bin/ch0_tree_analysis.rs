@@ -18,6 +18,7 @@ fn count(df: &DensityFunction, counters: &mut HashMap<&'static str, usize>) {
         DensityFunction::BlendOffset=>"BlendOffset", DensityFunction::BlendDensity{..}=>"BlendDensity",
         DensityFunction::Wrapping{..}=>"Wrapping", DensityFunction::InterpolatedNoise(_)=>"InterpolatedNoise",
         DensityFunction::Lazy{..}=>"Lazy", DensityFunction::ReadChannel{..}=>"ReadChannel",
+        DensityFunction::EndIslands(_)=>"EndIslands",
     };
     *counters.entry(k).or_insert(0) += 1;
     match df {

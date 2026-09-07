@@ -195,11 +195,22 @@ pub struct CarverConfig {
 }
 
 impl CarverConfig {
-    // #minecraft:overworld_carver_replaceables tag 的 1.20.1 展开（carver 可挖掉的方块）。
-    // 数据驱动边界：该 tag 无独立数据源（不在 worldgen dir），故代码硬编码。跨版本时只改此处：
-    // 升到新版本若 tag 内容变，核对 server jar 的 data/minecraft/tags/blocks/overworld_carver_replaceables.json
-    // 更新 NAMES（block 名从 blocks.id 解析，blocks.json 已数据驱动）。
+    // #minecraft:overworld_carver_replaceables tag（carver 可挖掉的方块）。
+    // 260907-04 数据驱动化：优先 block_tags JSON（<wg_dir>/data/minecraft/tags/blocks/
+    // overworld_carver_replaceables.json，递归展开嵌套 tag）；缺失/畸形 → fallback 本硬编码表
+    // （1.20.1 权威展开，golden 测试 block_tags::golden_carver_replaceables 保证等值）。
+    // 跨版本升级：换 tag JSON 即可；本表只作兜底基准，不需随版本手改。
     pub fn build_overworld_replaceable(blocks: &BlockRegistry) -> Vec<BlockId> {
+        let mut ids = Vec::new();
+        if crate::block_tags::expand_tag("minecraft:overworld_carver_replaceables", blocks, &mut ids) {
+            return ids;
+        }
+        Self::fallback_overworld_replaceable(blocks)
+    }
+
+    // 硬编码 fallback（server jar 权威 tag 展开，1.20.1）：
+    // base_stone_overworld + dirt + sand + terracotta + iron_ores + copper_ores + 直接值
+    pub fn fallback_overworld_replaceable(blocks: &BlockRegistry) -> Vec<BlockId> {
         // server jar 权威 tag 展开（1.20.1）：
         // base_stone_overworld + dirt + sand + terracotta + iron_ores + copper_ores + 直接值
         const NAMES: &[&str] = &[

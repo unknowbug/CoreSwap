@@ -29,6 +29,7 @@ fn count(node: &DensityFunction, counters: &mut HashMap<String, usize>) {
         DensityFunction::InterpolatedNoise(_) => "InterpolatedNoise",
         DensityFunction::Lazy { .. } => "Lazy",
         DensityFunction::ReadChannel { .. } => "ReadChannel",
+        DensityFunction::EndIslands(_) => "EndIslands",
     };
     *counters.entry(key.to_string()).or_insert(0) += 1;
     match node {

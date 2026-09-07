@@ -911,3 +911,12 @@ entries:
     # 采集：b3_bb_check_260907-03.py → chunky/b3_bb_check_260907-03.txt（6 结构类型各 1-2 例，双臂全同）。
     # 关联：workflow-patterns #74/#75、children-ydist-260907-02、NEXT_SESSION 260907-02 开工点 2。
 
+
+  # === tag 数据驱动化（260907-04，judge pending）===
+  - id: 'swe:tag-datadriven-260907-04'
+    path: 'tag-datadriven-260907-04.md'
+    kind: engineering
+    status: confirmed  # 用户「授权确认」260907-04（judge PASS-with-conditions，条件 2/3/4 已应用 + compileJava 绿；条件 1 余项 runServer 冒烟留发布前非阻塞）
+    # 内容：tags/blocks 170 文件双落点（数据目录 + mod 资源）+ BlockTagRegistry（JSON 优先，fallback 硬编码保底）
+    #       + CoreSwapFixHelper 双 marker 防旧缓存静默退化 + 6 个 EndIslands 预存破损 bin 修复（全量绿恢复）。
+    # 关联：worldgen-core/data-driven-boundary.md（修订）、.tmp/extract_tags_260907-04.py（提取脚本）。

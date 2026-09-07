@@ -29,6 +29,7 @@ fn strip_noise(df: &DensityFunction) -> DensityFunction {
         DensityFunction::Interpolated(id) => DensityFunction::Interpolated(id.clone()),
         DensityFunction::Lazy{target} => DensityFunction::Lazy{target:target.clone()},
         DensityFunction::ReadChannel{ch,mn,mx} => DensityFunction::ReadChannel{ch:*ch,mn:*mn,mx:*mx},
+        DensityFunction::EndIslands(e) => DensityFunction::EndIslands(e.clone()),
     }
 }
 

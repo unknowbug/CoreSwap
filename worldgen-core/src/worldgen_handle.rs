@@ -335,6 +335,9 @@ impl WorldgenHandle {
         let blocks_path = format!("{}/../blocks.json", wg_dir);
         let blocks_json = std::fs::read_to_string(&blocks_path).ok()?;
         let blocks = BlockRegistry::load_from_json(&blocks_json)?;
+        // 5b. block tag 注册表（260907-04：carver replaceable / feature RuleTest tag 数据驱动；
+        //     必须在 load_carvers/load_features 解析前 init，缺失时消费点走硬编码 fallback）
+        crate::block_tags::init(&wg_dir);
 
         // 6. biome classifier + carvers + features（维度参数化：biome_params_file 决定 biome 参数）
         // end（260906-04）：无 biome_params 文件（非 MultiNoise），bc 只承载 carvers/features；

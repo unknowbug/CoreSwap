@@ -28,7 +28,7 @@ fn walk(df: &DensityFunction, out: &mut Vec<(u32, String)>) {
         DensityFunction::Constant { .. } | DensityFunction::Noise { .. } | DensityFunction::ShiftDF { .. }
         | DensityFunction::YClampedGradient { .. } | DensityFunction::WeirdScaled { .. }
         | DensityFunction::BlendAlpha | DensityFunction::BlendOffset | DensityFunction::InterpolatedNoise(_)
-        | DensityFunction::Lazy { .. } | DensityFunction::ReadChannel { .. } => {}
+        | DensityFunction::Lazy { .. } | DensityFunction::ReadChannel { .. } | DensityFunction::EndIslands(_) => {}
     }
 }
 
@@ -58,6 +58,7 @@ fn summarize(df: &DensityFunction, depth: usize, out: &mut String) {
         DensityFunction::BlendOffset => out.push_str("blendO "),
         DensityFunction::Lazy { .. } => out.push_str("lazy "),
         DensityFunction::ReadChannel { ch, .. } => out.push_str(&format!("readch#{ch} ")),
+        DensityFunction::EndIslands(_) => out.push_str("endislands "),
     }
 }
 

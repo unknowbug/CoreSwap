@@ -59,10 +59,16 @@ impl RuleTest {
     }
 }
 
-// 常见 tag 展开（server jar 权威，1.20.1）——按需补充。
-// 数据驱动边界：tag 无独立数据源（不在 worldgen dir），故代码硬编码。跨版本时：
-// 核对 server jar data/minecraft/tags/blocks/<tag>.json 更新展开（block 名经 blocks.id 解析，blocks.json 已数据驱动）。
+// tag 展开（260907-04 数据驱动化）：优先 block_tags JSON（<wg_dir>/data/<ns>/tags/blocks/），
+// 缺失/畸形 → fallback 硬编码展开（server jar 1.20.1 权威值，golden 测试保证两者等值）。
 pub fn expand_tag(blocks: &BlockRegistry, tag: &str, out: &mut Vec<BlockId>) {
+    if crate::block_tags::expand_tag(tag, blocks, out) { return; }
+    expand_tag_fallback(blocks, tag, out);
+}
+
+// 硬编码 fallback（server jar 权威，1.20.1）——按需补充。
+// 注意：跨版本升级时 JSON 数据文件为主，本表为兜底 + golden 基准（数据缺失不炸生成）。
+pub fn expand_tag_fallback(blocks: &BlockRegistry, tag: &str, out: &mut Vec<BlockId>) {
     let mut add = |n: &str| out.push(blocks.id(n));
     match tag {
         "minecraft:base_stone_overworld" => {

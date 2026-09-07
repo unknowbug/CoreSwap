@@ -57,6 +57,7 @@ fn node_name(df: &DensityFunction) -> &'static str {
         DensityFunction::BlendOffset=>"BlendOffset", DensityFunction::BlendDensity{..}=>"BlendDensity",
         DensityFunction::Wrapping{..}=>"Wrapping", DensityFunction::InterpolatedNoise(_)=>"InterpolatedNoise",
         DensityFunction::Lazy{..}=>"Lazy", DensityFunction::ReadChannel{..}=>"ReadChannel",
+        DensityFunction::EndIslands(_)=>"EndIslands",
     }
 }
 fn count_nodes(df: &DensityFunction) -> usize {

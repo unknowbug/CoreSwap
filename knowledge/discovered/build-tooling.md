@@ -576,3 +576,47 @@ versions/1.20.1/data/*   # 再重排除其内容
   2. **chunk 定位用 region 坐标 + 槽位推导，不信 NBT 内坐标**（#20：chunk NBT 无 xPos 键）；
   3. **对比必须剔植被**——特征流非确定（#67，两臂 Chunky 生成均多线程），不剔会把树/植被差当地形差（本轮 oak/jungle leaves+log、vine ≈86k 差值全属此类）。
 - **证据**：`.investigations/jungle-l/chunky-trial-260906-09.md`（主文档）；`.tmp/jungle-l-260906/chunky/`（chunky-coreswap.log / chunky-vanilla.log / region-{coreswap,vanilla}/ 各 6 mca + chunky_diff_260906-09.py）。
+
+## 发现 #27: 缓存新鲜度 marker 单判 → 增量数据集静默退化——marker 语义是「新鲜度」不是「完整性」，新增数据子集必须配新增 marker（260907-04）
+
+- **时间/置信度/module**：260907-04；candidate（机制静态审查定论 + golden 5/5 + judge PASS-with-conditions，Java 侧行为未跑生产复验——降级声明在案）；build-tooling / 资源解压缓存（#18「产物在盘 ≠ 本次生成」家族第四形态：**缓存命中 ≠ 数据集完整**）。
+
+### 现象
+
+CoreSwapFixHelper 用单一 marker（`noise_settings/overworld.json` 存在）判定 tmp 解压缓存新鲜度。260907-04 tag 数据驱动化给数据集**增量**新增子目录 `tags/blocks/`（170 文件）后：升级侧旧 tmp 缓存仍在 → marker 命中 → 跳过重解压 → **新数据永远缺失且无任何报错**——Rust 侧 `expand_tag` 返回 false 走硬编码 fallback（fallback 协议掩盖了数据层失效），数据驱动静默退化为硬编码。生成不炸、从外部表现完全无法区分「正常 fallback」与「缓存导致的数据缺失」。
+
+### 根因
+
+marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却被当作「**缓存数据集与当前资源集等价**」使用——单判据语义超载。缓存命中只证明「旧数据完整」，不证明「旧数据 ⊇ 新数据集」；数据集**增量**演进（新增子目录/文件）时 marker 集合本身过时。与 #18 对比：#18 是「生成过程没发生但产物在盘」，本条是「解压没发生但 marker 在盘」——同一上位原则（「看起来对」的元数据不作产物健康判据）在资源缓存域的形态。
+
+### 定位
+
+改动评审阶段从架构推演发现（本例未烧轮次）：新增数据子目录 → 追问「旧缓存里有没有它」→ marker 只查旧路径 → 命中即跳过解压。judge 意见书补充定位到残余缺口：解压后只复检旧 `marker` 不复检 `tagMarker`——若 jar 打包事故缺 tags，同样静默走 fallback 无报错。
+
+### 修复
+
+单 marker → 双 marker：每个**新增数据子集**配对应 marker（`tags/blocks/overworld_carver_replaceables.json`），条件合取（任一缺失 → deleteRecursively + 重解压）。judge 条件 2（SHOULD，已应用）：解压后**逐 marker 复检**（缺则 throw），封堵打包侧缺数据的静默面。
+
+### 教训/判据
+
+1. **跨版本升级凡动资源目录结构（增/删子目录），第一动作 = 审计缓存新鲜度判据的 marker 集合是否覆盖新结构**——「marker 在」≠「数据全」。
+2. **marker 判据必须与数据子集一一对应**（数据集增量演进时 marker 同步增量）；单 marker 守多子目录 = 语义超载反模式。
+3. **fallback 协议是静默退化的温床**：fallback 设计初衷是「跨版本数据未跟上不炸」，但它同时吞掉「本版本数据该在而缺失」——有 fallback 的数据路径必须配**一次性显著日志** + 解压后 marker 复检，缺一即无法从行为面区分正常 fallback 与缓存事故。
+4. 家族索引：#18（缓存命中耗时签名）、#16（旧 exe 假阴性）、#12（二进制产物哨兵点验）、#24（gitignore 静默不生效）——共同上位原则：**每一环「数据/产物是否与当前代码/资源集等价」都必须有独立证据**；本条新增「资源解压缓存」这一环。
+5. 证据：`.artifacts/tag-datadriven-260907-04.md` 改动 #7 + `.artifacts/judge-tag-datadriven-260907-04.md` 条 D/条件 2。
+
+## 发现 #23 补充案例（260907-04，机制面二）：`-p` 构建图范围收窄——库 enum 加 variant 后 6 个诊断 bin 编不过近一月未暴露，「单包绿」不构成任何全量结论
+
+- **时间/置信度/module**：260907-04；candidate（6 bin 破损 + 修复全量绿实锤）；build-tooling / cargo workspace 构建链（#23 家族，**机制面二**：#23 = 依赖 rlib 陈旧漏判，本条 = `-p` 根本不把其它目标的 bins 纳入构建图——不是漏编，是没编）。
+
+- **现象**：end 接管（260906-04）给 `DensityFunction` 加 `EndIslands` variant 后，6 个 `worldgen-core/src/bin/` 非穷尽 match 编不过（density_tree_profile / transpiler_ch0_census / channel_probe×2 处 / ch0_tree_analysis / macrolize_probe / tree_vs_noise_breakdown）。日常构建命令 `cargo build --offline -p worldgen --release` 只建薄壳 cdylib，core 的诊断 bins 不在 `-p worldgen` 构建图内——破损状态存活近一月，纪律 13a「全量绿」被无意识绕过，直到 260907-04 顺手修复（各 bin 仅补 `EndIslands(_)` arm）后才以 workspace 全量 build 恢复绿。
+
+- **根因**：`-p <pkg>` 把构建根收窄到单包——**未选中的目标根本不参与编译**，「Finished」只证明被选中目标绿。库层公共 enum 加 variant 是「编译半径爆炸」型改动（全部 match 点都要动），但日常 `-p` 构建命令的半径恰好覆盖不到诊断 bins，破损被结构性隐藏。
+
+- **定位**：本例非运行期发现，是 260907-04 全量 build（发布前检查）暴露 6 个 bin 编译错误回溯归因到 260906-04 的 variant 提交。判据（及早发现）：库 enum 加 variant 的 commit 当轮就跑一次 workspace 全量 build，看是否冒出非预期目标的 E0004。
+
+- **修复/判据**：
+  1. **库公共 enum（跨模块被 match 的 variant 承载体）加 variant 的 commit，MUST 以 `cargo build --offline --release`（workspace 全量，不带 -p）验证**——`-p` 单包绿 ≠ 全量绿，两者结论域不同。
+  2. 破损暴露窗口 = 全量 build 间隔：纪律 13a 的「全量绿」检查必须绑定到**库层 API 变更类 commit**（enum/trait/公共签名），不能只在发版前兜底。
+  3. 家族索引：#23（陈旧 rlib 假绿，机制面一）、#16（bin-diag 不参与默认构建的姊妹面：`src/bin/` 参与 `cargo build` 但不参与 `-p worldgen`）——合流判据：**「构建绿」结论必须声明构建图范围，范围外目标不作任何假设**。
+  4. 证据：`.artifacts/tag-datadriven-260907-04.md` 改动 #9 + judge 意见书条 F（diff 逐行核对，全部仅添加 EndIslands arm）。
