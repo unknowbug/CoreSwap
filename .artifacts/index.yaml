@@ -937,7 +937,7 @@ entries:
   - id: 'swe:jni-wiring-260907-07'
     path: 'jni-wiring-260907-07.md'
     kind: engineering
-    status: candidate  # judge PASS-with-conditions（N3/N6 措辞、N7 补落盘已应用）；confirmed 留用户拍板
+    status: confirmed  # 用户「授权确认」260907-07（judge PASS-with-conditions 条件 N3/N6/N7 已应用）
     # 内容：Java_wg_CppWorldgen_registerBlock JNI 接线（薄壳 jni_bridge.rs）+ CppWorldgen native 声明
     #       + CppBridge.registerModBlocks（-Dcpp.blockRegister 门控默认关，合成名回退冒烟）+ BenchMod 调用 + gradle 映射行。
     #       附 260907-06 回滚残留面修复 8 处（gradle.properties/run_rust_client/build.gradle/probe 默认值 MC 路径）。
