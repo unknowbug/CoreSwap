@@ -106,6 +106,8 @@ pub struct WorldgenHandle {
     rule: SurfaceRule,
     // blocks（Box::leak 长期存活，SurfaceBuilder 与 carver 共用）
     blocks: &'static BlockRegistry,
+    // 260907-05（缺口 2）：settings.default_block 解析后的 id（fill/surface 的默认填充块）
+    default_block: BlockId,
     // aquifer splitter
     splitter: XoroshiroSplitter,
     // 矿脉（ore vein）sampler（density 后 aquifer 无 fluid 时决定矿脉块，只读 &self 并发安全）
@@ -176,14 +178,31 @@ impl WorldgenHandle {
                           world_height: i32) -> Option<WorldgenHandle> {
         let wg_dir = worldgen_dir.to_string();
         // dfNs = settings_name 去 ".json"（决定 density_function namespace/目录）
-        let df_ns = if settings_name.ends_with(".json") {
+        let df_ns_raw = if settings_name.ends_with(".json") {
             &settings_name[..settings_name.len() - 5]
-        } else { settings_name }.to_string();
+        } else { settings_name };
+        // 260907-05（A 组缺口 3）：settings_name 支持 "modid:name[.json]" → 数据命名空间 modid；
+        // 无冒号 = minecraft（向后兼容，vanilla 路径逐字节不变）。
+        let (data_ns, df_ns) = match df_ns_raw.split_once(':') {
+            Some((ns, short)) => (ns.to_string(), short.to_string()),
+            None => ("minecraft".to_string(), df_ns_raw.to_string()),
+        };
 
         // 2. noise_settings（先读维度参数：min_y/height/aquifers_enabled）
-        let settings_path = format!("{}/data/minecraft/worldgen/noise_settings/{}.json", wg_dir, df_ns);
+        let settings_path = format!("{}/data/{}/worldgen/noise_settings/{}.json", wg_dir, data_ns, df_ns);
         let settings_txt = std::fs::read_to_string(&settings_path).ok()?;
         let settings = parse(&settings_txt).ok()?;
+        // 260907-05（A 组缺口 2）：default_block 从 settings 读（JSON 优先；字符串或 {Name} 形态），
+        // 缺失 fallback minecraft:stone + 一次性日志（对齐 260907-04 tag 先例）
+        let mut default_block_name = settings.get("default_block")
+            .and_then(|v| v.as_str().map(|s| s.to_string())
+                .or_else(|| v.get("Name").and_then(|n| n.as_str()).map(|s| s.to_string())))
+            .unwrap_or_else(|| {
+                eprintln!("[WGH] settings '{}' no default_block, fallback minecraft:stone", df_ns);
+                "minecraft:stone".to_string()
+            });
+        // 诊断覆盖（260907-05，创建期读一次，非热路径；A/B 对拍默认块用，#20 恒等式自检随用随证）
+        if let Ok(ov) = std::env::var("CORESWAP_DEFAULT_BLOCK") { default_block_name = ov; }
         // 维度参数从 settings 读（非硬编码 overworld -64/384）
         let mut min_y = -64;
         let mut noise_height = 384;
@@ -241,7 +260,7 @@ impl WorldgenHandle {
             eprintln!("wg_create: cannot load {}", noise_params_path);
             return None;
         }
-        let df_dir = format!("{}/data/minecraft/worldgen/density_function/{}", wg_dir, df_ns);
+        let df_dir = format!("{}/data/{}/worldgen/density_function/{}", wg_dir, data_ns, df_ns);
         let df_dir2 = df_dir.clone();
         db.set_external_loader(Box::new(move |_f: &str, name: &str| -> String {
             let p = format!("{}/{}.json", df_dir2, name);
@@ -345,9 +364,16 @@ impl WorldgenHandle {
         let end_mode = df_ns == "end";
         let biome_params_path = format!("{}/../{}", wg_dir, biome_params_file);
         let mut bc = if end_mode { BiomeClassifier::empty() } else { BiomeClassifier::load(&biome_params_path) };
+        // 260907-05（A 组缺口 4）：biome 目录按命名空间合成——vanilla 全量 + mod 命名空间目录（id 带 modid: 前缀）；
+        // 同名文件跨命名空间冲突时 minecraft 先入（load_* 为首见覆盖语义前先查——这里两次 load 幂等合并）。
         let biome_dir = format!("{}/data/minecraft/worldgen/biome", wg_dir);
-        let _n = bc.load_carvers(&biome_dir);
-        let _nf = bc.load_features(&biome_dir);
+        let _n = bc.load_carvers(&biome_dir, "minecraft");
+        let _nf = bc.load_features(&biome_dir, "minecraft");
+        if data_ns != "minecraft" {
+            let mod_biome_dir = format!("{}/data/{}/worldgen/biome", wg_dir, data_ns);
+            let _n2 = bc.load_carvers(&mod_biome_dir, &data_ns);
+            let _nf2 = bc.load_features(&mod_biome_dir, &data_ns);
+        }
         // 260905-08 E-C2：Java registry 枚举序（feature 全局 index 构建序，数据驱动）
         let _no = bc.load_registry_order(&format!("{}/biome_registry_order.json", wg_dir));
 
@@ -359,7 +385,10 @@ impl WorldgenHandle {
         let ore_vein = crate::ore_vein::OreVeinSampler::new(vein_toggle, vein_ridged, vein_gap, ore_splitter, blocks_leaked);
         // sea_level 从 settings 读（主世界 63 / 下界 32 / mod 维度按定义）
         let sea_level = settings.get("sea_level").and_then(|s| s.as_f64()).unwrap_or(63.0) as i32;
-        let sb = SurfaceBuilder::new(samplers, splitter, sea_level, blocks_leaked);
+        // 260907-05（缺口 2）：default_block 注入 SurfaceBuilder（未知名已由 blocks.id 一次性告警）
+        let default_block = blocks_leaked.id(&default_block_name);
+        let mut sb = SurfaceBuilder::new(samplers, splitter, sea_level, blocks_leaked);
+        sb.set_default_block(default_block);
         // surface_rule：overworld 用已验证的代码规则；其他维度用 settings.surface_rule JSON 数据驱动（对齐 C++）
         let df_ns2 = df_ns.clone();
         let rule = if df_ns2 == "overworld" {
@@ -438,6 +467,7 @@ impl WorldgenHandle {
             tree, macro_sampler, transpiler_density, dfc_density, gpu_density, gpu_channels, barrier, flooded, spread, lava, erosion, depth, init,
             biomesrc, sb, rule,
             blocks: blocks_leaked,
+            default_block,
             splitter,
             ore_vein,
             beardifiers: std::sync::RwLock::new(HashMap::new()),
@@ -495,7 +525,10 @@ impl WorldgenHandle {
         self.biomesrc.biome(&bp)
     }
     /// block id → name（对外诊断/对拍用；blocks 字段私有）
-    pub fn block_name(&self, id: i32) -> &str { self.blocks.name(id) }
+    pub fn block_name(&self, id: i32) -> String { self.blocks.name(id) }
+
+    // 260907-05（缺口 1）：运行时注册方块（wg_register_block 后端）
+    pub fn register_block(&self, name: &str) -> i32 { self.blocks.register(name) }
     pub fn fill_density(&self, min_chunk_x: i32, min_chunk_z: i32, size: i32) -> Vec<f64> {
         let xz = crate::api::density_xz_interval();
         let yi = crate::api::density_y_interval();
@@ -580,7 +613,7 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let air = self.blocks.id("minecraft:air");
-        let stone = self.blocks.id("minecraft:stone");
+        let stone = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
         let water = self.blocks.id("minecraft:water");
         let lava_id = self.blocks.id("minecraft:lava");
 
@@ -741,7 +774,7 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let air = self.blocks.id("minecraft:air");
-        let stone = self.blocks.id("minecraft:stone");
+        let stone = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
         let water = self.blocks.id("minecraft:water");
         let lava_id = self.blocks.id("minecraft:lava");
         let mut aq = crate::aquifer::Aquifer::new(
@@ -876,10 +909,10 @@ impl WorldgenHandle {
         }
     }
 
-    // 预加载 carver JSON（创建时调用）
+    // 预加载 carver JSON（创建时调用）。260907-05：路径按 id 命名空间解析（缺口 3 同源）
     fn load_carver(wg_dir: &str, blocks: &BlockRegistry, id: &str) -> Option<ConfiguredCarver> {
-        let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
-        let path = format!("{}/data/minecraft/worldgen/configured_carver/{}.json", wg_dir, name);
+        let (ns, short) = match id.split_once(':') { Some((n, s)) => (n, s), None => ("minecraft", id) };
+        let path = format!("{}/data/{}/worldgen/configured_carver/{}.json", wg_dir, ns, short);
         let txt = std::fs::read_to_string(&path).ok()?;
         let root = parse(&txt).ok()?;
         Some(ConfiguredCarver::parse(&root, blocks))

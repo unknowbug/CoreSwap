@@ -920,3 +920,15 @@ entries:
     # 内容：tags/blocks 170 文件双落点（数据目录 + mod 资源）+ BlockTagRegistry（JSON 优先，fallback 硬编码保底）
     #       + CoreSwapFixHelper 双 marker 防旧缓存静默退化 + 6 个 EndIslands 预存破损 bin 修复（全量绿恢复）。
     # 关联：worldgen-core/data-driven-boundary.md（修订）、.tmp/extract_tags_260907-04.py（提取脚本）。
+
+
+  # === A 组引擎 4 硬缺口（260907-05，judge PASS-with-conditions）===
+  - id: 'swe:a-group-4-gaps-260907-05'
+    path: 'a-group-4-gaps-260907-05.md'
+    kind: engineering
+    status: candidate  # judge PASS-with-conditions（C1 mod JNI 接线后端到端实测 / C2 overworld 恒等为 Degraded 静态同源声明）；confirmed 待用户拍板
+    # 内容：缺口1 blocks.rs 注册 API（wg_register_block）+ 未知名一次性告警；缺口2 default_block 读 settings JSON（4 消费点）；
+    #       缺口3 settings_name "modid:name" 命名空间参数化 + feature/carver 路径按 id 命名空间解析；缺口4 biome 目录 dir_ns 化。
+    # 验证：cargo test 6/6 + workspace 全量 build 绿 + nether/end 同代码双臂 A/B dump 逐位恒等（发现 #76）
+    #       + dll sha256 D9085130F035F2B2…（O1 修复终版）。
+    # 关联：workflow-patterns #76、.investigations/000-架构设计/a-group-4-gaps-scout-260907-05.md、NEXT_SESSION 开工点 1。

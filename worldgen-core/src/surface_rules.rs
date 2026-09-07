@@ -494,6 +494,8 @@ pub struct SurfaceBuilder<'a> {
     sea_level: i32,
     blocks: &'a BlockRegistry,
     terracotta_bands: Vec<BlockId>,
+    // 260907-05（A 组缺口 2）：default_block 从 settings JSON 读（默认 stone，handle 创建期注入）
+    default_block: BlockId,
 }
 
 impl<'a> SurfaceBuilder<'a> {
@@ -544,8 +546,12 @@ impl<'a> SurfaceBuilder<'a> {
             sea_level,
             blocks,
             terracotta_bands,
+            default_block: blocks.id("minecraft:stone"),
         }
     }
+
+    // 260907-05：创建期注入 settings.default_block（JSON 优先，handle 调用）
+    pub fn set_default_block(&mut self, id: BlockId) { self.default_block = id; }
 
     fn get_noise(&self, key: &str) -> &DoublePerlinNoiseSampler {
         self.samplers.get(key).expect("missing noise sampler").as_ref()
@@ -1226,7 +1232,7 @@ impl<'a> SurfaceBuilder<'a> {
             secondary_cache: Cell::new(0.0),
         };
 
-        let default_block = self.blocks.id("minecraft:stone");
+        let default_block = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
         let air_block = self.blocks.id("minecraft:air");
         let water_block = self.blocks.id("minecraft:water");
         let lava_block = self.blocks.id("minecraft:lava");
@@ -1403,7 +1409,7 @@ impl<'a> SurfaceBuilder<'a> {
         bottom_y: i32,
         world_top_y: i32,
     ) {
-        let default_block = self.blocks.id("minecraft:stone");
+        let default_block = self.default_block; // 260907-05：settings.default_block（原硬编码 stone）
         let air_block = self.blocks.id("minecraft:air");
         let water_block = self.blocks.id("minecraft:water");
         // Java L210：e = min(|badlands_surface(x,0,z)*8.25|, badlands_pillar(x*0.2,0,z*0.2)*15.0)

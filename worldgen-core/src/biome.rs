@@ -418,8 +418,10 @@ impl BiomeClassifier {
     }
 
     // 从 biome/*.json 加载 carvers.air（CARVERS 阶段用）。biome id "minecraft:plains" → plains.json。
+    // 260907-05（缺口 4）：dir_ns 声明本目录命名空间——id 命名空间不匹配的条目跳过（不告警），
+    // 文件名取冒号后短名；mod 维度 = vanilla 目录 + mod 目录各 load 一次。
     // 缺失/解析失败跳过（记 stderr）。返回加载的 biome 数（唯一 biome id）。
-    pub fn load_carvers(&mut self, biome_dir: &str) -> usize {
+    pub fn load_carvers(&mut self, biome_dir: &str, dir_ns: &str) -> usize {
         let mut count = 0;
         // 收集所有 biome id（从 SearchTree 叶子遍历，去重）
         let mut ids = Vec::new();
@@ -427,7 +429,11 @@ impl BiomeClassifier {
         ids.sort();
         ids.dedup();
         for id in ids {
-            let name = if let Some(stripped) = id.strip_prefix("minecraft:") { stripped } else { &id };
+            let (id_ns, name) = match id.split_once(':') {
+                Some((ns, s)) => (ns, s.to_string()),
+                None => ("minecraft", id.clone()),
+            };
+            if id_ns != dir_ns { continue; }
             let path = format!("{}/{}.json", biome_dir, name);
             let txt = match fs::read_to_string(&path) {
                 Ok(t) => t,
@@ -479,15 +485,20 @@ impl BiomeClassifier {
     }
 
     // 从 biome/*.json 加载 features（FEATURES 阶段用）。features[step][] 分层列表。
+    // 260907-05：dir_ns 语义同 load_carvers。
     // 缺失/解析失败跳过。返回加载的 biome 数（唯一 biome id）。
-    pub fn load_features(&mut self, biome_dir: &str) -> usize {
+    pub fn load_features(&mut self, biome_dir: &str, dir_ns: &str) -> usize {
         let mut count = 0;
         let mut ids = Vec::new();
         self.collect_biome_ids(&self.tree, &mut ids);
         ids.sort();
         ids.dedup();
         for id in ids {
-            let name = if let Some(stripped) = id.strip_prefix("minecraft:") { stripped } else { &id };
+            let (id_ns, name) = match id.split_once(':') {
+                Some((ns, s)) => (ns, s.to_string()),
+                None => ("minecraft", id.clone()),
+            };
+            if id_ns != dir_ns { continue; }
             let path = format!("{}/{}.json", biome_dir, name);
             let txt = match fs::read_to_string(&path) {
                 Ok(t) => t,

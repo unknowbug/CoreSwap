@@ -200,6 +200,13 @@ impl PlacedFeatureIndexer {
     }
 }
 
+// 260907-05（A 组缺口 3）：feature id 自带命名空间（"minecraft:foo" / "modid:bar"）→
+// 数据路径按 id 命名空间解析 data/<ns>/worldgen/<kind>/<short>.json（无冒号默认 minecraft）。
+fn data_path(wg_dir: &str, kind: &str, id: &str) -> String {
+    let (ns, short) = match id.split_once(':') { Some((n, s)) => (n, s), None => ("minecraft", id) };
+    format!("{}/data/{}/worldgen/{}/{}.json", wg_dir, ns, kind, short)
+}
+
 // 懒加载 placed_feature / configured_feature 的缓存
 pub struct FeatureCache {
     pub placed: HashMap<String, PlacedFeature>,
@@ -214,8 +221,7 @@ impl FeatureCache {
     // 加载 placed_feature JSON（懒加载）
     pub fn get_placed(&mut self, wg_dir: &str, id: &str, blocks: &BlockRegistry) -> Option<&PlacedFeature> {
         if self.placed.contains_key(id) { return self.placed.get(id); }
-        let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
-        let path = format!("{}/data/minecraft/worldgen/placed_feature/{}.json", wg_dir, name);
+        let path = data_path(wg_dir, "placed_feature", id);
         let txt = std::fs::read_to_string(&path).ok()?;
         let root = crate::json::parse(&txt).ok()?;
         let mut pf = PlacedFeature {
@@ -242,8 +248,7 @@ impl FeatureCache {
     // 加载 configured_feature JSON（懒加载）
     pub fn get_configured(&mut self, wg_dir: &str, id: &str, blocks: &BlockRegistry) -> Option<&ConfiguredFeature> {
         if self.configured.contains_key(id) { return self.configured.get(id); }
-        let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
-        let path = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, name);
+        let path = data_path(wg_dir, "configured_feature", id);
         let txt = std::fs::read_to_string(&path).ok()?;
         let root = crate::json::parse(&txt).ok()?;
         let cf = ConfiguredFeature::parse(id, &root, blocks);
@@ -256,8 +261,7 @@ impl FeatureCache {
     pub fn preload_all(&mut self, wg_dir: &str, placed_ids: &[String], blocks: &BlockRegistry) {
         for id in placed_ids {
             if self.placed.contains_key(id) { continue; }
-            let name = if let Some(s) = id.strip_prefix("minecraft:") { s } else { id };
-            let path = format!("{}/data/minecraft/worldgen/placed_feature/{}.json", wg_dir, name);
+            let path = data_path(wg_dir, "placed_feature", id);
             let Ok(txt) = std::fs::read_to_string(&path) else { continue };
             let Ok(root) = crate::json::parse(&txt) else { continue };
             let mut pf = PlacedFeature {
@@ -278,8 +282,7 @@ impl FeatureCache {
                 }
             }
             // 预加载引用的 configured_feature
-            let cname = if let Some(s) = pf.configured_feature.strip_prefix("minecraft:") { s } else { &pf.configured_feature };
-            let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+            let cpath = data_path(wg_dir, "configured_feature", &pf.configured_feature);
             if let Ok(ctxt) = std::fs::read_to_string(&cpath) {
                 if let Ok(croot) = crate::json::parse(&ctxt) {
                     let cf = ConfiguredFeature::parse(&pf.configured_feature, &croot, blocks);
@@ -293,8 +296,7 @@ impl FeatureCache {
             if let Some(emb) = root.get("feature").filter(|f| f.as_object().is_some()) {
                 let cid = emb.get("feature").and_then(|f| f.as_str()).unwrap_or("");
                 if !cid.is_empty() && !self.configured.contains_key(cid) {
-                    let cname = cid.strip_prefix("minecraft:").unwrap_or(cid);
-                    let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+                    let cpath = data_path(wg_dir, "configured_feature", cid);
                     if let Ok(ctxt2) = std::fs::read_to_string(&cpath) {
                         if let Ok(croot2) = crate::json::parse(&ctxt2) {
                             let cf = ConfiguredFeature::parse(cid, &croot2, blocks);
@@ -319,8 +321,7 @@ impl FeatureCache {
         while let Some(placed_id) = queue.pop() {
             if !seen.insert(placed_id.clone()) { continue; }
             if self.placed.contains_key(&placed_id) { continue; }
-            let name = placed_id.strip_prefix("minecraft:").unwrap_or(&placed_id).to_string();
-            let path = format!("{}/data/minecraft/worldgen/placed_feature/{}.json", wg_dir, name);
+            let path = data_path(wg_dir, "placed_feature", &placed_id);
             let Ok(txt) = std::fs::read_to_string(&path) else { continue };
             let Ok(root) = crate::json::parse(&txt) else { continue };
             let mut pf = PlacedFeature {
@@ -339,8 +340,7 @@ impl FeatureCache {
             // 内层 placed 引用的 configured 也补载
             let cf_key = pf.configured_feature.clone();
             if !cf_key.is_empty() && !self.configured.contains_key(&cf_key) {
-                let cname = cf_key.strip_prefix("minecraft:").unwrap_or(&cf_key).to_string();
-                let cpath = format!("{}/data/minecraft/worldgen/configured_feature/{}.json", wg_dir, cname);
+                let cpath = data_path(wg_dir, "configured_feature", &cf_key);
                 if let Ok(ctxt) = std::fs::read_to_string(&cpath) {
                     if let Ok(croot) = crate::json::parse(&ctxt) {
                         let cf = ConfiguredFeature::parse(&cf_key, &croot, blocks);

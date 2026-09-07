@@ -67,7 +67,7 @@ fn main() {
 
     let dense = VanillaDensity { df: &tree };
     let mut bc = BiomeClassifier::load("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\biome_params.json");
-    let n_carvers = bc.load_carvers("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen\\biome");
+    let n_carvers = bc.load_carvers("E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen\\biome", "minecraft");
     println!("loaded carvers for {} biomes", n_carvers);
     let biomesrc = MacroBiome { bc, tempf: t_temp, humf: t_hum, contf: t_cont, erof: t_ero, depthf: t_dep, weirdf: t_wei };
     let sb = SurfaceBuilder::new(db.noise_samplers(), db.random_deriver(), 63, &blocks);

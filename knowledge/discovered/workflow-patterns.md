@@ -1328,3 +1328,17 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **证据**：.investigations/jungle-l/children-ydist-260907-02.md Q1 证据链 3 + §B1/B2 消解结果第 5 条（B3 保持未消解声明）。
 
 > **⛔ superseded-by（260907-03，§15.4 取代记录，原结论正文不删不改）**：本条「children BB 坐标系非统一世界系/BB 不能直接当世界坐标」结论已被推翻——B3 复查（NBT 直读、双臂逐字节一致、judge PASS-with-conditions）证明 **children BB 本就是统一世界坐标**；本条记载的「mineshaft x111-243/z84-255、ocean_ruin_warm x418-456/z-17..22 不吻合」数值系 #74「同模板多实例合并口径键覆盖」伪差（BB 数值归属其他实例，条目本身错置），辅因「BB⊆startChunk 柱」预期错位不成立（mineshaft 多 chunk 跨越 / ocean_ruin 放置偏移越界均为合法形态）。**BB 可直接当世界坐标做覆盖判断**（含上述两种合法越界形态）。取代证据链：`.investigations/jungle-l/b3-bb-coords-260907-03.md`。
+
+## 发现 #76: 同代码双臂 A/B——用「诊断 env 覆盖臂」复刻改造前语义，免重建历史基线即可证行为恒等（260907-05）；candidate
+
+- **发现时间/发现者**：260907-05，core.worker subagent 草稿 + 主会话应用。来源课题：A 组引擎 4 硬缺口改造（default_block 硬编码 stone → settings JSON）。
+- **module**：workflow-patterns / 重构验证载体（#48 双采集对拍的姊妹模式；#18/#49「跨版本基线不可续推」的规避方案）
+- **观察**：改造触碰**已 confirmed 对齐维度的共享路径**时（本例 default_block 改 JSON 化后，nether/end 的 Rock 填充从 stone → netherrack/end_stone），疑似扰动已确认对齐态。常规做法找历史版本基线对拍，但历史基线会因 intervening confirmed 改动失效（#18/#49 家族）。
+- **方法（同代码双臂 A/B）**：给新代码加**创建期一次性读取**的诊断 env 覆盖（本例 `CORESWAP_DEFAULT_BLOCK`，非热路径——#37/#53 门控纪律）；同一执行体跑 A 臂（新默认 = 读 JSON）与 B 臂（env 强制旧值 = 改造前语义）；确定性 dump 逐字节 hash 对拍，A=B 即改造零扰动。优势：① 免历史基线（B 臂在当前代码内复刻旧语义，绕开跨版本基线失效整类问题）；② 唯一变量隔离（双臂共享全部其他代码，#20 恒等式自检天然成立）；③ A=B 顺带验证载体确定性（同代码重跑恒等）。
+- **判据/边界（MUST）**：
+  1. env 覆盖必须创建期读一次，禁止进热路径（诊断门控纪律同族）；
+  2. B 臂「旧值」必须是改造前语义的精确复刻，来源落到改造前代码可引用处——写错旧值则 A=B 变假绿；
+  3. 被改参数不可单点枚举旧值时（如 overworld 新旧解析值本就同源），只能静态同源论证，须 §9.7 声明 Degraded 分层；
+  4. hash 报告必须带 hash↔文件名对应关系（本轮草稿曾把 nether/end 两 hash 对调转录，Get-FileHash 按文件名字母序输出，主会话应用时核对更正——#13 家族「转录失真」又一形态）。
+- **家族索引**：#48（双采集对拍）、#47（golden 逐位法）、#20（恒等式自检）、#18/#49（跨 run/跨版本基线不可续推——本条为其规避方案）、#37/#53（env 门控纪律）、#13（转录失真——hash↔文件名对应）。
+- **证据**：`.artifacts/a-group-4-gaps-260907-05.md` + `.tmp/a-group-260907-05/`（end A=B=D45E938E…，nether A=B=1AC5965B…，seed 12345 各 8×8 chunks，IDK7 确定性 dump）。

@@ -83,6 +83,17 @@ pub extern "C" fn wg_destroy(handle: *mut c_void) {
     unsafe { drop(Box::from_raw(handle as *mut WorldgenHandle)); }
 }
 
+// 260907-05（A 组缺口 1）：运行时注册方块名 → 分配动态 id（mod 方块注册 Rust 侧前置；
+// mod 侧 JNI 接线仍挂起）。已存在则返回既有 id；handle 为空返回 -1。
+// 调用时序约定：生成线程启动前（创建期注册）。
+#[unsafe(no_mangle)]
+pub extern "C" fn wg_register_block(handle: *mut c_void, name: *const c_char) -> c_int {
+    if handle.is_null() || name.is_null() { return -1; }
+    let h = unsafe { &*(handle as *const WorldgenHandle) };
+    let n = unsafe { std::ffi::CStr::from_ptr(name) }.to_string_lossy();
+    h.register_block(&n)
+}
+
 // 句柄级阶段开关（2026-09-08 双跑修复）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE。
 // 语义：flag 位与 env 门 skip 方向 OR；flags=0 时行为与旧版完全一致（env 兜底）。
 // 存档链路（CppBridge）设 flag 关 Rust carver/features，standalone probe 工具零改动。
