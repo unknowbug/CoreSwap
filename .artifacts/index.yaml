@@ -946,3 +946,17 @@ entries:
     #       dll sha 基线切换：C7AD570043135407…（2170368B，接线后）；D9085130 永久弃用。
     # 关联：workflow-patterns #77/#78/#10 补充案例、.investigations/000-架构设计/jni-wiring-scout-260907-07.md、
     #       .tmp/blockreg-smoke*.log、.tmp/verification-260907-07.log、id 错位写回修复（候选 B）另开卡。
+
+  # === mod 方块 id 错位写回修复·候选 B 显式 id 对齐（260907-08，judge PASS-with-conditions 条件已应用）===
+  - id: 'swe:jni-blockid-fix-260907-08'
+    path: 'jni-blockid-fix-260907-08.md'
+    kind: engineering
+    status: candidate  # judge PASS-with-conditions（N1-N5 条件已应用：index 补登/Java 无 git 基线声明/ID_TABLE_CAPACITY const/创建期契约注释/N5 rid 反查挂真实 mod 卡）；confirmed 待用户拍板
+    # 内容：wg_register_block_id 显式 id 注册 ABI（旧 wg_register_block 保留）+ BlockRegistry::register_with_id
+    #       （冲突拒绝/越界拒绝/next_id 推进）+ JNI registerBlockId + CppBridge 双探针（aligned=显式/dynamic=旧路径）。
+    #       设计取舍：注册时同域化取代映射表（映射表=第二真相源，compiler-idioms #22）。
+    # 验证：cargo test 7/7（含 register_with_id_semantics）+ runServer round4 对齐断言
+    #       java_raw=1003 rust_id 三句柄 1003（Registries.BLOCK.size() 模拟真实 mod 首块位置，compiler-idioms #21）
+    #       + next_id 推进 1004 不碰撞。dll sha 基线：87C35BD6520A1455C792E185DF10317DA1937172DABB36A98F3FED3D2424C776（替换 230B45A9/C7AD）。
+    # 关联：build-tooling #28（-PcppWorldgenDir 口径反转）、compiler-idioms #21/#22、
+    #       .tmp/verification-260907-08.log、.tmp/blockreg-smoke*-260907-08.log、NEXT_SESSION 260907-07 开工点 1。

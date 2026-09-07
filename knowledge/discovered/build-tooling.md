@@ -620,3 +620,16 @@ marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却
   2. 破损暴露窗口 = 全量 build 间隔：纪律 13a 的「全量绿」检查必须绑定到**库层 API 变更类 commit**（enum/trait/公共签名），不能只在发版前兜底。
   3. 家族索引：#23（陈旧 rlib 假绿，机制面一）、#16（bin-diag 不参与默认构建的姊妹面：`src/bin/` 参与 `cargo build` 但不参与 `-p worldgen`）——合流判据：**「构建绿」结论必须声明构建图范围，范围外目标不作任何假设**。
   4. 证据：`.artifacts/tag-datadriven-260907-04.md` 改动 #9 + judge 意见书条 F（diff 逐行核对，全部仅添加 EndIslands arm）。
+
+## 发现 #28: 冒烟口径 ≠ 存档口径——`-PcppWorldgenDir` 必带项（#15）在注册冒烟下反转，带错参数集 = handle=0 全 -1（260907-08）
+
+- **时间/置信度/module**：260907-08；candidate（round3 失败 → 去参重跑实锤）；build-tooling / gradle run 参数口径（#15 家族延伸，「裁剪历史参数清单」的对偶面：不分场景照抄历史清单）。
+- **现象**：round3 冒烟按 #15 口径带 `-PcppWorldgenDir versions\1.20.1\data` → 该顶层布局无 wg_create 所需根级 settings 文件 → 三句柄 handle=0，注册全 -1（`[BLOCKS-REG] ... rust_id=-1` ×全部探针 + `[BLOCKS-REG] done count=0`）；判别签名 = `[CppBridge] init ... enabled=false`。去掉该参数走 jar 内 worldgen-data 解压路径后全绿（与 260907-07 冒烟口径一致）。
+- **根因**：#15 的「-PcppWorldgenDir 必带」是**存档口径**项（block_probe 等从 data 目录读参照的历史条件），不是普适必带项；注册冒烟的数据路径走 jar 解压，带存档口径参数反而把 worldgenDir 指向一个布局不兼容的目录。「历史参数清单必带项」被当成了跨场景公理——与 #15 的教训（裁剪清单裁掉必带项）恰成对偶：#15 是「少带」，本轮是「多带」。
+- **定位**：`[CppBridge] init ... enabled=false` 一行即判别（handle=0 的直接签名），回看 #15 出处核对参数归属口径，一轮定位。
+- **修复/判据**：
+  1. gradle run 参数清单按**口径分组维护**（存档口径 / 冒烟口径 / 探针口径各自成列），引用时先声明自己处于哪个口径，禁止跨口径整单照抄。
+  2. 「XX 参数必带」类历史判据引用前核对**其原始出处场景**，必带性是场景属性不是参数属性。
+  3. handle=0 / enabled=false 是 CppBridge 数据路径失败的判别签名，注册类冒烟见到全 -1 先查它，不先查注册实现。
+- **家族索引**：#15（裁剪参数清单裁掉必带项——本条为其对偶形态）；#22（缓存 marker 单判）同属「历史判据跨场景复用前核归属」上位原则。
+- **证据**：.tmp/blockreg-smoke3-260907-08.log（enabled=false 全 -1）vs .tmp/blockreg-smoke4-260907-08.log（去参后 enabled=true stageMask=3 + 显式 id 1003 三句柄对齐）；.artifacts/jni-blockid-fix-260907-08.md 失败轮记录。

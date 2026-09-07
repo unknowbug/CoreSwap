@@ -89,3 +89,5 @@
 > 260907-05 追加：workflow-patterns 新增**发现 #76**（同代码双臂 A/B——诊断 env 覆盖臂复刻改造前语义证行为恒等，免历史基线，绕开跨版本基线失效；hash 报告必须带 hash↔文件名对应，#13 转录失真新形态）。来源：.artifacts/a-group-4-gaps-260907-05.md（A 组 4 硬缺口，judge PASS-with-conditions）。
 
 > 260907-07 追加：workflow-patterns 新增**发现 #77**（「回滚 ≠ 引用面清理」——撤回完整性两层检查：源码层 + 引用面层（构建配置/脚本/probe 默认值路径引用 grep），260907-06 事故源码零残留但配置引用全残留致下轮构建直接失败）+ **发现 #78 简记**（代码注释内嵌日期 ≠ 时间戳权威，git 时间戳 > 注释日期，日期漂移家族注释形态）+ **#10 补充案例第二例**（Rust release 重构建 sha 非确定——dll sha 基线必须带记录日构建上下文，跨块引用前先 rebuild 复核）。来源：.artifacts/jni-wiring-260907-07.md（mod 方块注册 JNI 接线方案 C，judge PASS-with-conditions）。
+
+> 260907-08 追加：compiler-idioms 新增**发现 #21**（模拟 mod 方块注册探针 raw id 必须取 Registries.BLOCK.size()——vanilla 域 id 是 blocks.json 既有属主，「冲突拒绝正确工作」≠「探针有效」，假失败三分定性）+ **发现 #22**（跨语言 id 域注册时同域化优于运行时映射表——映射表=第二真相源，显式 id 消除映射层；泛化边界=注册时可对齐前提）；build-tooling 新增**发现 #28**（冒烟口径 ≠ 存档口径——#15「-PcppWorldgenDir 必带」在注册冒烟下反转，带错参数集 handle=0 全 -1，判别签名 `[CppBridge] init ... enabled=false`；参数清单按口径分组维护）。来源：.artifacts/jni-blockid-fix-260907-08.md（mod 方块 id 错位写回修复，候选 B，round1/3 失败轮留档 .tmp/blockreg-smoke*-260907-08.log）。

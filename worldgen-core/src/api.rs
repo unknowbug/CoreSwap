@@ -94,6 +94,18 @@ pub extern "C" fn wg_register_block(handle: *mut c_void, name: *const c_char) ->
     h.register_block(&n)
 }
 
+// 260907-08（候选 B，id 错位写回修复）：显式 id 注册——Java 传 registry raw id，
+// Rust 内部 id 与 Java raw id 同域，写回侧（CppBridge writeChunk Registries.BLOCK.get(id)）直查即对齐。
+// 旧 wg_register_block（动态 id 分配）保留：合成名冒烟路径 + ABI 兼容（新函数并存，零回退成本）。
+// 返回：生效 id（对齐成功 = java_raw）；同名已注册不同 id / id 被占 / 越界 / handle/name 空 → -1。
+#[unsafe(no_mangle)]
+pub extern "C" fn wg_register_block_id(handle: *mut c_void, name: *const c_char, java_raw_id: c_int) -> c_int {
+    if handle.is_null() || name.is_null() { return -1; }
+    let h = unsafe { &*(handle as *const WorldgenHandle) };
+    let n = unsafe { std::ffi::CStr::from_ptr(name) }.to_string_lossy();
+    h.register_block_with_id(&n, java_raw_id)
+}
+
 // 句柄级阶段开关（2026-09-08 双跑修复）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE。
 // 语义：flag 位与 env 门 skip 方向 OR；flags=0 时行为与旧版完全一致（env 兜底）。
 // 存档链路（CppBridge）设 flag 关 Rust carver/features，standalone probe 工具零改动。

@@ -529,6 +529,8 @@ impl WorldgenHandle {
 
     // 260907-05（缺口 1）：运行时注册方块（wg_register_block 后端）
     pub fn register_block(&self, name: &str) -> i32 { self.blocks.register(name) }
+    // 260907-08（候选 B）：显式 id 注册（wg_register_block_id 后端，java_raw 同域对齐）
+    pub fn register_block_with_id(&self, name: &str, id: i32) -> i32 { self.blocks.register_with_id(name, id) }
     pub fn fill_density(&self, min_chunk_x: i32, min_chunk_z: i32, size: i32) -> Vec<f64> {
         let xz = crate::api::density_xz_interval();
         let yi = crate::api::density_y_interval();

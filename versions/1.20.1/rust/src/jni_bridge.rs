@@ -13,7 +13,7 @@ use jni::{Env, EnvUnowned};
 use WorldgenRust::api::{
     wg_clear_beardifier, wg_create, wg_density_points_per_chunk, wg_density_xz_interval,
     wg_density_y_interval, wg_destroy, wg_fill_blocks_multi, wg_fill_density, wg_get_flags,
-    wg_height, wg_min_y, wg_register_block, wg_set_beardifier, wg_set_flags,
+    wg_height, wg_min_y, wg_register_block, wg_register_block_id, wg_set_beardifier, wg_set_flags,
 };
 
 const BLOCK_COUNT: usize = 16 * 16 * 384;
@@ -83,6 +83,25 @@ pub extern "system" fn Java_wg_CppWorldgen_registerBlock<'frame>(
             let n = env.get_string(&name)?.to_string();
             let c_name = std::ffi::CString::new(n).map_err(|_| Error::JavaException)?;
             Ok(wg_register_block(handle as *mut c_void, c_name.as_ptr()))
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+// 260907-08（候选 B，id 错位写回修复）：显式 id 注册 JNI 接线——调用 wg_register_block_id（api.rs）。
+// Java 传 registry raw id，Rust 内部 id 与 Java raw id 同域，写回 Registries.BLOCK.get(id) 直查对齐。
+// 返回：生效 id；handle/name 无效或 id 冲突/越界 → -1。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_registerBlockId<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong, name: JString, java_raw_id: jint,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
+            }
+            let n = env.get_string(&name)?.to_string();
+            let c_name = std::ffi::CString::new(n).map_err(|_| Error::JavaException)?;
+            Ok(wg_register_block_id(handle as *mut c_void, c_name.as_ptr(), java_raw_id as c_int))
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }

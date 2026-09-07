@@ -303,3 +303,25 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
   2. **判错签名**：复算结果「高位似近、低位全错」→ 首查低位符号扩展（MC-239059），不查随机算法本体。本轮首版复刻即此签名，一轮定位。
   3. 交叉引用：#19（nextDouble 乘法落 float 域）、workflow-patterns #61（双调用点——逐位吻合前先核调用点覆盖面）。
 - **证据**：BaseRandom.java:33 引证 + 逐位命中记录 .investigations/jungle-l/260906-06-errors.md E11 定位段。
+
+## 发现 #21: 模拟 mod 方块注册的探针 raw id 必须取 vanilla 表之后（Registries.BLOCK.size()）——vanilla 域 id 是 blocks.json 既有属主，「冲突拒绝正确工作」≠「探针有效」（260907-08）
+
+- **发现时间**：260907-08；**发现者**：core.worker subagent 草稿（源材料：.artifacts/jni-blockid-fix-260907-08.md + .tmp/blockreg-smoke-260907-08.log）；**置信度**：candidate（实机冒烟 round1 拒绝 + round4 对位成功双实证）；**module**：re-code / 跨层 id 域（「跨层 id 域错位」条目家族）。
+- **来源定位**：worldgen-core/src/blocks.rs `register_with_id` 冲突拒绝语义；runtime/1.20.1/java CppBridge.java registerModBlocks 探针；冒烟日志 .tmp/blockreg-smoke-260907-08.log（round1）vs blockreg-smoke4-260907-08.log（round4）。
+- **观察/根因**：round1 用真实 vanilla 块 calcite（java_raw=910）模拟 mod 方块注册 → Rust 侧按设计拒绝（-1，910 已属 blocks.json `minecraft:calcite`）。拒绝本身是冲突拒绝语义正确工作的证据，但**探针设计缺陷**：真实 mod 的 raw id 空间在 vanilla 注册表之后，vanilla 域的每个 id 都已被 blocks.json 占用——拿 vanilla id 冒充 mod id 必然撞属主。
+- **如何利用（判据）**：
+  1. 模拟 mod 方块注册的 raw id MUST 取 `Registries.BLOCK.size()`（本轮 1.20.1 = 1003），即 vanilla 表之后第一个空位——这才是真实 mod 首块的 raw id 位置。
+  2. **判错签名**：「显式 id 注册返回 -1」先分两面——被 blocks.json 既有属主拒绝 = 探针位置选错（假失败）；未被拒绝且 id 合理却未注册成功 = 实现问题。冲突拒绝测试须用已知被占 id 显式构造，冒烟探针须用 vanilla 表后位置，两者不能混用。
+  3. round1 的「正确拒绝」不是废轮——它顺带实证了冲突拒绝语义；失败轮结论先做「按设计工作 / 实现缺陷 / 探针缺陷」三分再定性。
+- **证据**：round1 日志 `[BLOCKS-REG] testmod:aligned_probe java_raw=910 rust_id=-1 writeback=minecraft:calcite`（拒绝 + 属主回写即铁证）；round4 `java_raw=1003 rust_id(overworld=1003 nether=1003 end=1003)` 对位 PASS。
+
+## 发现 #22: 跨语言 id 域可在注册时对齐时，注册时同域化优于运行时映射表——映射表 = 第二真相源（260907-08）
+
+- **发现时间**：260907-08；**发现者**：core.worker subagent 草稿（源材料：.artifacts/jni-blockid-fix-260907-08.md）；**置信度**：candidate（cargo test 7/7 + runServer round4 显式 id 对齐实机 PASS；「映射表必然更差」未做反向对照，泛化边界见如何利用）；**module**：re-code / 跨层 id 域设计（#21 的设计侧姊妹条）。
+- **来源定位**：worldgen-core/src/blocks.rs `register_with_id` / api.rs `wg_register_block_id(handle, name, java_raw_id)`；本工作块候选 B 的方案取舍（显式 id 注册取代 Java↔Rust id 映射表）。
+- **观察/根因**：原问题 = Rust 内部动态分配 id 与 Java raw id 域错位，写回 `Registries.BLOCK.get(id)` 无对齐保证；映射表方案在运行时维护「rust_id ↔ java_raw」对应，但这引入**第二真相源**（两侧各有一套 id + 一张映射，映射本身成为新的出错面）。显式 id 注册把对齐动作前移到注册时：`wg_register_block_id` 直传 java_raw_id，Rust 内部 id 与 Java raw id **同域**，写回直查即对齐，映射层整个消除。
+- **如何利用（判据）**：
+  1. 跨语言/跨模块 id 传递的设计取舍顺序：先问「两侧 id 域能否在注册/边界构造时同域化」——能则显式对齐（单真相源），运行时映射表是退而求其次（第二真相源要付同步/漂移/调试成本）。
+  2. 泛化边界：前提是「注册时可拿到权威侧 id 且域无碰撞」（本轮靠 #21 的 vanilla 表后位置判据保证）；id 域无法对齐（如两侧密度函数序号各自派生）时映射表仍是合法方案——判据是**消除映射机会优先**，不是「映射表禁用」。
+  3. 显式 id 与动态分配并存时的语义配套：id 被占拒绝 / 越界拒绝 / 成功推进 next_id（显式 id 后动态分配不回退碰撞）——三条件缺一即埋新错位。
+- **证据**：round4 `[BLOCKS-REG] testmod:aligned_probe java_raw=1003 rust_id(overworld=1003 nether=1003 end=1003)` 三句柄对齐 + `register_with_id_semantics` 测试（对齐/冲突拒绝/越界拒绝/next_id 推进）；.tmp/verification-260907-08.log。
