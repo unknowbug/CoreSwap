@@ -965,7 +965,7 @@ entries:
   - id: 'swe:realmod-e2e-260907-09'
     path: 'realmod-e2e-260907-09.md'
     kind: engineering
-    status: candidate  # judge PASS-with-conditions 条件 1/2 已应用（override 证据落盘 + 本条目）；confirmed 留用户
+    status: confirmed  # 用户「授权确认」260907-09（judge PASS-with-conditions 条件 1/2 已应用）；confirmed 授予后 NEXT_SESSION 已更新
     # 内容：content-test loom 子工程载体（testcontent:test_brick/lamp）+ 缺陷一修复（default_block 创建期解析
     #       miss mod 方块 → SurfaceBuilder default_block_name 惰性按名解析，4 消费点）+ 缺陷二修复（biome.rs
     #       缺口4 skip 规则使 vanilla biome 同名 override 恒跳过 → mod 目录 override 分支 + 行为化日志）
