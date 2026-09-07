@@ -951,7 +951,7 @@ entries:
   - id: 'swe:jni-blockid-fix-260907-08'
     path: 'jni-blockid-fix-260907-08.md'
     kind: engineering
-    status: candidate  # judge PASS-with-conditions（N1-N5 条件已应用：index 补登/Java 无 git 基线声明/ID_TABLE_CAPACITY const/创建期契约注释/N5 rid 反查挂真实 mod 卡）；confirmed 待用户拍板
+    status: confirmed  # 用户「授权确认」260907-08（judge PASS-with-conditions N1-N5 条件已应用）；confirmed 授予后 NEXT_SESSION 已更新
     # 内容：wg_register_block_id 显式 id 注册 ABI（旧 wg_register_block 保留）+ BlockRegistry::register_with_id
     #       （冲突拒绝/越界拒绝/next_id 推进）+ JNI registerBlockId + CppBridge 双探针（aligned=显式/dynamic=旧路径）。
     #       设计取舍：注册时同域化取代映射表（映射表=第二真相源，compiler-idioms #22）。
