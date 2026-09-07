@@ -981,7 +981,7 @@ entries:
   - id: 'swe:forge-prod-e2e-260907-10'
     path: 'forge-prod-e2e-260907-10.md'
     kind: engineering
-    status: candidate  # judge PASS-with-conditions 三条件已应用；confirmed 待用户拍板
+    status: confirmed  # 用户「授权确认」260907-10（judge PASS-with-conditions 三条件已应用）；confirmed 授予后 NEXT_SESSION 已更新
     # 内容：260907-09 realmod 修复成果（dll 7A411E01）在 Forge 47.4.5 + Sinytra Connector beta.49 生产（SRG）
     #       端到端实测：V1 PASS（env CORESWAP_DEFAULT_BLOCK + -Dcpp.blockRegister=1 下 test_brick 672/144 sections，
     #       post-Done forceload 16 chunks）+ V4 三元组/SRG 载体 PASS + V2/V3 §9.7 声明收口（不经生产特有层，
