@@ -1480,3 +1480,30 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **教训 / 可复用判据**：**任何跨 session 的坐标类交接物 MUST 满足「落盘可复核」三要素之一：① 存档/导出文件内含该坐标数据；② 探针输出行（带 seed）；③ 至少给出 block id + 邻域描述供直读验证。F3 目测/截图类瞬时观察一律标注「不可靠交接物」，消费前 MUST 存档直读复核，不复现即弃。**
 - **状态**：✅ 已验证（260908-07 双臂对拍实证，见 .artifacts/grove-powdersnow-verdict-260908-07.md 锚点核查节）
 
+## 发现 #87（最高价值）: 跨版本枚举「新增常量」静默落 catch-all——Java 枚举类必须逐版本 diff 常量集合，映射函数禁以「无操作」兜底（260908-10）
+
+- **时间/置信度/module**：260908-10；candidate（行为级双臂对拍闭环 99.8114%→99.9993% + 一手枚举 diff + 全数据集唯一使用者实锤）；workflow-patterns / 跨版本数据驱动移植（**#56「写了但没生效」家族的数据驱动形态**）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §P7 根因定位 2-4；`versions/1.21.6/data/mc_src_extract/net/minecraft/world/gen/StructureTerrainAdaptation.java:7-11` vs 1.20.1 同文件 L5-9；`worldgen-core/src/beardifier.rs`（修前 ordinal 映射 `_ => None`；修后 L19-25 枚举 / L210-211 映射）；`.tmp/p7-diff-result-260908-10.txt` vs `.tmp/p7-diff-rust2-260908-10.txt`。
+- **现象**：MC 1.21.6 给 `StructureTerrainAdaptation` 新增 `ENCAPSULATE("encapsulate")`（序数 4），1.20.1 只到 `BEARD_BOX`(3)。Rust `beardifier.rs` 的 ordinal→语义映射旧实现写 `_ => None` → 新常量**静默归零**：trial_chambers 结构处密度局部偏低 ≈1.4-2.2，整簇 **11,865 格错位**（64 chunk 区域 6,291,456 格，占 0.19%；27 chunk 有差，前 10 个占 87%）。**编译绿 + 单测全绿**——旧常量 0..3 的覆盖全部通过，缺口不在测试集里。修复后同 seed/同区域重跑 R 臂：**41/6,291,456 = 99.9993%**，原 trial chamber 簇完全消失（残差降为无簇零散近地表点）。
+- **根因（机制层面）**：数据驱动移植里，Java 枚举的常量集合本质是**版本数据**，但 Rust 侧把它固化成了「match arm 集合 + catch-all」。catch-all 的语义被选成「无操作」（None / 权重 0）——新常量进入后，行为上等于「结构密度修正被悄悄关掉」，全程无报错、无日志、无告警。这是 #56 的**数据驱动形态**：不是新 arm 落在 catch-all 之后（序问题），而是**新数据值**落进 catch-all 的盲区（集合覆盖问题）——旧 arm 集合覆盖不到新值，且「编译过 + 告警不新增」同样成立。
+- **定位（怎么发现的）**：① 双臂 BlockProbe 残差签名 = 簇状 `deepslate→air/water`，机制约束先排除 carver/feature（R 臂 `stageMask=3`，Java carver 两臂同码同 seed）；② 预置 fan-out 双否（b1「1.21.6 AquiferSampler 版本语义变化」REFUTES / b2「Rust aquifer 实现偏离」REFUTES）后回数据层；③ 世界 NBT 直读残差簇 = `minecraft:trial_chambers`（chunk(11,16)，249 children）；④ **一手枚举 diff** 抓到 `ENCAPSULATE`（序数 4）+ 全数据集唯一使用者 `trial_chambers.json`（`"terrain_adaptation": "encapsulate"`，该文件 L145）；⑤ 同点双 dump 68/68 density 符号翻转（vanilla +0.004..+2.215 → stone；Rust −0.0002..−0.05 → 进 aquifer）直证「结构权重归零 → density 被压负」。
+- **修复**：`beardifier.rs` 补 `Encapsulate = 4` + q 分支（`min_y/max_y`，不含 `groundLevelDelta`）+ 权重分支 `getMagnitudeWeight(m/2,q/2,n/2)*0.8` + beard file ordinal 4 映射；`get_magnitude_weight` 改 f64 入参（Java 三种调用形态）。语义权威 = 1.21.6 `StructureWeightSampler.java:99/106`（一手实读：L99 `case ENCAPSULATE -> Math.max(0, Math.max(blockBox.getMinY() - j, j - blockBox.getMaxY()))`；L106 `case ENCAPSULATE -> getMagnitudeWeight(m / 2.0, q / 2.0, n / 2.0) * 0.8`）。
+- **判据/教训（MUST）**：
+  1. **跨版本移植时，Java 枚举类必须逐版本 diff 常量集合**（名字 + 序数 + `asString` 值），把「新增项」当 parity 缺口清单逐项核——枚举/常量表/注册表的新增条目是跨版本缺口的最高发面。
+  2. **映射函数的 catch-all 禁止兜底成「无操作」语义**（None/0/忽略）——未识别序数 MUST 告警/断言/panic，把静默变成可观测；若必须兜底，兜底分支必须打一次性日志（带序数与来源）。本条修复后 catch-all 仍在（`_ => TerrainAdaptation::None`，L211），遗留风险已诚实记录，建议加告警。
+  3. **「编译绿 + 单测绿」在跨版本枚举面上不构成证据**——旧常量覆盖全过是结构性保证，不是新常量被覆盖的证据。
+  4. **数据驱动的「数据」不止 JSON**——代码里硬编码的枚举/常量表同样是版本数据，升级时一并 diff。
+  5. 这类缺口的观测签名 = **结构/特性局部区域成簇偏差**（而非随机散点）——见簇先怀疑「某类结构/特性的修正在新版本常量上被静默关掉」。
+- **证据**：上述源码/日志路径；`.tmp/p7-diff-result-260908-10.txt`（99.8114%、11865 mismatch、TOP PAIRS deepslate→air 6370 / deepslate→water 3744）；`.tmp/p7-diff-rust2-260908-10.txt`（99.9993%、41 mismatch）；`worldgen-core/src/beardifier.rs` L11-25 头注 + L255-284 三条单测。
+
+
+## 发现 #16 补充案例（260908-10）：debug profile 栈溢出不是移植缺陷——对照臂归因先分离「构建配置因素」与「被移植版本因素」
+
+- **时间/置信度/module**：260908-10；candidate（双版本同二进制对照臂 + release 臂通过）；workflow-patterns（#16 对照基线归因法的**构建 profile 维度**）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §Rust 引擎 × 1.21.6 数据冒烟；`.tmp/p2b-rust-1216-smoke-260908-10.log:2869-2870`（1.21.6 debug 溢出）；`.tmp/p2b-rust-1201-control-260908-10.log:2835-2836`（1.20.1 同二进制同样溢出）；`.tmp/p2b-rust-1216-smoke-rel-260908-10.log:2868`（release 通过）。
+- **现象**：Rust 引擎对 1.21.6 数据 debug 运行 `thread 'main' has overflowed its stack` / `error: process didn't exit successfully ... (exit code: 0xc00000fd, STATUS_STACK_OVERFLOW)`；但**同一二进制对 1.20.1 数据同样溢出** → debug 栈帧膨胀是共同原因，**不是 1.21.6 缺陷**。release 臂通过：16 chunk，`min=127.2ms median=135.6ms avg=140.1ms`。
+- **根因**：debug profile 关闭优化、栈帧显著膨胀，density 树/树生成等深递归路径对栈深度敏感。「新版本数据 + 溢出」被误读成「新版本移植缺陷」的诱因，是把**构建 profile** 这个变量和**版本**混在同一个臂里（混杂变量未分离）。
+- **定位**：对照臂归因（#16 原法）——同一二进制换 1.20.1 数据重跑，溢出同样出现即排除版本因素；再换 release profile 直证是工具/配置因素。
+- **修复/判据**：修复 = 诊断 bin 走深递归路径（density 树/树生成）MUST 用 `--release`。判据 = 遇栈溢出先跑对照臂（旧版本数据 / 另一 profile），别急着立「新版本缺陷」课题；栈溢出类结论的措辞 MUST 带 profile 声明（§9.7 可比性：debug 与 release 口径不可互推）。
+- **教训**：「异常差异」第一动作是造无 X 的对照（#16 原判据）；本条补**变量维度**：构建 profile / 编译器配置本身是常被忽略的混杂变量，应与数据版本分开单独扫。
+- **证据**：上述三个日志路径。

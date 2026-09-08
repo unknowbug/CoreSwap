@@ -1,0 +1,296 @@
+================================================================================
+b1 原始对照摘录 — AquiferSampler 1.20.1 vs 1.21.6（只读静态分析，无 shell）
+seed -8248318472910187742 / origin (200,200) size 8 / FULL 口径背景见
+.investigations/mc-1216-port-260908-10/fanout-decision.md
+================================================================================
+
+[E0] 权威源与三源交叉
+  A: versions/1.20.1/data/mc_src_extract/net/minecraft/world/gen/chunk/AquiferSampler.java (452 行)
+  B: versions/1.21.6/data/mc_src_extract/net/minecraft/world/gen/chunk/AquiferSampler.java (472 行)
+  C: .investigations/mc-1216-port-260908-08/diff/cmd-output/w1-full.diff:532-744
+     （w1 已有完整 unified diff；本摘录独立复核其 hunk 数与内容）
+  结论：A→B 的文件级 diff 只有 3 个 hunk
+    @@ -44,24 +44,17 @@     → FluidLevel class→record
+    @@ -156,98 +149,125 @@   → apply 邻居追踪 top-3→top-4 + needsFluidTick 重写
+    @@ -387,17 +407,17 @@   → method_43718→inDeepDarkParameters（改名）
+  无第 4 个 hunk（未覆盖 apply 的方块返回出口、calculateDensity、getFluidLevel、
+  getFluidBlockY 主体、getNoiseBasedFluidLevel、getFluidBlockState、index、构造器、常量表）
+
+--------------------------------------------------------------------------------
+[E1] FluidLevel：class → record（A:52-64  vs  B:52-57）
+--------------------------------------------------------------------------------
+A 1.20.1:
+ 52: 	public static final class FluidLevel {
+ 53: 		final int y;
+ 54: 		final BlockState state;
+ 55:
+ 56: 		public FluidLevel(int y, BlockState state) {
+ 57: 			this.y = y;
+ 58: 			this.state = state;
+ 59: 		}
+ 60:
+ 61: 		public BlockState getBlockState(int y) {
+ 62: 			return y < this.y ? this.state : Blocks.AIR.getDefaultState();
+ 63: 		}
+ 64: 	}
+
+B 1.21.6:
+ 52: 	public record FluidLevel(int y, BlockState state) {
+ 53:
+ 54: 		public BlockState getBlockState(int y) {
+ 55: 			return y < this.y ? this.state : Blocks.AIR.getDefaultState();
+ 56: 		}
+ 57: 	}
+
+差异实质：record 自动生成 value-based equals/hashCode（class 版是 identity）。
+调用点（B 全文仅此 4 处）：B:219 / B:256 / B:257 / B:261 —— 全部在 needsFluidTick 计算里。
+字段读取 A/B 皆用直接字段访问 `fluidLevel.y` / `defaultFluidLevel.state`（record 私有字段对
+同 nest 的 Impl 可见），读取语义相同。
+落方块影响：无（仅被 needsFluidTick 使用）。
+
+--------------------------------------------------------------------------------
+[E2] apply 邻居枚举：邻居集不变，追踪槽位 3→4（A:161-207 vs B:154-208）
+--------------------------------------------------------------------------------
+A 1.20.1（12 点；外层 u=x-cell 0..1，中层 v=y-cell -1..1，内层 w=z-cell 0..1）:
+161: 					int o = Integer.MAX_VALUE;   // 第1近 距离²
+162: 					int p = Integer.MAX_VALUE;   // 第2近
+163: 					int q = Integer.MAX_VALUE;   // 第3近
+164: 					long r = 0L;                 // 第1近 位置
+165: 					long s = 0L;                 // 第2近 位置
+166: 					long t = 0L;                 // 第3近 位置
+168: 					for (int u = 0; u <= 1; u++) {
+169: 						for (int v = -1; v <= 1; v++) {
+170: 							for (int w = 0; w <= 1; w++) {
+171: 								int x = l + u;
+172: 								int y = m + v;
+173: 								int z = n + w;
+174: 								int aa = this.index(x, y, z);
+175: 								long ab = this.blockPositions[aa];
+177: 								if (ab != Long.MAX_VALUE) { ac = ab; }
+180: 									Random random = this.randomDeriver.split(x, y, z);
+181: 									ac = BlockPos.asLong(x*16+random.nextInt(10), y*12+random.nextInt(9), z*16+random.nextInt(10));
+185: 								int ad = unpackLongX(ac) - i; ae = unpackLongY(ac) - j; af = unpackLongZ(ac) - k;
+188: 								int ag = ad*ad + ae*ae + af*af;
+189: 								if (o >= ag)      { t=s; s=r; r=ac; q=p; p=o; o=ag; }
+196: 								else if (p >= ag) { t=s; s=ac; q=p; p=ag; }
+201: 								else if (q >= ag) { t=ac; q=ag; }
+
+B 1.21.6（同样 12 点；外层 w=x-cell 0..1，中层 x=y-cell -1..1，内层 y=z-cell 0..1）:
+154: 					int o = Integer.MAX_VALUE;   // 第1近
+155: 					int p = Integer.MAX_VALUE;   // 第2近
+156: 					int q = Integer.MAX_VALUE;   // 第3近
+157: 					int r = Integer.MAX_VALUE;   // 第4近 距离²  ← 新增
+158: 					long s = 0L;                 // 第1近 位置
+159: 					long t = 0L;                 // 第2近 位置
+160: 					long u = 0L;                 // 第3近 位置
+161: 					long v = 0L;                 // 第4近 位置  ← 新增
+163: 					for (int w = 0; w <= 1; w++) {
+164: 						for (int x = -1; x <= 1; x++) {
+165: 							for (int y = 0; y <= 1; y++) {
+166: 								int z = l + w;
+167: 								int aa = m + x;
+168: 								int ab = n + y;
+169: 								int ac = this.index(z, aa, ab);
+170: 								long ad = this.blockPositions[ac];
+172: 								if (ad != Long.MAX_VALUE) { ae = ad; }
+175: 									Random random = this.randomDeriver.split(z, aa, ab);
+176: 									ae = BlockPos.asLong(z*16+random.nextInt(10), aa*12+random.nextInt(9), ab*16+random.nextInt(10));
+180: 								int af = unpackLongX(ae) - i; ag = unpackLongY(ae) - j; ah = unpackLongZ(ae) - k;
+183: 								int ai = af*af + ag*ag + ah*ah;
+184: 								if (o >= ai)      { v=u; u=t; t=s; s=ae; r=q; q=p; p=o; o=ai; }
+193: 								else if (p >= ai) { v=u; u=t; t=ae; r=q; q=p; p=ai; }
+200: 								else if (q >= ai) { v=u; u=ae; r=q; q=ai; }
+205: 								else if (r >= ai) { v=ae; r=ai; }
+
+核对结论：
+  (a) 邻居集恒等：两版都枚举 {x-cell +0..+1} × {y-cell -1..+1} × {z-cell +0..+1} = 12 个格子，
+      且遍历顺序相同（x-cell 外层、y-cell 中层、z-cell 内层）。
+      → blockPositions 缓存写入顺序、randomDeriver.split(cellX,cellY,cellZ) 的调用序列完全一致。
+  (b) top-3 恒等（逐 tie 例）：
+      插入分支          A(3 槽) 结果              B(4 槽) 结果            top-3
+      o >= d     [new, old1, old2]        [new, old1, old2, old3]   相同
+      p >= d     [old1, new, old2]        [old1, new, old2, old3]   相同
+      q >= d     [old1, old2, new]        [old1, old2, new, old3]   相同
+      r >= d     [old1, old2, old3]       [old1, old2, old3, new]   相同
+      （>= 使等距元素向前插，3 槽会把原第3名挤掉，4 槽把它挪到第4槽；top-3 逐例相同）
+  (c) 第 4 点（距离 r / 位置 v）在 B 全文中只出现在 B:260-261 的 needsFluidTick 表达式里，
+      不进 calculateDensity 的任何一次调用。
+落方块影响：无。
+
+--------------------------------------------------------------------------------
+[E3] apply 出口清单（A:143-251 vs B:136-271）——7 个方块返回出口逐字对照
+--------------------------------------------------------------------------------
+出口                        A 行号         B 行号       条件/返回表达式
+1 density>0 → null          A:149-151     B:142-144    完全相同
+2 d<=0 → blockState         A:212-214     B:216-224    条件相同；B 在 return 前插 needsFluidTick 块
+3 water-over-lava→blockState A:215-217    B:225-227    完全相同
+4 density+e>0 → null        A:222-224     B:232-234    完全相同
+5 density+g>0 → null        A:230-233     B:240-243    完全相同
+6 density+h>0 → null        A:239-242     B:249-252    完全相同
+7 末尾 → blockState         A:245-246     B:255-266    A: needsFluidTick=true; B: 4 条件式
+
+A 209-251（关键尾部）:
+209: 					AquiferSampler.FluidLevel fluidLevel2 = this.getWaterLevel(r);      // 第1近
+210: 					double d = maxDistance(o, p);                                       // 第1↔第2
+211: 					BlockState blockState = fluidLevel2.getBlockState(j);
+212: 					if (d <= 0.0) {
+213: 						this.needsFluidTick = d >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD;
+214: 						return blockState;
+215: 					} else if (blockState.isOf(Blocks.WATER) && this.fluidLevelSampler.getFluidLevel(i, j-1, k).getBlockState(j-1).isOf(Blocks.LAVA)) {
+216: 						this.needsFluidTick = true;
+217: 						return blockState;
+218: 					} else {
+219: 						MutableDouble mutableDouble = new MutableDouble(Double.NaN);
+220: 						AquiferSampler.FluidLevel fluidLevel3 = this.getWaterLevel(s);  // 第2近
+221: 						double e = d * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel3);
+222: 						if (density + e > 0.0) { this.needsFluidTick = false; return null; }
+226: 							AquiferSampler.FluidLevel fluidLevel4 = this.getWaterLevel(t);  // 第3近
+227: 							double f = maxDistance(o, q);
+229: 								double g = d * f * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel4);
+230: 								if (density + g > 0.0) { ...; return null; }
+236: 							double g = maxDistance(p, q);
+238: 								double h = d * g * this.calculateDensity(pos, mutableDouble, fluidLevel3, fluidLevel4);
+239: 								if (density + h > 0.0) { ...; return null; }
+245: 							this.needsFluidTick = true;
+246: 							return blockState;
+247-248: }
+
+B 213-266（关键尾部）:
+213: 					AquiferSampler.FluidLevel fluidLevel2 = this.getWaterLevel(s);      // 第1近
+214: 					double d = maxDistance(o, p);                                       // 第1↔第2
+215: 					BlockState blockState = fluidLevel2.getBlockState(j);
+216: 					if (d <= 0.0) {
+217: 						if (d >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD) {
+218: 							AquiferSampler.FluidLevel fluidLevel3 = this.getWaterLevel(t);  // 第2近（仅比较）
+219: 							this.needsFluidTick = !fluidLevel2.equals(fluidLevel3);
+220: 						} else { this.needsFluidTick = false; }
+224: 						return blockState;
+225: 					} else if (blockState.isOf(Blocks.WATER) && ...LAVA...) { ...227: return blockState; }
+228: 					else {
+229: 						MutableDouble mutableDouble = new MutableDouble(Double.NaN);
+230: 						AquiferSampler.FluidLevel fluidLevel4 = this.getWaterLevel(t);  // 第2近
+231: 						double e = d * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel4);
+232: 						if (density + e > 0.0) { ...; return null; }
+236: 							AquiferSampler.FluidLevel fluidLevel5 = this.getWaterLevel(u);  // 第3近
+237: 							double f = maxDistance(o, q);
+239: 								double g = d * f * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel5);
+240: 								if (density + g > 0.0) { ...; return null; }
+246: 							double g = maxDistance(p, q);
+248: 								double h = d * g * this.calculateDensity(pos, mutableDouble, fluidLevel4, fluidLevel5);
+249: 								if (density + h > 0.0) { ...; return null; }
+255: 							boolean bl  = !fluidLevel2.equals(fluidLevel4);
+256: 							boolean bl2 = g >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD && !fluidLevel4.equals(fluidLevel5);
+257: 							boolean bl3 = f >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD && !fluidLevel2.equals(fluidLevel5);
+258: 							if (!bl && !bl2 && !bl3) {
+259: 								this.needsFluidTick = f >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD
+260: 									&& maxDistance(o, r) >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD
+261: 									&& !fluidLevel2.equals(this.getWaterLevel(v));
+262: 							} else { this.needsFluidTick = true; }
+266: 							return blockState;
+
+B 比 A 多出的调用：B:218 与 B:230 的 getWaterLevel(第2近)。
+  getWaterLevel(pos) 的缓存键 = floorDiv(x,16)/floorDiv(y,12)/floorDiv(z,16) 单元，
+  值 = getFluidLevel(该锚点精确坐标)。锚点 = cell*尺寸 + rand(<10 / <9 / <10)，
+  rand < 尺寸 ⇒ 锚点必落在其所属单元内 ⇒ 锚点与单元一一对应
+  ⇒ 该缓存是「单元 → getFluidLevel(锚点)」的纯记忆化，与首次调用时机无关
+  ⇒ B:218/230 的额外调用是纯 cache warm-up，不改变任何后续取值。
+  （附：getWaterLevel 的唯一实参来源 = blockPositions 里的锚点；A:209/220/226，B:213/218/230/236/261）
+
+落方块影响：7 个出口的**条件与返回表达式逐字相同**；两版差异只落在 needsFluidTick 赋值。
+
+--------------------------------------------------------------------------------
+[E4] needsFluidTick 的两个（且仅两个）消费者——只做后处理流体 tick，不写方块
+--------------------------------------------------------------------------------
+1.21.6 NoiseChunkGenerator.java:410-418
+410: 								blockState = this.getBlockState(chunkNoiseSampler, x, t, aa, blockState);
+411: 								if (blockState != AIR && !SharedConstants.isOutsideGenerationArea(chunk.getPos())) {
+412: 									chunkSection.setBlockState(y, u, ab, blockState, false);
+413: 									heightmap.trackUpdate(y, t, ab, blockState);
+414: 									heightmap2.trackUpdate(y, t, ab, blockState);
+415: 									if (aquiferSampler.needsFluidTick() && !blockState.getFluidState().isEmpty()) {
+416: 										mutable.set(x, t, aa);
+417: 										chunk.markBlockForPostProcessing(mutable);
+418: 									}
+419: 								}
+（1.20.1 同构，仅行号 414-422）
+
+1.21.6 Carver.java:143-146
+143: 				chunk.setBlockState(pos, blockState2);
+144: 				if (aquiferSampler.needsFluidTick() && !blockState2.getFluidState().isEmpty()) {
+145: 					chunk.markBlockForPostProcessing(pos);
+146: 				}
+（1.20.1 同构，行号 143-146 对齐）
+
+结论：needsFluidTick 差异最多改变「哪些水方块进入后处理队列（流体 tick）」，
+     不改变 setBlockState 写入的方块状态。
+
+--------------------------------------------------------------------------------
+[E5] 非差异项（逐字相同，w1-full.diff 无 hunk 覆盖）
+--------------------------------------------------------------------------------
+- CHUNK_POS_OFFSETS（A:99-101 / B:92-94）：13 个 section 偏移，完全相同
+- 常量 field_31451..field_36220 + NEEDS_FLUID_TICK_DISTANCE_THRESHOLD（A:71-81 / B:64-74）
+- 构造器与 startX/sizeX/startY/startZ/sizeZ 计算（A:103-134 / B:96-127）
+- index()（A:136-141 / B:129-134）
+- calculateDensity()（A:263-321 / B:283-341，含未使用的死局部 px=2.0，两版一致）
+- getLocalX/Y/Z（A:323-333 / B:343-353）
+- getWaterLevel()（A:335-351 / B:355-371）
+- getFluidLevel()（A:353-389 / B:373-409）
+- getFluidBlockY() 主体（A:391-419 / B:411-439；唯一差异 = 深暗门方法名）
+- getNoiseBasedFluidLevel()（A:421-433 / B:441-453）
+- getFluidBlockState()（A:435-450 / B:455-470）
+- seaLevel() 匿名实现（A:32-45 / B:32-45）
+
+[E6] method_43718 → inDeepDarkParameters（A:395 / B:415）——纯改名，体相同
+versions/1.20.1/.../VanillaBiomeParameters.java:1206-1208
+1206: 	public static boolean method_43718(DensityFunction densityFunction, DensityFunction densityFunction2, DensityFunction.NoisePos noisePos) {
+1207: 		return densityFunction.sample(noisePos) < -0.225F && densityFunction2.sample(noisePos) > 0.9F;
+1208: 	}
+versions/1.21.6/.../VanillaBiomeParameters.java:1206-1208
+1206: 	public static boolean inDeepDarkParameters(DensityFunction erosion, DensityFunction depth, DensityFunction.NoisePos pos) {
+1207: 		return erosion.sample(pos) < -0.225F && depth.sample(pos) > 0.9F;
+1208: 	}
+（两版同文件同行号，仅形参名不同）
+
+[E7] 上游输入链也逐字相同（版本差异不在这些点）
+ChunkNoiseSampler（1.20.1:158-181 / 1.21.6:157-180）：
+  finalDensity+Beardifier = cacheAllInCell(add(noiseRouter2.finalDensity(), Beardifier.INSTANCE))
+  → builder.add(pos -> this.aquiferSampler.apply(pos, densityFunction.sample(pos)))
+  即 apply 的 density 实参 = 插值后 (finalDensity + Beardifier) 采样值。
+ChunkNoiseSampler.estimateSurfaceHeight / calculateSurfaceHeightEstimate
+  （1.20.1:222-240 / 1.21.6:221-239）：`initialDensityWithoutJaggedness.sample(...) > 0.390625`
+  逐字相同。
+NoiseChunkGenerator.createFluidLevelSampler
+  （1.20.1:78-84 / 1.21.6:76-82）：LAVA@-54 / defaultFluid@seaLevel，`y < min(-54, seaLevel)` 逐字相同。
+DimensionType.field_35479 = MIN_HEIGHT << 4（两版同行号：1.20.1:47 / 1.21.6:49），
+  MIN_HEIGHT=-2032 ⇒ field_35479=-32512（Rust aquifer.rs:679 用 -32512，一致）。
+
+[E8] Rust 侧实现 = 1.20.1 语义（top-3），并已内建 WG_AQDUMP 全链路探针
+worldgen-core/src/aquifer.rs:472-484（邻居枚举 + top-3 插排，与 A 一致）：
+472:         let mut o = i32::MAX; let mut p = i32::MAX; let mut q = i32::MAX;
+473:         let mut r: i64 = 0; let mut s: i64 = 0; let mut t: i64 = 0;
+474:         for u in 0..=1 { for v in -1..=1 { for w in 0..=1 {
+475:             let x = l + u; let y = m + v; let z = n + w;
+476:             let ab = self.get_block_pos(x, y, z);
+480:             let ag = ad*ad + ae*ae + af*af;
+481:             if o >= ag { t = s; s = r; r = ab; q = p; p = o; o = ag; }
+482:             else if p >= ag { t = s; s = ab; q = p; p = ag; }
+483:             else if q >= ag { t = ab; q = ag; }
+484:         }}}
+aquifer.rs:487-530（fl2=第1近、d=max_distance(o,p)、d<=0 早退、water-over-lava、fl3=第2近、
+  cd/e、fl4=第3近、f/g/h —— 与 A 的出口一一对应）
+aquifer.rs:66-169（WG_AQDUMP：env WG_AQDUMP=<点文件>，行格式 `x y z`，dump 出口决策
+  /note_triplet/note_blob(1..3)/note_d/note_cde/method_43718 门展开）
+aquifer.rs:455-459（入口建收集器、出口统一打印，carver apply(pos,0.0) 同路复用）
+
+[E9] P7 残差列剖面（引用，非本 worker 采集）
+.investigations/mc-1216-port-260908-10/cmd-output/p7-column-profiles.txt:2-62
+  col (223,237)：21 点 mismatch，V 全 deepslate，R = air(-31..-28,-23..-17,-10..-6) + water(-2..+2)
+  col (222,238)：20 点，V 全 deepslate，R = air/water 交错
+  col (223,238)：17 点，V 全 deepslate，R = air/water 交错
+关键形态：vanilla 整列**全为 deepslate** ⇒ vanilla 的 apply 在该列全部走 null 出口
+（density>0 早退 A:149-151 / B:142-144 两版逐字相同，或 blend null 出口 A:222/230/239 / B:232/240/249）。
+两版 aquifer 的差异无法把 null 变成 air/water，也无法反向。
+
+================================================================================
+本摘录为 b1 静态分析的一手对照（无 shell 执行；行号取自 read 工具的 1-based 行号）。
+================================================================================

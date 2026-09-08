@@ -1,0 +1,5 @@
+[coreswap1216] synced Rust dll: 2180608 bytes
+[17:43:13] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[17:43:32] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] biomes=7593
+[17:43:32] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] biome_params.json -> E:\PYTHON\CoreSwap\versions\1.21.6\data\biome_params.json
+[17:43:32] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] DONE, stopping server

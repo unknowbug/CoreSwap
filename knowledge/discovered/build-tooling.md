@@ -739,3 +739,61 @@ DH 3.x FullData blob（SQLite）为 Zstandard 压缩，magic `28 b5 2f fd`（很
 
 workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）会互相覆盖 target 产物；裁决 = 每版本薄壳包名内嵌版本号（`worldgen1216` → 产物 `worldgen1216.dll`），version-specific 的 build.gradle `processResources` 再 rename 回运行时固定名 `worldgen.dll`——版本隔离在构建产物层，运行时契约名不变。下个版本 = 新薄壳包名 + 对应 rename，模式照抄。（260905-01 workspace 拆分 §13a 的多版本延伸。）来源：`.investigations/mc-1216-port-260908-08/port-list-260908-08.md` P1。**置信度**：本轮已定稿裁决（清单 judge PASS-with-conditions 已过）。
 
+## 发现 #40: mixin 配置文件与 mixin 类文件失同步——`required=true` 下编译期零提示、运行时装载失败（「编译绿 ≠ apply 绿」第二形态，260908-10）
+
+- **时间/置信度/module**：260908-10；candidate（脚本集合对拍 + 1.20.1 侧 23/23 全等反证；修后 22/22 实测）；build-tooling / mixin 工程（**#25/#55 mixin 家族，「编译绿 ≠ apply 绿」第二形态**）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §T0-1；`runtime/1.21.6/java/src/main/resources/coreswap.mixins.json`（修前 23 项 vs 目录 22 个类）；`runtime/1.20.1/java/src/main/resources/coreswap.mixins.json` 23 项 vs 目录 23 个类（反证）。
+- **现象**：1.21.6 侧 `coreswap.mixins.json` 的 `mixins` 数组列 23 项，实际 mixin 类文件 22 个——P4 迁移随 light ticket 删除了 `ThreadedAnvilChunkStorageAccessor`，json 未同步。`"required": true` 下缺类 = mixin 装载失败 = 服务器起不来；而 `gradle compileJava` 与单测**全绿**（json 不是 javac 的编译输入，无任何提示）。
+- **根因**：mixin 的配置清单（json 数组）与类文件目录是**两份独立维护的事实**，构建链没有任何一致性校验。删/改/重命名 mixin 类时只改代码不改 json（或反之）都不报错——缺类只在**运行时 mixin 装载阶段**暴露，`required=true` 把「清单指向不存在的类」升级为硬失败。
+- **定位**：4 行脚本做**集合对拍**——json 数组项 vs `mixin/` 目录 `*.java` 文件名，双向差集为空才算对齐；再用 1.20.1 侧 23/23 全等作反证，排除「脚本误报」。
+- **修复/判据**：修复 = json 移除 stale 条目（修后 22 项 vs 22 类对齐）。判据（MUST）：**mixin 类增删后 MUST 脚本对拍 `mixins.json` 列表 vs `mixin/` 目录文件名集合**，并把它做成构建前置门禁；「编译绿」对 mixin 装载零判别力。
+- **教训**：「编译绿 ≠ apply 绿」现有两形态：① 描述符/目标签名失配（#25/#55 家族，AP 警告或生产 APPLY FAILED）；② **清单与类文件失同步**（本条，`required=true` 运行时装载失败）。共同点 = **mixin 的有效性不在 javac 的检查域内**，必须用 mixin 自己的三重门禁兜底：json↔目录对拍 + AP `Cannot find target method` grep + 生产 apply 日志。
+- **证据**：progress §T0-1；两个 json 与两个目录的集合对拍记录（本轮实读：1.21.6 json 22 项 / 目录 22 文件；1.20.1 json 23 项 / 目录 23 文件）。
+
+
+## 发现 #25 补充案例（260908-10）：mixin AP 的 `Cannot find target method` 警告 = 运行时 APPLY FAILED 的可预测前兆——`defaultRequire=1` 下该串必须当错误
+
+- **时间/置信度/module**：260908-10；candidate（AP 警告计数修前 2 / 修后 0 + 重编译 BUILD SUCCESSFUL）；build-tooling（#25 mixin 家族；**#55 判据 4「签名/refmap 错误只在生产 APPLY FAILED」的编译期可见形态**）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §T0-3；`.tmp/p2b-compile-260908-10.log:390/393`（修前 2 条）；`.tmp/p2b-compile-r3-260908-10.log:25`（修后 `BUILD SUCCESSFUL in 8s`，0 条）；一手签名权威 `versions/1.21.6/data/mc_src_extract/net/minecraft/world/gen/chunk/NoiseChunkGenerator.java:326`。
+- **现象**：`gradle compileJava` 通过，但 mixin 注解处理器报 2 条 `警告: Cannot find target method "populateNoise(Ljava/util/concurrent/Executor;...)..."`（`NoiseChunkGeneratorMixin.java:63` / `NoiseDumpProbeMixin.java:46`）——1.21.6 去掉了 `populateNoise` 的首参 `Executor`（1.20.1 五参 → 1.21.6 四参）。`injectors.defaultRequire=1` 下该 mixin 运行时必 APPLY FAILED。修描述符 + handler 形参后重编译，警告计数 **2 → 0**。
+- **根因**：mixin AP 在编译期解析 `@Inject.method` 描述符与目标类，找不到只发 **warning**（javac 层面构建成功），而 mixin 的 `defaultRequire=1` 把「目标方法缺失」升级为**运行时硬失败**——**编译器的告警等级与 mixin 的运行时严格等级不一致**，中间没有门禁把它们对齐。
+- **定位**：编译日志 grep `Cannot find target method`（修前 2 / 修后 0）；目标方法签名以一手 `NoiseChunkGenerator.java` 为准逐参核对，不靠记忆/上一版本。
+- **修复/判据**：修复 = 两处 `@Inject` 描述符 + handler 形参同步去 `Executor`。判据（MUST）：**mixin 项目构建日志中的 `Cannot find target method` 必须当错误处理**——构建脚本/CI 应 grep 该串做门禁，出现即 fail；跨版本升级后 mixin 目标方法签名 MUST 以一手源码逐方法核。
+- **教训**：「compileJava 成功」在 mixin 项目里只证明 Java 语法/类型，不证明注入有效；AP 警告是**免费的前置信号**，漏读即把编译期可发现的问题推到运行时（#25 家族共同结论：门控/注入配置层静默不生效，只有显式门禁兜底）。
+- **证据**：上述两个编译日志 + 一手源码行。
+
+
+## 发现 #8 补充案例（260908-10）：跨版本新探针工程首建漏掉**整块** `-P`→`-D` 映射——参数静默不生效，「编译过」不构成接线证据（#8/#19 家族第四形态）
+
+- **时间/置信度/module**：260908-10；candidate（两侧 build.gradle 逐项对照 + 修复后 P2b 三跑参数行为化生效）；build-tooling（#8 家族：从「漏一行」升级为「漏整块」）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §T0-2 + §P2b 三跑表；`runtime/1.21.6/java/build.gradle`（修前只有 `processResources` + `loom.runs.server`，零映射）vs `runtime/1.20.1/java/build.gradle:56-181`（`benchVmArgs` 映射块，109 处 `findProperty`，约 126 行）。
+- **现象**：1.21.6 探针工程首建时 `build.gradle` 未移植 1.20.1 的 `benchVmArgs` 映射块 → `-PbiomeProbe=true` / `-PblockProbe=true` 等参数**静默不生效**（探针不跑、无报错）。修复 = 整块移植（bench 参数 / 各探针 / `cpp.replace|cpp.lib|cpp.worldgen.dir` / `rustStages` / `cpp.blockRegister` / `featureLog`+`defaultBlock` env 通道），并把 `benchOut` 默认值改指 1.21.6 数据目录；修后 P2b 三跑（biome `biomes=7593` / block `DONE` / nether `biomes=5`）参数全部行为化生效。
+- **根因**：gradle `-P`（项目属性）与 JVM `-D`（系统属性）是**两个命名域**，桥接靠 `build.gradle` 手工 `findProperty → vmArg` 逐行映射（#8 原始机制）。新版本工程从零起 `build.gradle` 时，映射块**不在编译依赖里、也不在任何模板里**——漏掉整块没有任何编译/运行报错，只是参数进不了 JVM。
+- **定位**：两侧 `build.gradle` 逐项对照（`findProperty` 计数 + 属性名集合），而不是「跑一下看有没有输出」（空跑也会走默认行为，看起来正常）。
+- **修复/判据**：判据（MUST）：**新版本工程首建时，`-P` 参数清单必须逐项对照上一版本复制，并以行为化日志（探针 banner / 属性回显）核验生效**——「编译过 / 构建成功」不构成接线证据；映射块建议做成可复用片段或前缀批量映射（#8 结构性修法，仍未落地）。
+- **教训**：参数传递链上的静默丢弃只有**清单核对 + 行为化证据**能兜底（#8/#19/#25/#32 家族共同结论）。
+- **证据**：两侧 `build.gradle`；progress §T0-2 与 §P2b 三跑结果。
+
+
+## 发现 #14 补充案例（260908-10）：探针 dump 副产品文件名内嵌的是「探针参数 seed」不是「世界 seed」——文件名自证 ≠ seed 自证，误用即伪参照
+
+- **时间/置信度/module**：260908-10；candidate（同一日志内两 seed 并存实读 + P7 修复后三处一致实锤）；build-tooling（#14 dump 自证 seed 的**字段语义陷阱**）。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §P2b「seed 三查留痕」+ §P7「seed 三查」；`.tmp/p2b-block-260908-10.log:216-217`（`[BlockProbe] seed=-8248318472910187742` vs `[BlockProbe] worldSeed=-5307016484385870680`）+ L1186（产物 `vanilla_-8248318472910187742_8_200_200.blocks`）。
+- **现象**：`BlockProbe` 产物文件名内嵌 `bench.seed`，但实际地形由 `worldSeed`（`server.properties` 的 `level-seed`）决定——两者不同时（本例 bench seed `-8248318472910187742` vs 未设 level-seed 随机得到 `-5307016484385870680`），`vanilla_<benchSeed>_..._<origin>.blocks` 是**伪参照**：文件名声称的 seed 与文件内容的地形 seed 不一致，拿它做对拍即 seed 三查违例。
+- **根因**：`#14` 要求 dump 文件自证 seed，落地时嵌入的是**工具输入参数**（`bench.seed`）而非**世界生成 seed**（`worldSeed`）——两个 seed 在探针里都存在且都有名字，但只有后者决定地形；文件名模板选了前者，自证字段就变成误导字段（**自证 ≠ 正确自证**）。
+- **定位**：同一日志内 `seed=` 与 `worldSeed=` 两行并列对照；修复路径 = 先设 `level-seed` + 删 `run/world` 重导，之后 `worldSeed` = level-seed = bench seed，两臂导出 header 逐字段相同（P7 实锤）。
+- **修复/判据**：判据（MUST）：① 导出参照前先设 `level-seed` + 删 `run/world`（否则 worldSeed 随机）；② 对比前核对三处一致——产物 header/文件名内嵌 seed == 命令行/bench seed == 日志 `worldSeed`；③ **dump 文件头应同时落 bench seed 与 worldSeed 两个字段并标注哪个是地形 seed**（#14 字段清单升级），只落一个时按「伪参照」处理。
+- **教训**：「文件自证」只有在**自证字段与结论所依赖的语义同一**时才成立——自证字段选错比没有字段更危险（看起来有据可查）。
+- **证据**：`p2b-block-260908-10.log` 两行 + 产物文件名行；progress §P7 三处一致记录。
+
+
+## 发现 #41: PowerShell `Select-Object -First N` 提前关闭管道会杀掉上游进程——长时构建日志被截断成「构建中断」假象（260908-10）
+
+- **时间/置信度/module**：260908-10；candidate（同一命令两次运行对照：截断日志 vs 全量落盘日志）；build-tooling / PowerShell 环境坑。
+- **来源定位**：`.investigations/mc-1216-port-260908-10/progress-260908-10.md` §T0-3 ⚠️过程坑；`.tmp/p2b-compile-r2-260908-10.log`（截断：104 行、无 `BUILD` 行、末尾停在堆栈中间帧，夹 `java.io.FileNotFoundException: ...mixin-targetdb-*.tmp`）vs `.tmp/p2b-compile-r3-260908-10.log`（全量落盘，含 `BUILD SUCCESSFUL in 8s`）。
+- **现象**：`gradle ... | Select-String ... | Select-Object -First 30` 运行时 gradle 被中途终止——日志只剩半截堆栈（末尾停在 `DefaultBuildOperationRunner.execute` 中间帧），被误读为「构建中断/构建失败」。
+- **根因**：PowerShell 管道中 `Select-Object -First N` 满足数量后**停止消费并关闭下游管道**，上游进程（gradle/java）收到管道关闭后终止——early-exit 的正常语义，但对「长时间运行、日志即证据」的构建命令等于**中途杀进程**；截断的堆栈与真实失败的堆栈在观测上不可区分。
+- **定位**：对照两次运行——截断版 104 行、无 `BUILD` 行、末尾非自然结束；全量版有 `BUILD SUCCESSFUL`；确认是管道早退而非构建错误。
+- **修复/判据**：修复 = 长时构建/采集命令一律 `... *> <logfile>` 全量落盘，**再**对落盘文件单独过滤（`Select-String <logfile>` / `Get-Content -Tail`）。判据 = 「日志末尾停在堆栈中间帧 + 无 BUILD 行」是**管道截断签名**，先复跑全量落盘再判构建失败。
+- **教训**：日志采集与日志过滤必须**两阶段分离**；任何在管道里做 early-exit 截断的写法都会把「采集侧副作用」伪装成「被测系统故障」（与 #29 RCON 帧解析伪装「服务器挂死」同构：工具层假象优先排除）。
+- **证据**：两个日志文件对照（r2 截断 / r3 完整）。

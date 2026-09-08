@@ -168,16 +168,19 @@ impl FloatProvider {
             if let Some(n) = v.as_f64() { fp.kind = FloatKind::Constant; fp.a = n as f32; return fp; }
             if v.as_object().is_none() { return fp; }
             let type_name = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
-            let val = v.get("value");
-            if type_name.contains("uniform") && val.is_some() {
+            // 260908-10 P9：1.21.6 起 FloatProvider 序列化扁平化——{"type":"uniform","min_inclusive":..,"max_exclusive":..}
+            // （1.20.1 = {"type":"uniform","value":{..}} 嵌套形）。dual-form：无 "value" 子对象时回退到对象自身
+            // （同 placement.rs:76 IntProvider 既有先例）。证据：versions/1.21.6/data/.../configured_carver/{canyon,cave}.json
+            let val = v.get("value").unwrap_or(v);
+            if type_name.contains("uniform") {
                 fp.kind = FloatKind::Uniform;
-                fp.a = val.and_then(|x| x.get("min_inclusive")).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
-                fp.b = val.and_then(|x| x.get("max_exclusive")).and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
-            } else if type_name.contains("trapezoid") && val.is_some() {
+                fp.a = val.get("min_inclusive").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
+                fp.b = val.get("max_exclusive").and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
+            } else if type_name.contains("trapezoid") {
                 fp.kind = FloatKind::Trapezoid;
-                fp.a = val.and_then(|x| x.get("min")).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
-                fp.b = val.and_then(|x| x.get("max")).and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
-                fp.plateau = val.and_then(|x| x.get("plateau")).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
+                fp.a = val.get("min").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
+                fp.b = val.get("max").and_then(|x| x.as_f64()).unwrap_or(1.0) as f32;
+                fp.plateau = val.get("plateau").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
             }
         }
         fp
@@ -737,6 +740,99 @@ impl ConfiguredCarver {
             ConfiguredCarver::Ravine(RavineCarverConfig::parse(cfg, blocks))
         } else {
             ConfiguredCarver::Cave(CaveCarverConfig::parse(cfg, blocks))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! 260908-10 P9：FloatProvider dual-form 回归（1.20.1 嵌套 "value" / 1.21.6 扁平）。
+    use super::*;
+    use crate::json;
+
+    // 恒等断言：扁平形与嵌套形解析结果逐位一致（kind 同一、字段 bits 相等）。
+    #[test]
+    fn float_provider_flat_and_nested_equivalent() {
+        let flat = json::parse(r#"{"type":"minecraft:uniform","min_inclusive":0.75,"max_exclusive":1.0}"#).unwrap();
+        let nested = json::parse(r#"{"type":"minecraft:uniform","value":{"min_inclusive":0.75,"max_exclusive":1.0}}"#).unwrap();
+        let a = FloatProvider::parse(Some(&flat));
+        let b = FloatProvider::parse(Some(&nested));
+        assert!(matches!(a.kind, FloatKind::Uniform), "flat uniform not parsed");
+        assert!(matches!(b.kind, FloatKind::Uniform), "nested uniform regression");
+        assert_eq!(a.a.to_bits(), b.a.to_bits());
+        assert_eq!(a.b.to_bits(), b.b.to_bits());
+
+        let flat_t = json::parse(r#"{"type":"minecraft:trapezoid","min":0.0,"max":6.0,"plateau":2.0}"#).unwrap();
+        let nested_t = json::parse(r#"{"type":"minecraft:trapezoid","value":{"min":0.0,"max":6.0,"plateau":2.0}}"#).unwrap();
+        let c = FloatProvider::parse(Some(&flat_t));
+        let d = FloatProvider::parse(Some(&nested_t));
+        assert!(matches!(c.kind, FloatKind::Trapezoid), "flat trapezoid not parsed");
+        assert!(matches!(d.kind, FloatKind::Trapezoid), "nested trapezoid regression");
+        assert_eq!(c.a.to_bits(), d.a.to_bits());
+        assert_eq!(c.b.to_bits(), d.b.to_bits());
+        assert_eq!(c.plateau.to_bits(), d.plateau.to_bits());
+    }
+
+    // 标量常量形不回归（FloatProvider constant）。
+    #[test]
+    fn float_provider_scalar_constant() {
+        let n = json::parse("3.0").unwrap();
+        let c = FloatProvider::parse(Some(&n));
+        assert!(matches!(c.kind, FloatKind::Constant));
+        assert_eq!(c.a.to_bits(), 3.0f32.to_bits());
+    }
+
+    // 真实 1.21.6 数据金标：对 4 个 configured_carver 解析并核对关键字段
+    // （data/ 不入库 → 缺失时显式 [SKIP]，不伪装通过）。
+    #[test]
+    fn real_1216_carver_json_parses() {
+        let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../versions/1.21.6/data/worldgen/data/minecraft/worldgen/configured_carver");
+        let cave_p = dir.join("cave.json");
+        let canyon_p = dir.join("canyon.json");
+        if !cave_p.exists() || !canyon_p.exists() {
+            eprintln!("[SKIP] real 1.21.6 carver data absent: {}", dir.display());
+            return;
+        }
+        let blocks = BlockRegistry::default();
+
+        let cave_txt = std::fs::read_to_string(&cave_p).expect("read cave.json");
+        let cave_root = json::parse(&cave_txt).expect("parse cave.json");
+        match ConfiguredCarver::parse(&cave_root, &blocks) {
+            ConfiguredCarver::Cave(c) => {
+                assert!(matches!(c.floor_level.kind, FloatKind::Uniform), "cave floor_level should be uniform");
+                assert_eq!(c.floor_level.a.to_bits(), (-1.0f32).to_bits());
+                assert_eq!(c.floor_level.b.to_bits(), (-0.4f32).to_bits());
+                assert!(matches!(c.horizontal_radius_multiplier.kind, FloatKind::Uniform));
+                assert_eq!(c.horizontal_radius_multiplier.a.to_bits(), 0.7f32.to_bits());
+                assert_eq!(c.horizontal_radius_multiplier.b.to_bits(), 1.4f32.to_bits());
+                assert!(matches!(c.common.y_scale.kind, FloatKind::Uniform));
+                assert_eq!(c.common.y_scale.a.to_bits(), 0.1f32.to_bits());
+                assert_eq!(c.common.y_scale.b.to_bits(), 0.9f32.to_bits());
+                assert!((c.common.probability - 0.15).abs() < 1e-9);
+            }
+            other => panic!("cave.json parsed as non-Cave: probability={}", other.probability()),
+        }
+
+        let canyon_txt = std::fs::read_to_string(&canyon_p).expect("read canyon.json");
+        let canyon_root = json::parse(&canyon_txt).expect("parse canyon.json");
+        match ConfiguredCarver::parse(&canyon_root, &blocks) {
+            ConfiguredCarver::Ravine(r) => {
+                assert_eq!(r.shape.width_smoothness, 3);
+                assert_eq!(r.shape.vertical_radius_center_factor.to_bits(), 0.0f32.to_bits());
+                assert_eq!(r.shape.vertical_radius_default_factor.to_bits(), 1.0f32.to_bits());
+                assert!(matches!(r.shape.thickness.kind, FloatKind::Trapezoid), "canyon thickness should be trapezoid");
+                assert_eq!(r.shape.thickness.a.to_bits(), 0.0f32.to_bits());
+                assert_eq!(r.shape.thickness.b.to_bits(), 6.0f32.to_bits());
+                assert_eq!(r.shape.thickness.plateau.to_bits(), 2.0f32.to_bits());
+                assert!(matches!(r.shape.distance_factor.kind, FloatKind::Uniform));
+                assert_eq!(r.shape.distance_factor.a.to_bits(), 0.75f32.to_bits());
+                assert_eq!(r.shape.distance_factor.b.to_bits(), 1.0f32.to_bits());
+                assert!(matches!(r.common.y_scale.kind, FloatKind::Constant));
+                assert_eq!(r.common.y_scale.a.to_bits(), 3.0f32.to_bits());
+                assert!((r.common.probability - 0.01).abs() < 1e-9);
+            }
+            other => panic!("canyon.json parsed as non-Ravine: probability={}", other.probability()),
         }
     }
 }

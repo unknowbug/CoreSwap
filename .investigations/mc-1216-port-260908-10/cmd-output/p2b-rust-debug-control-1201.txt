@@ -1,0 +1,66 @@
+=== arm 1.20.1 (filtered: unique markers + tail) ===
+[feature-loader] unknown configured feature type: minecraft:bamboo (minecraft:bamboo_no_podzol)
+[feature-loader] unknown configured feature type: minecraft:bamboo (minecraft:bamboo_some_podzol)
+[feature-loader] unknown configured feature type: minecraft:block_column ()
+[feature-loader] unknown configured feature type: minecraft:block_column (minecraft:cave_vine)
+[feature-loader] unknown configured feature type: minecraft:blue_ice (minecraft:blue_ice)
+[feature-loader] unknown configured feature type: minecraft:desert_well (minecraft:desert_well)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:geode (minecraft:amethyst_geode)
+[feature-loader] unknown configured feature type: minecraft:ice_spike (minecraft:ice_spike)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:kelp (minecraft:kelp)
+[feature-loader] unknown configured feature type: minecraft:lake (minecraft:lake_lava)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:monster_room (minecraft:monster_room)
+[feature-loader] unknown configured feature type: minecraft:multiface_growth (minecraft:glow_lichen)
+[feature-loader] unknown configured feature type: minecraft:multiface_growth (minecraft:sculk_vein)
+[feature-loader] unknown configured feature type: minecraft:random_boolean_selector (minecraft:lush_caves_clay)
+[feature-loader] unknown configured feature type: minecraft:random_boolean_selector (minecraft:mushroom_island_vegetation)
+[feature-loader] unknown configured feature type: minecraft:root_system (minecraft:rooted_azalea_tree)
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[feature-loader] unknown configured feature type: minecraft:sea_pickle (minecraft:sea_pickle)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_mid)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_short)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_slightly_less_short)
+[feature-loader] unknown configured feature type: minecraft:seagrass (minecraft:seagrass_tall)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:forest_flowers)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:pointed_dripstone)
+[feature-loader] unknown configured feature type: minecraft:simple_random_selector (minecraft:warm_ocean_vegetation)
+[feature-loader] unknown configured feature type: minecraft:vegetation_patch (minecraft:moss_patch_ceiling)
+[feature-loader] unknown configured feature type: minecraft:vegetation_patch (minecraft:moss_patch)
+[feature-loader] unknown configured feature type: minecraft:vines (minecraft:vines)
+[placement] unsupported block predicate type: minecraft:any_of
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+error: process didn't exit successfully: `target\debug\bench_single.exe 200 200 -8248318472910187742 E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen` (exit code: 0xc00000fd, STATUS_STACK_OVERFLOW)
+thread 'main' (10700) has overflowed its stack
+wg_dir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen
+--- tail 6 ---
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+
+thread 'main' (10700) has overflowed its stack
+error: process didn't exit successfully: `target\debug\bench_single.exe 200 200 -8248318472910187742 E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen` (exit code: 0xc00000fd, STATUS_STACK_OVERFLOW)

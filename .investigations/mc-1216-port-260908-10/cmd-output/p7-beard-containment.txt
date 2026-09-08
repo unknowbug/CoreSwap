@@ -1,0 +1,6 @@
+[BB] trial_chambers children parsed = 249 (from region r.0.0 chunks 10..19)
+[PTS] pre-fix mismatch points = 11865
+[CONTAINMENT] pad= 0 : 3/11865 = 0.03% of pre-fix mismatch points inside union(children BB)+pad
+[CONTAINMENT] pad=12 : 11798/11865 = 99.44% of pre-fix mismatch points inside union(children BB)+pad
+[POST-FIX] pad= 0 : 0/41 = 0.00% of post-fix residual inside union(children BB)+pad
+[POST-FIX] pad=12 : 0/41 = 0.00% of post-fix residual inside union(children BB)+pad

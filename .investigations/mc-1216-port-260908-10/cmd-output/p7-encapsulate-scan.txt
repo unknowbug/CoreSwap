@@ -1,0 +1,17 @@
+=== terrain_adaptation scan over 1.21.6 structure JSON (260908-10) ===
+scan root: versions/1.21.6/data/worldgen/data/minecraft/worldgen/structure/*.json
+date: 2026-09-08 18:02
+
+ancient_city.json: beard_box
+nether_fossil.json: beard_thin
+pillager_outpost.json: beard_thin
+stronghold.json: bury
+trail_ruins.json: bury
+trial_chambers.json: encapsulate
+village_desert.json: beard_thin
+village_plains.json: beard_thin
+village_savanna.json: beard_thin
+village_snowy.json: beard_thin
+village_taiga.json: beard_thin
+
+encapsulate users: 1

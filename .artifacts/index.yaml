@@ -1034,3 +1034,43 @@ entries:
     status: confirmed  # 用户授权确认 260908-07（实际 2026-09-08 13:09；judge PASS-with-conditions N-1~N-3 已应用）——grove 细雪 = vanilla 陷阱机制非 Rust surface 规则 bug（Chunky 双臂同 seed -546755292641445454，region r.0.-1 雪类全量逐块：pw 柱足迹 cpp 100% ⊆ vanilla，锚点 (0,131,-7) 双臂 powder_snow，y 廓线一致；残差 van-only 3040/981 柱 + snow_block 单向 10,473 未归因 = idk 声明）
     # 关联：.investigations/grove-powdersnow-260908-07/cmd-output/*、.tmp/grove-powdersnow-260908-07/region-{vanilla,cpp}/、knowledge/discovered/workflow-patterns.md #86。
 
+  # === MC 1.21.6 移植 P7 e2e 双臂 verdict + 残差归因（260908-10，candidate 待用户 confirmed / judge 审查中）===
+  - id: 're-code:mc-1216-port:p7-e2e-verdict-260908-10'
+    path: 'mc-1216-port-260908-10/p7-e2e-verdict-260908-10.md'
+    kind: analysis
+    status: candidate  # 双臂 99.8114% → 根因 = 1.21.6 新增 StructureTerrainAdaptation.ENCAPSULATE（序数 4，trial_chambers 唯一使用者）在 Rust beardifier 落 `_ => None` → 修复后 99.9993%（41/6291456，无簇）；行为级重跑验证；confirmed 留用户
+    # 证据：.investigations/mc-1216-port-260908-10/cmd-output/p7-{dual-arm-diff,residual-cluster,column-profiles}.txt
+    #   + .tmp/p7-aqdump-compare-260908-10.txt（68/68 density 符号翻转）+ .tmp/p7-starts-260908-10.txt（trial_chambers BB）
+    #   + .tmp/p7-diff-rust2-260908-10.txt（修复后 41 格）；代码 = worldgen-core/src/{beardifier.rs,worldgen_handle.rs}
+    # 关联：fanout-decision.md、b1/b2 候选、progress-260908-10.md §P7 根因定位与修复。
+
+  # === P7 残差归因 fan-out 候选（260908-10，两候选均 REFUTES）===
+  - id: 're-code:mc-1216-port:b1-aquifer-version-diff-260908-10'
+    path: 'mc-1216-port-260908-10/b1-aquifer-version-diff.md'
+    kind: analysis
+    status: candidate  # fan-out b1：1.21.6 AquiferSampler 语义变化改变落方块 = REFUTES（7 个方块返回出口两版逐字同；差异只在 needsFluidTick；「邻居 4 点化」实为 top-3→top-4 槽位）
+    # 关联：.investigations/mc-1216-port-260908-10/fanout-decision.md。
+  - id: 'swe:mc-1216-port:b2-rust-aquifer-audit-260908-10'
+    path: 'mc-1216-port-260908-10/b2-rust-aquifer-audit.md'
+    kind: analysis
+    status: candidate  # fan-out b2：Rust aquifer 潜在语义偏离解释残差 = REFUTES（27 项 26 项逐位等价；唯一真偏离 water-over-lava 有界且只返 WATER；独立复现 68/68 density 符号翻转 → 指向 density 入参）
+    # 附带：探针 bug AquiferDumpProbeMixin:302 漏 +base；nether 高度参数偏离（不触发）。
+    # 关联：.investigations/mc-1216-port-260908-10/fanout-decision.md。
+
+  # === 260908-10 收尾三件：judge review / P9 carver patch / 附带发现登记 ===
+  - id: 're-code:mc-1216-port:review-260908-10-001'
+    path: 'mc-1216-port-260908-10/review-260908-10-001.md'
+    kind: review
+    status: candidate  # judge PASS-with-conditions（4 MUST + 5 SHOULD；MUST-1..4 已由主会话闭环，见 verdict §1/§3/§4 与 cmd-output/p7-beard-containment.txt、p7-mismatch-percentages.txt）；只出意见不改 status
+    # 关联：p7-e2e-verdict-260908-10.md、.investigations/mc-1216-port-260908-10/progress-260908-10.md §judge 条件闭环。
+  - id: 'swe:mc-1216-port:p9-carver-floatprovider-dualform-260908-10'
+    path: '../worldgen-core/src/carver.rs'
+    kind: patch
+    status: candidate  # P9：1.21.6 FloatProvider 序列化扁平化 → FloatProvider::parse dual-form（v.get("value").unwrap_or(v)）；含 3 单测（扁平/嵌套逐位等值 + 真实 1.21.6 cave/canyon 金标）；全库 14/14 绿
+    # 证据：.investigations/mc-1216-port-260908-10/cmd-output/p2b-*.txt + .tmp/p9-carver-test-260908-10.log；1.21.6 数据 gitignored（data/）→ 方法可比声明。
+  - id: 'swe:mc-1216-port:side-findings-260908-10'
+    path: 'mc-1216-port-260908-10/p7-e2e-verdict-260908-10.md'
+    kind: analysis
+    status: candidate  # 附带发现登记（未修）：① aquifer.rs:493-499 water-over-lava 用全链 get_fluid_level vs Java 默认液面 sampler（y≤−10、只返 WATER）② AquiferDumpProbeMixin:302 漏 +base（探针 bug，gitignored runtime/）③ worldgen_handle.rs Aquifer::new 传 world_height(256) vs Java height()(128)（nether 不触发）
+    # 载体说明：② 位于 gitignored runtime/ → 以 verdict §5 + progress §附带发现 为权威描述。
+

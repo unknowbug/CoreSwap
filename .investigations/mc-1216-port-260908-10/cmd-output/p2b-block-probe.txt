@@ -1,0 +1,71 @@
+[coreswap1216] synced Rust dll: 2180608 bytes
+[17:43:58] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[17:44:11] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] seed=-8248318472910187742 size=8 origin=(200,200)
+[17:44:11] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] worldSeed=-5307016484385870680
+[17:44:11] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] spawn=BlockPos{x=-94, y=63, z=47}
+[17:44:13] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,12) FULL in 547 ms
+[17:44:13] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,12) FULL in 158 ms
+[17:44:13] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,12) FULL in 92 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,12) FULL in 180 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,12) FULL in 44 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,12) FULL in 39 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,12) FULL in 40 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,12) FULL in 39 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,13) FULL in 166 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,13) FULL in 126 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,13) FULL in 81 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,13) FULL in 47 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,13) FULL in 37 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,13) FULL in 38 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,13) FULL in 39 ms
+[17:44:14] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,13) FULL in 35 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,14) FULL in 178 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,14) FULL in 168 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,14) FULL in 117 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,14) FULL in 41 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,14) FULL in 34 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,14) FULL in 37 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,14) FULL in 36 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,14) FULL in 36 ms
+[17:44:15] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,15) FULL in 200 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,15) FULL in 196 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,15) FULL in 134 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,15) FULL in 37 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,15) FULL in 34 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,15) FULL in 35 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,15) FULL in 35 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,15) FULL in 33 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,16) FULL in 156 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,16) FULL in 145 ms
+[17:44:16] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,16) FULL in 102 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,16) FULL in 35 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,16) FULL in 34 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,16) FULL in 35 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,16) FULL in 36 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,16) FULL in 36 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,17) FULL in 89 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,17) FULL in 103 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,17) FULL in 85 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,17) FULL in 46 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,17) FULL in 35 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,17) FULL in 37 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,17) FULL in 35 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,17) FULL in 38 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,18) FULL in 64 ms
+[17:44:17] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,18) FULL in 84 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,18) FULL in 73 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,18) FULL in 43 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,18) FULL in 34 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,18) FULL in 34 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,18) FULL in 33 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,18) FULL in 35 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (12,19) FULL in 47 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (13,19) FULL in 49 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (14,19) FULL in 49 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (15,19) FULL in 35 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (16,19) FULL in 33 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (17,19) FULL in 35 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (18,19) FULL in 34 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] chunk (19,19) FULL in 37 ms
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] blocks -> E:\PYTHON\CoreSwap\versions\1.21.6\data\vanilla_-8248318472910187742_8_200_200.blocks
+[17:44:18] [Server thread/INFO] (Minecraft) [STDOUT]: [BlockProbe] DONE, stopping server

@@ -1,7 +1,8 @@
 // bench_single.rs — Rust 完整管线单线程基准（公平对比 Java WorldGenBench）。
-// 用法：bench_single <originX> <originZ> [seed]
+// 用法：bench_single <originX> <originZ> [seed] [wg_dir]
 // 测：单线程顺序生成 N chunks，排除前 2 个冷启动，报告稳定 avg ms/chunk。
 // 公平对比协议：同区域 + 单线程 + 排除冷启动 + 取中位数。
+// 260908-10：wg_dir 可选参数化（默认 1.20.1）——多版本数据集冒烟/基准共用（1.21.6 = versions/1.21.6/data/worldgen）
 use std::env;
 use std::time::Instant;
 use WorldgenRust::worldgen_handle::WorldgenHandle;
@@ -12,8 +13,10 @@ fn main() {
     let origin_z: i32 = args.get(2).map(|s| s.parse().unwrap_or(200)).unwrap_or(200);
     let seed: i64 = args.get(3).map(|s| s.parse().unwrap_or(-8248318472910187742)).unwrap_or(-8248318472910187742);
 
-    let wg_dir = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen";
-    let h = WorldgenHandle::create(seed, wg_dir).expect("create handle");
+    let wg_dir_default = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen".to_string();
+    let wg_dir: String = args.get(4).cloned().unwrap_or(wg_dir_default);
+    println!("wg_dir={}", wg_dir);
+    let h = WorldgenHandle::create(seed, &wg_dir).expect("create handle");
 
     // 4x4 = 16 chunks，region origin
     let n = 16usize;

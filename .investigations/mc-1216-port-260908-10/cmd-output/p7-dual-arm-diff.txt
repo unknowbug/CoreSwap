@@ -1,0 +1,24 @@
+[SANITY] vanilla file=12904649 B parsed=12904649 chunks=64
+[SANITY] rust    file=12904649 B parsed=12904649 chunks=64
+[HEADER] vanilla={'seed': -8248318472910187742, 'size': 8, 'ox': 200, 'oz': 200, 'miny': -64, 'height': 384}
+[HEADER] rust   ={'seed': -8248318472910187742, 'size': 8, 'ox': 200, 'oz': 200, 'miny': -64, 'height': 384}
+[CHUNKS] common=64 vanilla_only=0 rust_only=0
+[BLOCKS] total=6291456 match=6279591 (99.8114%) mismatch=11865
+[BIOME]  cells=16384 diff=0
+[TOP CHUNKS] (12, 13):2017, (13, 15):1678, (13, 14):1341, (14, 15):1271, (12, 14):1211, (13, 16):912, (12, 16):856, (14, 14):826, (14, 16):740, (13, 13):450
+[TOP PAIRS] vanilla_id->rust_id (name) count:
+   1060 ->     0  minecraft:deepslate                    -> minecraft:air                          6370
+   1060 ->    35  minecraft:deepslate                    -> minecraft:water                        3744
+    944 ->     0  minecraft:tuff                         -> minecraft:air                          595
+      1 ->    35  minecraft:stone                        -> minecraft:water                        380
+      2 ->    35  minecraft:granite                      -> minecraft:water                        160
+      6 ->    35  minecraft:andesite                     -> minecraft:water                        157
+    944 ->    35  minecraft:tuff                         -> minecraft:water                        87
+      4 ->    35  minecraft:diorite                      -> minecraft:water                        72
+      9 ->    35  minecraft:dirt                         -> minecraft:water                        58
+     40 ->     0  minecraft:gravel                       -> minecraft:air                          34
+     45 ->    35  minecraft:deepslate_iron_ore           -> minecraft:water                        20
+   1060 ->   336  minecraft:deepslate                    -> minecraft:glow_lichen                  18
+     43 ->  1060  minecraft:deepslate_gold_ore           -> minecraft:deepslate                    18
+   1060 ->    43  minecraft:deepslate                    -> minecraft:deepslate_gold_ore           16
+     43 ->     0  minecraft:deepslate_gold_ore           -> minecraft:air                          15

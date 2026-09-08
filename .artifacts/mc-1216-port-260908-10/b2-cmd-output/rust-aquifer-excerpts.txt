@@ -1,0 +1,289 @@
+# b2 原始摘录 — Rust aquifer vs 1.20.1 Java AquiferSampler（只读静态，无 shell）
+# 采集者：fan-out worker b2（260908-10）  载体：静态源码摘录 + 复用既有运行时 dump（.tmp/p7-aqdump-*）
+# 路径基准：E:\PYTHON\CoreSwap
+# 摘录规则：只摘与「air/water 落方块」判定相关的行；行号即文件真实行号（read 工具返回）。
+
+================================================================================
+[A] Rust 权威实现 — worldgen-core/src/aquifer.rs
+================================================================================
+
+--- A1. 常量与 FluidLevel（aquifer.rs:9-11, 226-234） ---
+9:  pub const AIR: i32 = 0;
+10: pub const WATER: i32 = 1;
+11: pub const LAVA: i32 = 2;
+226: #[derive(Clone, Copy)]
+227: pub struct FluidLevel { pub y: i32, block: i32 }
+228: impl FluidLevel {
+229:     fn default_level(block_y: i32) -> FluidLevel { if block_y < -54 { FluidLevel { y: -54, block: LAVA } } else { FluidLevel { y: 63, block: WATER } } }
+230:     fn get_block_state(&self, block_y: i32) -> i32 { if block_y >= self.y { AIR } else { self.block } }
+231: }
+
+--- A2. 单元范围 / 索引 / pack-unpack（aquifer.rs:316-338, 350-370） ---
+316:        let start_x_l = floor_div(chunk_start_x, 16) - 1;
+317:        let end_x_l = floor_div(chunk_start_x + 15, 16) + 1;
+318:        let start_y_l = floor_div(min_y, 12) - 1;
+319:        let end_y_l = floor_div(min_y + height, 12) + 1;
+320:        let start_z_l = floor_div(chunk_start_z, 16) - 1;
+321:        let end_z_l = floor_div(chunk_start_z + 15, 16) + 1;
+322-325: sx/sy/sz = end-start+1; m = sx*sy*sz
+332:            block_positions: vec![i64::MAX; m],
+333:            water_levels: vec![FluidLevel { y: i32::MAX, block: AIR }; m],
+350:    fn index(&self, x: i32, y: i32, z: i32) -> usize {
+351:        let i = x - self.start_x; let j = y - self.start_y; let k = z - self.start_z;
+352:        ((j * self.size_z + k) * self.size_x + i) as usize
+354:    fn pack(x: i32, y: i32, z: i32) -> i64 {
+355:        let l = (((x as u32 & 0x3FFFFFF) as u64) << 38)
+356:              | (((y as u32 & 0xFFF) as u64) << 26)
+357:              | ((z as u32 & 0x3FFFFFF) as u64);
+360:    fn unpack_x(l: i64) -> i32 { (l >> 38) as i32 }
+361-365: unpack_y: (l>>26)&0xFFF，bit11 置位则 | !0xFFF 符号扩展
+366-370: unpack_z: l&0x3FFFFFF，bit25 置位则 | !0x3FFFFFF 符号扩展
+
+--- A3. blob 随机位置（aquifer.rs:437-450） ---
+437:    fn get_block_pos(&mut self, x: i32, y: i32, z: i32) -> i64 {
+439:        let aa = self.index(x, y, z);
+440:        let ab = self.block_positions[aa];
+441:        if ab != i64::MAX { return ab; }
+443:        let mut random: XoroshiroRandom = self.splitter.split_xyz(x, y, z);
+444:        let rx = random.next_int_bound(10);
+445:        let ry = random.next_int_bound(9);
+446:        let rz = random.next_int_bound(10);
+447:        let nb = Self::pack(x * 16 + rx, y * 12 + ry, z * 16 + rz);
+448:        self.block_positions[aa] = nb;
+
+--- A4. apply_inner 全链（aquifer.rs:463-529） ---
+464:        if density > 0.0 { note_decision("Rock:density>0"); return -1; }
+465-467:    fluid_block = if block_y < -54 { LAVA } else { WATER }; if LAVA → return LAVA
+469-471:    l = floor_div(block_x - 5, 16); m = floor_div(block_y + 1, 12); n = floor_div(block_z - 5, 16)
+474-484:    for u 0..=1 / v -1..=1 / w 0..=1 → get_block_pos(l+u, m+v, n+w) + 三近邻排序
+481:               if o >= ag { t = s; s = r; r = ab; q = p; p = o; o = ag; }
+482:               else if p >= ag { t = s; s = ab; q = p; p = ag; }
+483:               else if q >= ag { t = ab; q = ag; }
+487-488:    let fl2 = self.get_water_level_at(r); note_blob(1, r, &fl2);
+489-492:    let d = Self::max_distance(o, p); let bs = fl2.get_block_state(block_y); if d <= 0.0 { return bs }
+493-499:    if bs == WATER {  // ←★ 唯一偏离点（见 A8）
+495:            AQDUMP_SUPPRESS.with(|s| s.set(true));
+496:            let lava_check = self.get_fluid_level(block_x, block_y - 1, block_z);
+497:            AQDUMP_SUPPRESS.with(|s| s.set(false));
+498:            if lava_check.get_block_state(block_y - 1) == LAVA { note_decision("BLOCK:1"); return bs; }
+501-507:    fl3 = get_water_level_at(s); cd_e = calculate_density(.., fl2, fl3); e = d*cd_e; if density + e > 0 → -1
+509-518:    fl4 = get_water_level_at(t); f = max_distance(o,q); if f>0 { g = d*f*cd_g; if density+g>0 → -1 }
+519-526:    g2 = max_distance(p,q); if g2>0 { h = d*g2*cd_h; if density+h>0 → -1 }
+527-528:    note_decision(BLOCK:bs); bs
+
+--- A5. calculate_density（aquifer.rs:567-589） ---
+570:        let lava_water = (bs == LAVA && bs2 == WATER) || (bs == WATER && bs2 == LAVA);
+571-573:    if !lava_water { let j = (fl.y - fl2.y).abs(); if j == 0 { return 0.0 }
+574-579:        d = 0.5*(fl.y+fl2.y); e = block_y + 0.5 - d; f = j/2.0; o = f - |e|;
+              e>0 ? (pp=o,  pp>0 ? pp/1.5 : pp/2.5) : (pp=3+o, pp>0 ? pp/3 : pp/10)
+580-585:        rr = (!(qq<-2)&&!(qq>2)) ? (md.has ? md.v : barrier.sample(pos) 并写回) : 0.0
+586:            return 2.0 * (rr + qq)
+588:        2.0
+
+--- A6. estimate_surface_height（aquifer.rs:531-565） ---
+532:        let bx = (block_x >> 2) << 2; let bz = (block_z >> 2) << 2;
+533-535:    ix = (bx>>2) - cache_cx*4 + 12; iz = (bz>>2) - cache_cz*4 + 4; in_c = ix,iz ∈ [0,32)
+536:        if in_c { let cached = self.surface_cache[ci]; if cached != i32::MIN { return cached } }
+538-547:    L2（跨 chunk EstL2）命中 → 回填本 chunk 缓存并返回
+549-556:    l = min_y + height; while l >= min_y { if initial_density.sample({bx,l,bz}) > 0.390625 { val = l; break } l -= 8 }
+557-563:    写本 chunk 缓存 + 写 L2
+（val 初值 = i32::MAX → 未命中返回 MAX，与 Java Integer.MAX_VALUE 同）
+
+--- A7. get_fluid_level / get_fluid_block_y / noise-based / block_state（aquifer.rs:604-688） ---
+605:        const OFFSETS: [[i32;2];13] = [[0,0],[-2,-1],[-1,-1],[0,-1],[1,-1],[-3,0],[-2,0],[-1,0],[1,0],[-2,1],[-1,1],[0,1],[1,1]];
+606:        let default_fl = FluidLevel::default_level(block_y);
+607-610:    i = MAX; j = block_y + 12; k = block_y - 12; bl = false
+611-627:    for off { l = block_x + off[0]*16; mm = block_z + off[1]*16; n = est(l,mm); o = n+8;
+              bl2 = off==(0,0); if bl2 && k > o { return default_fl }
+              bl3 = j > o; if bl3||bl2 { fl2 = default_level(o); if fl2.get_block_state(o) != AIR { if bl2 {bl=true} if bl3 {return fl2} } }
+              i = i.min(n) }
+628-629:    p = get_fluid_block_y(.., default_fl, i, bl); FluidLevel{ y:p, block:get_fluid_block_state(.., default_fl, p) }
+636-643:    er = erosion.sample(pos); gate = er < -0.225f32 as f64 && depth.sample(pos) > 0.9f32 as f64（短路）
+644-657:    gate → d=e=-1；else ii = est + 8 - block_y; f = bl ? lerp_clamp2(ii,0,64,1,0) : 0;
+              g = clamp(flooded.sample(pos), -1, 1); h = map2(f,1,0,-0.3,0.8); kk = map2(f,1,0,-0.8,0.4); d = g-kk; e = g-h
+658-660:    e>0 → default_fl.y；else d>0 → get_noise_based_fluid_level(..)；else -32512
+663-675:    k=floorDiv(bx,16); l=floorDiv(by,40); m=floorDiv(bz,16); n=l*40+20;
+              raw=spread.sample({k,l,m}); d=raw*10; p=round_down_to_multiple(d,3); min(est, n+p)
+677-688:    state = default_fl.block; if fluid_level <= -10 && fluid_level != -32512 && state != LAVA {
+              k=floorDiv(bx,64); l=floorDiv(by,40); m=floorDiv(bz,64); d=fluid_type.sample({k,l,m}); if |d|>0.3 { state = LAVA } }
+
+--- A8. 消费点（terrain.rs:229-241） ---
+229:    fn classify(&mut self, x: i32, y: i32, z: i32, d: f64) -> BlockKind {
+230:        if d > 0.0 { return BlockKind::Rock; }          // ← d>0 短路，不调 aq.apply（探针点集天然不齐）
+234-235:    if !self.enabled { return if y < self.sea_level { Lava } else { Air } }
+238:        if self.skip_aquifer { return BlockKind::Air; }
+241:        match self.aq.apply(x, y, z, d) { 1 => Water, 2 => Lava, -1 => Rock, _ => Air }
+
+--- A9. 装配参数（worldgen_handle.rs） ---
+306-312: barrier/flooded/spread/lava/erosion/depth/init ← router.get("barrier"/"fluid_level_floodedness"/"fluid_level_spread"/"lava"/"erosion"/"depth"/"initial_density_without_jaggedness")
+440-446: splitter = Xoro(s).split_str("minecraft:aquifer").next_splitter()
+634-637: Aquifer::new(barrier, flooded, spread, lava, erosion, depth, init, splitter, cx*16, cz*16, min_y, height)
+644-646: WG_EST_L2（env 未设 → 默认开）→ set_est_l2(handle 级 Arc)
+244:     pub const BLEND_ACTIVE: bool = false;   // L2 的 blend 闸门
+
+--- A10. 1.21.6 Rust 侧未改动的版本薄壳（无 aquifer 覆盖） ---
+（versions/1.21.6/rust/ 薄壳只做 cdylib 导出；aquifer 逻辑全部来自 worldgen-core = 1.20.1 移植体）
+
+================================================================================
+[B] Java 1.20.1 权威 — versions/1.20.1/data/mc_src_extract/net/minecraft/world/gen/chunk/AquiferSampler.java
+================================================================================
+
+--- B1. FluidLevel（61-63） ---
+61:        public BlockState getBlockState(int y) {
+62:            return y < this.y ? this.state : Blocks.AIR.getDefaultState();
+63:        }
+
+--- B2. 构造/索引（120-133, 136-141） ---
+120:        this.startX = this.getLocalX(chunkPos.getStartX()) - 1;
+122-123:    int i = getLocalX(getEndX()) + 1; sizeX = i - startX + 1;
+124-126:    startY = getLocalY(minimumY) - 1; j = getLocalY(minimumY + height) + 1; k = j - startY + 1;
+127-129:    startZ = getLocalZ(getStartZ()) - 1; l = getLocalZ(getEndZ()) + 1; sizeZ = l - startZ + 1;
+131-133:    waterLevels = new FluidLevel[m]; blockPositions = new long[m]; Arrays.fill(blockPositions, Long.MAX_VALUE);
+136-141:    index = (j*sizeZ + k)*sizeX + i
+
+--- B3. apply 关键分支（149-251） ---
+149-151:    if (density > 0.0) { needsFluidTick = false; return null; }
+153-156:    FluidLevel fluidLevel = this.fluidLevelSampler.getFluidLevel(i, j, k);
+              if (fluidLevel.getBlockState(j).isOf(Blocks.LAVA)) { needsFluidTick=false; return Blocks.LAVA.getDefaultState(); }
+158-160:    l = Math.floorDiv(i-5,16); m = Math.floorDiv(j+1,12); n = Math.floorDiv(k-5,16);
+168-207:    12 格遍历 + blob 位置（180-181: randomDeriver.split(x,y,z) → x*16+nextInt(10), y*12+nextInt(9), z*16+nextInt(10)）
+189-204:    三近邻排序（o>=ag / p>=ag / q>=ag）
+209-214:    FluidLevel fluidLevel2 = getWaterLevel(r); double d = maxDistance(o,p);
+              BlockState blockState = fluidLevel2.getBlockState(j); if (d <= 0.0) { ... return blockState; }
+215-217:    } else if (blockState.isOf(Blocks.WATER)
+                  && this.fluidLevelSampler.getFluidLevel(i, j - 1, k).getBlockState(j - 1).isOf(Blocks.LAVA)) {   // ←★ 偏离对照点
+                needsFluidTick = true; return blockState;
+220-224:    fluidLevel3 = getWaterLevel(s); e = d*calculateDensity(pos, md, fluidLevel2, fluidLevel3); if (density+e>0) return null;
+226-234:    fluidLevel4 = getWaterLevel(t); f = maxDistance(o,q); if (f>0) { g = d*f*calculateDensity(pos,md,fluidLevel2,fluidLevel4); if (density+g>0) return null; }
+236-243:    g = maxDistance(p,q); if (g>0) { h = d*g*calculateDensity(pos,md,fluidLevel3,fluidLevel4); if (density+h>0) return null; }
+245-246:    needsFluidTick = true; return blockState;
+
+--- B4. calculateDensity（263-321） ---
+269:        if ((!blockState.isOf(LAVA) || !blockState2.isOf(WATER)) && (!blockState.isOf(WATER) || !blockState2.isOf(LAVA))) {
+270-273:        int j = Math.abs(fluidLevel.y - fluidLevel2.y); if (j == 0) return 0.0;
+274-283:        d = 0.5*(y1+y2); e = i+0.5-d; f = j/2.0; o = f - |e|;
+285-299:        e>0 → p=o; p>0 ? p/1.5 : p/2.5 ；else p=3+o; p>0 ? p/3 : p/10
+303-314:        if (!(q<-2)&&!(q>2)) { s = md.getValue(); if (Double.isNaN(s)) { t = barrierNoise.sample(pos); md.setValue(t); r=t } else r=s } else r=0
+316:            return 2.0*(r+q)
+
+--- B5. getWaterLevel / getFluidLevel（335-389） ---
+343-349:    waterLevels[o] 非 null 直接返回；否则 getFluidLevel(i,j,k) 并写回
+354:        FluidLevel fluidLevel = this.fluidLevelSampler.getFluidLevel(blockX, blockY, blockZ);
+360-384:    for (CHUNK_POS_OFFSETS) { l = blockX + is[0]*16; m = blockZ + is[1]*16; n = estimateSurfaceHeight(l,m); o = n+8;
+              bl2 = (is[0]==0 && is[1]==0); if (bl2 && k > o) return fluidLevel;
+              bl3 = j > o; if (bl3||bl2) { fl2 = fluidLevelSampler.getFluidLevel(l,o,m); if (!fl2.getBlockState(o).isAir()) { if (bl2) bl=true; if (bl3) return fl2 } }
+              i = Math.min(i, n) }
+387-388:    p = getFluidBlockY(..); return new FluidLevel(p, getFluidBlockState(..))
+
+--- B6. getFluidBlockY（391-419） ---
+395:        if (VanillaBiomeParameters.method_43718(erosionDensityFunction, depthDensityFunction, unblendedNoisePos)) { d=-1; e=-1 }
+399-406:    i = surfaceHeightEstimate + 8 - blockY; f = bl ? clampedMap(i,0,64,1,0) : 0;
+              g = clamp(floodedness.sample(pos), -1, 1); h = map(f,1,0,-0.3,0.8); k = map(f,1,0,-0.8,0.4); d = g-k; e = g-h;
+410-416:    e>0 → defaultFluidLevel.y; else d>0 → getNoiseBasedFluidLevel(..); else DimensionType.field_35479
+
+--- B7. getNoiseBasedFluidLevel（421-433） ---
+424-427:    k = floorDiv(blockX,16); l = floorDiv(blockY,40); m = floorDiv(blockZ,16); n = l*40 + 20;
+429-432:    d = spreadNoise.sample({k,l,m}) * 10.0; p = roundDownToMultiple(d,3); q = n + p; return Math.min(surfaceHeightEstimate, q);
+
+--- B8. getFluidBlockState（435-450） ---
+437:        if (fluidLevel <= -10 && fluidLevel != DimensionType.field_35479 && defaultFluidLevel.state != Blocks.LAVA.getDefaultState()) {
+443-445:    d = fluidTypeNoise.sample({floorDiv(bx,64), floorDiv(by,40), floorDiv(bz,64)}); if (Math.abs(d) > 0.3) blockState = LAVA;
+
+--- B9. 权威外部输入（1.20.1） ---
+NoiseChunkGenerator.java:78-84   createFluidLevelSampler:
+79:  FluidLevel lava = new FluidLevel(-54, LAVA);
+81:  FluidLevel water = new FluidLevel(settings.seaLevel(), settings.defaultFluid());   // overworld 63 / water
+83:  return (x,y,z) -> y < Math.min(-54, i) ? lava : water;                            // i = seaLevel = 63 → 阈值 -54
+ChunkNoiseSampler.java:222-226   estimateSurfaceHeight: BiomeCoords 量化 + surfaceHeightEstimateCache（per-chunk Long2IntMap）
+ChunkNoiseSampler.java:228-240   calculateSurfaceHeightEstimate:
+231:  k = generationShapeConfig.minimumY();
+233:  for (l = k + height; l >= k; l -= verticalCellBlockCount) if (initialDensityWithoutJaggedness.sample(UnblendedNoisePos(i,l,j)) > 0.390625) return l;
+239:  return Integer.MAX_VALUE;
+ChunkNoiseSampler.java:187       initialDensityWithoutJaggedness = noiseRouter2.initialDensityWithoutJaggedness()
+ChunkNoiseSampler.java:158-173   aquifer = AquiferSampler.aquifer(this, chunkPos, noiseRouter2, noiseConfig.getAquiferRandomDeriver(), minY, height, fluidLevelSampler)
+ChunkNoiseSampler.java:181       blockStateSampler = pos -> aquiferSampler.apply(pos, densityFunction.sample(pos))   // 每块都调
+VanillaBiomeParameters.java:1206-1208  method_43718 = erosion.sample(pos) < -0.225F && depth.sample(pos) > 0.9F
+NoiseConfig.java:54              aquiferRandomDeriver = randomDeriver.split(new Identifier("aquifer")).nextSplitter()
+Xoroshiro128PlusPlusRandom.java:42-44   nextSplitter() = new Splitter(impl.next(), impl.next())
+Xoroshiro128PlusPlusRandom.java:129-134 split(int,int,int) = new Xoroshiro128PlusPlusRandom(hashCode(x,y,z) ^ seedLo, seedHi)
+Xoroshiro128PlusPlusRandom.java:136-140 split(String) = createXoroshiroSeed(s).split(seedLo, seedHi)
+GenerationShapeConfig.java:54-58 trimHeight（满高 chunk 恒等）
+GenerationShapeConfig.java:46-48 verticalCellBlockCount = 4*verticalSize = 8
+DimensionType.java:45-47        MIN_HEIGHT = MAX_COLUMN_HEIGHT - MAX_HEIGHT + 1; field_35479 = MIN_HEIGHT << 4 (= -32512)
+
+================================================================================
+[C] 1.21.6 Java 参考 — versions/1.21.6/data/mc_src_extract/.../AquiferSampler.java
+================================================================================
+
+--- C1. 与 1.20.1 的唯一结构差异：top-4 而非 top-3（154-211） ---
+154-161:    int o,p,q,r = MAX; long s,t,u,v = 0L;         // 1.20.1: int o,p,q; long r,s,t（3 槽）
+184-208:    排序维护 4 槽（o>=ai 时 v=u;u=t;t=s;s=ae;...；else if r>=ai { v=ae; r=ai }）
+213:        FluidLevel fluidLevel2 = getWaterLevel(s);   // = 1.20.1 的 r（最近）
+216-224:    if (d <= 0.0) { if (d >= THRESHOLD) { FluidLevel fl3 = getWaterLevel(t); needsFluidTick = !fluidLevel2.equals(fl3); } ... return blockState; }
+230-231:    FluidLevel fluidLevel4 = getWaterLevel(t);  e = d*calculateDensity(pos, md, fluidLevel2, fluidLevel4);   // = 1.20.1 fl3
+236-239:    FluidLevel fluidLevel5 = getWaterLevel(u);  f = maxDistance(o,q); if (f>0) g = d*f*calculateDensity(.., fluidLevel2, fluidLevel5);  // = 1.20.1 fl4
+246-248:    g = maxDistance(p,q); if (g>0) h = d*g*calculateDensity(.., fluidLevel4, fluidLevel5);
+255-264:    仅 needsFluidTick 逻辑使用第 4 槽（r/v）与 equals 比较
+→ 方块状态判定（blockState / d<=0 / water-over-lava / e,g,h 三连 / 返回）与 1.20.1 逐行同构；
+   第 4 槽只喂 needsFluidTick（流体 tick 调度，不落方块）。
+225:        } else if (blockState.isOf(Blocks.WATER) && this.fluidLevelSampler.getFluidLevel(i, j - 1, k).getBlockState(j - 1).isOf(Blocks.LAVA)) {
+            // ← 1.21.6 同样用 fluidLevelSampler（默认液面），与 1.20.1 一致；Rust 用全链 = 偏离
+415:        if (VanillaBiomeParameters.inDeepDarkParameters(...))    // 1.20.1 method_43718 改名
+VanillaBiomeParameters.java:1206-1208（1.21.6）  inDeepDarkParameters = 同一字面量 -0.225F / 0.9F
+ChunkNoiseSampler.java:107（1.21.6）  generationShapeConfig().trimHeight(chunk)（与 1.20.1:108 同）
+ChunkNoiseSampler.java:221-239（1.21.6）  estimateSurfaceHeight / calculateSurfaceHeightEstimate 与 1.20.1 逐行同
+NoiseChunkGenerator.java:76-82（1.21.6）  createFluidLevelSampler 与 1.20.1:78-84 逐行同
+GenerationShapeConfig.java:54-58（1.21.6）  trimHeight 同（仅 getTopYInclusive()+1 vs getTopY()）
+
+================================================================================
+[D] est 纯净性证据（L2 跨 chunk 缓存是否安全的判定依据）
+================================================================================
+ChunkNoiseSampler.java:796-800（1.21.6） DensityInterpolator.sample:
+797:  public double sample(DensityFunction.NoisePos pos) {
+798:      if (pos != ChunkNoiseSampler.this) { return this.delegate.sample(pos); }   // est 传 UnblendedNoisePos → 走原始 DF
+800:      else if (!isInInterpolationLoop) throw ...
+DensityFunctions.java:690-705（1.21.6） applySlides = yClampedGradient + lerp（纯，无 interpolated 包装）
+DensityFunctions.java:446（1.21.6） createInitialDensityFunction(cache2d(factor), depth)；cache2d 键 = (x,z)，delegate 为 2D 纯函数
+GenerationShapeConfig.java:54-58 trimHeight 对满高 chunk（bottomY=-64/topY=320）恒等 → est 与 chunk 无关
+→ est = f(x,z) 纯函数；Rust per-chunk surface_cache 与跨 chunk EstL2 值同 Java。
+
+================================================================================
+[E] 既有运行时 dump（复用，不新采集；Partial 口径）
+================================================================================
+E1. 文件
+  .tmp/p7-aqdump-260908-10/points.txt                 点集（3 簇列 + 对照列 (8,8)，y=-34..6，共 164 点）
+  .tmp/p7-aqdump-260908-10/java-vanilla-aqdump.txt    V 臂 Java 探针输出（164 行）
+  .tmp/p7-aqdump-rust-260908-10.log                   R 臂 WG_AQDUMP 输出（含 68 行 AQDUMP x=）
+  .tmp/p7-aqdump-compare-260908-10.txt                对比汇总（.tmp/p7_aqdump_cmp_260908-10.py）
+E2. 汇总（逐字）
+  [COUNT] java_vanilla=164 rust=68 common=68 java_only=96 rust_only=0
+  (222, -9, 238)      2.207985 ->    -0.004746  delta=-2.212731 flip=True  null/BLOCK:0
+  (222, -4, 238)      1.762896 ->    -0.009474  delta=-1.772370 flip=True  null/BLOCK:1
+  (223, -6, 238)      1.596222 ->    -0.015647  delta=-1.611869 flip=True  null/null:density+h>0
+  [SIGN FLIPS] 68 / 68 common points
+  [SAME-SIGN LARGE DELTA >0.05] 0
+E3. Java 侧 164 点 density 全部 > 0（0.003965 .. 2.215056）→ decision=null（stone），内部字段全 na
+    （探针 wgBuildLine 在 density > 0 时早退打 na，见 F1）；Rust 侧 68 点 density ≤ 0 → 全链跑完。
+E4. 代表性 Rust 链（.tmp/p7-aqdump-rust-260908-10.log:955-1002）
+  x=223 y=2 z=237 density=-0.001150 ... fl2=(63,1) opq=(41,90,114) r=(227,5,241|63,1) d=-0.960000 decision=BLOCK:1
+  x=223 y=-7 z=237 density=-0.014464 ... est=32 bl=1 f=0.234375 fl2=(-23,1) fl3=(-23,1) fl4=(-20,1) decision=BLOCK:0
+  x=222 y=-5 z=238 density=-0.010062 ... fl2=(63,1) fl3=(-23,1) cdE=14.333333 e=11.466667 decision=null:density+e>0
+  x=222 y=-25 z=238 density=-0.018750 ... fl2=(-23,1) d=-0.640000 decision=BLOCK:1
+E5. P7 残差签名（.tmp/p7-cluster-result-260908-10.txt）
+  band y=-48..-33: deepslate→water 132, deepslate→air 20
+  band y=-32..-17: deepslate→air 2176, deepslate→water 618, tuff→air 112
+  band y=-16..-1:  deepslate→air 4171, deepslate→water 1763, tuff→air 482
+  band y=0..15:    deepslate→water 1231, stone→water 379, andesite→water 155
+  （单向签名：vanilla 实心 → Rust air/water；无成规模的 air→stone 反向）
+
+================================================================================
+[F] 探针自身缺陷（影响字段级对拍的判读，非产品 bug）
+================================================================================
+F1. runtime/1.20.1/java/.../mixin/AquiferDumpProbeMixin.java:109-115 —— density > 0 早退打全 na
+F2. runtime/1.20.1/java/.../mixin/AquiferDumpProbeMixin.java:302（1.21.6 同款 :302）
+       return Math.min(surfaceHeightEstimate, prnd);          // ★ 漏 + base
+    对照 AquiferSampler.java:427/431-432（1.20.1）与 :447/451-452（1.21.6）：
+       int n = l * 40 + 20;  int q = n + p;  return Math.min(surfaceHeightEstimate, q);
+    → 探针复算的 noise-based 液面偏 `spreadBase`（= l*40+20）；凡走该路径的 fl* 字段整体偏移。
+    Rust aquifer.rs:663-675 正确（n + p），即此偏差是探针 bug 而非 Rust 偏离。
+F3. Rust 侧 terrain.rs:230（d>0 不调 apply）→ WG_AQDUMP 点集只覆盖 d≤0，两臂点集天然不对齐。

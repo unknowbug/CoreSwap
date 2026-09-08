@@ -1,0 +1,4 @@
+[17:44:37] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[17:44:50] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] biomes=5
+[17:44:50] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] biome_params_nether.json -> E:\PYTHON\CoreSwap\versions\1.21.6\data\biome_params_nether.json
+[17:44:50] [Server thread/INFO] (Minecraft) [STDOUT]: [BiomeParamProbe] DONE, stopping server

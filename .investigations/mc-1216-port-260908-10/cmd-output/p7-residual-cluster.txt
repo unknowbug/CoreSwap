@@ -1,0 +1,35 @@
+[CHUNKS WITH DIFF] 27: [((12, 13), 2017), ((13, 15), 1678), ((13, 14), 1341), ((14, 15), 1271), ((12, 14), 1211), ((13, 16), 912), ((12, 16), 856), ((14, 14), 826), ((14, 16), 740), ((13, 13), 450), ((12, 17), 239), ((12, 15), 158), ((13, 17), 86), ((12, 12), 30), ((14, 13), 13), ((19, 18), 12), ((19, 17), 4), ((15, 16), 3), ((15, 17), 3), ((16, 13), 3), ((17, 15), 3), ((15, 13), 2), ((17, 14), 2), ((18, 12), 2), ((13, 12), 1), ((16, 19), 1), ((19, 16), 1)]
+[Y HISTOGRAM top 25]
+  y=   -8  701
+  y=   -7  680
+  y=   -6  637
+  y=    0  604
+  y=   -9  543
+  y=   -5  526
+  y=    1  516
+  y=   -1  510
+  y=  -10  456
+  y=  -20  443
+  y=  -19  430
+  y=   -4  429
+  y=   -2  422
+  y=  -18  400
+  y=  -11  382
+  y=  -21  380
+  y=   -3  378
+  y=    2  350
+  y=  -17  326
+  y=  -12  268
+  y=  -16  253
+  y=  -22  252
+  y=    3  211
+  y=  -13  185
+  y=  -15  166
+[Y BANDS]
+  band y=  -64..  -49  total=     1  minecraft:air->minecraft:glow_lichen:1
+  band y=  -48..  -33  total=   164  minecraft:deepslate->minecraft:water:132, minecraft:deepslate->minecraft:air:20, minecraft:deepslate_gold_ore->minecraft:deepslate:4
+  band y=  -32..  -17  total=  2998  minecraft:deepslate->minecraft:air:2176, minecraft:deepslate->minecraft:water:618, minecraft:tuff->minecraft:air:112
+  band y=  -16..   -1  total=  6623  minecraft:deepslate->minecraft:air:4171, minecraft:deepslate->minecraft:water:1763, minecraft:tuff->minecraft:air:482
+  band y=    0..   15  total=  2047  minecraft:deepslate->minecraft:water:1231, minecraft:stone->minecraft:water:379, minecraft:andesite->minecraft:water:155
+  band y=   16..   31  total=     4  minecraft:glow_lichen->minecraft:water:2, minecraft:water->minecraft:glow_lichen:1, minecraft:stone->minecraft:water:1
+  band y=   48..   63  total=    28  minecraft:tall_seagrass->minecraft:water:8, minecraft:seagrass->minecraft:water:6, minecraft:water->minecraft:dirt:3

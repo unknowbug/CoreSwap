@@ -491,7 +491,8 @@ impl WorldgenHandle {
     }
 
     // 设置指定 chunk 的 Beardifier（StructureWeightSampler）输入。
-    // pieces 每 8 int：{minX,minY,minZ,maxX,maxY,maxZ,terrain(0-3),groundLevelDelta}
+    // pieces 每 8 int：{minX,minY,minZ,maxX,maxY,maxZ,terrain(0-4),groundLevelDelta}
+    // （terrain 序数 = Java StructureTerrainAdaptation ordinal；1.21.6 起 4=ENCAPSULATE）
     // junctions 每 3 int：{sourceX,sourceGroundY,sourceZ}
     pub fn set_beardifier(&self, chunk_x: i32, chunk_z: i32,
                           pieces: &[i32], junctions: &[i32]) {
@@ -504,6 +505,7 @@ impl WorldgenHandle {
                 terrain: match p[6] { 1 => crate::beardifier::TerrainAdaptation::Bury,
                                        2 => crate::beardifier::TerrainAdaptation::BeardThin,
                                        3 => crate::beardifier::TerrainAdaptation::BeardBox,
+                                       4 => crate::beardifier::TerrainAdaptation::Encapsulate, // 1.21.6 ENCAPSULATE（trial_chambers 唯一使用者）
                                        _ => crate::beardifier::TerrainAdaptation::None },
                 ground_level_delta: p[7],
             });

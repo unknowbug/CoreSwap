@@ -225,4 +225,27 @@ mod tests {
         // 合成名与显式名互不干扰
         assert_eq!(reg.id("testmod:other"), 0); // 未注册 → AIR
     }
+
+    // 260908-10 P2b：1.21.6 探针运行时 dump 的 blocks.json 金标
+    // （data/ 不入库 → 缺失时显式 [SKIP]，不伪装通过）。
+    // 实测口径（260908-10 探针首跑）：1105 条 / max raw id 1104（1.20.1 = 1003 / 1002）。
+    #[test]
+    fn real_1216_blocks_json_loads() {
+        let p = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../versions/1.21.6/data/blocks.json");
+        if !p.exists() {
+            eprintln!("[SKIP] 1.21.6 blocks.json absent: {}", p.display());
+            return;
+        }
+        let txt = std::fs::read_to_string(&p).expect("read 1.21.6 blocks.json");
+        let reg = BlockRegistry::load_from_json(&txt).expect("parse 1.21.6 blocks.json");
+        assert_eq!(reg.id("minecraft:air"), 0);
+        // 1.21.x 新增（pale_garden 族）
+        assert!(reg.contains("minecraft:pale_oak_log"), "pale_oak_log missing");
+        assert!(reg.contains("minecraft:creaking_heart"), "creaking_heart missing");
+        // 1.21.x 改名：grass → short_grass（旧名不再存在）
+        assert!(reg.contains("minecraft:short_grass"), "short_grass missing");
+        assert_eq!(reg.id("minecraft:grass"), AIR, "removed name must miss");
+        // max raw id 1104 → 动态注册从 1105 起（隐式钉住注册表规模）
+        assert_eq!(reg.register("test:probe_next_id_probe"), 1105);
+    }
 }
