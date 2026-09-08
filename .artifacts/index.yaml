@@ -1116,7 +1116,7 @@ entries:
   - id: 'swe:mc-1216-port:p6-b3-closeout-260908-14'
     path: 'mc-1216-port-260908-14/p6-b3-closeout-260908-14.md'
     kind: decision
-    status: candidate  # 用户批准「按 §15.4 取代记录关账（不跑运行时探针）」后产出；confirmed 待用户标注
+    status: confirmed  # 用户「授权确认」260908-14（P6/B3 按 §15.4 取代记录关账 confirmed；judge PASS-with-conditions 条件已应用）；用户批准「按 §15.4 取代记录关账（不跑运行时探针）」后产出
     # B3 精确定义：1.21.6 ChunkStatus.SPAWN 邻居依赖 0→ring-1@BIOMES（SPAWN.dependsOn(BIOMES,1)）的调度层依赖 barrier；
     # 1.20.1 一手 ChunkStatus.java:182-188 taskMargin=0；首次取证 w2-chunk-pipeline.md:30/51/64 + port-list-260908-08.md:15。
     # B3 ⊆ P5 覆盖面（p5-verdict-260908-13 confirmed）；Rust 零消费点（P5 grep + spawn 全量 grep）；双臂同走 vanilla Java 调度 → 探针无观测对象。
