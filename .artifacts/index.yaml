@@ -1011,7 +1011,7 @@ entries:
   - id: 're-code:mod-compat:client-takeover-ingest-verdict-260908-04'
     path: '../.investigations/mod-compat-260908-02/voxy-debug-260908-03.md'
     kind: investigation
-    status: candidate  # judge PASS-with-conditions 0c2bcfe+条件提交；confirmed 留用户
+    status: confirmed  # 用户授权确认 260908-05（judge PASS-with-conditions 条件已应用 4e38537；确认范围 = 待办①字段值核对级实锤 + ②分支关闭 + 事件6 Voxy shutdown 归因；行为面臂与上游对照未判别面保持声明）
     # 内容：① integrated server 形态接管激活 = 字段值核对级实锤（[CppBridge] init/initNether/initEnd
     #       enabled=true stageMask=3 + BLOCKS-REG + BenchMod replace mode；行为面对比属待办③暂缓）；
     #       ② Voxy Ingest AIOOBE idx 126/len 64「CoreSwap 引发」分支关闭（R1 vanilla/R5 Rust 异常逐字同，
