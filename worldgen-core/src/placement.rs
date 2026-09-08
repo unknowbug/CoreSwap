@@ -306,6 +306,25 @@ pub fn treediag_enabled() -> bool {
     *ENABLED.get_or_init(|| std::env::var("WG_TREEDIAG").is_ok())
 }
 
+/// batchB（mc-1216）§一.0：Heightmap.Types 7 常量 → 引擎两桶显式映射（落桶表 + 等价性声明见
+/// .investigations/mc-1216-features-takeover/batchB-worker-delivery.md §一.0.3）。
+/// OCEAN_FLOOR_WG / OCEAN_FLOOR → ocean_floor；WORLD_SURFACE_WG / WORLD_SURFACE /
+/// MOTION_BLOCKING / MOTION_BLOCKING_NO_LEAVES → world_surface（特征时点 MOTION_BLOCKING(NO_LEAVES)
+/// 与 WORLD_SURFACE 逐列同值：树叶/植被/雪片差集在引擎方块分类下为空）。
+/// 未知 type：显式告警 + mod: 前缀哨兵（batch0 风格），兜底 world_surface 不静默。
+fn heightmap_bucket<'a>(heightmap_type: &str, ctx: &'a FeaturePlacementContext) -> Option<&'a [i32]> {
+    let t = heightmap_type.to_ascii_uppercase();
+    if t.contains("OCEAN_FLOOR") {
+        ctx.ocean_floor
+    } else if t.contains("WORLD_SURFACE") || t.contains("MOTION_BLOCKING") {
+        ctx.world_surface
+    } else {
+        eprintln!("[placement] unknown heightmap type: {heightmap_type} (fallback world_surface)");
+        crate::feature_loader::record_unknown_type(&format!("mod:heightmap:{heightmap_type}"));
+        ctx.world_surface
+    }
+}
+
 impl PlacementModifier {
     pub fn get_positions(&self, ctx: &FeaturePlacementContext, random: &mut ChunkRandom,
                          x: i32, y: i32, z: i32) -> Vec<[i32; 3]> {
@@ -329,7 +348,8 @@ impl PlacementModifier {
                 vec![[x, ny, z]]
             }
             PlacementModifier::Heightmap(heightmap_type) => {
-                let hm = if heightmap_type.contains("OCEAN_FLOOR") { ctx.ocean_floor } else { ctx.world_surface };
+                // batchB（mc-1216）：二分支 contains → heightmap_bucket 显式 match + 未知告警（§一.0）
+                let hm = heightmap_bucket(heightmap_type, ctx);
                 let hm = match hm { Some(h) => h, None => return vec![[x, y, z]] };
                 let lx = x - ctx.chunk_start_x;
                 let lz = z - ctx.chunk_start_z;
@@ -387,7 +407,8 @@ impl PlacementModifier {
                 if predicate.test(ctx, x, y, z) { vec![[x, y, z]] } else { vec![] }
             }
             PlacementModifier::SurfaceRelativeThreshold { heightmap_type, has_min, has_max, min_inclusive, max_inclusive } => {
-                let hm = if heightmap_type.contains("OCEAN_FLOOR") { ctx.ocean_floor } else { ctx.world_surface };
+                // batchB（mc-1216）：同 P1 显式 match + 未知告警（§一.0）
+                let hm = heightmap_bucket(heightmap_type, ctx);
                 let hm = match hm { Some(h) => h, None => return vec![[x, y, z]] };
                 let lx = x - ctx.chunk_start_x;
                 let lz = z - ctx.chunk_start_z;

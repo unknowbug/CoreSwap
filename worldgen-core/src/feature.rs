@@ -918,6 +918,175 @@ fn lava_pool_stone_cannot_replace(blocks: &BlockRegistry) -> Vec<i32> {
     ids
 }
 
+// ===== batchB（mc-1216）：kelp / seagrass / sea_pickle =====
+// 一手源：versions/1.20.1 + versions/1.21.6 双版 mc_src_extract（两版逐行一致，批次 B §一.1 版本核对）
+// 对拍表 + RNG 消费序声明：.investigations/mc-1216-features-takeover/batchB-worker-delivery.md §一
+// 已知限制（本族）：state=i32 无属性位（KELP.AGE / TALL_SEAGRASS.HALF / SEA_PICKLE.PICKLES 不可表达，
+// 对应 RNG 消费全部保留）；isSideSolidFullSquare/碰撞形状 → tree::is_solid_id 近似；
+// 方块实体/流体 tick no-op（同 batchA 全族声明）。
+
+/// 特征级 getTopY(Heightmap.Type.OCEAN_FLOOR, x, z)。chunk 内 = ocean_floor 桶 +1（引擎口径）；
+/// 邻域列 → block_at 逐列下扫近似（skip {air,water,lava}）；不可读 → None（调用点「跳过但保 RNG 流」，idk-2）。
+fn get_top_y_ocean_floor(ctx: &OreFeatureContext, wx: i32, wz: i32) -> Option<i32> {
+    let air = crate::blocks::AIR;
+    let water = ctx.blocks.id("minecraft:water");
+    let lava = ctx.blocks.id("minecraft:lava");
+    let lx = wx - ctx.chunk_start_x;
+    let lz = wz - ctx.chunk_start_z;
+    if lx >= 0 && lx < 16 && lz >= 0 && lz < 16 {
+        let hm = ctx.ocean_floor?;
+        let top = hm[(lz * 16 + lx) as usize];
+        return Some(top + 1); // ChunkRegion.getTopY = sampleHeightmap + 1（placement.rs 同源）
+    }
+    // 邻域：自顶下扫首个非 {air,water,lava}（≈SUFFOCATES），返回其上一位
+    let mut y = ctx.min_y + ctx.height - 1;
+    while y >= ctx.min_y {
+        let b = ctx.block_at(wx, y, wz);
+        if b < 0 { return None; }
+        if b != air && b != water && b != lava { return Some(y + 1); }
+        y -= 1;
+    }
+    None
+}
+
+/// kelp 族 canPlaceAt（AbstractPlantPartBlock.java:38-43 + KelpBlock.canAttachTo = !magma）。
+/// 不可读（<0）→ false 保守拒绝。
+fn kelp_can_place_at(ctx: &OreFeatureContext, x: i32, y: i32, z: i32,
+                     kelp: i32, kelp_plant: i32, magma: i32) -> bool {
+    let below = ctx.block_at(x, y - 1, z);
+    if below < 0 || below == magma { return false; }
+    below == kelp || below == kelp_plant || crate::tree::is_solid_id(ctx, below)
+}
+
+// ===== minecraft:kelp（KelpFeature.java，DefaultFeatureConfig 空配置）=====
+pub struct KelpFeature;
+impl KelpFeature {
+    /// RNG 消费序（§一.1）：首格非水 0 消费 false → nextInt(10) → 循环门 0 消费；
+    /// l==k 放置 nextInt(4)（AGE，属性丢弃消费保留）；l>0 断点命中 nextInt(4) 后恒 break。
+    pub fn generate(ctx: &mut OreFeatureContext, random: &mut ChunkRandom, x: i32, _y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let water = blocks.id("minecraft:water");
+        let kelp = blocks.id("minecraft:kelp");
+        let kelp_plant = blocks.id("minecraft:kelp_plant");
+        let magma = blocks.id("minecraft:magma_block");
+        let Some(mut py) = get_top_y_ocean_floor(ctx, x, z) else { return false; };
+        if ctx.block_at(x, py, z) != water { return false; }                      // :27
+        let k = 1 + random.next_int_bound(10);                                    // :30
+        let mut placed = false;
+        for l in 0..=k {                                                          // :32（含端点）
+            if ctx.block_at(x, py, z) == water
+                && ctx.block_at(x, py + 1, z) == water
+                && kelp_can_place_at(ctx, x, py, z, kelp, kelp_plant, magma) {    // :33-35
+                if l == k {
+                    let _age = random.next_int_bound(4);                          // :37 AGE=nextInt(4)+20（丢弃）
+                    ctx.set_block(x, py, z, kelp);
+                    placed = true;
+                } else {
+                    ctx.set_block(x, py, z, kelp_plant);                          // :40
+                }
+            } else if l > 0 {
+                let by = py - 1;                                                  // :43 down()
+                if kelp_can_place_at(ctx, x, by, z, kelp, kelp_plant, magma)      // :44
+                    && ctx.block_at(x, by - 1, z) != kelp {                       // :44 下下格非 KELP
+                    let _age = random.next_int_bound(4);                          // :45
+                    ctx.set_block(x, by, z, kelp);
+                    placed = true;
+                }
+                break;                                                            // :48 恒 break
+            }
+            py += 1;                                                              // :51（break 分支不达）
+        }
+        placed                                                                    // :55 i > 0
+    }
+}
+
+// ===== minecraft:seagrass（SeagrassFeature.java + ProbabilityConfig）=====
+#[derive(Clone)]
+pub struct SeagrassConfig {
+    pub probability: f32,
+}
+impl SeagrassConfig {
+    /// ProbabilityConfig.java:8-16：probability 单字段。E-1：无 provider 字段。
+    pub fn parse(cfg: Option<&JsonValue>, _blocks: &BlockRegistry) -> Option<SeagrassConfig> {
+        let p = cfg?.get("probability")?.as_f64()?;
+        Some(SeagrassConfig { probability: p as f32 })
+    }
+}
+pub struct SeagrassFeature;
+impl SeagrassFeature {
+    /// RNG 消费序（§一.2）：nextInt(8)×4 → 水（0）→ nextDouble（仅水时）→ 0。
+    /// 双高海草 HALF 属性位丢失：两格均放 tall_seagrass 裸 id。
+    pub fn generate(ctx: &mut OreFeatureContext, config: &SeagrassConfig,
+                    random: &mut ChunkRandom, x: i32, _y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let water = blocks.id("minecraft:water");
+        let seagrass = blocks.id("minecraft:seagrass");
+        let tall_seagrass = blocks.id("minecraft:tall_seagrass");
+        let magma = blocks.id("minecraft:magma_block");
+        let i = random.next_int_bound(8) - random.next_int_bound(8);              // :28
+        let j = random.next_int_bound(8) - random.next_int_bound(8);              // :29
+        let (px, pz) = (x + i, z + j);
+        let Some(py) = get_top_y_ocean_floor(ctx, px, pz) else { return false; }; // :30
+        if ctx.block_at(px, py, pz) != water { return false; }                    // :32
+        let tall = random.next_double() < config.probability as f64;              // :33
+        // SeagrassBlock.canPlantOnTop：isSideSolidFullSquare(UP) ∧ !magma
+        let below = ctx.block_at(px, py - 1, pz);
+        if !(below >= 0 && below != magma && crate::tree::is_solid_id(ctx, below)) {
+            return false;                                                         // :35
+        }
+        if tall {                                                                 // :36-42
+            if ctx.block_at(px, py + 1, pz) == water {                            // :39 上半水检
+                ctx.set_block(px, py, pz, tall_seagrass);                         // :40 HALF=lower（丢弃）
+                ctx.set_block(px, py + 1, pz, tall_seagrass);                     // :41 HALF=upper（丢失）
+            }
+            // 上半非水：两格都不放，但 bl 已置位（Java :47 位置在 canPlaceAt 后）
+        } else {
+            ctx.set_block(px, py, pz, seagrass);                                  // :44
+        }
+        true                                                                      // :47/:51
+    }
+}
+
+// ===== minecraft:sea_pickle（SeaPickleFeature.java + CountConfig=IntProvider）=====
+#[derive(Clone)]
+pub struct SeaPickleConfig {
+    pub count: crate::placement::IntProvider,
+}
+impl SeaPickleConfig {
+    /// CountConfig.java:9-25：count = IntProvider（validating 0..=256）。E-1：非「1..25 非 IntProvider」。
+    pub fn parse(cfg: Option<&JsonValue>, _blocks: &BlockRegistry) -> Option<SeaPickleConfig> {
+        let c = cfg?.get("count")?;
+        Some(SeaPickleConfig { count: crate::placement::IntProvider::parse(Some(c)) })
+    }
+}
+pub struct SeaPickleFeature;
+impl SeaPickleFeature {
+    /// RNG 消费序（§一.3）：count.get 一次 → 每轮恒 nextInt(8)×2 → nextInt(4)（PICKLES，
+    /// 水门之前恒消费）→ 检查 0 消费。邻域高度图不可读：nextInt(4) 已先消费（保流，idk-2）。
+    pub fn generate(ctx: &mut OreFeatureContext, config: &SeaPickleConfig,
+                    random: &mut ChunkRandom, x: i32, _y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let water = blocks.id("minecraft:water");
+        let sea_pickle = blocks.id("minecraft:sea_pickle");
+        let n = config.count.get(random);                                         // :26
+        let mut placed = 0i32;
+        for _ in 0..n {                                                           // :28
+            let i = random.next_int_bound(8) - random.next_int_bound(8);          // :29
+            let j = random.next_int_bound(8) - random.next_int_bound(8);          // :30
+            let py_opt = get_top_y_ocean_floor(ctx, x + i, z + j);                // :31
+            let _pickles = random.next_int_bound(4);                              // :33 PICKLES（恒消费）
+            let Some(py) = py_opt else { continue; };
+            if ctx.block_at(x + i, py, z + j) != water { continue; }              // :34 前半
+            // SeaPickleBlock.canPlantOnTop：碰撞上面非空 ∨ 侧满方（无 magma 排除）
+            let below = ctx.block_at(x + i, py - 1, z + j);
+            if !(below >= 0 && crate::tree::is_solid_id(ctx, below)) { continue; } // :34 后半（形状近似声明）
+            ctx.set_block(x + i, py, z + j, sea_pickle);                          // :35
+            placed += 1;
+        }
+        placed > 0                                                                // :40
+    }
+}
+
 // ===== minecraft:geode（GeodeFeature.java + 3 子配置）=====
 #[derive(Clone)]
 pub struct GeodeLayerThickness {

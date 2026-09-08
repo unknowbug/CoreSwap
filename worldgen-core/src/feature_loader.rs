@@ -66,6 +66,9 @@ pub struct ConfiguredFeature {
     pub lake_config: Option<crate::feature::LakeConfig>,              // minecraft:lake
     pub geode_config: Option<Box<crate::feature::GeodeConfig>>,       // minecraft:geode（大结构，Box 减负）
     pub multiface_config: Option<crate::feature::MultifaceGrowthConfig>, // minecraft:multiface_growth
+    // —— batchB（mc-1216）：kelp 走 DefaultFeatureConfig 空配置（无字段，分发直发）——
+    pub seagrass_config: Option<crate::feature::SeagrassConfig>,      // minecraft:seagrass（ProbabilityConfig）
+    pub sea_pickle_config: Option<crate::feature::SeaPickleConfig>,   // minecraft:sea_pickle（CountConfig=IntProvider）
 }
 
 impl ConfiguredFeature {
@@ -88,6 +91,8 @@ impl ConfiguredFeature {
             lake_config: None,
             geode_config: None,
             multiface_config: None,
+            seagrass_config: None,
+            sea_pickle_config: None,
         };
         // batch0（mc-1216）：contains 子串分发 → 精确匹配（1.21.6 Feature.java 注册名逐一核对，
         // 见 .investigations/mc-1216-features-takeover/batch0-worker-delivery.md §②）。
@@ -140,6 +145,21 @@ impl ConfiguredFeature {
             cf.multiface_config = crate::feature::MultifaceGrowthConfig::parse(cfg, blocks);
             if cf.multiface_config.is_none() {
                 eprintln!("[feature-loader] multiface_growth config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:kelp" {
+            // KelpFeature = DefaultFeatureConfig 空 config（KelpFeature.java:14；kelp.json config={}）。
+            // batchB E-1：简报「KelpFeatureConfig provider+spread」系旧版残留，1.20.1/1.21.6 均无
+        } else if type_name == "minecraft:seagrass" {
+            // ProbabilityConfig：probability 单字段（ProbabilityConfig.java:8-16；E-1「provider」不存在）
+            cf.seagrass_config = crate::feature::SeagrassConfig::parse(cfg, blocks);
+            if cf.seagrass_config.is_none() {
+                eprintln!("[feature-loader] seagrass config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:sea_pickle" {
+            // CountConfig：count = IntProvider（CountConfig.java:9-25；E-1「非 IntProvider / 1..25」不符）
+            cf.sea_pickle_config = crate::feature::SeaPickleConfig::parse(cfg, blocks);
+            if cf.sea_pickle_config.is_none() {
+                eprintln!("[feature-loader] sea_pickle config parse failed: {id}");
             }
         } else {
             // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
@@ -548,6 +568,18 @@ pub fn generate_configured(
         match &cf.multiface_config {
             Some(mc) => crate::feature::MultifaceGrowthFeature.generate(octx, mc, random, x, y, z),
             None => { eprintln!("[feature-loader] multiface_growth without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:kelp" {
+        crate::feature::KelpFeature::generate(octx, random, x, y, z)
+    } else if cf.type_name == "minecraft:seagrass" {
+        match &cf.seagrass_config {
+            Some(sc) => crate::feature::SeagrassFeature::generate(octx, sc, random, x, y, z),
+            None => { eprintln!("[feature-loader] seagrass without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:sea_pickle" {
+        match &cf.sea_pickle_config {
+            Some(pc) => crate::feature::SeaPickleFeature::generate(octx, pc, random, x, y, z),
+            None => { eprintln!("[feature-loader] sea_pickle without config: {}", cf.id); false }
         }
     } else {
         // batch0：generate 侧 catch-all 从静默 false → 显式告警 + unknown 计数
