@@ -1127,7 +1127,7 @@ entries:
   - id: 'swe:mc-1216-port:b5b6-features-verdict-260908-15'
     path: 'mc-1216-port-260908-15/b5b6-verdict-260908-15.md'
     kind: analysis
-    status: candidate  # judge review-260908-15 PASS-with-conditions（SHOULD-1/2 已应用，SHOULD-3 知识库草稿进行中，可选-1/2 已闭环）；confirmed 留用户
+    status: confirmed  # 用户「授权确认」260908-15（judge review-260908-15 PASS-with-conditions 条件全应用；验证分层 Degraded/Partial 如实声明 + §9.7）
     # worldgen-core 新增 fallen_tree parse/generate + PlaceOnGround/AttachedToLogs decorator；idk 定论（Util.shuffle 序 / HORIZONTAL facingArray）。
     # 验证分层：parse=运行时冒烟；generate=Partial（放置 sanity + RNG 序静态对照，无 Java oracle，#67）；生产零回归=Degraded（features 阶段 Java vanilla 执行，无生产观测对象——B3 教训）。
     # 已知偏差：AXIS 属性不可编码（R-4 同族）、heightmap/实心判定近似；place_on_ground 引用数勘误 9→7 CF（#90 家族）。
