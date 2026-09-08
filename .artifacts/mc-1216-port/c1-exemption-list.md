@@ -25,6 +25,23 @@
 | B5 | **`minecraft:fallen_tree` configured feature（5 变体）未支持** | 1.21.6 新增 feature type `Feature.FALLEN_TREE`（Feature.java:29）；数据实存 5 个 configured feature：fallen_birch/jungle/oak/spruce/super_birch_tree.json；Rust 引擎（worldgen-core tree.rs/feature 层）与 Java 探针侧均无该 type 引用 | 倒木装饰（features 由 Java vanilla 在 Rust 地形上跑的场景不受影响；Rust 接管 feature 展开或对照臂 unsupported 报告时体现） | p7-e2e-verdict-260908-10 §4（候选记录） | ✅ 本块静态核验一致：数据 5 变体实存 + 两侧零支持 |
 | B6 | **`minecraft:place_on_ground` tree decorator 未支持** | 1.21.6 新增 decorator type `TreeDecoratorType.PLACE_ON_GROUND`（TreeDecoratorType.java:16，PlaceOnGroundTreeDecorator）；数据实存 9 个 configured feature 引用（oak/birch/dark_oak/fancy_oak 及 bees 变体的 \*leaf_litter 族）；两侧均无引用 | 叶子层 ground 装饰（同 B5 分账逻辑） | p7-e2e-verdict-260908-10 §4（候选记录） | ✅ 本块静态核验一致：数据 9 处实存 + 两侧零支持 |
 
+### 取代记录与勘误登记（260908-14）
+
+> 依 §15.4：追加不覆盖，原条目正文不删不改；以下登记为唯一权威补充。
+
+**取代记录（B3）**：
+- **supersedes** → `.artifacts/mc-1216-port/p5-verdict-260908-13.md`（P5 判定 confirmed 260908-13，B3 ⊆ P5 覆盖面，无独立机制成分）；
+- **superseded-by** → `.artifacts/mc-1216-port-260908-14/p6-b3-closeout-260908-14.md`（本取代记录）；
+- 一行推翻理由（judge 条件 1 原文措辞）：「B3 机制实为 1.21.6 ChunkStatus.SPAWN 邻居依赖 0→ring-1@BIOMES 的调度层依赖 barrier，非『spawn 区 barrier 放置』——原行机制/影响域列系转抄漂移；运行时探针无观测对象，按取代记录关账」。
+- 重开判据：沿 P5——出现「邻 chunk 状态不足」类失败且定位到依赖推进 → 重开（取代记录不豁免）。
+
+**勘误登记（judge 条件 2，三项）**：
+1. **B3 转抄漂移**：本清单 B3 行机制列「spawn 区 barrier 放置」→ 实为「邻居推进依赖 barrier（SPAWN.dependsOn(BIOMES,1)）」；影响域「spawn 区」→「任意 chunk 推进到 SPAWN 的调度条件」（全管线第 11 阶段）。首次取证：w2-chunk-pipeline.md:30/51/64（260908-08）+ port-list-260908-08.md:15。
+2. **B1 整行重复**：本清单「条目清单」B 区第 20-21 行 B1「Shipwreck Y 重定位」整行逐字重复（260908-12 转录引入），有效条目以其中一条为准。
+3. **p7-e2e-verdict 路径出入**：该文件实际位于 `.artifacts/mc-1216-port-260908-10/`，本清单此前引用的目录名（`mc-1216-port`）有出入；文件名与 §节号无误，引用以实际路径为准。
+
+> 原 B3 行正文不改；勘误删行与否由用户另行拍板，当前仅登记。
+
 ### A 区（已修复真缺口，登记备查）
 
 | # | 条目 | 修复 | 来源 |
@@ -46,3 +63,4 @@
 - B5/B6 本块核验为**静态核对**（数据文件实存 + 两侧代码零引用 grep），非运行时行为验证——「未支持导致的行为差异量级」未量化（Chunky 1.21.6 基线 625/3698 中 veg=6,473 块差含本两项贡献的可能性未分解，属 I1 同族下钻项）。
 - B1/B2/B3 为继承项，本块未重验，状态以来源 verdict 为准；B4（DimensionPadding）为本块静态判定（不涉 Rust 接管域）。
 - 数据目录 versions/1.21.6/data 为 gitignored → 证据以本清单 + 来源 verdict 文字为准。
+- **260908-14 静态关账口径追加**：B3 本轮按 §15.4 取代记录关账（`.artifacts/mc-1216-port-260908-14/p6-b3-closeout-260908-14.md`），验证分层 = Degraded（静态双源核对）+ §9.7 覆盖面声明——**未做运行时行为化探针**，理由 = 观测对象结构性不存在（双臂同走 vanilla Java 调度层），非「预期零差=验证通过」；见末尾「取代记录与勘误登记（260908-14）」节。

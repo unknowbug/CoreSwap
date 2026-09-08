@@ -1112,3 +1112,14 @@ entries:
     # 判定 = P5 不做（维持 260908-10 挂起，本轮升级已验证）：依赖表属 Java 调度层，Rust 零消费点（薄壳/jni_bridge/worldgen-core grep 零命中；worldgen_handle.rs:889 唯一 neighbor 命中 = carver 半径8 功能性复刻非消费）。
     # Java 1.21.6 语义一手定位：邻居依赖迁至 ChunkGenerationStep/GenerationDependencies/ChunkGenerationSteps（dependsOn(level) + accumulate）。§9.7 覆盖面声明见 verdict。
 
+  # === 260908-14 块：P6 B3 关账（§15.4 取代记录 + 勘误登记，candidate 待用户 confirmed）===
+  - id: 'swe:mc-1216-port:p6-b3-closeout-260908-14'
+    path: 'mc-1216-port-260908-14/p6-b3-closeout-260908-14.md'
+    kind: decision
+    status: candidate  # 用户批准「按 §15.4 取代记录关账（不跑运行时探针）」后产出；confirmed 待用户标注
+    # B3 精确定义：1.21.6 ChunkStatus.SPAWN 邻居依赖 0→ring-1@BIOMES（SPAWN.dependsOn(BIOMES,1)）的调度层依赖 barrier；
+    # 1.20.1 一手 ChunkStatus.java:182-188 taskMargin=0；首次取证 w2-chunk-pipeline.md:30/51/64 + port-list-260908-08.md:15。
+    # B3 ⊆ P5 覆盖面（p5-verdict-260908-13 confirmed）；Rust 零消费点（P5 grep + spawn 全量 grep）；双臂同走 vanilla Java 调度 → 探针无观测对象。
+    # 验证分层：Degraded + §9.7 覆盖面声明（静态双源核对，未做运行时探针）；重开判据沿 P5，取代记录不豁免。
+    # 附带：c1-exemption-list.md 追加取代双指针 + 三项勘误登记（B3 转抄漂移 / B1 行重复 / p7 路径出入），原 B3 行正文不改。
+
