@@ -1,0 +1,7 @@
+[TOTAL] van: pw=38528 snow=193550 sblock=182752
+[TOTAL] cpp: pw=35499 snow=194788 sblock=173098
+[PW] van-only=3040 cpp-only=11 both=35488
+[PW] columns: van=18498 cpp=17517 shared-cols=17517
+[PW] shared cols first 10: [(0, -440), (0, -439), (0, -438), (0, -437), (0, -436), (0, -435), (0, -434), (0, -433), (0, -432), (0, -431)]
+[PW] van y: min=96 max=161 mean=115.1
+[PW] cpp y: min=96 max=161 mean=115.4

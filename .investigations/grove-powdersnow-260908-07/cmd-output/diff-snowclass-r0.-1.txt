@@ -1,0 +1,51 @@
+[INFO] parsing vanilla arm...
+[INFO] parsing cpp arm...
+[RESULT] vanilla snow-class blocks: 414830
+[RESULT] cpp     snow-class blocks: 403385
+[RESULT] only-vanilla: 44324  only-cpp: 32879  same-pos-diff-type: 123
+[RESULT] by-type: only_v pw=3032 snow=30819 sblock=10473 | only_c pw=11 snow=31985 sblock=883
+[ANCHOR] (0, 131, -7) van=minecraft:powder_snow cpp=minecraft:powder_snow
+[ANCHOR] (26, 128, 25) van=- cpp=-
+[ANCHOR] (17, 126, 14) van=- cpp=-
+[SAMPLE] only_v first 20:
+   V (0, 96, -290) snow
+   V (0, 97, -291) snow
+   V (0, 98, -293) snow_block
+   V (0, 98, -292) snow
+   V (0, 98, -278) snow
+   V (0, 98, -277) snow
+   V (0, 98, -275) snow
+   V (0, 98, -274) snow
+   V (0, 98, -237) snow
+   V (0, 98, -235) snow
+   V (0, 99, -295) snow_block
+   V (0, 99, -294) snow_block
+   V (0, 99, -293) snow
+   V (0, 99, -272) snow
+   V (0, 99, -236) snow
+   V (0, 100, -302) snow_block
+   V (0, 100, -301) snow_block
+   V (0, 100, -300) snow_block
+   V (0, 100, -299) snow_block
+   V (0, 100, -298) snow_block
+[SAMPLE] only_c first 20:
+   C (0, 96, -230) snow
+   C (0, 96, -229) snow
+   C (0, 96, -227) snow
+   C (0, 96, -226) snow
+   C (0, 99, -228) snow
+   C (0, 102, -308) snow
+   C (0, 102, -307) snow
+   C (0, 102, -306) snow
+   C (0, 102, -294) snow
+   C (0, 102, -293) snow
+   C (0, 102, -291) snow
+   C (0, 102, -290) snow
+   C (0, 103, -170) snow
+   C (0, 103, -169) snow
+   C (0, 103, -168) snow
+   C (0, 103, -167) snow
+   C (0, 104, -166) snow
+   C (0, 104, -165) snow
+   C (0, 104, -164) snow
+   C (0, 105, -292) snow

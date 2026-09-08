@@ -1026,3 +1026,11 @@ entries:
     kind: analysis
     status: confirmed  # 用户拍板 260908-06（含目测一致陈述；judge PASS-with-conditions N-1~N-6 已应用）——DH 3.2.0 INTERNAL_SERVER 远景 LOD 继承 Rust 地形（生成源层面 behavior 级：populateNoise intercepted x7462 + buildSurface skipped x7461 + seed 三查全绿；LOD 编码内容未逐位核对 = idk 降级声明，抽查挂账）
     # 关联：.investigations/mod-compat-260908-02/dh-scout-260908-06.md、runtime/forge-client-test/client_run.log、NEXT_SESSION 260908-06。
+
+  # === grove powder_snow 双臂对拍 verdict（260908-07，candidate 待用户 confirmed）===
+  - id: 're-code:mod-compat:grove-powdersnow-verdict-260908-07'
+    path: 'grove-powdersnow-verdict-260908-07.md'
+    kind: analysis
+    status: confirmed  # 用户授权确认 260908-07（实际 2026-09-08 13:09；judge PASS-with-conditions N-1~N-3 已应用）——grove 细雪 = vanilla 陷阱机制非 Rust surface 规则 bug（Chunky 双臂同 seed -546755292641445454，region r.0.-1 雪类全量逐块：pw 柱足迹 cpp 100% ⊆ vanilla，锚点 (0,131,-7) 双臂 powder_snow，y 廓线一致；残差 van-only 3040/981 柱 + snow_block 单向 10,473 未归因 = idk 声明）
+    # 关联：.investigations/grove-powdersnow-260908-07/cmd-output/*、.tmp/grove-powdersnow-260908-07/region-{vanilla,cpp}/、knowledge/discovered/workflow-patterns.md #86。
+
