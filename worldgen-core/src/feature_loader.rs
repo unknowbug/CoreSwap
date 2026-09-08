@@ -69,6 +69,15 @@ pub struct ConfiguredFeature {
     // —— batchB（mc-1216）：kelp 走 DefaultFeatureConfig 空配置（无字段，分发直发）——
     pub seagrass_config: Option<crate::feature::SeagrassConfig>,      // minecraft:seagrass（ProbabilityConfig）
     pub sea_pickle_config: Option<crate::feature::SeaPickleConfig>,   // minecraft:sea_pickle（CountConfig=IntProvider）
+    // —— batchC（mc-1216）：残差清空 11/16 + nether_forest_vegetation + waterlogged 变体 ——
+    pub bamboo_probability: Option<f32>,                              // minecraft:bamboo（ProbabilityConfig 1 字段）
+    pub block_column_config: Option<Box<crate::feature::BlockColumnConfig>>,   // minecraft:block_column（含谓词树）
+    pub single_state_config: Option<crate::feature::SingleStateConfig>,        // minecraft:forest_rock
+    pub random_boolean_config: Option<crate::tree::RandomBooleanSelectorConfig>,          // minecraft:random_boolean_selector
+    pub simple_random_selector_config: Option<crate::tree::SimpleRandomSelectorConfig>,   // minecraft:simple_random_selector
+    pub vegetation_patch_config: Option<Box<crate::feature::VegetationPatchConfig>>,      // minecraft:(waterlogged_)vegetation_patch
+    pub root_system_config: Option<Box<crate::feature::RootSystemConfig>>,                // minecraft:root_system
+    pub nether_forest_vegetation_config: Option<crate::feature::NetherForestVegetationConfig>, // minecraft:nether_forest_vegetation
 }
 
 impl ConfiguredFeature {
@@ -93,6 +102,14 @@ impl ConfiguredFeature {
             multiface_config: None,
             seagrass_config: None,
             sea_pickle_config: None,
+            bamboo_probability: None,
+            block_column_config: None,
+            single_state_config: None,
+            random_boolean_config: None,
+            simple_random_selector_config: None,
+            vegetation_patch_config: None,
+            root_system_config: None,
+            nether_forest_vegetation_config: None,
         };
         // batch0（mc-1216）：contains 子串分发 → 精确匹配（1.21.6 Feature.java 注册名逐一核对，
         // 见 .investigations/mc-1216-features-takeover/batch0-worker-delivery.md §②）。
@@ -119,7 +136,10 @@ impl ConfiguredFeature {
             }
         } else if type_name == "minecraft:random_selector" {
             cf.selector_config = crate::tree::RandomSelectorConfig::parse(cfg, blocks);
-        } else if type_name == "minecraft:random_patch" || type_name == "minecraft:flower" {
+        } else if type_name == "minecraft:random_patch" || type_name == "minecraft:flower"
+            || type_name == "minecraft:no_bonemeal_flower" {
+            // batchC：no_bonemeal_flower 同为 RandomPatchFeature（Feature.java NO_BONEMEAL_FLOWER，
+            // 同 RandomPatchFeatureConfig.CODEC——forest_flowers.json 内嵌实测暴露）
             cf.patch_config = crate::tree::RandomPatchConfig::parse(cfg, blocks);
         } else if type_name == "minecraft:simple_block" {
             cf.simple_block_config = crate::tree::SimpleBlockConfig::parse(cfg, blocks);
@@ -160,6 +180,55 @@ impl ConfiguredFeature {
             cf.sea_pickle_config = crate::feature::SeaPickleConfig::parse(cfg, blocks);
             if cf.sea_pickle_config.is_none() {
                 eprintln!("[feature-loader] sea_pickle config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:bamboo" {
+            // ProbabilityConfig：probability 单字段（BambooFeature.java:17；batchC §一.1）
+            cf.bamboo_probability = Some(
+                cfg.and_then(|c| c.get("probability")).and_then(|x| x.as_f64()).unwrap_or(0.0) as f32);
+        } else if type_name == "minecraft:block_column" {
+            // BlockColumnFeatureConfig.java:13-21（batchC §一.2；层高嵌套 IntProvider → P1 WeightedProviders）
+            cf.block_column_config = crate::feature::BlockColumnConfig::parse(cfg, blocks).map(Box::new);
+            if cf.block_column_config.is_none() {
+                eprintln!("[feature-loader] block_column config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:blue_ice" || type_name == "minecraft:desert_well"
+            || type_name == "minecraft:ice_spike" || type_name == "minecraft:vines" {
+            // DefaultFeatureConfig 空 config（各自 Feature.java；4 个 JSON config={} 实证）
+        } else if type_name == "minecraft:forest_rock" {
+            // SingleStateFeatureConfig：state 固定 BlockState（0 随机消费；batchC §一.5）
+            cf.single_state_config = crate::feature::SingleStateConfig::parse(cfg, blocks);
+            if cf.single_state_config.is_none() {
+                eprintln!("[feature-loader] forest_rock config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:random_boolean_selector" {
+            // RandomBooleanFeatureConfig.java:9-15：feature_true/feature_false（batchC §一.7）
+            cf.random_boolean_config = crate::tree::RandomBooleanSelectorConfig::parse(cfg, blocks);
+            if cf.random_boolean_config.is_none() {
+                eprintln!("[feature-loader] random_boolean_selector config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:simple_random_selector" {
+            // SimpleRandomFeatureConfig：placed 列表无 chance（batchC §一.8/E-1）
+            cf.simple_random_selector_config = crate::tree::SimpleRandomSelectorConfig::parse(cfg, blocks);
+            if cf.simple_random_selector_config.is_none() {
+                eprintln!("[feature-loader] simple_random_selector config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:vegetation_patch" || type_name == "minecraft:waterlogged_vegetation_patch" {
+            // VegetationPatchFeatureConfig.java:14-28（batchC §一.9/§一.10；两 type 同 config）
+            cf.vegetation_patch_config = crate::feature::VegetationPatchConfig::parse(cfg, blocks).map(Box::new);
+            if cf.vegetation_patch_config.is_none() {
+                eprintln!("[feature-loader] vegetation_patch config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:root_system" {
+            // RootSystemFeatureConfig.java:13-29（13 字段；谓词 any_of/matching_block_tag → P2）
+            cf.root_system_config = crate::feature::RootSystemConfig::parse(cfg, blocks).map(Box::new);
+            if cf.root_system_config.is_none() {
+                eprintln!("[feature-loader] root_system config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:nether_forest_vegetation" {
+            // NetherForestVegetationFeatureConfig.java:9-16（batch0 误捕澄清后正规接入）
+            cf.nether_forest_vegetation_config = crate::feature::NetherForestVegetationConfig::parse(cfg, blocks);
+            if cf.nether_forest_vegetation_config.is_none() {
+                eprintln!("[feature-loader] nether_forest_vegetation config parse failed: {id}");
             }
         } else {
             // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
@@ -409,6 +478,17 @@ impl FeatureCache {
                 for (_, pf) in &sc.features { queue.push(pf.configured_feature.clone()); }
                 if let Some(d) = &sc.default_feature { queue.push(d.configured_feature.clone()); }
             }
+            // —— batchC（mc-1216）：selector 之外的新嵌套容器同口径补载（防运行时 cache miss）——
+            if let Some(pc) = &cf.patch_config { queue.push(pc.feature.configured_feature.clone()); }
+            if let Some(rc) = &cf.random_boolean_config {
+                queue.push(rc.feature_true.configured_feature.clone());
+                queue.push(rc.feature_false.configured_feature.clone());
+            }
+            if let Some(ssc) = &cf.simple_random_selector_config {
+                for pf in &ssc.features { queue.push(pf.configured_feature.clone()); }
+            }
+            if let Some(vc) = &cf.vegetation_patch_config { queue.push(vc.vegetation_feature.configured_feature.clone()); }
+            if let Some(rc) = &cf.root_system_config { queue.push(rc.feature.configured_feature.clone()); }
         }
         let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
         while let Some(placed_id) = queue.pop() {
@@ -437,11 +517,21 @@ impl FeatureCache {
                 if let Ok(ctxt) = std::fs::read_to_string(&cpath) {
                     if let Ok(croot) = crate::json::parse(&ctxt) {
                         let cf = ConfiguredFeature::parse(&cf_key, &croot, blocks);
-                        // 嵌套 selector（selector 内层 placed → configured 又是 selector）继续入队
+                        // 嵌套 selector/patch/新容器（内层 placed → configured 又是容器）继续入队
                         if let Some(sc) = &cf.selector_config {
                             for (_, ipf) in &sc.features { queue.push(ipf.configured_feature.clone()); }
                             if let Some(d) = &sc.default_feature { queue.push(d.configured_feature.clone()); }
                         }
+                        if let Some(pc) = &cf.patch_config { queue.push(pc.feature.configured_feature.clone()); }
+                        if let Some(rc) = &cf.random_boolean_config {
+                            queue.push(rc.feature_true.configured_feature.clone());
+                            queue.push(rc.feature_false.configured_feature.clone());
+                        }
+                        if let Some(ssc) = &cf.simple_random_selector_config {
+                            for ipf in &ssc.features { queue.push(ipf.configured_feature.clone()); }
+                        }
+                        if let Some(vc) = &cf.vegetation_patch_config { queue.push(vc.vegetation_feature.configured_feature.clone()); }
+                        if let Some(rc) = &cf.root_system_config { queue.push(rc.feature.configured_feature.clone()); }
                         self.configured.insert(cf_key, cf);
                     }
                 }
@@ -581,6 +671,79 @@ pub fn generate_configured(
             Some(pc) => crate::feature::SeaPickleFeature::generate(octx, pc, random, x, y, z),
             None => { eprintln!("[feature-loader] sea_pickle without config: {}", cf.id); false }
         }
+    } else if cf.type_name == "minecraft:bamboo" {
+        match cf.bamboo_probability {
+            Some(prob) => crate::feature::BambooFeature.generate(octx, prob, random, x, y, z),
+            None => false, // parse 恒 Some；防御
+        }
+    } else if cf.type_name == "minecraft:block_column" {
+        match &cf.block_column_config {
+            Some(bc) => crate::feature::BlockColumnFeature.generate(ctx, octx, bc, random, x, y, z),
+            None => { eprintln!("[feature-loader] block_column without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:blue_ice" {
+        crate::feature::BlueIceFeature.generate(octx, random, x, y, z)
+    } else if cf.type_name == "minecraft:desert_well" {
+        crate::feature::DesertWellFeature.generate(octx, random, x, y, z)
+    } else if cf.type_name == "minecraft:forest_rock" {
+        match &cf.single_state_config {
+            Some(sc) => crate::feature::ForestRockFeature.generate(octx, sc, random, x, y, z),
+            None => { eprintln!("[feature-loader] forest_rock without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:ice_spike" {
+        crate::feature::IceSpikeFeature.generate(octx, random, x, y, z)
+    } else if cf.type_name == "minecraft:random_boolean_selector" {
+        match &cf.random_boolean_config {
+            Some(rc) => {
+                // RandomBooleanFeature.java:22-25：nextBoolean（=next(1)）选支，同流下钻（§一.7）
+                let pick_true = random.next_int_bound(2) == 1;
+                let pf = if pick_true { &rc.feature_true } else { &rc.feature_false };
+                pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
+                    generate_nested(&pf.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                })
+            }
+            None => { eprintln!("[feature-loader] random_boolean_selector without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:simple_random_selector" {
+        match &cf.simple_random_selector_config {
+            Some(ssc) => {
+                // SimpleRandomFeature.java:22-24：Util.getRandom = nextInt(n) 均匀选一（§一.8）
+                let idx = random.next_int_bound(ssc.features.len() as i32) as usize;
+                let pf = &ssc.features[idx];
+                pf.generate(ctx, random, x, y, z, |c2, r2, gx, gy, gz| {
+                    generate_nested(&pf.configured_feature, c2, r2, gx, gy, gz, octx, cache, biome_temp, biome_rainfall)
+                })
+            }
+            None => { eprintln!("[feature-loader] simple_random_selector without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:vegetation_patch" || cf.type_name == "minecraft:waterlogged_vegetation_patch" {
+        match &cf.vegetation_patch_config {
+            Some(vc) => {
+                // VegetationPatchFeature.java:97-101（内嵌 placed 同流）；waterlogged 变体 §一.10
+                let wl = cf.type_name == "minecraft:waterlogged_vegetation_patch";
+                crate::feature::VegetationPatchFeature.generate(octx, vc, random, x, y, z, wl, &mut |o2, r2, gx, gy, gz| {
+                    generate_nested(&vc.vegetation_feature.configured_feature, ctx, r2, gx, gy, gz, o2, cache, biome_temp, biome_rainfall)
+                })
+            }
+            None => { eprintln!("[feature-loader] vegetation_patch without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:root_system" {
+        match &cf.root_system_config {
+            Some(rc) => {
+                // RootSystemFeature.java:73 config.feature.generateUnregistered（同流下钻）（§一.11）
+                crate::feature::RootSystemFeature.generate(ctx, octx, rc, random, x, y, z, &mut |o2, r2, gx, gy, gz| {
+                    generate_nested(&rc.feature.configured_feature, ctx, r2, gx, gy, gz, o2, cache, biome_temp, biome_rainfall)
+                })
+            }
+            None => { eprintln!("[feature-loader] root_system without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:nether_forest_vegetation" {
+        match &cf.nether_forest_vegetation_config {
+            Some(nc) => crate::feature::NetherForestVegetationFeature.generate(octx, nc, random, x, y, z),
+            None => { eprintln!("[feature-loader] nether_forest_vegetation without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:vines" {
+        crate::feature::VinesFeature.generate(octx, random, x, y, z)
     } else {
         // batch0：generate 侧 catch-all 从静默 false → 显式告警 + unknown 计数
         //（原误捕类型在此被静默跳过；新路径与 parse 侧 catch-all 同口径）

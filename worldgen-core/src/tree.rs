@@ -1178,3 +1178,47 @@ impl FallenTreeConfig {
         }
     }
 }
+
+// ===== batchC（mc-1216）：selector 族两新 config =====
+// 一手源：versions/1.20.1 + 1.21.6 双版 mc_src_extract（两版逐行一致，batchC §一.7/§一.8）
+
+/// random_boolean_selector（RandomBooleanFeature.java:22-25 + Config.java:9-15）：
+/// nextBoolean（= next(1)）选真/假支，内层 placed 各自完整链共用同一 RNG 流。
+/// Rust 表达 = next_int_bound(2) == 1（Java nextInt(2) 幂二 fast path = next(1)，同 1 bit 消费）。
+#[derive(Clone)]
+pub struct RandomBooleanSelectorConfig {
+    pub feature_true: crate::placement::PlacedFeature,
+    pub feature_false: crate::placement::PlacedFeature,
+}
+impl RandomBooleanSelectorConfig {
+    pub fn parse(v: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<RandomBooleanSelectorConfig> {
+        let v = v?;
+        Some(RandomBooleanSelectorConfig {
+            feature_true: crate::placement::PlacedFeature::parse_inline(v.get("feature_true"), blocks)?,
+            feature_false: crate::placement::PlacedFeature::parse_inline(v.get("feature_false"), blocks)?,
+        })
+    }
+}
+
+/// simple_random_selector（SimpleRandomFeature.java:16-25——非 RandomFeature！+ SimpleRandomFeatureConfig）：
+/// entries 无 chance 字段；Util.getRandom = nextInt(n) 均匀选一（恒 1 次消费）。
+/// 与 random_selector 的「逐项 nextFloat<chance 即选即返」语义完全不同（batchC E-1）。
+#[derive(Clone)]
+pub struct SimpleRandomSelectorConfig {
+    pub features: Vec<crate::placement::PlacedFeature>,
+}
+impl SimpleRandomSelectorConfig {
+    pub fn parse(v: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<SimpleRandomSelectorConfig> {
+        let v = v?;
+        let mut features = Vec::new();
+        if let Some(arr) = v.get("features").and_then(|f| f.as_array()) {
+            for e in arr {
+                if let Some(pf) = crate::placement::PlacedFeature::parse_inline(Some(e), blocks) {
+                    features.push(pf);
+                }
+            }
+        }
+        if features.is_empty() { return None; }
+        Some(SimpleRandomSelectorConfig { features })
+    }
+}

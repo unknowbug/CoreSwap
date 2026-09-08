@@ -1087,6 +1087,791 @@ impl SeaPickleFeature {
     }
 }
 
+// ===== minecraft:vegetation_patch（VegetationPatchFeature.java + Config 10 字段）=====
+// + waterlogged_vegetation_patch（WaterloggedVegetationPatchFeature.java，子类，§一.10）
+#[derive(Clone)]
+pub struct VegetationPatchConfig {
+    pub replaceable: Vec<i32>,                               // tag 展开缓存（parse 期）
+    pub ground_state: crate::tree::BlockStateProvider,
+    pub vegetation_feature: crate::placement::PlacedFeature,
+    pub surface_floor: bool,                                 // floor=true（direction=DOWN）/ ceiling（UP）
+    pub depth: crate::placement::IntProvider,
+    pub extra_bottom_block_chance: f32,
+    pub vertical_range: i32,
+    pub vegetation_chance: f32,
+    pub xz_radius: crate::placement::IntProvider,
+    pub extra_edge_column_chance: f32,
+}
+impl VegetationPatchConfig {
+    /// VegetationPatchFeatureConfig.java:14-28（全 required）。
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<VegetationPatchConfig> {
+        let cfg = cfg?;
+        let mut replaceable = Vec::new();
+        let tag = cfg.get("replaceable").and_then(|t| t.as_str()).unwrap_or("");
+        expand_tag(blocks, tag.strip_prefix('#').unwrap_or(tag), &mut replaceable);
+        if replaceable.is_empty() {
+            eprintln!("[feature] vegetation_patch replaceable tag empty: {tag}（idk-3）");
+        }
+        Some(VegetationPatchConfig {
+            replaceable,
+            ground_state: crate::tree::BlockStateProvider::parse(cfg.get("ground_state"), blocks)?,
+            vegetation_feature: crate::placement::PlacedFeature::parse_inline(cfg.get("vegetation_feature"), blocks)?,
+            surface_floor: cfg.get("surface").and_then(|s| s.as_str()) == Some("floor"),
+            depth: crate::placement::IntProvider::parse(cfg.get("depth")),
+            extra_bottom_block_chance: cfg.get("extra_bottom_block_chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32,
+            vertical_range: cfg.get("vertical_range").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+            vegetation_chance: cfg.get("vegetation_chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32,
+            xz_radius: crate::placement::IntProvider::parse(cfg.get("xz_radius")),
+            extra_edge_column_chance: cfg.get("extra_edge_column_chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32,
+        })
+    }
+}
+pub struct VegetationPatchFeature;
+impl VegetationPatchFeature {
+    /// RNG 消费序（§一.9）：xz_radius.get ×2（i 先 j 后）→ 边缘列 nextFloat（仅 bl5 ∧ chance!=0）
+    /// → 接受列 depth.get + [extra_bottom>0 恒 nextFloat] → placeGround 每步 groundState.get
+    /// → vegetation 逐位置 nextFloat<chance + 内层 placed（同流）。
+    /// waterlogged=true = WaterloggedVegetationPatchFeature 语义（§一.10）。
+    /// 位置集迭代序：Java HashSet ≠ 本实现插入序（idk-5，RNG 流分叉点，诚实声明）。
+    pub fn generate<F>(&self, ctx: &mut OreFeatureContext, config: &VegetationPatchConfig,
+                       random: &mut ChunkRandom, x: i32, y: i32, z: i32,
+                       waterlogged: bool, gen_vegetation: &mut F) -> bool
+    where F: FnMut(&mut OreFeatureContext, &mut ChunkRandom, i32, i32, i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let i = config.xz_radius.get(random) + 1;                                                          // :29
+        let j = config.xz_radius.get(random) + 1;                                                          // :30
+        let dir_y: i32 = if config.surface_floor { -1 } else { 1 };                                         // surface.getDirection()
+        let mut positions: Vec<(i32, i32, i32)> = Vec::new();
+        for ix in -i..=i {                                                                                  // :45
+            let bl = ix == -i || ix == i;
+            for jz in -j..=j {                                                                              // :48
+                let bl2 = jz == -j || jz == j;
+                let bl3 = bl || bl2;
+                let bl4 = bl && bl2;
+                let bl5 = bl3 && !bl4;
+                // :53 短路序逐字：角列全跳；非边列不消费；边列 ∧ chance!=0 恒消费
+                if !bl4 && (!bl5 || (config.extra_edge_column_chance != 0.0f32
+                    && !(random.next_float() > config.extra_edge_column_chance))) {
+                    let cx = x + ix;
+                    let cz = z + jz;
+                    let mut cy = y;
+                    let mut k = 0;
+                    while ctx.block_at(cx, cy, cz) == air && k < config.vertical_range {                     // :56-58
+                        cy += dir_y;
+                        k += 1;
+                    }
+                    let opp = -dir_y;
+                    let mut k2 = 0;
+                    while ctx.block_at(cx, cy, cz) != air && k2 < config.vertical_range {                     // :60-62（-1 按非 air 保守下移）
+                        cy += opp;
+                        k2 += 1;
+                    }
+                    let sy = cy + dir_y;                                                                      // :64 mutable2
+                    let below = ctx.block_at(cx, sy, cz);
+                    if ctx.block_at(cx, cy, cz) == air && crate::tree::is_solid_id(ctx, below) {              // :66
+                        let mut depth = config.depth.get(random);                                             // :67
+                        if config.extra_bottom_block_chance > 0.0f32
+                            && random.next_float() < config.extra_bottom_block_chance { depth += 1; }          // :67（>0 恒消费）
+                        // placeGround（:103-120）
+                        let mut gy = sy;
+                        let mut ok = true;
+                        for step in 0..depth {
+                            let st = config.ground_state.get(random);                                         // :107 每步恒消费
+                            let cur = ctx.block_at(cx, gy, cz);
+                            if cur != st {                                                                     // :109（block 级等值）
+                                if !config.replaceable.contains(&cur) {                                        // :110（-1 → 不在表 → 失败）
+                                    ok = step != 0;                                                             // :111 return i != 0
+                                    break;
+                                }
+                                ctx.set_block(cx, gy, cz, st);                                                  // :114
+                                gy += dir_y;                                                                    // :115
+                            }
+                        }
+                        if ok {
+                            positions.push((cx, sy, cz));                                                       // :70-71
+                        }
+                    }
+                }
+            }
+        }
+        // WaterloggedVegetationPatchFeature :24-33：五向（N,E,S,W,DOWN）全 side-solid 的位放水、集合收缩
+        if waterlogged {
+            let water = blocks.id("minecraft:water");
+            let sides: [[i32; 3]; 5] = [[0, 0, -1], [1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, -1, 0]];              // N,E,S,W,DOWN
+            let mut kept: Vec<(i32, i32, i32)> = Vec::new();
+            for (px, py, pz) in &positions {
+                let mut all_solid = true;
+                for s in sides {
+                    if !crate::tree::is_solid_id(ctx, ctx.block_at(px + s[0], py + s[1], pz + s[2])) {
+                        all_solid = false; break;
+                    }
+                }
+                if all_solid {
+                    ctx.set_block(*px, *py, *pz, water);                                                        // :31
+                    kept.push((*px, *py, *pz));
+                }
+            }
+            positions = kept;
+        }
+        // generateVegetation（:81-95）：Java HashSet 迭代序 ≠ 插入序（idk-5）
+        for (vx, vy, vz) in &positions {
+            if config.vegetation_chance > 0.0f32 && random.next_float() < config.vegetation_chance {                    // :91
+                let gy = if waterlogged { *vy } else { *vy - dir_y };
+                let _ = gen_vegetation(ctx, random, *vx, gy, *vz);
+            }
+        }
+        !positions.is_empty()                                                                                           // :33
+    }
+}
+
+// ===== minecraft:root_system（RootSystemFeature.java + Config 13 字段）=====
+#[derive(Clone)]
+pub struct RootSystemConfig {
+    pub feature: crate::placement::PlacedFeature,
+    pub required_vertical_space_for_tree: i32,
+    pub root_radius: i32,
+    pub root_replaceable: Vec<i32>,
+    pub root_state_provider: crate::tree::BlockStateProvider,
+    pub root_placement_attempts: i32,
+    pub max_root_column_height: i32,
+    pub hanging_root_radius: i32,
+    pub hanging_root_vertical_span: i32,
+    pub hanging_root_state_provider: crate::tree::BlockStateProvider,
+    pub hanging_root_placement_attempts: i32,
+    pub allowed_vertical_water_for_tree: i32,
+    pub allowed_tree_position: crate::placement::BlockPredicate,
+}
+impl RootSystemConfig {
+    /// RootSystemFeatureConfig.java:13-29（全 required）。
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<RootSystemConfig> {
+        let cfg = cfg?;
+        let gi = |k: &str| cfg.get(k).and_then(|x| x.as_f64()).unwrap_or(0.0) as i32;
+        let mut root_replaceable = Vec::new();
+        let tag = cfg.get("root_replaceable").and_then(|t| t.as_str()).unwrap_or("");
+        expand_tag(blocks, tag.strip_prefix('#').unwrap_or(tag), &mut root_replaceable);
+        Some(RootSystemConfig {
+            feature: crate::placement::PlacedFeature::parse_inline(cfg.get("feature"), blocks)?,
+            required_vertical_space_for_tree: gi("required_vertical_space_for_tree"),
+            root_radius: gi("root_radius"),
+            root_replaceable,
+            root_state_provider: crate::tree::BlockStateProvider::parse(cfg.get("root_state_provider"), blocks)?,
+            root_placement_attempts: gi("root_placement_attempts"),
+            max_root_column_height: gi("root_column_max_height"),
+            hanging_root_radius: gi("hanging_root_radius"),
+            hanging_root_vertical_span: gi("hanging_roots_vertical_span"),
+            hanging_root_state_provider: crate::tree::BlockStateProvider::parse(cfg.get("hanging_root_state_provider"), blocks)?,
+            hanging_root_placement_attempts: gi("hanging_root_placement_attempts"),
+            allowed_vertical_water_for_tree: gi("allowed_vertical_water_for_tree"),
+            allowed_tree_position: crate::placement::BlockPredicate::parse(cfg.get("allowed_tree_position"), blocks),
+        })
+    }
+}
+/// hasSpaceForTree（:39-51 + isAirOrWater :53-60）。
+fn root_has_space_for_tree(ctx: &OreFeatureContext, config: &RootSystemConfig,
+                           x: i32, y: i32, z: i32, air: i32, water: i32) -> bool {
+    for i in 1..=config.required_vertical_space_for_tree {                                                              // :42
+        let st = ctx.block_at(x, y + i, z);
+        if st != air {                                                                                                   // :54 isAir
+            let allowed = i + 1 <= config.allowed_vertical_water_for_tree;                                                // :57
+            if !(allowed && st == water) { return false; }                                                                // :58
+        }
+    }
+    true
+}
+/// generateRoots（:93-106）：每 attempt 恒 4 次 nextInt(r)，命中 rootReplaceable 才 +1 次 state.get。
+fn root_generate_roots(ctx: &mut OreFeatureContext, config: &RootSystemConfig,
+                       random: &mut ChunkRandom, x: i32, y: i32, z: i32) {
+    let r = config.root_radius;                                                                                          // :94
+    if r <= 0 { return; }                                                                                                // 防御
+    for _ in 0..config.root_placement_attempts {                                                                         // :97
+        let rx = x + random.next_int_bound(r) - random.next_int_bound(r);                                                 // :98
+        let rz = z + random.next_int_bound(r) - random.next_int_bound(r);
+        let cur = ctx.block_at(rx, y, rz);
+        if config.root_replaceable.contains(&cur) {                                                                       // :99
+            let st = config.root_state_provider.get(random);                                                               // :100
+            ctx.set_block(rx, y, rz, st);
+        }
+    }
+}
+/// generateHangingRoots（:108-121）：isAir 后、canPlaceAt 前消费 state.get（:115 求值序）。
+fn root_generate_hanging_roots(ctx: &mut OreFeatureContext, config: &RootSystemConfig,
+                               random: &mut ChunkRandom, x: i32, y: i32, z: i32, air: i32) {
+    let i = config.hanging_root_radius;                                                                                  // :109
+    let j = config.hanging_root_vertical_span;                                                                           // :110
+    if i <= 0 || j <= 0 { return; }                                                                                      // 防御
+    for _ in 0..config.hanging_root_placement_attempts {                                                                 // :112
+        let hx = x + random.next_int_bound(i) - random.next_int_bound(i);                                                 // :113
+        let hy = y + random.next_int_bound(j) - random.next_int_bound(j);
+        let hz = z + random.next_int_bound(i) - random.next_int_bound(i);
+        if ctx.block_at(hx, hy, hz) == air {                                                                              // :114
+            let st = config.hanging_root_state_provider.get(random);                                                       // :115
+            let below = ctx.block_at(hx, hy - 1, hz);
+            let above = ctx.block_at(hx, hy + 1, hz);
+            // :116 canPlaceAt ∧ 上方侧满方——均 is_solid_id 近似（idk-3）
+            if crate::tree::is_solid_id(ctx, below) && crate::tree::is_solid_id(ctx, above) {
+                ctx.set_block(hx, hy, hz, st);                                                                                // :117
+            }
+        }
+    }
+}
+pub struct RootSystemFeature;
+impl RootSystemFeature {
+    /// RNG 消费序（§一.11）：origin 门 0 → 列扫 0 → 树 = 内层 placed 全流（:73）→
+    /// roots 柱（仅树命中，:74）→ hanging（仅树命中，:32）→ 恒 return true（:36）。
+    pub fn generate<F>(&self, pctx: &crate::placement::FeaturePlacementContext,
+                       ctx: &mut OreFeatureContext, config: &RootSystemConfig,
+                       random: &mut ChunkRandom, x: i32, y: i32, z: i32,
+                       gen_tree: &mut F) -> bool
+    where F: FnMut(&mut OreFeatureContext, &mut ChunkRandom, i32, i32, i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let lava = blocks.id("minecraft:lava");
+        let water = blocks.id("minecraft:water");
+        if ctx.block_at(x, y, z) != air { return false; }                                                                   // :24
+        let mut tree_done = false;
+        let mut my = y;
+        for i in 0..config.max_root_column_height {                                                                          // :65
+            my += 1;                                                                                                         // :66 move(UP)
+            if config.allowed_tree_position.test(pctx, x, my, z)
+                && root_has_space_for_tree(ctx, config, x, my, z, air, water) {                                               // :67
+                let below = ctx.block_at(x, my - 1, z);                                                                       // :68 down()
+                if below == lava || !crate::tree::is_solid_id(ctx, below) { return false; }                                    // :69
+                if gen_tree(ctx, random, x, my, z) {                                                                           // :73
+                    for k in y..(y + i) {                                                                                      // :74/:83-91
+                        root_generate_roots(ctx, config, random, x, k, z);
+                    }
+                    tree_done = true;
+                    break;
+                }
+            }
+        }
+        if tree_done {
+            root_generate_hanging_roots(ctx, config, random, x, y, z, air);                                                    // :32
+        }
+        true                                                                                                                    // :36
+    }
+}
+
+// ===== batchC（mc-1216）：unknown 残差清空 11/16 + nether_forest_vegetation =====
+// 一手源：versions/1.20.1 + versions/1.21.6 双版 mc_src_extract（实装对象两版逐行一致，
+// 唯一 diff = NetherForestVegetationFeature getTopY→getTopYInclusive 同义改名，batchC §一.11/E-4）。
+// 对拍表 + RNG 消费序声明：.investigations/mc-1216-features-takeover/batchC-worker-delivery.md §一
+// 已知限制（本族）：state=i32 无属性位（BAMBOO.LEAVES/STAGE/AGE、VINE faces、WATERLOGGED 等丢弃，
+// 对应 RNG 消费全部保留）；isSolid/isSoil/isStone/isSideSolidFullSquare → tag 展开 + is_solid_id 近似；
+// 方块实体/流体 tick no-op（同 batchA/B 全族声明）。缓装 5 项（dripstone_cluster/large_dripstone/
+// iceberg/sculk_patch/fossil）逐项理由见交付文档 §〇.2。
+
+/// Java getSeaLevel（WorldAccess 默认 63）。本批仅 overworld 数据集引用（blue_ice；iceberg 预留），
+/// 硬编码声明（idk-4）；多维度参数化课题落地时改注入。
+const SEA_LEVEL: i32 = 63;
+
+/// BlockTags.DIRT 展开（数据驱动 block_tags JSON；缺失 fallback 硬编码表 expand_tag_fallback）。
+fn dirt_tag_ids(blocks: &BlockRegistry) -> Vec<i32> {
+    let mut ids = Vec::new();
+    expand_tag(blocks, "minecraft:dirt", &mut ids);
+    ids
+}
+
+/// Feature.isSoil（Feature.java）：isIn(BlockTags.DIRT) ∨ isOf(FARMLAND)。
+fn is_soil_id(ctx: &OreFeatureContext, id: i32, dirt_ids: &[i32], farmland: i32) -> bool {
+    let _ = ctx;
+    id == farmland || dirt_ids.contains(&id)
+}
+
+/// getTopY(Heightmap.Type.WORLD_SURFACE, x, z)（bamboo podzol 圈用）：
+/// chunk 内 = world_surface 桶 +1；邻域 = block_at 下扫首个非 air +1；不可读 → None（idk-2）。
+fn get_top_y_world_surface(ctx: &OreFeatureContext, wx: i32, wz: i32) -> Option<i32> {
+    let air = crate::blocks::AIR;
+    let lx = wx - ctx.chunk_start_x;
+    let lz = wz - ctx.chunk_start_z;
+    if lx >= 0 && lx < 16 && lz >= 0 && lz < 16 {
+        let hm = ctx.world_surface?;
+        return Some(hm[(lz * 16 + lx) as usize] + 1);
+    }
+    let mut y = ctx.min_y + ctx.height - 1;
+    while y >= ctx.min_y {
+        let b = ctx.block_at(wx, y, wz);
+        if b < 0 { return None; }
+        if b != air { return Some(y + 1); }
+        y -= 1;
+    }
+    None
+}
+
+// ===== minecraft:bamboo（BambooFeature.java + ProbabilityConfig.probability）=====
+pub struct BambooFeature;
+impl BambooFeature {
+    /// RNG 消费序（§一.1）：origin 非 air 0 消费 false；air 时 canPlace 失败 0 消费但返回 true（:72）
+    /// → nextInt(12)+5 → nextFloat<probability → [圈 nextInt(4)] → 循环/顶 0 消费。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, probability: f32,
+                    random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let bamboo = blocks.id("minecraft:bamboo");
+        let bamboo_sapling = blocks.id("minecraft:bamboo_sapling");
+        let farmland = blocks.id("minecraft:farmland");
+        let podzol = blocks.id("minecraft:podzol");
+        let dirt = dirt_tag_ids(blocks);
+        if ctx.block_at(x, y, z) != air { return false; }                                  // :40
+        // :41 canPlaceAt（BambooBlock 近似）：below ∈ {bamboo, bamboo_sapling} ∨ isSoil(below)
+        let below = ctx.block_at(x, y - 1, z);
+        let can_place = below == bamboo || below == bamboo_sapling
+            || is_soil_id(ctx, below, &dirt, farmland);
+        if can_place {                                                                      // :41
+            let j = random.next_int_bound(12) + 5;                                          // :42
+            if (random.next_float() as f64) < probability as f64 {                          // :43
+                let k = random.next_int_bound(4) + 1;                                       // :44
+                for l in (x - k)..=(x + k) {                                                // :46
+                    for m in (z - k)..=(z + k) {                                            // :47
+                        let n = l - x;
+                        let o = m - z;
+                        if n * n + o * o <= k * k {                                         // :50
+                            // :51 getTopY(WORLD_SURFACE)-1；邻域不可读 None → 跳过（idk-2）
+                            if let Some(top) = get_top_y_world_surface(ctx, l, m) {
+                                let sy = top - 1;
+                                if is_soil_id(ctx, ctx.block_at(l, sy, m), &dirt, farmland) {
+                                    ctx.set_block(l, sy, m, podzol);                        // :53
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            let mut cy = y;
+            let mut kk = 0;
+            while kk < j && ctx.block_at(x, cy, z) == air {                                  // :60（先查 air）
+                ctx.set_block(x, cy, z, bamboo);                                            // :61（属性丢弃）
+                cy += 1;
+                kk += 1;
+            }
+            if cy - y >= 3 {                                                                 // :65
+                ctx.set_block(x, cy, z, bamboo);                                            // :66 TOP_1
+                ctx.set_block(x, cy - 1, z, bamboo);                                        // :67 TOP_2
+                ctx.set_block(x, cy - 2, z, bamboo);                                        // :68 TOP_3
+            }
+        }
+        true                                                                                // :72/:75
+    }
+}
+
+// ===== minecraft:block_column（BlockColumnFeature.java + Config）=====
+#[derive(Clone)]
+pub struct BlockColumnLayer {
+    pub height: crate::placement::IntProvider,
+    pub state: crate::tree::BlockStateProvider,
+}
+#[derive(Clone)]
+pub struct BlockColumnConfig {
+    pub layers: Vec<BlockColumnLayer>,
+    pub direction: [i32; 3],
+    pub allowed_placement: crate::placement::BlockPredicate,
+    pub prioritize_tip: bool,
+}
+/// layer provider 扩展解析：simple/weighted 之外补 randomized_int_state_provider
+///（cave_vine 顶端 age provider——property/values 丢弃，取 source；声明）。
+fn parse_state_provider_ext(v: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<crate::tree::BlockStateProvider> {
+    if let Some(p) = crate::tree::BlockStateProvider::parse(v, blocks) { return Some(p); }
+    let v = v?;
+    let t = v.get("type").and_then(|t| t.as_str()).unwrap_or("");
+    if t.contains("randomized_int_state_provider") {
+        return crate::tree::BlockStateProvider::parse(v.get("source"), blocks);
+    }
+    None
+}
+impl BlockColumnConfig {
+    /// BlockColumnFeatureConfig.java:13-21（全 required）。
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<BlockColumnConfig> {
+        let cfg = cfg?;
+        let dir = match cfg.get("direction").and_then(|d| d.as_str()).unwrap_or("up") {
+            "down" => [0, -1, 0],
+            "north" => [0, 0, -1],
+            "south" => [0, 0, 1],
+            "west" => [-1, 0, 0],
+            "east" => [1, 0, 0],
+            _ => [0, 1, 0], // "up" 及缺省
+        };
+        let mut layers = Vec::new();
+        if let Some(arr) = cfg.get("layers").and_then(|l| l.as_array()) {
+            for l in arr {
+                layers.push(BlockColumnLayer {
+                    height: crate::placement::IntProvider::parse(l.get("height")),
+                    state: parse_state_provider_ext(l.get("provider"), blocks)?,
+                });
+            }
+        }
+        if layers.is_empty() { return None; }
+        Some(BlockColumnConfig {
+            layers,
+            direction: dir,
+            allowed_placement: crate::placement::BlockPredicate::parse(cfg.get("allowed_placement"), blocks),
+            prioritize_tip: cfg.get("prioritize_tip").and_then(|b| b.as_bool()).unwrap_or(false),
+        })
+    }
+}
+/// adjustLayerHeights（BlockColumnFeature.java:60-72 逐行镜像）。
+fn adjust_layer_heights(heights: &mut [i32], expected: i32, actual: i32, prioritize_tip: bool) {
+    let mut i = expected - actual;
+    let j = if prioritize_tip { 1 } else { -1 };
+    let mut m = if prioritize_tip { 0i32 } else { heights.len() as i32 - 1 };
+    let end = if prioritize_tip { heights.len() as i32 } else { -1 };
+    while m != end && i > 0 {
+        let n = heights[m as usize];
+        let o = if n < i { n } else { i };
+        i -= o;
+        heights[m as usize] -= o;
+        m += j;
+    }
+}
+pub struct BlockColumnFeature;
+impl BlockColumnFeature {
+    /// RNG 消费序（§一.2）：每层 height.get（先全抽）→ 谓词/adjust 0 → 放置层内 state.get。
+    pub fn generate(&self, pctx: &crate::placement::FeaturePlacementContext,
+                    ctx: &mut OreFeatureContext, config: &BlockColumnConfig,
+                    random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let n = config.layers.len() as i32;
+        let mut heights: Vec<i32> = Vec::with_capacity(config.layers.len());
+        let mut total = 0i32;
+        for l in &config.layers {
+            let h = l.height.get(random);                                                   // :25
+            heights.push(h);
+            total += h;
+        }
+        if total == 0 { return false; }                                                     // :29
+        let (dx, dy, dz) = (config.direction[0], config.direction[1], config.direction[2]);
+        // :32-42 前探
+        let mut probe = (x + dx, y + dy, z + dz);
+        for l in 0..total {
+            if !config.allowed_placement.test(pctx, probe.0, probe.1, probe.2) {            // :36
+                adjust_layer_heights(&mut heights, total, l, config.prioritize_tip);         // :37
+                break;
+            }
+            probe = (probe.0 + dx, probe.1 + dy, probe.2 + dz);                              // :41
+        }
+        // :44-54 分层放置
+        let (mut px, mut py, mut pz) = (x, y, z);
+        for l in 0..n {
+            let m = heights[l as usize];
+            if m != 0 {
+                for _ in 0..m {
+                    let st = config.layers[l as usize].state.get(random);                    // :50
+                    ctx.set_block(px, py, pz, st);
+                    px += dx; py += dy; pz += dz;                                            // :51
+                }
+            }
+        }
+        true                                                                                 // :56
+    }
+}
+
+// ===== minecraft:blue_ice（BlueIceFeature.java，DefaultFeatureConfig 空 config）=====
+pub struct BlueIceFeature;
+impl BlueIceFeature {
+    /// RNG 消费序（§一.3）：门 0 → 每轮恒 nextInt(5)-nextInt(6)，k>=1 命中再 nextInt(k)×4。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let water = blocks.id("minecraft:water");
+        let packed_ice = blocks.id("minecraft:packed_ice");
+        let blue_ice = blocks.id("minecraft:blue_ice");
+        let ice = blocks.id("minecraft:ice");
+        let air = blocks.id("minecraft:air");
+        if y > SEA_LEVEL - 1 { return false; }                                               // :23（idk-4）
+        if ctx.block_at(x, y, z) != water && ctx.block_at(x, y - 1, z) != water { return false; } // :25
+        const D6: [[i32; 3]; 6] = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
+        let mut found = false;
+        for d in D6 {                                                                        // :30
+            if d[1] == -1 { continue; }                                                      // != DOWN
+            if ctx.block_at(x + d[0], y + d[1], z + d[2]) == packed_ice { found = true; break; }
+        }
+        if !found { return false; }                                                          // :37
+        ctx.set_block(x, y, z, blue_ice);                                                    // :40
+        for _ in 0..200 {                                                                     // :42
+            let j = random.next_int_bound(5) - random.next_int_bound(6);                      // :43
+            let mut k = 3i32;
+            if j < 2 { k += j / 2; }                                                          // :45-47（i32 截断除法同 Java）
+            if k >= 1 {                                                                       // :49
+                let px = x + random.next_int_bound(k) - random.next_int_bound(k);             // :50
+                let py = y + j;
+                let pz = z + random.next_int_bound(k) - random.next_int_bound(k);
+                let st = ctx.block_at(px, py, pz);
+                if st == air || st == water || st == packed_ice || st == ice {                 // :52
+                    for d in D6 {                                                              // :53
+                        if ctx.block_at(px + d[0], py + d[1], pz + d[2]) == blue_ice {          // :55
+                            ctx.set_block(px, py, pz, blue_ice);                                // :56
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        true                                                                                 // :64
+    }
+}
+
+// ===== minecraft:desert_well（DesertWellFeature.java，DefaultFeatureConfig）=====
+pub struct DesertWellFeature;
+impl DesertWellFeature {
+    /// RNG 消费序（§一.4）：门全 0 → nextInt(5)×2（恒消费）。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let sand = blocks.id("minecraft:sand");
+        let sandstone = blocks.id("minecraft:sandstone");
+        let slab = blocks.id("minecraft:sandstone_slab");
+        let water = blocks.id("minecraft:water");
+        let sus_sand = blocks.id("minecraft:suspicious_sand");
+        let mut py = y + 1;                                                                    // :33 up()
+        while ctx.block_at(x, py, z) == air && py > ctx.min_y + 2 { py -= 1; }                 // :35
+        if ctx.block_at(x, py, z) != sand { return false; }                                    // :39
+        for i in -2..=2 {
+            for j in -2..=2 {
+                if ctx.block_at(x + i, py - 1, z + j) == air
+                    && ctx.block_at(x + i, py - 2, z + j) == air { return false; }
+            }
+        }
+        for i in -2..=0 {
+            for j in -2..=2 {
+                for k in -2..=2 {
+                    ctx.set_block(x + j, py + i, z + k, sandstone);
+                }
+            }
+        }
+        ctx.set_block(x, py, z, water);                                                        // :58
+        const H4: [[i32; 2]; 4] = [[0, -1], [1, 0], [0, 1], [-1, 0]];                           // N,E,S,W
+        for d in H4 { ctx.set_block(x + d[0], py, z + d[1], water); }                           // :60-62
+        ctx.set_block(x, py - 1, z, sand);                                                     // :64-65
+        for d in H4 { ctx.set_block(x + d[0], py - 1, z + d[1], sand); }                         // :67-69
+        for j in -2..=2 {                                                                      // :71-77
+            for k in -2..=2 {
+                if j == -2 || j == 2 || k == -2 || k == 2 {
+                    ctx.set_block(x + j, py + 1, z + k, sandstone);
+                }
+            }
+        }
+        ctx.set_block(x + 2, py + 1, z, slab);                                                 // :79-82
+        ctx.set_block(x - 2, py + 1, z, slab);
+        ctx.set_block(x, py + 1, z + 2, slab);
+        ctx.set_block(x, py + 1, z - 2, slab);
+        for j in -1..=1 {                                                                      // :84-92
+            for k in -1..=1 {
+                if j == 0 && k == 0 { ctx.set_block(x + j, py + 4, z + k, sandstone); }
+                else { ctx.set_block(x + j, py + 4, z + k, slab); }
+            }
+        }
+        for j in 1..=3 {                                                                       // :94-99
+            ctx.set_block(x - 1, py + j, z - 1, sandstone);
+            ctx.set_block(x - 1, py + j, z + 1, sandstone);
+            ctx.set_block(x + 1, py + j, z - 1, sandstone);
+            ctx.set_block(x + 1, py + j, z + 1, sandstone);
+        }
+        // :101-104 list=[origin,E,S,W,N]；Util.getRandom = nextInt(5)
+        let spots: [[i32; 2]; 5] = [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]];
+        for depth in [1, 2] {
+            let pick = spots[random.next_int_bound(5) as usize];
+            ctx.set_block(x + pick[0], py - depth, z + pick[1], sus_sand);                     // :110
+        }
+        true                                                                                   // :105
+    }
+}
+
+// ===== minecraft:forest_rock（ForestRockFeature.java + SingleStateFeatureConfig）=====
+#[derive(Clone)]
+pub struct SingleStateConfig {
+    pub state: i32,
+}
+impl SingleStateConfig {
+    /// SingleStateFeatureConfig：state = 固定 BlockState（非 provider，0 随机消费）。
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<SingleStateConfig> {
+        Some(SingleStateConfig { state: parse_state_name(cfg, blocks)? })
+    }
+}
+pub struct ForestRockFeature;
+impl ForestRockFeature {
+    /// RNG 消费序（§一.5）：落底 0 → 3 轮每轮恒 6 次。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, config: &SingleStateConfig,
+                    random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let farmland = blocks.id("minecraft:farmland");
+        let dirt = dirt_tag_ids(blocks);
+        let mut stone_ids = Vec::new();
+        expand_tag(blocks, "minecraft:base_stone_overworld", &mut stone_ids);                   // Feature.isStone
+        let (mut px, mut py, mut pz) = (x, y, z);
+        while py > ctx.min_y + 3 {                                                              // :23
+            let below = ctx.block_at(px, py - 1, pz);
+            if below != air && (is_soil_id(ctx, below, &dirt, farmland) || stone_ids.contains(&below)) {
+                break;                                                                          // :26-27
+            }
+            py -= 1;
+        }
+        if py <= ctx.min_y + 3 { return false; }                                                // :32
+        for _ in 0..3 {                                                                          // :35
+            let j = random.next_int_bound(2);                                                    // :36
+            let k = random.next_int_bound(2);                                                    // :37
+            let l = random.next_int_bound(2);                                                    // :38
+            let f = (j + k + l) as f32 * 0.333f32 + 0.5f32;                                      // :39（f32 全程）
+            for dz in -l..=l {
+                for dy in -k..=k {
+                    for dx in -j..=j {
+                        let d2 = (dx * dx + dy * dy + dz * dz) as f64;
+                        if d2 <= (f * f) as f64 {                                                 // :42
+                            ctx.set_block(px + dx, py + dy, pz + dz, config.state);               // :43
+                        }
+                    }
+                }
+            }
+            px += -1 + random.next_int_bound(2);                                                  // :47
+            py -= random.next_int_bound(2);
+            pz += -1 + random.next_int_bound(2);
+        }
+        true                                                                                      // :50
+    }
+}
+
+// ===== minecraft:ice_spike（IceSpikeFeature.java，DefaultFeatureConfig）=====
+pub struct IceSpikeFeature;
+impl IceSpikeFeature {
+    /// RNG 消费序（§一.6）：:46 复合条件短路消费逐字保留。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let snow_block = blocks.id("minecraft:snow_block");
+        let ice = blocks.id("minecraft:ice");
+        let packed_ice = blocks.id("minecraft:packed_ice");
+        let farmland = blocks.id("minecraft:farmland");
+        let dirt = dirt_tag_ids(blocks);
+        let placeable = |ctx: &OreFeatureContext, id: i32| -> bool {
+            id == air || is_soil_id(ctx, id, &dirt, farmland) || id == snow_block || id == ice      // :48
+        };
+        let (mut px, mut py, mut pz) = (x, y, z);
+        while ctx.block_at(px, py, pz) == air && py > ctx.min_y + 2 { py -= 1; }                     // :23
+        if ctx.block_at(px, py, pz) != snow_block { return false; }                                   // :27
+        py += random.next_int_bound(4);                                                               // :30
+        let i = random.next_int_bound(4) + 7;                                                         // :31
+        let j = i / 4 + random.next_int_bound(2);                                                     // :32
+        if j > 1 && random.next_int_bound(60) == 0 {                                                  // :33（短路）
+            py += 10 + random.next_int_bound(30);                                                     // :34
+        }
+        for k in 0..i {                                                                                // :37
+            let f = (1.0f32 - k as f32 / i as f32) * j as f32;                                         // :38
+            let l = f32::ceil(f) as i32;                                                               // :39
+            for m in -l..=l {
+                let g = m.abs() as f32 - 0.25f32;                                                      // :42
+                for n in -l..=l {
+                    let h = n.abs() as f32 - 0.25f32;                                                  // :45
+                    // :46 复合条件逐字：nextFloat 仅「前半真 ∧ 非 ring」时消费
+                    let core = (m == 0 && n == 0) || !(g * g + h * h > f * f);
+                    let ring = m != -l && m != l && n != -l && n != l;
+                    if core && (ring || !(random.next_float() > 0.75f32)) {
+                        let st = ctx.block_at(px + m, py + k, pz + n);
+                        if placeable(ctx, st) {
+                            ctx.set_block(px + m, py + k, pz + n, packed_ice);                         // :49
+                        }
+                        if k != 0 && l > 1 {                                                           // :52
+                            let st2 = ctx.block_at(px + m, py - k, pz + n);
+                            if placeable(ctx, st2) {
+                                ctx.set_block(px + m, py - k, pz + n, packed_ice);                     // :55
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let mut k = j - 1;                                                                             // :63
+        if k < 0 { k = 0; } else if k > 1 { k = 1; }                                                   // :64-68
+        for o in -k..=k {                                                                              // :70-96
+            for l2 in -k..=k {
+                let mut bx = px + o;
+                let mut by = py - 1;
+                let mut bz = pz + l2;
+                let mut p = 50i32;
+                if o.abs() == 1 && l2.abs() == 1 { p = random.next_int_bound(5); }                      // :74-75
+                while by > 50 {                                                                         // :78（字面量同 Java，idk-4）
+                    let st = ctx.block_at(bx, by, bz);
+                    if st != air && !is_soil_id(ctx, st, &dirt, farmland)
+                        && st != snow_block && st != ice && st != packed_ice { break; }                  // :80-86
+                    ctx.set_block(bx, by, bz, packed_ice);                                               // :88
+                    by -= 1;
+                    p -= 1;
+                    if p <= 0 {                                                                          // :90-93
+                        by -= random.next_int_bound(5) + 1;
+                        p = random.next_int_bound(5);
+                    }
+                }
+            }
+        }
+        true                                                                                            // :98
+    }
+}
+
+// ===== minecraft:vines（VinesFeature.java，DefaultFeatureConfig）=====
+pub struct VinesFeature;
+impl VinesFeature {
+    /// RNG 消费序：**0 消费**（纯检查 + 至多放 1 格）。VINE faces 属性丢弃（裸 id）。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, _random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let vine = blocks.id("minecraft:vine");
+        if ctx.block_at(x, y, z) != air { return false; }                                               // :22
+        const D6: [[i32; 3]; 6] = [[0, -1, 0], [0, 1, 0], [0, 0, -1], [0, 0, 1], [-1, 0, 0], [1, 0, 0]];
+        for d in D6 {
+            if d[1] == -1 { continue; }
+            if crate::tree::is_solid_id(ctx, ctx.block_at(x + d[0], y + d[1], z + d[2])) {
+                ctx.set_block(x, y, z, vine);                                                            // :27
+                return true;
+            }
+        }
+        false                                                                                            // :32
+    }
+}
+
+// ===== minecraft:nether_forest_vegetation（NetherForestVegetationFeature.java + Config）=====
+#[derive(Clone)]
+pub struct NetherForestVegetationConfig {
+    pub state_provider: crate::tree::BlockStateProvider,
+    pub spread_width: i32,
+    pub spread_height: i32,
+}
+impl NetherForestVegetationConfig {
+    /// NetherForestVegetationFeatureConfig.java:9-16。
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<NetherForestVegetationConfig> {
+        let cfg = cfg?;
+        Some(NetherForestVegetationConfig {
+            state_provider: crate::tree::BlockStateProvider::parse(cfg.get("state_provider"), blocks)?,
+            spread_width: cfg.get("spread_width").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+            spread_height: cfg.get("spread_height").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+        })
+    }
+}
+pub struct NetherForestVegetationFeature;
+impl NetherForestVegetationFeature {
+    /// RNG 消费序（§一.12）：两门 0 → 每轮恒 6 次 nextInt（w,h,w 序）+ state.get（air 检查前消费）。
+    pub fn generate(&self, ctx: &mut OreFeatureContext, config: &NetherForestVegetationConfig,
+                    random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        let blocks: &BlockRegistry = ctx.blocks;
+        let air = blocks.id("minecraft:air");
+        let mut nylium = Vec::new();
+        expand_tag(blocks, "minecraft:nylium", &mut nylium);                                             // BlockTags.NYLIUM
+        if !nylium.contains(&ctx.block_at(x, y - 1, z)) { return false; }                                 // :24
+        if !(y >= ctx.min_y + 1 && y + 1 < ctx.min_y + ctx.height) { return false; }                      // :28（E-4：两版同义）
+        let (w, h) = (config.spread_width, config.spread_height);
+        if w <= 0 || h <= 0 { return false; }                                                             // 防御
+        let mut placed = 0;
+        for _ in 0..(w * w) {                                                                             // :31
+            let px = x + random.next_int_bound(w) - random.next_int_bound(w);                             // :33
+            let py = y + random.next_int_bound(h) - random.next_int_bound(h);                             // :34
+            let pz = z + random.next_int_bound(w) - random.next_int_bound(w);                             // :35
+            let st = config.state_provider.get(random);                                                    // :37
+            if ctx.block_at(px, py, pz) == air && py > ctx.min_y                                           // :38-39
+                && crate::tree::is_solid_id(ctx, ctx.block_at(px, py - 1, pz)) {                            // :40 canPlaceAt 近似
+                ctx.set_block(px, py, pz, st);                                                                // :41
+                placed += 1;
+            }
+        }
+        placed > 0                                                                                         // :46
+    }
+}
+
 // ===== minecraft:geode（GeodeFeature.java + 3 子配置）=====
 #[derive(Clone)]
 pub struct GeodeLayerThickness {

@@ -18,6 +18,9 @@ pub enum IntProvider {
     BiasedToBottom(i32, i32),   // min, max
     WeightedList(Vec<(i32, i32)>, i32), // (data, weight), totalWeight
     Clamped(Box<IntProvider>, i32, i32), // source, min, max
+    /// batchC（mc-1216）：WeightedListIntProvider——distribution[].data 为嵌套 IntProvider
+    /// （block_column layer height：dripleaf.json / cave_vine.json 实测；E-3）。
+    WeightedProviders(Vec<(IntProvider, i32)>, i32), // (provider, weight), totalWeight
 }
 
 impl IntProvider {
@@ -64,6 +67,15 @@ impl IntProvider {
                 let v = source.get(r);
                 if v < *min { *min } else if v > *max { *max } else { v }
             }
+            IntProvider::WeightedProviders(entries, total_weight) => {
+                if entries.is_empty() { return 0; }
+                let mut i = r.next_int_bound(*total_weight);
+                for (ip, w) in entries {
+                    i -= w;
+                    if i < 0 { return ip.get(r); }
+                }
+                entries[0].0.get(r)
+            }
         }
     }
 
@@ -92,6 +104,23 @@ impl IntProvider {
             )
         } else if type_name.contains("weighted_list") {
             // {"type":"minecraft:weighted_list","distribution":[{"data":6,"weight":9},...]}
+            // batchC（mc-1216）：distribution[].data 为对象时 = 嵌套 IntProvider（WeightedListIntProvider，
+            // block_column layer height：dripleaf/cave_vine 实测，E-3）——数值形态走旧 WeightedList。
+            let nested = v.get("distribution").and_then(|d| d.as_array())
+                .map(|arr| arr.iter().any(|e| e.get("data").map_or(false, |d| d.as_object().is_some())))
+                .unwrap_or(false);
+            if nested {
+                let mut entries: Vec<(IntProvider, i32)> = Vec::new();
+                let mut total = 0;
+                if let Some(arr) = v.get("distribution").and_then(|d| d.as_array()) {
+                    for e in arr {
+                        let w = e.get("weight").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32;
+                        entries.push((IntProvider::parse(e.get("data")), w));
+                        total += w;
+                    }
+                }
+                return IntProvider::WeightedProviders(entries, total);
+            }
             let mut weighted = Vec::new();
             let mut total = 0;
             if let Some(dist) = v.get("distribution") {
@@ -126,6 +155,10 @@ impl IntProvider {
             IntProvider::BiasedToBottom(_, b) => *b,
             IntProvider::WeightedList(weighted, _) => weighted.iter().map(|(d, _)| *d).max().unwrap_or(0),
             IntProvider::Clamped(_, _, max) => *max,
+            // batchC：嵌套 provider 取各上界最大（本批无 getMax 消费点，防御完备性）
+            IntProvider::WeightedProviders(entries, _) => {
+                entries.iter().map(|(ip, _)| ip.max_value()).max().unwrap_or(0)
+            }
         }
     }
 }
@@ -164,6 +197,10 @@ pub enum BlockPredicate {
     Replaceable { offset: [i32; 3] },
     Not(Box<BlockPredicate>),
     AllOf(Vec<BlockPredicate>),
+    /// batchC（mc-1216）：any_of（root_system allowed_tree_position 实测引用）
+    AnyOf(Vec<BlockPredicate>),
+    /// batchC：matching_block_tag（tag parse 期展开为 id 表；空表 = 门失效，idk-3）
+    MatchingBlockTag { offset: [i32; 3], ids: Vec<i32> },
     AlwaysTrue,
     /// 数据集出现但未实现的谓词 → 告警 + 恒 false（显式不静默）
     Unsupported { type_name: String },
@@ -197,6 +234,17 @@ impl BlockPredicate {
             BlockPredicate::MatchingBlocks { offset: offset(), ids: ids_of("blocks") }
         } else if type_name.contains("matching_fluids") {
             BlockPredicate::MatchingFluids { offset: offset(), ids: ids_of("fluids") }
+        } else if type_name.contains("matching_block_tag") {
+            // batchC（mc-1216）：{"type":"minecraft:matching_block_tag","tag":"...","offset":[..]}
+            //（rooted_azalea_tree.json azalea_grows_on / replaceable_by_trees 实测）
+            let tag = v.get("tag").and_then(|t| t.as_str()).unwrap_or("");
+            let tag = tag.strip_prefix('#').unwrap_or(tag);
+            let mut ids = Vec::new();
+            crate::feature::expand_tag(blocks, tag, &mut ids);
+            if ids.is_empty() {
+                eprintln!("[placement] matching_block_tag expanded to empty: {tag}（tag JSON 缺失？idk-3）");
+            }
+            BlockPredicate::MatchingBlockTag { offset: offset(), ids }
         } else if type_name.contains("would_survive") {
             let state_name = v.get("state").and_then(|s| s.get("Name")).and_then(|n| n.as_str()).unwrap_or("").to_string();
             // DIRT tag ∪ {farmland}（idk-5；tag JSON 接线前硬编码 1.20.1 主体，数据边界声明 §九）
@@ -215,6 +263,12 @@ impl BlockPredicate {
                 for p in arr { preds.push(BlockPredicate::parse(Some(p), blocks)); }
             }
             BlockPredicate::AllOf(preds)
+        } else if type_name.contains("any_of") {
+            let mut preds = Vec::new();
+            if let Some(arr) = v.get("predicates").and_then(|p| p.as_array()) {
+                for p in arr { preds.push(BlockPredicate::parse(Some(p), blocks)); }
+            }
+            BlockPredicate::AnyOf(preds)
         } else if type_name.contains("not") {
             BlockPredicate::Not(Box::new(BlockPredicate::parse(v.get("predicate"), blocks)))
         } else if type_name.contains("true") {
@@ -261,6 +315,11 @@ impl BlockPredicate {
             }
             BlockPredicate::Not(inner) => !inner.test(ctx, x, y, z),
             BlockPredicate::AllOf(preds) => preds.iter().all(|p| p.test(ctx, x, y, z)),
+            BlockPredicate::AnyOf(preds) => preds.iter().any(|p| p.test(ctx, x, y, z)),
+            BlockPredicate::MatchingBlockTag { offset, ids } => {
+                let cur = block_at(x + offset[0], y + offset[1], z + offset[2]);
+                cur >= 0 && ids.contains(&cur)
+            }
         }
     }
 }
@@ -297,6 +356,10 @@ pub enum PlacementModifier {
     /// batchA（mc-1216）：noise_threshold_count（NoiseThresholdCountPlacementModifier.java:11-18）
     /// count = (FOLIAGE 噪声 x/200,z/200) < noise_level ? below : above；当前噪声取样简化 0.0
     NoiseThresholdCount { noise_level: f64, below_noise: i32, above_noise: i32 },
+    /// batchC（mc-1216）：fixed_placement（FixedPlacementModifier.java:12-51，1.21.6 新增）。
+    /// positions 全表按当前 chunk section（x>>4,z>>4）过滤输出；0 RNG。
+    /// 当前 1.20.1 数据集 0 引用（end_platform 为 1.21.6 placed）——纯向前兼容（E-2）。
+    Fixed { positions: Vec<[i32; 3]> },
 }
 
 /// WG_TREEDIAG（260905-10 P2 逐树 RNG 打点，b1 §4 模板）：进程级读 env 一次，热路径零成本。
@@ -468,6 +531,13 @@ impl PlacementModifier {
                 let n = if d < *noise_level { *below_noise } else { *above_noise };
                 (0..n).map(|_| [x, y, z]).collect()
             }
+            PlacementModifier::Fixed { positions } => {
+                // FixedPlacementModifier.java:28-41：getSectionCoord = x>>4；0 随机消费
+                let (sx, sz) = (x >> 4, z >> 4);
+                positions.iter().copied()
+                    .filter(|p| p[0] >> 4 == sx && p[2] >> 4 == sz)
+                    .collect()
+            }
         }
     }
 
@@ -496,6 +566,26 @@ impl PlacementModifier {
                 below_noise: m.get("below_noise").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
                 above_noise: m.get("above_noise").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
             });
+        } else if type_name == "minecraft:fixed_placement" {
+            // FixedPlacementModifier CODEC：positions = BlockPos 列表（1.21.6 end_platform.json 实测
+            // 形态 = 三元组数组 [[x,y,z],...]；对象形态防御兼容）。batchC
+            let mut positions = Vec::new();
+            if let Some(arr) = m.get("positions").and_then(|p| p.as_array()) {
+                for p in arr {
+                    let pos = if let Some(t) = p.as_array() {
+                        let g = |i: usize| t.get(i).and_then(|v| v.as_f64()).unwrap_or(0.0) as i32;
+                        [g(0), g(1), g(2)]
+                    } else {
+                        [
+                            p.get("x").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32,
+                            p.get("y").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32,
+                            p.get("z").and_then(|v| v.as_f64()).unwrap_or(0.0) as i32,
+                        ]
+                    };
+                    positions.push(pos);
+                }
+            }
+            return Some(PlacementModifier::Fixed { positions });
         } else if type_name.contains("rarity_filter") {
             return Some(PlacementModifier::RarityFilter(m.get("chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32));
         } else if type_name.contains("in_square") {
