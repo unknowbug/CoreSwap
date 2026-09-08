@@ -70,6 +70,13 @@ Move-Item 目标父目录不存在时把源文件静默改名成目标路径（�
 
 Ingest 异常自旋活跃（8 worker 持续炸），性能观察无判别力（#34 族），维持暂缓声明。
 
+### 事件6（用户报告退出卡死，260908-04 追问轮）：保存退出卡死定位在 Voxy shutdown（candidate）
+
+- **现象**：用户报告「保存退出游戏卡住然后程序崩溃」。日志时序：10:53:08 三维度 `Saving chunks` 完成 → 10:53:12 `Shutting down voxy instance` 后主线程日志停摆 → ~10:55:33 后台线程仍在 `populateNoise intercepted` → 进程终结。**无 hs_err 文件 = 非 JVM 崩溃，是挂起后被强杀**。
+- **CoreSwap 侧排除（时序法）**：`CppBridge.destroy()` 挂 `SERVER_STOPPING`（存档前触发）——存档流程完整走完 → destroy 已正常返回，Rust 侧析构无死锁。卡点行精确落在 `VoxyInstance` shutdown。
+- **结论（candidate）**：退出挂起属 Voxy 关闭路径问题，与 Ingest bug（worker 全炸 wedged → shutdown join 挂起）同宿主同嫌疑源（voxy-forge 0.2.18-beta 移植版）；上游报修时与 Ingest AIOOBE 合并提交。未验证面：未在纯 vanilla 轮复测退出（预测：同样会卡）。
+- **置信度**：candidate；验证分层 = 行为时序日志（Partial）。
+
 ### 轮次表（续上文）
 
 | 轮 | 载具 | 结果 |
