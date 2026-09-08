@@ -1038,7 +1038,7 @@ entries:
   - id: 're-code:mc-1216-port:p7-e2e-verdict-260908-10'
     path: 'mc-1216-port-260908-10/p7-e2e-verdict-260908-10.md'
     kind: analysis
-    status: candidate  # 双臂 99.8114% → 根因 = 1.21.6 新增 StructureTerrainAdaptation.ENCAPSULATE（序数 4，trial_chambers 唯一使用者）在 Rust beardifier 落 `_ => None` → 修复后 99.9993%（41/6291456，无簇）；行为级重跑验证；confirmed 留用户
+    status: confirmed  # 用户拍板 260908-10（2026-09-08 18:0x；judge review-260908-10-001 PASS-with-conditions 4 MUST + 5 SHOULD 已闭环）——双臂 99.8114% → 根因 = 1.21.6 新增 StructureTerrainAdaptation.ENCAPSULATE（序数 4，trial_chambers 唯一使用者）在 Rust beardifier 落 `_ => None` → 修复后 99.9993%（41/6291456；逐点包含性 pre-fix 99.44% 落影响域 / post-fix 0/41）
     # 证据：.investigations/mc-1216-port-260908-10/cmd-output/p7-{dual-arm-diff,residual-cluster,column-profiles}.txt
     #   + .tmp/p7-aqdump-compare-260908-10.txt（68/68 density 符号翻转）+ .tmp/p7-starts-260908-10.txt（trial_chambers BB）
     #   + .tmp/p7-diff-rust2-260908-10.txt（修复后 41 格）；代码 = worldgen-core/src/{beardifier.rs,worldgen_handle.rs}
@@ -1066,7 +1066,7 @@ entries:
   - id: 'swe:mc-1216-port:p9-carver-floatprovider-dualform-260908-10'
     path: '../worldgen-core/src/carver.rs'
     kind: patch
-    status: candidate  # P9：1.21.6 FloatProvider 序列化扁平化 → FloatProvider::parse dual-form（v.get("value").unwrap_or(v)）；含 3 单测（扁平/嵌套逐位等值 + 真实 1.21.6 cave/canyon 金标）；全库 14/14 绿
+    status: confirmed  # 用户拍板 260908-10（P9：1.21.6 FloatProvider 序列化扁平化 → FloatProvider::parse dual-form；含 3 单测 + 真实 1.21.6 cave/canyon 金标；全库 14/14 绿）
     # 证据：.investigations/mc-1216-port-260908-10/cmd-output/p2b-*.txt + .tmp/p9-carver-test-260908-10.log；1.21.6 数据 gitignored（data/）→ 方法可比声明。
   - id: 'swe:mc-1216-port:side-findings-260908-10'
     path: 'mc-1216-port-260908-10/p7-e2e-verdict-260908-10.md'
