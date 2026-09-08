@@ -49,13 +49,13 @@
 
 - **现象**：主菜单阶段零 `[CppBridge]`/`[BLOCKS-REG]` 输出；用户在客户端建世界后日志命中：`[CppBridge] init seed=... enabled=true stageMask=3`、`initNether/initEnd enabled=true`、`[BLOCKS-REG] done count=0`（无 mod 内容块时 count=0 属预期）、`[BenchMod] CoreSwap replace mode: C++ worldgen active`。
 - **根因（零输出的解释）**：一手源码核对 `runtime/1.20.1/java/src/main/java/wg/bench/BenchMod.java`——`CppBridge.init` 挂 `ServerLifecycleEvents.SERVER_STARTED`，注释明示 integrated server 也加载 → **主菜单零 CppBridge 输出是预期行为**。
-- **结论**：客户端 integrated server 形态下 Rust worldgen 接管激活（stageMask=3 生产形态口径）首次实锤。附：`-Dcpp.blockRegister=1` 已入 launch_client.ps1（#32 必带清单客户端口径同步）。
+- **结论**：客户端 integrated server 形态下 Rust worldgen 接管激活（stageMask=3 生产形态口径）**字段值核对级实锤**（#69 判据两支中只缺行为面集合聚类——行为面对比属待办③，以「接管生效」语义对外引用前 MUST 补廉价行为面臂，§16.3）。附：`-Dcpp.blockRegister=1` 已入 launch_client.ps1（#32 必带清单客户端口径同步）。
 - **置信度/验证分层**：candidate（行为化日志命中；vanilla 对照生成速率对比属待办③，暂缓）。
 
 ### 事件3（待办②分支关闭）：R5 复现 Ingest 异常模式与 R1 逐字相同 → 「CoreSwap 引发」关闭
 
 - **现象**：R5 用户进世界移动后，8 个 Voxy worker 全炸 `Ingest service: ArrayIndexOutOfBoundsException Index 126 out of bounds for length 64, WorldConversionFactory.convert:169`——与 R1 纯 vanilla 地形异常**逐字相同**。
-- **结论**：上文待办②判据命中 → 「CoreSwap 引发」分支关闭（candidate 级：移植版自身 1.20.1 bug，上游报修或换 fork，备选见上文待办②）。
+- **结论**：上文待办②判据命中 → 「CoreSwap 引发」分支关闭（candidate 级：voxy-forge 0.2.18-beta 1.20.1 **移植版内**缺陷——「移植引入 vs 上游固有」未判别（无上游对照臂），报上游前需先在上游原版 voxy 复现）。比对局限声明（judge C1）：R1 日志仅存于会话 attachments（0f6c9ccd），仓库内不可独立核对，R5 栈在 cmd-output/ 可核。
 
 ### 事件4（骨架伪影）：非法 `--uuid 0` → Voxy 静默半初始化，伪装成「Ingest 不复现」
 

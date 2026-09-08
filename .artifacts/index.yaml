@@ -1006,3 +1006,16 @@ entries:
     #       原始数据 cmd-output/gpu-n-scan-fresh-rerun.log。
     # 关联：.investigations/perf-rework/gpu-phase1-amortization-260907-11.md + review-gpu-phase1-amortization-260907-11.md、
     #       gpu-accel-errors.md（D24/D25/G）、gpu-merge-revisit-260903-12.md、架构计划-260907-11.md。
+
+  # === mod 兼容调试 R4/R5 verdict（260908-04，judge PASS-with-conditions 条件已应用）===
+  - id: 're-code:mod-compat:client-takeover-ingest-verdict-260908-04'
+    path: '../.investigations/mod-compat-260908-02/voxy-debug-260908-03.md'
+    kind: investigation
+    status: candidate  # judge PASS-with-conditions 0c2bcfe+条件提交；confirmed 留用户
+    # 内容：① integrated server 形态接管激活 = 字段值核对级实锤（[CppBridge] init/initNether/initEnd
+    #       enabled=true stageMask=3 + BLOCKS-REG + BenchMod replace mode；行为面对比属待办③暂缓）；
+    #       ② Voxy Ingest AIOOBE idx 126/len 64「CoreSwap 引发」分支关闭（R1 vanilla/R5 Rust 异常逐字同，
+    #       定性 voxy-forge 0.2.18-beta 移植版内缺陷，移植引入 vs 上游固有未判别）；
+    #       ③ INFO 级 grep 假阴性教训 → knowledge #84 + build-tooling #33/#34。
+    # 验证：cmd-output/client-r4-evidence / client-r5-full 日志；BenchMod.java 一手源码核对。
+    # 关联：knowledge/discovered/workflow-patterns.md #84、build-tooling.md #33/#34、compat-matrix-260908-02.md。
