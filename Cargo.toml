@@ -5,4 +5,5 @@ resolver = "2"
 members = [
     "worldgen-core",
     "versions/1.20.1/rust",
+    "versions/1.21.6/rust",
 ]

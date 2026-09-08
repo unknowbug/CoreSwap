@@ -236,3 +236,11 @@ dependencies = [
  "WorldgenRust",
  "jni",
 ]
+
+[[package]]
+name = "worldgen1216"
+version = "0.1.0"
+dependencies = [
+ "WorldgenRust",
+ "jni",
+]

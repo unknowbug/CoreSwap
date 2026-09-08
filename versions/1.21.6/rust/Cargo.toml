@@ -1,0 +1,16 @@
+[package]
+name = "worldgen1216"
+version = "0.1.0"
+edition = "2024"
+
+# 1.21.6 版本薄壳：JNI 胶水（Java_wg_CppWorldgen_*）。
+# cdylib 产物 = target/release/worldgen1216.dll（workspace target 落仓库根），
+# build.gradle processResources rename 回 worldgen.dll 打包——与 1.20.1 薄壳产物互不覆盖。
+# 来源：复制 versions/1.20.1/rust（260908-09 P1）；w1-w4 diff 裁决引擎零必修项，jni_bridge 384 高度硬编码在 1.21.6 overworld 不变。
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+WorldgenRust = { path = "../../../worldgen-core" }
+jni = "0.22.4"

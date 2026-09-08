@@ -1,0 +1,6 @@
+== noise_settings/overworld: 0 diffs
+== noise_settings/nether: 0 diffs (first 10)
+== density_function/overworld: A=16 B=16
+  only in 1.20.1: []
+  only in 1.21.6: []
+  changed files: 0

@@ -7,7 +7,9 @@ use std::path::Path;
 
 // 生成 final_density 的 compute 函数（MVP，标量版）
 pub fn build_final_density() -> String {
-    let wg_dir = "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen";
+    // 数据源可经 env 覆盖（260908-09 P3：多版本重生成验证用；默认 1.20.1 不变）。
+    let wg_dir = std::env::var("WG_DATA_DIR")
+        .unwrap_or_else(|_| "E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\worldgen\\data\\minecraft\\worldgen".to_string());
     // 读 noise_settings/overworld.json 的 final_density
     let settings = parse(&std::fs::read_to_string(format!("{}/noise_settings/overworld.json", wg_dir)).unwrap()).unwrap();
     let fd = settings.get("noise_router").and_then(|r| r.get("final_density")).unwrap();
