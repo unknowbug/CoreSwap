@@ -697,3 +697,29 @@ marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却
 
 - 1.0.27 jar 一度「消失」成 `.tmp\coreswap-1027-client-test` 无扩展名文件：Move-Item 目标父目录不存在时把源改名为目标路径（**无 SilentlyContinue 也静默**）。AGENTS.md 八.5 坑的扩展形态（彼条记 SilentlyContinue 吞错，本条补「无开关也静默改名」）。判据：移动前 `New-Item -ItemType Directory` 确保目标父目录存在；「文件消失」先查目标路径名的同名无扩展文件。
 - **置信度**：本轮已验证事实（现场文件实证）。
+
+## 发现 #35: 外部 mod 配置枚举跨主版本改名盲区——2.x 字面值写入 3.x toml 解析失败/回落默认，且「模式语义」与「模式名」都要从目标版本 jar 一手核（260908-06）
+
+- **时间/置信度/module**：260908-06；candidate（jar 常量池一手 + toml 落盘实锤双证）；build-tooling / 跨版本外部配置核对（**#37/#53「默认值当公理」家族的枚举值形态**）。
+- **来源定位**：.investigations/mod-compat-260908-02/dh-scout-260908-06.md §1/§3 + .artifacts/dh-e2e-verdict-260908-06.md 证据链 1。
+- **现象**：DH 2.x 的 `distantGeneratorMode` 枚举值 `FEATURE_GENERATOR`/`INTERNAL` 在 3.2.0 已不存在——jar 常量池一手核对（`EDhApiDistantGeneratorMode.class` values 顺序）实为 `PRE_EXISTING_ONLY`/`SURFACE`/`FEATURES`/`INTERNAL_SERVER`（2.x `FEATURE_GENERATOR` 拆分/改名 `FEATURES` + 新增 `SURFACE`，`INTERNAL` 改名 `INTERNAL_SERVER`）。按旧名字面写 toml 会解析失败/回落默认。且不只是名字：**语义也不同线**——`FEATURES` 走 DH 进程内 BatchGenerator（自持 worldgen 调用，不排队 server chunk、不写 region），`INTERNAL_SERVER` 才驱动 integrated server 的真实 chunk 管线；CoreSwap 只接管 server 管线时 FEATURES 模式根本不经过 Rust。
+- **根因**：外部 mod 配置项的「可选值集合 + 语义」是目标版本 jar 的事实，不是上一版本经验的延续——跨主版本升级后枚举集合可增删改名（本例还带模式→生成步骤映射失败错误签名 `,no target step defined for generator mode: [`）。默认值当公理 = #37/#53 家族：本例默认值 `FEATURES` 由 toml 落盘实锤（首个客户端启动后 `config/DistantHorizons.toml` 出现 `distantGeneratorMode = "FEATURES"`，scout 的字节码级 candidate 推断获廉价确认）。
+- **定位**：jar 常量池字符串提取（`runtime/forge-client-test/mods/` 本地已装 jar 反查）拿枚举 values 顺序 + web javadoc 佐证；运行时 toml 落盘核对默认值；日志零 `no target step defined for generator mode` 行确认模式值有效。
+- **修复/判据**：① 外部 mod 配置项跨主版本升级后，枚举值 MUST 从**目标版本 jar 常量池/落盘 toml** 一手核对，禁止按上一版本记忆面写；② **「模式名」与「模式语义」分开核**——名字对上只保证解析通过，语义（走哪条生成管线）决定行为学结论是否成立（本例 FEATURES/INTERNAL_SERVER 的管线差直接决定「LOD 是否吃到 Rust 地形」）。
+- **教训**：选模式前先问「哪条路径经过我接管的管线」——本例首选 INTERNAL_SERVER 才闭环「远景 LOD 继承 Rust 地形」验证（`InternalServerGenerator_forge` + populateNoise Mixin 拦截 ×7,462 实证）。
+- **证据**：dh-scout-260908-06.md §1（常量池一手）+ verdict 260908-06 §证据链 1（toml 落盘 + 行为化日志双证）。
+
+## 发现 #36: MC 1.16+ level.dat 的 world seed 在 `WorldGenSettings.seed`（TAG_Long），根 Data 无旧 `Seed` 键——NBT 手解析复合头多跳一字节静默错位（260908-06）
+
+- **时间/置信度/module**：260908-06；candidate（本例 seed 三处逐字一致实锤：level.dat 解析值 = F3 屏显 = CppBridge init 行）；build-tooling / seed 三查·level.dat 环节（**seed 类错误三犯家族的键名盲区形态**）。
+- **来源定位**：.artifacts/dh-e2e-verdict-260908-06.md 证据链 2（judge N-2 落盘补正：`.tmp/check_level_seed_260908-06e.py` 解析实得 -546755292641445454）+ dh-scout-260908-06.md。
+- **现象**：在 level.dat 根 Data 下按旧键名 `Seed` 粗扫扑空（1.16+ 结构已改）；手写 NBT 解析器若把复合头按「tag(1B)+name」读而漏掉 namelen(2B)，偏移多跳一字节——**无任何报错**，后续键解析结果为空/垃圾。
+- **根因**：MC 1.16 起 world seed 移入 `Data.WorldGenSettings.seed`（TAG_Long），旧 `Seed` 键不复存在，键名先验过期 = 扑空；NBT 手解析的每个字段头都是复合结构 tag(1B)+namelen(2B)+name，长度前缀漏读是结构性静默错位（NBT 无校验和，错位只表现为下游数据荒谬或空）。
+- **定位**：seed 三查交叉——level.dat 解析值 vs F3 屏显 vs `[CppBridge] init seed=` 行逐字一致（三处同值即解析正确性直证）；字节级 sanity = 复合头肉眼核对 `04 00 04 's','e','e','d'`（tag=04 TAG_Long + namelen=0x0004 + "seed"）。
+- **修复/判据**：① seed 三查的 level.dat 环节一律用 `WorldGenSettings.seed`；② NBT 手解析每读一个字段先做已知键字节级 sanity（复合头 4 字节对齐肉眼可见），解析值再与独立源（屏显/日志行）交叉核一遍——错位无报错面，交叉核对是唯一廉价防线。
+- **教训**：「键名粗扫扑空」先疑版本结构变更（1.16 分界），不疑文件损坏；手写二进制格式解析器的错位全是静默的，sanity 锚点必须前置不是事后验结果。
+- **证据**：verdict 260908-06 证据链 2（三元组一致）+ `.tmp/check_level_seed_260908-06e.py`（脚本自证）。
+
+## 发现 #37 简记: Zstandard 容器 magic = `28 b5 2f fd`——无 zstd 通道时探测顺序 python zstandard → zstd CLI → 7-Zip，全无则降级声明不跳过（260908-06）
+
+DH 3.x FullData blob（SQLite）为 Zstandard 压缩，magic `28 b5 2f fd`（很多新工具链默认压缩，遇到未知二进制 blob 先看头 4 字节）。本机无 zstd 通道时按序探测解压途径；三条全无则按 Anchorlaw 降级声明如实记「内容未验证」，不得静默跳过验证环节伪装成「无异常」。本例：python 库/CLI/7-Zip 全无，LOD 内容抽查降级挂账（用户拍板收口）。**置信度**：本轮已验证事实（magic 实读 + 三通道探测记录）。来源：.artifacts/dh-e2e-verdict-260908-06.md §证据链 4。

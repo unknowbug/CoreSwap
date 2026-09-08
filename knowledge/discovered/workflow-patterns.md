@@ -1467,3 +1467,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 **家族索引**：#37（行为化证据在场判别——本条为其前置条件：先保证搜索域能看到行为化日志行）；#20（死参数假判别）；#59（文件在但没被读——同属「观测不到 ≠ 不存在」家族的 grep 侧形态）。
 - **证据**：`.investigations/mod-compat-260908-02/voxy-debug-260908-03.md`；R4（INFO 级假阴性）vs R5（debug 级认领行 + `.connector` 缓存时间戳）日志对比。
+
+## 发现 #85 简记: 关服瞬间批量同源异常签名——`Stopping server` 之后数秒内的批量异常先排除「关服取消」再立课题（260908-06）
+
+集成服关闭时（log `Stopping server`/`Stopping singleplayer server` 之后数秒），DH InternalServerGenerator 的 pending chunk 请求批量抛 RuntimeException UNLOADED（本例 34 条全部集中在 12:11:10 一秒内，紧随 12:11:08 关服行）。判据：**时序紧邻关服行 + 同一秒批量 + 同源签名** = 关服取消 pending 任务的预期形态（「请求被取消」属推断非日志直证，Partial 级），先做时序排除再排查，免得把关服副作用误立为独立课题。来源：.artifacts/dh-e2e-verdict-260908-06.md §非阻塞观察（judge N-4 注记）。
