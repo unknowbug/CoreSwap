@@ -115,6 +115,19 @@ impl IntProvider {
             IntProvider::Constant(0)
         }
     }
+
+    /// Java IntProvider.getMax()（geode d = k / outerWallDistance.getMax()，GeodeFeature.java:44）。
+    /// batchA（mc-1216）：WeightedList 无明确上界 → 取 data 最大值（数据集 geode 只用 uniform，不可达分支）。
+    pub fn max_value(&self) -> i32 {
+        match self {
+            IntProvider::Constant(a) => *a,
+            IntProvider::Uniform(_, b) => *b,
+            IntProvider::Trapezoid(_, b, _) => *b,
+            IntProvider::BiasedToBottom(_, b) => *b,
+            IntProvider::WeightedList(weighted, _) => weighted.iter().map(|(d, _)| *d).max().unwrap_or(0),
+            IntProvider::Clamped(_, _, max) => *max,
+        }
+    }
 }
 
 // ===== PlacementModifier 基类 =====
@@ -281,6 +294,9 @@ pub enum PlacementModifier {
     /// findPos 从列顶下扫描找第 layer 个「air/water/lava 之下是实体非基岩」的界面，
     /// 返回该空气位 y；某层全空即停。
     CountOnEveryLayer { count: IntProvider, water_id: i32, lava_id: i32, bedrock_id: i32 },
+    /// batchA（mc-1216）：noise_threshold_count（NoiseThresholdCountPlacementModifier.java:11-18）
+    /// count = (FOLIAGE 噪声 x/200,z/200) < noise_level ? below : above；当前噪声取样简化 0.0
+    NoiseThresholdCount { noise_level: f64, below_noise: i32, above_noise: i32 },
 }
 
 /// WG_TREEDIAG（260905-10 P2 逐树 RNG 打点，b1 §4 模板）：进程级读 env 一次，热路径零成本。
@@ -422,6 +438,15 @@ impl PlacementModifier {
                 }
                 out
             }
+            PlacementModifier::NoiseThresholdCount { noise_level, below_noise, above_noise } => {
+                // Java NoiseThresholdCountPlacementModifier.java:34-37：
+                //   d = Biome.FOLIAGE_NOISE.sample(x/200.0, z/200.0, false); d < noise_level ? below : above
+                // 残差（batchA #5）：placement 上下文无 foliage sampler（NoiseConfig 派生，未接线）→
+                //   沿 NoiseBasedCount 先例（本文件 noise=0.0 注释）取 0.0。证据：1.20.1 数据集 0 JSON 引用。
+                let d = 0.0f64;
+                let n = if d < *noise_level { *below_noise } else { *above_noise };
+                (0..n).map(|_| [x, y, z]).collect()
+            }
         }
     }
 
@@ -442,6 +467,13 @@ impl PlacementModifier {
                 water_id: blocks.id("minecraft:water"),
                 lava_id: blocks.id("minecraft:lava"),
                 bedrock_id: blocks.id("minecraft:bedrock"),
+            });
+        } else if type_name == "minecraft:noise_threshold_count" {
+            // NoiseThresholdCountPlacementModifier.java:11-18（一手源字段名）
+            return Some(PlacementModifier::NoiseThresholdCount {
+                noise_level: m.get("noise_level").and_then(|x| x.as_f64()).unwrap_or(0.0),
+                below_noise: m.get("below_noise").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
+                above_noise: m.get("above_noise").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32,
             });
         } else if type_name.contains("rarity_filter") {
             return Some(PlacementModifier::RarityFilter(m.get("chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32));

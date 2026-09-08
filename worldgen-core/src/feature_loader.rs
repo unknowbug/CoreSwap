@@ -62,6 +62,10 @@ pub struct ConfiguredFeature {
     pub patch_config: Option<crate::tree::RandomPatchConfig>,         // minecraft:random_patch / flower
     pub simple_block_config: Option<crate::tree::SimpleBlockConfig>,  // minecraft:simple_block
     pub fallen_config: Option<crate::tree::FallenTreeConfig>,         // minecraft:fallen_tree（B5，260908-15）
+    // —— batchA（mc-1216）：monster_room 走 DefaultFeatureConfig 空配置（无字段，分发直发）——
+    pub lake_config: Option<crate::feature::LakeConfig>,              // minecraft:lake
+    pub geode_config: Option<Box<crate::feature::GeodeConfig>>,       // minecraft:geode（大结构，Box 减负）
+    pub multiface_config: Option<crate::feature::MultifaceGrowthConfig>, // minecraft:multiface_growth
 }
 
 impl ConfiguredFeature {
@@ -81,6 +85,9 @@ impl ConfiguredFeature {
             patch_config: None,
             simple_block_config: None,
             fallen_config: None,
+            lake_config: None,
+            geode_config: None,
+            multiface_config: None,
         };
         // batch0（mc-1216）：contains 子串分发 → 精确匹配（1.21.6 Feature.java 注册名逐一核对，
         // 见 .investigations/mc-1216-features-takeover/batch0-worker-delivery.md §②）。
@@ -116,6 +123,23 @@ impl ConfiguredFeature {
             cf.fallen_config = crate::tree::FallenTreeConfig::parse(cfg, blocks);
             if cf.fallen_config.is_none() {
                 eprintln!("[feature-loader] fallen_tree config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:monster_room" {
+            // DungeonFeature = DefaultFeatureConfig 空 config（Feature.java:70；monster_room.json config={}）
+        } else if type_name == "minecraft:lake" {
+            cf.lake_config = crate::feature::LakeConfig::parse(cfg, blocks);
+            if cf.lake_config.is_none() {
+                eprintln!("[feature-loader] lake config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:geode" {
+            cf.geode_config = crate::feature::GeodeConfig::parse(cfg, blocks).map(Box::new);
+            if cf.geode_config.is_none() {
+                eprintln!("[feature-loader] geode config parse failed: {id}");
+            }
+        } else if type_name == "minecraft:multiface_growth" {
+            cf.multiface_config = crate::feature::MultifaceGrowthConfig::parse(cfg, blocks);
+            if cf.multiface_config.is_none() {
+                eprintln!("[feature-loader] multiface_growth config parse failed: {id}");
             }
         } else {
             // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
@@ -507,6 +531,23 @@ pub fn generate_configured(
         match &cf.fallen_config {
             Some(fc) => { crate::tree::FallenTreeConfig::generate(fc, octx, random, x, y, z); true }
             None => { eprintln!("[feature-loader] fallen_tree without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:monster_room" {
+        crate::feature::MonsterRoomFeature.generate(octx, random, x, y, z)
+    } else if cf.type_name == "minecraft:lake" {
+        match &cf.lake_config {
+            Some(lc) => crate::feature::LakeFeature.generate(octx, lc, random, biome_temp),
+            None => { eprintln!("[feature-loader] lake without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:geode" {
+        match &cf.geode_config {
+            Some(gc) => crate::feature::GeodeConfig::generate(gc, octx, random, x, y, z),
+            None => { eprintln!("[feature-loader] geode without config: {}", cf.id); false }
+        }
+    } else if cf.type_name == "minecraft:multiface_growth" {
+        match &cf.multiface_config {
+            Some(mc) => crate::feature::MultifaceGrowthFeature.generate(octx, mc, random, x, y, z),
+            None => { eprintln!("[feature-loader] multiface_growth without config: {}", cf.id); false }
         }
     } else {
         // batch0：generate 侧 catch-all 从静默 false → 显式告警 + unknown 计数

@@ -124,6 +124,7 @@ fn main() {
             blocks: &blocks,
             ocean_floor: None, world_surface: None,
             region_col_at: None, pending_cross: None, block_at_ext: None,
+            world_seed: 0, // batchA：诊断桩——b5/b6 不涉 geode 噪声
         };
         let pctx = FeaturePlacementContext {
             biome_at: None, ocean_floor: None, world_surface: None,

@@ -972,11 +972,15 @@ const APPROX_NON_SOLID: &[&str] = &[
     "minecraft:acacia_leaves", "minecraft:dark_oak_leaves", "minecraft:mangrove_leaves", "minecraft:cherry_leaves",
     "minecraft:azalea_leaves", "minecraft:flowering_azalea_leaves", "minecraft:pale_oak_leaves",
 ];
+/// batchA（mc-1216）：id 版 isSolid 近似（dungeon isSolid/isOf(CHEST) 判定、lake isSolid 判定复用）。
+/// 语义同 is_solid_ish（APPROX_NON_SOLID 排除表 + 非空气）；不可读（-1）→ false 保守拒绝。
+pub fn is_solid_id(ctx: &OreFeatureContext, id: i32) -> bool {
+    if id < 0 { return false; }
+    if id == ctx.blocks.id("minecraft:air") { return false; }
+    !APPROX_NON_SOLID.iter().any(|n| ctx.blocks.id(n) == id)
+}
 fn is_solid_ish(ctx: &OreFeatureContext, x: i32, y: i32, z: i32) -> bool {
-    let cur = ctx.block_at(x, y, z);
-    if cur < 0 { return false; } // 世界不可读 → 保守拒绝（can_replace 同语义）
-    if cur == ctx.blocks.id("minecraft:air") { return false; }
-    !APPROX_NON_SOLID.iter().any(|n| ctx.blocks.id(n) == cur)
+    is_solid_id(ctx, ctx.block_at(x, y, z))
 }
 
 /// MOTION_BLOCKING_NO_LEAVES heightmap 近似（place_on_ground 三合一条件第三条）：

@@ -1153,6 +1153,8 @@ impl WorldgenHandle {
                     // c-A-min：octx 侧任意点读（树冠 can_replace 等）与 fctx.block_at 同源路由
                     block_at_ext: if ca_min { Some(&block_at_col) } else { None },
                     pending_cross: if ca_min { Some(&pending_cross_cb) } else { None },
+                    // batchA（mc-1216）：geode 噪声采样器种子（GeodeFeature.java:41）
+                    world_seed: self.seed,
                 };
                 // ConfiguredFeature（创建时已预加载，运行只读无锁）
                 let cf = self.feature_cache.configured.get(&pf.configured_feature).cloned();
