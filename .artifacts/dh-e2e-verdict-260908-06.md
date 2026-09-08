@@ -3,7 +3,9 @@
 ## 任务
 官方 Distant Horizons 3.2.0-b-1.20.1（Forge）接入自建客户端载具，验证远景 LOD 是否继承 Rust 接管地形（原 NEXT_SESSION 待办④）。同块附带：Voxy 线挂起决议、grove 细雪现场判定、seed/坐标三查。
 
-## 结论（candidate，待 judge + 用户拍板）
+## 结论（confirmed，260908-06 用户拍板；judge PASS-with-conditions 条件已应用）
+
+**行为面旁证（用户实机目测陈述，260908-06）：飞行过程中远景 LOD 轮廓与走近后真实地形一致，无明显错位/断崖/结构消失。**
 
 **DH 3.2.0 INTERNAL_SERVER 模式下远景 LOD 继承 Rust 地形 —— 生成源层面闭环（behavior 级），LOD 编码内容未逐位核对（idk 降级声明）。**
 

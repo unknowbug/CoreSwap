@@ -1024,5 +1024,5 @@ entries:
   - id: 're-code:mod-compat:dh-e2e-verdict-260908-06'
     path: 'dh-e2e-verdict-260908-06.md'
     kind: analysis
-    status: candidate  # judge PASS-with-conditions（6c816d5d，N-1~N-6 已应用；confirmed 待用户）——DH 3.2.0 INTERNAL_SERVER 远景 LOD 继承 Rust 地形（生成源层面 behavior 级：populateNoise intercepted x7462 + buildSurface skipped x7461 + seed 三查全绿；LOD 编码内容未逐位核对 = idk 降级声明，抽查挂账）
+    status: confirmed  # 用户拍板 260908-06（含目测一致陈述；judge PASS-with-conditions N-1~N-6 已应用）——DH 3.2.0 INTERNAL_SERVER 远景 LOD 继承 Rust 地形（生成源层面 behavior 级：populateNoise intercepted x7462 + buildSurface skipped x7461 + seed 三查全绿；LOD 编码内容未逐位核对 = idk 降级声明，抽查挂账）
     # 关联：.investigations/mod-compat-260908-02/dh-scout-260908-06.md、runtime/forge-client-test/client_run.log、NEXT_SESSION 260908-06。
