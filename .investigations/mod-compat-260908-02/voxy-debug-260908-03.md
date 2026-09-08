@@ -29,3 +29,50 @@
 - R1 log：attachments 0f6c9ccd（1.9MB）/ 123104ff（debug 2MB）；R3：d7e8780b / 7ac9bd7d
 - jar：voxy-forge-0.2.18-beta-forge-all.jar（guchang233/voxy-forge-1.20.1 continuous，73MB）@ `.tmp/voxy/`
 - 自建客户端骨架：`runtime/forge-client-test/`（Forge 47.4.5 离线启动链已通到 ModLauncher，assets 目录缺导致止步——`fetch_vanilla_libs.ps1` 已补 63 库；备用载具）
+
+## 260908-04 增补：R4/R5 自建载具实机轮（draft，主会话实测，日志在 cmd-output/）
+
+> 承接上文待办①（客户端接管激活证据）与待办②（Voxy Ingest 归因）。R4/R5 = 自建载具
+> `runtime/forge-client-test/`（launch_client.ps1，Forge 47.4.5 离线链，四件套 mods：
+> Connector-1.0.0-beta.49 + fabric-api-0.92.6 + coreswap-1.0.27 + voxy-forge-0.2.18-beta）。
+
+### 事件1（假阴性教训）：INFO 级日志 grep 判「Connector 未认领 coreswap」= 双重假信号
+
+- **现象**：首判「coreswap 未被 Connector 认领」，依据两条：① INFO 级日志 grep「Found valid mod/coreswap」零命中；② 「Dependency resolution found 1 candidates」。换 1.0.26（服务端实锤可认领）重跑仍 1 candidates，险些触发 fan-out。
+- **根因**：① Connector 的认领行 `Found valid mod file coreswap-..._mapped_srg_...jar with {coreswap}` 本身是 **DEBUG 级**——用 INFO 级 grep 查一个只在 DEBUG 出现的行，假阴性是结构性的；② 「1 candidates」是依赖解析计数，与认领**无因果**（红鲱鱼）。
+- **定位**：开 debug 级日志（`-Dforge.logging.console.level=debug`）后认领行立现；辅证 = `.connector` 缓存里 1.0.26/1.0.27 的 `_mapped_srg` 重映射 jar 都在（10:35/10:39 时间戳）= 装载/重映射直证。
+- **修复/排除**：两版 jar（sha 不同，大小同 1431457）均被正常认领 + remap + mixin 注入（`Preparing coreswap.mixins.json (23)` + TrunkPlacerMixin 实际注入行）。「未认领」分支关闭，❌ 排除。
+- **教训**：grep 日志前先核目标行的日志级别；旁证计数与结论无因果链时不得作独立判据。详见 knowledge/discovered/workflow-patterns.md 发现 #84。
+- **置信度/验证分层**：candidate；本轮已验证事实。
+
+### 事件2（待办①闭合）：integrated server 形态接管激活首次实锤（#36 执行体三元组补面）
+
+- **现象**：主菜单阶段零 `[CppBridge]`/`[BLOCKS-REG]` 输出；用户在客户端建世界后日志命中：`[CppBridge] init seed=... enabled=true stageMask=3`、`initNether/initEnd enabled=true`、`[BLOCKS-REG] done count=0`（无 mod 内容块时 count=0 属预期）、`[BenchMod] CoreSwap replace mode: C++ worldgen active`。
+- **根因（零输出的解释）**：一手源码核对 `runtime/1.20.1/java/src/main/java/wg/bench/BenchMod.java`——`CppBridge.init` 挂 `ServerLifecycleEvents.SERVER_STARTED`，注释明示 integrated server 也加载 → **主菜单零 CppBridge 输出是预期行为**。
+- **结论**：客户端 integrated server 形态下 Rust worldgen 接管激活（stageMask=3 生产形态口径）首次实锤。附：`-Dcpp.blockRegister=1` 已入 launch_client.ps1（#32 必带清单客户端口径同步）。
+- **置信度/验证分层**：candidate（行为化日志命中；vanilla 对照生成速率对比属待办③，暂缓）。
+
+### 事件3（待办②分支关闭）：R5 复现 Ingest 异常模式与 R1 逐字相同 → 「CoreSwap 引发」关闭
+
+- **现象**：R5 用户进世界移动后，8 个 Voxy worker 全炸 `Ingest service: ArrayIndexOutOfBoundsException Index 126 out of bounds for length 64, WorldConversionFactory.convert:169`——与 R1 纯 vanilla 地形异常**逐字相同**。
+- **结论**：上文待办②判据命中 → 「CoreSwap 引发」分支关闭（candidate 级：移植版自身 1.20.1 bug，上游报修或换 fork，备选见上文待办②）。
+
+### 事件4（骨架伪影）：非法 `--uuid 0` → Voxy 静默半初始化，伪装成「Ingest 不复现」
+
+- **现象/根因**：R4 中 Voxy `async init failed`（`User.m_240411_()` NPE），LOD/Ingest 管线整体不起，一度误判「Ingest 不复现」——不是 bug 消失，是宿主管线没跑。
+- **修复**：换合法格式 UUID（`12345678-abcd-3ef0-9cba-1234567890ab`）后管线起，R5 复现事件3。详见 build-tooling.md 发现 #33。
+
+### 事件5（工具坑，简记）
+
+Move-Item 目标父目录不存在时把源文件静默改名成目标路径（无 SilentlyContinue 也静默）——1.0.27 jar 一度「消失」成 `.tmp\coreswap-1027-client-test` 无扩展名文件。AGENTS.md 八.5 的扩展形态。详见 build-tooling.md 发现 #34 简记。
+
+### 性能归因（待办③维持暂缓）
+
+Ingest 异常自旋活跃（8 worker 持续炸），性能观察无判别力（#34 族），维持暂缓声明。
+
+### 轮次表（续上文）
+
+| 轮 | 载具 | 结果 |
+|---|---|---|
+| R4 | 自建 forge-client-test，四件套（uuid=0 非法） | 装载链全通但误判未认领（事件1）；Voxy init 失败伪装「Ingest 不复现」（事件4） |
+| R5 | 同上，uuid 修正 + debug 日志 | 认领/remap/mixin 直证；建世界后接管激活实锤（事件2）；Ingest 8 worker 全炸与 R1 逐字同（事件3） |

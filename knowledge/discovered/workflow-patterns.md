@@ -1446,3 +1446,24 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 **如何利用（判据）**：① **核算优化回本门槛时，分母 MUST 绑场景**——延迟敏感场景（单 chunk 冷态）用延迟分母，吞吐摊销场景（多线程稳态）用吞吐差分分母，混用口径会高估/低估优化空间一个数量级（#18「跨 session 数字不可比」的**同 session 跨口径**形态，§9.7 具体化）。② **四臂差分法**（同 T 下 WITH/NO 某阶段 × 多档 T，各臂 chunk 粒度交错——#24 顺序效应判据同用）是采集「某阶段多线程摊销分母」的廉价方法，无需逐阶段探针。③ GPU/异步加速的 gate 对比式 = 端到端成本（kernel + dispatch + readback + 与宿主管线互斥）× 规模 vs 对应场景 CPU 口径，缺任何一项即 gate 无效。
 
 **#53 补充案例**（260908-02，⚠️ 未结案待验）：estopt_mt_bench 运行时 `$env:WG_EST_L2` 已清空仍显示 `l2=true`——疑似该开关默认开（与 #53 原例方向相反的镜像形态：**「清空 env ≠ 恢复默认值预期」**，默认值方向必须消费点直读确认，env 清空本身不构成任何方向的证据）。待 api.rs 直读钉死后回填结案。来源：`.investigations/gpu-reentry-260908-02/addendum-denominator-c2me-260908-02.md` 注记 1 + `phase0-architecture-260908-02.md` §五③。
+
+## 发现 #84: INFO 级日志 grep 的结构性假阴性 + 旁证计数红鲱鱼——判「事件不存在」先核目标行日志级别与证据因果性（260908-04）
+
+- **发现时间**：260908-04
+- **发现者**：主会话实测（mod-compat 课题 R4/R5 自建客户端轮）
+- **来源定位**：`.investigations/mod-compat-260908-02/voxy-debug-260908-03.md` §260908-04 增补·事件1 + `cmd-output/` R4/R5 日志
+- **置信度**：candidate
+- **module**: workflow
+
+**观察**：判「Connector 未认领 coreswap」的两条依据双双失效——① INFO 级日志 grep「Found valid mod/coreswap」零命中，但 Connector 的认领行 `Found valid mod file coreswap-..._mapped_srg_...jar with {coreswap}` 本身是 **DEBUG 级**；② 「Dependency resolution found 1 candidates」换可认领的版本重跑仍 1 candidates——该计数与认领**无因果**（红鲱鱼）。开 `-Dforge.logging.console.level=debug` 后认领行立现，`.connector` 缓存中两版 `_mapped_srg` 重映射 jar（时间戳）= 装载直证，两版 jar（sha 不同、大小同 1431457）均被正常认领+remap+mixin 注入。
+
+**根因**：日志 grep 是对**日志级别过滤后的视图**做搜索——目标行只存在于 DEBUG 视图时，INFO 级 grep 的零命中是结构保证的假阴性，与「事件未发生」观测上不可区分；旁证计数（candidates）与结论之间无机制因果链时，其「不变」不构成任何方向的证据，但两条独立失效证据叠加会产生强假象（险些触发 fan-out）。
+
+**如何利用（判据）**：
+1. **判「某日志事件不存在/未发生」前 MUST 先核目标行的日志级别**（源码/上游文档一手核对），搜索域必须覆盖目标级别；级别未核的零命中只能记「未观测到」，不得记「未发生」。
+2. 旁证计数/汇总行（candidates、mods=N、found X）引用前先问「它与结论之间是什么机制因果」——无因果链的数字是红鲱鱼，其变化与不变化都无判别力（#20 死参数假判别的观测侧形态）。
+3. 多条证据指向同一否定结论时，逐条验伪而不是加总置信度——证据可各自独立失效。
+4. 环境类 mod（Connector/FML）排查默认先开 debug 级日志再 grep，成本远低于误判后的返工。
+
+**家族索引**：#37（行为化证据在场判别——本条为其前置条件：先保证搜索域能看到行为化日志行）；#20（死参数假判别）；#59（文件在但没被读——同属「观测不到 ≠ 不存在」家族的 grep 侧形态）。
+- **证据**：`.investigations/mod-compat-260908-02/voxy-debug-260908-03.md`；R4（INFO 级假阴性）vs R5（debug 级认领行 + `.connector` 缓存时间戳）日志对比。

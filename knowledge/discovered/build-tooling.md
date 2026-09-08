@@ -678,3 +678,22 @@ marker 的真实语义是「**缓存相对于上次解压是否新鲜**」，却
 - **修复**：`runtime/forge-server/user_jvm_args.txt` 追加 `-Dcpp.blockRegister=1`（生产口径必带清单 +1）。注：值 `1` 同时解析为注册 limit=1，只注册首个 mod 块（test_lamp 恒 0 属预期）；多 mod 块验证时 limit 须调大。
 - **教训**：① 跨口径参数清单**按口径分组维护**，新门控参数（sysprop/env/`-P` 均同）加入时 MUST 同步登记每个口径的携带方式——映射环节本身是口径差异点；② **「单段行为化日志命中 ≠ 全链通」**——每个参数门控的段都要有自己的在场/缺席证据（#37 家族延伸）。
 - **证据**：`.tmp/forge-prod-v1-260907-10-boot.log`（FAIL 轮）vs `.tmp/forge-prod-v1b-260907-10-boot.log`（PASS 轮）；region 扫描 0 vs 672。
+
+## 发现 #33: 离线启动载具假 UUID → 依赖玩家身份的 mod 静默半初始化——「管线没跑」伪装成「bug 不复现」（260908-04，#34 谓词耦合家族）
+
+- **时间/置信度/module**：260908-04；candidate（R4/R5 修复前后对照实锤）；build-tooling / 离线启动链参数（**workflow #34 谓词耦合家族 / #28 跨口径参数家族跨载具形态**）。
+- **来源定位**：`.investigations/mod-compat-260908-02/voxy-debug-260908-03.md` §260908-04 增补·事件4 + `cmd-output/` R4/R5 日志。
+- **现象**：自建 Forge 离线客户端（launch_client.ps1）R4 轮 Voxy `async init failed`，LOD/Ingest 管线整体不起，Ingest 已知异常当轮「不复现」——差点得出「异常与环境相关」的假结论。
+- **根因**：离线鉴权参数 `--uuid 0` 非法 UUID → Voxy `createStorage` NPE（`User.m_240411_()` 返回 null）→ 存储层初始化失败使 async init 整体退出，**Ingest worker 管线从未启动**。被测 bug 的宿主管线不在线，阴性观测（异常未出现）无判别力——不是 bug 消失，是触发 bug 的机器没开机。
+- **定位**：`async init failed` + createStorage NPE 栈回溯到离线启动参数中的 uuid 字段。
+- **修复**：`--uuid 12345678-abcd-3ef0-9cba-1234567890ab`（合法格式）后 Voxy 管线正常起，R5 轮 Ingest 异常照常复现（8 worker 全炸，与 R1 逐字同）。
+- **教训/判据**：
+  1. 离线/自动化启动载具的占位参数（uuid/playername/session）必须是**格式合法**值——依赖玩家身份的 mod（存储/存档/权限类）会静默半初始化，无显式报错面。
+  2. **判别实验前先验证被测 bug 的宿主管线在场**（worker 调度日志 / init 成功日志 / 前轮复现行再次出现），否则「未复现」类阴性结论无效。
+  3. 「本轮 bug 不复现」与「上轮复现」矛盾出现时，先查两轮环境参数 diff（含启动链参数），不先怀疑 bug 的环境相关性。
+- **证据**：`runtime/forge-client-test/launch_client.ps1`（uuid=0 vs 合法 uuid）R4/R5 对照日志；Voxy `async init failed` 栈。
+
+## 发现 #34 简记: Move-Item 目标父目录不存在时把源文件静默改名成目标路径（260908-04）
+
+- 1.0.27 jar 一度「消失」成 `.tmp\coreswap-1027-client-test` 无扩展名文件：Move-Item 目标父目录不存在时把源改名为目标路径（**无 SilentlyContinue 也静默**）。AGENTS.md 八.5 坑的扩展形态（彼条记 SilentlyContinue 吞错，本条补「无开关也静默改名」）。判据：移动前 `New-Item -ItemType Directory` 确保目标父目录存在；「文件消失」先查目标路径名的同名无扩展文件。
+- **置信度**：本轮已验证事实（现场文件实证）。
