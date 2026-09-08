@@ -1095,3 +1095,12 @@ entries:
     # Chunky 1.21.6 首用量化：1089 chunks 双臂，625/3698 有差，terrain=27367/veg=6473/air=0；三家族与 1.20.1 基线同构、无新家族；水差 F1 域零差；载体 Chunky-Fabric-1.4.40 sha256 4dd5430e…a70c2
     # 关联：jungle-l/chunky-trial-260906-09.md（1.20.1 基线）；.tmp/p7-chunky-260908-11/（gitignored 证据底册）。
 
+  # === 260908-12 收口块：C1 豁免清单权威载体 ===
+  - id: 'swe:mc-1216-port:c1-exemption-list-260908-12'
+    path: 'mc-1216-port/c1-exemption-list.md'
+    kind: analysis
+    status: confirmed  # 用户拍板 260908-12（C1 豁免清单权威载体 confirmed；judge PASS-with-conditions 两条件已应用）
+    # judge review（subagent）PASS-with-conditions：MUST-C1（DimensionPadding 去向）+ SHOULD-C2（ENCAPSULATE 移 A 区作 A3）均已应用。
+    # 核验：数据文件实存 + 两侧（Rust 引擎/Java 探针）零引用 grep，与 p7-e2e-verdict-260908-10 §4 候选记录一致；静态核对非运行时行为验证（§9.7 声明见清单尾）。
+    # 来源：p7-e2e-verdict-260908-10.md、架构计划-260908-09/10-mc1216-phase3*.md、verdict-f1f2-chunky-260908-11.md。
+
