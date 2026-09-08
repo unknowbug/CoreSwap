@@ -1,0 +1,44 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PlacedFeatures.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PlacedFeatures.java"
+index ee1606f..b9670fe 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PlacedFeatures.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PlacedFeatures.java"
+@@ -7,7 +7,7 @@ import net.minecraft.registry.RegistryKey;
+ import net.minecraft.registry.RegistryKeys;
+ import net.minecraft.registry.entry.RegistryEntry;
+ import net.minecraft.util.Identifier;
+-import net.minecraft.util.collection.DataPool;
++import net.minecraft.util.collection.Pool;
+ import net.minecraft.util.math.BlockPos;
+ import net.minecraft.util.math.intprovider.ConstantIntProvider;
+ import net.minecraft.util.math.intprovider.IntProvider;
+@@ -24,6 +24,7 @@ import net.minecraft.world.gen.placementmodifier.PlacementModifier;
+ 
+ public class PlacedFeatures {
+ 	public static final PlacementModifier MOTION_BLOCKING_HEIGHTMAP = HeightmapPlacementModifier.of(Heightmap.Type.MOTION_BLOCKING);
++	public static final PlacementModifier MOTION_BLOCKING_NO_LEAVES_HEIGHTMAP = HeightmapPlacementModifier.of(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES);
+ 	public static final PlacementModifier OCEAN_FLOOR_WG_HEIGHTMAP = HeightmapPlacementModifier.of(Heightmap.Type.OCEAN_FLOOR_WG);
+ 	public static final PlacementModifier WORLD_SURFACE_WG_HEIGHTMAP = HeightmapPlacementModifier.of(Heightmap.Type.WORLD_SURFACE_WG);
+ 	public static final PlacementModifier OCEAN_FLOOR_HEIGHTMAP = HeightmapPlacementModifier.of(Heightmap.Type.OCEAN_FLOOR);
+@@ -46,7 +47,7 @@ public class PlacedFeatures {
+ 	}
+ 
+ 	public static RegistryKey<PlacedFeature> of(String id) {
+-		return RegistryKey.of(RegistryKeys.PLACED_FEATURE, new Identifier(id));
++		return RegistryKey.of(RegistryKeys.PLACED_FEATURE, Identifier.ofVanilla(id));
+ 	}
+ 
+ 	public static void register(
+@@ -72,11 +73,11 @@ public class PlacedFeatures {
+ 		if (Math.abs(f - (int)f) > 1.0E-5F) {
+ 			throw new IllegalStateException("Chance data cannot be represented as list weight");
+ 		} else {
+-			DataPool<IntProvider> dataPool = DataPool.<IntProvider>builder()
++			Pool<IntProvider> pool = Pool.<IntProvider>builder()
+ 				.add(ConstantIntProvider.create(count), (int)f - 1)
+ 				.add(ConstantIntProvider.create(count + extraCount), 1)
+ 				.build();
+-			return CountPlacementModifier.of(new WeightedListIntProvider(dataPool));
++			return CountPlacementModifier.of(new WeightedListIntProvider(pool));
+ 		}
+ 	}
+ 

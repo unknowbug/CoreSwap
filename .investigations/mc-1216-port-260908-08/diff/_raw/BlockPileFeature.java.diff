@@ -1,0 +1,13 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BlockPileFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BlockPileFeature.java"
+index 09c342d..884631e 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BlockPileFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BlockPileFeature.java"
+@@ -50,7 +50,7 @@ public class BlockPileFeature extends Feature<BlockPileFeatureConfig> {
+ 
+ 	private void addPileBlock(WorldAccess world, BlockPos pos, Random random, BlockPileFeatureConfig config) {
+ 		if (world.isAir(pos) && this.canPlace(world, pos, random)) {
+-			world.setBlockState(pos, config.stateProvider.get(random, pos), Block.NO_REDRAW);
++			world.setBlockState(pos, config.stateProvider.get(random, pos), Block.SKIP_REDRAW_AND_BLOCK_ENTITY_REPLACED_CALLBACK);
+ 		}
+ 	}
+ }

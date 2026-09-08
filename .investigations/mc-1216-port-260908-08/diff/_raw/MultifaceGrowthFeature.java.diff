@@ -1,0 +1,31 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeature.java"
+index 53713b0..89903ab 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeature.java"
+@@ -38,7 +38,7 @@ public class MultifaceGrowthFeature extends Feature<MultifaceGrowthFeatureConfig
+ 					for (int i = 0; i < multifaceGrowthFeatureConfig.searchRange; i++) {
+ 						mutable.set(blockPos, direction);
+ 						BlockState blockState = structureWorldAccess.getBlockState(mutable);
+-						if (!isAirOrWater(blockState) && !blockState.isOf(multifaceGrowthFeatureConfig.lichen)) {
++						if (!isAirOrWater(blockState) && !blockState.isOf(multifaceGrowthFeatureConfig.block)) {
+ 							break;
+ 						}
+ 
+@@ -61,7 +61,7 @@ public class MultifaceGrowthFeature extends Feature<MultifaceGrowthFeatureConfig
+ 		for (Direction direction : directions) {
+ 			BlockState blockState = world.getBlockState(mutable.set(pos, direction));
+ 			if (blockState.isIn(config.canPlaceOn)) {
+-				BlockState blockState2 = config.lichen.withDirection(state, world, pos, direction);
++				BlockState blockState2 = config.block.withDirection(state, world, pos, direction);
+ 				if (blockState2 == null) {
+ 					return false;
+ 				}
+@@ -69,7 +69,7 @@ public class MultifaceGrowthFeature extends Feature<MultifaceGrowthFeatureConfig
+ 				world.setBlockState(pos, blockState2, Block.NOTIFY_ALL);
+ 				world.getChunk(pos).markBlockForPostProcessing(pos);
+ 				if (random.nextFloat() < config.spreadChance) {
+-					config.lichen.getGrower().grow(blockState2, world, pos, direction, random, true);
++					config.block.getGrower().grow(blockState2, world, pos, direction, random, true);
+ 				}
+ 
+ 				return true;

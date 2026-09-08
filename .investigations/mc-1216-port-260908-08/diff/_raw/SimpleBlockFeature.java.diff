@@ -1,0 +1,29 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeature.java"
+index db04e5c..057548d 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeature.java"
+@@ -3,6 +3,7 @@ package net.minecraft.world.gen.feature;
+ import com.mojang.serialization.Codec;
+ import net.minecraft.block.Block;
+ import net.minecraft.block.BlockState;
++import net.minecraft.block.PaleMossCarpetBlock;
+ import net.minecraft.block.TallPlantBlock;
+ import net.minecraft.util.math.BlockPos;
+ import net.minecraft.world.StructureWorldAccess;
+@@ -26,10 +27,16 @@ public class SimpleBlockFeature extends Feature<SimpleBlockFeatureConfig> {
+ 				}
+ 
+ 				TallPlantBlock.placeAt(structureWorldAccess, blockState, blockPos, 2);
++			} else if (blockState.getBlock() instanceof PaleMossCarpetBlock) {
++				PaleMossCarpetBlock.placeAt(structureWorldAccess, blockPos, structureWorldAccess.getRandom(), 2);
+ 			} else {
+ 				structureWorldAccess.setBlockState(blockPos, blockState, Block.NOTIFY_LISTENERS);
+ 			}
+ 
++			if (simpleBlockFeatureConfig.scheduleTick()) {
++				structureWorldAccess.scheduleBlockTick(blockPos, structureWorldAccess.getBlockState(blockPos).getBlock(), 1);
++			}
++
+ 			return true;
+ 		} else {
+ 			return false;

@@ -1,0 +1,1775 @@
+
+===== FILE: net\minecraft\world\gen\noise\NoiseConfig.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseConfig.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseConfig.java"
+index 02f20d4..34d6c72 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseConfig.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseConfig.java"
+@@ -46,18 +46,18 @@ public final class NoiseConfig {
+ 		return new NoiseConfig(chunkGeneratorSettings, noiseParametersLookup, legacyWorldSeed);
+ 	}
+ 
+ 	private NoiseConfig(
+ 		ChunkGeneratorSettings chunkGeneratorSettings, RegistryEntryLookup<DoublePerlinNoiseSampler.NoiseParameters> noiseParametersLookup, long seed
+ 	) {
+ 		this.randomDeriver = chunkGeneratorSettings.getRandomProvider().create(seed).nextSplitter();
+ 		this.noiseParametersRegistry = noiseParametersLookup;
+-		this.aquiferRandomDeriver = this.randomDeriver.split(new Identifier("aquifer")).nextSplitter();
+-		this.oreRandomDeriver = this.randomDeriver.split(new Identifier("ore")).nextSplitter();
++		this.aquiferRandomDeriver = this.randomDeriver.split(Identifier.ofVanilla("aquifer")).nextSplitter();
++		this.oreRandomDeriver = this.randomDeriver.split(Identifier.ofVanilla("ore")).nextSplitter();
+ 		this.noises = new ConcurrentHashMap();
+ 		this.randomDerivers = new ConcurrentHashMap();
+ 		this.surfaceBuilder = new SurfaceBuilder(this, chunkGeneratorSettings.defaultBlock(), chunkGeneratorSettings.seaLevel(), this.randomDeriver);
+ 		final boolean bl = chunkGeneratorSettings.usesLegacyRandom();
+ 
+ 		class LegacyNoiseDensityFunctionVisitor implements DensityFunction.DensityFunctionVisitor {
+ 			private final Map<DensityFunction, DensityFunction> cache = new HashMap();
+ 
+@@ -94,17 +94,17 @@ public final class NoiseConfig {
+ 				DoublePerlinNoiseSampler doublePerlinNoiseSampler = NoiseConfig.this.getOrCreateSampler(
+ 					(RegistryKey<DoublePerlinNoiseSampler.NoiseParameters>)registryEntry.getKey().orElseThrow()
+ 				);
+ 				return new DensityFunction.Noise(registryEntry, doublePerlinNoiseSampler);
+ 			}
+ 
+ 			private DensityFunction applyNotCached(DensityFunction densityFunction) {
+ 				if (densityFunction instanceof InterpolatedNoiseSampler interpolatedNoiseSampler) {
+-					Random random = bl ? this.createRandom(0L) : NoiseConfig.this.randomDeriver.split(new Identifier("terrain"));
++					Random random = bl ? this.createRandom(0L) : NoiseConfig.this.randomDeriver.split(Identifier.ofVanilla("terrain"));
+ 					return interpolatedNoiseSampler.copyWithRandom(random);
+ 				} else {
+ 					return (DensityFunction)(densityFunction instanceof DensityFunctionTypes.EndIslands ? new DensityFunctionTypes.EndIslands(seed) : densityFunction);
+ 				}
+ 			}
+ 
+ 			@Override
+ 			public DensityFunction apply(DensityFunction densityFunction) {
+
+===== FILE: net\minecraft\world\gen\noise\NoiseParametersKeys.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseParametersKeys.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseParametersKeys.java"
+index 43d6204..bac434f 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseParametersKeys.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\noise\\NoiseParametersKeys.java"
+@@ -66,17 +66,17 @@ public class NoiseParametersKeys {
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> SOUL_SAND_LAYER = of("soul_sand_layer");
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> GRAVEL_LAYER = of("gravel_layer");
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> PATCH = of("patch");
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> NETHERRACK = of("netherrack");
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> NETHER_WART = of("nether_wart");
+ 	public static final RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> NETHER_STATE_SELECTOR = of("nether_state_selector");
+ 
+ 	private static RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> of(String id) {
+-		return RegistryKey.of(RegistryKeys.NOISE_PARAMETERS, new Identifier(id));
++		return RegistryKey.of(RegistryKeys.NOISE_PARAMETERS, Identifier.ofVanilla(id));
+ 	}
+ 
+ 	public static DoublePerlinNoiseSampler createNoiseSampler(
+ 		RegistryEntryLookup<DoublePerlinNoiseSampler.NoiseParameters> noiseParametersLookup,
+ 		RandomSplitter splitter,
+ 		RegistryKey<DoublePerlinNoiseSampler.NoiseParameters> key
+ 	) {
+ 		RegistryEntry<DoublePerlinNoiseSampler.NoiseParameters> registryEntry = noiseParametersLookup.getOrThrow(key);
+
+===== FILE: net\minecraft\world\gen\densityfunction\DensityFunctions.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctions.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctions.java"
+index ccdd636..e4a19df 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctions.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctions.java"
+@@ -58,17 +58,17 @@ public class DensityFunctions {
+ 	private static final RegistryKey<DensityFunction> CAVES_SPAGHETTI_ROUGHNESS_FUNCTION_OVERWORLD = of("overworld/caves/spaghetti_roughness_function");
+ 	private static final RegistryKey<DensityFunction> CAVES_ENTRANCES_OVERWORLD = of("overworld/caves/entrances");
+ 	private static final RegistryKey<DensityFunction> CAVES_NOODLE_OVERWORLD = of("overworld/caves/noodle");
+ 	private static final RegistryKey<DensityFunction> CAVES_PILLARS_OVERWORLD = of("overworld/caves/pillars");
+ 	private static final RegistryKey<DensityFunction> CAVES_SPAGHETTI_2D_THICKNESS_MODULATOR_OVERWORLD = of("overworld/caves/spaghetti_2d_thickness_modulator");
+ 	private static final RegistryKey<DensityFunction> CAVES_SPAGHETTI_2D_OVERWORLD = of("overworld/caves/spaghetti_2d");
+ 
+ 	private static RegistryKey<DensityFunction> of(String id) {
+-		return RegistryKey.of(RegistryKeys.DENSITY_FUNCTION, new Identifier(id));
++		return RegistryKey.of(RegistryKeys.DENSITY_FUNCTION, Identifier.ofVanilla(id));
+ 	}
+ 
+ 	public static RegistryEntry<? extends DensityFunction> bootstrap(Registerable<DensityFunction> densityFunctionRegisterable) {
+ 		RegistryEntryLookup<DoublePerlinNoiseSampler.NoiseParameters> registryEntryLookup = densityFunctionRegisterable.getRegistryLookup(
+ 			RegistryKeys.NOISE_PARAMETERS
+ 		);
+ 		RegistryEntryLookup<DensityFunction> registryEntryLookup2 = densityFunctionRegisterable.getRegistryLookup(RegistryKeys.DENSITY_FUNCTION);
+ 		densityFunctionRegisterable.register(ZERO, DensityFunctionTypes.zero());
+
+===== FILE: net\minecraft\world\gen\densityfunction\DensityFunctionTypes.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctionTypes.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctionTypes.java"
+index b796f46..b21d1db 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctionTypes.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\densityfunction\\DensityFunctionTypes.java"
+@@ -34,17 +34,17 @@ public final class DensityFunctionTypes {
+ 	protected static final double MAX_CONSTANT_VALUE = 1000000.0;
+ 	static final Codec<Double> CONSTANT_RANGE = Codec.doubleRange(-1000000.0, 1000000.0);
+ 	public static final Codec<DensityFunction> CODEC = Codec.either(CONSTANT_RANGE, DYNAMIC_RANGE)
+ 		.xmap(
+ 			either -> either.map(DensityFunctionTypes::constant, Function.identity()),
+ 			densityFunction -> densityFunction instanceof DensityFunctionTypes.Constant constant ? Either.left(constant.value()) : Either.right(densityFunction)
+ 		);
+ 
+-	public static Codec<? extends DensityFunction> registerAndGetDefault(Registry<Codec<? extends DensityFunction>> registry) {
++	public static MapCodec<? extends DensityFunction> registerAndGetDefault(Registry<MapCodec<? extends DensityFunction>> registry) {
+ 		register(registry, "blend_alpha", DensityFunctionTypes.BlendAlpha.CODEC);
+ 		register(registry, "blend_offset", DensityFunctionTypes.BlendOffset.CODEC);
+ 		register(registry, "beardifier", DensityFunctionTypes.Beardifier.CODEC_HOLDER);
+ 		register(registry, "old_blended_noise", InterpolatedNoiseSampler.CODEC);
+ 
+ 		for (DensityFunctionTypes.Wrapping.Type type : DensityFunctionTypes.Wrapping.Type.values()) {
+ 			register(registry, type.asString(), type.codec);
+ 		}
+@@ -68,18 +68,18 @@ public final class DensityFunctionTypes {
+ 			register(registry, type3.asString(), type3.codecHolder);
+ 		}
+ 
+ 		register(registry, "spline", DensityFunctionTypes.Spline.CODEC_HOLDER);
+ 		register(registry, "constant", DensityFunctionTypes.Constant.CODEC_HOLDER);
+ 		return register(registry, "y_clamped_gradient", DensityFunctionTypes.YClampedGradient.CODEC_HOLDER);
+ 	}
+ 
+-	private static Codec<? extends DensityFunction> register(
+-		Registry<Codec<? extends DensityFunction>> registry, String id, CodecHolder<? extends DensityFunction> codecHolder
++	private static MapCodec<? extends DensityFunction> register(
++		Registry<MapCodec<? extends DensityFunction>> registry, String id, CodecHolder<? extends DensityFunction> codecHolder
+ 	) {
+ 		return Registry.register(registry, id, codecHolder.codec());
+ 	}
+ 
+ 	static <A, O> CodecHolder<O> holderOf(Codec<A> codec, Function<A, O> creator, Function<O, A> argumentGetter) {
+ 		return CodecHolder.of(codec.fieldOf("argument").xmap(creator, argumentGetter));
+ 	}
+ 
+@@ -324,54 +324,54 @@ public final class DensityFunctionTypes {
+ 		DensityFunctionTypes.BinaryOperationLike.Type type, DensityFunction argument1, DensityFunction argument2, double minValue, double maxValue
+ 	) implements DensityFunctionTypes.BinaryOperationLike {
+ 		@Override
+ 		public double sample(DensityFunction.NoisePos pos) {
+ 			double d = this.argument1.sample(pos);
+ 
+ 			return switch (this.type) {
+ 				case ADD -> d + this.argument2.sample(pos);
+-				case MAX -> d > this.argument2.maxValue() ? d : Math.max(d, this.argument2.sample(pos));
+-				case MIN -> d < this.argument2.minValue() ? d : Math.min(d, this.argument2.sample(pos));
+ 				case MUL -> d == 0.0 ? 0.0 : d * this.argument2.sample(pos);
++				case MIN -> d < this.argument2.minValue() ? d : Math.min(d, this.argument2.sample(pos));
++				case MAX -> d > this.argument2.maxValue() ? d : Math.max(d, this.argument2.sample(pos));
+ 			};
+ 		}
+ 
+ 		@Override
+ 		public void fill(double[] densities, DensityFunction.EachApplier applier) {
+ 			this.argument1.fill(densities, applier);
+ 			switch (this.type) {
+ 				case ADD:
+ 					double[] ds = new double[densities.length];
+ 					this.argument2.fill(ds, applier);
+ 
+ 					for (int i = 0; i < densities.length; i++) {
+ 						densities[i] += ds[i];
+ 					}
+ 					break;
+-				case MAX:
+-					double e = this.argument2.maxValue();
+-
+-					for (int k = 0; k < densities.length; k++) {
+-						double f = densities[k];
+-						densities[k] = f > e ? f : Math.max(f, this.argument2.sample(applier.at(k)));
++				case MUL:
++					for (int j = 0; j < densities.length; j++) {
++						double d = densities[j];
++						densities[j] = d == 0.0 ? 0.0 : d * this.argument2.sample(applier.at(j));
+ 					}
+ 					break;
+ 				case MIN:
+ 					double e = this.argument2.minValue();
+ 
+ 					for (int k = 0; k < densities.length; k++) {
+ 						double f = densities[k];
+ 						densities[k] = f < e ? f : Math.min(f, this.argument2.sample(applier.at(k)));
+ 					}
+ 					break;
+-				case MUL:
+-					for (int j = 0; j < densities.length; j++) {
+-						double d = densities[j];
+-						densities[j] = d == 0.0 ? 0.0 : d * this.argument2.sample(applier.at(j));
++				case MAX:
++					double e = this.argument2.maxValue();
++
++					for (int k = 0; k < densities.length; k++) {
++						double f = densities[k];
++						densities[k] = f > e ? f : Math.max(f, this.argument2.sample(applier.at(k)));
+ 					}
+ 			}
+ 		}
+ 
+ 		@Override
+ 		public DensityFunction apply(DensityFunction.DensityFunctionVisitor visitor) {
+ 			return visitor.apply(DensityFunctionTypes.BinaryOperationLike.create(this.type, this.argument1.apply(visitor), this.argument2.apply(visitor)));
+ 		}
+@@ -391,26 +391,26 @@ public final class DensityFunctionTypes {
+ 				boolean bl = d >= g;
+ 				boolean bl2 = e >= f;
+ 				if (bl || bl2) {
+ 					LOGGER.warn("Creating a " + type + " function between two non-overlapping inputs: " + argument1 + " and " + argument2);
+ 				}
+ 			}
+ 			double h = switch (type) {
+ 				case ADD -> d + e;
+-				case MAX -> Math.max(d, e);
+-				case MIN -> Math.min(d, e);
+ 				case MUL -> d > 0.0 && e > 0.0 ? d * e : (f < 0.0 && g < 0.0 ? f * g : Math.min(d * g, f * e));
++				case MIN -> Math.min(d, e);
++				case MAX -> Math.max(d, e);
+ 			};
+ 
+ 			double i = switch (type) {
+ 				case ADD -> f + g;
+-				case MAX -> Math.max(f, g);
+-				case MIN -> Math.min(f, g);
+ 				case MUL -> d > 0.0 && e > 0.0 ? f * g : (f < 0.0 && g < 0.0 ? d * e : Math.max(d * e, f * g));
++				case MIN -> Math.min(f, g);
++				case MAX -> Math.max(f, g);
+ 			};
+ 			if (type == DensityFunctionTypes.BinaryOperationLike.Type.MUL || type == DensityFunctionTypes.BinaryOperationLike.Type.ADD) {
+ 				if (argument1 instanceof DensityFunctionTypes.Constant constant) {
+ 					return new DensityFunctionTypes.LinearOperation(
+ 						type == DensityFunctionTypes.BinaryOperationLike.Type.ADD
+ 							? DensityFunctionTypes.LinearOperation.SpecificType.ADD
+ 							: DensityFunctionTypes.LinearOperation.SpecificType.MUL,
+ 						argument2,
+@@ -455,17 +455,17 @@ public final class DensityFunctionTypes {
+ 
+ 			final CodecHolder<DensityFunctionTypes.BinaryOperationLike> codecHolder = DensityFunctionTypes.holderOf(
+ 				(densityFunction, densityFunction2) -> DensityFunctionTypes.BinaryOperationLike.create(this, densityFunction, densityFunction2),
+ 				DensityFunctionTypes.BinaryOperationLike::argument1,
+ 				DensityFunctionTypes.BinaryOperationLike::argument2
+ 			);
+ 			private final String name;
+ 
+-			private Type(String name) {
++			private Type(final String name) {
+ 				this.name = name;
+ 			}
+ 
+ 			@Override
+ 			public String asString() {
+ 				return this.name;
+ 			}
+ 		}
+@@ -1187,17 +1187,17 @@ public final class DensityFunctionTypes {
+ 			QUARTER_NEGATIVE("quarter_negative"),
+ 			SQUEEZE("squeeze");
+ 
+ 			private final String name;
+ 			final CodecHolder<DensityFunctionTypes.UnaryOperation> codecHolder = DensityFunctionTypes.holderOf(
+ 				input -> DensityFunctionTypes.UnaryOperation.create(this, input), DensityFunctionTypes.UnaryOperation::input
+ 			);
+ 
+-			private Type(String name) {
++			private Type(final String name) {
+ 				this.name = name;
+ 			}
+ 
+ 			@Override
+ 			public String asString() {
+ 				return this.name;
+ 			}
+ 		}
+@@ -1243,24 +1243,24 @@ public final class DensityFunctionTypes {
+ 		public CodecHolder<? extends DensityFunction> getCodecHolder() {
+ 			return CODEC_HOLDER;
+ 		}
+ 
+ 		public static enum RarityValueMapper implements StringIdentifiable {
+ 			TYPE1("type_1", DensityFunctions.CaveScaler::scaleTunnels, 2.0),
+ 			TYPE2("type_2", DensityFunctions.CaveScaler::scaleCaves, 3.0);
+ 
+-			public static final com.mojang.serialization.Codec<DensityFunctionTypes.WeirdScaledSampler.RarityValueMapper> CODEC = StringIdentifiable.createCodec(
++			public static final Codec<DensityFunctionTypes.WeirdScaledSampler.RarityValueMapper> CODEC = StringIdentifiable.createCodec(
+ 				DensityFunctionTypes.WeirdScaledSampler.RarityValueMapper::values
+ 			);
+ 			private final String name;
+ 			final Double2DoubleFunction scaleFunction;
+ 			final double maxValueMultiplier;
+ 
+-			private RarityValueMapper(String name, Double2DoubleFunction scaleFunction, double maxValueMultiplier) {
++			private RarityValueMapper(final String name, final Double2DoubleFunction scaleFunction, final double maxValueMultiplier) {
+ 				this.name = name;
+ 				this.scaleFunction = scaleFunction;
+ 				this.maxValueMultiplier = maxValueMultiplier;
+ 			}
+ 
+ 			@Override
+ 			public String asString() {
+ 				return this.name;
+@@ -1312,17 +1312,17 @@ public final class DensityFunctionTypes {
+ 			CACHE_ONCE("cache_once"),
+ 			CACHE_ALL_IN_CELL("cache_all_in_cell");
+ 
+ 			private final String name;
+ 			final CodecHolder<DensityFunctionTypes.Wrapper> codec = DensityFunctionTypes.holderOf(
+ 				densityFunction -> new DensityFunctionTypes.Wrapping(this, densityFunction), DensityFunctionTypes.Wrapper::wrapped
+ 			);
+ 
+-			private Type(String name) {
++			private Type(final String name) {
+ 				this.name = name;
+ 			}
+ 
+ 			@Override
+ 			public String asString() {
+ 				return this.name;
+ 			}
+ 		}
+
+===== FILE: net\minecraft\world\gen\chunk\ChunkNoiseSampler.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkNoiseSampler.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkNoiseSampler.java"
+index 82fd51e..68bd0a8 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkNoiseSampler.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkNoiseSampler.java"
+@@ -1,15 +1,14 @@
+ package net.minecraft.world.gen.chunk;
+ 
+-import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+-import com.google.common.collect.ImmutableList.Builder;
+ import it.unimi.dsi.fastutil.longs.Long2IntMap;
+ import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
++import java.util.ArrayList;
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.util.dynamic.CodecHolder;
+ import net.minecraft.util.math.ChunkPos;
+ import net.minecraft.util.math.ChunkSectionPos;
+ import net.minecraft.util.math.ColumnPos;
+@@ -168,27 +167,27 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 				noiseRouter2,
+ 				noiseConfig.getAquiferRandomDeriver(),
+ 				generationShapeConfig.minimumY(),
+ 				generationShapeConfig.height(),
+ 				fluidLevelSampler
+ 			);
+ 		}
+ 
+-		Builder<ChunkNoiseSampler.BlockStateSampler> builder = ImmutableList.builder();
++		List<ChunkNoiseSampler.BlockStateSampler> list = new ArrayList();
+ 		DensityFunction densityFunction = DensityFunctionTypes.cacheAllInCell(
+ 				DensityFunctionTypes.add(noiseRouter2.finalDensity(), DensityFunctionTypes.Beardifier.INSTANCE)
+ 			)
+ 			.apply(this::getActualDensityFunction);
+-		builder.add(pos -> this.aquiferSampler.apply(pos, densityFunction.sample(pos)));
++		list.add((ChunkNoiseSampler.BlockStateSampler)pos -> this.aquiferSampler.apply(pos, densityFunction.sample(pos)));
+ 		if (chunkGeneratorSettings.oreVeins()) {
+-			builder.add(OreVeinSampler.create(noiseRouter2.veinToggle(), noiseRouter2.veinRidged(), noiseRouter2.veinGap(), noiseConfig.getOreRandomDeriver()));
++			list.add(OreVeinSampler.create(noiseRouter2.veinToggle(), noiseRouter2.veinRidged(), noiseRouter2.veinGap(), noiseConfig.getOreRandomDeriver()));
+ 		}
+ 
+-		this.blockStateSampler = new ChainedBlockSource(builder.build());
++		this.blockStateSampler = new ChainedBlockSource((ChunkNoiseSampler.BlockStateSampler[])list.toArray(new ChunkNoiseSampler.BlockStateSampler[0]));
+ 		this.initialDensityWithoutJaggedness = noiseRouter2.initialDensityWithoutJaggedness();
+ 	}
+ 
+ 	protected MultiNoiseUtil.MultiNoiseSampler createMultiNoiseSampler(NoiseRouter noiseRouter, List<MultiNoiseUtil.NoiseHypercube> spawnTarget) {
+ 		return new MultiNoiseUtil.MultiNoiseSampler(
+ 			noiseRouter.temperature().apply(this::getActualDensityFunction),
+ 			noiseRouter.vegetation().apply(this::getActualDensityFunction),
+ 			noiseRouter.continents().apply(this::getActualDensityFunction),
+@@ -335,17 +334,20 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 	 * 
+ 	 * @implNote For filling the cell caches, {@code this} is used as the
+ 	 * {@link net.minecraft.world.gen.densityfunction.DensityFunction.EachApplier EachApplier}.
+ 	 * 
+ 	 * @param cellZ the chunk-local cell Z coordinate
+ 	 * @param cellY the chunk-local cell Y coordinate
+ 	 */
+ 	public void onSampledCellCorners(int cellY, int cellZ) {
+-		this.interpolators.forEach(interpolator -> interpolator.onSampledCellCorners(cellY, cellZ));
++		for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.interpolators) {
++			densityInterpolator.onSampledCellCorners(cellY, cellZ);
++		}
++
+ 		this.isSamplingForCaches = true;
+ 		this.startBlockY = (cellY + this.minimumCellY) * this.verticalCellBlockCount;
+ 		this.startBlockZ = (this.startCellZ + cellZ) * this.horizontalCellBlockCount;
+ 		this.cacheOnceUniqueIndex++;
+ 
+ 		for (ChunkNoiseSampler.CellCache cellCache : this.caches) {
+ 			cellCache.delegate.fill(cellCache.cache, this);
+ 		}
+@@ -357,40 +359,49 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 	/**
+ 	 * Interpolates density values on the Y axis for every interpolator.
+ 	 * 
+ 	 * @param blockY the absolute block Y coordinate
+ 	 * @param deltaY the cell-local block Y coordinate divided by the number of blocks in a cell vertically
+ 	 */
+ 	public void interpolateY(int blockY, double deltaY) {
+ 		this.cellBlockY = blockY - this.startBlockY;
+-		this.interpolators.forEach(interpolator -> interpolator.interpolateY(deltaY));
++
++		for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.interpolators) {
++			densityInterpolator.interpolateY(deltaY);
++		}
+ 	}
+ 
+ 	/**
+ 	 * Interpolates density values on the X axis for every interpolator.
+ 	 * 
+ 	 * @param deltaX the cell-local block X coordinate divided by the number of blocks in a cell horizontally
+ 	 * @param blockX the absolute block X coordinate
+ 	 */
+ 	public void interpolateX(int blockX, double deltaX) {
+ 		this.cellBlockX = blockX - this.startBlockX;
+-		this.interpolators.forEach(interpolator -> interpolator.interpolateX(deltaX));
++
++		for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.interpolators) {
++			densityInterpolator.interpolateX(deltaX);
++		}
+ 	}
+ 
+ 	/**
+ 	 * Interpolates density values on the Z axis for every interpolator.
+ 	 * 
+ 	 * @param blockZ the absolute block Z coordinate
+ 	 * @param deltaZ the cell-local block Z coordinate divided by the number of blocks in a cell vertically
+ 	 */
+ 	public void interpolateZ(int blockZ, double deltaZ) {
+ 		this.cellBlockZ = blockZ - this.startBlockZ;
+ 		this.sampleUniqueIndex++;
+-		this.interpolators.forEach(interpolator -> interpolator.interpolateZ(deltaZ));
++
++		for (ChunkNoiseSampler.DensityInterpolator densityInterpolator : this.interpolators) {
++			densityInterpolator.interpolateZ(deltaZ);
++		}
+ 	}
+ 
+ 	/**
+ 	 * Stops the interpolation loop for this chunk.
+ 	 */
+ 	public void stopInterpolation() {
+ 		if (!this.isInInterpolationLoop) {
+ 			throw new IllegalStateException("Staring interpolation twice");
+@@ -597,17 +608,17 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 	class CacheOnce implements DensityFunctionTypes.Wrapper, ChunkNoiseSampler.ParentedNoiseType {
+ 		private final DensityFunction delegate;
+ 		private long sampleUniqueIndex;
+ 		private long cacheOnceUniqueIndex;
+ 		private double lastSamplingResult;
+ 		@Nullable
+ 		private double[] cache;
+ 
+-		CacheOnce(DensityFunction delegate) {
++		CacheOnce(final DensityFunction delegate) {
+ 			this.delegate = delegate;
+ 		}
+ 
+ 		@Override
+ 		public double sample(DensityFunction.NoisePos pos) {
+ 			if (pos != ChunkNoiseSampler.this) {
+ 				return this.delegate.sample(pos);
+ 			} else if (this.cache != null && this.cacheOnceUniqueIndex == ChunkNoiseSampler.this.cacheOnceUniqueIndex) {
+@@ -648,17 +659,17 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 			return DensityFunctionTypes.Wrapping.Type.CACHE_ONCE;
+ 		}
+ 	}
+ 
+ 	class CellCache implements DensityFunctionTypes.Wrapper, ChunkNoiseSampler.ParentedNoiseType {
+ 		final DensityFunction delegate;
+ 		final double[] cache;
+ 
+-		CellCache(DensityFunction delegate) {
++		CellCache(final DensityFunction delegate) {
+ 			this.delegate = delegate;
+ 			this.cache = new double[ChunkNoiseSampler.this.horizontalCellBlockCount
+ 				* ChunkNoiseSampler.this.horizontalCellBlockCount
+ 				* ChunkNoiseSampler.this.verticalCellBlockCount];
+ 			ChunkNoiseSampler.this.caches.add(this);
+ 		}
+ 
+ 		@Override
+@@ -715,17 +726,17 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 		private double x0z0;
+ 		private double x1z0;
+ 		private double x0z1;
+ 		private double x1z1;
+ 		private double z0;
+ 		private double z1;
+ 		private double result;
+ 
+-		DensityInterpolator(DensityFunction delegate) {
++		DensityInterpolator(final DensityFunction delegate) {
+ 			this.delegate = delegate;
+ 			this.startDensityBuffer = this.createBuffer(ChunkNoiseSampler.this.verticalCellCount, ChunkNoiseSampler.this.horizontalCellCount);
+ 			this.endDensityBuffer = this.createBuffer(ChunkNoiseSampler.this.verticalCellCount, ChunkNoiseSampler.this.horizontalCellCount);
+ 			ChunkNoiseSampler.this.interpolators.add(this);
+ 		}
+ 
+ 		private double[][] createBuffer(int sizeZ, int sizeX) {
+ 			int i = sizeX + 1;
+@@ -832,17 +843,17 @@ public class ChunkNoiseSampler implements DensityFunction.EachApplier, DensityFu
+ 			return DensityFunctionTypes.Wrapping.Type.INTERPOLATED;
+ 		}
+ 	}
+ 
+ 	class FlatCache implements DensityFunctionTypes.Wrapper, ChunkNoiseSampler.ParentedNoiseType {
+ 		private final DensityFunction delegate;
+ 		final double[][] cache;
+ 
+-		FlatCache(DensityFunction delegate, boolean sample) {
++		FlatCache(final DensityFunction delegate, final boolean sample) {
+ 			this.delegate = delegate;
+ 			this.cache = new double[ChunkNoiseSampler.this.horizontalBiomeEnd + 1][ChunkNoiseSampler.this.horizontalBiomeEnd + 1];
+ 			if (sample) {
+ 				for (int i = 0; i <= ChunkNoiseSampler.this.horizontalBiomeEnd; i++) {
+ 					int j = ChunkNoiseSampler.this.startBiomeX + i;
+ 					int k = BiomeCoords.toBlock(j);
+ 
+ 					for (int l = 0; l <= ChunkNoiseSampler.this.horizontalBiomeEnd; l++) {
+
+===== FILE: net\minecraft\world\gen\chunk\AquiferSampler.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\AquiferSampler.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\AquiferSampler.java"
+index 6552aeb..e86a335 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\AquiferSampler.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\AquiferSampler.java"
+@@ -44,24 +44,17 @@ public interface AquiferSampler {
+ 		};
+ 	}
+ 
+ 	@Nullable
+ 	BlockState apply(DensityFunction.NoisePos pos, double density);
+ 
+ 	boolean needsFluidTick();
+ 
+-	public static final class FluidLevel {
+-		final int y;
+-		final BlockState state;
+-
+-		public FluidLevel(int y, BlockState state) {
+-			this.y = y;
+-			this.state = state;
+-		}
++	public record FluidLevel(int y, BlockState state) {
+ 
+ 		public BlockState getBlockState(int y) {
+ 			return y < this.y ? this.state : Blocks.AIR.getDefaultState();
+ 		}
+ 	}
+ 
+ 	public interface FluidLevelSampler {
+ 		AquiferSampler.FluidLevel getFluidLevel(int x, int y, int z);
+@@ -156,98 +149,125 @@ public interface AquiferSampler {
+ 					return Blocks.LAVA.getDefaultState();
+ 				} else {
+ 					int l = Math.floorDiv(i - 5, 16);
+ 					int m = Math.floorDiv(j + 1, 12);
+ 					int n = Math.floorDiv(k - 5, 16);
+ 					int o = Integer.MAX_VALUE;
+ 					int p = Integer.MAX_VALUE;
+ 					int q = Integer.MAX_VALUE;
+-					long r = 0L;
++					int r = Integer.MAX_VALUE;
+ 					long s = 0L;
+ 					long t = 0L;
+-
+-					for (int u = 0; u <= 1; u++) {
+-						for (int v = -1; v <= 1; v++) {
+-							for (int w = 0; w <= 1; w++) {
+-								int x = l + u;
+-								int y = m + v;
+-								int z = n + w;
+-								int aa = this.index(x, y, z);
+-								long ab = this.blockPositions[aa];
+-								long ac;
+-								if (ab != Long.MAX_VALUE) {
+-									ac = ab;
++					long u = 0L;
++					long v = 0L;
++
++					for (int w = 0; w <= 1; w++) {
++						for (int x = -1; x <= 1; x++) {
++							for (int y = 0; y <= 1; y++) {
++								int z = l + w;
++								int aa = m + x;
++								int ab = n + y;
++								int ac = this.index(z, aa, ab);
++								long ad = this.blockPositions[ac];
++								long ae;
++								if (ad != Long.MAX_VALUE) {
++									ae = ad;
+ 								} else {
+-									Random random = this.randomDeriver.split(x, y, z);
+-									ac = BlockPos.asLong(x * 16 + random.nextInt(10), y * 12 + random.nextInt(9), z * 16 + random.nextInt(10));
+-									this.blockPositions[aa] = ac;
++									Random random = this.randomDeriver.split(z, aa, ab);
++									ae = BlockPos.asLong(z * 16 + random.nextInt(10), aa * 12 + random.nextInt(9), ab * 16 + random.nextInt(10));
++									this.blockPositions[ac] = ae;
+ 								}
+ 
+-								int ad = BlockPos.unpackLongX(ac) - i;
+-								int ae = BlockPos.unpackLongY(ac) - j;
+-								int af = BlockPos.unpackLongZ(ac) - k;
+-								int ag = ad * ad + ae * ae + af * af;
+-								if (o >= ag) {
++								int af = BlockPos.unpackLongX(ae) - i;
++								int ag = BlockPos.unpackLongY(ae) - j;
++								int ah = BlockPos.unpackLongZ(ae) - k;
++								int ai = af * af + ag * ag + ah * ah;
++								if (o >= ai) {
++									v = u;
++									u = t;
+ 									t = s;
+-									s = r;
+-									r = ac;
++									s = ae;
++									r = q;
+ 									q = p;
+ 									p = o;
+-									o = ag;
+-								} else if (p >= ag) {
+-									t = s;
+-									s = ac;
++									o = ai;
++								} else if (p >= ai) {
++									v = u;
++									u = t;
++									t = ae;
++									r = q;
+ 									q = p;
+-									p = ag;
+-								} else if (q >= ag) {
+-									t = ac;
+-									q = ag;
++									p = ai;
++								} else if (q >= ai) {
++									v = u;
++									u = ae;
++									r = q;
++									q = ai;
++								} else if (r >= ai) {
++									v = ae;
++									r = ai;
+ 								}
+ 							}
+ 						}
+ 					}
+ 
+-					AquiferSampler.FluidLevel fluidLevel2 = this.getWaterLevel(r);
++					AquiferSampler.FluidLevel fluidLevel2 = this.getWaterLevel(s);
+ 					double d = maxDistance(o, p);
+ 					BlockState blockState = fluidLevel2.getBlockState(j);
+ 					if (d <= 0.0) {
+-						this.needsFluidTick = d >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD;
++						if (d >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD) {
++							AquiferSampler.FluidLevel fluidLevel3 = this.getWaterLevel(t);
++							this.needsFluidTick = !fluidLevel2.equals(fluidLevel3);
++						} else {
++							this.needsFluidTick = false;
++						}
++
+ 						return blockState;
+ 					} else if (blockState.isOf(Blocks.WATER) && this.fluidLevelSampler.getFluidLevel(i, j - 1, k).getBlockState(j - 1).isOf(Blocks.LAVA)) {
+ 						this.needsFluidTick = true;
+ 						return blockState;
+ 					} else {
+ 						MutableDouble mutableDouble = new MutableDouble(Double.NaN);
+-						AquiferSampler.FluidLevel fluidLevel3 = this.getWaterLevel(s);
+-						double e = d * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel3);
++						AquiferSampler.FluidLevel fluidLevel4 = this.getWaterLevel(t);
++						double e = d * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel4);
+ 						if (density + e > 0.0) {
+ 							this.needsFluidTick = false;
+ 							return null;
+ 						} else {
+-							AquiferSampler.FluidLevel fluidLevel4 = this.getWaterLevel(t);
++							AquiferSampler.FluidLevel fluidLevel5 = this.getWaterLevel(u);
+ 							double f = maxDistance(o, q);
+ 							if (f > 0.0) {
+-								double g = d * f * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel4);
++								double g = d * f * this.calculateDensity(pos, mutableDouble, fluidLevel2, fluidLevel5);
+ 								if (density + g > 0.0) {
+ 									this.needsFluidTick = false;
+ 									return null;
+ 								}
+ 							}
+ 
+ 							double g = maxDistance(p, q);
+ 							if (g > 0.0) {
+-								double h = d * g * this.calculateDensity(pos, mutableDouble, fluidLevel3, fluidLevel4);
++								double h = d * g * this.calculateDensity(pos, mutableDouble, fluidLevel4, fluidLevel5);
+ 								if (density + h > 0.0) {
+ 									this.needsFluidTick = false;
+ 									return null;
+ 								}
+ 							}
+ 
+-							this.needsFluidTick = true;
++							boolean bl = !fluidLevel2.equals(fluidLevel4);
++							boolean bl2 = g >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD && !fluidLevel4.equals(fluidLevel5);
++							boolean bl3 = f >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD && !fluidLevel2.equals(fluidLevel5);
++							if (!bl && !bl2 && !bl3) {
++								this.needsFluidTick = f >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD
++									&& maxDistance(o, r) >= NEEDS_FLUID_TICK_DISTANCE_THRESHOLD
++									&& !fluidLevel2.equals(this.getWaterLevel(v));
++							} else {
++								this.needsFluidTick = true;
++							}
++
+ 							return blockState;
+ 						}
+ 					}
+ 				}
+ 			}
+ 		}
+ 
+ 		@Override
+@@ -387,17 +407,17 @@ public interface AquiferSampler {
+ 			int p = this.getFluidBlockY(blockX, blockY, blockZ, fluidLevel, i, bl);
+ 			return new AquiferSampler.FluidLevel(p, this.getFluidBlockState(blockX, blockY, blockZ, fluidLevel, p));
+ 		}
+ 
+ 		private int getFluidBlockY(int blockX, int blockY, int blockZ, AquiferSampler.FluidLevel defaultFluidLevel, int surfaceHeightEstimate, boolean bl) {
+ 			DensityFunction.UnblendedNoisePos unblendedNoisePos = new DensityFunction.UnblendedNoisePos(blockX, blockY, blockZ);
+ 			double d;
+ 			double e;
+-			if (VanillaBiomeParameters.method_43718(this.erosionDensityFunction, this.depthDensityFunction, unblendedNoisePos)) {
++			if (VanillaBiomeParameters.inDeepDarkParameters(this.erosionDensityFunction, this.depthDensityFunction, unblendedNoisePos)) {
+ 				d = -1.0;
+ 				e = -1.0;
+ 			} else {
+ 				int i = surfaceHeightEstimate + 8 - blockY;
+ 				int j = 64;
+ 				double f = bl ? MathHelper.clampedMap((double)i, 0.0, 64.0, 1.0, 0.0) : 0.0;
+ 				double g = MathHelper.clamp(this.fluidLevelFloodednessNoise.sample(unblendedNoisePos), -1.0, 1.0);
+ 				double h = MathHelper.map(f, 1.0, 0.0, -0.3, 0.8);
+
+===== FILE: net\minecraft\world\gen\chunk\GenerationShapeConfig.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\GenerationShapeConfig.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\GenerationShapeConfig.java"
+index 2412db7..ba42d05 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\GenerationShapeConfig.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\GenerationShapeConfig.java"
+@@ -32,28 +32,28 @@ public record GenerationShapeConfig(int minimumY, int height, int horizontalSize
+ 			return DataResult.error(() -> "height has to be a multiple of 16");
+ 		} else {
+ 			return config.minimumY() % 16 != 0 ? DataResult.error(() -> "min_y has to be a multiple of 16") : DataResult.success(config);
+ 		}
+ 	}
+ 
+ 	public static GenerationShapeConfig create(int minimumY, int height, int horizontalSize, int verticalSize) {
+ 		GenerationShapeConfig generationShapeConfig = new GenerationShapeConfig(minimumY, height, horizontalSize, verticalSize);
+-		checkHeight(generationShapeConfig).error().ifPresent(result -> {
+-			throw new IllegalStateException(result.message());
++		checkHeight(generationShapeConfig).error().ifPresent(error -> {
++			throw new IllegalStateException(error.message());
+ 		});
+ 		return generationShapeConfig;
+ 	}
+ 
+ 	public int verticalCellBlockCount() {
+ 		return BiomeCoords.toBlock(this.verticalSize());
+ 	}
+ 
+ 	public int horizontalCellBlockCount() {
+ 		return BiomeCoords.toBlock(this.horizontalSize());
+ 	}
+ 
+ 	public GenerationShapeConfig trimHeight(HeightLimitView world) {
+ 		int i = Math.max(this.minimumY, world.getBottomY());
+-		int j = Math.min(this.minimumY + this.height, world.getTopY()) - i;
++		int j = Math.min(this.minimumY + this.height, world.getTopYInclusive() + 1) - i;
+ 		return new GenerationShapeConfig(i, j, this.horizontalSize, this.verticalSize);
+ 	}
+ }
+
+===== FILE: net\minecraft\world\gen\chunk\NoiseChunkGenerator.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\NoiseChunkGenerator.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\NoiseChunkGenerator.java"
+index 56f2df8..6a94292 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\NoiseChunkGenerator.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\NoiseChunkGenerator.java"
+@@ -1,21 +1,20 @@
+ package net.minecraft.world.gen.chunk;
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.base.Suppliers;
+ import com.google.common.collect.Sets;
+-import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.text.DecimalFormat;
+ import java.util.List;
+ import java.util.OptionalInt;
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
+-import java.util.concurrent.Executor;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.registry.Registry;
+ import net.minecraft.registry.RegistryKey;
+ import net.minecraft.registry.RegistryKeys;
+@@ -37,33 +36,32 @@ import net.minecraft.world.biome.source.BiomeAccess;
+ import net.minecraft.world.biome.source.BiomeCoords;
+ import net.minecraft.world.biome.source.BiomeSource;
+ import net.minecraft.world.biome.source.BiomeSupplier;
+ import net.minecraft.world.chunk.BelowZeroRetrogen;
+ import net.minecraft.world.chunk.Chunk;
+ import net.minecraft.world.chunk.ChunkSection;
+ import net.minecraft.world.chunk.ProtoChunk;
+ import net.minecraft.world.dimension.DimensionType;
+-import net.minecraft.world.gen.GenerationStep;
+ import net.minecraft.world.gen.HeightContext;
+ import net.minecraft.world.gen.StructureAccessor;
+ import net.minecraft.world.gen.StructureWeightSampler;
+ import net.minecraft.world.gen.carver.CarverContext;
+ import net.minecraft.world.gen.carver.CarvingMask;
+ import net.minecraft.world.gen.carver.ConfiguredCarver;
+ import net.minecraft.world.gen.densityfunction.DensityFunction;
+ import net.minecraft.world.gen.densityfunction.DensityFunctionTypes;
+ import net.minecraft.world.gen.densityfunction.DensityFunctions;
+ import net.minecraft.world.gen.noise.NoiseConfig;
+ import net.minecraft.world.gen.noise.NoiseRouter;
+ import org.apache.commons.lang3.mutable.MutableObject;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public final class NoiseChunkGenerator extends ChunkGenerator {
+-	public static final Codec<NoiseChunkGenerator> CODEC = RecordCodecBuilder.create(
++	public static final MapCodec<NoiseChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(
+ 		instance -> instance.group(
+ 				BiomeSource.CODEC.fieldOf("biome_source").forGetter(generator -> generator.biomeSource),
+ 				ChunkGeneratorSettings.REGISTRY_CODEC.fieldOf("settings").forGetter(generator -> generator.settings)
+ 			)
+ 			.apply(instance, instance.stable(NoiseChunkGenerator::new))
+ 	);
+ 	private static final BlockState AIR = Blocks.AIR.getDefaultState();
+ 	private final RegistryEntry<ChunkGeneratorSettings> settings;
+@@ -79,21 +77,21 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 		AquiferSampler.FluidLevel fluidLevel = new AquiferSampler.FluidLevel(-54, Blocks.LAVA.getDefaultState());
+ 		int i = settings.seaLevel();
+ 		AquiferSampler.FluidLevel fluidLevel2 = new AquiferSampler.FluidLevel(i, settings.defaultFluid());
+ 		AquiferSampler.FluidLevel fluidLevel3 = new AquiferSampler.FluidLevel(DimensionType.MIN_HEIGHT * 2, Blocks.AIR.getDefaultState());
+ 		return (x, y, z) -> y < Math.min(-54, i) ? fluidLevel : fluidLevel2;
+ 	}
+ 
+ 	@Override
+-	public CompletableFuture<Chunk> populateBiomes(Executor executor, NoiseConfig noiseConfig, Blender blender, StructureAccessor structureAccessor, Chunk chunk) {
+-		return CompletableFuture.supplyAsync(Util.debugSupplier("init_biomes", () -> {
++	public CompletableFuture<Chunk> populateBiomes(NoiseConfig noiseConfig, Blender blender, StructureAccessor structureAccessor, Chunk chunk) {
++		return CompletableFuture.supplyAsync(() -> {
+ 			this.populateBiomes(blender, noiseConfig, structureAccessor, chunk);
+ 			return chunk;
+-		}), Util.getMainWorkerExecutor());
++		}, Util.getMainWorkerExecutor().named("init_biomes"));
+ 	}
+ 
+ 	private void populateBiomes(Blender blender, NoiseConfig noiseConfig, StructureAccessor structureAccessor, Chunk chunk) {
+ 		ChunkNoiseSampler chunkNoiseSampler = chunk.getOrCreateChunkNoiseSampler(
+ 			chunkx -> this.createChunkNoiseSampler(chunkx, structureAccessor, blender, noiseConfig)
+ 		);
+ 		BiomeSupplier biomeSupplier = BelowZeroRetrogen.getBiomeSupplier(blender.getBiomeSupplier(this.biomeSource), chunk);
+ 		chunk.populateBiomes(biomeSupplier, chunkNoiseSampler.createMultiNoiseSampler(noiseConfig.getNoiseRouter(), this.settings.value().spawnTarget()));
+@@ -106,17 +104,17 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 			StructureWeightSampler.createStructureWeightSampler(world, chunk.getPos()),
+ 			this.settings.value(),
+ 			(AquiferSampler.FluidLevelSampler)this.fluidLevelSampler.get(),
+ 			blender
+ 		);
+ 	}
+ 
+ 	@Override
+-	protected Codec<? extends ChunkGenerator> getCodec() {
++	protected MapCodec<? extends ChunkGenerator> getCodec() {
+ 		return CODEC;
+ 	}
+ 
+ 	public RegistryEntry<ChunkGeneratorSettings> getSettings() {
+ 		return this.settings;
+ 	}
+ 
+ 	public boolean matchesSettings(RegistryKey<ChunkGeneratorSettings> settings) {
+@@ -131,17 +129,17 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 	@Override
+ 	public VerticalBlockSample getColumnSample(int x, int z, HeightLimitView world, NoiseConfig noiseConfig) {
+ 		MutableObject<VerticalBlockSample> mutableObject = new MutableObject<>();
+ 		this.sampleHeightmap(world, noiseConfig, x, z, mutableObject, null);
+ 		return mutableObject.getValue();
+ 	}
+ 
+ 	@Override
+-	public void getDebugHudText(List<String> text, NoiseConfig noiseConfig, BlockPos pos) {
++	public void appendDebugHudText(List<String> text, NoiseConfig noiseConfig, BlockPos pos) {
+ 		DecimalFormat decimalFormat = new DecimalFormat("0.000");
+ 		NoiseRouter noiseRouter = noiseConfig.getNoiseRouter();
+ 		DensityFunction.UnblendedNoisePos unblendedNoisePos = new DensityFunction.UnblendedNoisePos(pos.getX(), pos.getY(), pos.getZ());
+ 		double d = noiseRouter.ridges().sample(unblendedNoisePos);
+ 		text.add(
+ 			"NoiseRouter T: "
+ 				+ decimalFormat.format(noiseRouter.temperature().sample(unblendedNoisePos))
+ 				+ " V: "
+@@ -238,17 +236,23 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 		}
+ 	}
+ 
+ 	@Override
+ 	public void buildSurface(ChunkRegion region, StructureAccessor structures, NoiseConfig noiseConfig, Chunk chunk) {
+ 		if (!SharedConstants.isOutsideGenerationArea(chunk.getPos())) {
+ 			HeightContext heightContext = new HeightContext(this, region);
+ 			this.buildSurface(
+-				chunk, heightContext, noiseConfig, structures, region.getBiomeAccess(), region.getRegistryManager().get(RegistryKeys.BIOME), Blender.getBlender(region)
++				chunk,
++				heightContext,
++				noiseConfig,
++				structures,
++				region.getBiomeAccess(),
++				region.getRegistryManager().getOrThrow(RegistryKeys.BIOME),
++				Blender.getBlender(region)
+ 			);
+ 		}
+ 	}
+ 
+ 	@VisibleForTesting
+ 	public void buildSurface(
+ 		Chunk chunk,
+ 		HeightContext heightContext,
+@@ -271,94 +275,86 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 				heightContext,
+ 				chunk,
+ 				chunkNoiseSampler,
+ 				chunkGeneratorSettings.surfaceRule()
+ 			);
+ 	}
+ 
+ 	@Override
+-	public void carve(
+-		ChunkRegion chunkRegion,
+-		long seed,
+-		NoiseConfig noiseConfig,
+-		BiomeAccess biomeAccess,
+-		StructureAccessor structureAccessor,
+-		Chunk chunk,
+-		GenerationStep.Carver carverStep
+-	) {
++	public void carve(ChunkRegion chunkRegion, long seed, NoiseConfig noiseConfig, BiomeAccess biomeAccess, StructureAccessor structureAccessor, Chunk chunk) {
+ 		BiomeAccess biomeAccess2 = biomeAccess.withSource(
+ 			(biomeX, biomeY, biomeZ) -> this.biomeSource.getBiome(biomeX, biomeY, biomeZ, noiseConfig.getMultiNoiseSampler())
+ 		);
+ 		ChunkRandom chunkRandom = new ChunkRandom(new CheckedRandom(RandomSeed.getSeed()));
+ 		int i = 8;
+ 		ChunkPos chunkPos = chunk.getPos();
+ 		ChunkNoiseSampler chunkNoiseSampler = chunk.getOrCreateChunkNoiseSampler(
+ 			chunkx -> this.createChunkNoiseSampler(chunkx, structureAccessor, Blender.getBlender(chunkRegion), noiseConfig)
+ 		);
+ 		AquiferSampler aquiferSampler = chunkNoiseSampler.getAquiferSampler();
+ 		CarverContext carverContext = new CarverContext(
+ 			this, chunkRegion.getRegistryManager(), chunk.getHeightLimitView(), chunkNoiseSampler, noiseConfig, this.settings.value().surfaceRule()
+ 		);
+-		CarvingMask carvingMask = ((ProtoChunk)chunk).getOrCreateCarvingMask(carverStep);
++		CarvingMask carvingMask = ((ProtoChunk)chunk).getOrCreateCarvingMask();
+ 
+ 		for (int j = -8; j <= 8; j++) {
+ 			for (int k = -8; k <= 8; k++) {
+ 				ChunkPos chunkPos2 = new ChunkPos(chunkPos.x + j, chunkPos.z + k);
+ 				Chunk chunk2 = chunkRegion.getChunk(chunkPos2.x, chunkPos2.z);
+ 				GenerationSettings generationSettings = chunk2.getOrCreateGenerationSettings(
+ 					() -> this.getGenerationSettings(
+ 						this.biomeSource
+ 							.getBiome(BiomeCoords.fromBlock(chunkPos2.getStartX()), 0, BiomeCoords.fromBlock(chunkPos2.getStartZ()), noiseConfig.getMultiNoiseSampler())
+ 					)
+ 				);
+-				Iterable<RegistryEntry<ConfiguredCarver<?>>> iterable = generationSettings.getCarversForStep(carverStep);
++				Iterable<RegistryEntry<ConfiguredCarver<?>>> iterable = generationSettings.getCarversForStep();
+ 				int l = 0;
+ 
+ 				for (RegistryEntry<ConfiguredCarver<?>> registryEntry : iterable) {
+ 					ConfiguredCarver<?> configuredCarver = registryEntry.value();
+ 					chunkRandom.setCarverSeed(seed + l, chunkPos2.x, chunkPos2.z);
+ 					if (configuredCarver.shouldCarve(chunkRandom)) {
+ 						configuredCarver.carve(carverContext, chunk, biomeAccess2::getBiome, chunkRandom, aquiferSampler, chunkPos2, carvingMask);
+ 					}
+ 
+ 					l++;
+ 				}
+ 			}
+ 		}
+ 	}
+ 
+ 	@Override
+-	public CompletableFuture<Chunk> populateNoise(Executor executor, Blender blender, NoiseConfig noiseConfig, StructureAccessor structureAccessor, Chunk chunk) {
++	public CompletableFuture<Chunk> populateNoise(Blender blender, NoiseConfig noiseConfig, StructureAccessor structureAccessor, Chunk chunk) {
+ 		GenerationShapeConfig generationShapeConfig = this.settings.value().generationShapeConfig().trimHeight(chunk.getHeightLimitView());
+ 		int i = generationShapeConfig.minimumY();
+ 		int j = MathHelper.floorDiv(i, generationShapeConfig.verticalCellBlockCount());
+ 		int k = MathHelper.floorDiv(generationShapeConfig.height(), generationShapeConfig.verticalCellBlockCount());
+-		if (k <= 0) {
+-			return CompletableFuture.completedFuture(chunk);
+-		} else {
++		return k <= 0 ? CompletableFuture.completedFuture(chunk) : CompletableFuture.supplyAsync(() -> {
+ 			int l = chunk.getSectionIndex(k * generationShapeConfig.verticalCellBlockCount() - 1 + i);
+ 			int m = chunk.getSectionIndex(i);
+ 			Set<ChunkSection> set = Sets.<ChunkSection>newHashSet();
+ 
+ 			for (int n = l; n >= m; n--) {
+ 				ChunkSection chunkSection = chunk.getSection(n);
+ 				chunkSection.lock();
+ 				set.add(chunkSection);
+ 			}
+ 
+-			return CompletableFuture.supplyAsync(
+-					Util.debugSupplier("wgen_fill_noise", () -> this.populateNoise(blender, structureAccessor, noiseConfig, chunk, j, k)), Util.getMainWorkerExecutor()
+-				)
+-				.whenCompleteAsync((chunkx, throwable) -> {
+-					for (ChunkSection chunkSectionx : set) {
+-						chunkSectionx.unlock();
+-					}
+-				}, executor);
+-		}
++			Chunk var20;
++			try {
++				var20 = this.populateNoise(blender, structureAccessor, noiseConfig, chunk, j, k);
++			} finally {
++				for (ChunkSection chunkSection3 : set) {
++					chunkSection3.unlock();
++				}
++			}
++
++			return var20;
++		}, Util.getMainWorkerExecutor().named("wgen_fill_noise"));
+ 	}
+ 
+ 	private Chunk populateNoise(Blender blender, StructureAccessor structureAccessor, NoiseConfig noiseConfig, Chunk chunk, int minimumCellY, int cellHeight) {
+ 		ChunkNoiseSampler chunkNoiseSampler = chunk.getOrCreateChunkNoiseSampler(
+ 			chunkx -> this.createChunkNoiseSampler(chunkx, structureAccessor, blender, noiseConfig)
+ 		);
+ 		Heightmap heightmap = chunk.getHeightmap(Heightmap.Type.OCEAN_FLOOR_WG);
+ 		Heightmap heightmap2 = chunk.getHeightmap(Heightmap.Type.WORLD_SURFACE_WG);
+@@ -452,15 +448,15 @@ public final class NoiseChunkGenerator extends ChunkGenerator {
+ 	public int getMinimumY() {
+ 		return this.settings.value().generationShapeConfig().minimumY();
+ 	}
+ 
+ 	@Override
+ 	public void populateEntities(ChunkRegion region) {
+ 		if (!this.settings.value().mobGenerationDisabled()) {
+ 			ChunkPos chunkPos = region.getCenterPos();
+-			RegistryEntry<Biome> registryEntry = region.getBiome(chunkPos.getStartPos().withY(region.getTopY() - 1));
++			RegistryEntry<Biome> registryEntry = region.getBiome(chunkPos.getStartPos().withY(region.getTopYInclusive()));
+ 			ChunkRandom chunkRandom = new ChunkRandom(new CheckedRandom(RandomSeed.getSeed()));
+ 			chunkRandom.setPopulationSeed(region.getSeed(), chunkPos.getStartX(), chunkPos.getStartZ());
+ 			SpawnHelper.populateEntities(region, registryEntry, chunkPos, chunkRandom);
+ 		}
+ 	}
+ }
+
+===== FILE: net\minecraft\world\gen\chunk\ChunkGenerator.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkGenerator.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkGenerator.java"
+index 50be766..5a71b4d 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkGenerator.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\ChunkGenerator.java"
+@@ -1,28 +1,28 @@
+ package net.minecraft.world.gen.chunk;
+ 
+ import com.google.common.base.Suppliers;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
+ import it.unimi.dsi.fastutil.ints.IntArraySet;
+ import it.unimi.dsi.fastutil.ints.IntSet;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
+ import java.util.Map.Entry;
+ import java.util.concurrent.CompletableFuture;
+-import java.util.concurrent.Executor;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import java.util.stream.Collectors;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.entity.SpawnGroup;
+ import net.minecraft.registry.DynamicRegistryManager;
+ import net.minecraft.registry.Registries;
+@@ -52,16 +52,17 @@ import net.minecraft.util.math.random.ChunkRandom;
+ import net.minecraft.util.math.random.RandomSeed;
+ import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
+ import net.minecraft.world.ChunkRegion;
+ import net.minecraft.world.HeightLimitView;
+ import net.minecraft.world.Heightmap;
+ import net.minecraft.world.StructurePresence;
+ import net.minecraft.world.StructureSpawns;
+ import net.minecraft.world.StructureWorldAccess;
++import net.minecraft.world.World;
+ import net.minecraft.world.WorldView;
+ import net.minecraft.world.biome.Biome;
+ import net.minecraft.world.biome.GenerationSettings;
+ import net.minecraft.world.biome.SpawnSettings;
+ import net.minecraft.world.biome.source.BiomeAccess;
+ import net.minecraft.world.biome.source.BiomeSource;
+ import net.minecraft.world.chunk.Chunk;
+ import net.minecraft.world.chunk.ChunkSection;
+@@ -99,44 +100,42 @@ public abstract class ChunkGenerator {
+ 		this.generationSettingsGetter = generationSettingsGetter;
+ 		this.indexedFeaturesListSupplier = Suppliers.memoize(
+ 			() -> PlacedFeatureIndexer.collectIndexedFeatures(
+ 				List.copyOf(biomeSource.getBiomes()), biomeEntry -> ((GenerationSettings)generationSettingsGetter.apply(biomeEntry)).getFeatures(), true
+ 			)
+ 		);
+ 	}
+ 
+-	protected abstract Codec<? extends ChunkGenerator> getCodec();
++	public void initializeIndexedFeaturesList() {
++		this.indexedFeaturesListSupplier.get();
++	}
++
++	protected abstract MapCodec<? extends ChunkGenerator> getCodec();
+ 
+ 	public StructurePlacementCalculator createStructurePlacementCalculator(RegistryWrapper<StructureSet> structureSetRegistry, NoiseConfig noiseConfig, long seed) {
+ 		return StructurePlacementCalculator.create(noiseConfig, seed, this.biomeSource, structureSetRegistry);
+ 	}
+ 
+-	public Optional<RegistryKey<Codec<? extends ChunkGenerator>>> getCodecKey() {
++	public Optional<RegistryKey<MapCodec<? extends ChunkGenerator>>> getCodecKey() {
+ 		return Registries.CHUNK_GENERATOR.getKey(this.getCodec());
+ 	}
+ 
+-	public CompletableFuture<Chunk> populateBiomes(Executor executor, NoiseConfig noiseConfig, Blender blender, StructureAccessor structureAccessor, Chunk chunk) {
+-		return CompletableFuture.supplyAsync(Util.debugSupplier("init_biomes", () -> {
++	public CompletableFuture<Chunk> populateBiomes(NoiseConfig noiseConfig, Blender blender, StructureAccessor structureAccessor, Chunk chunk) {
++		return CompletableFuture.supplyAsync(() -> {
+ 			chunk.populateBiomes(this.biomeSource, noiseConfig.getMultiNoiseSampler());
+ 			return chunk;
+-		}), Util.getMainWorkerExecutor());
++		}, Util.getMainWorkerExecutor().named("init_biomes"));
+ 	}
+ 
+ 	/**
+ 	 * Generates caves for the given chunk.
+ 	 */
+ 	public abstract void carve(
+-		ChunkRegion chunkRegion,
+-		long seed,
+-		NoiseConfig noiseConfig,
+-		BiomeAccess biomeAccess,
+-		StructureAccessor structureAccessor,
+-		Chunk chunk,
+-		GenerationStep.Carver carverStep
++		ChunkRegion chunkRegion, long seed, NoiseConfig noiseConfig, BiomeAccess biomeAccess, StructureAccessor structureAccessor, Chunk chunk
+ 	);
+ 
+ 	/**
+ 	 * Tries to find the closest structure of a given type near a given block.
+ 	 * <p>
+ 	 * New chunks will only be generated up to the {@link net.minecraft.world.chunk.ChunkStatus#STRUCTURE_STARTS} phase by this method.
+ 	 * <p>
+ 	 * The radius is ignored for strongholds.
+@@ -300,17 +299,17 @@ public abstract class ChunkGenerator {
+ 		Set<RegistryEntry<Structure>> structures,
+ 		WorldView world,
+ 		StructureAccessor structureAccessor,
+ 		boolean skipReferencedStructures,
+ 		StructurePlacement placement,
+ 		ChunkPos pos
+ 	) {
+ 		for (RegistryEntry<Structure> registryEntry : structures) {
+-			StructurePresence structurePresence = structureAccessor.getStructurePresence(pos, registryEntry.value(), skipReferencedStructures);
++			StructurePresence structurePresence = structureAccessor.getStructurePresence(pos, registryEntry.value(), placement, skipReferencedStructures);
+ 			if (structurePresence != StructurePresence.START_NOT_PRESENT) {
+ 				if (!skipReferencedStructures && structurePresence == StructurePresence.START_PRESENT) {
+ 					return Pair.of(placement.getLocatePos(pos), registryEntry);
+ 				}
+ 
+ 				Chunk chunk = world.getChunk(pos.x, pos.z, ChunkStatus.STRUCTURE_STARTS);
+ 				StructureStart structureStart = structureAccessor.getStructureStart(ChunkSectionPos.from(chunk), registryEntry.value(), chunk);
+ 				if (structureStart != null && structureStart.hasChildren() && (!skipReferencedStructures || checkNotReferenced(structureAccessor, structureStart))) {
+@@ -331,35 +330,35 @@ public abstract class ChunkGenerator {
+ 		}
+ 	}
+ 
+ 	public void generateFeatures(StructureWorldAccess world, Chunk chunk, StructureAccessor structureAccessor) {
+ 		ChunkPos chunkPos = chunk.getPos();
+ 		if (!SharedConstants.isOutsideGenerationArea(chunkPos)) {
+ 			ChunkSectionPos chunkSectionPos = ChunkSectionPos.from(chunkPos, world.getBottomSectionCoord());
+ 			BlockPos blockPos = chunkSectionPos.getMinPos();
+-			Registry<Structure> registry = world.getRegistryManager().get(RegistryKeys.STRUCTURE);
++			Registry<Structure> registry = world.getRegistryManager().getOrThrow(RegistryKeys.STRUCTURE);
+ 			Map<Integer, List<Structure>> map = (Map<Integer, List<Structure>>)registry.stream()
+ 				.collect(Collectors.groupingBy(structureType -> structureType.getFeatureGenerationStep().ordinal()));
+ 			List<PlacedFeatureIndexer.IndexedFeatures> list = (List<PlacedFeatureIndexer.IndexedFeatures>)this.indexedFeaturesListSupplier.get();
+ 			ChunkRandom chunkRandom = new ChunkRandom(new Xoroshiro128PlusPlusRandom(RandomSeed.getSeed()));
+ 			long l = chunkRandom.setPopulationSeed(world.getSeed(), blockPos.getX(), blockPos.getZ());
+ 			Set<RegistryEntry<Biome>> set = new ObjectArraySet<>();
+-			ChunkPos.stream(chunkSectionPos.toChunkPos(), 1).forEach(chunkPosx -> {
+-				Chunk chunkx = world.getChunk(chunkPosx.x, chunkPosx.z);
++			ChunkPos.stream(chunkSectionPos.toChunkPos(), 1).forEach(pos -> {
++				Chunk chunkx = world.getChunk(pos.x, pos.z);
+ 
+ 				for (ChunkSection chunkSection : chunkx.getSectionArray()) {
+ 					chunkSection.getBiomeContainer().forEachValue(set::add);
+ 				}
+ 			});
+ 			set.retainAll(this.biomeSource.getBiomes());
+ 			int i = list.size();
+ 
+ 			try {
+-				Registry<PlacedFeature> registry2 = world.getRegistryManager().get(RegistryKeys.PLACED_FEATURE);
++				Registry<PlacedFeature> registry2 = world.getRegistryManager().getOrThrow(RegistryKeys.PLACED_FEATURE);
+ 				int j = Math.max(GenerationStep.Feature.values().length, i);
+ 
+ 				for (int k = 0; k < j; k++) {
+ 					int m = 0;
+ 					if (structureAccessor.shouldGenerateStructures()) {
+ 						for (Structure structure : (List)map.getOrDefault(k, Collections.emptyList())) {
+ 							chunkRandom.setDecoratorSeed(l, m, k);
+ 							Supplier<String> supplier = () -> (String)registry.getKey(structure).map(Object::toString).orElseGet(structure::toString);
+@@ -381,17 +380,17 @@ public abstract class ChunkGenerator {
+ 					if (k < i) {
+ 						IntSet intSet = new IntArraySet();
+ 
+ 						for (RegistryEntry<Biome> registryEntry : set) {
+ 							List<RegistryEntryList<PlacedFeature>> list3 = ((GenerationSettings)this.generationSettingsGetter.apply(registryEntry)).getFeatures();
+ 							if (k < list3.size()) {
+ 								RegistryEntryList<PlacedFeature> registryEntryList = (RegistryEntryList<PlacedFeature>)list3.get(k);
+ 								PlacedFeatureIndexer.IndexedFeatures indexedFeatures = (PlacedFeatureIndexer.IndexedFeatures)list.get(k);
+-								registryEntryList.stream().map(RegistryEntry::value).forEach(placedFeaturex -> intSet.add(indexedFeatures.indexMapping().applyAsInt(placedFeaturex)));
++								registryEntryList.stream().map(RegistryEntry::value).forEach(feature -> intSet.add(indexedFeatures.indexMapping().applyAsInt(feature)));
+ 							}
+ 						}
+ 
+ 						int n = intSet.size();
+ 						int[] is = intSet.toIntArray();
+ 						Arrays.sort(is);
+ 						PlacedFeatureIndexer.IndexedFeatures indexedFeatures2 = (PlacedFeatureIndexer.IndexedFeatures)list.get(k);
+ 
+@@ -411,29 +410,29 @@ public abstract class ChunkGenerator {
+ 							}
+ 						}
+ 					}
+ 				}
+ 
+ 				world.setCurrentlyGeneratingStructureName(null);
+ 			} catch (Exception var31) {
+ 				CrashReport crashReport3 = CrashReport.create(var31, "Biome decoration");
+-				crashReport3.addElement("Generation").add("CenterX", chunkPos.x).add("CenterZ", chunkPos.z).add("Seed", l);
++				crashReport3.addElement("Generation").add("CenterX", chunkPos.x).add("CenterZ", chunkPos.z).add("Decoration Seed", l);
+ 				throw new CrashException(crashReport3);
+ 			}
+ 		}
+ 	}
+ 
+ 	private static BlockBox getBlockBoxForChunk(Chunk chunk) {
+ 		ChunkPos chunkPos = chunk.getPos();
+ 		int i = chunkPos.getStartX();
+ 		int j = chunkPos.getStartZ();
+ 		HeightLimitView heightLimitView = chunk.getHeightLimitView();
+ 		int k = heightLimitView.getBottomY() + 1;
+-		int l = heightLimitView.getTopY() - 1;
++		int l = heightLimitView.getTopYInclusive();
+ 		return new BlockBox(i, k, j, i + 15, l, j + 15);
+ 	}
+ 
+ 	/**
+ 	 * Places the surface blocks of the biomes after the noise has been generated.
+ 	 */
+ 	public abstract void buildSurface(ChunkRegion region, StructureAccessor structures, NoiseConfig noiseConfig, Chunk chunk);
+ 
+@@ -477,17 +476,18 @@ public abstract class ChunkGenerator {
+ 	/**
+ 	 * Determines which structures should start in the given chunk and creates their starting points.
+ 	 */
+ 	public void setStructureStarts(
+ 		DynamicRegistryManager registryManager,
+ 		StructurePlacementCalculator placementCalculator,
+ 		StructureAccessor structureAccessor,
+ 		Chunk chunk,
+-		StructureTemplateManager structureTemplateManager
++		StructureTemplateManager structureTemplateManager,
++		RegistryKey<World> dimension
+ 	) {
+ 		ChunkPos chunkPos = chunk.getPos();
+ 		ChunkSectionPos chunkSectionPos = ChunkSectionPos.from(chunk);
+ 		NoiseConfig noiseConfig = placementCalculator.getNoiseConfig();
+ 		placementCalculator.getStructureSets()
+ 			.forEach(
+ 				structureSet -> {
+ 					StructurePlacement structurePlacement = ((StructureSet)structureSet.value()).placement();
+@@ -506,17 +506,18 @@ public abstract class ChunkGenerator {
+ 								(StructureSet.WeightedEntry)list.get(0),
+ 								structureAccessor,
+ 								registryManager,
+ 								noiseConfig,
+ 								structureTemplateManager,
+ 								placementCalculator.getStructureSeed(),
+ 								chunk,
+ 								chunkPos,
+-								chunkSectionPos
++								chunkSectionPos,
++								dimension
+ 							);
+ 						} else {
+ 							ArrayList<StructureSet.WeightedEntry> arrayList = new ArrayList(list.size());
+ 							arrayList.addAll(list);
+ 							ChunkRandom chunkRandom = new ChunkRandom(new CheckedRandom(0L));
+ 							chunkRandom.setCarverSeed(placementCalculator.getStructureSeed(), chunkPos.x, chunkPos.z);
+ 							int i = 0;
+ 
+@@ -542,17 +543,18 @@ public abstract class ChunkGenerator {
+ 									weightedEntry4,
+ 									structureAccessor,
+ 									registryManager,
+ 									noiseConfig,
+ 									structureTemplateManager,
+ 									placementCalculator.getStructureSeed(),
+ 									chunk,
+ 									chunkPos,
+-									chunkSectionPos
++									chunkSectionPos,
++									dimension
+ 								)) {
+ 									return;
+ 								}
+ 
+ 								arrayList.remove(k);
+ 								i -= weightedEntry4.weight();
+ 							}
+ 						}
+@@ -565,24 +567,25 @@ public abstract class ChunkGenerator {
+ 		StructureSet.WeightedEntry weightedEntry,
+ 		StructureAccessor structureAccessor,
+ 		DynamicRegistryManager dynamicRegistryManager,
+ 		NoiseConfig noiseConfig,
+ 		StructureTemplateManager structureManager,
+ 		long seed,
+ 		Chunk chunk,
+ 		ChunkPos pos,
+-		ChunkSectionPos sectionPos
++		ChunkSectionPos sectionPos,
++		RegistryKey<World> dimension
+ 	) {
+ 		Structure structure = weightedEntry.structure().value();
+ 		int i = getStructureReferences(structureAccessor, chunk, sectionPos, structure);
+ 		RegistryEntryList<Biome> registryEntryList = structure.getValidBiomes();
+ 		Predicate<RegistryEntry<Biome>> predicate = registryEntryList::contains;
+ 		StructureStart structureStart = structure.createStructureStart(
+-			dynamicRegistryManager, this, this.biomeSource, noiseConfig, structureManager, seed, pos, i, chunk, predicate
++			weightedEntry.structure(), dimension, dynamicRegistryManager, this, this.biomeSource, noiseConfig, structureManager, seed, pos, i, chunk, predicate
+ 		);
+ 		if (structureStart.hasChildren()) {
+ 			structureAccessor.setStructureStart(sectionPos, structure, structureStart, chunk);
+ 			return true;
+ 		} else {
+ 			return false;
+ 		}
+ 	}
+@@ -631,19 +634,17 @@ public abstract class ChunkGenerator {
+ 				}
+ 			}
+ 		}
+ 	}
+ 
+ 	/**
+ 	 * Generates the base shape of the chunk out of the basic block states as decided by this chunk generator's config.
+ 	 */
+-	public abstract CompletableFuture<Chunk> populateNoise(
+-		Executor executor, Blender blender, NoiseConfig noiseConfig, StructureAccessor structureAccessor, Chunk chunk
+-	);
++	public abstract CompletableFuture<Chunk> populateNoise(Blender blender, NoiseConfig noiseConfig, StructureAccessor structureAccessor, Chunk chunk);
+ 
+ 	public abstract int getSeaLevel();
+ 
+ 	public abstract int getMinimumY();
+ 
+ 	/**
+ 	 * Returns the raw noise height of a column for use in structure generation.
+ 	 */
+@@ -657,15 +658,15 @@ public abstract class ChunkGenerator {
+ 	public int getHeightOnGround(int x, int z, Heightmap.Type heightmap, HeightLimitView world, NoiseConfig noiseConfig) {
+ 		return this.getHeight(x, z, heightmap, world, noiseConfig);
+ 	}
+ 
+ 	public int getHeightInGround(int x, int z, Heightmap.Type heightmap, HeightLimitView world, NoiseConfig noiseConfig) {
+ 		return this.getHeight(x, z, heightmap, world, noiseConfig) - 1;
+ 	}
+ 
+-	public abstract void getDebugHudText(List<String> text, NoiseConfig noiseConfig, BlockPos pos);
++	public abstract void appendDebugHudText(List<String> text, NoiseConfig noiseConfig, BlockPos pos);
+ 
+ 	@Deprecated
+ 	public GenerationSettings getGenerationSettings(RegistryEntry<Biome> biomeEntry) {
+ 		return (GenerationSettings)this.generationSettingsGetter.apply(biomeEntry);
+ 	}
+ }
+
+===== FILE: net\minecraft\world\gen\chunk\Blender.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\Blender.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\Blender.java"
+index d928172..92b850c 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\Blender.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\Blender.java"
+@@ -1,17 +1,16 @@
+ package net.minecraft.world.gen.chunk;
+ 
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.ImmutableMap.Builder;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import java.util.List;
+ import java.util.Map;
+-import java.util.stream.Stream;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.fluid.FluidState;
+ import net.minecraft.registry.entry.RegistryEntry;
+ import net.minecraft.registry.tag.BlockTags;
+ import net.minecraft.util.math.BlockPos;
+ import net.minecraft.util.math.ChunkPos;
+ import net.minecraft.util.math.Direction;
+ import net.minecraft.util.math.EightWayDirection;
+@@ -21,17 +20,16 @@ import net.minecraft.util.math.random.Xoroshiro128PlusPlusRandom;
+ import net.minecraft.world.ChunkRegion;
+ import net.minecraft.world.Heightmap;
+ import net.minecraft.world.StructureWorldAccess;
+ import net.minecraft.world.biome.Biome;
+ import net.minecraft.world.biome.source.BiomeCoords;
+ import net.minecraft.world.biome.source.BiomeSupplier;
+ import net.minecraft.world.chunk.Chunk;
+ import net.minecraft.world.chunk.ProtoChunk;
+-import net.minecraft.world.gen.GenerationStep;
+ import net.minecraft.world.gen.carver.CarvingMask;
+ import net.minecraft.world.gen.densityfunction.DensityFunction;
+ import net.minecraft.world.gen.noise.BuiltinNoiseParameters;
+ import org.apache.commons.lang3.mutable.MutableDouble;
+ import org.apache.commons.lang3.mutable.MutableObject;
+ import org.jetbrains.annotations.Nullable;
+ 
+ public class Blender {
+@@ -116,17 +114,17 @@ public class Blender {
+ 		} else {
+ 			MutableDouble mutableDouble = new MutableDouble(0.0);
+ 			MutableDouble mutableDouble2 = new MutableDouble(0.0);
+ 			MutableDouble mutableDouble3 = new MutableDouble(Double.POSITIVE_INFINITY);
+ 			this.blendingData
+ 				.forEach(
+ 					(chunkPos, data) -> data.acceptHeights(
+ 						BiomeCoords.fromChunk(ChunkPos.getPackedX(chunkPos)), BiomeCoords.fromChunk(ChunkPos.getPackedZ(chunkPos)), (biomeX, biomeZ, height) -> {
+-							double dx = MathHelper.hypot(i - biomeX, j - biomeZ);
++							double dx = MathHelper.hypot((float)(i - biomeX), (float)(j - biomeZ));
+ 							if (!(dx > BLENDING_BIOME_DISTANCE_THRESHOLD)) {
+ 								if (dx < mutableDouble3.doubleValue()) {
+ 									mutableDouble3.setValue(dx);
+ 								}
+ 
+ 								double ex = 1.0 / (dx * dx * dx * dx);
+ 								mutableDouble2.add(height * ex);
+ 								mutableDouble.add(ex);
+@@ -166,17 +164,17 @@ public class Blender {
+ 			this.closeBlendingData
+ 				.forEach(
+ 					(chunkPos, data) -> data.acceptCollidableBlockDensities(
+ 						BiomeCoords.fromChunk(ChunkPos.getPackedX(chunkPos)),
+ 						BiomeCoords.fromChunk(ChunkPos.getPackedZ(chunkPos)),
+ 						j - 1,
+ 						j + 1,
+ 						(biomeX, halfSectionY, biomeZ, collidableBlockDensity) -> {
+-							double dx = MathHelper.magnitude(i - biomeX, (j - halfSectionY) * 2, k - biomeZ);
++							double dx = MathHelper.magnitude((double)(i - biomeX), (double)((j - halfSectionY) * 2), (double)(k - biomeZ));
+ 							if (!(dx > 2.0)) {
+ 								if (dx < mutableDouble3.doubleValue()) {
+ 									mutableDouble3.setValue(dx);
+ 								}
+ 
+ 								double ex = 1.0 / (dx * dx * dx * dx);
+ 								mutableDouble2.add(collidableBlockDensity * ex);
+ 								mutableDouble.add(ex);
+@@ -236,17 +234,17 @@ public class Blender {
+ 	@Nullable
+ 	private RegistryEntry<Biome> blendBiome(int x, int y, int z) {
+ 		MutableDouble mutableDouble = new MutableDouble(Double.POSITIVE_INFINITY);
+ 		MutableObject<RegistryEntry<Biome>> mutableObject = new MutableObject<>();
+ 		this.blendingData
+ 			.forEach(
+ 				(chunkPos, data) -> data.acceptBiomes(
+ 					BiomeCoords.fromChunk(ChunkPos.getPackedX(chunkPos)), y, BiomeCoords.fromChunk(ChunkPos.getPackedZ(chunkPos)), (biomeX, biomeZ, biome) -> {
+-						double dx = MathHelper.hypot(x - biomeX, z - biomeZ);
++						double dx = MathHelper.hypot((float)(x - biomeX), (float)(z - biomeZ));
+ 						if (!(dx > BLENDING_BIOME_DISTANCE_THRESHOLD)) {
+ 							if (dx < mutableDouble.doubleValue()) {
+ 								mutableObject.setValue(biome);
+ 								mutableDouble.setValue(dx);
+ 							}
+ 						}
+ 					}
+ 				)
+@@ -263,17 +261,17 @@ public class Blender {
+ 	public static void tickLeavesAndFluids(ChunkRegion chunkRegion, Chunk chunk) {
+ 		ChunkPos chunkPos = chunk.getPos();
+ 		boolean bl = chunk.usesOldNoise();
+ 		BlockPos.Mutable mutable = new BlockPos.Mutable();
+ 		BlockPos blockPos = new BlockPos(chunkPos.getStartX(), 0, chunkPos.getStartZ());
+ 		BlendingData blendingData = chunk.getBlendingData();
+ 		if (blendingData != null) {
+ 			int i = blendingData.getOldHeightLimit().getBottomY();
+-			int j = blendingData.getOldHeightLimit().getTopY() - 1;
++			int j = blendingData.getOldHeightLimit().getTopYInclusive();
+ 			if (bl) {
+ 				for (int k = 0; k < 16; k++) {
+ 					for (int l = 0; l < 16; l++) {
+ 						tickLeavesAndFluids(chunk, mutable.set(blockPos, k, i - 1, l));
+ 						tickLeavesAndFluids(chunk, mutable.set(blockPos, k, i, l));
+ 						tickLeavesAndFluids(chunk, mutable.set(blockPos, k, j, l));
+ 						tickLeavesAndFluids(chunk, mutable.set(blockPos, k, j + 1, l));
+ 					}
+@@ -330,17 +328,17 @@ public class Blender {
+ 		if (chunk.usesOldNoise() || !immutableMap.isEmpty()) {
+ 			Blender.DistanceFunction distanceFunction = createClosestDistanceFunction(chunk.getBlendingData(), immutableMap);
+ 			CarvingMask.MaskPredicate maskPredicate = (offsetX, y, offsetZ) -> {
+ 				double d = offsetX + 0.5 + OFFSET_NOISE.sample(offsetX, y, offsetZ) * 4.0;
+ 				double e = y + 0.5 + OFFSET_NOISE.sample(y, offsetZ, offsetX) * 4.0;
+ 				double f = offsetZ + 0.5 + OFFSET_NOISE.sample(offsetZ, offsetX, y) * 4.0;
+ 				return distanceFunction.getDistance(d, e, f) < 4.0;
+ 			};
+-			Stream.of(GenerationStep.Carver.values()).map(chunk::getOrCreateCarvingMask).forEach(mask -> mask.setMaskPredicate(maskPredicate));
++			chunk.getOrCreateCarvingMask().setMaskPredicate(maskPredicate);
+ 		}
+ 	}
+ 
+ 	public static Blender.DistanceFunction createClosestDistanceFunction(@Nullable BlendingData data, Map<EightWayDirection, BlendingData> neighborData) {
+ 		List<Blender.DistanceFunction> list = Lists.<Blender.DistanceFunction>newArrayList();
+ 		if (data != null) {
+ 			list.add(createDistanceFunction(null, data));
+ 		}
+
+===== FILE: net\minecraft\world\gen\chunk\BlendingData.java =====
+diff --git "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\BlendingData.java" "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\BlendingData.java"
+index 353e1ba..fbd65f2 100644
+--- "a/E:\\PYTHON\\CoreSwap\\versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\BlendingData.java"
++++ "b/E:\\PYTHON\\CoreSwap\\versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\chunk\\BlendingData.java"
+@@ -1,22 +1,21 @@
+ package net.minecraft.world.gen.chunk;
+ 
+ import com.google.common.primitives.Doubles;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
++import it.unimi.dsi.fastutil.doubles.DoubleArrays;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import java.util.Arrays;
+ import java.util.EnumSet;
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.Set;
+-import java.util.function.Function;
+-import java.util.stream.DoubleStream;
+ import net.minecraft.block.Block;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.registry.entry.RegistryEntry;
+ import net.minecraft.registry.tag.BlockTags;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.math.BlockPos;
+ import net.minecraft.util.math.ChunkSectionPos;
+@@ -41,17 +40,17 @@ public class BlendingData {
+ 	private static final double field_37704 = 1.0;
+ 	private static final double field_37705 = -1.0;
+ 	private static final int field_35516 = 2;
+ 	private static final int BIOMES_PER_CHUNK = BiomeCoords.fromBlock(16);
+ 	private static final int LAST_CHUNK_BIOME_INDEX = BIOMES_PER_CHUNK - 1;
+ 	private static final int CHUNK_BIOME_END_INDEX = BIOMES_PER_CHUNK;
+ 	private static final int NORTH_WEST_END_INDEX = 2 * LAST_CHUNK_BIOME_INDEX + 1;
+ 	private static final int SOUTH_EAST_END_INDEX_PART = 2 * CHUNK_BIOME_END_INDEX + 1;
+-	private static final int HORIZONTAL_BIOME_COUNT = NORTH_WEST_END_INDEX + SOUTH_EAST_END_INDEX_PART;
++	static final int HORIZONTAL_BIOME_COUNT = NORTH_WEST_END_INDEX + SOUTH_EAST_END_INDEX_PART;
+ 	private final HeightLimitView oldHeightLimit;
+ 	private static final List<Block> SURFACE_BLOCKS = List.of(
+ 		Blocks.PODZOL,
+ 		Blocks.GRAVEL,
+ 		Blocks.GRASS_BLOCK,
+ 		Blocks.STONE,
+ 		Blocks.COARSE_DIRT,
+ 		Blocks.SAND,
+@@ -61,54 +60,55 @@ public class BlendingData {
+ 		Blocks.TERRACOTTA,
+ 		Blocks.DIRT
+ 	);
+ 	protected static final double field_35513 = Double.MAX_VALUE;
+ 	private boolean initializedBlendingData;
+ 	private final double[] surfaceHeights;
+ 	private final List<List<RegistryEntry<Biome>>> biomes;
+ 	private final transient double[][] collidableBlockDensities;
+-	private static final Codec<double[]> DOUBLE_ARRAY_CODEC = Codec.DOUBLE.listOf().xmap(Doubles::toArray, Doubles::asList);
+-	public static final Codec<BlendingData> CODEC = RecordCodecBuilder.create(
+-			instance -> instance.group(
+-					Codec.INT.fieldOf("min_section").forGetter(blendingData -> blendingData.oldHeightLimit.getBottomSectionCoord()),
+-					Codec.INT.fieldOf("max_section").forGetter(blendingData -> blendingData.oldHeightLimit.getTopSectionCoord()),
+-					DOUBLE_ARRAY_CODEC.optionalFieldOf("heights")
+-						.forGetter(
+-							blendingData -> DoubleStream.of(blendingData.surfaceHeights).anyMatch(height -> height != Double.MAX_VALUE)
+-								? Optional.of(blendingData.surfaceHeights)
+-								: Optional.empty()
+-						)
+-				)
+-				.apply(instance, BlendingData::new)
+-		)
+-		.comapFlatMap(BlendingData::validate, Function.identity());
+-
+-	private static DataResult<BlendingData> validate(BlendingData data) {
+-		return data.surfaceHeights.length != HORIZONTAL_BIOME_COUNT
+-			? DataResult.error(() -> "heights has to be of length " + HORIZONTAL_BIOME_COUNT)
+-			: DataResult.success(data);
+-	}
+ 
+ 	private BlendingData(int oldBottomSectionY, int oldTopSectionY, Optional<double[]> heights) {
+-		this.surfaceHeights = (double[])heights.orElse(Util.make(new double[HORIZONTAL_BIOME_COUNT], heights2 -> Arrays.fill(heights2, Double.MAX_VALUE)));
++		this.surfaceHeights = (double[])heights.orElseGet(() -> Util.make(new double[HORIZONTAL_BIOME_COUNT], ds -> Arrays.fill(ds, Double.MAX_VALUE)));
+ 		this.collidableBlockDensities = new double[HORIZONTAL_BIOME_COUNT][];
+ 		ObjectArrayList<List<RegistryEntry<Biome>>> objectArrayList = new ObjectArrayList<>(HORIZONTAL_BIOME_COUNT);
+ 		objectArrayList.size(HORIZONTAL_BIOME_COUNT);
+ 		this.biomes = objectArrayList;
+ 		int i = ChunkSectionPos.getBlockCoord(oldBottomSectionY);
+ 		int j = ChunkSectionPos.getBlockCoord(oldTopSectionY) - i;
+ 		this.oldHeightLimit = HeightLimitView.create(i, j);
+ 	}
+ 
++	@Nullable
++	public static BlendingData fromSerialized(@Nullable BlendingData.Serialized serialized) {
++		return serialized == null ? null : new BlendingData(serialized.minSection(), serialized.maxSection(), serialized.heights());
++	}
++
++	public BlendingData.Serialized toSerialized() {
++		boolean bl = false;
++
++		for (double d : this.surfaceHeights) {
++			if (d != Double.MAX_VALUE) {
++				bl = true;
++				break;
++			}
++		}
++
++		return new BlendingData.Serialized(
++			this.oldHeightLimit.getBottomSectionCoord(),
++			this.oldHeightLimit.getTopSectionCoord() + 1,
++			bl ? Optional.of(DoubleArrays.copy(this.surfaceHeights)) : Optional.empty()
++		);
++	}
++
+ 	@Nullable
+ 	public static BlendingData getBlendingData(ChunkRegion chunkRegion, int chunkX, int chunkZ) {
+ 		Chunk chunk = chunkRegion.getChunk(chunkX, chunkZ);
+ 		BlendingData blendingData = chunk.getBlendingData();
+-		if (blendingData != null && chunk.method_51526().isAtLeast(ChunkStatus.BIOMES)) {
++		if (blendingData != null && !chunk.getMaxStatus().isEarlierThan(ChunkStatus.BIOMES)) {
+ 			blendingData.initChunkBlendingData(chunk, getAdjacentChunksWithNoise(chunkRegion, chunkX, chunkZ, false));
+ 			return blendingData;
+ 		} else {
+ 			return null;
+ 		}
+ 	}
+ 
+ 	public static Set<EightWayDirection> getAdjacentChunksWithNoise(StructureWorldAccess access, int chunkX, int chunkZ, boolean oldNoise) {
+@@ -180,29 +180,30 @@ public class BlendingData {
+ 			chunk, chunkBlockX, chunkBlockZ, MathHelper.floor(this.surfaceHeights[index])
+ 		);
+ 		this.biomes.set(index, this.getVerticalBiomeSections(chunk, chunkBlockX, chunkBlockZ));
+ 	}
+ 
+ 	private int getSurfaceBlockY(Chunk chunk, int blockX, int blockZ) {
+ 		int i;
+ 		if (chunk.hasHeightmap(Heightmap.Type.WORLD_SURFACE_WG)) {
+-			i = Math.min(chunk.sampleHeightmap(Heightmap.Type.WORLD_SURFACE_WG, blockX, blockZ) + 1, this.oldHeightLimit.getTopY());
++			i = Math.min(chunk.sampleHeightmap(Heightmap.Type.WORLD_SURFACE_WG, blockX, blockZ), this.oldHeightLimit.getTopYInclusive());
+ 		} else {
+-			i = this.oldHeightLimit.getTopY();
++			i = this.oldHeightLimit.getTopYInclusive();
+ 		}
+ 
+ 		int j = this.oldHeightLimit.getBottomY();
+ 		BlockPos.Mutable mutable = new BlockPos.Mutable(blockX, i, blockZ);
+ 
+ 		while (mutable.getY() > j) {
+-			mutable.move(Direction.DOWN);
+ 			if (SURFACE_BLOCKS.contains(chunk.getBlockState(mutable).getBlock())) {
+ 				return mutable.getY();
+ 			}
++
++			mutable.move(Direction.DOWN);
+ 		}
+ 
+ 		return j;
+ 	}
+ 
+ 	/**
+ 	 * {@return {@code 1.0} if there is a collidable block below, otherwise {@code -1}}
+ 	 * 
+@@ -223,17 +224,17 @@ public class BlendingData {
+ 		}
+ 
+ 		return d;
+ 	}
+ 
+ 	private double[] calculateCollidableBlockDensityColumn(Chunk chunk, int chunkBlockX, int chunkBlockZ, int surfaceHeight) {
+ 		double[] ds = new double[this.getVerticalHalfSectionCount()];
+ 		Arrays.fill(ds, -1.0);
+-		BlockPos.Mutable mutable = new BlockPos.Mutable(chunkBlockX, this.oldHeightLimit.getTopY(), chunkBlockZ);
++		BlockPos.Mutable mutable = new BlockPos.Mutable(chunkBlockX, this.oldHeightLimit.getTopYInclusive() + 1, chunkBlockZ);
+ 		double d = getCollidableBlockDensityBelow(chunk, mutable);
+ 
+ 		for (int i = ds.length - 2; i >= 0; i--) {
+ 			double e = getAboveCollidableBlockValue(chunk, mutable);
+ 			double f = getCollidableBlockDensityBelow(chunk, mutable);
+ 			ds[i] = (d + e + f) / 15.0;
+ 			d = f;
+ 		}
+@@ -302,17 +303,17 @@ public class BlendingData {
+ 		} else {
+ 			return chunkBiomeX != 0 && chunkBiomeZ != 0
+ 				? Double.MAX_VALUE
+ 				: this.getCollidableBlockDensity(this.collidableBlockDensities[getNorthWestIndex(chunkBiomeX, chunkBiomeZ)], halfSectionY);
+ 		}
+ 	}
+ 
+ 	protected void acceptBiomes(int biomeX, int biomeY, int biomeZ, BlendingData.BiomeConsumer consumer) {
+-		if (biomeY >= BiomeCoords.fromBlock(this.oldHeightLimit.getBottomY()) && biomeY < BiomeCoords.fromBlock(this.oldHeightLimit.getTopY())) {
++		if (biomeY >= BiomeCoords.fromBlock(this.oldHeightLimit.getBottomY()) && biomeY <= BiomeCoords.fromBlock(this.oldHeightLimit.getTopYInclusive())) {
+ 			int i = biomeY - BiomeCoords.fromBlock(this.oldHeightLimit.getBottomY());
+ 
+ 			for (int j = 0; j < this.biomes.size(); j++) {
+ 				if (this.biomes.get(j) != null) {
+ 					RegistryEntry<Biome> registryEntry = (RegistryEntry<Biome>)((List)this.biomes.get(j)).get(i);
+ 					if (registryEntry != null) {
+ 						consumer.consume(biomeX + getX(j), biomeZ + getZ(j), registryEntry);
+ 					}
+@@ -429,9 +430,28 @@ public class BlendingData {
+ 
+ 	protected interface CollidableBlockDensityConsumer {
+ 		void consume(int biomeX, int halfSectionY, int biomeZ, double collidableBlockDensity);
+ 	}
+ 
+ 	protected interface HeightConsumer {
+ 		void consume(int biomeX, int biomeZ, double height);
+ 	}
++
++	public record Serialized(int minSection, int maxSection, Optional<double[]> heights) {
++		private static final Codec<double[]> DOUBLE_ARRAY_CODEC = Codec.DOUBLE.listOf().xmap(Doubles::toArray, Doubles::asList);
++		public static final Codec<BlendingData.Serialized> CODEC = RecordCodecBuilder.<BlendingData.Serialized>create(
++				instance -> instance.group(
++						Codec.INT.fieldOf("min_section").forGetter(BlendingData.Serialized::minSection),
++						Codec.INT.fieldOf("max_section").forGetter(BlendingData.Serialized::maxSection),
++						DOUBLE_ARRAY_CODEC.lenientOptionalFieldOf("heights").forGetter(BlendingData.Serialized::heights)
++					)
++					.apply(instance, BlendingData.Serialized::new)
++			)
++			.validate(BlendingData.Serialized::validate);
++
++		private static DataResult<BlendingData.Serialized> validate(BlendingData.Serialized serialized) {
++			return serialized.heights.isPresent() && ((double[])serialized.heights.get()).length != BlendingData.HORIZONTAL_BIOME_COUNT
++				? DataResult.error(() -> "heights has to be of length " + BlendingData.HORIZONTAL_BIOME_COUNT)
++				: DataResult.success(serialized);
++		}
++	}
+ }

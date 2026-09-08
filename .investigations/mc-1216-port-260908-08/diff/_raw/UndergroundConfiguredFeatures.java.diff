@@ -1,0 +1,120 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\UndergroundConfiguredFeatures.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\UndergroundConfiguredFeatures.java"
+index 05e5403..b662176 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\UndergroundConfiguredFeatures.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\UndergroundConfiguredFeatures.java"
+@@ -19,7 +19,7 @@ import net.minecraft.state.property.Properties;
+ import net.minecraft.structure.processor.StructureProcessorList;
+ import net.minecraft.structure.processor.StructureProcessorLists;
+ import net.minecraft.util.Identifier;
+-import net.minecraft.util.collection.DataPool;
++import net.minecraft.util.collection.Pool;
+ import net.minecraft.util.math.Direction;
+ import net.minecraft.util.math.VerticalSurfaceType;
+ import net.minecraft.util.math.floatprovider.ClampedNormalFloatProvider;
+@@ -67,7 +67,7 @@ public class UndergroundConfiguredFeatures {
+ 			new BlockColumnFeatureConfig(
+ 				List.of(
+ 					BlockColumnFeatureConfig.createLayer(
+-						new WeightedListIntProvider(DataPool.<IntProvider>builder().add(UniformIntProvider.create(0, 4), 2).add(ConstantIntProvider.create(0), 1).build()),
++						new WeightedListIntProvider(Pool.<IntProvider>builder().add(UniformIntProvider.create(0, 4), 2).add(ConstantIntProvider.create(0), 1).build()),
+ 						BlockStateProvider.of(Blocks.BIG_DRIPLEAF_STEM.getDefaultState().with(Properties.HORIZONTAL_FACING, direction))
+ 					),
+ 					BlockColumnFeatureConfig.createLayer(
+@@ -86,7 +86,7 @@ public class UndergroundConfiguredFeatures {
+ 			Feature.SIMPLE_BLOCK,
+ 			new SimpleBlockFeatureConfig(
+ 				new WeightedBlockStateProvider(
+-					DataPool.<BlockState>builder()
++					Pool.<BlockState>builder()
+ 						.add(Blocks.SMALL_DRIPLEAF.getDefaultState().with(SmallDripleafBlock.FACING, Direction.EAST), 1)
+ 						.add(Blocks.SMALL_DRIPLEAF.getDefaultState().with(SmallDripleafBlock.FACING, Direction.WEST), 1)
+ 						.add(Blocks.SMALL_DRIPLEAF.getDefaultState().with(SmallDripleafBlock.FACING, Direction.NORTH), 1)
+@@ -101,24 +101,24 @@ public class UndergroundConfiguredFeatures {
+ 		RegistryEntryLookup<StructureProcessorList> registryEntryLookup2 = featureRegisterable.getRegistryLookup(RegistryKeys.PROCESSOR_LIST);
+ 		ConfiguredFeatures.register(featureRegisterable, MONSTER_ROOM, Feature.MONSTER_ROOM);
+ 		List<Identifier> list = List.of(
+-			new Identifier("fossil/spine_1"),
+-			new Identifier("fossil/spine_2"),
+-			new Identifier("fossil/spine_3"),
+-			new Identifier("fossil/spine_4"),
+-			new Identifier("fossil/skull_1"),
+-			new Identifier("fossil/skull_2"),
+-			new Identifier("fossil/skull_3"),
+-			new Identifier("fossil/skull_4")
++			Identifier.ofVanilla("fossil/spine_1"),
++			Identifier.ofVanilla("fossil/spine_2"),
++			Identifier.ofVanilla("fossil/spine_3"),
++			Identifier.ofVanilla("fossil/spine_4"),
++			Identifier.ofVanilla("fossil/skull_1"),
++			Identifier.ofVanilla("fossil/skull_2"),
++			Identifier.ofVanilla("fossil/skull_3"),
++			Identifier.ofVanilla("fossil/skull_4")
+ 		);
+ 		List<Identifier> list2 = List.of(
+-			new Identifier("fossil/spine_1_coal"),
+-			new Identifier("fossil/spine_2_coal"),
+-			new Identifier("fossil/spine_3_coal"),
+-			new Identifier("fossil/spine_4_coal"),
+-			new Identifier("fossil/skull_1_coal"),
+-			new Identifier("fossil/skull_2_coal"),
+-			new Identifier("fossil/skull_3_coal"),
+-			new Identifier("fossil/skull_4_coal")
++			Identifier.ofVanilla("fossil/spine_1_coal"),
++			Identifier.ofVanilla("fossil/spine_2_coal"),
++			Identifier.ofVanilla("fossil/spine_3_coal"),
++			Identifier.ofVanilla("fossil/spine_4_coal"),
++			Identifier.ofVanilla("fossil/skull_1_coal"),
++			Identifier.ofVanilla("fossil/skull_2_coal"),
++			Identifier.ofVanilla("fossil/skull_3_coal"),
++			Identifier.ofVanilla("fossil/skull_4_coal")
+ 		);
+ 		RegistryEntry<StructureProcessorList> registryEntry = registryEntryLookup2.getOrThrow(StructureProcessorLists.FOSSIL_ROT);
+ 		ConfiguredFeatures.register(
+@@ -240,13 +240,11 @@ public class UndergroundConfiguredFeatures {
+ 			)
+ 		);
+ 		WeightedBlockStateProvider weightedBlockStateProvider = new WeightedBlockStateProvider(
+-			DataPool.<BlockState>builder()
+-				.add(Blocks.CAVE_VINES_PLANT.getDefaultState(), 4)
+-				.add(Blocks.CAVE_VINES_PLANT.getDefaultState().with(CaveVines.BERRIES, true), 1)
++			Pool.<BlockState>builder().add(Blocks.CAVE_VINES_PLANT.getDefaultState(), 4).add(Blocks.CAVE_VINES_PLANT.getDefaultState().with(CaveVines.BERRIES, true), 1)
+ 		);
+ 		RandomizedIntBlockStateProvider randomizedIntBlockStateProvider = new RandomizedIntBlockStateProvider(
+ 			new WeightedBlockStateProvider(
+-				DataPool.<BlockState>builder().add(Blocks.CAVE_VINES.getDefaultState(), 4).add(Blocks.CAVE_VINES.getDefaultState().with(CaveVines.BERRIES, true), 1)
++				Pool.<BlockState>builder().add(Blocks.CAVE_VINES.getDefaultState(), 4).add(Blocks.CAVE_VINES.getDefaultState().with(CaveVines.BERRIES, true), 1)
+ 			),
+ 			CaveVinesHeadBlock.AGE,
+ 			UniformIntProvider.create(23, 25)
+@@ -259,7 +257,7 @@ public class UndergroundConfiguredFeatures {
+ 				List.of(
+ 					BlockColumnFeatureConfig.createLayer(
+ 						new WeightedListIntProvider(
+-							DataPool.<IntProvider>builder()
++							Pool.<IntProvider>builder()
+ 								.add(UniformIntProvider.create(0, 19), 2)
+ 								.add(UniformIntProvider.create(0, 2), 3)
+ 								.add(UniformIntProvider.create(0, 6), 10)
+@@ -281,7 +279,7 @@ public class UndergroundConfiguredFeatures {
+ 			new BlockColumnFeatureConfig(
+ 				List.of(
+ 					BlockColumnFeatureConfig.createLayer(
+-						new WeightedListIntProvider(DataPool.<IntProvider>builder().add(UniformIntProvider.create(0, 3), 5).add(UniformIntProvider.create(1, 7), 1).build()),
++						new WeightedListIntProvider(Pool.<IntProvider>builder().add(UniformIntProvider.create(0, 3), 5).add(UniformIntProvider.create(1, 7), 1).build()),
+ 						weightedBlockStateProvider
+ 					),
+ 					BlockColumnFeatureConfig.createLayer(ConstantIntProvider.create(1), randomizedIntBlockStateProvider)
+@@ -297,11 +295,11 @@ public class UndergroundConfiguredFeatures {
+ 			Feature.SIMPLE_BLOCK,
+ 			new SimpleBlockFeatureConfig(
+ 				new WeightedBlockStateProvider(
+-					DataPool.<BlockState>builder()
++					Pool.<BlockState>builder()
+ 						.add(Blocks.FLOWERING_AZALEA.getDefaultState(), 4)
+ 						.add(Blocks.AZALEA.getDefaultState(), 7)
+ 						.add(Blocks.MOSS_CARPET.getDefaultState(), 25)
+-						.add(Blocks.GRASS.getDefaultState(), 50)
++						.add(Blocks.SHORT_GRASS.getDefaultState(), 50)
+ 						.add(Blocks.TALL_GRASS.getDefaultState(), 10)
+ 				)
+ 			)

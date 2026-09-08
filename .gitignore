@@ -99,3 +99,6 @@ runtime/1.20.1/java/data/
 # Rust workspace target（260905-01 拆分后落仓库根）/target/
 /target/
 !versions/1.20.1/data/worldgen/biome_registry_order.json
+
+# 结构整改可逆归档（260908-08，本地保存不入库）
+archive/

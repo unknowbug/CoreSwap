@@ -1,0 +1,31 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeMushroomFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeMushroomFeature.java"
+index 62a1325..e0f1851 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeMushroomFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeMushroomFeature.java"
+@@ -18,9 +18,14 @@ public abstract class HugeMushroomFeature extends Feature<HugeMushroomFeatureCon
+ 	protected void generateStem(WorldAccess world, Random random, BlockPos pos, HugeMushroomFeatureConfig config, int height, BlockPos.Mutable mutablePos) {
+ 		for (int i = 0; i < height; i++) {
+ 			mutablePos.set(pos).move(Direction.UP, i);
+-			if (!world.getBlockState(mutablePos).isOpaqueFullCube(world, mutablePos)) {
+-				this.setBlockState(world, mutablePos, config.stemProvider.get(random, pos));
+-			}
++			this.generateStem(world, mutablePos, config.stemProvider.get(random, pos));
++		}
++	}
++
++	protected void generateStem(WorldAccess world, BlockPos.Mutable pos, BlockState state) {
++		BlockState blockState = world.getBlockState(pos);
++		if (blockState.isAir() || blockState.isIn(BlockTags.REPLACEABLE_BY_MUSHROOMS)) {
++			this.setBlockState(world, pos, state);
+ 		}
+ 	}
+ 
+@@ -35,7 +40,7 @@ public abstract class HugeMushroomFeature extends Feature<HugeMushroomFeatureCon
+ 
+ 	protected boolean canGenerate(WorldAccess world, BlockPos pos, int height, BlockPos.Mutable mutablePos, HugeMushroomFeatureConfig config) {
+ 		int i = pos.getY();
+-		if (i >= world.getBottomY() + 1 && i + height + 1 < world.getTopY()) {
++		if (i >= world.getBottomY() + 1 && i + height + 1 <= world.getTopYInclusive()) {
+ 			BlockState blockState = world.getBlockState(pos.down());
+ 			if (!isSoil(blockState) && !blockState.isIn(BlockTags.MUSHROOM_GROW_BLOCK)) {
+ 				return false;

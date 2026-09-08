@@ -1,0 +1,49 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\EndPortalFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\EndPortalFeature.java"
+index a9b6873..872c0c3 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\EndPortalFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\EndPortalFeature.java"
+@@ -1,5 +1,6 @@
+ package net.minecraft.world.gen.feature;
+ 
++import net.minecraft.block.Block;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.block.WallTorchBlock;
+ import net.minecraft.util.math.BlockPos;
+@@ -38,14 +39,22 @@ public class EndPortalFeature extends Feature<DefaultFeatureConfig> {
+ 					if (bl) {
+ 						this.setBlockState(structureWorldAccess, blockPos2, Blocks.BEDROCK.getDefaultState());
+ 					} else if (blockPos2.getY() < blockPos.getY()) {
+-						this.setBlockState(structureWorldAccess, blockPos2, Blocks.END_STONE.getDefaultState());
++						if (this.open) {
++							this.place(structureWorldAccess, blockPos2, Blocks.END_STONE);
++						} else {
++							this.setBlockState(structureWorldAccess, blockPos2, Blocks.END_STONE.getDefaultState());
++						}
+ 					}
+ 				} else if (blockPos2.getY() > blockPos.getY()) {
+-					this.setBlockState(structureWorldAccess, blockPos2, Blocks.AIR.getDefaultState());
++					if (this.open) {
++						this.place(structureWorldAccess, blockPos2, Blocks.AIR);
++					} else {
++						this.setBlockState(structureWorldAccess, blockPos2, Blocks.AIR.getDefaultState());
++					}
+ 				} else if (!bl) {
+ 					this.setBlockState(structureWorldAccess, blockPos2, Blocks.BEDROCK.getDefaultState());
+ 				} else if (this.open) {
+-					this.setBlockState(structureWorldAccess, new BlockPos(blockPos2), Blocks.END_PORTAL.getDefaultState());
++					this.place(structureWorldAccess, new BlockPos(blockPos2), Blocks.END_PORTAL);
+ 				} else {
+ 					this.setBlockState(structureWorldAccess, new BlockPos(blockPos2), Blocks.AIR.getDefaultState());
+ 				}
+@@ -64,4 +73,11 @@ public class EndPortalFeature extends Feature<DefaultFeatureConfig> {
+ 
+ 		return true;
+ 	}
++
++	private void place(StructureWorldAccess world, BlockPos pos, Block block) {
++		if (!world.getBlockState(pos).isOf(block)) {
++			world.breakBlock(pos, true, null);
++			this.setBlockState(world, pos, block.getDefaultState());
++		}
++	}
+ }

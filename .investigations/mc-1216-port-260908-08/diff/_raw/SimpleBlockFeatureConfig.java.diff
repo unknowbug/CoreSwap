@@ -1,0 +1,23 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeatureConfig.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeatureConfig.java"
+index fc987d3..06976c4 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeatureConfig.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\SimpleBlockFeatureConfig.java"
+@@ -4,9 +4,16 @@ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.world.gen.stateprovider.BlockStateProvider;
+ 
+-public record SimpleBlockFeatureConfig(BlockStateProvider toPlace) implements FeatureConfig {
++public record SimpleBlockFeatureConfig(BlockStateProvider toPlace, boolean scheduleTick) implements FeatureConfig {
+ 	public static final Codec<SimpleBlockFeatureConfig> CODEC = RecordCodecBuilder.create(
+-		instance -> instance.group(BlockStateProvider.TYPE_CODEC.fieldOf("to_place").forGetter(config -> config.toPlace))
++		instance -> instance.group(
++				BlockStateProvider.TYPE_CODEC.fieldOf("to_place").forGetter(config -> config.toPlace),
++				Codec.BOOL.optionalFieldOf("schedule_tick", false).forGetter(simpleBlockFeatureConfig -> simpleBlockFeatureConfig.scheduleTick)
++			)
+ 			.apply(instance, SimpleBlockFeatureConfig::new)
+ 	);
++
++	public SimpleBlockFeatureConfig(BlockStateProvider toPlace) {
++		this(toPlace, false);
++	}
+ }

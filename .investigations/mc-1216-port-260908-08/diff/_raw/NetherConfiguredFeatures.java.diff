@@ -1,0 +1,31 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\NetherConfiguredFeatures.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\NetherConfiguredFeatures.java"
+index f511760..9ad830a 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\NetherConfiguredFeatures.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\NetherConfiguredFeatures.java"
+@@ -8,7 +8,7 @@ import net.minecraft.fluid.Fluids;
+ import net.minecraft.registry.Registerable;
+ import net.minecraft.registry.RegistryKey;
+ import net.minecraft.registry.entry.RegistryEntryList;
+-import net.minecraft.util.collection.DataPool;
++import net.minecraft.util.collection.Pool;
+ import net.minecraft.util.math.intprovider.ConstantIntProvider;
+ import net.minecraft.util.math.intprovider.UniformIntProvider;
+ import net.minecraft.world.gen.stateprovider.BlockStateProvider;
+@@ -71,7 +71,7 @@ public class NetherConfiguredFeatures {
+ 		);
+ 		ConfiguredFeatures.register(featureRegisterable, GLOWSTONE_EXTRA, Feature.GLOWSTONE_BLOB);
+ 		WeightedBlockStateProvider weightedBlockStateProvider = new WeightedBlockStateProvider(
+-			DataPool.<BlockState>builder()
++			Pool.<BlockState>builder()
+ 				.add(Blocks.CRIMSON_ROOTS.getDefaultState(), 87)
+ 				.add(Blocks.CRIMSON_FUNGUS.getDefaultState(), 11)
+ 				.add(Blocks.WARPED_FUNGUS.getDefaultState(), 1)
+@@ -86,7 +86,7 @@ public class NetherConfiguredFeatures {
+ 			new NetherForestVegetationFeatureConfig(weightedBlockStateProvider, 3, 1)
+ 		);
+ 		WeightedBlockStateProvider weightedBlockStateProvider2 = new WeightedBlockStateProvider(
+-			DataPool.<BlockState>builder()
++			Pool.<BlockState>builder()
+ 				.add(Blocks.WARPED_ROOTS.getDefaultState(), 85)
+ 				.add(Blocks.CRIMSON_ROOTS.getDefaultState(), 1)
+ 				.add(Blocks.WARPED_FUNGUS.getDefaultState(), 13)

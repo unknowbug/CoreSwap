@@ -1,0 +1,45 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeatureConfig.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeatureConfig.java"
+index c09db8f..d7fd2fd 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeatureConfig.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\MultifaceGrowthFeatureConfig.java"
+@@ -24,7 +24,7 @@ public class MultifaceGrowthFeatureConfig implements FeatureConfig {
+ 					.fieldOf("block")
+ 					.<Block>flatXmap(MultifaceGrowthFeatureConfig::validateBlock, DataResult::success)
+ 					.orElse((MultifaceGrowthBlock)Blocks.GLOW_LICHEN)
+-					.forGetter(config -> config.lichen),
++					.forGetter(config -> config.block),
+ 				Codec.intRange(1, 64).fieldOf("search_range").orElse(10).forGetter(config -> config.searchRange),
+ 				Codec.BOOL.fieldOf("can_place_on_floor").orElse(false).forGetter(config -> config.placeOnFloor),
+ 				Codec.BOOL.fieldOf("can_place_on_ceiling").orElse(false).forGetter(config -> config.placeOnCeiling),
+@@ -34,7 +34,7 @@ public class MultifaceGrowthFeatureConfig implements FeatureConfig {
+ 			)
+ 			.apply(instance, MultifaceGrowthFeatureConfig::new)
+ 	);
+-	public final MultifaceGrowthBlock lichen;
++	public final MultifaceGrowthBlock block;
+ 	public final int searchRange;
+ 	public final boolean placeOnFloor;
+ 	public final boolean placeOnCeiling;
+@@ -46,11 +46,11 @@ public class MultifaceGrowthFeatureConfig implements FeatureConfig {
+ 	private static DataResult<MultifaceGrowthBlock> validateBlock(Block block) {
+ 		return block instanceof MultifaceGrowthBlock multifaceGrowthBlock
+ 			? DataResult.success(multifaceGrowthBlock)
+-			: DataResult.error(() -> "Growth block should be a multiface block");
++			: DataResult.error(() -> "Growth block should be a multiface spreadeable block");
+ 	}
+ 
+ 	public MultifaceGrowthFeatureConfig(
+-		MultifaceGrowthBlock lichen,
++		MultifaceGrowthBlock block,
+ 		int searchRange,
+ 		boolean placeOnFloor,
+ 		boolean placeOnCeiling,
+@@ -58,7 +58,7 @@ public class MultifaceGrowthFeatureConfig implements FeatureConfig {
+ 		float spreadChance,
+ 		RegistryEntryList<Block> canPlaceOn
+ 	) {
+-		this.lichen = lichen;
++		this.block = block;
+ 		this.searchRange = searchRange;
+ 		this.placeOnFloor = placeOnFloor;
+ 		this.placeOnCeiling = placeOnCeiling;

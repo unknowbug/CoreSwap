@@ -1,0 +1,31 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PileConfiguredFeatures.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PileConfiguredFeatures.java"
+index 2b3d19e..a154250 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PileConfiguredFeatures.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\PileConfiguredFeatures.java"
+@@ -4,7 +4,7 @@ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.registry.Registerable;
+ import net.minecraft.registry.RegistryKey;
+-import net.minecraft.util.collection.DataPool;
++import net.minecraft.util.collection.Pool;
+ import net.minecraft.world.gen.stateprovider.BlockStateProvider;
+ import net.minecraft.world.gen.stateprovider.PillarBlockStateProvider;
+ import net.minecraft.world.gen.stateprovider.WeightedBlockStateProvider;
+@@ -25,7 +25,7 @@ public class PileConfiguredFeatures {
+ 			PILE_ICE,
+ 			Feature.BLOCK_PILE,
+ 			new BlockPileFeatureConfig(
+-				new WeightedBlockStateProvider(DataPool.<BlockState>builder().add(Blocks.BLUE_ICE.getDefaultState(), 1).add(Blocks.PACKED_ICE.getDefaultState(), 5))
++				new WeightedBlockStateProvider(Pool.<BlockState>builder().add(Blocks.BLUE_ICE.getDefaultState(), 1).add(Blocks.PACKED_ICE.getDefaultState(), 5))
+ 			)
+ 		);
+ 		ConfiguredFeatures.register(
+@@ -33,7 +33,7 @@ public class PileConfiguredFeatures {
+ 			PILE_PUMPKIN,
+ 			Feature.BLOCK_PILE,
+ 			new BlockPileFeatureConfig(
+-				new WeightedBlockStateProvider(DataPool.<BlockState>builder().add(Blocks.PUMPKIN.getDefaultState(), 19).add(Blocks.JACK_O_LANTERN.getDefaultState(), 1))
++				new WeightedBlockStateProvider(Pool.<BlockState>builder().add(Blocks.PUMPKIN.getDefaultState(), 19).add(Blocks.JACK_O_LANTERN.getDefaultState(), 1))
+ 			)
+ 		);
+ 	}

@@ -1,0 +1,13 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeFungusFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeFungusFeature.java"
+index 7441c80..58a5d49 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeFungusFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\HugeFungusFeature.java"
+@@ -51,7 +51,7 @@ public class HugeFungusFeature extends Feature<HugeFungusFeatureConfig> {
+ 			}
+ 
+ 			boolean bl = !hugeFungusFeatureConfig.planted && random.nextFloat() < 0.06F;
+-			structureWorldAccess.setBlockState(blockPos, Blocks.AIR.getDefaultState(), Block.NO_REDRAW);
++			structureWorldAccess.setBlockState(blockPos, Blocks.AIR.getDefaultState(), Block.SKIP_REDRAW_AND_BLOCK_ENTITY_REPLACED_CALLBACK);
+ 			this.generateStem(structureWorldAccess, random, hugeFungusFeatureConfig, blockPos2, i, bl);
+ 			this.generateHat(structureWorldAccess, random, hugeFungusFeatureConfig, blockPos2, i, bl);
+ 			return true;

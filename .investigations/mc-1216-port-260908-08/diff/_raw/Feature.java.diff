@@ -1,0 +1,51 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\Feature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\Feature.java"
+index 54e896c..f06b609 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\Feature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\Feature.java"
+@@ -1,6 +1,7 @@
+ package net.minecraft.world.gen.feature;
+ 
+ import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
+ import java.util.Optional;
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+@@ -25,6 +26,7 @@ import net.minecraft.world.gen.feature.util.FeatureContext;
+ public abstract class Feature<FC extends FeatureConfig> {
+ 	public static final Feature<DefaultFeatureConfig> NO_OP = register("no_op", new NoOpFeature(DefaultFeatureConfig.CODEC));
+ 	public static final Feature<TreeFeatureConfig> TREE = register("tree", new TreeFeature(TreeFeatureConfig.CODEC));
++	public static final Feature<FallenTreeFeatureConfig> FALLEN_TREE = register("fallen_tree", new FallenTreeFeature(FallenTreeFeatureConfig.CODEC));
+ 	public static final Feature<RandomPatchFeatureConfig> FLOWER = register("flower", new RandomPatchFeature(RandomPatchFeatureConfig.CODEC));
+ 	public static final Feature<RandomPatchFeatureConfig> NO_BONEMEAL_FLOWER = register(
+ 		"no_bonemeal_flower", new RandomPatchFeature(RandomPatchFeatureConfig.CODEC)
+@@ -72,6 +74,7 @@ public abstract class Feature<FC extends FeatureConfig> {
+ 	public static final Feature<DiskFeatureConfig> DISK = register("disk", new DiskFeature(DiskFeatureConfig.CODEC));
+ 	public static final Feature<LakeFeature.Config> LAKE = register("lake", new LakeFeature(LakeFeature.Config.CODEC));
+ 	public static final Feature<OreFeatureConfig> ORE = register("ore", new OreFeature(OreFeatureConfig.CODEC));
++	public static final Feature<DefaultFeatureConfig> END_PLATFORM = register("end_platform", new EndPlatformFeature(DefaultFeatureConfig.CODEC));
+ 	public static final Feature<EndSpikeFeatureConfig> END_SPIKE = register("end_spike", new EndSpikeFeature(EndSpikeFeatureConfig.CODEC));
+ 	public static final Feature<DefaultFeatureConfig> END_ISLAND = register("end_island", new EndIslandFeature(DefaultFeatureConfig.CODEC));
+ 	public static final Feature<EndGatewayFeatureConfig> END_GATEWAY = register("end_gateway", new EndGatewayFeature(EndGatewayFeatureConfig.CODEC));
+@@ -116,19 +119,17 @@ public abstract class Feature<FC extends FeatureConfig> {
+ 		"pointed_dripstone", new SmallDripstoneFeature(SmallDripstoneFeatureConfig.CODEC)
+ 	);
+ 	public static final Feature<SculkPatchFeatureConfig> SCULK_PATCH = register("sculk_patch", new SculkPatchFeature(SculkPatchFeatureConfig.CODEC));
+-	private final Codec<ConfiguredFeature<FC, Feature<FC>>> codec;
++	private final MapCodec<ConfiguredFeature<FC, Feature<FC>>> codec;
+ 
+ 	private static <C extends FeatureConfig, F extends Feature<C>> F register(String name, F feature) {
+ 		return Registry.register(Registries.FEATURE, name, feature);
+ 	}
+ 
+ 	public Feature(Codec<FC> configCodec) {
+-		this.codec = configCodec.fieldOf("config")
+-			.<ConfiguredFeature<FC, Feature<FC>>>xmap(config -> new ConfiguredFeature<>(this, config), ConfiguredFeature::config)
+-			.codec();
++		this.codec = configCodec.fieldOf("config").xmap(config -> new ConfiguredFeature<>(this, config), ConfiguredFeature::config);
+ 	}
+ 
+-	public Codec<ConfiguredFeature<FC, Feature<FC>>> getCodec() {
++	public MapCodec<ConfiguredFeature<FC, Feature<FC>>> getCodec() {
+ 		return this.codec;
+ 	}
+ 

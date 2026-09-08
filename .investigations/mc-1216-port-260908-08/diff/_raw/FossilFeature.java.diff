@@ -1,0 +1,34 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\FossilFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\FossilFeature.java"
+index 30bb9c4..a76f3fe 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\FossilFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\FossilFeature.java"
+@@ -1,6 +1,7 @@
+ package net.minecraft.world.gen.feature;
+ 
+ import com.mojang.serialization.Codec;
++import net.minecraft.block.Block;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+ import net.minecraft.structure.StructurePlacementData;
+@@ -41,7 +42,7 @@ public class FossilFeature extends Feature<FossilFeatureConfig> {
+ 			structureWorldAccess.getBottomY(),
+ 			chunkPos.getStartZ() - 16,
+ 			chunkPos.getEndX() + 16,
+-			structureWorldAccess.getTopY(),
++			structureWorldAccess.getTopYInclusive(),
+ 			chunkPos.getEndZ() + 16
+ 		);
+ 		StructurePlacementData structurePlacementData = new StructurePlacementData().setRotation(blockRotation).setBoundingBox(blockBox).setRandom(random);
+@@ -62,10 +63,10 @@ public class FossilFeature extends Feature<FossilFeatureConfig> {
+ 		} else {
+ 			structurePlacementData.clearProcessors();
+ 			fossilFeatureConfig.fossilProcessors.value().getList().forEach(structurePlacementData::addProcessor);
+-			structureTemplate.place(structureWorldAccess, blockPos3, blockPos3, structurePlacementData, random, 4);
++			structureTemplate.place(structureWorldAccess, blockPos3, blockPos3, structurePlacementData, random, Block.SKIP_REDRAW_AND_BLOCK_ENTITY_REPLACED_CALLBACK);
+ 			structurePlacementData.clearProcessors();
+ 			fossilFeatureConfig.overlayProcessors.value().getList().forEach(structurePlacementData::addProcessor);
+-			structureTemplate2.place(structureWorldAccess, blockPos3, blockPos3, structurePlacementData, random, 4);
++			structureTemplate2.place(structureWorldAccess, blockPos3, blockPos3, structurePlacementData, random, Block.SKIP_REDRAW_AND_BLOCK_ENTITY_REPLACED_CALLBACK);
+ 			return true;
+ 		}
+ 	}

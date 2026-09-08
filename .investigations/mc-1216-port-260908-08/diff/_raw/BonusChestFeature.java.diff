@@ -1,0 +1,22 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BonusChestFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BonusChestFeature.java"
+index 9800df3..b1d8c7f 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BonusChestFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\BonusChestFeature.java"
+@@ -6,7 +6,7 @@ import java.util.stream.IntStream;
+ import net.minecraft.block.Block;
+ import net.minecraft.block.BlockState;
+ import net.minecraft.block.Blocks;
+-import net.minecraft.block.entity.LootableContainerBlockEntity;
++import net.minecraft.inventory.LootableInventory;
+ import net.minecraft.loot.LootTables;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.math.BlockPos;
+@@ -37,7 +37,7 @@ public class BonusChestFeature extends Feature<DefaultFeatureConfig> {
+ 				BlockPos blockPos = structureWorldAccess.getTopPosition(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, mutable);
+ 				if (structureWorldAccess.isAir(blockPos) || structureWorldAccess.getBlockState(blockPos).getCollisionShape(structureWorldAccess, blockPos).isEmpty()) {
+ 					structureWorldAccess.setBlockState(blockPos, Blocks.CHEST.getDefaultState(), Block.NOTIFY_LISTENERS);
+-					LootableContainerBlockEntity.setLootTable(structureWorldAccess, random, blockPos, LootTables.SPAWN_BONUS_CHEST);
++					LootableInventory.setLootTable(structureWorldAccess, random, blockPos, LootTables.SPAWN_BONUS_CHEST);
+ 					BlockState blockState = Blocks.TORCH.getDefaultState();
+ 
+ 					for (Direction direction : Direction.Type.HORIZONTAL) {

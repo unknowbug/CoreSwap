@@ -1,0 +1,13 @@
+diff --git "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\ReplaceBlobsFeature.java" "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\ReplaceBlobsFeature.java"
+index 50b73cd..27091ab 100644
+--- "a/versions\\1.20.1\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\ReplaceBlobsFeature.java"
++++ "b/versions\\1.21.6\\data\\mc_src_extract\\net\\minecraft\\world\\gen\\feature\\ReplaceBlobsFeature.java"
+@@ -24,7 +24,7 @@ public class ReplaceBlobsFeature extends Feature<ReplaceBlobsFeatureConfig> {
+ 		Block block = replaceBlobsFeatureConfig.target.getBlock();
+ 		BlockPos blockPos = moveDownToTarget(
+ 			structureWorldAccess,
+-			context.getOrigin().mutableCopy().clamp(Direction.Axis.Y, structureWorldAccess.getBottomY() + 1, structureWorldAccess.getTopY() - 1),
++			context.getOrigin().mutableCopy().clamp(Direction.Axis.Y, structureWorldAccess.getBottomY() + 1, structureWorldAccess.getTopYInclusive()),
+ 			block
+ 		);
+ 		if (blockPos == null) {

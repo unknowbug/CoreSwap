@@ -1,0 +1,159 @@
+# structural+md5 diff 1.20.1 vs 1.21.6 (yarn sources), 260908-08
+# A=E:\PYTHON\CoreSwap\versions\1.20.1\data\mc_src_extract\net\minecraft\world
+# B=E:\PYTHON\CoreSwap\versions\1.21.6\data\mc_src_extract\net\minecraft\world
+
+== gen\noise common=5 onlyA=0 onlyB=0
+  CHANGED gen\noise\NoiseConfig.java
+  CHANGED gen\noise\NoiseParametersKeys.java
+== gen\densityfunction common=3 onlyA=0 onlyB=0
+  CHANGED gen\densityfunction\DensityFunctions.java
+  CHANGED gen\densityfunction\DensityFunctionTypes.java
+== gen\carver common=12 onlyA=0 onlyB=0
+  CHANGED gen\carver\Carver.java
+  CHANGED gen\carver\ConfiguredCarvers.java
+  CHANGED gen\carver\NetherCaveCarver.java
+  CHANGED gen\carver\RavineCarverConfig.java
+== gen\chunk common=15 onlyA=0 onlyB=0
+  CHANGED gen\chunk\AquiferSampler.java
+  CHANGED gen\chunk\Blender.java
+  CHANGED gen\chunk\BlendingData.java
+  CHANGED gen\chunk\ChunkGenerator.java
+  CHANGED gen\chunk\ChunkGenerators.java
+  CHANGED gen\chunk\ChunkGeneratorSettings.java
+  CHANGED gen\chunk\ChunkNoiseSampler.java
+  CHANGED gen\chunk\DebugChunkGenerator.java
+  CHANGED gen\chunk\FlatChunkGenerator.java
+  CHANGED gen\chunk\FlatChunkGeneratorConfig.java
+  CHANGED gen\chunk\FlatChunkGeneratorLayer.java
+  CHANGED gen\chunk\GenerationShapeConfig.java
+  CHANGED gen\chunk\NoiseChunkGenerator.java
+== gen\surfacebuilder common=3 onlyA=0 onlyB=0
+  CHANGED gen\surfacebuilder\MaterialRules.java
+  CHANGED gen\surfacebuilder\SurfaceBuilder.java
+== gen\structure common=21 onlyA=0 onlyB=1
+  +B DimensionPadding.java
+  CHANGED gen\structure\BuriedTreasureStructure.java
+  CHANGED gen\structure\DesertPyramidStructure.java
+  CHANGED gen\structure\EndCityStructure.java
+  CHANGED gen\structure\IglooStructure.java
+  CHANGED gen\structure\JigsawStructure.java
+  CHANGED gen\structure\JungleTempleStructure.java
+  CHANGED gen\structure\MineshaftStructure.java
+  CHANGED gen\structure\NetherFortressStructure.java
+  CHANGED gen\structure\NetherFossilStructure.java
+  CHANGED gen\structure\OceanMonumentStructure.java
+  CHANGED gen\structure\OceanRuinStructure.java
+  CHANGED gen\structure\RuinedPortalStructure.java
+  CHANGED gen\structure\ShipwreckStructure.java
+  CHANGED gen\structure\StrongholdStructure.java
+  CHANGED gen\structure\Structure.java
+  CHANGED gen\structure\StructureKeys.java
+  CHANGED gen\structure\Structures.java
+  CHANGED gen\structure\StructureType.java
+  CHANGED gen\structure\SwampHutStructure.java
+  CHANGED gen\structure\WoodlandMansionStructure.java
+== gen\feature common=126 onlyA=0 onlyB=3
+  +B EndPlatformFeature.java
+  +B FallenTreeFeature.java
+  +B FallenTreeFeatureConfig.java
+  CHANGED gen\feature\BasaltColumnsFeature.java
+  CHANGED gen\feature\BlockPileFeature.java
+  CHANGED gen\feature\BonusChestFeature.java
+  CHANGED gen\feature\ConfiguredFeatures.java
+  CHANGED gen\feature\CoralFeature.java
+  CHANGED gen\feature\DefaultBiomeFeatures.java
+  CHANGED gen\feature\DiskFeature.java
+  CHANGED gen\feature\DripstoneClusterFeature.java
+  CHANGED gen\feature\DungeonFeature.java
+  CHANGED gen\feature\EndConfiguredFeatures.java
+  CHANGED gen\feature\EndGatewayFeature.java
+  CHANGED gen\feature\EndPlacedFeatures.java
+  CHANGED gen\feature\EndPortalFeature.java
+  CHANGED gen\feature\EndSpikeFeature.java
+  CHANGED gen\feature\Feature.java
+  CHANGED gen\feature\FeaturePlacementContext.java
+  CHANGED gen\feature\FossilFeature.java
+  CHANGED gen\feature\GeodeFeature.java
+  CHANGED gen\feature\HugeBrownMushroomFeature.java
+  CHANGED gen\feature\HugeFungusFeature.java
+  CHANGED gen\feature\HugeMushroomFeature.java
+  CHANGED gen\feature\HugeRedMushroomFeature.java
+  CHANGED gen\feature\LargeDripstoneFeature.java
+  CHANGED gen\feature\MultifaceGrowthFeature.java
+  CHANGED gen\feature\MultifaceGrowthFeatureConfig.java
+  CHANGED gen\feature\NetherConfiguredFeatures.java
+  CHANGED gen\feature\NetherForestVegetationFeature.java
+  CHANGED gen\feature\OceanConfiguredFeatures.java
+  CHANGED gen\feature\OceanPlacedFeatures.java
+  CHANGED gen\feature\OreConfiguredFeatures.java
+  CHANGED gen\feature\OrePlacedFeatures.java
+  CHANGED gen\feature\PileConfiguredFeatures.java
+  CHANGED gen\feature\PlacedFeatures.java
+  CHANGED gen\feature\RandomPatchFeatureConfig.java
+  CHANGED gen\feature\ReplaceBlobsFeature.java
+  CHANGED gen\feature\SimpleBlockFeature.java
+  CHANGED gen\feature\SimpleBlockFeatureConfig.java
+  CHANGED gen\feature\TreeConfiguredFeatures.java
+  CHANGED gen\feature\TreeFeature.java
+  CHANGED gen\feature\TreePlacedFeatures.java
+  CHANGED gen\feature\UndergroundConfiguredFeatures.java
+  CHANGED gen\feature\UnderwaterMagmaFeature.java
+  CHANGED gen\feature\VegetationConfiguredFeatures.java
+  CHANGED gen\feature\VegetationPlacedFeatures.java
+== biome common=11 onlyA=0 onlyB=4
+  +B BiomeColors.java
+  +B DryFoliageColors.java
+  +B FoliageColors.java
+  +B GrassColors.java
+  CHANGED biome\Biome.java
+  CHANGED biome\BiomeEffects.java
+  CHANGED biome\BiomeKeys.java
+  CHANGED biome\BuiltinBiomes.java
+  CHANGED biome\GenerationSettings.java
+  CHANGED biome\OverworldBiomeCreator.java
+  CHANGED biome\SpawnSettings.java
+  CHANGED biome\TheEndBiomeCreator.java
+  CHANGED biome\TheNetherBiomeCreator.java
+== biome\source common=12 onlyA=0 onlyB=0
+  CHANGED biome\source\BiomeSource.java
+  CHANGED biome\source\BiomeSources.java
+  CHANGED biome\source\CheckerboardBiomeSource.java
+  CHANGED biome\source\FixedBiomeSource.java
+  CHANGED biome\source\MultiNoiseBiomeSource.java
+  CHANGED biome\source\MultiNoiseBiomeSourceParameterList.java
+  CHANGED biome\source\MultiNoiseBiomeSourceParameterLists.java
+  CHANGED biome\source\TheEndBiomeSource.java
+== biome\source\util common=3 onlyA=0 onlyB=0
+  CHANGED biome\source\util\MultiNoiseUtil.java
+  CHANGED biome\source\util\VanillaBiomeParameters.java
+== chunk common=25 onlyA=0 onlyB=10
+  +B AbstractChunkHolder.java
+  +B ChunkGenerating.java
+  +B ChunkGenerationContext.java
+  +B ChunkGenerationStep.java
+  +B ChunkGenerationSteps.java
+  +B ChunkLoader.java
+  +B ChunkType.java
+  +B GenerationDependencies.java
+  +B GenerationTask.java
+  +B SerializedChunk.java
+  CHANGED chunk\ArrayPalette.java
+  CHANGED chunk\BelowZeroRetrogen.java
+  CHANGED chunk\BiMapPalette.java
+  CHANGED chunk\Chunk.java
+  CHANGED chunk\ChunkCache.java
+  CHANGED chunk\ChunkManager.java
+  CHANGED chunk\ChunkNibbleArray.java
+  CHANGED chunk\ChunkSection.java
+  CHANGED chunk\ChunkStatus.java
+  CHANGED chunk\EmptyChunk.java
+  CHANGED chunk\IdListPalette.java
+  CHANGED chunk\Palette.java
+  CHANGED chunk\PalettedContainer.java
+  CHANGED chunk\ProtoChunk.java
+  CHANGED chunk\ReadableContainer.java
+  CHANGED chunk\SingularPalette.java
+  CHANGED chunk\UpgradeData.java
+  CHANGED chunk\WorldChunk.java
+  CHANGED chunk\WrapperProtoChunk.java
+== chunk\status common=1 onlyA=0 onlyB=0
