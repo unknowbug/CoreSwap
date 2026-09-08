@@ -1,0 +1,8 @@
+
+[SANITY] vanilla file=12904649 B parsed=12904649 chunks=64
+[SANITY] rust    file=12904649 B parsed=12904649 chunks=64
+[HEADER] vanilla={'seed': -8248318472910187742, 'size': 8, 'ox': 200, 'oz': 200, 'miny': -64, 'height': 384}
+[HEADER] rust   ={'seed': -8248318472910187742, 'size': 8, 'ox': 200, 'oz': 200, 'miny': -64, 'height': 384}
+[BLOCKS] total=6291456 match=6291456 (100.0000%) mismatch=0
+[BIOME]  cells=16384 diff=0
+

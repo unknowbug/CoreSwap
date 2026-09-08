@@ -491,11 +491,11 @@ impl Aquifer {
         let bs = fl2.get_block_state(block_y);
         if d <= 0.0 { note_decision(&format!("BLOCK:{}", bs)); return bs; }
         if bs == WATER {
-            // water-over-lava 直调 get_fluid_level：suppress（该链非 fl2 首链，不捕获）
-            AQDUMP_SUPPRESS.with(|s| s.set(true));
-            let lava_check = self.get_fluid_level(block_x, block_y - 1, block_z);
-            AQDUMP_SUPPRESS.with(|s| s.set(false));
-            if lava_check.get_block_state(block_y - 1) == LAVA { note_decision("BLOCK:1"); return bs; }
+            // F1 修复（260908-11）：Java 用构造期注入的默认液面 sampler（NoiseChunkGenerator
+            // createFluidLevelSampler：y < min(-54, seaLevel) ? LAVA@-54 : (seaLevel, defaultFluid)），
+            // 非本结构噪声链 get_fluid_level；overworld seaLevel=63 → LAVA 判据 = (block_y-1) < -54
+            let lava_check = FluidLevel::default_level(block_y - 1).get_block_state(block_y - 1);
+            if lava_check == LAVA { note_decision("BLOCK:1"); return bs; }
         }
 
         let fl3 = self.get_water_level_at(s);
