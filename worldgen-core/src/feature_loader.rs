@@ -28,6 +28,7 @@ pub struct ConfiguredFeature {
     pub selector_config: Option<crate::tree::RandomSelectorConfig>,   // minecraft:random_selector
     pub patch_config: Option<crate::tree::RandomPatchConfig>,         // minecraft:random_patch / flower
     pub simple_block_config: Option<crate::tree::SimpleBlockConfig>,  // minecraft:simple_block
+    pub fallen_config: Option<crate::tree::FallenTreeConfig>,         // minecraft:fallen_tree（B5，260908-15）
 }
 
 impl ConfiguredFeature {
@@ -46,6 +47,7 @@ impl ConfiguredFeature {
             selector_config: None,
             patch_config: None,
             simple_block_config: None,
+            fallen_config: None,
         };
         if type_name.contains("ore") {
             cf.ore_config = OreFeatureConfig::parse(cfg, blocks);
@@ -70,6 +72,12 @@ impl ConfiguredFeature {
             cf.patch_config = crate::tree::RandomPatchConfig::parse(cfg, blocks);
         } else if type_name == "minecraft:simple_block" {
             cf.simple_block_config = crate::tree::SimpleBlockConfig::parse(cfg, blocks);
+        } else if type_name == "minecraft:fallen_tree" {
+            // B5（260908-15）：FallenTreeFeatureConfig.CODEC 4 字段（FallenTreeFeatureConfig.java:12-20）
+            cf.fallen_config = crate::tree::FallenTreeConfig::parse(cfg, blocks);
+            if cf.fallen_config.is_none() {
+                eprintln!("[feature-loader] fallen_tree config parse failed: {id}");
+            }
         } else {
             // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
             eprintln!("[feature-loader] unknown configured feature type: {type_name} ({id})");
@@ -453,6 +461,12 @@ pub fn generate_configured(
                 } else { false }
             }
             None => false,
+        }
+    } else if cf.type_name == "minecraft:fallen_tree" {
+        // B5：Java generate 恒返回 true，不依赖放置成功（FallenTreeFeature.java:32-36）
+        match &cf.fallen_config {
+            Some(fc) => { crate::tree::FallenTreeConfig::generate(fc, octx, random, x, y, z); true }
+            None => { eprintln!("[feature-loader] fallen_tree without config: {}", cf.id); false }
         }
     } else {
         false

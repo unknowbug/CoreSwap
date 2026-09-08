@@ -325,3 +325,16 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
   2. 泛化边界：前提是「注册时可拿到权威侧 id 且域无碰撞」（本轮靠 #21 的 vanilla 表后位置判据保证）；id 域无法对齐（如两侧密度函数序号各自派生）时映射表仍是合法方案——判据是**消除映射机会优先**，不是「映射表禁用」。
   3. 显式 id 与动态分配并存时的语义配套：id 被占拒绝 / 越界拒绝 / 成功推进 next_id（显式 id 后动态分配不回退碰撞）——三条件缺一即埋新错位。
 - **证据**：round4 `[BLOCKS-REG] testmod:aligned_probe java_raw=1003 rust_id(overworld=1003 nether=1003 end=1003)` 三句柄对齐 + `register_with_id_semantics` 测试（对齐/冲突拒绝/越界拒绝/next_id 推进）；.tmp/verification-260907-08.log。
+
+## 发现 #23: MC Java Direction 存在两个不同的 HORIZONTAL 数组——随机方向选取必须取 Type.HORIZONTAL.facingArray，引用错数组即方向分布错位（260908-15）
+
+- **发现时间**：260908-15；**发现者**：core.worker subagent 草稿（源材料：.investigations/mc-1216-port-260908-15/b5b6-scout.md + b5b6-worker-delivery.md）；**置信度**：candidate（一手 yarn 源码 1.21.6 Direction.java 全文引证）；**module**：re-code / Java API 惯用法复刻。
+- **来源定位**：1.21.6 一手源码 net/minecraft/util/math/Direction.java：
+  - Direction.HORIZONTAL 静态字段（Direction.java:49-52）：序 = N, W, S, E，用于遍历/迭代水平方向。
+  - Direction.Type.HORIZONTAL.facingArray（Direction.java:601）：序 = N, E, S, W，仅供随机选取用——Direction.Type.HORIZONTAL.random(random) = Util.getRandom(facingArray) = array[nextInt(4)]（Util.java:863-865）。
+- **观察/根因**：两数组名字都含 "HORIZONTAL"、成员相同仅顺序不同、一处是字段一处是 enum type 成员——按名字 grep 极易取错。顺序差（W/S/E ↔ E/S/W）意味着用迭代序数组做随机选取时 nextInt(4)→方向映射整体错位（0→N 相同，1/2/3 全错）。Rust 复刻侧：HORIZONTAL_FACING = [(0,0,-1),(1,0,0),(0,0,1),(-1,0,0)]（N,E,S,W 序，对应 facingArray），仅用于随机选取；遍历用途另建迭代序常量。
+- **如何利用（判据）**：
+  1. 用途判据：随机选取方向 → 取 facingArray（N,E,S,W）；遍历/迭代 → 用静态字段（N,W,S,E）。一句话：跟着调用方法走——.random(random) 背后是 facingArray，for-each 背后是静态字段。
+  2. 「互相勘误」反模式：两数组注释（或复刻侧引用两数组的两处代码注释）相邻时，顺序不同不是谁写错了——勿把另一处的序当 typo 纠正到同一序上。本轮 judge 审查实例：tree.rs cocoa 注释 vs fallen_tree 注释各引不同数组，序不同是正确的。发现「两处 HORIZONTAL 序不一致」先查各自 Java 出处再定性。
+  3. 判错签名：复刻某随机方向机制后，四方向统计分布系统性对不上（尤其两两互换形态）→ 首查引用的是哪个 HORIZONTAL 数组。
+- **证据**：Direction.java:49-52 + Direction.java:601 + Util.java:863-865；落盘引证 .investigations/mc-1216-port-260908-15/b5b6-worker-delivery.md §2 idk-②；.artifacts/mc-1216-port-260908-15/b5b6-verdict-260908-15.md §3。

@@ -1123,3 +1123,14 @@ entries:
     # 验证分层：Degraded + §9.7 覆盖面声明（静态双源核对，未做运行时探针）；重开判据沿 P5，取代记录不豁免。
     # 附带：c1-exemption-list.md 追加取代双指针 + 三项勘误登记（B3 转抄漂移 / B1 行重复 / p7 路径出入），原 B3 行正文不改。
 
+  # === 260908-15 块：B5+B6 新 feature 类型支持（fallen_tree + place_on_ground/attached_to_logs）===
+  - id: 'swe:mc-1216-port:b5b6-features-verdict-260908-15'
+    path: 'mc-1216-port-260908-15/b5b6-verdict-260908-15.md'
+    kind: analysis
+    status: candidate  # judge review-260908-15 PASS-with-conditions（SHOULD-1/2 已应用，SHOULD-3 知识库草稿进行中，可选-1/2 已闭环）；confirmed 留用户
+    # worldgen-core 新增 fallen_tree parse/generate + PlaceOnGround/AttachedToLogs decorator；idk 定论（Util.shuffle 序 / HORIZONTAL facingArray）。
+    # 验证分层：parse=运行时冒烟；generate=Partial（放置 sanity + RNG 序静态对照，无 Java oracle，#67）；生产零回归=Degraded（features 阶段 Java vanilla 执行，无生产观测对象——B3 教训）。
+    # 已知偏差：AXIS 属性不可编码（R-4 同族）、heightmap/实心判定近似；place_on_ground 引用数勘误 9→7 CF（#90 家族）。
+    # §9.7：bin-diag 独跑冒烟口径，与 Chunky/block_probe 口径不可比；不含真实地形交互覆盖面。
+    # 来源：.investigations/mc-1216-port-260908-15/b5b6-scout.md + b5b6-worker-delivery.md；冒烟日志 .tmp/b5b6-smoke-260908-15.log。
+

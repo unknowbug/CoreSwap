@@ -316,11 +316,15 @@ pub enum TreeDecorator {
     TrunkVine,
     LeaveVine { probability: f32 },
     Beehive { probability: f32 }, // BeehiveTreeDecorator.java:43-75（260905-10 P2 缺抽修复）
+    /// minecraft:place_on_ground（B6，260908-15；PlaceOnGroundTreeDecorator.java:17-25）
+    PlaceOnGround { tries: i32, radius: i32, height: i32, provider: BlockStateProvider },
+    /// minecraft:attached_to_logs（B5 数据强依赖，260908-15；AttachedToLogsTreeDecorator.java:15-22）
+    AttachedToLogs { probability: f32, provider: BlockStateProvider, directions: Vec<(i32, i32, i32)> },
     Unsupported { type_name: String },
 }
 
 impl TreeDecorator {
-    pub fn parse(v: &JsonValue) -> TreeDecorator {
+    pub fn parse(v: &JsonValue, blocks: &BlockRegistry) -> TreeDecorator {
         let type_name = v.get("type").and_then(|t| t.as_str()).unwrap_or("").to_string();
         let prob = || v.get("probability").and_then(|x| x.as_f64()).unwrap_or(0.0) as f32;
         if type_name.contains("cocoa") {
@@ -331,6 +335,34 @@ impl TreeDecorator {
             TreeDecorator::LeaveVine { probability: prob() }
         } else if type_name.contains("beehive") {
             TreeDecorator::Beehive { probability: prob() }
+        } else if type_name.contains("place_on_ground") {
+            // PlaceOnGroundTreeDecorator.CODEC（L17-25）：tries 默认 128 / radius 默认 2 / height 默认 1
+            let f = |k: &str, d: i32| v.get(k).and_then(|x| x.as_f64()).map(|x| x as i32).unwrap_or(d);
+            match BlockStateProvider::parse(v.get("block_state_provider"), blocks) {
+                Some(provider) => TreeDecorator::PlaceOnGround {
+                    tries: f("tries", 128), radius: f("radius", 2), height: f("height", 1), provider,
+                },
+                None => { eprintln!("[tree] place_on_ground without block_state_provider"); TreeDecorator::Unsupported { type_name } }
+            }
+        } else if type_name.contains("attached_to_logs") {
+            // AttachedToLogsTreeDecorator.CODEC（L15-22）：probability + block_provider + directions（非空列表）
+            let mut directions = Vec::new();
+            if let Some(arr) = v.get("directions").and_then(|d| d.as_array()) {
+                for d in arr {
+                    if let Some(s) = d.as_str() {
+                        directions.push(dir_vector(s));
+                    }
+                }
+            }
+            if directions.is_empty() {
+                // Java Codecs.nonEmptyList 会 parse 失败；此处告警 + Unsupported（不静默）
+                eprintln!("[tree] attached_to_logs: directions empty/missing（Java codec nonEmptyList 会拒绝）");
+                return TreeDecorator::Unsupported { type_name };
+            }
+            match BlockStateProvider::parse(v.get("block_provider"), blocks) {
+                Some(provider) => TreeDecorator::AttachedToLogs { probability: prob(), provider, directions },
+                None => { eprintln!("[tree] attached_to_logs without block_provider"); TreeDecorator::Unsupported { type_name } }
+            }
         } else {
             eprintln!("[tree] unsupported tree decorator type: {type_name}");
             TreeDecorator::Unsupported { type_name }
@@ -338,8 +370,10 @@ impl TreeDecorator {
     }
 
     /// 依 config.decorators 顺序执行（TreeFeature.java:154）。共用同一 random。
+    /// 260908-15（B6）：扩 root 位置集（Java Generator 三集 log/leaves/roots，TreeDecorator.java:33-35）；
+    /// 现有树无 root placer → 传 &[]；fallen_tree 侧 stump={stump}/log 集/∅ 同一入口。
     pub fn generate(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
-                    trunk_set: &Vec<[i32; 3]>, leaves_set: &Vec<[i32; 3]>) {
+                    trunk_set: &[[i32; 3]], leaves_set: &[[i32; 3]], root_set: &[[i32; 3]]) {
         match self {
             TreeDecorator::Cocoa { probability } => {
                 // CocoaBeansTreeDecorator.java:28-45（s1-semantics idk-6）
@@ -441,6 +475,12 @@ impl TreeDecorator {
                     }
                 }
             }
+            TreeDecorator::PlaceOnGround { tries, radius, height, provider } => {
+                generate_place_on_ground(ctx, random, trunk_set, root_set, *tries, *radius, *height, provider);
+            }
+            TreeDecorator::AttachedToLogs { probability, provider, directions } => {
+                generate_attached_to_logs(ctx, random, trunk_set, *probability, provider, directions);
+            }
             TreeDecorator::Unsupported { .. } => {
                 // WG_TREEDIAG（260905-10 P2）：漏实现 decorator 的缺失消费点标记（如 beehive 恒 1 次 nextFloat）
                 if crate::placement::treediag_enabled() { eprintln!("[BEE-MISS] unsupported decorator consumed nothing"); }
@@ -520,7 +560,7 @@ impl TreeFeatureConfig {
         let foliage_placer = FoliagePlacer::parse(cfg.get("foliage_placer"));
         let mut decorators = Vec::new();
         if let Some(arr) = cfg.get("decorators").and_then(|d| d.as_array()) {
-            for d in arr { decorators.push(TreeDecorator::parse(d)); }
+            for d in arr { decorators.push(TreeDecorator::parse(d, blocks)); }
         }
         Some(TreeFeatureConfig {
             trunk_provider, foliage_provider, dirt_provider, trunk_placer, foliage_placer,
@@ -600,7 +640,7 @@ impl TreeFeatureConfig {
                     leaves_set.iter().map(|p| format!("{}:{},{}", p[0], p[1], p[2])).collect::<Vec<_>>().join("|"));
             }
             for d in &self.decorators {
-                d.generate(ctx, random, &trunk_set, &leaves_set);
+                d.generate(ctx, random, &trunk_set, &leaves_set, &[]); // 现有树无 root placer（root 集恒空）
             }
         }
         // ⑩ placeLogsAndLeaves distance 重算（TreeFeature.java:167-229）：
@@ -900,5 +940,237 @@ pub struct SimpleBlockConfig {
 impl SimpleBlockConfig {
     pub fn parse(v: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<SimpleBlockConfig> {
         Some(SimpleBlockConfig { to_place: BlockStateProvider::parse(v?.get("to_place"), blocks)? })
+    }
+}
+
+// ===== B5/B6（260908-15）：fallen_tree + place_on_ground / attached_to_logs（MC 1.21.6）=====
+// Java 参照：world/gen/feature/FallenTreeFeature.java（130 行）+ treedecorator/PlaceOnGroundTreeDecorator.java
+// + AttachedToLogsTreeDecorator.java + Util.java:1184 shuffle + Direction.java:601 HORIZONTAL facingArray。
+// 语义依据：.investigations/mc-1216-port-260908-15/b5b6-scout.md + 本文件逐行对拍注释。
+
+/// 方向名 → (dx, dy, dz)（Java Direction.getVector；attached_to_logs directions 解析用）
+fn dir_vector(name: &str) -> (i32, i32, i32) {
+    match name {
+        "north" => (0, 0, -1), "south" => (0, 0, 1), "west" => (-1, 0, 0),
+        "east" => (1, 0, 0), "up" => (0, 1, 0), "down" => (0, -1, 0),
+        _ => { eprintln!("[tree] unknown direction name: {name}"); (0, 0, 0) }
+    }
+}
+
+/// Java Random.nextBetween(min, max) = nextInt(max - min + 1) + min——min==max 也恒消费 1 次
+fn next_between(random: &mut ChunkRandom, min: i32, max: i32) -> i32 {
+    random.next_int_bound((max.wrapping_sub(min)).wrapping_add(1)).wrapping_add(min)
+}
+
+/// 近似谓词组（⚠️ 数据边界声明：引擎 state = i32 块 id，无属性/形状/光照数据，
+/// isSideSolidFullSquare / isOpaqueFullCube / blocksMotion 无法逐位复刻——
+/// 按下表近似；与 cocoa age（R-4）同族已知偏差，palette 对比时注意）：
+///   solid-ish（≈实心/不透明全方块/blocksMotion）：非 air、非 water、非 REPLACEABLE_BY_TREES、非树叶
+const APPROX_NON_SOLID: &[&str] = &[
+    "minecraft:water", "minecraft:lava", "minecraft:vine", "minecraft:glow_lichen",
+    "minecraft:oak_leaves", "minecraft:birch_leaves", "minecraft:spruce_leaves", "minecraft:jungle_leaves",
+    "minecraft:acacia_leaves", "minecraft:dark_oak_leaves", "minecraft:mangrove_leaves", "minecraft:cherry_leaves",
+    "minecraft:azalea_leaves", "minecraft:flowering_azalea_leaves", "minecraft:pale_oak_leaves",
+];
+fn is_solid_ish(ctx: &OreFeatureContext, x: i32, y: i32, z: i32) -> bool {
+    let cur = ctx.block_at(x, y, z);
+    if cur < 0 { return false; } // 世界不可读 → 保守拒绝（can_replace 同语义）
+    if cur == ctx.blocks.id("minecraft:air") { return false; }
+    !APPROX_NON_SOLID.iter().any(|n| ctx.blocks.id(n) == cur)
+}
+
+/// MOTION_BLOCKING_NO_LEAVES heightmap 近似（place_on_ground 三合一条件第三条）：
+/// Java getTopY 从世界顶向下找首个 blocksMotion||fluid 且非树叶的方块；引擎无现成 heightmap
+/// （ocean_floor/world_surface 是 NOISE 阶段 WG 图，语义不等价）→ 逐列扫描近似。
+/// 查不到（列不可读）返回 min_y-1（Java 全 air 列语义）——保守放行。
+fn top_motion_blocking_no_leaves_y(ctx: &OreFeatureContext, wx: i32, wz: i32) -> i32 {
+    let water = ctx.blocks.id("minecraft:water");
+    let mut wy = ctx.min_y + ctx.height - 1;
+    while wy >= ctx.min_y {
+        let cur = ctx.block_at(wx, wy, wz);
+        if cur >= 0 {
+            let is_solid = cur != ctx.blocks.id("minecraft:air")
+                && !APPROX_NON_SOLID.iter().any(|n| ctx.blocks.id(n) == cur);
+            // MOTION_BLOCKING 含流体（water blocksMotion via fluid 分支）；lava 同理，但 lava 在 NON_SOLID 近似表中 → 声明偏差
+            if (is_solid || cur == water) { return wy; }
+        }
+        wy = wy.wrapping_sub(1);
+    }
+    ctx.min_y - 1
+}
+
+/// B6 主体（PlaceOnGroundTreeDecorator.generate L44-76 + 单点 L78-85）
+fn generate_place_on_ground(ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
+                            log_set: &[[i32; 3]], root_set: &[[i32; 3]],
+                            tries: i32, radius: i32, height: i32, provider: &BlockStateProvider) {
+    // Java Generator ctor：log/root 各自 Y 升序稳定排序（TreeDecorator.java:48-53）→ 这里复制后排序
+    let mut logs: Vec<[i32; 3]> = log_set.to_vec(); logs.sort_by_key(|p| p[1]);
+    let mut roots: Vec<[i32; 3]> = root_set.to_vec(); roots.sort_by_key(|p| p[1]);
+    // TreeFeature.getLeafLitterPositions（TreeFeature.java:231-244）
+    let list: Vec<[i32; 3]> = if roots.is_empty() {
+        logs
+    } else if !logs.is_empty() && roots[0][1] == logs[0][1] {
+        logs.extend(roots); logs
+    } else {
+        roots
+    };
+    // list 空 → 直接返回，零 RNG 消费（Java L46 if (!list.isEmpty())）
+    if list.is_empty() { return; }
+    // 首 Y = i；y==i 子集求 XZ 包围盒（L47-61）
+    let iy = list[0][1];
+    let (mut min_x, mut max_x, mut min_z, mut max_z) = (list[0][0], list[0][0], list[0][2], list[0][2]);
+    for p in &list {
+        if p[1] == iy {
+            min_x = min_x.min(p[0]); max_x = max_x.max(p[0]);
+            min_z = min_z.min(p[2]); max_z = max_z.max(p[2]);
+        }
+    }
+    // BlockBox.expand(radius, height, radius)（L64）：六面外扩
+    let (bx0, bx1) = (min_x.wrapping_sub(radius), max_x.wrapping_add(radius));
+    let (by0, by1) = (iy.wrapping_sub(height), iy.wrapping_add(height));
+    let (bz0, bz1) = (min_z.wrapping_sub(radius), max_z.wrapping_add(radius));
+    // tries 循环：每次恒 3 次 nextBetween（X/Y/Z 各 1，无条件消费——失败路径也不省）（L67-74）
+    for _ in 0..tries {
+        let px = next_between(random, bx0, bx1);
+        let py = next_between(random, by0, by1);
+        let pz = next_between(random, bz0, bz1);
+        // 三合一放置条件（L78-85）：目标 = pos.up()（不是 pos 本身）
+        let (ux, uy, uz) = (px, py.wrapping_add(1), pz);
+        let up = ctx.block_at(ux, uy, uz);
+        let up_ok = up == ctx.blocks.id("minecraft:air") || up == ctx.blocks.id("minecraft:vine");
+        // ① pos.up() 是 air 或 vine ② pos 本体 opaque full cube（近似） ③ heightmap 顶 ≤ pos.up().y
+        if up_ok
+            && is_solid_ish(ctx, px, py, pz)
+            && top_motion_blocking_no_leaves_y(ctx, px, pz) <= uy {
+            // 成功才消费 provider（weighted → 消费）
+            let state = provider.get(random);
+            ctx.set_block(ux, uy, uz, state);
+        }
+    }
+}
+
+/// B5 依赖（AttachedToLogsTreeDecorator.generate L34-43）
+/// RNG 序（idk-① 源码定论）：先 Util.copyShuffled 整洗牌（Fisher-Yates 降序），后逐位置：
+/// nextInt(directions.len()) → nextFloat()（无条件，即使必败）→ 双门全过才 provider.get。
+fn generate_attached_to_logs(ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
+                             log_set: &[[i32; 3]], probability: f32,
+                             provider: &BlockStateProvider, directions: &[(i32, i32, i32)]) {
+    // Java Generator ctor 已按 Y 升序稳定排序（TreeDecorator.java:51）→ 洗牌输入 = 该排序后的列表
+    let mut list: Vec<[i32; 3]> = log_set.to_vec(); list.sort_by_key(|p| p[1]);
+    // Util.copyShuffled(List, Random)（Util.java:1184-1191）：j 从 n 降到 2，k = nextInt(j)，swap(k, j-1)。
+    // n=0/1 时零消费。
+    let n = list.len() as i32;
+    if n >= 2 {
+        for j in (2..=n).rev() {
+            let k = random.next_int_bound(j) as usize;
+            list.swap(k, (j - 1) as usize);
+        }
+    }
+    for pos in &list {
+        // directions 由 parse 保证非空（Java Codecs.nonEmptyList）
+        let d = directions[random.next_int_bound(directions.len() as i32) as usize];
+        let (bx, by, bz) = (pos[0].wrapping_add(d.0), pos[1].wrapping_add(d.1), pos[2].wrapping_add(d.2));
+        // nextFloat() <= probability：无条件消费（&& 右侧 isAir 在消费后才评估）
+        if random.next_float() <= probability && ctx.block_at(bx, by, bz) == ctx.blocks.id("minecraft:air") {
+            let state = provider.get(random);
+            ctx.set_block(bx, by, bz, state);
+        }
+    }
+}
+
+/// B5：fallen_tree feature config（FallenTreeFeatureConfig.java:12-20，4 字段）
+#[derive(Clone)]
+pub struct FallenTreeConfig {
+    pub trunk_provider: BlockStateProvider,
+    pub log_length: IntProv,
+    pub stump_decorators: Vec<TreeDecorator>,
+    pub log_decorators: Vec<TreeDecorator>,
+}
+
+impl FallenTreeConfig {
+    pub fn parse(cfg: Option<&JsonValue>, blocks: &BlockRegistry) -> Option<FallenTreeConfig> {
+        let cfg = cfg?;
+        let trunk_provider = BlockStateProvider::parse(cfg.get("trunk_provider"), blocks)?;
+        let log_length = IntProv::parse(cfg.get("log_length")); // Java 校验 0..16；Rust 沿用 IntProvider 通用解析
+        let mut stump_decorators = Vec::new();
+        let mut log_decorators = Vec::new();
+        if let Some(arr) = cfg.get("stump_decorators").and_then(|d| d.as_array()) {
+            for d in arr { stump_decorators.push(TreeDecorator::parse(d, blocks)); }
+        }
+        if let Some(arr) = cfg.get("log_decorators").and_then(|d| d.as_array()) {
+            for d in arr { log_decorators.push(TreeDecorator::parse(d, blocks)); }
+        }
+        Some(FallenTreeConfig { trunk_provider, log_length, stump_decorators, log_decorators })
+    }
+
+    /// 主体（FallenTreeFeature.generate L38-47 + 私有方法 L49-129）。Java generate 恒 true。
+    /// RNG 消费序（逐调用点对拍，见交付说明对照表）：
+    ///   stump 放置(provider) → stump_decorators → nextInt(4) 方向 → log_length 抽取−2
+    ///   → nextInt(2) 离桩 → 地面查找(0) → canPlaceLog 预检(0) → 逐 log(provider) → log_decorators
+    pub fn generate(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom, x: i32, y: i32, z: i32) -> bool {
+        // ① generateStump（L61-64）：origin 放 trunk（原 axis），对单点集跑 stump_decorators
+        let stump_state = self.trunk_provider.get(random);
+        ctx.set_block(x, y, z, stump_state);
+        let stump_set = vec![[x, y, z]];
+        self.apply_decorators(ctx, random, &stump_set, &self.stump_decorators);
+        // ② 方向 = Direction.Type.HORIZONTAL.random（L40）= Util.getRandom(facingArray) = nextInt(4)
+        //    facingArray 序（1.21.6 Direction.java:601）= NORTH, EAST, SOUTH, WEST
+        //    澄清（judge 可选-1）：本数组是 Type.HORIZONTAL.facingArray；本文件 cocoa 注释（:492）引的
+        //    Direction.java:49-52 是另一数组（Direction.HORIZONTAL 静态字段，序 N,W,S,E，迭代序）——
+        //    两者都是 Java 一手、各自正确，勿互相「勘误」。
+        const HORIZONTAL_FACING: [(i32, i32, i32); 4] = [(0, 0, -1), (1, 0, 0), (0, 0, 1), (-1, 0, 0)];
+        let (dx, _dy, dz) = HORIZONTAL_FACING[random.next_int_bound(4) as usize];
+        // ③ log 段数 = 抽取值 − 2（L41）；Java int 语义 → wrapping
+        let length = self.log_length.get(random).wrapping_sub(2);
+        // ④ 起点 = pos.offset(direction, 2 + nextInt(2))（L42）
+        let dist = 2i32.wrapping_add(random.next_int_bound(2));
+        let mut px = x.wrapping_add(dx.wrapping_mul(dist));
+        let mut py = y;
+        let mut pz = z.wrapping_add(dz.wrapping_mul(dist));
+        // ⑤ moveToGroundPos（L49-59）：上移 1 后向下找 ≤6 格 canReplace && 下方实心；找不到停在最后位置
+        py = py.wrapping_add(1);
+        for _ in 0..6 {
+            if can_replace(ctx, px, py, pz) && is_solid_ish(ctx, px, py.wrapping_sub(1), pz) { break; }
+            py = py.wrapping_sub(1);
+        }
+        // ⑥ canPlaceLog 预检（L66-87，确定性无 RNG）：任一格 !canReplace → 放弃；
+        //    下方不实心连续累计 >2 → 放弃（实心即清零）。检查用独立游标，不复位主游标（局部变量即 Java move 后回退语义）
+        let mut can_place = true;
+        let mut suspended: i32 = 0;
+        {
+            let (mut cx2, mut cy2, mut cz2) = (px, py, pz);
+            for _ in 0..length {
+                if !can_replace(ctx, cx2, cy2, cz2) { can_place = false; break; }
+                if !is_solid_ish(ctx, cx2, cy2.wrapping_sub(1), cz2) {
+                    suspended = suspended.wrapping_add(1);
+                    if suspended > 2 { can_place = false; break; }
+                } else {
+                    suspended = 0;
+                }
+                cx2 = cx2.wrapping_add(dx); cz2 = cz2.wrapping_add(dz);
+            }
+        }
+        // ⑦ generateLog（L89-98）：逐格放 trunk 并 AXIS 旋转（⚠️ 引擎 state=i32 无属性位——AXIS=x/z
+        //    与 y 同 id 不可区分，同 cocoa age R-4 已知偏差；放置/RNG 序不受影响）
+        if can_place {
+            let mut log_set: Vec<[i32; 3]> = Vec::new();
+            for _ in 0..length {
+                let state = self.trunk_provider.get(random);
+                ctx.set_block(px, py, pz, state);
+                log_set.push([px, py, pz]);
+                px = px.wrapping_add(dx); pz = pz.wrapping_add(dz);
+            }
+            // ⑧ log_decorators（对全部 log 位置集）
+            self.apply_decorators(ctx, random, &log_set, &self.log_decorators);
+        }
+        true // Java generate 恒 true（L33-36）
+    }
+
+    /// FallenTreeFeature.applyDecorators（L116-121）：Generator(positions, ∅, ∅)
+    fn apply_decorators(&self, ctx: &mut OreFeatureContext, random: &mut ChunkRandom,
+                        positions: &[[i32; 3]], decorators: &[TreeDecorator]) {
+        for d in decorators {
+            d.generate(ctx, random, positions, &[], &[]);
+        }
     }
 }
