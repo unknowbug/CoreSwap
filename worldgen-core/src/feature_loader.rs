@@ -11,6 +11,39 @@ use crate::feature::{DiskFeatureConfig, OreFeatureConfig, SpringFeatureConfig, U
 use crate::json::JsonValue;
 use crate::placement::{FeaturePlacementContext, PlacementModifier, PlacedFeature};
 
+// ===== unknown-type 计数哨兵（batch0，mc-1216）=====
+// catch-all 告警路径去重收集 unknown type_name；features 阶段结束（apply_features 尾部）
+// WG_FEATURE_UNKNOWN_LOG=1 时打一行汇总。验收判据：unknown 集合 == 预期残差清单（防 catch-all 假绿）。
+// 并发性：apply_features 可能多线程跑（CoreSwapPool），用 Mutex<BTreeSet>；仅 unknown 路径加锁
+// （正常热路径零成本），门控 env 进程级 OnceLock 读一次（对齐 treediag_enabled 模式，placement.rs:283）。
+static UNKNOWN_TYPES: std::sync::OnceLock<std::sync::Mutex<std::collections::BTreeSet<String>>> =
+    std::sync::OnceLock::new();
+
+pub fn record_unknown_type(t: &str) {
+    let set = UNKNOWN_TYPES.get_or_init(|| std::sync::Mutex::new(std::collections::BTreeSet::new()));
+    if let Ok(mut s) = set.lock() {
+        s.insert(t.to_string());
+    }
+}
+
+fn unknown_log_enabled() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var("WG_FEATURE_UNKNOWN_LOG").is_ok())
+}
+
+pub fn report_unknown_types() {
+    if !unknown_log_enabled() { return; }
+    match UNKNOWN_TYPES.get() {
+        Some(set) => {
+            if let Ok(s) = set.lock() {
+                let list: Vec<&str> = s.iter().map(|x| x.as_str()).collect();
+                eprintln!("[FEATURE-UNKNOWN] n={} list=[{}]", s.len(), list.join(", "));
+            }
+        }
+        None => eprintln!("[FEATURE-UNKNOWN] n=0 list=[]"),
+    }
+}
+
 // ===== ConfiguredFeature 解析（type 分发）=====
 // 260905-05：解除 2026-08-10 拍板注释（原 L50）——supersedes：G2 归因（g2-convergence-260905-03）
 // 判定树/植被残差为「feature 类型未实现」而非「调度错位」+ 本课题（b2-tree-plan-260905-05 / feature parity Phase 4）。
@@ -49,15 +82,21 @@ impl ConfiguredFeature {
             simple_block_config: None,
             fallen_config: None,
         };
-        if type_name.contains("ore") {
+        // batch0（mc-1216）：contains 子串分发 → 精确匹配（1.21.6 Feature.java 注册名逐一核对，
+        // 见 .investigations/mc-1216-features-takeover/batch0-worker-delivery.md §②）。
+        // contains("ore") 曾误捕 forest_rock / nether_forest_vegetation（"forest" 含 "ore" 子串）
+        // → 配置全错且无告警；误捕类型现落 catch-all 显式告警 + unknown 计数。
+        if type_name == "minecraft:ore" {
             cf.ore_config = OreFeatureConfig::parse(cfg, blocks);
-        } else if type_name.contains("disk") {
+        } else if type_name == "minecraft:scattered_ore" {
+            cf.ore_config = OreFeatureConfig::parse(cfg, blocks);
+        } else if type_name == "minecraft:disk" {
             cf.disk_config = DiskFeatureConfig::parse(cfg, blocks);
-        } else if type_name.contains("spring") {
+        } else if type_name == "minecraft:spring_feature" {
             cf.spring_config = SpringFeatureConfig::parse(cfg, blocks);
-        } else if type_name.contains("underwater_magma") {
+        } else if type_name == "minecraft:underwater_magma" {
             cf.magma_config = UnderwaterMagmaFeatureConfig::parse(cfg, blocks);
-        } else if type_name.contains("freeze_top_layer") {
+        } else if type_name == "minecraft:freeze_top_layer" {
             cf.freeze_top = true;
         } else if type_name == "minecraft:tree" {
             // 精确匹配（不用 contains：防 azalea_tree 等误伤；azalea_tree 在数据集 type 也是
@@ -81,6 +120,8 @@ impl ConfiguredFeature {
         } else {
             // 未知 configured type 显式告警（消除静默丢弃，b2 S2）——不 panic（S4 全量加载门）
             eprintln!("[feature-loader] unknown configured feature type: {type_name} ({id})");
+            // batch0 哨兵：去重收集（BTreeSet），阶段末汇总（WG_FEATURE_UNKNOWN_LOG 门控）
+            record_unknown_type(&type_name);
         }
         cf
     }
@@ -381,20 +422,19 @@ pub fn generate_configured(
     cache: &FeatureCache,
 ) -> bool {
     octx.origin_x = x; octx.origin_y = y; octx.origin_z = z;
-    if cf.type_name.contains("ore") {
-        let is_scattered = cf.type_name.contains("scattered_ore");
-        if is_scattered {
-            crate::feature::ScatteredOreFeature.generate(octx, &cf.ore_config, random)
-        } else {
-            crate::feature::OreFeature.generate(octx, &cf.ore_config, random)
-        }
-    } else if cf.type_name.contains("disk") {
+    // batch0（mc-1216）：generate 分发同步改精确匹配（清单与 parse 侧一致），
+    // 误捕类型不再错误消费 RNG 走 ore/disk 生成路径。
+    if cf.type_name == "minecraft:ore" {
+        crate::feature::OreFeature.generate(octx, &cf.ore_config, random)
+    } else if cf.type_name == "minecraft:scattered_ore" {
+        crate::feature::ScatteredOreFeature.generate(octx, &cf.ore_config, random)
+    } else if cf.type_name == "minecraft:disk" {
         crate::feature::DiskFeature.generate(octx, &cf.disk_config, random)
-    } else if cf.type_name.contains("spring") {
+    } else if cf.type_name == "minecraft:spring_feature" {
         crate::feature::SpringFeature.generate(octx, &cf.spring_config, random)
-    } else if cf.type_name.contains("freeze_top_layer") {
+    } else if cf.type_name == "minecraft:freeze_top_layer" {
         crate::feature::FreezeTopLayerFeature.generate(octx, biome_temp, biome_rainfall, random)
-    } else if cf.type_name.contains("underwater_magma") {
+    } else if cf.type_name == "minecraft:underwater_magma" {
         crate::feature::UnderwaterMagmaFeature.generate(octx, &cf.magma_config, random)
     } else if cf.type_name == "minecraft:tree" {
         match &cf.tree_config {
@@ -469,6 +509,10 @@ pub fn generate_configured(
             None => { eprintln!("[feature-loader] fallen_tree without config: {}", cf.id); false }
         }
     } else {
+        // batch0：generate 侧 catch-all 从静默 false → 显式告警 + unknown 计数
+        //（原误捕类型在此被静默跳过；新路径与 parse 侧 catch-all 同口径）
+        eprintln!("[feature-loader] unknown configured feature type at generate: {} ({})", cf.type_name, cf.id);
+        record_unknown_type(&cf.type_name);
         false
     }
 }

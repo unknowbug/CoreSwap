@@ -1182,6 +1182,9 @@ impl WorldgenHandle {
                 pf.generate(&fctx, &mut feat_random, cx * 16, min_y, cz * 16, generate_configured);
             }
         }
+        // batch0（mc-1216）：features 阶段结束 unknown-type 汇总（进程级去重集合，
+        // 每 chunk 一次调用；env 门控 OnceLock 进程级读一次，热路径近零成本）
+        crate::feature_loader::report_unknown_types();
         if ca_log {
             eprintln!("[CA] chunk({},{}) out_reads={} pending_writes={} placed={}", cx, cz,
                 CA_OUT_READS.load(std::sync::atomic::Ordering::Relaxed),

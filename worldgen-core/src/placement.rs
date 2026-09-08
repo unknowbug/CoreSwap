@@ -276,6 +276,11 @@ pub enum PlacementModifier {
         target: BlockPredicate,
         allowed: Option<BlockPredicate>, // alwaysTrue 缺省 → None 表示恒真
     },
+    /// count_on_every_layer（batch0 实装，CountMultilayerPlacementModifier.java:35-85）
+    /// 语义：外层 do-while 逐层（layer 0 = 最顶可生成面），每层随机 count 个 (x,z)，
+    /// findPos 从列顶下扫描找第 layer 个「air/water/lava 之下是实体非基岩」的界面，
+    /// 返回该空气位 y；某层全空即停。
+    CountOnEveryLayer { count: IntProvider, water_id: i32, lava_id: i32, bedrock_id: i32 },
 }
 
 /// WG_TREEDIAG（260905-10 P2 逐树 RNG 打点，b1 §4 模板）：进程级读 env 一次，热路径零成本。
@@ -383,15 +388,61 @@ impl PlacementModifier {
                 let n = (count.get(random) + (noise * *max_count as f64).floor() as i32).max(0);
                 (0..n).map(|_| [x, y, z]).collect()
             }
+            PlacementModifier::CountOnEveryLayer { count, water_id, lava_id, bedrock_id } => {
+                // Java CountMultilayerPlacementModifier.java:35-58 精确移植：
+                // - k/l = nextInt(16)+pos.x/z（自身含 square，列在本 chunk 内 → block_at 可读整列）
+                // - 每层（do-while 一轮）先 count.get(random)（每层消费），再每点 2 次 nextInt(16)
+                // - findPos 无 RNG；返回 Integer.MAX_VALUE → Java 跳过（Rust None）
+                // 高度图依赖：Java getTopY(MOTION_BLOCKING, k, l) 定扫描起点 m——本实现从列顶
+                // （min_y+height-1）起扫。等价性：MOTION_BLOCKING 顶之上 air-over-air 不满足
+                // findPos 条件（上方块 air/water/lava 即 blocksSpawn=true 被排除），首个命中界面
+                // 与从 MOTION_BLOCKING 顶起扫相同 → 不依赖 heightmap，**不引入 scout-b 两桶塌缩
+                // 依赖**（placement.rs:311/369 塌缩修正属批次 B）。
+                // @anchor.idk("block_at 越界读返回 -1 时按非可生成面处理（保守拒绝）；Java 读邻 chunk
+                //  实况。本 modifier k/l 恒在 chunk 内、整列可读，实际不可达，但依赖 worldgen_handle
+                //  block_at_col 的越界语义保持 -1", source="memory:batch0-worker-delivery.md §④")
+                let Some(block_at) = ctx.block_at else { return vec![]; };
+                let bottom = ctx.min_y;
+                let top = ctx.min_y + ctx.height - 1;
+                let mut out = Vec::new();
+                let mut layer = 0i32;
+                loop {
+                    let mut found_any = false;
+                    for _ in 0..count.get(random) {
+                        let k = random.next_int_bound(16) + x;
+                        let l = random.next_int_bound(16) + z;
+                        if let Some(n) = find_multilayer_pos(block_at, k, top, l, bottom, layer,
+                                                             *water_id, *lava_id, *bedrock_id) {
+                            out.push([k, n, l]);
+                            found_any = true;
+                        }
+                    }
+                    if !found_any { break; }
+                    layer += 1;
+                }
+                out
+            }
         }
     }
 
     pub fn parse(m: &JsonValue, blocks: &BlockRegistry) -> Option<PlacementModifier> {
         let type_name = m.get("type").and_then(|t| t.as_str()).unwrap_or("");
-        if type_name.contains("count") && !type_name.contains("noise") {
+        // batch0（mc-1216）：contains("count") 曾把 count_on_every_layer 吸进 Count 分支
+        //（语义完全不同：Count=同点复制 n 次，CountOnEveryLayer=逐层找可生成面）。
+        // 改精确匹配（PlacementModifierType.java:17/22-24 核对）。
+        if type_name == "minecraft:count" {
             if let Some(c) = m.get("count") {
                 return Some(PlacementModifier::Count(IntProvider::parse(Some(c))));
             }
+        } else if type_name == "minecraft:count_on_every_layer" {
+            // CountMultilayerPlacementModifier.MODIFIER_CODEC：IntProvider count 字段（0..=256）
+            // water/lava/bedrock id 在 parse 期解析（get_positions 无 BlockRegistry 访问）
+            return Some(PlacementModifier::CountOnEveryLayer {
+                count: m.get("count").map(|c| IntProvider::parse(Some(c))).unwrap_or(IntProvider::Constant(1)),
+                water_id: blocks.id("minecraft:water"),
+                lava_id: blocks.id("minecraft:lava"),
+                bedrock_id: blocks.id("minecraft:bedrock"),
+            });
         } else if type_name.contains("rarity_filter") {
             return Some(PlacementModifier::RarityFilter(m.get("chance").and_then(|x| x.as_f64()).unwrap_or(0.0) as i32));
         } else if type_name.contains("in_square") {
@@ -448,8 +499,38 @@ impl PlacementModifier {
         }
         // —— 尾部：未知 modifier 显式告警（b2 S2，消除静默丢弃）——
         eprintln!("[feature-loader] unknown placement modifier type: {type_name}");
+        // batch0 哨兵：mod: 前缀与 configured type 命名空间区分
+        crate::feature_loader::record_unknown_type(&format!("mod:{type_name}"));
         None
     }
+}
+
+/// CountMultilayerPlacementModifier.findPos（Java :65-85）精确移植：
+/// 从 (x, top, z) 起逐格下扫到 bottom+1，数「上方可生成（air/water/lava）、自身实体非基岩」
+/// 的界面，第 target 个界面的空气位 y；不足返回 None（Java Integer.MAX_VALUE）。
+fn find_multilayer_pos(
+    block_at: &dyn Fn(i32, i32, i32) -> i32,
+    x: i32, top: i32, z: i32, bottom: i32, target: i32,
+    water_id: i32, lava_id: i32, bedrock_id: i32,
+) -> Option<i32> {
+    let air = crate::blocks::AIR;
+    let spawns = |id: i32| id == air || id == water_id || id == lava_id;
+    // -1（不可读）不满足 spawns → 保守不生成；state2 == bedrock 排除（Java :73）
+    let mut prev = block_at(x, top, z);
+    let mut found = 0i32;
+    let mut j = top;
+    while j >= bottom + 1 {
+        let cur = block_at(x, j - 1, z);
+        if !spawns(cur) && spawns(prev) && cur != bedrock_id {
+            if found == target {
+                return Some(j); // Java mutable.getY()+1 = (j-1)+1 = j
+            }
+            found += 1;
+        }
+        prev = cur;
+        j -= 1;
+    }
+    None
 }
 
 // ===== PlacedFeature（Java PlacedFeature.java）=====
