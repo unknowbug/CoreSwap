@@ -1104,3 +1104,11 @@ entries:
     # 核验：数据文件实存 + 两侧（Rust 引擎/Java 探针）零引用 grep，与 p7-e2e-verdict-260908-10 §4 候选记录一致；静态核对非运行时行为验证（§9.7 声明见清单尾）。
     # 来源：p7-e2e-verdict-260908-10.md、架构计划-260908-09/10-mc1216-phase3*.md、verdict-f1f2-chunky-260908-11.md。
 
+  # === 260908-13 块：P5 判定（1.21.6 ChunkStatus 邻居依赖） ===
+  - id: 'swe:mc-1216-port:p5-chunkstatus-verdict-260908-13'
+    path: 'mc-1216-port/p5-verdict-260908-13.md'
+    kind: analysis
+    status: confirmed  # 用户拍板 260908-13（P5 判定 confirmed：不做，Rust 零功能性消费点已验证；judge PASS-with-conditions 3 SHOULD 已应用）
+    # 判定 = P5 不做（维持 260908-10 挂起，本轮升级已验证）：依赖表属 Java 调度层，Rust 零消费点（薄壳/jni_bridge/worldgen-core grep 零命中；worldgen_handle.rs:889 唯一 neighbor 命中 = carver 半径8 功能性复刻非消费）。
+    # Java 1.21.6 语义一手定位：邻居依赖迁至 ChunkGenerationStep/GenerationDependencies/ChunkGenerationSteps（dependsOn(level) + accumulate）。§9.7 覆盖面声明见 verdict。
+
