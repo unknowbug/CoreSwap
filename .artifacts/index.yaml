@@ -1079,15 +1079,19 @@ entries:
   - id: 'swe:mc-1216-port:f1-water-over-lava-260908-11'
     path: '../worldgen-core/src/aquifer.rs'
     kind: patch
-    status: candidate  # F1：water-over-lava 检查点改默认液面 sampler（default_level(y-1)，overworld 判据 (y-1)<-54）；lib 14/14 + 1.21.6 P7 复现 99.9993%/41 + 1.20.1 pre-F1/F1 逐位一致 + Chunky F1 域零差；judge review-260908-11-001 + 用户 confirmed 前不转正
+    status: confirmed  # 用户拍板 260908-11（judge review-260908-11-001 PASS-with-conditions 全闭环）
+    # F1：water-over-lava 检查点改默认液面 sampler（default_level(y-1)，overworld 判据 (y-1)<-54）；lib 14/14 + 1.21.6 P7 复现 99.9993%/41 + 1.20.1 pre-F1/F1 逐位一致 + Chunky F1 域零差
     # 证据：.artifacts/mc-1216-port-260908-11/verdict-f1f2-chunky-260908-11.md + .tmp/p7-rerun-260908-11/ + .tmp/p7-chunky-260908-11/（均 gitignored → 方法与数字以 verdict 为权威描述）。
   - id: 'swe:mc-1216-port:f2-probe-aqdump-base-260908-11'
     path: 'mc-1216-port-260908-11/f2-note.md'
     kind: patch
-    status: candidate  # F2：AquiferDumpProbeMixin:302 漏 +base（1.20.1 + 1.21.6 同款，gitignored runtime/）；静态行级对齐 + 运行时 sane + 跨执行体旁证；spread-replay 字段级手算未达成（降级声明）
+    status: confirmed  # 用户拍板 260908-11（降级声明已由 judge C 项核验合规）
+    # F2：AquiferDumpProbeMixin:302 漏 +base（1.20.1 + 1.21.6 同款，gitignored runtime/）；静态行级对齐 + 运行时 sane + 跨执行体旁证；spread-replay 字段级手算未达成（降级声明）
     # 载体说明：改动位于 gitignored runtime/ → 以 verdict §F2 + .investigations/mc-1216-port-260908-11/progress 为权威描述。
   - id: 're-code:mc-1216-port:chunky-1216-region-260908-11'
     path: 'mc-1216-port-260908-11/verdict-f1f2-chunky-260908-11.md'
     kind: analysis
-    status: candidate  # Chunky 1.21.6 首用量化：1089 chunks 双臂，625/3698 有差，terrain=27367/veg=6473/air=0；三家族与 1.20.1 基线同构、无新家族；水差全落 y=32-63、F1 域零差；载体 Chunky-Fabric-1.4.40 sha256 4dd5430e…a70c2
+    status: confirmed  # 用户拍板 260908-11（1.21.6 区域基线锚 + 同构判定）
+    # Chunky 1.21.6 首用量化：1089 chunks 双臂，625/3698 有差，terrain=27367/veg=6473/air=0；三家族与 1.20.1 基线同构、无新家族；水差 F1 域零差；载体 Chunky-Fabric-1.4.40 sha256 4dd5430e…a70c2
     # 关联：jungle-l/chunky-trial-260906-09.md（1.20.1 基线）；.tmp/p7-chunky-260908-11/（gitignored 证据底册）。
+
