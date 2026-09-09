@@ -1,4 +1,4 @@
-# features 接管 Phase 2.5 对拍 verdict（260909-02 · draft，judge PASS-with-conditions 四条件已应用，confirmed 未授）
+# features 接管 Phase 2.5 对拍 verdict（260909-02 · draft，judge PASS-with-conditions 四条件已应用，**confirmed（用户拍板 260909-02）**）
 
 > 日期锚：Get-Date 2026-09-09（13:3x）；git 锚 bf37814（Rust 侧无新提交；Java mixin 探针改动在 runtime/ 不入库）。
 > 载体：Chunky 双臂 + 噪声基线 + 序列探针（seed -8248318472910187742，region 0,0 r=16，1089 chunks/臂，各 run mask/seed 三查全过）。
