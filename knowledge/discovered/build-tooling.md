@@ -860,3 +860,14 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **定位/判据（执行体三元组核验，本形态版）**：加载文件 sha（build/resources/main/native/worldgen.dll）vs target 产物 sha 逐字节比对——本轮 sha16=02d897a3（2,411,008 B）一致；**processResources 日志行「synced Rust dll: N bytes」是同步发生的直接证据**（字节数与 target 产物大小一致）。三元组 = 加载文件 sha / target 产物 sha / 同步日志行，三者齐才认「跑的是本次构建」。
 - **教训**：执行体核验判据必须跟着「实际加载路径」走，不能沿用上一次运行口径（jar 口径 vs dev classpath 口径）；核验前先确认本次 run 的 classpath 形态，再选三元组的「加载文件」一端。另：processResources 的 inputs.files 含 dllFile 存在性在**配置期**判定——dll 不存在时启动的门（up-to-date/跳过判定）不随 dll 后续出现而自动更新，dll 后补时强制重跑 processResources。
 - **证据**：t3-rerun-record §执行体三元组核验（sha16 02d897a3 / 2,411,008 B / synced 日志行 / jar 13:26 vs dll 16:07 对照）。
+
+## 发现 #45: PowerShell `-like '*[CA-NT]*'` 通配符字符类坑——`[...]` 是字符集不是字面量，日志过滤混行污染求和（260909-06）
+
+- **时间/置信度/module**：260909-06；确定（首求和作废重算实测）；build-tooling / PowerShell 坑。
+- **来源定位**：`.investigations/camin-perf/probe-260909-06.md` 恒等式自检节末；载体 = 诊断日志求和脚本（.tmp）。
+- **现象**：用 `-like '*[CA-NT]*'` 风格过滤含 `[CA-NT]` 标签的诊断日志行，结果混入 `[CA-MEMO-TOP]` 等其他标签行，计数求和虚高，首版汇总作废。
+- **根因（机制）**：PowerShell 通配符里 `[...]` 是**字符类**（匹配括内任一字符），`*[CA-NT]*` = 「含 C 或 A 或 - 或 N 或 T 的任意行」——不是字面子串 `[CA-NT]`。诊断日志标签恰好全用大写字母，过滤器退化为「几乎匹配所有行」。
+- **定位**：求和与手数行数不符 → 打印被选中行样本发现 MEMO-TOP 行混入 → 逐字符核对通配符语义。
+- **修复**：字面过滤改 `.Contains('[CA-NT]')`（或转义 / `-SimpleMatch`）。
+- **教训/判据**：PowerShell 通配符里出现 `[` 一律先想字符类；对**含方括号标签的日志**做计数/求和类汇总，过滤后必须打印样本行核纯度（混行即作废，#13 sanity 家族同型）。
+- **家族索引**：#41、#13。

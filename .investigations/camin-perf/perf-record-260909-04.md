@@ -18,7 +18,7 @@
 | 基线 | on/off 两臂 | on 289.1ms/chunk vs off 128.5ms（**+125%**）；hash 6908dbfc…/115641b8… | 复现（比 dump 口径 +68% 更重，区域/版本上下文不同，§9.7 声明：bench 口径 ≠ 存档 dump 口径，不可比） |
 | E1（scout C1 原判：主管线不回填） | fill_chunk_blocks 回填 cache | on 297.4ms —— **零改善** | C1-as-modeled 证伪：读路径早已把前向邻 chunk 算过入缓存 |
 | **E1b** | 真实形态：主管线**缓存优先命中**（条目升级 (col,heightmap) Arc 对） | on 289→**177.9ms（+125%→+35%）**；off 无回归；hash 三轮逐位不变 | ✅ 实锤：每 chunk 地形双算（reader 算第 1 遍 + 管线无条件算第 2 遍） |
-| E2b（C2 clear-all 雪崩） | WG_CA_CAP 256 vs 2048 | 178.6 vs 176.5ms | C2 排除 |
+| E2b（C2 clear-all 雪崩） | WG_CA_CAP 256 vs 2048 | 178.6 vs 176.5ms | C2 排除（⚠️ 260909-06 取代注记见文末：排除结论被修正） |
 | WG_SKIP_FEATURES 分解 | 地形段两臂 | 119.7 vs 118.0ms（+1.4%） | 双算已消灭；残差全在 features 段（58.2 vs 13.8ms，4.2×） |
 | E4b（全量读计数） | all_reads | on **853k 读/chunk** vs off 7.5k（**114×**）；44ms/853k≈51ns/读 | 单读不贵（mutex+hash 量级），是读量放大 |
 | E4c（per-feature 归因） | [CA-READS] | seagrass_deep/normal ≈53%，其次 ore×4/disk/monster_room | Java 同构下扫/邻域扫描的忠实工作，非病态冗余循环 |
@@ -41,6 +41,14 @@
 - 行为等价门：PASS（hash 三轮逐位，on/off 各自稳定）。
 - 性能门（同口径 A/B）：on 177.9 vs off 131.8ms/chunk（+35%），相对优化前 +125% 回收 ~72%。
 - **降级声明（§9.7）**：本块性能读数为本地 bench 载体（串行 region、bench 口径），与 260909-03 的 223.7s/133.3s 存档 dump 口径**不可比**（载体/覆盖面/口径三要素均不同）；vs Java 端到端大样本 e2e 本轮未跑（CA_MIN 课题为 Rust 内部相对优化，Java 基线不变式由 260909-03 既有 evidence 覆盖）。
+
+### §15.4 取代注记：E2b「CAP 256 vs 2048 差 <2%，C2 排除」被修正（260909-06）
+
+- **supersedes**：本记录 E2b——「WG_CA_CAP 256/2048 差 <2% → clear-all 雪崩（C2）排除」；**superseded-by**：probe-260909-06.md（WG_CA_CAP 判别臂复测）。
+- **推翻理由（一行）**：差异真实存在且稳定——256 vs 2048 三轮配对交错 ~10-11% wall（165.9/172.4/162.5 vs 153.7/159.2/147.1 等，方向三轮一致）；260909-04 的 <2% 是该测量口径/条件下未显形（单轮、非配对交错、机器噪声带 ±10% 淹没信号，#24/#28 口径教训）。
+- **机制修正**：且 C2 的机制形态也错——不是预置的「288 miss 雪崩」（实测 miss 仅 0-8/chunk，全 region 358/322），而是 **clear-all 后对已生成过的邻列纯增重生成**（work 移位后剩的净增量），打在主管线缓存优先读路径（#100 缓存读路径被 clear 波及）。
+- **判据**：① 差异接近噪声带时，「未测出」≠「不存在」——必须配对交错（#24）+ 噪声基线（#51）后才可作排除结论；② 排除类结论（「C2 排除」）在后续轮新增判别臂时 MUST 复审（本例 NEXT_SESSION judge 条件①预置即此）。
+- **来源定位**：.investigations/camin-perf/probe-260909-06.md（数据表 + 判据核对节；E2b 原文位置 = 本文件判别链表）。
 
 ## IDK / 后续
 

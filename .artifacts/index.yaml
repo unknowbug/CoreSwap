@@ -1145,3 +1145,16 @@ entries:
     # §9.7：bench 载体串行 region 口径，与 260909-03 存档 dump 口径不可比；vs Java e2e 本轮未跑。
     # 改动：worldgen_handle.rs（CaTerrainEntry + 缓存优先 + WG_CA_LOG all_reads/per-feature + WG_CA_CAP）、blocks.rs（BlockColumn Clone）、bin-diag/camin_bench.rs 新增。
     # 来源：.investigations/camin-perf/{scout-map,perf-record}-260909-04.md。
+
+
+  # === 260909-06 块：ca_min B3 变体 a（3×3 Arc 快照）+ CAP 默认 2048（judge PASS-with-conditions 条件已应用；candidate 待用户 confirmed） ===
+  - id: 'swe:camin-perf:b3a-cap2048-26090906'
+    path: 'camin-perf/b3a-cap2048-26090906.md'
+    kind: analysis
+    status: candidate  # judge review-260909-06 PASS-with-conditions 三条件已应用（取代记录落盘/测试输出落盘/勘误+登记）；confirmed 留用户
+    # B3a 3×3 Rc 快照：hash 逐位不变（on 6908dbfc / off 115641b8 三点复验），单独增益 ~2%；CAP 256→2048（用户拍板，~800MB 服务器不构成约束）：clear-all 惩罚 ~10-11% wall 消除，与快照互补杠杆（#102）。
+    # 组合后残差：32×32 口径 15.2ms/chunk（9.3%），16×16 ~30ms（尾缘语义项 region 虚高，#104）；±5% 目标未达（诚实声明）。
+    # 取代记录：#101 判据①（51ns 摊销值）+ 260909-04 E2b（<2% 排除被修正，差异真实、机制=clear-all 纯增重生成打主管线缓存）。
+    # §9.7：bench 载体 + 机器噪声带 ±10% 同批配对交错口径（#103），跨批次绝对值不可比。
+    # 改动：worldgen_handle.rs（B3a 快照 + ca_cap 2048 + WG_CA_MEMODIAG 扩展）；commit e91c7f6。
+    # 来源：.investigations/camin-perf/probe-260909-06.md + cmd-output/build-test-260909-06.md。
