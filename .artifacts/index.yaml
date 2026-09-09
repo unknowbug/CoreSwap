@@ -1135,11 +1135,11 @@ entries:
     # 来源：.investigations/mc-1216-port-260908-15/b5b6-scout.md + b5b6-worker-delivery.md；冒烟日志 .tmp/b5b6-smoke-260908-15.log。
 
 
-  # === 260909-04 块：WG_CA_MIN 性能优化（candidate，待用户 confirmed） ===
+  # === 260909-04 块：WG_CA_MIN 性能优化（用户 confirmed 260909-09） ===
   - id: 'swe:camin-perf:perf-record-260909-04'
     path: 'camin-perf/perf-record-260909-04.md'
     kind: analysis
-    status: candidate  # judge review 260909-04 PASS-with-conditions 三条件已应用（CAP 统一/.artifacts 登记/表述修正）；confirmed 留用户
+    status: confirmed  # 用户「授权确认」260909-04（judge PASS-with-conditions 三条件已应用）；性能优化定案：双算根因修复 +125%→+35%，残差=语义固有成本不立项
     # 主导根因 = 主管线与读路径地形双算（fill_chunk_blocks 无条件重算 neighbor_terrain 已算过的列）——E1b 缓存优先命中修复：on 289→178ms/chunk（bench 口径 +125%→+35%），hash 逐位不变（on 6908dbfc9a79c40a / off 115641b86711d9cd 双臂稳定）。
     # 残差 +35% = ca_min 语义固有读量放大（853k vs 7.5k 读/chunk，114×；seagrass ≈53%；51ns/读）；「Java 同付」为推断非实测。
     # §9.7：bench 载体串行 region 口径，与 260909-03 存档 dump 口径不可比；vs Java e2e 本轮未跑。

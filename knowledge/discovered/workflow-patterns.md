@@ -1649,7 +1649,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ## 发现 #100（最高价值·错误优先）: 「缓存失效当结论」——缓存类性能课题必须同时核对「谁写、谁读」两侧接线，单侧修复可完全无效（260909-04）
 
-- **时间/置信度/module**：260909-04（实际 2026-09-09 17:32 起）；candidate（E1 零改善证伪 + E1b 回收 ~72% 双向实证，judge PASS-with-conditions 待用户 confirmed）；workflow-patterns / 性能归因（缓存接线域）。
+- **时间/置信度/module**：260909-04（实际 2026-09-09 17:32 起）；candidate（E1 零改善证伪 + E1b 回收 ~72% 双向实证，judge PASS-with-conditions 条件已应用，用户 confirmed 260909-09）；workflow-patterns / 性能归因（缓存接线域）。
 - **来源定位**：`.investigations/camin-perf/{scout-map,perf-record}-260909-04.md`；载体 = `worldgen-core/src/bin-diag/camin_bench.rs`（WG_CA_MIN on/off 双臂）。
 - **现象**：WG_CA_MIN 翻默认开后 +125%（bench 口径）。scout C1 静态勘探判定「主管线不回填 terrain_cache → 地形列全量重算 ~2×」——行号证据真实存在（fill_chunk_blocks 从不 insert cache），机制模型自洽。
 - **证伪**：E1 按原模型修复（主管线回填 cache）→ **297.4ms，零改善**。真根因是反向缺口：**主管线不读缓存**——读路径（neighbor_terrain）早已把前向邻 chunk 算过并入缓存，管线侧无条件第二次算地形（每 chunk 地形双算）。E1b 改成「管线缓存优先命中 + 未命中回填」→ 289→177.9ms（+125%→+35%），回收 ~72%，三轮行为 hash 逐位不变。
@@ -1664,7 +1664,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ### 发现 #101（简记，中价值）: 残差归因「读量放大 vs 单读贵」判别式（260909-04）
 
-- **时间/置信度/module**：260909-04；candidate（E4b/E4c 单轮实锤，待复用再升）；workflow-patterns / 性能归因。
+- **时间/置信度/module**：260909-04；candidate（E4b/E4c 单轮实锤，待复用再升；母课题 confirmed 260909-09）；workflow-patterns / 性能归因。
 - **是什么**：残差归因于「缓存/查表类读路径」时，先用两个除法判别形态，再决定治读量还是治单价：① **总成本 ÷ 读数 ≈ 单读价**（本例 44ms ÷ 853k ≈ 51ns/读 = mutex+hash 量级，近下限 → 单读不贵）；② **读数跨臂比值定放大**（on 853k/chunk vs off 7.5k = **114×** → 成本主体是读量放大）；③ per-feature 读数归因（[CA-READS]：seagrass ≈53% + ore/disk/monster_room）确认放大是**语义正确的固有工作**（真实邻值使 feature 不再因 -1 早退），非病态冗余循环 → 结论「不建议治」，省掉一整条 memo 化改造（写失效 + 语义漂移风险）。
 - **判据**：单读价已近原语下限 + 放大比由语义差解释 + 归因分布与 feature 工作量同构 → 该残差定性「固有成本」，优化立项前先过这道判别式。
 - **证据**：perf-record-260909-04.md 判别链 E4b/E4c 行。

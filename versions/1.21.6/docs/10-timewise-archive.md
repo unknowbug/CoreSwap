@@ -41,4 +41,4 @@
 - ✅ **验证**：workspace 全量 build 绿（worldgen1216 薄壳含）；cargo test -p WorldgenRust --release 14/14；行为等价门 PASS（hash 三轮逐位）；judge review PASS-with-conditions 三条件已应用（CAP 统一 / .artifacts 登记 / 表述修正）。
 - ⚠️ **降级声明（§9.7）**：本块读数 = 本地 bench 载体（串行 region、bench 口径），与 260909-03 的 223.7s/133.3s 存档 dump 口径不可比（载体/覆盖面/口径三要素均不同）；vs Java e2e 本轮未跑（Java 基线不变式由 260909-03 既有 evidence 覆盖；「Java 同付这部分工作」为推断非实测）。
 - 🔍 **IDK**：IDK-p1 残差 +35% 若需再回收 → 写失效感知 memo（中高风险，需独立架构评审）；IDK-p2 bench +125% vs dump +68% 口径差未深究（bench 含 region 边缘外邻重算）。
-- 状态：结论 candidate 待用户 confirmed。
+- 状态：✅ 用户 confirmed（260909-09）。
