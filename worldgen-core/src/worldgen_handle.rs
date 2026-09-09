@@ -164,6 +164,13 @@ pub struct CaTerrainEntry {
 // badlands_pillar_roof，预加载静态清单漏该 key，仅 eroded_badlands 低频分支触发，小样本全绿掩盖。
 use crate::surface_rules::ENGINE_NOISE_KEYS as OVERWORLD_NOISE_KEYS;
 
+// 探针轮 260909-06（WG_CA_MEMODIAG 门控）：neighbor_terrain 全局计数——neighbor_terrain 内累加，
+// apply_features chunk 级快照差分输出（[CA-NT] 行）。Relaxed 即可（诊断计数，无同步语义）。
+use std::sync::atomic::Ordering as CaNtOrdering;
+static CA_NT_CALLS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static CA_NT_MISSES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static CA_NT_FILL_NANOS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 impl WorldgenHandle {
     // 便捷入口：overworld 默认维度（保留既有 probe 调用兼容）。
     pub fn create(seed: i64, worldgen_dir: &str) -> Option<WorldgenHandle> {
@@ -971,13 +978,20 @@ impl WorldgenHandle {
     // c-A-min：邻 chunk 地形列（带缓存；region 顺序扫描下摊销后每 chunk 约 +1 次地形成本）。
     // 缓存只存地形列（无 feature），锁临界区极短；fill_terrain_column 自身不触缓存 → 无重入死锁。
     fn neighbor_terrain(&self, cx: i32, cz: i32) -> std::sync::Arc<crate::blocks::BlockColumn> {
+        // 探针轮（260909-06，WG_CA_MEMODIAG 门控）：calls/miss/fill 计时（CA_NT_* 模块级 atomic，
+        // apply_features chunk 级快照差分读取 [CA-NT] 行）
+        let nt_diag = std::env::var("WG_CA_MEMODIAG").is_ok();
+        let t0 = if nt_diag { Some(std::time::Instant::now()) } else { None };
         let cap = Self::ca_cap(); // judge 条件项 1（260909-04）：与 fill_chunk_blocks miss 路径共用一处定义
         if let Ok(cache) = self.terrain_cache.lock() {
             if let Some(e) = cache.get(&(cx, cz)) {
+                if nt_diag { CA_NT_CALLS.fetch_add(1, CaNtOrdering::Relaxed); }
                 return e.col.clone();
             }
         }
+        if nt_diag { CA_NT_CALLS.fetch_add(1, CaNtOrdering::Relaxed); CA_NT_MISSES.fetch_add(1, CaNtOrdering::Relaxed); }
         let (col, hm) = self.fill_terrain_column(cx, cz);
+        if let Some(t) = t0 { CA_NT_FILL_NANOS.fetch_add(t.elapsed().as_nanos() as u64, CaNtOrdering::Relaxed); }
         let entry = CaTerrainEntry { col: std::sync::Arc::new(col), heightmap: std::sync::Arc::new(hm) };
         if let Ok(mut cache) = self.terrain_cache.lock() {
             if cache.len() >= cap {
@@ -989,8 +1003,11 @@ impl WorldgenHandle {
     }
 
     // E2b 诊断（260909-04 临时）：CAP 可调判别 C2 雪崩——env WG_CA_CAP 覆盖，仅 bench 用
+    // 260909-06 用户拍板：默认 256→2048（clear-all 惩罚实证 ~11% wall，打在主管线缓存；
+    // 2048≈800MB 用户确认服务器不构成约束；65536 臂已证更大无增益，内存账见
+    // .investigations/camin-perf/probe-260909-06.md）
     fn ca_cap() -> usize {
-        std::env::var("WG_CA_CAP").ok().and_then(|v| v.parse().ok()).unwrap_or(256)
+        std::env::var("WG_CA_CAP").ok().and_then(|v| v.parse().ok()).unwrap_or(2048)
     }
 
     // FEATURES 阶段：装饰层（矿石/disk/spring/freeze_top/underwater_magma）。
@@ -1035,8 +1052,11 @@ impl WorldgenHandle {
             total: u64,
             cols: std::collections::HashMap<(i32, i32), u64>,
             pts: std::collections::HashMap<(i32, i32, i32), u64>,
+            offs: std::collections::HashMap<(i32, i32), u64>, // 探针轮 260909-06：目标 chunk 偏移 (tcx-cx,tcz-cz)
         }
         let memo_diag = std::env::var("WG_CA_MEMODIAG").is_ok();
+        // 探针轮 260909-06：neighbor_terrain 计数快照（chunk 级差分；NT_* 定义在 neighbor_terrain 内）
+        let (nt_c0, nt_m0, nt_n0) = if memo_diag { (CA_NT_CALLS.load(CaNtOrdering::Relaxed), CA_NT_MISSES.load(CaNtOrdering::Relaxed), CA_NT_FILL_NANOS.load(CaNtOrdering::Relaxed)) } else { (0, 0, 0) };
         // c-A 诊断计数（WG_CA_LOG=1 chunk 级门控输出；零门控成本）
         static CA_OUT_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         static CA_PENDING_WRITES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -1073,6 +1093,22 @@ impl WorldgenHandle {
             let bp = NoisePos { x: wx, y: wy, z: wz };
             self.biomesrc.biome(&bp)
         };
+        // B3 变体 a（260909-06，用户 confirmed 260909-05）：3×3 邻 chunk 列 Arc 预取快照——
+        // features 前一次性行取 9 邻列 Arc，越界读走快照（零锁零 hash），快照未命中（>3×3，实测不存在）
+        // 兜底回 neighbor_terrain（行为恒等保证：快照条目 = neighbor_terrain 同一 Arc 缓存条目，内容逐位一致）。
+        // 不变量（B1 risk-3，judge 条件）：缓存/快照列 = 地形快照，永不更新——本 chunk features 的写入
+        // 不可见于越界读（对齐 Java「FEATURES 时邻 chunk ≥ post-carver 地形态」时序，写入走 pending_cross）。
+        let mut ca_snapshot: std::collections::HashMap<(i32, i32), std::sync::Arc<crate::blocks::BlockColumn>> = Default::default();
+        if ca_min {
+            for dz in -1..=1 {
+                for dx in -1..=1 {
+                    let t = self.neighbor_terrain(cx + dx, cz + dz);
+                    ca_snapshot.insert((cx + dx, cz + dz), t);
+                }
+            }
+        }
+        // Rc 包装：block_at_col 闭包为 move 且每 feature 迭代重建，Rc clone 免 HashMap 整体 move（E0382）
+        let ca_snapshot_rc = std::rc::Rc::new(ca_snapshot);
         // biomeAtJitter：8 邻域 jitter（posToBiome 用）
         let biome_at_jitter = |x: i32, y: i32, z: i32| -> String {
             let (px, py, pz) = crate::biome::biome_pick_cell(self.biome_access_seed, x, y, z);
@@ -1156,6 +1192,7 @@ impl WorldgenHandle {
                 // 已知语义偏差（judge C-3）：越界（邻 chunk）返回 -1 = 保守拒绝，Java 读邻 chunk 实况。
                 let col_ptr: *const crate::blocks::BlockColumn = &*col;
                 let self_ref: &Self = self;
+                let ca_snap = ca_snapshot_rc.clone(); // 每 feature 迭代轻量 clone（Rc）
                 let block_at_col = move |bx: i32, by: i32, bz: i32| -> i32 {
                     // E4b 诊断（260909-04 临时，WG_CA_LOG 门控）：全量读计数（含 local）——
                     // 区分「读次数多」vs「单读贵」，定位 features 段 4.2× 成本
@@ -1168,8 +1205,8 @@ impl WorldgenHandle {
                     if lx >= 0 && lx < 16 && lz >= 0 && lz < 16 {
                         unsafe { (*col_ptr).at(lx, by, lz) }
                     } else if ca_min {
-                        // c-A-min：邻 chunk 越界读 → 地形列缓存（noise+surface+carver，无 feature；
-                        // 对齐 Java「FEATURES 时邻 chunk ≥ post-carver 地形态」时序保证）
+                        // c-A-min：邻 chunk 越界读 → 3×3 预取快照（B3 变体 a，260909-06）；
+                        // 快照未命中兜底回 neighbor_terrain（保留原路径，行为恒等）
                         if ca_log { CA_OUT_READS.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
                         if memo_diag {
                             MEMO_DIAG.with(|d| {
@@ -1177,9 +1214,14 @@ impl WorldgenHandle {
                                 d.total += 1;
                                 *d.cols.entry((bx, bz)).or_insert(0) += 1;
                                 *d.pts.entry((bx, by, bz)).or_insert(0) += 1;
+                                *d.offs.entry(((bx >> 4) - cx, (bz >> 4) - cz)).or_insert(0) += 1;
                             });
                         }
-                        let t = self_ref.neighbor_terrain(bx >> 4, bz >> 4);
+                        let key = (bx >> 4, bz >> 4);
+                        let t = match ca_snap.get(&key) {
+                            Some(c) => c.clone(),
+                            None => self_ref.neighbor_terrain(key.0, key.1), // 兜底（>3×3）
+                        };
                         t.at(bx - (bx >> 4) * 16, by, bz - (bz >> 4) * 16)
                     } else {
                         // 已知语义偏差（judge C-3）：越界返回 -1 = 保守拒绝
@@ -1292,8 +1334,23 @@ impl WorldgenHandle {
                 for ((x, z), c) in top.iter().take(6) {
                     eprintln!("[CA-MEMO-TOP] chunk({},{}) col=({},{}+) reads={}", cx, cz, x, z, c);
                 }
-                d.cols.clear(); d.pts.clear(); // 下一 chunk 重置，防跨 chunk 累积
+                // 探针轮 260909-06：目标 chunk 偏移直方图（验 3×3 覆盖率假设）
+                let mut offs: Vec<((i32, i32), u64)> = d.offs.iter().map(|(k, v)| (*k, *v)).collect();
+                offs.sort_by_key(|(_, v)| std::cmp::Reverse(*v));
+                let off_str: Vec<String> = offs.iter().map(|((dx, dz), v)| format!("({},{})x{}", dx, dz, v)).collect();
+                eprintln!("[CA-MEMO-OFF] chunk({},{}) n_offsets={} {}",
+                    cx, cz, offs.len(), off_str.join(" "));
+                d.cols.clear(); d.pts.clear(); d.offs.clear(); // 下一 chunk 重置，防跨 chunk 累积
             });
+        }
+        if memo_diag {
+            // 探针轮 260909-06：neighbor_terrain calls/miss/fill 计时（chunk 级差分；P2 判据）
+            let calls = CA_NT_CALLS.load(CaNtOrdering::Relaxed) - nt_c0;
+            let misses = CA_NT_MISSES.load(CaNtOrdering::Relaxed) - nt_m0;
+            let nanos = CA_NT_FILL_NANOS.load(CaNtOrdering::Relaxed) - nt_n0;
+            let us_per_fill = if misses > 0 { nanos as f64 / misses as f64 / 1000.0 } else { 0.0 };
+            eprintln!("[CA-NT] chunk({},{}) calls={} misses={} fill_us_total={:.0} us_per_fill={:.1}",
+                cx, cz, calls, misses, nanos as f64 / 1000.0, us_per_fill);
         }
         placed_count
     }
