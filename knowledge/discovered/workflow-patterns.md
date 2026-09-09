@@ -1619,3 +1619,30 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **证据**：batchB-worker-delivery §E-2 + §一.0.3 逐 type 表。
 
 ---
+
+### 发现 #97: stderr 通道探针 + boot spawn 区不走生成日志路径——[FEATURE] 序列日志的两个采样前提（260909-03）
+
+- **时间/置信度/module**：260909-03；candidate；workflow-patterns / 探针坐标与采样同源性（#13 探针坐标家族的通道/触发面延伸）。**价值门：高（两个采样前提漏一个即假阴性）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/rootfix-record-260909-03.md` §验证（踩坑补记）+ `t3-rerun-record-260909-03.md`（哨兵 grep 假阴性实例）。
+- **要点**：① Rust 侧 `[FEATURE]` 序列日志（`WG_FEATURELOG`，eprintln）落在**进程 stderr**——gradle runServer 下进 `.log.err` 文件，主 stdout grep 恒零输出（与 #84 日志级别假阴性同族的「通道假阴性」形态）；② chunk(0,0) 的 `[FEATURE]` 行必须 **RCON forceload 触发生成**——boot spawn 区预生成不走（或不完整走）该 feature 序列日志路径（#80 spawn 预生成时序家族的生成日志面）。
+- **判据**：接序列探针采集前两查：① 目标行确实在 stderr 侧（去 `.log.err` grep），stdout 零命中不构成「探针没生效」证据；② 验证脚本里 grep 的措辞与探针当前版本逐字核对（本轮脚本 grep v1 旧措辞 `generateFeatures skipped` 得 NONE-SEEN，实为脚本假阴性，接管哨兵 `[Mixin] placedFeature skipped (rust takeover) count=4096` 实际命中）。
+- **教训**：「探针恒零输出」先排通道（stdout/stderr、日志级别、措辞版本）与触发路径（spawn 预生成 vs forceload），再怀疑探针/机制本身——同族：#84 级别假阴性、#88 采样窗口。
+- **证据**：rootfix-record 踩坑补记；rustfeat-seq-after.log(.err) 双文件对照；t3 哨兵 NONE-SEEN 假阴性实录。
+
+### 发现 #98（最高价值·错误优先）: chunk 级序列全同 ≠ 区域级收敛——「修复在生产口径下必须真生效」是 p 域对齐之外的必要条件（260909-03）
+
+- **时间/置信度/module**：260909-03；candidate；workflow-patterns / 执行体不同源家族（#36 执行体三元组的验收面第四形态）。**价值门：最高（验收判据级判错经验：修复 no-op 伪装成「修复无效」）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/t3-rerun-record-260909-03.md` §归因链 1/2。
+- **现象**：T1 p 域修复已验证生效（chunk(0,0) step9 13 项 (p,fid) 与 Java 逐项全同），但区域级对拍几乎不动（terrain 4.86M→4.69M，信噪比 ≈48×→≈45×）；Ore isExposedToAir 修复（走邻 chunk 读）单独验证通过，生产口径下开 WG_CA_MIN 才降到 3.65M（−22%）。
+- **根因**：两层。① (k,p,fid) 序列对齐只是**内容收敛的必要条件**——单 chunk 序列全同不蕴含全 region 特征内容收敛（覆盖面差：序列探针只有单 chunk 覆盖面，§9.7 已声明但权重易被高估）；② 更关键：修复依赖的数据通路（邻 chunk 读 = `block_at_ext`/`region_col_at`）在**生产路径 env 门控（WG_CA_MIN）默认关**下恒 None → 越界读恒 -1 → 修复整体 no-op——「修了」与「修了且在生产口径下生效」是两回事。
+- **判据（可复用）**：**任何代码修复后、谈对拍验收前，先核「该修复依赖的数据通路在生产口径下是否在位」**——依赖门控/缓存/邻域数据的修复，列出其依赖通路并确认生产默认配置下非 no-op；否则区域对拍「几乎不动」会被误读为修复无效或根因另有其人，白烧归因轮次。
+- **教训**：验收链 = ①修复单元验证通过（单元级）→ ②生产口径通路在位（本轮新增）→ ③区域对拍收敛。②缺失时 ①③ 矛盾本身就是「通路 no-op」的签名：单元过、区域不动、开门口立降——三者组合直接指向门控/通路，不用再怀疑算法实现。
+- **证据**：t3 结果矩阵（4,857,306 → 4,685,489 → 3,654,942）+ 归因链；WG_CA_MIN +68% 成本（260905-10 默认关决策）。
+
+### 发现 #99 简记: placed feature id 与 configured feature id 混同——「catch-all 直接损失」证伪的命名失真形态（260909-03）
+
+- **时间/置信度/module**：260909-03；candidate（证伪有实证）；workflow-patterns / 转抄漂移与命名失真家族（#90/#94 的 id 混同形态）+ §15.4 勘误记录。**价值门：中（简记——id 双域核对判据）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/b2-fix-record-260909-03.md` §⑤（即 §15.4 取代记录，b2-feature-algo.md 原文不改）。
+- **要点**：b2 §1.5 主张「feature_loader 无 emerald_ore 分支 → catch-all 直接损失」——**证伪**：`configured_feature/ore_emerald.json` 的 `type` = `minecraft:ore`，一直在分发内；旧快照实录 fid=`minecraft:ore_emerald` 正常调用 + 66 次 placed。根因 = 报告把 **placed feature id（`emerald_ore`）** 与 **configured feature id（`ore_emerald`，type=ore）** 混同。MC 两套 id 域名字面常不对称（placed 名 vs configured 名非机械派生），按名索分支/下结论前必须先核「这个名字属于哪个 id 域」。
+- **判据**：任何「某 type/id 落 catch-all 损失」类主张，先核三件：configured json 的 type 字段值、运行时 fid 实录（placed 计数）、unknown 集合是否真含该条目——三证齐才立「直接损失」。
+- **证据**：b2-fix-record §⑤（ore_emerald.json type + 66 次 placed 实录 + unknown 全集不含 emerald）。

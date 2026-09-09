@@ -41,8 +41,11 @@
 | B10 | `sculk_patch` 未实装 | 需传播子系统（sculk spread） | 深暗之域表面 | 行为层立项（传播机制跨 feature 边界） |
 | B11 | `fossil` 未实装 | 需 NBT 结构模板加载层 | 骨矿（结构模板类 feature） | 结构模板层立项（与 structures 数据面共用决策） |
 | B12 | 嵌套暴露 4 项（coral_claw/mushroom/tree + pointed_dripstone） | 批次 C 起从父 feature 内嵌展开，行为已解锁——差集出现为**行为解锁非回归** | 珊瑚/滴水石尖锥 | 非豁免项，登记防误读；对拍差集出现时按 §9.7 单列 |
+| B13 | **tree placer 族未实装**（spruce/pine/dark_oak/giant/mega_pine/acacia/cherry/forking/upwards_branching/random_spread placers + `three_layers_feature_size` + `pale_moss`/`attached_to_leaves` decorators） | 整树 unsupported → skip 整树不生成（tree.rs 仅 straight/fancy/mega_jungle trunk + blob/fancy/bush/jungle foliage）；本 region spruce_leaves 69,256 / spruce_log 11,077 逐项 bit 级 deterministic | 仅 Rust features 接管实验臂；生产 mask=0b011 由 Java 画树不受影响 | **260909-03 用户拍板：不立项**——矿物/树/装饰层不接管（mod 兼容留 Java 侧，性能收益小），mask 翻转撤销；本项仅登记防误读 |
 
 **features 接管对拍现状注记（260909-02，Phase 2.5 首轮）**：Chunky 双臂对拍（region 0,0 r=16）信号/噪声 = 4.86M/0.10M terrain ≈48×，主残差为特征层真实分歧（候选分解见 `.investigations/mc-1216-features-takeover/fanout-260909-02/`）；默认 mask 翻转建议**未提出**（confirmed 前置未满足）。
+
+**定位注记（260909-03，用户拍板）**：**矿物/树/装饰（features）层维持不接管**——理由与树一致：mod 兼容成本 + 性能收益小，生产 mask=0b011（Java features 在 Rust 地形上跑）长期维持，mask 翻转（0b011→0b001）提案撤销；260909-03 的 T1/T2 修复（registry_order/Disk/Geode/Ore/Lake）仅服务于接管实验臂的语义正确性，WG_CA_MIN 翻默认开同属实验臂语义对齐。
 
 **取代记录（B3）**：
 - **supersedes** → `.artifacts/mc-1216-port/p5-verdict-260908-13.md`（P5 判定 confirmed 260908-13，B3 ⊆ P5 覆盖面，无独立机制成分）；

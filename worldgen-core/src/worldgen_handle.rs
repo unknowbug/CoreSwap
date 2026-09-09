@@ -966,9 +966,11 @@ impl WorldgenHandle {
         let mut placed_count = 0;
 
         // c-A-min/write（260905-09，方案 260905-08-cA-block-boundary.md §4/§6）；
-        // 260905-10 用户拍板：默认关（WG_CA_MIN=1 显式启用）——c-A 性能代价 +68%（223.7s vs 133.3s dump 计时），
-        // 优化后另议翻默认；env 门控三查见 workflow-patterns #53（勿用 env_enabled，其默认开）
-        let ca_min = std::env::var("WG_CA_MIN").is_ok_and(|v| v != "0");
+        // 260905-10 用户拍板默认关（c-A 性能代价 +68%，223.7s vs 133.3s dump 计时）。
+        // 260909-03 用户拍板翻默认开（语义优先）：生产路径越界读恒 -1 使 Ore isExposedToAir /
+        // Geode isAir 的邻 chunk 语义修复 no-op（.investigations/mc-1216-features-takeover/
+        // t3-rerun-record-260909-03.md 归因链 2）；WG_CA_MIN=0 显式关闭可回退。
+        let ca_min = std::env::var("WG_CA_MIN").map(|v| v != "0").unwrap_or(true);
         if ca_min {
             // c-A-write：features 前 overlay 邻 chunk 先行生成的跨 chunk 写入（Java 写持久语义）
             if let Ok(mut pc) = self.pending_cross_writes.lock() {

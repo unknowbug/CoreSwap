@@ -361,8 +361,9 @@ fn is_exposed_to_air(ctx: &OreFeatureContext, x: i32, y: i32, z: i32) -> bool {
     const DZ: [i32; 6] = [0, 0, 0, 0, 1, -1];
     for i in 0..6 {
         let nx = x + DX[i]; let ny = y + DY[i]; let nz = z + DZ[i];
-        let idx = ctx.local_idx(nx, ny, nz);
-        let id = if idx >= 0 { ctx.col.at(nx - ctx.chunk_start_x, ny, nz - ctx.chunk_start_z) } else { -1 };
+        // b2 §1.3（260909-03）：Java 用 ChunkSectionCache 真实读（含邻 chunk section）——
+        // 走 block_at 全路由（local → block_at_ext → region_col_at），不再 local 出界恒 -1。
+        let id = ctx.block_at(nx, ny, nz);
         if id == 0 { return true; } // air
     }
     false
@@ -466,9 +467,10 @@ impl DiskFeature {
                 let wz = ctx.origin_z + dz;
                 for iy in (bottom_y + 1..=top_y).rev() {
                     if target_matches(ctx, config, wx, iy, wz) {
+                        // b2 §1.1（260909-03）：Java DiskFeature.placeBlock 无 break——target 匹配的
+                        // 每一层都替换（half_height 层语义），修复「首个命中即停」的单层 disk 删减。
                         ctx.set_block(wx, iy, wz, config.state);
                         placed = true;
-                        break;
                     }
                 }
             }
@@ -855,7 +857,7 @@ impl LakeFeature {
                     if bl {
                         let b2 = ctx.block_at(x + s as i32, by + u as i32, z + t as i32);
                         if u >= 4 && is_liquid(b2) { return false; }                      // :76-78
-                        if u < 4 && !crate::tree::is_solid_id(ctx, b2) && b2 != fluid { return false; } // :80-82
+                        if u < 4 && !crate::tree::is_solid_lake(ctx, b2) && b2 != fluid { return false; } // :80-82（isSolid 含树叶，b2 §1.4）
                     }
                 }
             }
@@ -887,7 +889,7 @@ impl LakeFeature {
                             || (v > 0 && bls[(t * 16 + u) * 8 + (v - 1)]));               // :111-119
                         if bl2 && (v < 4 || random.next_int_bound(2) != 0) {              // :120（短路消费）
                             let b4 = ctx.block_at(x + t as i32, by + v as i32, z + u as i32);
-                            if crate::tree::is_solid_id(ctx, b4)
+                            if crate::tree::is_solid_lake(ctx, b4)
                                 && !lava_pool_stone_cannot_replace(ctx.blocks).contains(&b4) { // :122
                                 ctx.set_block(x + t as i32, by + v as i32, z + u as i32, barrier);
                             }
@@ -2003,7 +2005,11 @@ impl GeodeConfig {
             let q = self.outer_wall_distance.get(random);                                 // :59
             let pos = [x + o, y + p, z + q];
             let st = ctx.block_at(pos[0], pos[1], pos[2]);
-            if st == crate::blocks::AIR || self.layer.invalid_blocks.contains(&st) {      // :62（isAir ≈ id==AIR；cave_air 残差 idk-1）
+            // b2 §1.2A（260909-03）：Java isAir() 含 cave_air/void_air 全族（GeodeFeature.java:62-63）。
+            let air_hit = st == crate::blocks::AIR
+                || st == ctx.blocks.id("minecraft:cave_air")
+                || st == ctx.blocks.id("minecraft:void_air");
+            if air_hit || self.layer.invalid_blocks.contains(&st) {                      // :62-63
                 invalid += 1;
                 if invalid > self.invalid_blocks_threshold { return false; }              // :63-65
             }

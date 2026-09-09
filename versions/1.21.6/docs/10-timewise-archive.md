@@ -13,3 +13,17 @@
 - ✅ **mask 翻转建议 = 不翻转（0b011 维持）**：step 9 p 错位未修复前翻转 = 全域植被换位 + 4 个已知 feature 族缺陷上线。翻转前置 = indexer p 域对齐 + b2 五缺陷修复 + 重对拍信噪比回噪声基线量级。
 - 🔍 **open**：indexer p 域根因修复（生成 1.21.6 biome_registry_order.json——1.20.1 文件缺 pale_garden 等新 biome，覆盖面逐项核对 / feature list 构建序）；b2 五缺陷逐一修复+探针验证；b2 探针 P1-P6 清单；残差 9 项 §9.7 单列（dripstone_block=237 + pointed_dripstone=34 本 region 实测；iceberg/fossil/sculk/large_dripstone 未出现）；confirmed 留用户。
 - 口径声明（§9.7）：双臂/基线 = Chunky region 存档口径（全量三分分类）；序列探针 = 行为化日志（#81，单 chunk 覆盖面声明：step 1-8 对全 region 有代表性，step 9 在 chunk(0,0) biome 邻域成立）；b1/b2 静态结论 = Degraded。
+
+## 260909-03（实际 2026-09-09 15:00-16:45）：mc-1216 features 接管 T0-T3——registry_order 根因修复 → b2 四缺陷修复+emerald 证伪 → 区域重对拍+归因 → 矿物/树/装饰层定位确认、mask 翻转撤销、CA_MIN 翻默认
+
+> 过程产物 `.investigations/mc-1216-features-takeover/{rootfix,b2-fix,t3-rerun}-record-260909-03.md`；数据 `.tmp/mc1216-closeout-260909-03/`（不入库）；通用模式 → build-tooling #96 + workflow-patterns #97/#98/#99（subagent 草稿 → 主会话应用）。
+
+- ✅ **T0 廉价独立验证通过**：probe-rustfeat-err-snapshot.log 三维度 registry_order 缺失实录 + biome.rs 回退/排序消费点在位 → 根因方向（字典序回退 → PlacedFeatureIndexer p 域错位）继承。
+- ✅ **T1 根因修复（registry_order）**：复用 BiomeSourceLogMixin（`-PseedLog=1`）存档口径导出 **54 项 1.21.6 overworld 枚举序** → `versions/1.21.6/data/worldgen/biome_registry_order.json`（表外 11 = nether 5 + end 5 + the_void，与 1.20.1 同构；cherry_grove 等新 biome 已在序内）。Rust 零代码改动。短跑探针：missing=0，chunk(0,0) step9 13 项 (p,fid) 与 Java 逐项全同（修复前 p 全体错位 {0,28,53,...}→{0,50,57,...}）。
+- ✅ **T2 四缺陷修复**（feature.rs/tree.rs，workspace 全量绿）：① Disk 列内 break 过早（对齐 half_height 层语义）② Geode isAir 扩全族（+cave_air/void_air）③ Ore isExposedToAir 走 block_at 全路由 ④ Lake isSolid 新 is_solid_lake（其他调用点不扩散）。⑤ emerald_ore catch-all **证伪**（§15.4 勘误，→ #99）。step9 回归哨兵：p 域未扰动。
+- ✅ **T3 执行体三元组核验先行**（→ #96）：dev run 实际加载 build/resources/main/native/worldgen.dll sha16 02d897a3；build/libs jar 13:26 时间戳是红鲱鱼；脚本哨兵 grep v1 旧措辞 NONE-SEEN 假阴性（→ #97）。
+- ⚠️ **T3 验收判据未达成 + 归因**：T1+T2 后 terrain 4.69M（噪声基线 0.10M）几乎不降；开 WG_CA_MIN=1 → 3.65M（−22%）。三层归因：① 序列全同 ≠ 区域收敛（→ #98）② WG_CA_MIN 生产 gap：邻 chunk 读修复整体 no-op ③ tree placer 缓装缺口（→ 台账 B13）：本 region spruce_leaves 69,256 等逐项 bit 级 deterministic。
+- ❌→撤销 **mask 翻转（T4）**：**用户拍板（260909-03）确认项目定位——矿物/树/装饰层不接管，mod 兼容留 Java 侧、性能收益小**；0b011 维持，T1/T2 修复只服务于接管实验臂语义。D1（实装 tree placer）不立项。
+- ✅ **WG_CA_MIN 翻默认开（用户拍板，语义优先）**：worldgen_handle.rs:971 默认 on（WG_CA_MIN=0 显式关）；+68% 成本另立性能题。
+- 🔍 **open**：无（本块闭合）。接管实验臂若再启用：B13 tree placer 族 + kelp/seagrass 边界带为已知残差。
+- 口径声明（§9.7）：Chunky #26 seed -8248318472910187742 region 0,0 r=16（1089 chunks/臂，3410 common）；同载体同 region 与 260909-02 基线直接可比，diff 脚本同源；序列探针=单 chunk 覆盖面；nether/end registry 序未对齐沿用 260905-08 近似声明。

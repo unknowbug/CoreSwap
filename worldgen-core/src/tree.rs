@@ -979,6 +979,17 @@ pub fn is_solid_id(ctx: &OreFeatureContext, id: i32) -> bool {
     if id == ctx.blocks.id("minecraft:air") { return false; }
     !APPROX_NON_SOLID.iter().any(|n| ctx.blocks.id(n) == id)
 }
+
+/// b2 §1.4（260909-03）：lake 专用 isSolid——Java LakeFeature 用 BlockState.isSolid()
+/// （Material 实心，blocksMovement：树叶算 solid，LakeFeature.java:80/:122）。与通用
+/// is_solid_id 的树叶排除表不同：此处仅排除流体/藤/发光地衣。仅 lake 两处调用点使用，
+/// dungeon 等其他 isSolid 调用点维持通用近似（未在本课题 PROVEN，不扩散）。
+pub fn is_solid_lake(ctx: &OreFeatureContext, id: i32) -> bool {
+    if id < 0 { return false; }
+    if id == ctx.blocks.id("minecraft:air") { return false; }
+    !["minecraft:water", "minecraft:lava", "minecraft:vine", "minecraft:glow_lichen"]
+        .iter().any(|n| ctx.blocks.id(n) == id)
+}
 fn is_solid_ish(ctx: &OreFeatureContext, x: i32, y: i32, z: i32) -> bool {
     is_solid_id(ctx, ctx.block_at(x, y, z))
 }
