@@ -42,3 +42,23 @@
 - ⚠️ **降级声明（§9.7）**：本块读数 = 本地 bench 载体（串行 region、bench 口径），与 260909-03 的 223.7s/133.3s 存档 dump 口径不可比（载体/覆盖面/口径三要素均不同）；vs Java e2e 本轮未跑（Java 基线不变式由 260909-03 既有 evidence 覆盖；「Java 同付这部分工作」为推断非实测）。
 - 🔍 **IDK**：IDK-p1 残差 +35% 若需再回收 → 写失效感知 memo（中高风险，需独立架构评审）；IDK-p2 bench +125% vs dump +68% 口径差未深究（bench 含 region 边缘外邻重算）。
 - 状态：✅ 用户 confirmed（260909-09）。
+
+## 260909-06（实际 2026-09-09 21:51 起）：ca_min B3 探针轮 + B3a 快照实现——预置三分支均不匹配实际 → (a) clear-all 纯增 (b) 尾缘语义 (c) per-read 同步三路混合 → CAP 默认翻 2048 + B3a 快照落地
+
+> 上接 260909-04/05 块（05 块：memo-review 三证廉价验证 + 写侧判别实验「51ns 系摊销值」判定 + fan-out B1/B2/B3；judge 条件①E2b 冲突张力显式化 → 本块履行）。过程产物 `.investigations/camin-perf/{memo-review-260909-05,probe-260909-06}.md` + 架构计划 `架构计划-260909-06-camin-b3-probe-impl.md`（已批准）；通用模式 → workflow-patterns #102/#103/#104 + #101 §15.4 部分取代 + build-tooling #45（subagent 草稿 → 主会话应用）。
+
+- ✅ **Step 0 交接廉价验证**：fc9c4fe MEMODIAG 代码在位；本块双臂行为 hash 与上轮哨兵逐位一致（on 6908dbfc / off 115641b8）→ 260909-05 结论继承合法。
+- ✅ **探针扩展（本块新码，WG_CA_MEMODIAG 门控）**：① [CA-MEMO-OFF] 越界读 chunk 偏移直方图；② [CA-NT] neighbor_terrain calls/misses/fill 计时；③ WG_CA_CAP 臂复用（无新码）。诊断开关行为 hash 恒等验证 ✅。
+- ❌→证伪 **预置三分支判据均不匹配实际**（判据核对节）：① 偏移直方图全落 3×3 内（B3a 覆盖率假设成立）✅；② miss 实测 0-8/chunk（全 region 358/322），**miss<<288** → 「P2 = 288 唯一列 clear-all 雪崩」形态证伪——真机制是 clear-all 后对**已生成过**邻列的纯增重生成（work 移位后净增量），且打在主管线缓存读路径；③ P1 单独主导亦不成立 → 实际 = (a) clear-all ~16ms + (b) region 尾缘 ~17.6ms（小 region 虚高）+ (c) per-read 同步 ≤13ms/chunk 三路混合。
+- ❌→修正 **E2b 结论被取代**（§15.4，260909-04 块第 4 行原读数保留不改）：CAP 256 vs 2048 三轮配对交错 ~10-11% wall（165.9/172.4/162.5 vs 153.7/159.2/147.1 等，方向一致）——260909-04 的 <2% 系单轮非配对口径 + 机器噪声带 ±10% 淹没信号，「C2 排除」撤回。
+- ✅ **fill 恒等式自检**：fill 单价 112ms ≈ off 臂整 chunk 118.9ms 自洽；cap256−cap2048=3.5s ≈ 34 interior miss 差 × 112ms≈3.8s 自洽——clear-all 差异落在 miss 数差上，分解闭合。
+- ❌→意外结果 **B3a（features 3×3 Rc 快照）单独仅 ~2%**（pre vs B3a@256 交错 ×3：180.5/164.1/162.6 vs 178.9/161.5/157.3，三轮全赢但小）——「消 per-read 同步 = 大头」预期落空。机制修正：clear-all 惩罚打在**主管线**缓存优先读路径（#100 读路径被 clear 波及），features 侧快照不护主管线 → B3a 与 CAP 是互补杠杆非二选一；B3a@256 vs B3a@2048 交错 ×3 仍差 ~11% 实锤（workflow #102）。
+- ✅ **32×32 摊薄验证**：B3a@2048 on=178.5 vs off=163.3 → 残差 15.2ms/chunk（9.3%）vs 16×16 的 ~30ms（26%）→ 尾缘项随 region 规模摊薄成立（workflow #104；§9.7：本载体 16/32 边长，连续生成按边际继续摊薄）。
+- 🔍 **机器噪声带发现过程（workflow #103）**：off 臂同执行体跨批次 118.9→145→127.6ms（hash 同 115641b8，排除行为面）——漂移 ±10% 与被测效应同阶；判据沉淀 = 新旧 binary 同批配对交错唯一有效 A/B 口径，跨批绝对值结论禁引（CAP65536 round2 178.3ms 单点离群未复跑，#28 标注）。
+- ❌→作废重算 **PowerShell `-like '*[CA-NT]*'` 字符类坑（build-tooling #45）**：`[...]` 被当字符集（匹配 C/A/-/N/T 任一字符），诊断日志混入 [CA-MEMO-TOP] 行污染求和，首版汇总作废；修复 = `.Contains('[CA-NT]')`。判据：方括号标签日志过滤后必须打印样本行核纯度。
+- ✅ **B3a 实现与硬门**：ca_snapshot Rc<HashMap> 3×3 预取（apply_features 开头，ca_min 门控，未命中兜底 neighbor_terrain，risk-3 不变量注释钉入）；hash 硬门 ✅（on=6908dbfc / off=115641b8 逐位不变）；全量绿 + 14 tests ✅。
+- 📌 **最终配置定案（用户拍板 260909-06）**：CAP 默认 256→2048（800MB 不构成约束；65536 臂证更大无增益，1024 中途选项被覆盖）。最终 sanity：16×16 on=159.3/162.2/157.4（hash ✅）/ off=127.6（✅）；32×32 on=179.9（hash 93dc1dce，与先前 178.5 复现一致）。
+- ⚠️ **降级声明（§9.7）**：本块全部读数 = bin-diag camin_bench 载体（串行 region 16/32 边长、bench 口径），与存档 dump 口径不可比；CAP 内存账：BlockColumn ≈384KB/条 → 2048 ≈800MB。
+- ⚠️ **±5% 目标诚实声明**：B3a+CAP2048 组合后残差仍 ~15ms/chunk（32×32 口径），「on≈off±5%」未达成——剩余为尾缘语义固有 + 主管线语义成本，bench 内不可再消（in vivo 连续生成按边际摊薄）。
+- 🔍 **IDK**：IDK-b1 (c) per-read 同步成本 ~13ms/chunk 为 1.68M reads × ~2μs 粗口径上界，未独立实测；IDK-b2 pending_writes=0 为单 region 单样本，外推其他区域/维度需复核；IDK-b3 CAP 2048 在多世界/大 region 场景的内存上限行为未测。
+- 状态：✅ 实现落盘 + hash/wall 硬门已验；知识库批次已应用（commit f66ade3）；confirmed 待用户拍板。git 基线 e91c7f6（代码）/ f66ade3（docs）。
