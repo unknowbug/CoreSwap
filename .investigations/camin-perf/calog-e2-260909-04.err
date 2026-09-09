@@ -1,0 +1,308 @@
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[CA] chunk(0,0) out_reads=10385 pending_writes=1594 placed=108
+[CA] chunk(0,0) out_reads=10385 pending_writes=1594 placed=108
+[CA] chunk(1,0) out_reads=5586 pending_writes=1826 placed=109
+[CA] chunk(2,0) out_reads=2889 pending_writes=1209 placed=112
+[CA] chunk(3,0) out_reads=9237 pending_writes=1358 placed=97
+[CA] chunk(4,0) out_reads=10670 pending_writes=3440 placed=104
+[CA] chunk(5,0) out_reads=12381 pending_writes=1414 placed=138
+[CA] chunk(6,0) out_reads=5730 pending_writes=1138 placed=97
+[CA] chunk(7,0) out_reads=5633 pending_writes=1340 placed=83
+[CA] chunk(8,0) out_reads=8722 pending_writes=1540 placed=101
+[CA] chunk(9,0) out_reads=3001 pending_writes=1079 placed=98
+[CA] chunk(10,0) out_reads=4388 pending_writes=489 placed=87
+[CA] chunk(11,0) out_reads=8846 pending_writes=931 placed=91
+[CA] chunk(12,0) out_reads=5017 pending_writes=1564 placed=96
+[CA] chunk(13,0) out_reads=3974 pending_writes=1167 placed=93
+[CA] chunk(14,0) out_reads=3698 pending_writes=873 placed=100
+[CA] chunk(15,0) out_reads=3244 pending_writes=854 placed=95
+[CA] chunk(0,1) out_reads=7068 pending_writes=2137 placed=106
+[CA] chunk(1,1) out_reads=9933 pending_writes=1282 placed=155
+[CA] chunk(2,1) out_reads=5996 pending_writes=1604 placed=113
+[CA] chunk(3,1) out_reads=4453 pending_writes=1361 placed=104
+[CA] chunk(4,1) out_reads=10819 pending_writes=855 placed=103
+[CA] chunk(5,1) out_reads=9831 pending_writes=1165 placed=103
+[CA] chunk(6,1) out_reads=6384 pending_writes=1255 placed=91
+[CA] chunk(7,1) out_reads=5318 pending_writes=1337 placed=96
+[CA] chunk(8,1) out_reads=4257 pending_writes=1551 placed=108
+[CA] chunk(9,1) out_reads=8787 pending_writes=1275 placed=98
+[CA] chunk(10,1) out_reads=3573 pending_writes=488 placed=93
+[CA] chunk(11,1) out_reads=10685 pending_writes=1210 placed=96
+[CA] chunk(12,1) out_reads=4877 pending_writes=1851 placed=96
+[CA] chunk(13,1) out_reads=3696 pending_writes=1367 placed=101
+[CA] chunk(14,1) out_reads=5150 pending_writes=991 placed=101
+[CA] chunk(15,1) out_reads=7079 pending_writes=950 placed=94
+[CA] chunk(0,2) out_reads=8331 pending_writes=1292 placed=115
+[CA] chunk(1,2) out_reads=6364 pending_writes=1262 placed=113
+[CA] chunk(2,2) out_reads=9375 pending_writes=1288 placed=117
+[CA] chunk(3,2) out_reads=5193 pending_writes=1131 placed=109
+[CA] chunk(4,2) out_reads=2246 pending_writes=501 placed=97
+[CA] chunk(5,2) out_reads=1985 pending_writes=1131 placed=96
+[CA] chunk(6,2) out_reads=4486 pending_writes=1563 placed=107
+[CA] chunk(7,2) out_reads=5229 pending_writes=1585 placed=110
+[CA] chunk(8,2) out_reads=8767 pending_writes=1097 placed=109
+[CA] chunk(9,2) out_reads=10901 pending_writes=1882 placed=139
+[CA] chunk(10,2) out_reads=7228 pending_writes=1975 placed=100
+[CA] chunk(11,2) out_reads=3941 pending_writes=1185 placed=99
+[CA] chunk(12,2) out_reads=4644 pending_writes=1454 placed=98
+[CA] chunk(13,2) out_reads=5614 pending_writes=2167 placed=93
+[CA] chunk(14,2) out_reads=3026 pending_writes=645 placed=85
+[CA] chunk(15,2) out_reads=7909 pending_writes=1567 placed=97
+[CA] chunk(0,3) out_reads=6739 pending_writes=631 placed=91
+[CA] chunk(1,3) out_reads=9252 pending_writes=660 placed=93
+[CA] chunk(2,3) out_reads=2780 pending_writes=1389 placed=43
+[CA] chunk(3,3) out_reads=5806 pending_writes=753 placed=101
+[CA] chunk(4,3) out_reads=7942 pending_writes=1638 placed=98
+[CA] chunk(5,3) out_reads=3073 pending_writes=753 placed=103
+[CA] chunk(6,3) out_reads=8680 pending_writes=1643 placed=104
+[CA] chunk(7,3) out_reads=4915 pending_writes=1089 placed=107
+[CA] chunk(8,3) out_reads=3339 pending_writes=1054 placed=98
+[CA] chunk(9,3) out_reads=3804 pending_writes=2209 placed=111
+[CA] chunk(10,3) out_reads=4786 pending_writes=1290 placed=96
+[CA] chunk(11,3) out_reads=4817 pending_writes=2274 placed=108
+[CA] chunk(12,3) out_reads=4221 pending_writes=1676 placed=105
+[CA] chunk(13,3) out_reads=6948 pending_writes=1317 placed=115
+[CA] chunk(14,3) out_reads=5065 pending_writes=1354 placed=91
+[CA] chunk(15,3) out_reads=6674 pending_writes=1365 placed=92
+[CA] chunk(0,4) out_reads=6749 pending_writes=832 placed=91
+[CA] chunk(1,4) out_reads=8129 pending_writes=1413 placed=81
+[CA] chunk(2,4) out_reads=6486 pending_writes=1123 placed=100
+[CA] chunk(3,4) out_reads=8049 pending_writes=1204 placed=92
+[CA] chunk(4,4) out_reads=11549 pending_writes=2043 placed=105
+[CA] chunk(5,4) out_reads=8522 pending_writes=1449 placed=106
+[CA] chunk(6,4) out_reads=9208 pending_writes=1640 placed=101
+[CA] chunk(7,4) out_reads=2933 pending_writes=1875 placed=107
+[CA] chunk(8,4) out_reads=8409 pending_writes=1484 placed=118
+[CA] chunk(9,4) out_reads=5105 pending_writes=1309 placed=145
+[CA] chunk(10,4) out_reads=8343 pending_writes=2136 placed=155
+[CA] chunk(11,4) out_reads=3148 pending_writes=878 placed=100
+[CA] chunk(12,4) out_reads=8342 pending_writes=1182 placed=91
+[CA] chunk(13,4) out_reads=3280 pending_writes=1634 placed=109
+[CA] chunk(14,4) out_reads=5635 pending_writes=1707 placed=100
+[CA] chunk(15,4) out_reads=6220 pending_writes=1125 placed=87
+[CA] chunk(0,5) out_reads=13012 pending_writes=1185 placed=110
+[CA] chunk(1,5) out_reads=9743 pending_writes=897 placed=94
+[CA] chunk(2,5) out_reads=4141 pending_writes=593 placed=85
+[CA] chunk(3,5) out_reads=11390 pending_writes=1377 placed=94
+[CA] chunk(4,5) out_reads=5545 pending_writes=1191 placed=96
+[CA] chunk(5,5) out_reads=6319 pending_writes=625 placed=90
+[CA] chunk(6,5) out_reads=3962 pending_writes=1169 placed=91
+[CA] chunk(7,5) out_reads=7349 pending_writes=1887 placed=115
+[CA] chunk(8,5) out_reads=2854 pending_writes=1005 placed=101
+[CA] chunk(9,5) out_reads=3014 pending_writes=1416 placed=71
+[CA] chunk(10,5) out_reads=8186 pending_writes=1848 placed=117
+[CA] chunk(11,5) out_reads=10177 pending_writes=2836 placed=117
+[CA] chunk(12,5) out_reads=6118 pending_writes=890 placed=91
+[CA] chunk(13,5) out_reads=3895 pending_writes=1135 placed=89
+[CA] chunk(14,5) out_reads=6967 pending_writes=1257 placed=105
+[CA] chunk(15,5) out_reads=3380 pending_writes=1424 placed=91
+[CA] chunk(0,6) out_reads=6215 pending_writes=1212 placed=101
+[CA] chunk(1,6) out_reads=3350 pending_writes=228 placed=88
+[CA] chunk(2,6) out_reads=7935 pending_writes=1317 placed=102
+[CA] chunk(3,6) out_reads=7908 pending_writes=1265 placed=98
+[CA] chunk(4,6) out_reads=6528 pending_writes=1689 placed=100
+[CA] chunk(5,6) out_reads=3621 pending_writes=1825 placed=100
+[CA] chunk(6,6) out_reads=12506 pending_writes=1197 placed=101
+[CA] chunk(7,6) out_reads=7261 pending_writes=1083 placed=101
+[CA] chunk(8,6) out_reads=8181 pending_writes=1515 placed=103
+[CA] chunk(9,6) out_reads=3046 pending_writes=1165 placed=99
+[CA] chunk(10,6) out_reads=4928 pending_writes=1806 placed=119
+[CA] chunk(11,6) out_reads=7735 pending_writes=1122 placed=120
+[CA] chunk(12,6) out_reads=9951 pending_writes=2087 placed=139
+[CA] chunk(13,6) out_reads=6414 pending_writes=1448 placed=98
+[CA] chunk(14,6) out_reads=3691 pending_writes=1048 placed=92
+[CA] chunk(15,6) out_reads=7090 pending_writes=1296 placed=92
+[CA] chunk(0,7) out_reads=10046 pending_writes=1694 placed=151
+[CA] chunk(1,7) out_reads=5930 pending_writes=1319 placed=106
+[CA] chunk(2,7) out_reads=7674 pending_writes=2038 placed=102
+[CA] chunk(3,7) out_reads=7194 pending_writes=1401 placed=105
+[CA] chunk(4,7) out_reads=4833 pending_writes=1954 placed=106
+[CA] chunk(5,7) out_reads=3984 pending_writes=1333 placed=102
+[CA] chunk(6,7) out_reads=8548 pending_writes=1803 placed=104
+[CA] chunk(7,7) out_reads=7802 pending_writes=1279 placed=103
+[CA] chunk(8,7) out_reads=3464 pending_writes=1027 placed=104
+[CA] chunk(9,7) out_reads=10652 pending_writes=1117 placed=109
+[CA] chunk(10,7) out_reads=7778 pending_writes=1862 placed=101
+[CA] chunk(11,7) out_reads=2891 pending_writes=1159 placed=79
+[CA] chunk(12,7) out_reads=5604 pending_writes=1589 placed=113
+[CA] chunk(13,7) out_reads=8546 pending_writes=1307 placed=115
+[CA] chunk(14,7) out_reads=3660 pending_writes=1822 placed=89
+[CA] chunk(15,7) out_reads=3568 pending_writes=1519 placed=87
+[CA] chunk(0,8) out_reads=9325 pending_writes=2265 placed=100
+[CA] chunk(1,8) out_reads=1957 pending_writes=876 placed=96
+[CA] chunk(2,8) out_reads=7675 pending_writes=1638 placed=104
+[CA] chunk(3,8) out_reads=7876 pending_writes=1072 placed=101
+[CA] chunk(4,8) out_reads=10252 pending_writes=1174 placed=103
+[CA] chunk(5,8) out_reads=12207 pending_writes=2269 placed=111
+[CA] chunk(6,8) out_reads=8986 pending_writes=1126 placed=86
+[CA] chunk(7,8) out_reads=5972 pending_writes=978 placed=101
+[CA] chunk(8,8) out_reads=8827 pending_writes=1043 placed=98
+[CA] chunk(9,8) out_reads=11389 pending_writes=2098 placed=105
+[CA] chunk(10,8) out_reads=2784 pending_writes=978 placed=101
+[CA] chunk(11,8) out_reads=4707 pending_writes=1473 placed=107
+[CA] chunk(12,8) out_reads=3724 pending_writes=1102 placed=106
+[CA] chunk(13,8) out_reads=3983 pending_writes=1227 placed=99
+[CA] chunk(14,8) out_reads=13095 pending_writes=1423 placed=132
+[CA] chunk(15,8) out_reads=3315 pending_writes=981 placed=104
+[CA] chunk(0,9) out_reads=10218 pending_writes=889 placed=102
+[CA] chunk(1,9) out_reads=9016 pending_writes=898 placed=100
+[CA] chunk(2,9) out_reads=8523 pending_writes=965 placed=104
+[CA] chunk(3,9) out_reads=7305 pending_writes=1425 placed=111
+[CA] chunk(4,9) out_reads=5777 pending_writes=812 placed=104
+[CA] chunk(5,9) out_reads=10432 pending_writes=1298 placed=104
+[CA] chunk(6,9) out_reads=7251 pending_writes=1794 placed=99
+[CA] chunk(7,9) out_reads=6204 pending_writes=1755 placed=97
+[CA] chunk(8,9) out_reads=9036 pending_writes=1575 placed=92
+[CA] chunk(9,9) out_reads=8318 pending_writes=1756 placed=105
+[CA] chunk(10,9) out_reads=10536 pending_writes=1714 placed=114
+[CA] chunk(11,9) out_reads=9280 pending_writes=1760 placed=105
+[CA] chunk(12,9) out_reads=6688 pending_writes=1370 placed=111
+[CA] chunk(13,9) out_reads=7759 pending_writes=1520 placed=120
+[CA] chunk(14,9) out_reads=2512 pending_writes=1396 placed=68
+[CA] chunk(15,9) out_reads=5649 pending_writes=1154 placed=87
+[CA] chunk(0,10) out_reads=8620 pending_writes=1481 placed=108
+[CA] chunk(1,10) out_reads=1980 pending_writes=914 placed=107
+[CA] chunk(2,10) out_reads=1546 pending_writes=851 placed=90
+[CA] chunk(3,10) out_reads=7056 pending_writes=2309 placed=103
+[CA] chunk(4,10) out_reads=3599 pending_writes=1632 placed=96
+[CA] chunk(5,10) out_reads=4237 pending_writes=1277 placed=98
+[CA] chunk(6,10) out_reads=6911 pending_writes=1590 placed=101
+[CA] chunk(7,10) out_reads=4730 pending_writes=1588 placed=109
+[CA] chunk(8,10) out_reads=3755 pending_writes=1371 placed=100
+[CA] chunk(9,10) out_reads=6896 pending_writes=1073 placed=100
+[CA] chunk(10,10) out_reads=7381 pending_writes=1639 placed=108
+[CA] chunk(11,10) out_reads=11170 pending_writes=2159 placed=143
+[CA] chunk(12,10) out_reads=4187 pending_writes=1410 placed=111
+[CA] chunk(13,10) out_reads=4002 pending_writes=1845 placed=113
+[CA] chunk(14,10) out_reads=10152 pending_writes=1263 placed=146
+[CA] chunk(15,10) out_reads=6802 pending_writes=1603 placed=106
+[CA] chunk(0,11) out_reads=5817 pending_writes=1491 placed=107
+[CA] chunk(1,11) out_reads=10721 pending_writes=1976 placed=102
+[CA] chunk(2,11) out_reads=6581 pending_writes=1177 placed=109
+[CA] chunk(3,11) out_reads=3151 pending_writes=1863 placed=97
+[CA] chunk(4,11) out_reads=4217 pending_writes=907 placed=90
+[CA] chunk(5,11) out_reads=8378 pending_writes=947 placed=106
+[CA] chunk(6,11) out_reads=9400 pending_writes=570 placed=105
+[CA] chunk(7,11) out_reads=3415 pending_writes=2503 placed=107
+[CA] chunk(8,11) out_reads=7771 pending_writes=1829 placed=101
+[CA] chunk(9,11) out_reads=5118 pending_writes=1046 placed=108
+[CA] chunk(10,11) out_reads=9692 pending_writes=1907 placed=105
+[CA] chunk(11,11) out_reads=10430 pending_writes=1367 placed=112
+[CA] chunk(12,11) out_reads=5933 pending_writes=1827 placed=108
+[CA] chunk(13,11) out_reads=6435 pending_writes=1924 placed=113
+[CA] chunk(14,11) out_reads=3302 pending_writes=2323 placed=69
+[CA] chunk(15,11) out_reads=8823 pending_writes=1088 placed=98
+[CA] chunk(0,12) out_reads=8020 pending_writes=872 placed=103
+[CA] chunk(1,12) out_reads=7433 pending_writes=1389 placed=113
+[CA] chunk(2,12) out_reads=5125 pending_writes=1004 placed=99
+[CA] chunk(3,12) out_reads=10016 pending_writes=1237 placed=102
+[CA] chunk(4,12) out_reads=8529 pending_writes=1541 placed=99
+[CA] chunk(5,12) out_reads=4682 pending_writes=466 placed=95
+[CA] chunk(6,12) out_reads=8981 pending_writes=1825 placed=105
+[CA] chunk(7,12) out_reads=2092 pending_writes=1271 placed=108
+[CA] chunk(8,12) out_reads=4416 pending_writes=1642 placed=96
+[CA] chunk(9,12) out_reads=5852 pending_writes=920 placed=101
+[CA] chunk(10,12) out_reads=6340 pending_writes=620 placed=110
+[CA] chunk(11,12) out_reads=10254 pending_writes=1445 placed=112
+[CA] chunk(12,12) out_reads=2070 pending_writes=1212 placed=65
+[CA] chunk(13,12) out_reads=6338 pending_writes=1848 placed=115
+[CA] chunk(14,12) out_reads=3665 pending_writes=1613 placed=110
+[CA] chunk(15,12) out_reads=3632 pending_writes=1617 placed=86
+[CA] chunk(0,13) out_reads=5922 pending_writes=1037 placed=97
+[CA] chunk(1,13) out_reads=5049 pending_writes=1325 placed=93
+[CA] chunk(2,13) out_reads=8147 pending_writes=1598 placed=104
+[CA] chunk(3,13) out_reads=4375 pending_writes=1376 placed=91
+[CA] chunk(4,13) out_reads=8079 pending_writes=1272 placed=107
+[CA] chunk(5,13) out_reads=4320 pending_writes=1218 placed=98
+[CA] chunk(6,13) out_reads=9927 pending_writes=1287 placed=103
+[CA] chunk(7,13) out_reads=7659 pending_writes=1492 placed=107
+[CA] chunk(8,13) out_reads=9234 pending_writes=1931 placed=112
+[CA] chunk(9,13) out_reads=7009 pending_writes=1897 placed=109
+[CA] chunk(10,13) out_reads=1762 pending_writes=754 placed=67
+[CA] chunk(11,13) out_reads=10219 pending_writes=1511 placed=110
+[CA] chunk(12,13) out_reads=2310 pending_writes=1554 placed=73
+[CA] chunk(13,13) out_reads=8164 pending_writes=1395 placed=114
+[CA] chunk(14,13) out_reads=3305 pending_writes=784 placed=116
+[CA] chunk(15,13) out_reads=4720 pending_writes=899 placed=89
+[CA] chunk(0,14) out_reads=8513 pending_writes=1962 placed=110
+[CA] chunk(1,14) out_reads=7924 pending_writes=1283 placed=93
+[CA] chunk(2,14) out_reads=7988 pending_writes=1803 placed=105
+[CA] chunk(3,14) out_reads=6430 pending_writes=822 placed=103
+[CA] chunk(4,14) out_reads=6363 pending_writes=1945 placed=100
+[CA] chunk(5,14) out_reads=2939 pending_writes=1357 placed=105
+[CA] chunk(6,14) out_reads=6779 pending_writes=1183 placed=102
+[CA] chunk(7,14) out_reads=6060 pending_writes=1586 placed=106
+[CA] chunk(8,14) out_reads=2538 pending_writes=912 placed=101
+[CA] chunk(9,14) out_reads=3846 pending_writes=981 placed=113
+[CA] chunk(10,14) out_reads=5749 pending_writes=1464 placed=107
+[CA] chunk(11,14) out_reads=6727 pending_writes=1020 placed=99
+[CA] chunk(12,14) out_reads=7974 pending_writes=992 placed=103
+[CA] chunk(13,14) out_reads=3861 pending_writes=1645 placed=108
+[CA] chunk(14,14) out_reads=5223 pending_writes=1909 placed=111
+[CA] chunk(15,14) out_reads=6503 pending_writes=1843 placed=110
+[CA] chunk(0,15) out_reads=2965 pending_writes=1445 placed=99
+[CA] chunk(1,15) out_reads=7134 pending_writes=906 placed=98
+[CA] chunk(2,15) out_reads=3913 pending_writes=1777 placed=104
+[CA] chunk(3,15) out_reads=8159 pending_writes=1164 placed=101
+[CA] chunk(4,15) out_reads=9862 pending_writes=1377 placed=97
+[CA] chunk(5,15) out_reads=7506 pending_writes=1057 placed=107
+[CA] chunk(6,15) out_reads=7266 pending_writes=2067 placed=97
+[CA] chunk(7,15) out_reads=5800 pending_writes=683 placed=107
+[CA] chunk(8,15) out_reads=12921 pending_writes=1602 placed=111
+[CA] chunk(9,15) out_reads=5809 pending_writes=1360 placed=107
+[CA] chunk(10,15) out_reads=4769 pending_writes=1526 placed=113
+[CA] chunk(11,15) out_reads=6653 pending_writes=1316 placed=111
+[CA] chunk(12,15) out_reads=4173 pending_writes=2484 placed=105
+[CA] chunk(13,15) out_reads=9144 pending_writes=1975 placed=109
+[CA] chunk(14,15) out_reads=7740 pending_writes=4259 placed=117
+[CA] chunk(15,15) out_reads=9220 pending_writes=1178 placed=106

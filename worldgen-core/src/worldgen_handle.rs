@@ -136,7 +136,9 @@ pub struct WorldgenHandle {
     // c-A 为行为修正（feature 跨 chunk 读写钩子）非诊断探针；性能 +68% 待优化后另议翻默认。
     // 邻 chunk 地形列缓存（noise+surface+carver，无 feature——对齐 Java「FEATURES 时邻 chunk ≥ post-carver
     // 地形态」时序保证，IDK-cA1：邻 chunk feature 时序近似为无）。block_at 越界读改走此缓存。
-    terrain_cache: std::sync::Mutex<HashMap<(i32, i32), std::sync::Arc<crate::blocks::BlockColumn>>>,
+    // 260909-04 E1b：缓存条目升级为 (col, heightmap)——主管线缓存优先命中需同源 heightmap
+    // （cd.surface_height 的 MIN→min_y-1 映射产物不可从列内容廉价重构：carver 可能削顶）。
+    terrain_cache: std::sync::Mutex<HashMap<(i32, i32), CaTerrainEntry>>,
     // c-A-write（同门控）：跨 chunk 写缓冲——Java center 写邻 chunk 无条件持久（ProtoChunk 落盘）；
     // 目标 chunk features 开始前 overlay。顺序残余差 IDK-cA2：先于 center 生成的邻 chunk 收不到 overlay。
     pending_cross_writes: std::sync::Mutex<HashMap<(i32, i32), Vec<(usize, BlockId)>>>,
@@ -146,6 +148,14 @@ pub struct WorldgenHandle {
 pub const FLAG_SKIP_CARVER: u32 = 1 << 0;
 pub const FLAG_SKIP_FEATURES: u32 = 1 << 1;
 pub const FLAG_SKIP_SURFACE: u32 = 1 << 2;
+
+// 260909-04 E1b：c-A 地形缓存条目——col 用 Arc（读路径 Arc clone 免 98KB 拷贝），
+// heightmap 一并缓存（主管线命中路径复用，免重算；语义与 fill_terrain_column 返回值逐位一致）。
+#[derive(Clone)]
+pub struct CaTerrainEntry {
+    pub col: std::sync::Arc<crate::blocks::BlockColumn>,
+    pub heightmap: std::sync::Arc<Vec<i32>>,
+}
 
 // #26 判据 1（260903-15）：overworld surface 噪声 key 单一事实源在 surface_rules.rs
 // （ENGINE_NOISE_KEYS，紧邻 get_noise 引擎调用点就近维护）——本文件只 use。
@@ -596,8 +606,32 @@ impl WorldgenHandle {
     pub fn fill_chunk_blocks(&self, cx: i32, cz: i32) -> Vec<BlockId> {
         let min_y = self.min_y;
         let height = self.height;
-        // 步骤 1-4（宏观+orevein+surface+carver）——c-A 起与邻 chunk 地形列生成共用同一实现
-        let (mut col, heightmap) = self.fill_terrain_column(cx, cz);
+        // E1b（260909-04）：c-A 缓存优先命中——E1 实测证明成本主导是「前向邻 chunk 首读触发
+        // neighbor_terrain 全量重算 + 主管线无条件再算一遍」的双算（scout C1 的真实形态）。
+        // 命中即免重算（缓存列 = 同一 fill_terrain_column 产物，逐位一致）；ca_min 关闭时零开销。
+        let ca_min = std::env::var("WG_CA_MIN").map(|v| v != "0").unwrap_or(true);
+        let (mut col, heightmap) = if ca_min {
+            let hit = self.terrain_cache.lock().ok()
+                .and_then(|c| c.get(&(cx, cz)).cloned());
+            match hit {
+                Some(e) => ((*e.col).clone(), (*e.heightmap).clone()),
+                None => {
+                    let (c, hm) = self.fill_terrain_column(cx, cz);
+                    let entry = CaTerrainEntry {
+                        col: std::sync::Arc::new(c.clone()),
+                        heightmap: std::sync::Arc::new(hm.clone()),
+                    };
+                    if let Ok(mut cache) = self.terrain_cache.lock() {
+                        let cap = Self::ca_cap();
+                        if cache.len() >= cap { cache.clear(); }
+                        cache.insert((cx, cz), entry);
+                    }
+                    (c, hm)
+                }
+            }
+        } else {
+            self.fill_terrain_column(cx, cz)
+        };
         let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
         // surface 规则外的 feature 侧 biome 输入（与 fill_terrain_column 内 carver 用同源语义）
         let biome_at = |x: i32, y: i32, z: i32| -> String {
@@ -937,21 +971,26 @@ impl WorldgenHandle {
     // c-A-min：邻 chunk 地形列（带缓存；region 顺序扫描下摊销后每 chunk 约 +1 次地形成本）。
     // 缓存只存地形列（无 feature），锁临界区极短；fill_terrain_column 自身不触缓存 → 无重入死锁。
     fn neighbor_terrain(&self, cx: i32, cz: i32) -> std::sync::Arc<crate::blocks::BlockColumn> {
-        const CAP: usize = 256; // ~25MB 上限（每列 16*16*384*i32 ≈ 98KB），超限整体清空（region 局部性下安全）
+        let cap = Self::ca_cap(); // judge 条件项 1（260909-04）：与 fill_chunk_blocks miss 路径共用一处定义
         if let Ok(cache) = self.terrain_cache.lock() {
-            if let Some(a) = cache.get(&(cx, cz)) {
-                return a.clone();
+            if let Some(e) = cache.get(&(cx, cz)) {
+                return e.col.clone();
             }
         }
-        let (col, _hm) = self.fill_terrain_column(cx, cz);
-        let arc = std::sync::Arc::new(col);
+        let (col, hm) = self.fill_terrain_column(cx, cz);
+        let entry = CaTerrainEntry { col: std::sync::Arc::new(col), heightmap: std::sync::Arc::new(hm) };
         if let Ok(mut cache) = self.terrain_cache.lock() {
-            if cache.len() >= CAP {
+            if cache.len() >= cap {
                 cache.clear();
             }
-            cache.insert((cx, cz), arc.clone());
+            cache.insert((cx, cz), entry.clone());
         }
-        arc
+        entry.col
+    }
+
+    // E2b 诊断（260909-04 临时）：CAP 可调判别 C2 雪崩——env WG_CA_CAP 覆盖，仅 bench 用
+    fn ca_cap() -> usize {
+        std::env::var("WG_CA_CAP").ok().and_then(|v| v.parse().ok()).unwrap_or(256)
     }
 
     // FEATURES 阶段：装饰层（矿石/disk/spring/freeze_top/underwater_magma）。
@@ -964,6 +1003,8 @@ impl WorldgenHandle {
         let min_y = self.min_y;
         let height = self.height;
         let mut placed_count = 0;
+        // E4c 诊断（260909-04 临时，WG_CA_LOG 门控）：per-feature 读数累计
+        let mut e4c_map: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
 
         // c-A-min/write（260905-09，方案 260905-08-cA-block-boundary.md §4/§6）；
         // 260905-10 用户拍板默认关（c-A 性能代价 +68%，223.7s vs 133.3s dump 计时）。
@@ -987,6 +1028,7 @@ impl WorldgenHandle {
         // c-A 诊断计数（WG_CA_LOG=1 chunk 级门控输出；零门控成本）
         static CA_OUT_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         static CA_PENDING_WRITES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        static CA_ALL_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let ca_log = std::env::var("WG_CA_LOG").is_ok();
         if ca_log { CA_OUT_READS.store(0, std::sync::atomic::Ordering::Relaxed); CA_PENDING_WRITES.store(0, std::sync::atomic::Ordering::Relaxed); }
         // c-A-write 回调：越界写 → pending 缓冲（Mutex 短临界区；本 chunk 自身写不走此路径）
@@ -1103,6 +1145,9 @@ impl WorldgenHandle {
                 let col_ptr: *const crate::blocks::BlockColumn = &*col;
                 let self_ref: &Self = self;
                 let block_at_col = move |bx: i32, by: i32, bz: i32| -> i32 {
+                    // E4b 诊断（260909-04 临时，WG_CA_LOG 门控）：全量读计数（含 local）——
+                    // 区分「读次数多」vs「单读贵」，定位 features 段 4.2× 成本
+                    if ca_log { CA_ALL_READS.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
                     let lx = bx - cx * 16;
                     let lz = bz - cz * 16;
                     if by < min_y || by >= min_y + height {
@@ -1170,6 +1215,8 @@ impl WorldgenHandle {
                     }
                 };
                 let biome_temp_f = biome_temp(&cur_biome_id) as f32;
+                // E4c 诊断（260909-04 临时，WG_CA_LOG 门控）：per-feature 读数归因
+                let e4c_r0 = if ca_log { CA_ALL_READS.load(std::sync::atomic::Ordering::Relaxed) } else { 0 };
                 // 260905-05（patch §2.4）：generate_configured 增 cache 实参（preload 后只读共享引用，
                 // apply_features 阶段 cache 不再写——无可变借用冲突）
                 let feature_cache_ref = &self.feature_cache;
@@ -1184,14 +1231,24 @@ impl WorldgenHandle {
                     r
                 };
                 pf.generate(&fctx, &mut feat_random, cx * 16, min_y, cz * 16, generate_configured);
+                if ca_log {
+                    let d = CA_ALL_READS.load(std::sync::atomic::Ordering::Relaxed) - e4c_r0;
+                    if d > 0 { *e4c_map.entry(fid).or_insert(0u64) += d; }
+                }
             }
         }
         // batch0（mc-1216）：features 阶段结束 unknown-type 汇总（进程级去重集合，
         // 每 chunk 一次调用；env 门控 OnceLock 进程级读一次，热路径近零成本）
         crate::feature_loader::report_unknown_types();
         if ca_log {
-            eprintln!("[CA] chunk({},{}) out_reads={} pending_writes={} placed={}", cx, cz,
+            let mut e4c: Vec<_> = e4c_map.iter().collect();
+            e4c.sort_by_key(|(_, v)| std::cmp::Reverse(**v));
+            for (f, v) in e4c.iter().take(12) {
+                eprintln!("[CA-READS] chunk({},{}) fid={} reads={}", cx, cz, f, v);
+            }
+            eprintln!("[CA] chunk({},{}) out_reads={} all_reads={} pending_writes={} placed={}", cx, cz,
                 CA_OUT_READS.load(std::sync::atomic::Ordering::Relaxed),
+                CA_ALL_READS.load(std::sync::atomic::Ordering::Relaxed),
                 CA_PENDING_WRITES.load(std::sync::atomic::Ordering::Relaxed), placed_count);
         }
         placed_count

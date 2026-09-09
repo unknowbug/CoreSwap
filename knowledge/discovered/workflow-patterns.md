@@ -1646,3 +1646,25 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **要点**：b2 §1.5 主张「feature_loader 无 emerald_ore 分支 → catch-all 直接损失」——**证伪**：`configured_feature/ore_emerald.json` 的 `type` = `minecraft:ore`，一直在分发内；旧快照实录 fid=`minecraft:ore_emerald` 正常调用 + 66 次 placed。根因 = 报告把 **placed feature id（`emerald_ore`）** 与 **configured feature id（`ore_emerald`，type=ore）** 混同。MC 两套 id 域名字面常不对称（placed 名 vs configured 名非机械派生），按名索分支/下结论前必须先核「这个名字属于哪个 id 域」。
 - **判据**：任何「某 type/id 落 catch-all 损失」类主张，先核三件：configured json 的 type 字段值、运行时 fid 实录（placed 计数）、unknown 集合是否真含该条目——三证齐才立「直接损失」。
 - **证据**：b2-fix-record §⑤（ore_emerald.json type + 66 次 placed 实录 + unknown 全集不含 emerald）。
+
+## 发现 #100（最高价值·错误优先）: 「缓存失效当结论」——缓存类性能课题必须同时核对「谁写、谁读」两侧接线，单侧修复可完全无效（260909-04）
+
+- **时间/置信度/module**：260909-04（实际 2026-09-09 17:32 起）；candidate（E1 零改善证伪 + E1b 回收 ~72% 双向实证，judge PASS-with-conditions 待用户 confirmed）；workflow-patterns / 性能归因（缓存接线域）。
+- **来源定位**：`.investigations/camin-perf/{scout-map,perf-record}-260909-04.md`；载体 = `worldgen-core/src/bin-diag/camin_bench.rs`（WG_CA_MIN on/off 双臂）。
+- **现象**：WG_CA_MIN 翻默认开后 +125%（bench 口径）。scout C1 静态勘探判定「主管线不回填 terrain_cache → 地形列全量重算 ~2×」——行号证据真实存在（fill_chunk_blocks 从不 insert cache），机制模型自洽。
+- **证伪**：E1 按原模型修复（主管线回填 cache）→ **297.4ms，零改善**。真根因是反向缺口：**主管线不读缓存**——读路径（neighbor_terrain）早已把前向邻 chunk 算过并入缓存，管线侧无条件第二次算地形（每 chunk 地形双算）。E1b 改成「管线缓存优先命中 + 未命中回填」→ 289→177.9ms（+125%→+35%），回收 ~72%，三轮行为 hash 逐位不变。
+- **根因（机制）**：scout 的静态证据「写侧缺失」是真的，但它不是成本来源——成本在「读侧绕过缓存」。缓存优化的成本模型必须由**两侧接线**共同决定：谁写（回填）× 谁读（命中路径是否真走缓存）。单看一侧的「缺失」即可构成一个证据真实、机制自洽、却完全无效的修复方案。
+- **定位（怎么发现的）**：判别实验 E1（scout 自己预置的首选实验）零改善 → 立即证伪原模型 → 回读通路地图发现读路径已回填 → 重述根因为「不读缓存」→ E1b 一步验证回收大头。证据饱和推进：E1 → E1b → E2b（WG_CA_CAP 256/2048 差 <2% 排除 clear-all 雪崩）→ WG_SKIP_FEATURES 分解（残差全在 features 段）。
+- **教训/判据（MUST）**：
+  1. **缓存类性能课题，归因前 MUST 同时核对「谁写、谁读」两侧接线**——写侧缺失 ≠ 成本来源，读侧绕过才是常见真根因；单侧修复可能完全无效（本例 E1 = 0 改善）。
+  2. **静态勘探结论（含行号实锚）也只是候选**——预置判别实验零改善即是证伪信号，立即回数据层重述模型。
+  3. 判别顺序红利：scout 把 E1 列为「单点改动直接检验最大候选」的首选实验，使证伪成本 = 一轮 bench。
+- **家族索引**：#21（微测形态失配）、#25 案例①（静态结论生产路径可达性核对——本条为其缓存域形态）、#98（修复在生产口径下真生效——本条补「修复方向本身要对」的上游面）。
+- **证据**：perf-record-260909-04.md 判别链表（基线 289.1/128.5 → E1 297.4 零改善 → E1b 177.9 → hash 三轮 6908dbfc…/115641b8… 全等）。
+
+### 发现 #101（简记，中价值）: 残差归因「读量放大 vs 单读贵」判别式（260909-04）
+
+- **时间/置信度/module**：260909-04；candidate（E4b/E4c 单轮实锤，待复用再升）；workflow-patterns / 性能归因。
+- **是什么**：残差归因于「缓存/查表类读路径」时，先用两个除法判别形态，再决定治读量还是治单价：① **总成本 ÷ 读数 ≈ 单读价**（本例 44ms ÷ 853k ≈ 51ns/读 = mutex+hash 量级，近下限 → 单读不贵）；② **读数跨臂比值定放大**（on 853k/chunk vs off 7.5k = **114×** → 成本主体是读量放大）；③ per-feature 读数归因（[CA-READS]：seagrass ≈53% + ore/disk/monster_room）确认放大是**语义正确的固有工作**（真实邻值使 feature 不再因 -1 早退），非病态冗余循环 → 结论「不建议治」，省掉一整条 memo 化改造（写失效 + 语义漂移风险）。
+- **判据**：单读价已近原语下限 + 放大比由语义差解释 + 归因分布与 feature 工作量同构 → 该残差定性「固有成本」，优化立项前先过这道判别式。
+- **证据**：perf-record-260909-04.md 判别链 E4b/E4c 行。

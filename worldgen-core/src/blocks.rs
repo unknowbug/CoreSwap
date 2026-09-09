@@ -150,6 +150,8 @@ impl BlockRegistry {
 }
 
 // 区块方块列：16×16×height，index = (y - minY) * 256 + z * 16 + x（维度参数化）
+// 260909-04：derive Clone（E1 主管线回填 terrain_cache 需复制列；纯数据 Vec，Clone 语义平凡）
+#[derive(Clone)]
 pub struct BlockColumn {
     min_y: i32,
     height: i32,

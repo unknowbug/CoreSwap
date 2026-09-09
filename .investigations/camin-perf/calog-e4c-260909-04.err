@@ -1,0 +1,896 @@
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[CA-READS] chunk(0,0) fid=minecraft:seagrass_normal reads=7458
+[CA-READS] chunk(0,0) fid=minecraft:ore_granite_lower reads=676
+[CA-READS] chunk(0,0) fid=minecraft:monster_room_deep reads=614
+[CA-READS] chunk(0,0) fid=minecraft:ore_diorite_lower reads=573
+[CA-READS] chunk(0,0) fid=minecraft:ore_tuff reads=312
+[CA-READS] chunk(0,0) fid=minecraft:ore_andesite_lower reads=259
+[CA-READS] chunk(0,0) fid=minecraft:disk_sand reads=238
+[CA-READS] chunk(0,0) fid=minecraft:monster_room reads=122
+[CA-READS] chunk(0,0) fid=minecraft:brown_mushroom_normal reads=113
+[CA-READS] chunk(0,0) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(0,0) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(0,0) fid=minecraft:ore_gravel reads=21
+[CA] chunk(0,0) out_reads=10385 all_reads=10505 pending_writes=1594 placed=108
+[CA-READS] chunk(0,0) fid=minecraft:seagrass_normal reads=7458
+[CA-READS] chunk(0,0) fid=minecraft:ore_granite_lower reads=676
+[CA-READS] chunk(0,0) fid=minecraft:monster_room_deep reads=614
+[CA-READS] chunk(0,0) fid=minecraft:ore_diorite_lower reads=573
+[CA-READS] chunk(0,0) fid=minecraft:ore_tuff reads=312
+[CA-READS] chunk(0,0) fid=minecraft:ore_andesite_lower reads=259
+[CA-READS] chunk(0,0) fid=minecraft:disk_sand reads=238
+[CA-READS] chunk(0,0) fid=minecraft:monster_room reads=122
+[CA-READS] chunk(0,0) fid=minecraft:brown_mushroom_normal reads=113
+[CA-READS] chunk(0,0) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(0,0) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(0,0) fid=minecraft:ore_gravel reads=21
+[CA] chunk(0,0) out_reads=10385 all_reads=21010 pending_writes=1594 placed=108
+[CA-READS] chunk(1,0) fid=minecraft:seagrass_normal reads=2734
+[CA-READS] chunk(1,0) fid=minecraft:ore_tuff reads=718
+[CA-READS] chunk(1,0) fid=minecraft:ore_diorite_lower reads=478
+[CA-READS] chunk(1,0) fid=minecraft:monster_room_deep reads=469
+[CA-READS] chunk(1,0) fid=minecraft:ore_granite_lower reads=402
+[CA-READS] chunk(1,0) fid=minecraft:ore_andesite_lower reads=255
+[CA-READS] chunk(1,0) fid=minecraft:monster_room reads=220
+[CA-READS] chunk(1,0) fid=minecraft:disk_gravel reads=201
+[CA-READS] chunk(1,0) fid=minecraft:disk_clay reads=34
+[CA-READS] chunk(1,0) fid=minecraft:patch_grass_badlands reads=33
+[CA-READS] chunk(1,0) fid=minecraft:ore_gravel reads=21
+[CA-READS] chunk(1,0) fid=minecraft:ore_lapis_buried reads=9
+[CA] chunk(1,0) out_reads=5586 all_reads=26635 pending_writes=1826 placed=109
+[CA-READS] chunk(2,0) fid=minecraft:seagrass_deep reads=850
+[CA-READS] chunk(2,0) fid=minecraft:monster_room_deep reads=450
+[CA-READS] chunk(2,0) fid=minecraft:ore_tuff reads=410
+[CA-READS] chunk(2,0) fid=minecraft:ore_diorite_lower reads=307
+[CA-READS] chunk(2,0) fid=minecraft:ore_granite_lower reads=256
+[CA-READS] chunk(2,0) fid=minecraft:ore_andesite_lower reads=173
+[CA-READS] chunk(2,0) fid=minecraft:monster_room reads=122
+[CA-READS] chunk(2,0) fid=minecraft:disk_gravel reads=101
+[CA-READS] chunk(2,0) fid=minecraft:disk_sand reads=88
+[CA-READS] chunk(2,0) fid=minecraft:ore_gravel reads=52
+[CA-READS] chunk(2,0) fid=minecraft:patch_grass_badlands reads=37
+[CA-READS] chunk(2,0) fid=minecraft:ore_coal_lower reads=24
+[CA] chunk(2,0) out_reads=2889 all_reads=29556 pending_writes=1209 placed=112
+[CA-READS] chunk(3,0) fid=minecraft:seagrass_deep reads=5997
+[CA-READS] chunk(3,0) fid=minecraft:ore_tuff reads=569
+[CA-READS] chunk(3,0) fid=minecraft:ore_diorite_lower reads=507
+[CA-READS] chunk(3,0) fid=minecraft:disk_sand reads=463
+[CA-READS] chunk(3,0) fid=minecraft:ore_andesite_lower reads=450
+[CA-READS] chunk(3,0) fid=minecraft:ore_granite_lower reads=341
+[CA-READS] chunk(3,0) fid=minecraft:monster_room_deep reads=331
+[CA-READS] chunk(3,0) fid=minecraft:disk_gravel reads=251
+[CA-READS] chunk(3,0) fid=minecraft:monster_room reads=144
+[CA-READS] chunk(3,0) fid=minecraft:ore_gravel reads=87
+[CA-READS] chunk(3,0) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(3,0) fid=minecraft:ore_diamond_buried reads=28
+[CA] chunk(3,0) out_reads=9237 all_reads=38828 pending_writes=1358 placed=97
+[CA-READS] chunk(4,0) fid=minecraft:seagrass_deep reads=5990
+[CA-READS] chunk(4,0) fid=minecraft:amethyst_geode reads=2158
+[CA-READS] chunk(4,0) fid=minecraft:ore_diorite_lower reads=675
+[CA-READS] chunk(4,0) fid=minecraft:disk_sand reads=418
+[CA-READS] chunk(4,0) fid=minecraft:ore_tuff reads=346
+[CA-READS] chunk(4,0) fid=minecraft:ore_granite_lower reads=281
+[CA-READS] chunk(4,0) fid=minecraft:ore_andesite_lower reads=233
+[CA-READS] chunk(4,0) fid=minecraft:monster_room_deep reads=216
+[CA-READS] chunk(4,0) fid=minecraft:monster_room reads=184
+[CA-READS] chunk(4,0) fid=minecraft:ore_gravel reads=79
+[CA-READS] chunk(4,0) fid=minecraft:ore_dirt reads=49
+[CA-READS] chunk(4,0) fid=minecraft:patch_grass_badlands reads=36
+[CA] chunk(4,0) out_reads=10670 all_reads=49528 pending_writes=3440 placed=104
+[CA-READS] chunk(5,0) fid=minecraft:seagrass_deep reads=8113
+[CA-READS] chunk(5,0) fid=minecraft:seagrass_deep_cold reads=2002
+[CA-READS] chunk(5,0) fid=minecraft:ore_tuff reads=733
+[CA-READS] chunk(5,0) fid=minecraft:ore_andesite_lower reads=476
+[CA-READS] chunk(5,0) fid=minecraft:ore_granite_lower reads=324
+[CA-READS] chunk(5,0) fid=minecraft:monster_room_deep reads=296
+[CA-READS] chunk(5,0) fid=minecraft:disk_sand reads=188
+[CA-READS] chunk(5,0) fid=minecraft:ore_dirt reads=73
+[CA-READS] chunk(5,0) fid=minecraft:ore_gravel reads=44
+[CA-READS] chunk(5,0) fid=minecraft:patch_grass_badlands reads=38
+[CA-READS] chunk(5,0) fid=minecraft:lake_lava_underground reads=33
+[CA-READS] chunk(5,0) fid=minecraft:ore_coal_lower reads=32
+[CA] chunk(5,0) out_reads=12381 all_reads=61975 pending_writes=1414 placed=138
+[CA-READS] chunk(6,0) fid=minecraft:seagrass_deep_cold reads=3479
+[CA-READS] chunk(6,0) fid=minecraft:ore_granite_lower reads=548
+[CA-READS] chunk(6,0) fid=minecraft:monster_room_deep reads=410
+[CA-READS] chunk(6,0) fid=minecraft:disk_sand reads=353
+[CA-READS] chunk(6,0) fid=minecraft:ore_andesite_lower reads=286
+[CA-READS] chunk(6,0) fid=minecraft:ore_tuff reads=213
+[CA-READS] chunk(6,0) fid=minecraft:monster_room reads=139
+[CA-READS] chunk(6,0) fid=minecraft:ore_diorite_lower reads=84
+[CA-READS] chunk(6,0) fid=minecraft:ore_gravel reads=76
+[CA-READS] chunk(6,0) fid=minecraft:patch_grass_badlands reads=46
+[CA-READS] chunk(6,0) fid=minecraft:ore_dirt reads=33
+[CA-READS] chunk(6,0) fid=minecraft:ore_gold reads=27
+[CA] chunk(6,0) out_reads=5730 all_reads=67726 pending_writes=1138 placed=97
+[CA-READS] chunk(7,0) fid=minecraft:seagrass_deep_cold reads=2899
+[CA-READS] chunk(7,0) fid=minecraft:ore_granite_lower reads=566
+[CA-READS] chunk(7,0) fid=minecraft:monster_room_deep reads=534
+[CA-READS] chunk(7,0) fid=minecraft:ore_tuff reads=398
+[CA-READS] chunk(7,0) fid=minecraft:ore_diorite_lower reads=305
+[CA-READS] chunk(7,0) fid=minecraft:glow_lichen reads=302
+[CA-READS] chunk(7,0) fid=minecraft:ore_andesite_lower reads=233
+[CA-READS] chunk(7,0) fid=minecraft:disk_gravel reads=131
+[CA-READS] chunk(7,0) fid=minecraft:ore_gravel reads=114
+[CA-READS] chunk(7,0) fid=minecraft:ore_dirt reads=52
+[CA-READS] chunk(7,0) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(7,0) fid=minecraft:ore_coal_lower reads=24
+[CA] chunk(7,0) out_reads=5633 all_reads=73395 pending_writes=1340 placed=83
+[CA-READS] chunk(0,1) fid=minecraft:seagrass_normal reads=3859
+[CA-READS] chunk(0,1) fid=minecraft:ore_granite_lower reads=942
+[CA-READS] chunk(0,1) fid=minecraft:ore_tuff reads=394
+[CA-READS] chunk(0,1) fid=minecraft:ore_diorite_lower reads=391
+[CA-READS] chunk(0,1) fid=minecraft:ore_andesite_lower reads=389
+[CA-READS] chunk(0,1) fid=minecraft:monster_room reads=356
+[CA-READS] chunk(0,1) fid=minecraft:monster_room_deep reads=302
+[CA-READS] chunk(0,1) fid=minecraft:ore_gravel reads=232
+[CA-READS] chunk(0,1) fid=minecraft:ore_diorite_upper reads=105
+[CA-READS] chunk(0,1) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(0,1) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(0,1) fid=minecraft:ore_diamond_buried reads=15
+[CA] chunk(0,1) out_reads=7068 all_reads=80520 pending_writes=2137 placed=106
+[CA-READS] chunk(1,1) fid=minecraft:seagrass_deep reads=7490
+[CA-READS] chunk(1,1) fid=minecraft:ore_andesite_lower reads=602
+[CA-READS] chunk(1,1) fid=minecraft:ore_diorite_lower reads=580
+[CA-READS] chunk(1,1) fid=minecraft:monster_room_deep reads=350
+[CA-READS] chunk(1,1) fid=minecraft:seagrass_normal reads=272
+[CA-READS] chunk(1,1) fid=minecraft:ore_granite_lower reads=177
+[CA-READS] chunk(1,1) fid=minecraft:ore_coal_lower reads=106
+[CA-READS] chunk(1,1) fid=minecraft:ore_dirt reads=76
+[CA-READS] chunk(1,1) fid=minecraft:ore_tuff reads=73
+[CA-READS] chunk(1,1) fid=minecraft:disk_gravel reads=56
+[CA-READS] chunk(1,1) fid=minecraft:patch_grass_badlands reads=33
+[CA-READS] chunk(1,1) fid=minecraft:disk_sand reads=33
+[CA] chunk(1,1) out_reads=9933 all_reads=90493 pending_writes=1282 placed=155
+[CA-READS] chunk(2,1) fid=minecraft:seagrass_deep reads=3298
+[CA-READS] chunk(2,1) fid=minecraft:monster_room_deep reads=585
+[CA-READS] chunk(2,1) fid=minecraft:ore_diorite_lower reads=578
+[CA-READS] chunk(2,1) fid=minecraft:ore_andesite_lower reads=526
+[CA-READS] chunk(2,1) fid=minecraft:ore_tuff reads=332
+[CA-READS] chunk(2,1) fid=minecraft:ore_granite_lower reads=284
+[CA-READS] chunk(2,1) fid=minecraft:disk_sand reads=128
+[CA-READS] chunk(2,1) fid=minecraft:disk_gravel reads=121
+[CA-READS] chunk(2,1) fid=minecraft:patch_grass_badlands reads=45
+[CA-READS] chunk(2,1) fid=minecraft:ore_dirt reads=42
+[CA-READS] chunk(2,1) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(2,1) fid=minecraft:ore_coal_lower reads=31
+[CA] chunk(2,1) out_reads=5996 all_reads=96546 pending_writes=1604 placed=113
+[CA-READS] chunk(3,1) fid=minecraft:seagrass_deep reads=1693
+[CA-READS] chunk(3,1) fid=minecraft:ore_andesite_lower reads=581
+[CA-READS] chunk(3,1) fid=minecraft:ore_tuff reads=472
+[CA-READS] chunk(3,1) fid=minecraft:monster_room reads=400
+[CA-READS] chunk(3,1) fid=minecraft:ore_diorite_lower reads=348
+[CA-READS] chunk(3,1) fid=minecraft:monster_room_deep reads=294
+[CA-READS] chunk(3,1) fid=minecraft:ore_granite_lower reads=286
+[CA-READS] chunk(3,1) fid=minecraft:ore_gravel reads=194
+[CA-READS] chunk(3,1) fid=minecraft:disk_sand reads=88
+[CA-READS] chunk(3,1) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(3,1) fid=minecraft:ore_coal_lower reads=41
+[CA-READS] chunk(3,1) fid=minecraft:ore_copper reads=11
+[CA] chunk(3,1) out_reads=4453 all_reads=101021 pending_writes=1361 placed=104
+[CA-READS] chunk(4,1) fid=minecraft:seagrass_deep reads=8272
+[CA-READS] chunk(4,1) fid=minecraft:ore_granite_lower reads=584
+[CA-READS] chunk(4,1) fid=minecraft:ore_andesite_lower reads=554
+[CA-READS] chunk(4,1) fid=minecraft:disk_sand reads=363
+[CA-READS] chunk(4,1) fid=minecraft:monster_room reads=248
+[CA-READS] chunk(4,1) fid=minecraft:ore_tuff reads=236
+[CA-READS] chunk(4,1) fid=minecraft:ore_diorite_lower reads=218
+[CA-READS] chunk(4,1) fid=minecraft:red_mushroom_normal reads=106
+[CA-READS] chunk(4,1) fid=minecraft:ore_dirt reads=96
+[CA-READS] chunk(4,1) fid=minecraft:disk_gravel reads=86
+[CA-READS] chunk(4,1) fid=minecraft:ore_gravel reads=81
+[CA-READS] chunk(4,1) fid=minecraft:patch_grass_badlands reads=39
+[CA] chunk(4,1) out_reads=10819 all_reads=111952 pending_writes=855 placed=103
+[CA-READS] chunk(5,1) fid=minecraft:seagrass_deep reads=6601
+[CA-READS] chunk(5,1) fid=minecraft:ore_tuff reads=702
+[CA-READS] chunk(5,1) fid=minecraft:ore_granite_lower reads=690
+[CA-READS] chunk(5,1) fid=minecraft:ore_diorite_lower reads=620
+[CA-READS] chunk(5,1) fid=minecraft:ore_andesite_lower reads=415
+[CA-READS] chunk(5,1) fid=minecraft:monster_room_deep reads=302
+[CA-READS] chunk(5,1) fid=minecraft:glow_lichen reads=161
+[CA-READS] chunk(5,1) fid=minecraft:ore_gravel reads=91
+[CA-READS] chunk(5,1) fid=minecraft:monster_room reads=69
+[CA-READS] chunk(5,1) fid=minecraft:ore_dirt reads=58
+[CA-READS] chunk(5,1) fid=minecraft:disk_gravel reads=41
+[CA-READS] chunk(5,1) fid=minecraft:patch_grass_badlands reads=40
+[CA] chunk(5,1) out_reads=9831 all_reads=121811 pending_writes=1165 placed=103
+[CA-READS] chunk(6,1) fid=minecraft:seagrass_deep reads=3748
+[CA-READS] chunk(6,1) fid=minecraft:ore_andesite_lower reads=525
+[CA-READS] chunk(6,1) fid=minecraft:ore_tuff reads=508
+[CA-READS] chunk(6,1) fid=minecraft:ore_diorite_lower reads=492
+[CA-READS] chunk(6,1) fid=minecraft:monster_room_deep reads=300
+[CA-READS] chunk(6,1) fid=minecraft:monster_room reads=251
+[CA-READS] chunk(6,1) fid=minecraft:ore_granite_lower reads=183
+[CA-READS] chunk(6,1) fid=minecraft:disk_sand reads=138
+[CA-READS] chunk(6,1) fid=minecraft:ore_gravel reads=97
+[CA-READS] chunk(6,1) fid=minecraft:ore_dirt reads=73
+[CA-READS] chunk(6,1) fid=minecraft:patch_grass_badlands reads=38
+[CA-READS] chunk(6,1) fid=minecraft:disk_clay reads=19
+[CA] chunk(6,1) out_reads=6384 all_reads=128226 pending_writes=1255 placed=91
+[CA-READS] chunk(7,1) fid=minecraft:seagrass_deep reads=2869
+[CA-READS] chunk(7,1) fid=minecraft:ore_tuff reads=635
+[CA-READS] chunk(7,1) fid=minecraft:ore_diorite_lower reads=617
+[CA-READS] chunk(7,1) fid=minecraft:monster_room_deep reads=566
+[CA-READS] chunk(7,1) fid=minecraft:ore_andesite_lower reads=336
+[CA-READS] chunk(7,1) fid=minecraft:ore_granite_lower reads=182
+[CA-READS] chunk(7,1) fid=minecraft:ore_gravel reads=50
+[CA-READS] chunk(7,1) fid=minecraft:patch_grass_badlands reads=33
+[CA-READS] chunk(7,1) fid=minecraft:ore_lapis_buried reads=23
+[CA-READS] chunk(7,1) fid=minecraft:ore_gold reads=14
+[CA-READS] chunk(7,1) fid=minecraft:monster_room reads=9
+[CA-READS] chunk(7,1) fid=minecraft:ore_copper reads=5
+[CA] chunk(7,1) out_reads=5318 all_reads=133584 pending_writes=1337 placed=96
+[CA-READS] chunk(0,2) fid=minecraft:seagrass_normal reads=5894
+[CA-READS] chunk(0,2) fid=minecraft:ore_andesite_lower reads=608
+[CA-READS] chunk(0,2) fid=minecraft:ore_diorite_lower reads=598
+[CA-READS] chunk(0,2) fid=minecraft:ore_granite_lower reads=364
+[CA-READS] chunk(0,2) fid=minecraft:ore_tuff reads=218
+[CA-READS] chunk(0,2) fid=minecraft:monster_room reads=217
+[CA-READS] chunk(0,2) fid=minecraft:monster_room_deep reads=137
+[CA-READS] chunk(0,2) fid=minecraft:disk_sand reads=133
+[CA-READS] chunk(0,2) fid=minecraft:ore_gravel reads=52
+[CA-READS] chunk(0,2) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(0,2) fid=minecraft:ore_coal_lower reads=26
+[CA-READS] chunk(0,2) fid=minecraft:glow_lichen reads=20
+[CA] chunk(0,2) out_reads=8331 all_reads=141943 pending_writes=1292 placed=115
+[CA-READS] chunk(1,2) fid=minecraft:seagrass_normal reads=3787
+[CA-READS] chunk(1,2) fid=minecraft:ore_andesite_lower reads=622
+[CA-READS] chunk(1,2) fid=minecraft:ore_tuff reads=556
+[CA-READS] chunk(1,2) fid=minecraft:ore_diorite_lower reads=320
+[CA-READS] chunk(1,2) fid=minecraft:monster_room_deep reads=253
+[CA-READS] chunk(1,2) fid=minecraft:ore_granite_lower reads=176
+[CA-READS] chunk(1,2) fid=minecraft:glow_lichen reads=162
+[CA-READS] chunk(1,2) fid=minecraft:ore_gravel reads=152
+[CA-READS] chunk(1,2) fid=minecraft:disk_gravel reads=86
+[CA-READS] chunk(1,2) fid=minecraft:disk_sand reads=68
+[CA-READS] chunk(1,2) fid=minecraft:ore_dirt reads=47
+[CA-READS] chunk(1,2) fid=minecraft:patch_grass_badlands reads=37
+[CA] chunk(1,2) out_reads=6364 all_reads=148341 pending_writes=1262 placed=113
+[CA-READS] chunk(2,2) fid=minecraft:seagrass_deep reads=6685
+[CA-READS] chunk(2,2) fid=minecraft:ore_andesite_lower reads=574
+[CA-READS] chunk(2,2) fid=minecraft:ore_granite_lower reads=356
+[CA-READS] chunk(2,2) fid=minecraft:monster_room_deep reads=324
+[CA-READS] chunk(2,2) fid=minecraft:ore_diorite_lower reads=308
+[CA-READS] chunk(2,2) fid=minecraft:glow_lichen reads=303
+[CA-READS] chunk(2,2) fid=minecraft:ore_tuff reads=204
+[CA-READS] chunk(2,2) fid=minecraft:disk_sand reads=128
+[CA-READS] chunk(2,2) fid=minecraft:ore_dirt reads=119
+[CA-READS] chunk(2,2) fid=minecraft:disk_gravel reads=101
+[CA-READS] chunk(2,2) fid=minecraft:ore_gravel reads=94
+[CA-READS] chunk(2,2) fid=minecraft:ore_coal_lower reads=78
+[CA] chunk(2,2) out_reads=9375 all_reads=157754 pending_writes=1288 placed=117
+[CA-READS] chunk(3,2) fid=minecraft:seagrass_deep reads=2820
+[CA-READS] chunk(3,2) fid=minecraft:monster_room_deep reads=484
+[CA-READS] chunk(3,2) fid=minecraft:ore_diorite_lower reads=379
+[CA-READS] chunk(3,2) fid=minecraft:disk_sand reads=373
+[CA-READS] chunk(3,2) fid=minecraft:ore_tuff reads=364
+[CA-READS] chunk(3,2) fid=minecraft:ore_andesite_lower reads=278
+[CA-READS] chunk(3,2) fid=minecraft:ore_granite_lower reads=184
+[CA-READS] chunk(3,2) fid=minecraft:ore_dirt reads=86
+[CA-READS] chunk(3,2) fid=minecraft:ore_gravel reads=76
+[CA-READS] chunk(3,2) fid=minecraft:glow_lichen reads=41
+[CA-READS] chunk(3,2) fid=minecraft:patch_grass_badlands reads=32
+[CA-READS] chunk(3,2) fid=minecraft:ore_coal_lower reads=31
+[CA] chunk(3,2) out_reads=5193 all_reads=162988 pending_writes=1131 placed=109
+[CA-READS] chunk(4,2) fid=minecraft:seagrass_deep reads=857
+[CA-READS] chunk(4,2) fid=minecraft:ore_andesite_lower reads=432
+[CA-READS] chunk(4,2) fid=minecraft:ore_tuff reads=347
+[CA-READS] chunk(4,2) fid=minecraft:disk_sand reads=178
+[CA-READS] chunk(4,2) fid=minecraft:monster_room_deep reads=128
+[CA-READS] chunk(4,2) fid=minecraft:ore_diorite_lower reads=123
+[CA-READS] chunk(4,2) fid=minecraft:ore_gravel reads=66
+[CA-READS] chunk(4,2) fid=minecraft:ore_dirt reads=55
+[CA-READS] chunk(4,2) fid=minecraft:patch_grass_badlands reads=35
+[CA-READS] chunk(4,2) fid=minecraft:lake_lava_underground reads=33
+[CA-READS] chunk(4,2) fid=minecraft:ore_diamond_buried reads=12
+[CA-READS] chunk(4,2) fid=minecraft:spring_water reads=8
+[CA] chunk(4,2) out_reads=2246 all_reads=165302 pending_writes=501 placed=97
+[CA-READS] chunk(5,2) fid=minecraft:ore_granite_lower reads=568
+[CA-READS] chunk(5,2) fid=minecraft:ore_andesite_lower reads=550
+[CA-READS] chunk(5,2) fid=minecraft:ore_tuff reads=352
+[CA-READS] chunk(5,2) fid=minecraft:ore_gravel reads=156
+[CA-READS] chunk(5,2) fid=minecraft:ore_dirt reads=131
+[CA-READS] chunk(5,2) fid=minecraft:ore_diorite_lower reads=53
+[CA-READS] chunk(5,2) fid=minecraft:monster_room_deep reads=49
+[CA-READS] chunk(5,2) fid=minecraft:patch_grass_badlands reads=45
+[CA-READS] chunk(5,2) fid=minecraft:ore_gold_lower reads=26
+[CA-READS] chunk(5,2) fid=minecraft:ore_gold reads=22
+[CA-READS] chunk(5,2) fid=minecraft:ore_diamond_medium reads=14
+[CA-READS] chunk(5,2) fid=minecraft:ore_copper reads=11
+[CA] chunk(5,2) out_reads=1985 all_reads=167307 pending_writes=1131 placed=96
+[CA-READS] chunk(6,2) fid=minecraft:seagrass_deep reads=1712
+[CA-READS] chunk(6,2) fid=minecraft:ore_granite_lower reads=715
+[CA-READS] chunk(6,2) fid=minecraft:ore_diorite_lower reads=516
+[CA-READS] chunk(6,2) fid=minecraft:ore_andesite_lower reads=431
+[CA-READS] chunk(6,2) fid=minecraft:ore_tuff reads=398
+[CA-READS] chunk(6,2) fid=minecraft:disk_sand reads=248
+[CA-READS] chunk(6,2) fid=minecraft:monster_room_deep reads=216
+[CA-READS] chunk(6,2) fid=minecraft:ore_dirt reads=87
+[CA-READS] chunk(6,2) fid=minecraft:ore_gravel reads=59
+[CA-READS] chunk(6,2) fid=minecraft:disk_gravel reads=56
+[CA-READS] chunk(6,2) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(6,2) fid=minecraft:disk_clay reads=13
+[CA] chunk(6,2) out_reads=4486 all_reads=171825 pending_writes=1563 placed=107
+[CA-READS] chunk(7,2) fid=minecraft:seagrass_deep reads=2851
+[CA-READS] chunk(7,2) fid=minecraft:monster_room_deep reads=471
+[CA-READS] chunk(7,2) fid=minecraft:ore_granite_lower reads=464
+[CA-READS] chunk(7,2) fid=minecraft:ore_tuff reads=446
+[CA-READS] chunk(7,2) fid=minecraft:ore_andesite_lower reads=374
+[CA-READS] chunk(7,2) fid=minecraft:ore_diorite_lower reads=267
+[CA-READS] chunk(7,2) fid=minecraft:ore_gravel reads=124
+[CA-READS] chunk(7,2) fid=minecraft:disk_sand reads=118
+[CA-READS] chunk(7,2) fid=minecraft:ore_dirt reads=42
+[CA-READS] chunk(7,2) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(7,2) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(7,2) fid=minecraft:lake_lava_underground reads=33
+[CA] chunk(7,2) out_reads=5229 all_reads=177154 pending_writes=1585 placed=110
+[CA-READS] chunk(0,3) fid=minecraft:seagrass_normal reads=3027
+[CA-READS] chunk(0,3) fid=minecraft:glow_lichen reads=926
+[CA-READS] chunk(0,3) fid=minecraft:ore_andesite_lower reads=621
+[CA-READS] chunk(0,3) fid=minecraft:ore_granite_lower reads=549
+[CA-READS] chunk(0,3) fid=minecraft:ore_diorite_lower reads=414
+[CA-READS] chunk(0,3) fid=minecraft:ore_tuff reads=330
+[CA-READS] chunk(0,3) fid=minecraft:monster_room_deep reads=247
+[CA-READS] chunk(0,3) fid=minecraft:disk_sand reads=193
+[CA-READS] chunk(0,3) fid=minecraft:ore_gravel reads=124
+[CA-READS] chunk(0,3) fid=minecraft:ore_dirt reads=100
+[CA-READS] chunk(0,3) fid=minecraft:monster_room reads=94
+[CA-READS] chunk(0,3) fid=minecraft:ore_coal_lower reads=51
+[CA] chunk(0,3) out_reads=6739 all_reads=183972 pending_writes=631 placed=91
+[CA-READS] chunk(1,3) fid=minecraft:seagrass_normal reads=6148
+[CA-READS] chunk(1,3) fid=minecraft:glow_lichen reads=885
+[CA-READS] chunk(1,3) fid=minecraft:ore_tuff reads=614
+[CA-READS] chunk(1,3) fid=minecraft:ore_diorite_lower reads=423
+[CA-READS] chunk(1,3) fid=minecraft:ore_granite_lower reads=330
+[CA-READS] chunk(1,3) fid=minecraft:disk_sand reads=253
+[CA-READS] chunk(1,3) fid=minecraft:ore_andesite_lower reads=214
+[CA-READS] chunk(1,3) fid=minecraft:monster_room_deep reads=137
+[CA-READS] chunk(1,3) fid=minecraft:ore_gravel reads=93
+[CA-READS] chunk(1,3) fid=minecraft:patch_grass_badlands reads=41
+[CA-READS] chunk(1,3) fid=minecraft:patch_sugar_cane reads=39
+[CA-READS] chunk(1,3) fid=minecraft:disk_clay reads=34
+[CA] chunk(1,3) out_reads=9252 all_reads=193277 pending_writes=660 placed=93
+[CA-READS] chunk(2,3) fid=minecraft:ore_granite_lower reads=518
+[CA-READS] chunk(2,3) fid=minecraft:ore_andesite_lower reads=422
+[CA-READS] chunk(2,3) fid=minecraft:glow_lichen reads=362
+[CA-READS] chunk(2,3) fid=minecraft:ore_tuff reads=361
+[CA-READS] chunk(2,3) fid=minecraft:ore_diorite_lower reads=335
+[CA-READS] chunk(2,3) fid=minecraft:disk_gravel reads=251
+[CA-READS] chunk(2,3) fid=minecraft:monster_room_deep reads=185
+[CA-READS] chunk(2,3) fid=minecraft:ore_gravel reads=116
+[CA-READS] chunk(2,3) fid=minecraft:disk_sand reads=83
+[CA-READS] chunk(2,3) fid=minecraft:ore_dirt reads=78
+[CA-READS] chunk(2,3) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(2,3) fid=minecraft:patch_sugar_cane reads=40
+[CA] chunk(2,3) out_reads=2780 all_reads=196123 pending_writes=1389 placed=43
+[CA-READS] chunk(3,3) fid=minecraft:seagrass_deep reads=2876
+[CA-READS] chunk(3,3) fid=minecraft:ore_tuff reads=787
+[CA-READS] chunk(3,3) fid=minecraft:ore_andesite_lower reads=526
+[CA-READS] chunk(3,3) fid=minecraft:ore_diorite_lower reads=500
+[CA-READS] chunk(3,3) fid=minecraft:ore_granite_lower reads=293
+[CA-READS] chunk(3,3) fid=minecraft:monster_room_deep reads=243
+[CA-READS] chunk(3,3) fid=minecraft:glow_lichen reads=201
+[CA-READS] chunk(3,3) fid=minecraft:monster_room reads=121
+[CA-READS] chunk(3,3) fid=minecraft:disk_sand reads=93
+[CA-READS] chunk(3,3) fid=minecraft:ore_dirt reads=86
+[CA-READS] chunk(3,3) fid=minecraft:lake_lava_underground reads=33
+[CA-READS] chunk(3,3) fid=minecraft:patch_grass_badlands reads=32
+[CA] chunk(3,3) out_reads=5806 all_reads=202003 pending_writes=753 placed=101
+[CA-READS] chunk(4,3) fid=minecraft:seagrass_deep reads=5131
+[CA-READS] chunk(4,3) fid=minecraft:ore_andesite_lower reads=714
+[CA-READS] chunk(4,3) fid=minecraft:ore_diorite_lower reads=551
+[CA-READS] chunk(4,3) fid=minecraft:ore_tuff reads=470
+[CA-READS] chunk(4,3) fid=minecraft:disk_sand reads=408
+[CA-READS] chunk(4,3) fid=minecraft:ore_granite_lower reads=403
+[CA-READS] chunk(4,3) fid=minecraft:ore_dirt reads=63
+[CA-READS] chunk(4,3) fid=minecraft:monster_room_deep reads=56
+[CA-READS] chunk(4,3) fid=minecraft:ore_gravel reads=51
+[CA-READS] chunk(4,3) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(4,3) fid=minecraft:ore_lapis_buried reads=24
+[CA-READS] chunk(4,3) fid=minecraft:ore_coal_lower reads=16
+[CA] chunk(4,3) out_reads=7942 all_reads=209974 pending_writes=1638 placed=98
+[CA-READS] chunk(5,3) fid=minecraft:seagrass_deep reads=857
+[CA-READS] chunk(5,3) fid=minecraft:ore_granite_lower reads=577
+[CA-READS] chunk(5,3) fid=minecraft:ore_diorite_lower reads=457
+[CA-READS] chunk(5,3) fid=minecraft:ore_andesite_lower reads=320
+[CA-READS] chunk(5,3) fid=minecraft:monster_room_deep reads=248
+[CA-READS] chunk(5,3) fid=minecraft:ore_tuff reads=230
+[CA-READS] chunk(5,3) fid=minecraft:disk_sand reads=143
+[CA-READS] chunk(5,3) fid=minecraft:ore_gravel reads=106
+[CA-READS] chunk(5,3) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(5,3) fid=minecraft:disk_clay reads=34
+[CA-READS] chunk(5,3) fid=minecraft:ore_coal_lower reads=31
+[CA-READS] chunk(5,3) fid=minecraft:ore_dirt reads=28
+[CA] chunk(5,3) out_reads=3073 all_reads=213073 pending_writes=753 placed=103
+[CA-READS] chunk(6,3) fid=minecraft:seagrass_deep reads=6016
+[CA-READS] chunk(6,3) fid=minecraft:ore_granite_lower reads=618
+[CA-READS] chunk(6,3) fid=minecraft:ore_diorite_lower reads=430
+[CA-READS] chunk(6,3) fid=minecraft:ore_tuff reads=340
+[CA-READS] chunk(6,3) fid=minecraft:ore_andesite_lower reads=304
+[CA-READS] chunk(6,3) fid=minecraft:monster_room_deep reads=280
+[CA-READS] chunk(6,3) fid=minecraft:disk_sand reads=218
+[CA-READS] chunk(6,3) fid=minecraft:ore_andesite_upper reads=154
+[CA-READS] chunk(6,3) fid=minecraft:monster_room reads=95
+[CA-READS] chunk(6,3) fid=minecraft:ore_gravel reads=78
+[CA-READS] chunk(6,3) fid=minecraft:ore_dirt reads=56
+[CA-READS] chunk(6,3) fid=minecraft:patch_sugar_cane reads=40
+[CA] chunk(6,3) out_reads=8680 all_reads=221861 pending_writes=1643 placed=104
+[CA-READS] chunk(7,3) fid=minecraft:seagrass_deep reads=3412
+[CA-READS] chunk(7,3) fid=minecraft:ore_andesite_lower reads=570
+[CA-READS] chunk(7,3) fid=minecraft:ore_tuff reads=217
+[CA-READS] chunk(7,3) fid=minecraft:ore_diorite_lower reads=198
+[CA-READS] chunk(7,3) fid=minecraft:monster_room reads=183
+[CA-READS] chunk(7,3) fid=minecraft:monster_room_deep reads=92
+[CA-READS] chunk(7,3) fid=minecraft:ore_gravel reads=88
+[CA-READS] chunk(7,3) fid=minecraft:patch_grass_badlands reads=37
+[CA-READS] chunk(7,3) fid=minecraft:disk_gravel reads=31
+[CA-READS] chunk(7,3) fid=minecraft:disk_sand reads=23
+[CA-READS] chunk(7,3) fid=minecraft:disk_clay reads=19
+[CA-READS] chunk(7,3) fid=minecraft:ore_dirt reads=16
+[CA] chunk(7,3) out_reads=4915 all_reads=226807 pending_writes=1089 placed=107
+[CA-READS] chunk(0,4) fid=minecraft:seagrass_normal reads=4432
+[CA-READS] chunk(0,4) fid=minecraft:ore_tuff reads=451
+[CA-READS] chunk(0,4) fid=minecraft:ore_diorite_lower reads=420
+[CA-READS] chunk(0,4) fid=minecraft:ore_granite_lower reads=412
+[CA-READS] chunk(0,4) fid=minecraft:ore_andesite_lower reads=378
+[CA-READS] chunk(0,4) fid=minecraft:disk_sand reads=373
+[CA-READS] chunk(0,4) fid=minecraft:glow_lichen reads=82
+[CA-READS] chunk(0,4) fid=minecraft:ore_dirt reads=71
+[CA-READS] chunk(0,4) fid=minecraft:ore_gravel reads=65
+[CA-READS] chunk(0,4) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(0,4) fid=minecraft:ore_lapis_buried reads=5
+[CA-READS] chunk(0,4) fid=minecraft:ore_redstone reads=5
+[CA] chunk(0,4) out_reads=6749 all_reads=233577 pending_writes=832 placed=91
+[CA-READS] chunk(1,4) fid=minecraft:seagrass_normal reads=4974
+[CA-READS] chunk(1,4) fid=minecraft:monster_room_deep reads=803
+[CA-READS] chunk(1,4) fid=minecraft:ore_tuff reads=656
+[CA-READS] chunk(1,4) fid=minecraft:ore_diorite_lower reads=567
+[CA-READS] chunk(1,4) fid=minecraft:glow_lichen reads=382
+[CA-READS] chunk(1,4) fid=minecraft:ore_granite_lower reads=271
+[CA-READS] chunk(1,4) fid=minecraft:ore_dirt reads=100
+[CA-READS] chunk(1,4) fid=minecraft:disk_sand reads=63
+[CA-READS] chunk(1,4) fid=minecraft:ore_andesite_lower reads=62
+[CA-READS] chunk(1,4) fid=minecraft:disk_gravel reads=56
+[CA-READS] chunk(1,4) fid=minecraft:monster_room reads=47
+[CA-READS] chunk(1,4) fid=minecraft:ore_gravel reads=44
+[CA] chunk(1,4) out_reads=8129 all_reads=241765 pending_writes=1413 placed=81
+[CA-READS] chunk(2,4) fid=minecraft:seagrass_deep reads=3700
+[CA-READS] chunk(2,4) fid=minecraft:ore_granite_lower reads=573
+[CA-READS] chunk(2,4) fid=minecraft:glow_lichen reads=570
+[CA-READS] chunk(2,4) fid=minecraft:ore_diorite_lower reads=485
+[CA-READS] chunk(2,4) fid=minecraft:ore_andesite_lower reads=393
+[CA-READS] chunk(2,4) fid=minecraft:ore_tuff reads=309
+[CA-READS] chunk(2,4) fid=minecraft:ore_gravel reads=198
+[CA-READS] chunk(2,4) fid=minecraft:disk_sand reads=113
+[CA-READS] chunk(2,4) fid=minecraft:ore_dirt reads=66
+[CA-READS] chunk(2,4) fid=minecraft:patch_grass_badlands reads=38
+[CA-READS] chunk(2,4) fid=minecraft:ore_diamond reads=18
+[CA-READS] chunk(2,4) fid=minecraft:ore_copper reads=10
+[CA] chunk(2,4) out_reads=6486 all_reads=248281 pending_writes=1123 placed=100
+[CA-READS] chunk(3,4) fid=minecraft:seagrass_deep reads=4323
+[CA-READS] chunk(3,4) fid=minecraft:glow_lichen reads=785
+[CA-READS] chunk(3,4) fid=minecraft:ore_andesite_lower reads=687
+[CA-READS] chunk(3,4) fid=minecraft:ore_diorite_lower reads=683
+[CA-READS] chunk(3,4) fid=minecraft:ore_tuff reads=570
+[CA-READS] chunk(3,4) fid=minecraft:ore_granite_lower reads=306
+[CA-READS] chunk(3,4) fid=minecraft:disk_sand reads=258
+[CA-READS] chunk(3,4) fid=minecraft:monster_room_deep reads=247
+[CA-READS] chunk(3,4) fid=minecraft:ore_gravel reads=76
+[CA-READS] chunk(3,4) fid=minecraft:patch_grass_badlands reads=33
+[CA-READS] chunk(3,4) fid=minecraft:disk_gravel reads=31
+[CA-READS] chunk(3,4) fid=minecraft:ore_diamond_buried reads=24
+[CA] chunk(3,4) out_reads=8049 all_reads=256367 pending_writes=1204 placed=92
+[CA-READS] chunk(4,4) fid=minecraft:seagrass_deep reads=8287
+[CA-READS] chunk(4,4) fid=minecraft:ore_tuff reads=650
+[CA-READS] chunk(4,4) fid=minecraft:ore_andesite_lower reads=576
+[CA-READS] chunk(4,4) fid=minecraft:ore_granite_lower reads=554
+[CA-READS] chunk(4,4) fid=minecraft:monster_room_deep reads=458
+[CA-READS] chunk(4,4) fid=minecraft:ore_diorite_lower reads=453
+[CA-READS] chunk(4,4) fid=minecraft:monster_room reads=257
+[CA-READS] chunk(4,4) fid=minecraft:disk_sand reads=153
+[CA-READS] chunk(4,4) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(4,4) fid=minecraft:ore_dirt reads=33
+[CA-READS] chunk(4,4) fid=minecraft:ore_gravel reads=31
+[CA-READS] chunk(4,4) fid=minecraft:disk_gravel reads=21
+[CA] chunk(4,4) out_reads=11549 all_reads=267946 pending_writes=2043 placed=105
+[CA-READS] chunk(5,4) fid=minecraft:seagrass_deep reads=6579
+[CA-READS] chunk(5,4) fid=minecraft:ore_granite_lower reads=443
+[CA-READS] chunk(5,4) fid=minecraft:monster_room_deep reads=413
+[CA-READS] chunk(5,4) fid=minecraft:ore_tuff reads=401
+[CA-READS] chunk(5,4) fid=minecraft:ore_andesite_lower reads=332
+[CA-READS] chunk(5,4) fid=minecraft:ore_diorite_lower reads=154
+[CA-READS] chunk(5,4) fid=minecraft:ore_gravel reads=103
+[CA-READS] chunk(5,4) fid=minecraft:patch_grass_badlands reads=39
+[CA-READS] chunk(5,4) fid=minecraft:ore_dirt reads=18
+[CA-READS] chunk(5,4) fid=minecraft:disk_clay reads=13
+[CA-READS] chunk(5,4) fid=minecraft:ore_coal_lower reads=10
+[CA-READS] chunk(5,4) fid=minecraft:ore_diamond reads=9
+[CA] chunk(5,4) out_reads=8522 all_reads=276495 pending_writes=1449 placed=106
+[CA-READS] chunk(6,4) fid=minecraft:seagrass_deep reads=5971
+[CA-READS] chunk(6,4) fid=minecraft:ore_tuff reads=629
+[CA-READS] chunk(6,4) fid=minecraft:ore_diorite_lower reads=552
+[CA-READS] chunk(6,4) fid=minecraft:ore_granite_lower reads=537
+[CA-READS] chunk(6,4) fid=minecraft:monster_room_deep reads=387
+[CA-READS] chunk(6,4) fid=minecraft:ore_andesite_lower reads=290
+[CA-READS] chunk(6,4) fid=minecraft:monster_room reads=282
+[CA-READS] chunk(6,4) fid=minecraft:disk_sand reads=178
+[CA-READS] chunk(6,4) fid=minecraft:ore_gravel reads=159
+[CA-READS] chunk(6,4) fid=minecraft:ore_dirt reads=86
+[CA-READS] chunk(6,4) fid=minecraft:patch_grass_badlands reads=45
+[CA-READS] chunk(6,4) fid=minecraft:disk_clay reads=34
+[CA] chunk(6,4) out_reads=9208 all_reads=285725 pending_writes=1640 placed=101
+[CA-READS] chunk(7,4) fid=minecraft:ore_diorite_lower reads=664
+[CA-READS] chunk(7,4) fid=minecraft:ore_andesite_lower reads=583
+[CA-READS] chunk(7,4) fid=minecraft:ore_granite_lower reads=426
+[CA-READS] chunk(7,4) fid=minecraft:disk_sand reads=373
+[CA-READS] chunk(7,4) fid=minecraft:seagrass_deep reads=290
+[CA-READS] chunk(7,4) fid=minecraft:monster_room_deep reads=190
+[CA-READS] chunk(7,4) fid=minecraft:ore_tuff reads=144
+[CA-READS] chunk(7,4) fid=minecraft:ore_coal_lower reads=102
+[CA-READS] chunk(7,4) fid=minecraft:ore_gravel reads=81
+[CA-READS] chunk(7,4) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(7,4) fid=minecraft:patch_grass_badlands reads=35
+[CA-READS] chunk(7,4) fid=minecraft:ore_gold reads=24
+[CA] chunk(7,4) out_reads=2933 all_reads=288728 pending_writes=1875 placed=107
+[CA-READS] chunk(0,5) fid=minecraft:seagrass_normal reads=9082
+[CA-READS] chunk(0,5) fid=minecraft:glow_lichen reads=793
+[CA-READS] chunk(0,5) fid=minecraft:ore_tuff reads=581
+[CA-READS] chunk(0,5) fid=minecraft:ore_diorite_lower reads=518
+[CA-READS] chunk(0,5) fid=minecraft:ore_andesite_lower reads=499
+[CA-READS] chunk(0,5) fid=minecraft:ore_granite_lower reads=466
+[CA-READS] chunk(0,5) fid=minecraft:disk_sand reads=408
+[CA-READS] chunk(0,5) fid=minecraft:monster_room_deep reads=369
+[CA-READS] chunk(0,5) fid=minecraft:ore_dirt reads=82
+[CA-READS] chunk(0,5) fid=minecraft:ore_gravel reads=71
+[CA-READS] chunk(0,5) fid=minecraft:patch_sugar_cane reads=40
+[CA-READS] chunk(0,5) fid=minecraft:patch_grass_badlands reads=39
+[CA] chunk(0,5) out_reads=13012 all_reads=301801 pending_writes=1185 placed=110
+[CA-READS] chunk(1,5) fid=minecraft:seagrass_deep reads=6145
+[CA-READS] chunk(1,5) fid=minecraft:glow_lichen reads=1167
+[CA-READS] chunk(1,5) fid=minecraft:ore_diorite_lower reads=563
+[CA-READS] chunk(1,5) fid=minecraft:ore_andesite_lower reads=487
+[CA-READS] chunk(1,5) fid=minecraft:monster_room_deep reads=304
+[CA-READS] chunk(1,5) fid=minecraft:ore_tuff reads=275
+[CA-READS] chunk(1,5) fid=minecraft:ore_granite_lower reads=206
+[CA-READS] chunk(1,5) fid=minecraft:ore_gravel reads=184
+[CA-READS] chunk(1,5) fid=minecraft:disk_sand reads=153
+[CA-READS] chunk(1,5) fid=minecraft:disk_gravel reads=121
+[CA-READS] chunk(1,5) fid=minecraft:ore_dirt reads=65
+[CA-READS] chunk(1,5) fid=minecraft:patch_grass_badlands reads=39
+[CA] chunk(1,5) out_reads=9743 all_reads=311571 pending_writes=897 placed=94
+[CA-READS] chunk(2,5) fid=minecraft:seagrass_deep reads=1442
+[CA-READS] chunk(2,5) fid=minecraft:ore_tuff reads=516
+[CA-READS] chunk(2,5) fid=minecraft:glow_lichen reads=482
+[CA-READS] chunk(2,5) fid=minecraft:ore_diorite_lower reads=363
+[CA-READS] chunk(2,5) fid=minecraft:monster_room_deep reads=341
+[CA-READS] chunk(2,5) fid=minecraft:ore_granite_lower reads=313
+[CA-READS] chunk(2,5) fid=minecraft:ore_andesite_lower reads=211
+[CA-READS] chunk(2,5) fid=minecraft:disk_sand reads=203
+[CA-READS] chunk(2,5) fid=minecraft:ore_gravel reads=120
+[CA-READS] chunk(2,5) fid=minecraft:monster_room reads=98
+[CA-READS] chunk(2,5) fid=minecraft:patch_grass_badlands reads=32
+[CA-READS] chunk(2,5) fid=minecraft:ore_gold reads=14
+[CA] chunk(2,5) out_reads=4141 all_reads=315751 pending_writes=593 placed=85
+[CA-READS] chunk(3,5) fid=minecraft:seagrass_deep reads=9235
+[CA-READS] chunk(3,5) fid=minecraft:ore_diorite_lower reads=502
+[CA-READS] chunk(3,5) fid=minecraft:ore_andesite_lower reads=440
+[CA-READS] chunk(3,5) fid=minecraft:ore_tuff reads=296
+[CA-READS] chunk(3,5) fid=minecraft:ore_gravel reads=193
+[CA-READS] chunk(3,5) fid=minecraft:ore_granite_lower reads=192
+[CA-READS] chunk(3,5) fid=minecraft:disk_sand reads=178
+[CA-READS] chunk(3,5) fid=minecraft:glow_lichen reads=142
+[CA-READS] chunk(3,5) fid=minecraft:monster_room reads=96
+[CA-READS] chunk(3,5) fid=minecraft:monster_room_deep reads=51
+[CA-READS] chunk(3,5) fid=minecraft:patch_grass_badlands reads=39
+[CA-READS] chunk(3,5) fid=minecraft:ore_coal_lower reads=24
+[CA] chunk(3,5) out_reads=11390 all_reads=327172 pending_writes=1377 placed=94
+[CA-READS] chunk(4,5) fid=minecraft:seagrass_deep reads=3150
+[CA-READS] chunk(4,5) fid=minecraft:ore_diorite_lower reads=768
+[CA-READS] chunk(4,5) fid=minecraft:ore_andesite_lower reads=430
+[CA-READS] chunk(4,5) fid=minecraft:ore_granite_lower reads=403
+[CA-READS] chunk(4,5) fid=minecraft:ore_tuff reads=362
+[CA-READS] chunk(4,5) fid=minecraft:monster_room reads=123
+[CA-READS] chunk(4,5) fid=minecraft:monster_room_deep reads=105
+[CA-READS] chunk(4,5) fid=minecraft:disk_sand reads=98
+[CA-READS] chunk(4,5) fid=minecraft:ore_gravel reads=39
+[CA-READS] chunk(4,5) fid=minecraft:patch_grass_badlands reads=35
+[CA-READS] chunk(4,5) fid=minecraft:disk_gravel reads=31
+[CA-READS] chunk(4,5) fid=minecraft:ore_diamond reads=13
+[CA] chunk(4,5) out_reads=5545 all_reads=332753 pending_writes=1191 placed=96
+[CA-READS] chunk(5,5) fid=minecraft:seagrass_deep reads=4286
+[CA-READS] chunk(5,5) fid=minecraft:ore_diorite_lower reads=692
+[CA-READS] chunk(5,5) fid=minecraft:monster_room_deep reads=452
+[CA-READS] chunk(5,5) fid=minecraft:ore_granite_lower reads=266
+[CA-READS] chunk(5,5) fid=minecraft:ore_andesite_lower reads=232
+[CA-READS] chunk(5,5) fid=minecraft:disk_sand reads=168
+[CA-READS] chunk(5,5) fid=minecraft:ore_tuff reads=110
+[CA-READS] chunk(5,5) fid=minecraft:patch_grass_badlands reads=41
+[CA-READS] chunk(5,5) fid=minecraft:ore_gold reads=38
+[CA-READS] chunk(5,5) fid=minecraft:ore_gravel reads=17
+[CA-READS] chunk(5,5) fid=minecraft:ore_coal_lower reads=10
+[CA-READS] chunk(5,5) fid=minecraft:ore_copper reads=8
+[CA] chunk(5,5) out_reads=6319 all_reads=339099 pending_writes=625 placed=90
+[CA-READS] chunk(6,5) fid=minecraft:seagrass_deep reads=1422
+[CA-READS] chunk(6,5) fid=minecraft:ore_tuff reads=533
+[CA-READS] chunk(6,5) fid=minecraft:disk_sand reads=453
+[CA-READS] chunk(6,5) fid=minecraft:ore_granite_lower reads=377
+[CA-READS] chunk(6,5) fid=minecraft:monster_room_deep reads=341
+[CA-READS] chunk(6,5) fid=minecraft:monster_room reads=237
+[CA-READS] chunk(6,5) fid=minecraft:ore_diorite_lower reads=196
+[CA-READS] chunk(6,5) fid=minecraft:ore_andesite_lower reads=180
+[CA-READS] chunk(6,5) fid=minecraft:ore_gravel reads=103
+[CA-READS] chunk(6,5) fid=minecraft:patch_grass_badlands reads=40
+[CA-READS] chunk(6,5) fid=minecraft:ore_coal_lower reads=38
+[CA-READS] chunk(6,5) fid=minecraft:disk_gravel reads=36
+[CA] chunk(6,5) out_reads=3962 all_reads=343089 pending_writes=1169 placed=91
+[CA-READS] chunk(7,5) fid=minecraft:seagrass_deep reads=4339
+[CA-READS] chunk(7,5) fid=minecraft:ore_diorite_lower reads=649
+[CA-READS] chunk(7,5) fid=minecraft:ore_andesite_lower reads=320
+[CA-READS] chunk(7,5) fid=minecraft:ore_granite_lower reads=304
+[CA-READS] chunk(7,5) fid=minecraft:ore_gravel reads=298
+[CA-READS] chunk(7,5) fid=minecraft:monster_room_deep reads=266
+[CA-READS] chunk(7,5) fid=minecraft:monster_room reads=234
+[CA-READS] chunk(7,5) fid=minecraft:ore_tuff reads=226
+[CA-READS] chunk(7,5) fid=minecraft:ore_dirt reads=128
+[CA-READS] chunk(7,5) fid=minecraft:disk_sand reads=98
+[CA-READS] chunk(7,5) fid=minecraft:disk_gravel reads=66
+[CA-READS] chunk(7,5) fid=minecraft:patch_grass_badlands reads=40
+[CA] chunk(7,5) out_reads=7026 all_reads=350164 pending_writes=1885 placed=115
+[CA-READS] chunk(0,6) fid=minecraft:seagrass_normal reads=3290
+[CA-READS] chunk(0,6) fid=minecraft:ore_diorite_lower reads=641
+[CA-READS] chunk(0,6) fid=minecraft:ore_granite_lower reads=472
+[CA-READS] chunk(0,6) fid=minecraft:ore_andesite_lower reads=442
+[CA-READS] chunk(0,6) fid=minecraft:ore_tuff reads=421
+[CA-READS] chunk(0,6) fid=minecraft:glow_lichen reads=363
+[CA-READS] chunk(0,6) fid=minecraft:disk_sand reads=263
+[CA-READS] chunk(0,6) fid=minecraft:ore_coal_lower reads=68
+[CA-READS] chunk(0,6) fid=minecraft:ore_gravel reads=64
+[CA-READS] chunk(0,6) fid=minecraft:monster_room_deep reads=60
+[CA-READS] chunk(0,6) fid=minecraft:patch_grass_badlands reads=37
+[CA-READS] chunk(0,6) fid=minecraft:ore_gold reads=28
+[CA] chunk(0,6) out_reads=6215 all_reads=356410 pending_writes=1212 placed=101
+[CA-READS] chunk(1,6) fid=minecraft:seagrass_deep reads=836
+[CA-READS] chunk(1,6) fid=minecraft:ore_tuff reads=529
+[CA-READS] chunk(1,6) fid=minecraft:ore_andesite_lower reads=404
+[CA-READS] chunk(1,6) fid=minecraft:glow_lichen reads=382
+[CA-READS] chunk(1,6) fid=minecraft:ore_diorite_lower reads=344
+[CA-READS] chunk(1,6) fid=minecraft:disk_sand reads=193
+[CA-READS] chunk(1,6) fid=minecraft:monster_room_deep reads=176
+[CA-READS] chunk(1,6) fid=minecraft:disk_gravel reads=131
+[CA-READS] chunk(1,6) fid=minecraft:ore_granite_lower reads=128
+[CA-READS] chunk(1,6) fid=minecraft:monster_room reads=60
+[CA-READS] chunk(1,6) fid=minecraft:disk_clay reads=55
+[CA-READS] chunk(1,6) fid=minecraft:patch_grass_badlands reads=46
+[CA] chunk(1,6) out_reads=3350 all_reads=359776 pending_writes=228 placed=88
+[CA-READS] chunk(2,6) fid=minecraft:seagrass_deep reads=5194
+[CA-READS] chunk(2,6) fid=minecraft:ore_andesite_lower reads=731
+[CA-READS] chunk(2,6) fid=minecraft:ore_tuff reads=480
+[CA-READS] chunk(2,6) fid=minecraft:ore_granite_lower reads=341
+[CA-READS] chunk(2,6) fid=minecraft:ore_diorite_lower reads=321
+[CA-READS] chunk(2,6) fid=minecraft:disk_sand reads=298
+[CA-READS] chunk(2,6) fid=minecraft:monster_room reads=183
+[CA-READS] chunk(2,6) fid=minecraft:monster_room_deep reads=119
+[CA-READS] chunk(2,6) fid=minecraft:ore_dirt reads=111
+[CA-READS] chunk(2,6) fid=minecraft:ore_gravel reads=100
+[CA-READS] chunk(2,6) fid=minecraft:patch_grass_badlands reads=34
+[CA-READS] chunk(2,6) fid=minecraft:ore_coal_lower reads=17
+[CA] chunk(2,6) out_reads=7935 all_reads=367749 pending_writes=1317 placed=102
+[CA-READS] chunk(3,6) fid=minecraft:seagrass_deep reads=5182
+[CA-READS] chunk(3,6) fid=minecraft:ore_tuff reads=605
+[CA-READS] chunk(3,6) fid=minecraft:monster_room_deep reads=603
+[CA-READS] chunk(3,6) fid=minecraft:ore_andesite_lower reads=490
+[CA-READS] chunk(3,6) fid=minecraft:ore_granite_lower reads=364
+[CA-READS] chunk(3,6) fid=minecraft:ore_diorite_lower reads=328
+[CA-READS] chunk(3,6) fid=minecraft:ore_gravel reads=160
+[CA-READS] chunk(3,6) fid=minecraft:ore_dirt reads=55
+[CA-READS] chunk(3,6) fid=minecraft:disk_sand reads=38
+[CA-READS] chunk(3,6) fid=minecraft:patch_grass_badlands reads=35
+[CA-READS] chunk(3,6) fid=minecraft:ore_gold reads=33
+[CA-READS] chunk(3,6) fid=minecraft:ore_coal_lower reads=21
+[CA] chunk(3,6) out_reads=7908 all_reads=375695 pending_writes=1265 placed=98
+[CA-READS] chunk(4,6) fid=minecraft:seagrass_deep reads=4008
+[CA-READS] chunk(4,6) fid=minecraft:ore_granite_lower reads=587
+[CA-READS] chunk(4,6) fid=minecraft:ore_andesite_lower reads=450
+[CA-READS] chunk(4,6) fid=minecraft:ore_tuff reads=402
+[CA-READS] chunk(4,6) fid=minecraft:ore_diorite_lower reads=235
+[CA-READS] chunk(4,6) fid=minecraft:monster_room_deep reads=185
+[CA-READS] chunk(4,6) fid=minecraft:ore_gravel reads=173
+[CA-READS] chunk(4,6) fid=minecraft:glow_lichen reads=161
+[CA-READS] chunk(4,6) fid=minecraft:disk_sand reads=128
+[CA-READS] chunk(4,6) fid=minecraft:ore_dirt reads=105
+[CA-READS] chunk(4,6) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(4,6) fid=minecraft:ore_lapis_buried reads=27
+[CA] chunk(4,6) out_reads=6528 all_reads=382254 pending_writes=1689 placed=100
+[CA-READS] chunk(5,6) fid=minecraft:monster_room reads=522
+[CA-READS] chunk(5,6) fid=minecraft:monster_room_deep reads=511
+[CA-READS] chunk(5,6) fid=minecraft:ore_diorite_lower reads=509
+[CA-READS] chunk(5,6) fid=minecraft:ore_granite_lower reads=507
+[CA-READS] chunk(5,6) fid=minecraft:seagrass_deep reads=286
+[CA-READS] chunk(5,6) fid=minecraft:ore_andesite_lower reads=270
+[CA-READS] chunk(5,6) fid=minecraft:ore_tuff reads=233
+[CA-READS] chunk(5,6) fid=minecraft:disk_gravel reads=226
+[CA-READS] chunk(5,6) fid=minecraft:disk_sand reads=208
+[CA-READS] chunk(5,6) fid=minecraft:ore_gravel reads=167
+[CA-READS] chunk(5,6) fid=minecraft:ore_dirt reads=122
+[CA-READS] chunk(5,6) fid=minecraft:patch_grass_badlands reads=39
+[CA] chunk(5,6) out_reads=3621 all_reads=385907 pending_writes=1825 placed=100
+[CA-READS] chunk(6,6) fid=minecraft:seagrass_deep reads=9719
+[CA-READS] chunk(6,6) fid=minecraft:monster_room_deep reads=749
+[CA-READS] chunk(6,6) fid=minecraft:ore_diorite_lower reads=567
+[CA-READS] chunk(6,6) fid=minecraft:ore_granite_lower reads=484
+[CA-READS] chunk(6,6) fid=minecraft:ore_tuff reads=340
+[CA-READS] chunk(6,6) fid=minecraft:ore_andesite_lower reads=330
+[CA-READS] chunk(6,6) fid=minecraft:ore_gravel reads=100
+[CA-READS] chunk(6,6) fid=minecraft:ore_dirt reads=71
+[CA-READS] chunk(6,6) fid=minecraft:disk_sand reads=43
+[CA-READS] chunk(6,6) fid=minecraft:patch_sugar_cane reads=39
+[CA-READS] chunk(6,6) fid=minecraft:patch_grass_badlands reads=32
+[CA-READS] chunk(6,6) fid=minecraft:disk_gravel reads=21
+[CA] chunk(6,6) out_reads=12506 all_reads=398483 pending_writes=1197 placed=101
+[CA-READS] chunk(7,6) fid=minecraft:seagrass_deep reads=4292
+[CA-READS] chunk(7,6) fid=minecraft:monster_room_deep reads=809
+[CA-READS] chunk(7,6) fid=minecraft:ore_tuff reads=721
+[CA-READS] chunk(7,6) fid=minecraft:ore_diorite_lower reads=373
+[CA-READS] chunk(7,6) fid=minecraft:ore_granite_lower reads=283
+[CA-READS] chunk(7,6) fid=minecraft:ore_andesite_lower reads=206
+[CA-READS] chunk(7,6) fid=minecraft:monster_room reads=184
+[CA-READS] chunk(7,6) fid=minecraft:disk_gravel reads=131
+[CA-READS] chunk(7,6) fid=minecraft:ore_gravel reads=114
+[CA-READS] chunk(7,6) fid=minecraft:disk_clay reads=55
+[CA-READS] chunk(7,6) fid=minecraft:patch_grass_badlands reads=38
+[CA-READS] chunk(7,6) fid=minecraft:ore_coal_lower reads=36
+[CA] chunk(7,6) out_reads=7261 all_reads=405777 pending_writes=1083 placed=101
+[CA-READS] chunk(0,7) fid=minecraft:seagrass_normal reads=6307
+[CA-READS] chunk(0,7) fid=minecraft:seagrass_deep reads=851
+[CA-READS] chunk(0,7) fid=minecraft:ore_diorite_lower reads=636
+[CA-READS] chunk(0,7) fid=minecraft:ore_granite_lower reads=570
+[CA-READS] chunk(0,7) fid=minecraft:monster_room_deep reads=461
+[CA-READS] chunk(0,7) fid=minecraft:ore_tuff reads=256
+[CA-READS] chunk(0,7) fid=minecraft:disk_sand reads=238
+[CA-READS] chunk(0,7) fid=minecraft:ore_andesite_lower reads=206
+[CA-READS] chunk(0,7) fid=minecraft:disk_gravel reads=161
+[CA-READS] chunk(0,7) fid=minecraft:monster_room reads=98
+[CA-READS] chunk(0,7) fid=minecraft:ore_gravel reads=49
+[CA-READS] chunk(0,7) fid=minecraft:ore_gold reads=44
+[CA] chunk(0,7) out_reads=10046 all_reads=415845 pending_writes=1694 placed=151
+[CA-READS] chunk(1,7) fid=minecraft:seagrass_deep reads=3672
+[CA-READS] chunk(1,7) fid=minecraft:ore_andesite_lower reads=592
+[CA-READS] chunk(1,7) fid=minecraft:ore_tuff reads=388
+[CA-READS] chunk(1,7) fid=minecraft:monster_room_deep reads=239
+[CA-READS] chunk(1,7) fid=minecraft:ore_diorite_lower reads=229
+[CA-READS] chunk(1,7) fid=minecraft:ore_dirt reads=172
+[CA-READS] chunk(1,7) fid=minecraft:monster_room reads=165
+[CA-READS] chunk(1,7) fid=minecraft:disk_sand reads=143
+[CA-READS] chunk(1,7) fid=minecraft:ore_granite_lower reads=115
+[CA-READS] chunk(1,7) fid=minecraft:glow_lichen reads=60
+[CA-READS] chunk(1,7) fid=minecraft:ore_gravel reads=58
+[CA-READS] chunk(1,7) fid=minecraft:disk_clay reads=46
+[CA] chunk(1,7) out_reads=5930 all_reads=421811 pending_writes=1319 placed=106
+[CA-READS] chunk(2,7) fid=minecraft:seagrass_deep reads=4545
+[CA-READS] chunk(2,7) fid=minecraft:ore_granite_lower reads=633
+[CA-READS] chunk(2,7) fid=minecraft:ore_tuff reads=556
+[CA-READS] chunk(2,7) fid=minecraft:monster_room_deep reads=497
+[CA-READS] chunk(2,7) fid=minecraft:ore_diorite_lower reads=483
+[CA-READS] chunk(2,7) fid=minecraft:ore_andesite_lower reads=472
+[CA-READS] chunk(2,7) fid=minecraft:monster_room reads=182
+[CA-READS] chunk(2,7) fid=minecraft:disk_sand reads=138
+[CA-READS] chunk(2,7) fid=minecraft:ore_gravel reads=55
+[CA-READS] chunk(2,7) fid=minecraft:ore_dirt reads=50
+[CA-READS] chunk(2,7) fid=minecraft:patch_grass_badlands reads=36
+[CA-READS] chunk(2,7) fid=minecraft:disk_gravel reads=21
+[CA] chunk(2,7) out_reads=7674 all_reads=429515 pending_writes=2038 placed=102
+[CA-READS] chunk(3,7) fid=minecraft:seagrass_deep reads=4879
+[CA-READS] chunk(3,7) fid=minecraft:ore_andesite_lower reads=590
+[CA-READS] chunk(3,7) fid=minecraft:ore_granite_lower reads=344
+[CA-READS] chunk(3,7) fid=minecraft:ore_tuff reads=335
+[CA-READS] chunk(3,7) fid=minecraft:ore_diorite_lower reads=286
+[CA-READS] chunk(3,7) fid=minecraft:monster_room_deep reads=225
+[CA-READS] chunk(3,7) fid=minecraft:glow_lichen reads=161
+[CA-READS] chunk(3,7) fid=minecraft:monster_room reads=130
+[CA-READS] chunk(3,7) fid=minecraft:ore_gravel reads=109
+[CA-READS] chunk(3,7) fid=minecraft:ore_dirt reads=56
+[CA-READS] chunk(3,7) fid=minecraft:patch_grass_badlands reads=43
+[CA-READS] chunk(3,7) fid=minecraft:patch_sugar_cane reads=40
+[CA] chunk(3,7) out_reads=7194 all_reads=436804 pending_writes=1401 placed=105
+[CA-READS] chunk(4,7) fid=minecraft:seagrass_deep reads=2566
+[CA-READS] chunk(4,7) fid=minecraft:ore_tuff reads=714
+[CA-READS] chunk(4,7) fid=minecraft:ore_andesite_lower reads=584
+[CA-READS] chunk(4,7) fid=minecraft:ore_diorite_lower reads=504
+[CA-READS] chunk(4,7) fid=minecraft:disk_sand reads=173
+[CA-READS] chunk(4,7) fid=minecraft:ore_gravel reads=85
+[CA-READS] chunk(4,7) fid=minecraft:monster_room reads=44
+[CA-READS] chunk(4,7) fid=minecraft:patch_grass_badlands reads=44
+[CA-READS] chunk(4,7) fid=minecraft:ore_granite_lower reads=43
+[CA-READS] chunk(4,7) fid=minecraft:monster_room_deep reads=32
+[CA-READS] chunk(4,7) fid=minecraft:disk_clay reads=22
+[CA-READS] chunk(4,7) fid=minecraft:ore_diamond reads=13
+[CA] chunk(4,7) out_reads=4833 all_reads=441659 pending_writes=1954 placed=106
+[CA-READS] chunk(5,7) fid=minecraft:seagrass_deep reads=855
+[CA-READS] chunk(5,7) fid=minecraft:ore_andesite_lower reads=654
+[CA-READS] chunk(5,7) fid=minecraft:ore_tuff reads=535
+[CA-READS] chunk(5,7) fid=minecraft:monster_room reads=394
+[CA-READS] chunk(5,7) fid=minecraft:monster_room_deep reads=386
+[CA-READS] chunk(5,7) fid=minecraft:ore_granite_lower reads=346
+[CA-READS] chunk(5,7) fid=minecraft:ore_diorite_lower reads=284
+[CA-READS] chunk(5,7) fid=minecraft:disk_sand reads=218
+[CA-READS] chunk(5,7) fid=minecraft:ore_gravel reads=130
+[CA-READS] chunk(5,7) fid=minecraft:ore_coal_lower reads=86
+[CA-READS] chunk(5,7) fid=minecraft:patch_grass_badlands reads=37
+[CA-READS] chunk(5,7) fid=minecraft:disk_gravel reads=21
+[CA] chunk(5,7) out_reads=3984 all_reads=445672 pending_writes=1333 placed=102
+[CA-READS] chunk(6,7) fid=minecraft:seagrass_deep reads=6013
+[CA-READS] chunk(6,7) fid=minecraft:ore_andesite_lower reads=736
+[CA-READS] chunk(6,7) fid=minecraft:monster_room_deep reads=480
+[CA-READS] chunk(6,7) fid=minecraft:ore_granite_lower reads=458
+[CA-READS] chunk(6,7) fid=minecraft:ore_tuff reads=349
+[CA-READS] chunk(6,7) fid=minecraft:ore_diorite_lower reads=226
+[CA-READS] chunk(6,7) fid=minecraft:disk_sand reads=183
+[CA-READS] chunk(6,7) fid=minecraft:patch_grass_badlands reads=42
+[CA-READS] chunk(6,7) fid=minecraft:ore_gravel reads=25
+[CA-READS] chunk(6,7) fid=minecraft:disk_clay reads=13
+[CA-READS] chunk(6,7) fid=minecraft:ore_coal_lower reads=8
+[CA-READS] chunk(6,7) fid=minecraft:monster_room reads=8
+[CA] chunk(6,7) out_reads=8548 all_reads=454248 pending_writes=1803 placed=104
+[CA-READS] chunk(7,7) fid=minecraft:seagrass_deep reads=5157
+[CA-READS] chunk(7,7) fid=minecraft:disk_sand reads=663
+[CA-READS] chunk(7,7) fid=minecraft:ore_granite_lower reads=382
+[CA-READS] chunk(7,7) fid=minecraft:ore_andesite_lower reads=376
+[CA-READS] chunk(7,7) fid=minecraft:ore_tuff reads=326
+[CA-READS] chunk(7,7) fid=minecraft:ore_diorite_lower reads=234
+[CA-READS] chunk(7,7) fid=minecraft:monster_room_deep reads=193
+[CA-READS] chunk(7,7) fid=minecraft:ore_gravel reads=162
+[CA-READS] chunk(7,7) fid=minecraft:patch_pumpkin reads=160
+[CA-READS] chunk(7,7) fid=minecraft:disk_gravel reads=91
+[CA-READS] chunk(7,7) fid=minecraft:ore_dirt reads=67
+[CA-READS] chunk(7,7) fid=minecraft:disk_clay reads=37
+[CA] chunk(7,7) out_reads=7802 all_reads=462165 pending_writes=1279 placed=103

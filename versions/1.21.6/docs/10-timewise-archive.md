@@ -27,3 +27,18 @@
 - ✅ **WG_CA_MIN 翻默认开（用户拍板，语义优先）**：worldgen_handle.rs:971 默认 on（WG_CA_MIN=0 显式关）；+68% 成本另立性能题。
 - 🔍 **open**：无（本块闭合）。接管实验臂若再启用：B13 tree placer 族 + kelp/seagrass 边界带为已知残差。
 - 口径声明（§9.7）：Chunky #26 seed -8248318472910187742 region 0,0 r=16（1089 chunks/臂，3410 common）；同载体同 region 与 260909-02 基线直接可比，diff 脚本同源；序列探针=单 chunk 覆盖面；nether/end registry 序未对齐沿用 260905-08 近似声明。
+
+## 260909-04（实际 2026-09-09 17:32 起）：WG_CA_MIN 性能优化——C1「不回填」被 E1 零改善证伪 → 真根因「主管线不读缓存」E1b 回收 ~72% → 残差 +35% 定性固有成本
+
+> 过程产物 `.investigations/camin-perf/{scout-map,perf-record}-260909-04.md` + 架构计划 `.investigations/000-架构设计/架构计划-260909-04-camin-perf.md`；载体 `worldgen-core/src/bin-diag/camin_bench.rs`（新增，#13/#30 纪律 rustc 单编）；通用模式 → workflow-patterns #100/#101（subagent 草稿 → 主会话应用）。
+
+- ✅ **基线复现**：camin_bench 16×16=256 chunks 串行（seed -8248318472910187742），on 289.1ms/chunk vs off 128.5（**+125%**；dump 口径为 +68%，区域/版本上下文不同——§9.7：bench 口径 ≠ 存档 dump 口径，不可比）。行为 hash 哨兵：on 6908dbfc… / off 115641b8…。
+- ❌→证伪 **E1（scout C1 原模型：主管线不回填 terrain_cache）**：回填后 297.4ms **零改善**——C1-as-modeled 被证伪。行号证据真实但不是成本来源。
+- ✅ **E1b 真根因实锤：主管线不读缓存（地形双算）**：管线改缓存优先命中 + 未命中回填（terrain_cache 值升级 CaTerrainEntry{col,heightmap} Arc 对）→ on 289→**177.9ms（+125%→+35%）**，off 无回归，hash 三轮逐位不变。回收 ~72%。
+- ✅ **E2b 排除 C2 雪崩**：WG_CA_CAP 256 vs 2048 → 178.6 vs 176.5ms（差 <2%）。
+- ✅ **残差归因（E4b/E4c，判别式 → workflow #101）**：WG_SKIP_FEATURES 分解 → 残差全在 features 段（58.2 vs 13.8ms，4.2×）；all_reads on **853k/chunk** vs off 7.5k（**114×**），≈**51ns/读**；per-feature seagrass ≈53% + ore×4/disk/monster_room——ca_min 语义正确的固有成本（真实邻值使 feature 不再 -1 早退）。memo 化下扫需写失效处理，语义漂移风险高，不建议。
+- 📌 **改动清单**：worldgen_handle.rs（CaTerrainEntry / neighbor_terrain 返回 entry.col / fill_chunk_blocks 缓存优先命中+回填 / WG_CA_LOG all_reads+per-feature 扩展 / WG_CA_CAP 判别 env，ca_cap() 单一定义）；blocks.rs BlockColumn derive Clone。git 基线 2bea71c。
+- ✅ **验证**：workspace 全量 build 绿（worldgen1216 薄壳含）；cargo test -p WorldgenRust --release 14/14；行为等价门 PASS（hash 三轮逐位）；judge review PASS-with-conditions 三条件已应用（CAP 统一 / .artifacts 登记 / 表述修正）。
+- ⚠️ **降级声明（§9.7）**：本块读数 = 本地 bench 载体（串行 region、bench 口径），与 260909-03 的 223.7s/133.3s 存档 dump 口径不可比（载体/覆盖面/口径三要素均不同）；vs Java e2e 本轮未跑（Java 基线不变式由 260909-03 既有 evidence 覆盖；「Java 同付这部分工作」为推断非实测）。
+- 🔍 **IDK**：IDK-p1 残差 +35% 若需再回收 → 写失效感知 memo（中高风险，需独立架构评审）；IDK-p2 bench +125% vs dump +68% 口径差未深究（bench 含 region 边缘外邻重算）。
+- 状态：结论 candidate 待用户 confirmed。
