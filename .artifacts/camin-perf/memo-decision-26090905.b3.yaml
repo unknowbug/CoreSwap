@@ -1,0 +1,96 @@
+# fan-out worker B3 候选 · 260909-05
+id: memo-decision-26090905.b3
+status: draft
+confidence: candidate-track (静态+成本模型，Degraded 分层：未跑任何命令，全部推引自已验证实测数据)
+hypothesis: >
+  ca_min 残差优化立项 = 结构性去同步（per-chunk 邻域列预取快照 / 无锁读路径），
+  不做点级 memo。
+
+## 1. 变体评估（worldgen_handle.rs 静态核对）
+
+### 变体 a（推荐）：features 前 3×3 邻 chunk 列 Arc 预取快照
+- 接入点：apply_features 内 ca_min==true 分支（:1014-1027 overlay 之后、闭包构建 :1157 之前），
+  取 snapshot: [Option<Arc<BlockColumn>>; 9]，索引 (dx+1)*3+(dz+1)，dx=tcx-cx, dz=tcz-cz。
+- 闭包改动（:1170-1183）：越界分支先算 tcx=bx>>4, tcz=bz>>4 → dx/dz ∈ {-1,0,1} 走快照
+  （解引用 + at() 数组读，无锁无 hash 无 Arc 引用计数原子）；快照 miss（dx/dz 超界，
+  宽 feature 理论可达）fallback 原 neighbor_terrain 路径，语义零变化。
+- 生命周期/别名安全性：
+  - 快照 Arc 指向邻 chunk 列（fill_terrain_column 新建后 Arc 包装，缓存内**永不 &mut**，
+    跨 chunk 写走 pending_cross_writes 缓冲 :1047-1052，apply_features 开头只 overlay 到
+    本 chunk col :1017-1026）→ 与 col: &mut BlockColumn 无别名（不同对象）。
+  - col_ptr 裸指针模式（:1157）与并发不变量注释（:1153-1155）不受影响：快照是 move 闭包
+    内的本地数组，随调用栈销毁。
+  - Arc 跨线程 Send+Sync，快照数组是栈局部 → fill_chunk_blocks 并发（judge C-4）安全。
+  - 列数据确定性：fill_terrain_column = noise+surface+carver（无 feature），同 seed 确定性 →
+    预取读到值 == 现路径读到值 → 行为 hash 逐位不变（on 6908dbfc… / off 115641b8… 均不受影响，
+    off 路径 ca_min=false 根本不建快照）。
+  - WG_CA_CAP 语义保留：terrain_cache 及 CAP clear-all 原样不动；快照持 Arc 后，cache clear
+    不会销毁快照覆盖的列 → 顺带消除 thrash 重生成（见成本模型 P2）。
+- 预取成本：9 次 lock+hash+Arc clone ≈ 9×51ns ≈ 0.5µs/chunk，命中（region 顺序扫描下
+  邻 chunk 已在 cache）时无 fill_terrain_column；可忽略。
+
+### 变体 b（否决）：terrain_cache 分 shard / RwLock
+- 只降单读同步常数（RwLock read 无互斥但仍有原子；分 shard 降竞争），per-read 仍付
+  lock+hash+Arc 引用计数 ≈ 估计 20-30ns vs 快照 2-4ns，回收上限 ~2-3ms/chunk（73,922 读 × 30ns）。
+- **不修主嫌疑根因**：CAP 256 clear-all 雪崩（见 P2）与缓存 miss 重生成照旧。
+- 结论：收益/复杂度比差，否决。
+
+### 变体 c（备选/兜底）：读侧 per-chunk 列 HashMap 本地缓存
+- 首读付 lock+hash+clone，后读本地 hash 直取（~10-15ns）。覆盖任意 chunk（不限 3×3）。
+- 劣于 a：每读多一次本地 hash lookup；288 unique 列的首读成本仍在。
+- 用途：仅当探针显示存在 3×3 之外的越界读时作为 fallback 替代 neighbor_terrain。
+  单独立项不值得。
+
+## 2. 成本模型
+
+数据：73,922 列读/chunk（1343+46827+22593+3159），unique 列 288，点级重复率 98%，
+pending_writes 全程 0，单读实测 ≈51ns，features 残差 ≈44ms/chunk（on 167 vs off 128）。
+
+- **P1（关键发现）**：73,922 × 51ns ≈ 3.8ms，仅占残差 44ms 的 ~9%。**主嫌疑不是每读
+  lock+hash 常数，而是 terrain_cache miss → fill_terrain_column 重生成**：
+  unique 列 288 > CAP 256（clear-all）→ 每 chunk 至少触发一次全清 + 288 列重填，
+  每列地形生成 ~0.1-0.5ms 量级 → 288 × 0.1~0.15ms ≈ 30-43ms，与 44ms 残差量级吻合（推算，需探针确认）。
+  这解释了 51ns"单读"（cache 命中态测量）与宏观残差的 12× 缺口。
+- 变体 a 对两个根因同时有效：
+  - 快照持 Arc → 3×3 覆盖的列在 features 全程存活，cache clear 不引发重生成；
+  - 命中读 2-4ns → 73,922 × 4ns ≈ 0.3ms。
+- 预期回收：若 3×3 覆盖率 ~100%（features 越界读典型为树冠/矿脉边缘 ±数块，邻 chunk 3×3
+  覆盖是上界充分的假设，**待 WG_CA_MEMODIAG 加目标 chunk 坐标分布计数确认**），
+  残差 44ms → 预期 1-5ms/chunk，即 on 167ms → ~128-135ms，接近 off 基线。
+- 288 列预取成本：非预取（快照只取 9 chunk 的列，不逐列预取 288 列——注意本方案是
+  **chunk 级 Arc 快照**，非逐列拷贝；288 列是读目标分布，不是预取对象）。
+- 与点级 memo 的本质差异：点级 memo 消的是**读量**（98% 重复点），但每个"首次读"及
+  cache-miss 重生成成本原样保留，且 per-read 仍付一次 memo 查表（hash）+ 44ms 主项
+  （重生成）完全不动。本路线消的是**每读同步 + 重生成**结构性成本，读量不变——
+  与行为逐位一致要求天然兼容（读到的值相同）。
+
+## 3. 多线程正确性（judge C-4 核对清单）
+- 快照数组 = move 闭包栈局部，无跨线程共享；Arc clone 本身线程安全。
+- 并发 fill_chunk_blocks：各线程各自 apply_features 各自快照；terrain_cache 锁临界区
+  不变（:975-987）；无新锁、无锁序变化、无重入（快照构建只调 neighbor_terrain，已有路径）。
+- neighbor 列不可变性：缓存列生成后无 &mut 路径（跨 chunk 写全部缓冲在
+  pending_cross_writes，消费端只写本 chunk col）→ 快照内数据稳定。
+- 已知残余：快照 miss fallback 路径与现状逐位相同，无行为差异。
+
+## 4. 结论
+- **立项：变体 a（3×3 邻 chunk Arc 预取快照 + neighbor_terrain 兜底）**。
+  置信度：中高（静态+成本模型推算；重生成主导假说 P2 为推算，标注待探针验证）。
+- 变体 b 否决；变体 c 降级为兜底件，不单独立项。
+
+### 风险清单
+1. 3×3 覆盖率未实测——若存在 3×3 外越界读（宽 lake/geode？），该部分读仍走旧路径，
+   收益打折但无正确性风险。→ 最小探针：WG_CA_MEMODIAG 增加 tcx/tcz 分布直方图（一行计数）。
+2. P2 重生成主导是量级推算（无 fill_terrain_column 计数实测）——若探针显示 miss/chunk 远小于
+   288，则残差另有来源，收益预期下调（届时 44ms-3.8ms 缺口需另查，属其他路线）。
+3. 快照构建在 ca_min 分支内，WG_CA_MIN=0 路径零改动 → off hash 不受影响（结构保证）。
+4. CAP 语义：WG_CA_CAP 调参 bench 的诊断口径变化（快照使 clear-all 对覆盖列失效），
+   CAP 判别实验（260909-04 C2）后续解读需注意。
+
+### 最小实现要点
+1. apply_features ca_min 分支：`let snap = Self::snapshot_neighbors(cx, cz)`（9 slot 数组，
+   循环调 neighbor_terrain 收 Arc）。
+2. block_at_col 越界分支：先查快照（索引算术 + if let），miss 再 neighbor_terrain（原代码兜底保留）。
+3. 行为回归：on/off 双 hash 对拍（6908dbfc9a79c40a / 115641b86711d9cd）+ 端到端 wall 对比
+   （无探针整批，铁律），目标 on≈off±5%。
+4. 可选前置探针（一轮成本）：MEMODIAG 加 (tcx-cx, tcz-cz) 直方图 + neighbor_terrain
+   miss 计数，确认覆盖率和 P2——建议实现前先跑。

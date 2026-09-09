@@ -1025,6 +1025,18 @@ impl WorldgenHandle {
                 }
             }
         }
+        // memo 判别诊断（260909-05 临时，WG_CA_MEMODIAG 门控）：越界读的列级/点级重复分布
+        // —— memo 命中潜力上界 = 1 - unique/total；点级完全重复 = (col,y) memo 的零风险收益面
+        thread_local! {
+            static MEMO_DIAG: std::cell::RefCell<MemoDiag> = std::cell::RefCell::new(MemoDiag::default());
+        }
+        #[derive(Default)]
+        struct MemoDiag {
+            total: u64,
+            cols: std::collections::HashMap<(i32, i32), u64>,
+            pts: std::collections::HashMap<(i32, i32, i32), u64>,
+        }
+        let memo_diag = std::env::var("WG_CA_MEMODIAG").is_ok();
         // c-A 诊断计数（WG_CA_LOG=1 chunk 级门控输出；零门控成本）
         static CA_OUT_READS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         static CA_PENDING_WRITES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -1159,6 +1171,14 @@ impl WorldgenHandle {
                         // c-A-min：邻 chunk 越界读 → 地形列缓存（noise+surface+carver，无 feature；
                         // 对齐 Java「FEATURES 时邻 chunk ≥ post-carver 地形态」时序保证）
                         if ca_log { CA_OUT_READS.fetch_add(1, std::sync::atomic::Ordering::Relaxed); }
+                        if memo_diag {
+                            MEMO_DIAG.with(|d| {
+                                let mut d = d.borrow_mut();
+                                d.total += 1;
+                                *d.cols.entry((bx, bz)).or_insert(0) += 1;
+                                *d.pts.entry((bx, by, bz)).or_insert(0) += 1;
+                            });
+                        }
                         let t = self_ref.neighbor_terrain(bx >> 4, bz >> 4);
                         t.at(bx - (bx >> 4) * 16, by, bz - (bz >> 4) * 16)
                     } else {
@@ -1250,6 +1270,30 @@ impl WorldgenHandle {
                 CA_OUT_READS.load(std::sync::atomic::Ordering::Relaxed),
                 CA_ALL_READS.load(std::sync::atomic::Ordering::Relaxed),
                 CA_PENDING_WRITES.load(std::sync::atomic::Ordering::Relaxed), placed_count);
+        }
+        if memo_diag {
+            MEMO_DIAG.with(|d| {
+                let mut d = d.borrow_mut();
+                let unique_cols = d.cols.len() as u64;
+                let unique_pts = d.pts.len() as u64;
+                let total = d.total;
+                // 列读分布桶：1 / 2-10 / 11-100 / >100
+                let (mut b1, mut b2, mut b3, mut b4) = (0u64, 0u64, 0u64, 0u64);
+                let mut top: Vec<((i32, i32), u64)> = d.cols.iter().map(|(k, v)| (*k, *v)).collect();
+                top.sort_by_key(|(_, v)| std::cmp::Reverse(*v));
+                for c in d.cols.values() {
+                    match *c { 1 => b1 += 1, 2..=10 => b2 += 1, 11..=100 => b3 += 1, _ => b4 += 1 }
+                }
+                let repeat = if total > 0 { 100.0 * (total - unique_cols) as f64 / total as f64 } else { 0.0 };
+                let pt_repeat = if total > 0 { 100.0 * (total - unique_pts) as f64 / total as f64 } else { 0.0 };
+                eprintln!("[CA-MEMO] chunk({},{}) reads={} cols={} repeat={:.1}% pt_repeat={:.1}% buckets(1/2-10/11-100/>100)={}/{}/{}/{} pending_writes={}",
+                    cx, cz, total, unique_cols, repeat, pt_repeat, b1, b2, b3, b4,
+                    CA_PENDING_WRITES.load(std::sync::atomic::Ordering::Relaxed));
+                for ((x, z), c) in top.iter().take(6) {
+                    eprintln!("[CA-MEMO-TOP] chunk({},{}) col=({},{}+) reads={}", cx, cz, x, z, c);
+                }
+                d.cols.clear(); d.pts.clear(); // 下一 chunk 重置，防跨 chunk 累积
+            });
         }
         placed_count
     }

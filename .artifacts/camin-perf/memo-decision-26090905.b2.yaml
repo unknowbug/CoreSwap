@@ -1,0 +1,48 @@
+# fan-out worker B2 candidate — 260909-05（status: draft）
+# 假设检验：「ca_min 残差 +30% 不立项，维持知识 #101『固有成本』裁定」
+# 输入源：perf-record-260909-04.md / knowledge/discovered/workflow-patterns.md #100/#101 /
+#         memo-review-260909-05.md / 新判别数据 WG_CA_MEMODIAG（父会话提供，静态分析，无 shell）
+role: fan-out-worker-b2
+status: draft
+date_label: 260909-05
+hypothesis_under_test: "ca_min 残差不立项，维持 #101『固有成本』裁定"
+
+## 1. #101 三证原始推理链重建（静态，无 shell）
+three_proofs_original:
+  p1_单读价: "44ms ÷ 853k ≈ 51ns/读 → 判定『mutex+hash 量级，近下限 → 单读不贵』（E4b）"
+  p2_读放大: "on 853k vs off 7.5k = 114× → 成本主体是读量放大（E4b）"
+  p3_语义同构: "[CA-READS] per-feature 分布（seagrass≈53% + ore/disk/monster_room）与 feature 工作量同构 → 放大是语义正确的固有工作，非病态循环（E4c）"
+  original_verdict: "单读不贵 + 放大有语义解释 → 不治单价、不治读量 → 不立项 memo 化"
+
+## 2. 新证据逐证核对（是否推翻）
+verdict_per_proof:
+  p1_单读价: "部分推翻（方向反了）——51ns 被原文标为『近下限』，但它实为 mutex lock + hash + Arc clone + 数组读的『同步结构成本』，不是物理下限。点级重复率 98% 意味着理论可用 O(1) 单槽 last-point cache（一次元组比较，~1-2ns）替代 98% 的 51ns 查找——每读成本是**结构可消**的，#101 判据①『近下限』措辞不成立。"
+  p2_读放大: "部分混淆——114× vs off 臂确为语义面（-1 早退 vs 真实判定），这一半成立；但 MEMODIAG 显示 843k 读/唯一列 288 ≈ 每唯一列 ~2900 次读、点级重复 98%：**读调用次数 ≠ 语义必需的信息量**。语义必需的只有 ~288 列/chunk 的信息，其余是同一信息被同步查找结构反复搬运。#101 判据②把『调用次数放大』整体归给语义，混淆了『信息量固有』与『调用结构可消』两层。"
+  p3_语义同构: "未被推翻但证明力不足——分布同构只排除『病态冗余循环』，不能区分『每次读都是新语义判定』vs『同点反复读』；98% 点级重复率正是它未覆盖的维度。"
+  conclusion_of_check: "#101 的三证在其测量维度内都真实，但其判别式缺第四维（重复率/唯一信息量），导致『固有成本』整体裁定不成立——只对『信息量』这一半成立。"
+
+## 3. 风险/收益核算
+opportunity_cost:
+  residual: "~39ms/chunk（166.9 - 127.6，memo-review 复测口径；父会话引 44ms 为 260909-04 口径）≈ on 臂 23-26% wall"
+  scale: "256-chunk region ≈ 10s；全量生成按比例放大"
+optimization_candidate_shape:
+  lowest_risk: "点级 last-value memo（单槽缓存最近 (x,y,z)→col）：98% 命中率上界，~20 行，无写失效结构（命中即跳过查找，不缓存跨写状态需失效的派生值——列本体仍由既有 cache 权威持有）"
+  validity_note: "pending_writes=0 全程（16×16 单 region 单样本）→ 写失效压力实测低位，但 §9.7 声明：单 region 样本，外推需多样本复核"
+  verification: "hash 逐位门（既有 on 臂 6908dbfc… 等价哨兵）可直接判定语义等价，风险可控"
+  upper_bound_estimate: "843k 读 × ~50ns ≈ 42ms/chunk 为理论上界；单槽比较路径非零成本，实际回收需 prototype bench 实测，本轮静态不承诺数值"
+risk_side:
+  complexity: 低（单槽缓存远小于上轮 E1b 改动面）
+  correctness: 低-中（命中判据必须含全三元组 + 列指针一致性；hash 门兜底）
+  opportunity_cost_of_doing_nothing: 每个含 features 的 chunk 永久支付 ~23-26% on-wall
+
+## 4. 结论
+verdict: 收窄
+verdict_detail: "#101 裁定不维持原样，也非整体推翻——收窄为：『语义必需的**信息量**固有（~288 唯一列/chunk、vs off 臂的 -1 早退差为真），但**读调用次数的 98% 重复**与**每读 51ns 同步结构成本**均为结构可消』。原『不立项』结论应降级：至少对『点级 last-value memo』这一最低风险候选重新立项评估（prototype bench + hash 门），而非维持不作为。"
+confidence: candidate
+confidence_basis: |
+  - 静态分析（Degraded 分层，无 shell）：三证重建与逐证核对基于实测记录文本，判定链可复核；
+  - 98%/288/pending_writes=0 为父会话提供的 MEMODIAG 实测（数据层证据，继承合法——hash 双臂逐位同已由 memo-review Step 1 复核）；
+  - 未实证部分：单槽 memo 的实际命中率与回收量（需 prototype bench）、51ns 结构成本的可消除比例（需 A/B）。
+  - 不升 confirmed：用户拍板；judge 审查意见待主会话收敛 B1-B3 候选后出。
+supersedes_note: "依 §15.4：若主会话采信本收窄，#101 不改正文，以取代记录表达『判别式缺重复率维度，固有成本裁定收窄为信息量固有』。"
+scope_note: "仅评估原裁定是否成立，不评估其他具体优化路线（B1/B3 负责）。"

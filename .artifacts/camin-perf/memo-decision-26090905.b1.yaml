@@ -1,0 +1,85 @@
+# fan-out worker B1 候选：ca_min 残差优化立项评估——点级 memo（(x,y,z)→block 缓存）
+# status: draft（静态分析 + 成本模型，Degraded 分层：无运行时验证，数值为推算）
+# session: 260909-05（camin-perf 课题，fan-out B1）
+schema: core.artifact/v1
+topic: ca_min-residual-optimization
+candidate: B1
+hypothesis: >
+  ca_min 残差（on 167ms/chunk vs off 128ms，差全在 features 段 58.2 vs 13.8ms）
+  可用「点级 (x,y,z)→i32 memo 缓存」回收。仅评估本路线。
+
+evidence:
+  measured_facts:  # 主会话提供的已验证数据（260909-05, WG_CA_MEMODIAG, 16x16 region, seed -8248318472910187742）
+    - 点级重复率 avg 98%（region 累计口径）
+    - 唯一列/chunk ≈288；列读桶(1 / 2-10 / 11-100 / >100) = 1343/46827/22593/3159（257 chunks 合计）
+    - pending_writes（跨 chunk 越界写）全程 0
+    - 热点列（>100 读）3159 条 ≈12/chunk
+    - 单读实测 ≈51ns（mutex lock + hash 查 + Arc clone + t.at() 数组读）
+    - on 读量 843-853k/chunk vs off 7.5k（114x）
+  behavior_hash_gate: "on=6908dbfc9a79c40a / off=115641b86711d9cd（逐位不变硬约束）"
+
+code_analysis:
+  entry_point: worldgen-core/src/worldgen_handle.rs block_at_col 闭包（:1159-1188）
+    - 越界分支（:1170-1183）= memo 唯一接入点；须置于 by 越界早退（:1165-1167）之后
+    - 现链路：neighbor_terrain(:973-989) → terrain_cache Mutex<HashMap<(i32,i32),Arc<BlockColumn>>> get → fill miss → CAP 256 clear-all
+  consumers: feature.rs OreFeatureContext.block_at(:172-190，经 block_at_ext 同源闭包)、is_exposed_to_air（每 ore 块 6 读）、geode、lake/disk/kelp 下扫、tree.rs can_replace
+  write_paths:
+    local_self_write: feature.rs set_block(:208-213) 本 chunk 写直落 col.at_mut —— 只经 local 分支被读（:1168-1169），**永不穿过越界分支** → 不触碰 memo
+    pending_cross: feature.rs set_block(:215-221) 越界写 → pending_cross_wises 回调（实测 0 次）；应用点 = 目标 chunk 自己生成时 overlay 进本 chunk col（worldgen_handle.rs:1017-1026），同样只进 local 读路径
+
+invalidation_analysis:
+  conclusion: 无需失效逻辑——memo 对现行语义严格透明
+  reasons:
+    - R1 本 chunk 自写只改本 chunk col，越界读分支从不读本 chunk col（分支互斥），memo 只缓存邻 chunk 点
+    - R2 邻 chunk terrain_cache 列内容 = noise+surface+carver 确定性地形，生成期内不可变；CAP clear-all 后重算内容逐位相同（同 seed 确定性）→ memo 值不会过期
+    - R3 feature 写从不写入 terrain_cache 缓存列（写落本 chunk col / pending_cross），现行路径的越界读本来就看不到 feature 写（IDK-cA1 时序近似，judge 已接受）→ memo 返回值 = 现行路径返回值，含该近似在内语义等价
+    - R4 交叉验证：即使 chunk B 先被 A 越界 memo、后 B 自己生成并写同一点，后续 chunk C 越界读该点时 memo 返回旧地形值——现行路径同样返回缓存列地形值（非 B 的 feature 写），一致
+  remaining_condition: memo 生命周期必须覆盖整个 region/worldgen 运行（不能 per-chunk 清空——见 risk-1）
+
+cost_model:
+  baseline: 853k 读 x 51ns ≈ 43.5ms/chunk ≈ 全部残差（58.2-13.8=44.4ms）→ 残差≈纯单读成本，memo 收益上界≈残差本身
+  memo_cost_estimate:
+    - HashMap<(i32,i32,i32),i32> 单次查/插：std SipHash ≈20-30ns；fx/ahash 定制 hasher ≈10-15ns（表仅 ~17k 条，cache 常驻）
+    - 插入只在 miss（2%）发生，摊销 ≈+0.5-1ns/读
+  expected_per_read: 命中 98% → 期望 ≈15-30ns（vs 现行 51ns，且替代整条 mutex+hash+Arc 链）
+  recovery_estimate:
+    - 保守（std hasher 30ns）：省 ~20ns x 853k ≈ 17ms → 残差 44→~27ms（回收 ~40%）
+    - 乐观（fx/ahash 12ns）：省 ~35ns x 853k ≈ 30ms → 残差 44→~14ms（回收 ~70%）
+    - 期望区间：回收 17-30ms（残差的 40-70%）
+  memo_overhead: 853k 次 hash op 已含在期望成本内；无锁（单线程 serial bench 口径，thread_local 即可）
+
+memory:
+  unique_points_region: 853k x 2% ≈ 17k 条（全 region 累计）
+  per_entry: 12B key + 4B val + HashMap 开销 ≈32-48B
+  region_lifetime_memo: ≈0.6-1MB —— 可忽略，**全局（region 级）memo 内存可行**
+  per_chunk_memo: 仅 ~66 唯一点/chunk，但会丢失跨 chunk 重复（见 risk-1），不推荐
+
+verdict: 立项（APPROVE）
+confidence: candidate 级推算（静态+成本模型，Degraded；增益幅度需 bench 确认，正确性论证为高置信）
+
+risks:
+  - id: risk-1
+    desc: 98% 重复率是 region 累计口径，跨 chunk vs chunk 内重复占比未测——若大量重复在跨 chunk，per-chunk memo 命中率骤降；故 memo 生命周期 MUST 为 region 级（内存仅 ~1MB，可行）
+  - id: risk-2
+    desc: 增益幅度依赖实际 hash 成本（10-30ns 波动），回收 40-70% 而非全残差；bench 前不要承诺具体数
+  - id: risk-3
+    desc: 不变性前提是「terrain_cache 缓存列永不更新 + feature 写不可见于越界读」（现行事实 + judge 接受的 IDK-cA1）——未来若实现真邻 chunk 写传播，memo 必须同步加失效；落地时 MUST 写不变量注释钉死该耦合
+  - id: risk-4
+    desc: 诊断开销不得进热路径——WG_CA_MEMODIAG/WG_CA_LOG 分支须保持 env bool 一次性捕获（现状 :1162/:1174 已是），memo 实现不得引入 per-read env 查询（项目「诊断污染」铁律）
+  - id: risk-5
+    desc: 本路线不解决剩余 ~14-27ms（即使乐观情形）；列级/列段级缓存等更优路线归其他 worker，B1 不评
+
+minimal_implementation:
+  - 位置：block_at_col 越界分支（ca_min else-branch）内、早退检查之后
+  - 结构：thread_local RefCell<HashMap<(i32,i32,i32),i32, BuildHasherDefault<FxHasher>>>（或 handle 内 Mutex 字段；serial 口径 thread_local 零竞争更优）
+  - 语义：get 命中直接返回；miss 走现行 neighbor_terrain 链并插入（含 -1 返回值也缓存，确定性）
+  - 门控：WG_CA_MEMO env（默认开或 A/B 各跑一次），保留 WG_CA_MEMODIAG 用于 hit-rate 复核
+  - 验证门：on 行为 hash 必须仍 = 6908dbfc9a79c40a（memo 透明性由 R1-R4 保证，hash 不变为硬判据）+ bench on 残差复测
+  - 注释：在 memo 处写死不变量（缓存列不可变 + IDK-cA1 近似耦合，见 risk-3）
+
+sources:
+  - worldgen-core/src/worldgen_handle.rs:973-994 (neighbor_terrain/terrain_cache/CAP)
+  - worldgen-core/src/worldgen_handle.rs:1000-1032 (apply_features, pending overlay :1017-1026)
+  - worldgen-core/src/worldgen_handle.rs:1159-1188 (block_at_col 读入口 + memo 诊断)
+  - worldgen-core/src/feature.rs:150-223 (OreFeatureContext.block_at / set_block / pending_cross)
+  - 主会话提供的 260909-05 WG_CA_MEMODIAG 实测（见 evidence.measured_facts）
