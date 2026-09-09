@@ -37,6 +37,13 @@
 - **根因**：#9 旧知识（--nogui 非 runServer CLI 选项）在本 project 依然成立——dedicated server 任务本就无 GUI。
 - **教训**：开工前先查 knowledge/discovered/build-tooling.md #9——本轮先踩后查，检索顺序倒置。
 
+## v2 修正（260909-02，Phase 2.5 首轮对拍实证）
+
+- **缺陷（batchD-E1）**：v1 `@Inject HEAD cancellable ci.cancel()` 连坐了 generateFeatures 内的**结构方块放置段**（ChunkGenerator.java:360-379：结构 `start.place(...)` 与 feature 迭代同方法同循环，结构段在前）——mixin 生效臂丢失全部结构件放置。首轮双臂对拍实锤：vault/trial_spawner/waxed copper 族/rails/chest/spawner/cobweb 大量差异（A vs B terrain 5.05M 中结构块显著）。
+- **根因（选型时盲区）**：选型核对只查了「方法在哪个类声明」（注入即失败面），没查「方法体内还有什么」——cancel 粒度 = 整方法，而方法不止 features。「注入即失败」检查单需追加第三查：**cancel 影响域 = 方法体内全部副作用清单**。
+- **修复（v2）**：HEAD 仅做门控判定（ThreadLocal，不 cancel）+ `@Redirect` 精准拦截 `placedFeature.generate(...)` 调用点（:406）——结构放置段及 vanilla decorator seed 消费原样保留，Java feature 逐调用 no-op。build 绿（AP 通过），行为化哨兵 `[Mixin] placedFeature skipped (rust takeover) count=N` 命中（1089 chunks 拦截 65,536+ 次），vault/trial_spawner 族差异消失。
+- 修正后残余信号（A vs B v2）：terrain 4.86M / veg 346k / air 189k；噪声基线（Java-vs-Java 同代码双 run）：terrain 101.5k / veg 36.0k → 信噪比 ≈48×，主残差为特征层真实分歧（候选分解 → fanout-260909-02/）。
+
 ## 遗留 → Phase 2.5
 
 - 冻结序对拍（Java vanilla features 基线 vs Rust features，#67 判据）；

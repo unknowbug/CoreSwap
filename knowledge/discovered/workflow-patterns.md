@@ -1568,3 +1568,54 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **修复/判据（可复用）**：① **继承清单/台账条目前，机制与影响域列 MUST 溯源到首次取证原文核对**，不信任最近载体（同 §16.3 方向结论廉价独立验证纪律，补齐「名词挂账类条目」缺口）；② 转抄时**禁止改写机制描述措辞**——要么逐字搬运 + 注明来源行号，要么附「原文指针」不重述；③ 带限定词/量化参数的原始措辞（如「0→ring-1@BIOMES」）是最高保真资产，转抄链中**任何环节都不许删**；④ 发现漂移按 §15.4 取代/勘误登记（追加不覆盖），登记时同时修正载体引用路径（本例 p7-verdict 目录名出入同族——转抄引用须逐字复制路径）。
 - **教训**：错误台账价值再次实证——若 w2 首证原文未被保留，B3 将按假语义白跑一轮运行时探针（且零差结果会被误读为「验证通过」）；「首次取证载体不可压实删除」与「继承前溯源」是同一纪律的两端。
 - **证据**：上列四个文件指针 + `.artifacts/mc-1216-port/p5-verdict-260908-13.md`（P5 覆盖面 + 零消费点 grep）。
+
+---
+
+
+
+### 发现 #91（最高价值·错误优先）: mixin cancel/接管注入点三查——「注入即失败面」之外 MUST 追加「cancel 影响域 = 方法体内全部副作用清单」（260909-02）
+
+- **时间/置信度/module**：260909-02；candidate（v2 修复后双臂对拍 vault/trial_spawner 族差异消失，行为级证据；verdict judge 未做）；workflow-patterns / mixin 接管注入选型（#55 注入面家族的方法体内维度扩展，batchD-E1）。
+- **来源定位**：`.investigations/mc-1216-features-takeover/batchD-record-260909-01.md` v2 节（五段式）+ `.artifacts/mc-1216-features-takeover/phase25-verdict-260909-02.md` §一.1。
+- **现象**：v1 `@Inject(ChunkGenerator.generateFeatures) HEAD + ci.cancel()` 编译/AP/冒烟全绿（接管哨兵命中、mask 回读正确），但双臂对拍实锤 Rust 臂**丢失全部结构件放置**——vault/trial_spawner/waxed copper 族/rails/chest/spawner/cobweb 大量差异（A vs B terrain 5.05M 中结构块显著）。
+- **根因（机制）**：cancel 粒度 = **整方法**，而 `generateFeatures`（ChunkGenerator.java:360-423）内**结构方块放置段（:360-379，结构 `start.place`）与 feature 迭代同方法**——HEAD cancel 连坐把结构段一起砍掉。选型核对只做了「注入即失败面」检查（方法在哪个类声明：NoiseChunkGenerator 未声明该方法 → 改 @Mixin 基类），没查「方法体内还有什么」。
+- **定位**：首轮双臂 region diff 按块家族分类 → 结构语汇块（vault/chest/spawner/rail）单侧缺失且坐标与结构实例吻合 → 回读 ChunkGenerator.java 方法体逐段核对副作用清单。
+- **修复（v2）**：HEAD 仅做门控判定（ThreadLocal，不 cancel）+ `@Redirect` 精准拦截 `placedFeature.generate(...)` 调用点（:406）——结构段与 vanilla decorator seed 消费原样保留，仅 Java feature 逐调用 no-op。行为化哨兵 `[Mixin] placedFeature skipped count=N`（1089 chunks 拦截 65,536+ 次），结构族差异消失。
+- **教训/检查单（可复用）**：mixin cancel/接管选型三查 MUST 齐备：① **方法在哪个类声明**（注入即失败面，@Mixin 目标不存在 = method not found）② **注入点存在性/命中证据**（编译过 ≠ 命中，#25/#55 家族）③ **cancel 影响域 = 方法体内全部副作用清单**（cancel 粒度是整方法；「主目标段在方法后半段」不构成前段豁免）。能用调用点级 @Redirect/@Inject 局部化的，不用整方法 HEAD cancel。
+- **证据**：batchD-record v2 节五段式全段；ChunkGenerator.java:360/379/402/406 行号锚。
+
+### 发现 #92: 区域级大残差先跑「同代码双 run 噪声基线」，特征块共现相关分析可裁决「级联 vs 独立层分歧」（260909-02）
+
+- **时间/置信度/module**：260909-02；candidate（#67/#51 家族量化延伸 + 本块双实测）；workflow-patterns / 对拍信号分解方法（#51/#67/#15 家族）。
+- **来源定位**：`.artifacts/mc-1216-features-takeover/phase25-verdict-260909-02.md` §一.2/.3 + `.investigations/mc-1216-features-takeover/fanout-260909-02/b2-feature-algo.md` §二。
+- **观察**：① Java-vs-Java 同代码双 run 噪声基线：terrain=101,529 / veg=35,967（764/3410 chunk-slots）→ run 级非确定性只解释 Java-vs-Rust 信号（terrain 4.86M / veg 346k）的 **~2%**，信噪比 ≈48×，主残差为真实分歧；② stone 族 3.98M 残差中 **89.5% 与 ore 指示 section 共现、75.5% 与 disk/lake 共现，独立 section 仅 3.4%** → stone 族是特征位置偏移的**级联**（ore/disk 换位后原位回填/暴露差），非 NOISE/surface 层分歧（b3 候选消解）。
+- **根因（方法论）**：区域级大残差有两种成因方向（测量噪声 vs 真实信号）与两种机制形态（独立层分歧 vs 上游分歧的下游级联），不分离就逐族瞎查。噪声基线 = 同代码双 run，成本低（复用双臂驱动，多跑一臂）；级联判别 = 对可疑块族做**与特征指示块的共现相关分析**（离线脚本，零采集成本）。
+- **如何利用**：① 区域 diff 出大数字后，**第一动作先跑噪声基线**定信号下限（§9.7 口径：同载体同协议双 run），残差 ≈ 噪声量级即消解，不立案；② 「块 X 大量差异」先算 X 与各特征指示 section 的共现率——共现率高（>80%）判级联、独立率低（<5%）排除独立层分歧，归因直接收窄到上游特征位置层；③ 共现分析结论要配「独立 section 残差仍需解释」的剩余账（本例 3.4% 仍留 §9.7 单列）。
+- **证据**：diff-noise-baseline.txt / diff-signal-v2.txt + correlate 脚本输出（.tmp/mc1216-closeout-260909-02/，不入库）；数量见 verdict §一.2/.3。
+
+### 发现 #93: 注册名 contains 子串分发反模式——高频短子串误捕语义无关类型，静默配置全错（260909-02 收编批次 0）
+
+- **时间/置信度/module**：260909-02 收编（原始发现 batch 0，修复已落地）；candidate；workflow-patterns / 分发反模式（#56「新分支落 catch-all 后」家族的**分发谓词**对偶形态）。**价值门：高（反模式 + 全量排查法 + 验收面）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/batch0-worker-delivery.md`（误捕面全量排查表 + E 段五段式）+ `scout-b-diff清单.md`。
+- **现象**：`contains("ore")` 误捕 `forest_rock`（f-**ore**-st）与 `nether_forest_vegetation` → 走 OreFeatureConfig 解析、配置全错、无告警；placement 侧 `contains("count")` 吸进 `count_on_every_layer`（语义完全不同的 modifier，消费序不同）。
+- **根因**：注册名分发用 contains 子串匹配，短高频子串（ore/count）是「子串碰撞富矿」；命中即静默走错分支，catch-all 哨兵收不到（没落 unknown）。
+- **定位**：contains 各分支 × 一手注册表（1.21.6 Feature.java:27-121 / PlacementModifierType.java:8-30）全量排查矩阵，逐分支列出误捕全集。
+- **修复/判据**：分发一律完整 `== "minecraft:xxx"` 精确匹配 + catch-all 告警；**新增类型时 catch-all 哨兵集合就是回归验收面**（每条已知 type 应在哨兵集合外各归其位）。
+- **教训**：任何「按名字符串分发」的映射表接入新数据集时，先做「子串误捕全量排查」（分支谓词 × 数据集 type 全集），再谈逐分支语义正确。
+- **证据**：batch0-worker-delivery 误捕面排查表（含 disk/spring/underwater_magma/freeze_top_layer 零误捕对照行）。
+
+### 发现 #94（简记，三连实证）: 任务简报字段名/分类词不进一手源核对不可用——1.20.1/1.21.6 双版交叉核对升级形态（260909-02 收编批次 A/B/C）
+
+- **时间/置信度/module**：260909-02 收编（batchA E-1 / batchB E-1 / batchC §四 同族三连）；candidate；workflow-patterns / 简报信息纪律（#90 转抄漂移家族的「简报→parse」形态）。**价值门：高（判错经验：凭记忆字段名写字段 → 恒 miss → 静默全默认值/全灭）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/batchA-worker-delivery.md` §E-1、`batchB-worker-delivery.md` §E-1、`batchC-worker-delivery.md` §四（E-3 教训 + E-4）。
+- **要点**：三批独立复犯同型错误——简报凭记忆/旧版混杂给的字段名（「noise_level min/max、half_cost」「count 1..25 非 IntProvider」「selector 分类词」）与 1.21.6 一手 codec 不符（MultifaceGrowthFeatureConfig.java:20-36 / CountConfig.java:9-25 实为 IntProvider 等）；若照写 parse，字段恒 miss → config 全默认值或特征静默全灭，且难察觉。**判据：「先读 codec 再写字段」与「先读文件再写 patch」同级**；引擎目标 1.20.1 有本地 extract 时必须 1.20.1/1.21.6 双版都读（防 1.21.6 独有改动静默混入）。
+- **证据**：三份 worker-delivery E 段（含双版行号锚）。
+
+### 发现 #95: scout 结论的「事实前提」与「结论」要分开验证——前提部分不成立时结论可能仍成立，但证明链必须补全（260909-02 收编批次 B）
+
+- **时间/置信度/module**：260909-02 收编（batchB E-2）；candidate；workflow-patterns / 交接结论验证纪律（§16.3 / STEP 1 廉价独立验证的「前提/结论分离」细化形态）。**价值门：高（可复用判错姿势）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/batchB-worker-delivery.md` §E-2 + §一.0.3 证明链。
+- **要点**：scout-b 报告「feature 阶段只有两张高度图 → MOTION_BLOCKING 塌缩不可修」——前提半错（CARVERS 起实挂 POST_CARVER 四图，ChunkStatus.java:33-35），但**塌缩结论本身成立**（特征时点地形无树叶/植被态，MOTION_BLOCKING 与 WORLD_SURFACE 的差集在引擎方块分类下为空集，两图逐列同值）。教训：① 继承 scout 报告的机制方向前，把「事实前提」与「结论」拆开各自做廉价验证（本次 = ChunkStatus/Heightmap 两文件核对）；② 「前提错但结论对」时**证明链必须写全**（逐 type 等价表），否则下次还会再验一遍；③ 「不可修」类断言的权重全部压在前提上，前提错则断言整个失效，优先验前提。
+- **证据**：batchB-worker-delivery §E-2 + §一.0.3 逐 type 表。
+
+---

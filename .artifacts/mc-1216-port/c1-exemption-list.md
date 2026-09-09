@@ -29,6 +29,21 @@
 
 > 依 §15.4：追加不覆盖，原条目正文不删不改；以下登记为唯一权威补充。
 
+**B5/B6 状态更新注记（260908-15，features 接管块）**：B5 (fallen_tree 5 变体) 与 B6 (place_on_ground decorator) 已在 Rust 侧实装支持（b5b6-verdict-260908-15，candidate 待 judge→260909-02 块纳入收口），B5/B6 的「两侧零支持」状态已被取代——两行正文按 §15.4 不改，以本注记为准。
+
+**B 区追加：features 接管缓装 5 项（260909-02 登记，来源 = 批次 C 交付文档 §〇.2，`.investigations/mc-1216-features-takeover/batchC-worker-delivery.md`）**：
+
+| # | 条目 | 机制 | 影响域 | 缓装理由 / 处置建议 |
+|---|------|------|--------|---------------------|
+| B7 | `dripstone_cluster` 未实装 | 需三基建（高度图 probe 面/双向 grow 逻辑/风化层级） | 滴水石簇装饰（1.21.6 drippy 区域） | 基建批立项；当前 Rust 接管臂 unknown 哨兵覆盖 |
+| B8 | `large_dripstone` 未实装 | 同 B7 基建依赖 | 大型滴水石 | 并入 B7 基建批 |
+| B9 | `iceberg` 未实装 | 大工作量（体积雕刻 + 冰变体状态机） | 冻结海洋冰山 | 独立小批立项 |
+| B10 | `sculk_patch` 未实装 | 需传播子系统（sculk spread） | 深暗之域表面 | 行为层立项（传播机制跨 feature 边界） |
+| B11 | `fossil` 未实装 | 需 NBT 结构模板加载层 | 骨矿（结构模板类 feature） | 结构模板层立项（与 structures 数据面共用决策） |
+| B12 | 嵌套暴露 4 项（coral_claw/mushroom/tree + pointed_dripstone） | 批次 C 起从父 feature 内嵌展开，行为已解锁——差集出现为**行为解锁非回归** | 珊瑚/滴水石尖锥 | 非豁免项，登记防误读；对拍差集出现时按 §9.7 单列 |
+
+**features 接管对拍现状注记（260909-02，Phase 2.5 首轮）**：Chunky 双臂对拍（region 0,0 r=16）信号/噪声 = 4.86M/0.10M terrain ≈48×，主残差为特征层真实分歧（候选分解见 `.investigations/mc-1216-features-takeover/fanout-260909-02/`）；默认 mask 翻转建议**未提出**（confirmed 前置未满足）。
+
 **取代记录（B3）**：
 - **supersedes** → `.artifacts/mc-1216-port/p5-verdict-260908-13.md`（P5 判定 confirmed 260908-13，B3 ⊆ P5 覆盖面，无独立机制成分）；
 - **superseded-by** → `.artifacts/mc-1216-port-260908-14/p6-b3-closeout-260908-14.md`（本取代记录）；

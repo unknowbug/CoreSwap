@@ -831,3 +831,22 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 
 ---
 
+
+
+### 发现 #43: (k,p,fid) 单 chunk 序列探针——decorator seed 域错位的决定性判据；MixinExtras 不可用时的纯 Mixin 替代（260909-02）
+
+- **时间/置信度/module**：260909-02；candidate（step 1-8 共 40 条完全一致 + step 9 p 错位实锤定位根因，behavior 级探针证据）；build-tooling / 探针工具（#81 行为化日志家族的序列化形态 + #62 seed 判据的调用点级落地）。**价值门：高（判据 + 工具做法直接复用）**。
+- **来源定位**：`.artifacts/mc-1216-features-takeover/phase25-verdict-260909-02.md` §一.4 + `.investigations/mc-1216-features-takeover/fanout-260909-02/b1-rng-wiring.md` §4（探针设计）。
+- **做法**：单 chunk 双侧对拍 `(population_seed l, step k, index p, fid)` 全序列：Java 侧 mixin 在 ChunkGenerator.generateFeatures :402 `setDecoratorSeed(l, p, k)` 处打印四元组 + registryKey（本块实现 = **@Redirect placedFeature.generate 调用点**顺带打印——MixinExtras 编译期不可用时的纯 Mixin 替代；另 `setCurrentlyGeneratingStructureName` 供应商重定向可拿结构 fid，本块结构段走种子隔离不需）；Rust 侧 `WG_FEATURELOG=1` 现成钩子（worldgen_handle.rs:1080）。
+- **判据（三层直接命中）**：`l` 不一致 → seed 接线差（worldSeed/公式）；`l` 一致、`(p, fid)` 序列有差 → **p 域输入差**（registry 序文件/biome feature list 构建序）；序列完全一致 → RNG 接线整体排除，归因转特征实现层。本块实测：step 1-8（40 条）完全一致，step 9 特征集相同（13 fid 一致）但 p 错位（trees_water J=50/R=28、flower_default J=57/R=53 等）→ 根因钉死为 **Rust PlacedFeatureIndexer 植被段 lastIndex 指派与 Java 不一致**。
+- **教训**：① 「全局位置整体错开」类症状，序列探针一步区分「种子域错位」vs「算法实现差」，先于任何逐族算法对拍；② p 索引差（数值不同但 fid 集合相同）是**种子域错位的决定性签名**——特征集合一致恰恰排除了「缺 feature」候选；③ 静态源码对读（b1 候选 Degraded）已把公式/类型/迭代序三层核到同构后，剩余疑点收敛到「输入数据域」，探针设计应直接对准该域。
+- **证据**：probe-{javafeat-log,rustfeat-err}-snapshot.log（.tmp/mc1216-closeout-260909-02/）；mixin 代码 runtime/1.21.6/java ChunkGeneratorFeaturesMixin（不入库，batchD-record 为追踪载体）。
+
+### 发现 #44（简记）: 接管开关单 flag 双向切换语义——mask=0 必须显式排除出「接管生效」判定（260909-02 收编 batchD）
+
+- **时间/置信度/module**：260909-02 收编（batchD 改动 2）；candidate；build-tooling / 接管开关设计。**价值门：中（简记——跨版本复制接管开关时的语义陷阱）**。
+- **来源定位**：`.investigations/mc-1216-features-takeover/batchD-record-260909-01.md` 改动清单 2。
+- **要点**：`rustFeaturesTakeover() = enabled && mask!=0 && (mask&0b010)==0`——**mask=0（全 Java = 双跑对照意图）必须显式排除**，否则「无 mask 参数」与「mask=0」两种语义被合并，对照臂误走接管路径；单 flag 双向切换（默认 0b011 现状不变，回退 = 删 -D 参数）。翻转前置（verdict §二）：p 域对齐 + 已知 feature 族缺陷修复 + 重对拍信噪比回噪声量级，**残差未收敛前不翻转**。另：接管开关生效判定要配行为化哨兵计数（首拦 + 周期打点），纯布尔回读不构成生效证据（#81 家族）。
+- **证据**：batchD-record 改动清单 + verdict §二（mask 翻转不建议，前置清单）。
+
+---
