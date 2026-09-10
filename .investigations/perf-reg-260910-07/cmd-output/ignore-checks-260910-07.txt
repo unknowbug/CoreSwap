@@ -22,3 +22,12 @@ build|run|.gradle|native 已跟踪数: 0
 d5151a1 = d5151a1 2026-09-10 22:56 chore(repo): move Java mod projects out of runtime/ to versions/<ver>/java (source now versioned)
 0fc44d3（untrack runtime/）:  95 files changed, 3 insertions(+), 24974 deletions(-)
 untrack 到本块回迁间隔: 11.1 天（≈11 天，非「5 周」）
+
+# 260910-07 复审补格（judge C5）：把 V4 断言面补全（含 .gradle/、content-test/run、1.21.6 侧、假想新文件）
+versions/1.20.1/java/.gradle/x                                                 IGNORED  .gitignore:98:versions/*/java/.gradle/
+versions/1.21.6/java/.gradle/x                                                 IGNORED  .gitignore:98:versions/*/java/.gradle/
+versions/1.21.6/java/build/x                                                   IGNORED  .gitignore:97:versions/*/java/build/
+versions/1.21.6/java/run/x                                                     IGNORED  .gitignore:99:versions/*/java/run/
+versions/1.20.1/java/content-test/run/x                                        IGNORED  .gitignore:100:versions/*/java/*/run/
+versions/1.21.6/java/src/main/java/wg/bench/NewFile.java                       TRACKED (not ignored)
+versions/1.20.1/java/src/main/resources/worldgen-data/data/minecraft/worldgen/biome/plains.json TRACKED (not ignored)

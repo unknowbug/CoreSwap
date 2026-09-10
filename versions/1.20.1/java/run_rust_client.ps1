@@ -91,7 +91,7 @@ if (!(Test-Path $rustDll)) { Write-Error "缺少 dll: $rustDll（先 cargo build
 # gradle home 指向 CoreSwap（native-platform/依赖缓存在内）
 $env:GRADLE_USER_HOME = "E:\PYTHON\CoreSwap\.gradle"
 
-# 切到 mod 工程（runtime）
+# 切到 mod 工程（260910-07 起 = versions/1.20.1/java；运行环境在 runtime/1.20.1/java/run）
 Push-Location $runJava
 try {
     if ($Vanilla) {

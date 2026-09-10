@@ -78,11 +78,8 @@ __pycache__/
 # external reference clones (read-only)
 .investigations/reference/
 
-# MC probe project build/cache（260910-07 起工程本体在 versions/<ver>/java，运行环境仍在 runtime/）
-runtime/1.20.1/java/build/
-runtime/1.20.1/java/.gradle/
-runtime/1.20.1/java/run/
-runtime/1.20.1/java/data/
+# [legacy] 旧 Java 工程位置（runtime/1.20.1/java/{build,.gradle,run,data}）——260910-07 起工程已迁 versions/<ver>/java；
+# 这些路径下的旧缓存/环境目录仍原地保留，由下方 `/runtime/` 整树规则覆盖，此处不再重复列。
 # gradle user home (dependency cache, copied into workspace for sandbox-free gradle)
 .gradle/
 # 临时区（260902-09 补：一次性脚本/dump 数据/依赖缓存不入库）

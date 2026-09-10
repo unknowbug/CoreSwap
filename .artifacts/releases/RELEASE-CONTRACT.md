@@ -18,7 +18,7 @@ status: pending            # pending → published / aborted（Maint 回写镜�
 date: <YYYY-MM-DD HH:mm>   # 工单创建（Get-Date 锚定）
 ---
 ## 1. 构建产物
-- jar: <绝对路径>            # build/libs/coreswap-<mc>-<ver>.jar
+- jar: <绝对路径>            # 260910-07 起 = versions/<mc>/java/build/libs/coreswap-<mc>-<ver>.jar（Java 工程已迁出 runtime/）
 - jar sha256: <64 位>        # 发布物完整性锚
 - dll sha256: <64 位>        # jar 内 worldgen.dll（与 target/release/worldgen.dll 一致性已在主工作区核验）
 - 源 commit: <仓库 HEAD>      # 代码可追溯
