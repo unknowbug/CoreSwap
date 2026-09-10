@@ -871,3 +871,17 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **修复**：字面过滤改 `.Contains('[CA-NT]')`（或转义 / `-SimpleMatch`）。
 - **教训/判据**：PowerShell 通配符里出现 `[` 一律先想字符类；对**含方括号标签的日志**做计数/求和类汇总，过滤后必须打印样本行核纯度（混行即作废，#13 sanity 家族同型）。
 - **家族索引**：#41、#13。
+
+### #27 家族补充案例（第三形态）: existence-only marker 跨版本陈旧缓存 → blocks.json id 域错位 982/1003 → 大规模错块级联 → 百万实体 OOM 冻结——「同 dll+权威数据干净而生产爆」先查数据缓存指纹（260910-03）
+
+- **时间/置信度**：260910-03；candidate（机制闭环：Temp 缓存 sha 铁证 + 修复后用户 confirmed 冻结解决；**错误优先·高价值**）。
+- **来源定位**：`.investigations/vivo-freeze-260910-03/record.md`；产物 `.tmp/hang-repro-260910/`。
+- **现象（五段式·现象）**：1.21.6-0.1.0 vivo 生产客户端游玩 ~40s 后世界冻结（两种表现：日志戛然而止 / 级联卡顿+`Too many chained neighbor updates`×15 + `Can't keep up! 101531ms` + `OutOfMemoryError: Java heap space`@-Xmx16384m）；地形大规模错块（用户视觉人证：「灰色的草」「沙砾」「假基岩」）；实体普查 region/entities NBT = `minecraft:item ×1,031,765` + falling_block×79；Server thread 线程 dump RUNNABLE 烧 CPU 166-2340s 在 FallingBlockEntity tick 实体碰撞扫描。同 dll + 同 seed 的 dev 服/Chunky 4225/forceload 1600 全绿零异常。
+- **根因（机制）**：`CoreSwapFixHelper.extractWorldgenDir()` 数据缓存 = 跨版本共享**固定 Temp 路径**（`coreswap-data`），新鲜度判据只有两个 **existence-only marker**（overworld.json + tags marker）。用户机器上 1.20.1 生产 jar 留下的旧缓存 marker 全在 → 1.21.6 jar 跳过解压 → **1.21.6 dll 读 1.20.1 blocks.json**：两版块表 1003 vs 1105 项，982 个同名块 id 错位 → 每个 chunk 大规模错块 + 无支撑重力块 → 级联坍塌 + 流体/邻居更新链 → 百万 item 实体 → O(n²) 实体碰撞 + 16GB 堆 OOM → 冻结。这是 #27「marker 语义超载」的跨版本整集复用形态：existence marker 只证「有数据」不证「是**本版本**数据」——#27 是增量缺失（静默 fallback），本案是整集陈旧（灾难性错块），同一根因的两种表现面。
+- **定位（怎么发现的）**：多轮绕路后一锤定音的动作 = **比对客户端 Temp 缓存 blocks.json sha vs jar 内 blocks.json sha**（ee01b749 = 1.20.1 内容 vs 617c3dae = 1.21.6 jar 内）——一次指纹核对即破案，此前 Chunky/forceload/dump 多轮载体验证全部无效（见 workflow-patterns 载体偏差条目）。
+- **修复**：`extractWorldgenDir` 加**内容指纹**（jar blocks.json vs 缓存逐字节比对，不一致整体重解压；对齐 `extractNativeDll` 已有同款逻辑）。修复 jar sha 9eae48cd…（16:44），用户实机 confirmed 冻结解决。
+- **教训/判据（可复用）**：
+  1. **「同一 dll + 权威数据直读全干净，生产客户端爆」= 数据缓存指纹第一嫌疑**——dev/验证载体走 `-PcppWorldgenDir` 直读权威数据，生产走 Temp 解压缓存，两者数据通路不同；dll 相同不能证明数据相同。
+  2. existence-only marker 的语义边界：只证「缓存非空/上次解压过」，不证「缓存 = 当前版本资源集」——**跨版本共享缓存路径必须配内容指纹**（逐字节或 hash 比对锚点文件），extractNativeDll 早已有同款而 extractWorldgenDir 没有 = 同类判据接线不齐的欠账。
+  3. 家族索引：#27（marker 单判·增量缺失形态）、#18（产物在盘≠本次生成）、#96（加载路径跟实际 run 形态走）——共同上位原则：**「数据/产物与当前版本资源集等价」必须有独立证据，existence 是最弱的一档**。
+
