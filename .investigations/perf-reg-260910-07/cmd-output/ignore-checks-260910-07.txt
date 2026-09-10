@@ -7,3 +7,18 @@ versions/1.20.1/java/build/libs/x.jar                            IGNORED  .gitig
 versions/1.20.1/java/src/main/resources/native/worldgen.dll      IGNORED  .gitignore:104:versions/*/java/src/main/resources/native/	versions/1.20.1/java/src/main/resources/native/worldgen.dll
 versions/1.21.6/java/src/main/java/wg/bench/CppBridge.java       TRACKED (not ignored)
 runtime/1.20.1/java/run/server.properties                        IGNORED  .gitignore:95:/runtime/	runtime/1.20.1/java/run/server.properties
+# 260910-07 补：嵌套 prune 白名单链那一格（.gitignore:109-110 专为它而加；每版本 1015 个 data/** JSON）
+versions/1.20.1/java/src/main/resources/worldgen-data/data/minecraft/worldgen/noise_settings/overworld.json TRACKED (not ignored)
+versions/1.21.6/java/src/main/resources/worldgen-data/data/minecraft/worldgen/noise_settings/overworld.json TRACKED (not ignored)
+
+# git ls-files 计数（一手）
+1.20.1 java src: 49
+1.21.6 java src: 49
+1.20.1 worldgen-data: 1019
+1.21.6 worldgen-data: 1739
+build|run|.gradle|native 已跟踪数: 0
+
+# 提交面（一手）
+d5151a1 = d5151a1 2026-09-10 22:56 chore(repo): move Java mod projects out of runtime/ to versions/<ver>/java (source now versioned)
+0fc44d3（untrack runtime/）:  95 files changed, 3 insertions(+), 24974 deletions(-)
+untrack 到本块回迁间隔: 11.1 天（≈11 天，非「5 周」）

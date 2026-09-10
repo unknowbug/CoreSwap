@@ -1269,3 +1269,31 @@ entries:
     status: candidate  # subagent 草稿；主会话已应用（workflow #113/#114/#115、build-tooling #51/#52/#53、compiler-idioms #24 + INDEX + 1.20.1 时间线）
     # 草稿含价值门逐条判定、8 项「不写」理由、6 条原料矛盾/缺口（E4 正文缺失、分母口径、家族引用号、CPU 两源窗口、
     #   时间线归口、tag7 规范线索）——后两项已由主会话处置（E5 立项 + 归口说明）。
+
+  # ===== 260910-07：Java mod 工程迁出 runtime/（源码入库 + 运行环境原地）=====
+  - id: 'swe:perf-reg-260910-07:verdict'
+    path: 'perf-reg-260910-07/verdict-260910-07.md'
+    kind: analysis
+    status: candidate  # judge 未做 / 用户未 confirmed（AI 不得自授 confirmed）
+    # 迁移：runtime/<ver>/java 的 loom dev 工程（= **出货 mod 的 49 个源文件/版本** + 构建定义 + worldgen-data）
+    #   → versions/<ver>/java（入库）；运行环境（run/ 698MB/56MB）原地留 runtime/，由 build.gradle 的
+    #   runDir "../../../runtime/<ver>/java/run" 指回（**loom runDir 按工程目录相对解析**，绝对路径会拼坏）。
+    # 等价性门（最强形态）：迁移前后 jar **逐条目 sha256 全等 + jar 整体 sha 不变**——1.20.1 1077/1077、
+    #   1.21.6 1797/1797、0 only-old/only-new/content-diff；sha 分别 297680e7… / 16d5e5e7…；三元组仍 MATCH。
+    # 路径回归：新位置 `gradle :runServer` 跑 1 臂 = 4225 chunks + `[CHUNKTIME] inflight max=23`（world 仍在 runtime/）。
+    # gitignore：保留 /runtime/；忽略 versions/*/java/{build,.gradle,run}/ 与 resources/native；对
+    #   worldgen-data/data/**（2758 JSON）加逐级白名单链（全局目录级 `data/` prune 会吃掉它）。
+    # 提交：d5151a1（2876 文件）。
+  - id: 'swe:perf-reg-260910-07:errors'
+    path: '../.investigations/perf-reg-260910-07/migration-errors-260910-07.md'
+    kind: errors
+    status: candidate
+    # E1 loom runDir 绝对路径被按工程目录重解析 ⇒ CreateProcess error=267；E2 驱动「工程目录+\run」推导式失效
+    #   （迁移引用面必须含 .tmp/ 驱动）；E3 沙箱 gradle file-watcher 失效 ⇒ UP-TO-DATE 假绿（验证性构建用 --rerun-tasks）；
+    #   E4 迁移后首臂 66s 属离群（jar 逐字节相同 ⇒ 非迁移效应），复跑 38s。
+  - id: 'swe:perf-reg-260910-07:plan'
+    path: '../.investigations/000-架构设计/架构计划-260910-07.md'
+    kind: plan
+    status: candidate
+    # 重量档计划（用户 HOOK-1 批准三项：目标路径 versions/<ver>/java、环境原地 runtime/<ver>/java/run、
+    #   入库范围含 worldgen-data + 散件隔离到 .tmp/ 不删）；含 §2 侦察事实表（F1-F10）与 §4 判据先写死。

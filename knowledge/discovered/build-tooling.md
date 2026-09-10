@@ -996,3 +996,51 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 > **禁按固定比例折算**，**凡引用旧读法数字的已 confirmed 结论（260910-05/1.21.6）必须复算**。
 > ⇒ 判据再升一级：**工具首用除四步自检外，加「结构值断言」**（本案 `sections/chunk` 应 = 24/16；旧读法 11.04 会被立刻判死）——
 > 该断言已落地在 `diff_1201.py` 的 `[SELFCHECK]` 输出（见 `.investigations/perf-reg-260910-06/cmd-output/selfcheck-demo-260910-06.txt`）。
+
+### 发现 #54（最高价值·错误优先）: 目录级「整树 untrack / ignore」会连带吃掉**住在里面的源码资产**——环境目录规则的作用域 MUST 按「里面到底住了什么」核一遍（15 天内同族两犯，260910-07）
+
+- **发现时间 / 置信度 / module**：260910-07；candidate（机制与链条**git 一手复核**：`0fc44d3` `--stat` 实测删除 **94 个已跟踪文件**；`ae86155` 提交信息自证前次同族犯；`d5151a1` 恢复 2876 文件）；build-tooling / VCS·gitignore 规则作用域（**#24 家族第二形态，方向相反**：#24 是「被目录 prune 挡在外面、`!` 白名单进不来」，本条是「**已在库的资产被整树规则/untrack 一起移出去**，全程无告警」）。
+- **来源定位（一条完整历史链，均可 `git log --all -- <path>` 复算）**：
+  - `03732db`（2026-08-05）工程首次入库于 `versions/1.20.1/java/`；
+  - 2026-08-24 前后某次迁移把 `versions/1.20.1/java/` **gitignore**（承诺「留在 MC 只读」）⇒ 探针工程**「找不回来」**；`.gitignore:53-55` 至今留档此注释；
+  - `ae86155`（2026-08-26 22:18）`feat(probe): migrate Java probe project back into CoreSwap (was wrongly gitignored at MC)`——提交信息一手原文：*“Root cause of 'probe not findable': prior migration gitignored versions/1.20.1/java/ ('leave probe at MC read-only') -- now re-enable (remove the rule) + commit source”*（当次 +90 文件）；
+  - `b2b9bea`（2026-08-29 19:51）`git mv versions/1.20.1/java → runtime/1.20.1/java`（此时**仍被跟踪**，`.gitignore` 只忽略其 `build/`、`run/`、`data/`、`.gradle/`）；
+  - **`0fc44d3`（2026-08-30 20:29）`chore: untrack runtime/ (local-only mod runtime harness)`**——`.gitignore` 追加 `/runtime/`（+3 行），`--stat` **删除 94 个已跟踪文件**（`build.gradle` / `settings.gradle` / `gradle.properties` / `src/main/java/wg/**` 源码 / `content-test` / 3 份 vanilla 源码散件）；提交信息原文：*“runtime/1.20.1/java (Fabric mod project + probes + run dir) is a local working harness, **not distributed source** — keep it out of the repo”*；
+  - `d5151a1`（2026-09-10 22:56）`chore(repo): move Java mod projects out of runtime/ to versions/<ver>/java (source now versioned)`（**2876 files changed**）= 本块修复。
+- **现象**：`0fc44d3` 的动机本身**合法**（runtime = 本地运行环境，不入库），但 `runtime/<ver>/java/` 里**同时住着出货 mod 的源码本体**——49 个 `src/main/java` 文件 + 构建定义，已发布的 1.0.17→1.0.28 **全部由此构建**（判决 §F2：1.0.28 jar 内 54 class = 这些源文件编译产物）。整树 untrack 把源码一起移出版本管理：**2026-08-30 20:29 → 2026-09-10 22:56 ≈ 11 天**（⚠️ **不是任务书写的「5 周」**，见 §E.3-1）Java 侧改动无 git 史；且**同族事故 15 天内两犯**（08-24 那次的后果是「工程找不回来」，代价更直观）。
+- **根因（机制）**：「运行环境 / 缓存 / 本地私有」是**用途标签**，不是**目录内容清单**；而 gitignore 与 untrack 的作用域是**目录树**。写 `/runtime/` 或 `git rm -r --cached runtime/` 时，git 的判据是「这个目录叫什么/被声明成什么用途」，**从不检查「这棵树下已跟踪的是什么」**——于是 94 个资产被一次性移出，**零告警、退出码 0**（git 不会提示「你移出了一个 49 文件的源码工程」）。机制上这甚至比「删除」更隐蔽：**历史还在**（旧 commit 可查），但「当前状态」失去 VCS ⇒ 无 pre 快照、无 diff、无回滚点（260910-06 更因此只能用 1.0.27 jar 反推 class 级 pre）。⇒ **「git 历史还在」≠「当前受版本管理」**，后者才是迁移/发布的 pre/post 边界所依赖的东西。
+- **定位（怎么发现的，可复用）**：① `git show --stat 0fc44d3`——一眼可见被删的 94 个文件里有源码（这是最便宜的第一刀）；② `git log --all --format='%h %ad %s' -- versions/1.20.1/java`——拿完整链条（只查当前分支会漏）；③ **判据核（MUST）= 双向**：`git ls-files <dir>`（这棵树下**实际被跟踪**什么，数量+清单）对照 `git check-ignore -v <path>`（规则命中链），再加 `git status --porcelain`（无新增 `??` 噪声）。
+- **修复（两段，缺一不可）**：
+  1. **结构性：工程/环境物理分离**——源码 + 构建定义迁 `versions/<ver>/java/`（与既有 `versions/<ver>/{rust,data,cpp}` 同构，也是历史原位），运行环境**原地** `runtime/<ver>/java/run/`（世界/mods/`server.properties` 零搬迁，loom `runDir "../../../runtime/<ver>/java/run"` 指回）。此时 `/runtime/` 规则**保留**——它终于名副其实（纯环境）。**注意：本案不是靠「规则精修」解决，而是靠把两种资产分开**（详见教训 ③）。
+  2. **规则面**：`.gitignore` 只新增**派生/缓存**忽略（`versions/*/java/build/`、`versions/*/java/.gradle/`、`versions/*/java/run/`、`versions/*/java/*/run/`、`versions/*/java/src/main/resources/native/`），**源码 / 构建定义 / worldgen-data 零忽略**；并补**嵌套 prune 白名单链**：全局 `data/` + `**/data/*`（`.gitignore:19-20`）会 **prune** `src/main/resources/worldgen-data/data/**`，本块靠 `:109-110` 的两行 `!`（`!/versions/*/java/src/main/resources/worldgen-data/data/` + `.../data/**`）放行——**每版本 1015 个 JSON**（一手复核：1.20.1 `worldgen-data` 共 1019 个在库文件，其中 `data/**` 1015 个）。这正是 **#24 的三段链**（目录放行 → 内容重排除 → 文件白名单）在本块的第二次落地。
+- **教训 / 判据（MUST，可复用）**：
+  1. **任何目录级 ignore / 整树 untrack 落盘前，MUST 按「里面到底住了什么」清点一遍**：`git ls-files <dir>`（已跟踪资产清单）+ `git check-ignore -v`（规则命中链）**双向**。只核「新文件进不进得来」不够——**还得核「已在库的东西会不会被一起移出去」**。
+  2. **「用途标签」不足以授权整树规则**：在写 `/runtime/`、`/cache/`、`/local/` 之前，先枚举该树下**已跟踪**资产（本案 94 个），确认无一有源价值物；有 ⇒ 改物理分离，不改规则。
+  3. **承载体尽量不混装**（本条最上位判据）：环境与工程同目录时，规则**无法只作用于环境**——「工程/环境分离」是低成本一次投资，长期免于每次精修规则。
+  4. **迁移/untrack 后核链条用 `git log --all -- <path>`**，不要只查当前分支；核「是否真离库」用 `git ls-files <path> | Measure-Object`（计数 0 = 已离库）。
+  5. **「git 历史还在」不作兜底**：它不提供 pre/diff/回滚点；凡需要 pre 快照的工作流（等价性门、发布对照），MUST 确认**当前**受版本管理——否则 pre 只能靠旧产物反推（本案 260910-06 的困境）。
+- **家族索引**：#24（目录级 prune 使 `!` 白名单失效——本条为其**方向相反**的第二形态：把已跟踪资产**移出去**；两者共用「目录级规则的语义边界」这一根因）、workflow-patterns #77（回滚 ≠ 引用面清理——同属「结构动作的完整性检查」家族）、#50（写入型工具的静默销毁：退出码 0 + 无告警——本条是 **git 侧的静默移出**）、#18/#27（「在盘/在历史」≠「当前有效」）。
+- **证据**：`0fc44d3`（`git show --stat`：94 D + `.gitignore` +3）、`ae86155`（提交信息 + 90 A）、`b2b9bea`/`d5151a1`；`.gitignore:53-55/:95/:100-104/:106-110`；一手复核见 §E.4。
+
+### 发现 #55 简记: loom `runDir` 是 **String 且按「工程目录」相对解析**——绝对路径被拼成 `工程目录\E:\…` ⇒ `CreateProcess error=267`（260910-07）
+
+- **发现时间 / 置信度 / module**：260910-07；**确定**（一手错误原文 + 产物的 `javap` 读真实签名 + 改相对路径后跑通）；build-tooling / loom 配置解析基准（**#8/#47「接线/映射错觉」家族的「解析基准」维**）。
+- **来源定位**：错误台账 `.investigations/perf-reg-260910-07/migration-errors-260910-07.md` **E1**；修复落点 = `versions/1.20.1/java/build.gradle:199`（server）与 `:205`（client）各一处 `runDir "../../../runtime/1.20.1/java/run"` + 就地注释（一手实读）。
+- **现象**：迁移后 `gradle :runServer` 启动即失败——`Execution failed for task ':runServer' > A problem occurred starting process 'command 'D:\Program Files\Java\jdk-17.0.12\bin\java.exe''`，`Caused by: java.io.IOException: Cannot run program "…java.exe" (in directory "E:\PYTHON\CoreSwap\versions\1.20.1\java\E:\PY…")` → `CreateProcess error=267, 目录名称无效。`
+- **根因（机制）**：`loom { runs { server { runDir "E:/PYTHON/CoreSwap/runtime/1.20.1/java/run" } } }`——`RunConfigSettings.runDir` 是 **String**（`javap -p` 实证 `private java.lang.String runDir;` / `public void setRunDir(String)`，fabric-loom **1.10.5**），消费侧**按工程目录相对解析** ⇒ 绝对路径被拼成 `工程目录\E:\PYTHON\…`（无效目录）。**「绝对路径一定安全」是错觉**——它的安全性取决于消费侧的解析基准。
+- **定位（两条都便宜，可复用）**：① **读错误里的 `(in directory …)`**——它把**解析后**的工作目录直接打出来，拼接关系一眼可见；② **不猜 API**：从 gradle 缓存 `jar xf fabric-loom-1.10.5.jar` + `javap -p …RunConfigSettings` 读真实签名（比试错快，且不污染源码）。
+- **修复**：改相对路径 `runDir "../../../runtime/<ver>/java/run"`（工程目录 = `versions/<ver>/java` ⇒ 上三级回仓库根）。
+- **教训 / 判据**：① 迁移工程时凡「指向工程外」的路径配置**都要核解析基准**——loom `runDir` 按**工程目录**、gradle `-P` 按**闭包作用域**（#47）、gitignore 按**仓库根/锚定**（#24）；② 判据 = **读错误信息里「解析后」的路径，别读你自己写的那份**；③ 配置项的类型/签名以**产物 `javap` 一手**为准，不靠文档记忆或上一版本经验。
+- **家族索引**：#8/#9/#19/#25/#47（接线/映射错觉家族——本条补**解析基准**维）、#24（gitignore 锚定语义——同属「模式的作用域由消费方定义」）、workflow-patterns #81/#37（生效证据必须行为化——本条是「不生效即响亮失败」的良性形态）。
+
+### 发现 #56 简记: 沙箱内 gradle 文件监视失效 ⇒ `UP-TO-DATE` **假绿**——「构建绿」不等于「改动被编译进去」（260910-07）
+
+- **发现时间 / 置信度 / module**：260910-07；**确定**（一手：日志 file-watcher 异常 + 源码刚改仍报 UP-TO-DATE + `--rerun-tasks` 对照）；build-tooling / gradle 增量构建（**#1/#23/#25/#40「UP-TO-DATE / 构建绿 ≠ 生效」家族**）。**补记说明**：本事实 260910-06 已**实际依赖过**（该块时间线 `:3102` 记「强制重编 `--rerun-tasks`，规避沙箱内 gradle VFS/文件监视失效的 `UP-TO-DATE` 假绿」）但**未落 discovered**；本条为**判据化补记**（本块把它当成等价性门的一环使用）。
+- **来源定位**：错误台账 **E3**；本块应用 = `.investigations/perf-reg-260910-07/`（注释级改动后 `:build` 报 UP-TO-DATE → `--rerun-tasks` 强制重编 → 得到「注释级改动后 jar 逐字节相同」的结论，即 #116 等价性门的一环）。
+- **现象**：改了 Java 注释后 `gradle :build` 输出 `> Task :build UP-TO-DATE`，jar 未变；日志有 `Exception in thread "File watcher server" net.rubygrapefruit.platform.NativeException: Couldn't open current thread, error = 5`。
+- **根因（机制）**：沙箱限制导致 gradle 的**文件监视通道不可用** ⇒ 增量构建的 **VFS 未察觉磁盘改动** ⇒ 直接按旧状态判 UP-TO-DATE。**与 #1 是两个机制面**：#1 = `doFirst` 里的 copy **不是 task input**（声明缺失）；本条 = **监视通道本身失效**（VFS 陈旧）——两者都表现为「构建绿 + 产物没变」，但修复动作不同（#1 改声明/手动 copy，本条只能强制重跑）。
+- **定位 / 判据**：**`UP-TO-DATE` 与「文件确实改了」冲突时，先看有没有 file-watcher 异常**（本案例日志里有），再用 `--rerun-tasks` 做对照——对照后产物变 = 确认假绿。
+- **修复 / 纪律**：**验证性构建一律 `--rerun-tasks`**；凡结论涉及「产物是否变了」（等价性门、发布前核验、dll 同步），**不能只信 gradle 的 up-to-date 判定**，必须强制重编或内容指纹（#6/#10/#16/#18/#23）。
+- **家族索引**：#1（task input 声明缺失——同一「UP-TO-DATE 假绿」家族的另一机制面）、#23（cargo `-p` 陈旧 rlib 假绿）、#25/#40（编译绿 ≠ apply 绿）、#16/#18（产物在盘 ≠ 本次生成）、workflow-patterns #116（本块等价性门依赖 `--rerun-tasks` 得到的「注释级无效改动」结论）。
+
+---

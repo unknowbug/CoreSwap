@@ -86,3 +86,6 @@
 - ⚠️ **工具契约（→ build-tooling #50）**：`scripts/merge_index.py` 写回根 index 是「解析 + 重建」（四字段白名单 + YAML 丢注释）⇒ **带注释的根索引禁跑该工具**，本块 P5 改手工追加 entry（现网 `.artifacts/index.yaml:1189` 已就地写下警告）。
 - 口径声明（§9.7）：**载体** = 1.21.6 + Chunky radius 500 = 4225 chunks/臂；**覆盖面** = region 全域逐块普查（overworld `common=7959`、nether `7542/7543`、end `7567`，非抽样）；**可比性** = 同载具/同 seed（`417950215108767439`）/同 region 中心/同工具修订；分母 = `4096 × 两侧 section 并集`；chunk 集缺口 = 比对集 7959 vs 本臂生成 4225（含非本臂 chunk）；**维度间不可互引噪声基线**（nether 与 overworld 差 ~15×）。
 - 状态：C7-①/②/③ + §15.4 处置 = **candidate**（judge PASS-with-conditions，C1-C9 已应用；§5 产物契约 C7 已补 = `index-entry.yaml` + 根索引手工登记）；nether/end = **candidate**（judge J3/J4 = PASS-with-conditions，C1-C10 已应用）；两者 confirmed 均留用户。git 基线 `42d46e7`（继承任务书）。
+
+> 260910-06 / 260910-07 两个工作块的**记录归口** = `versions/1.20.1/docs/10-timewise-archive.md`（260910-06 = 1.20.1 三分支异步化；260910-07 = Java 工程迁出 runtime/）。
+> ⚠️ 但 260910-07 **同时改了 1.21.6 侧**：`runtime/1.21.6/java/` 的 loom dev 工程（49 源文件 + 构建定义）迁至 **`versions/1.21.6/java/`** 并入库（运行环境原地 `runtime/1.21.6/java/run`，由 `runDir` 指回），等价性门 = 迁移前后 jar **1797/1797 条目全等、整包 sha `16d5e5e7…` 不变**、三元组 MATCH。详见 `.artifacts/perf-reg-260910-07/verdict-260910-07.md`。
