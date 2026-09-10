@@ -1,0 +1,8 @@
+A chunks=7749 B chunks=7749
+common=7749
+box x -46..44 z -44..42 | status(A) top=[('minecraft:full', 4317), ('minecraft:structure_starts', 2592), ('minecraft:biomes', 288)]
+===全域差分普查===
+blocks=761757696 diff=0 (0.0000%) sections same/diff=185976/0
+[SELFCHECK] sections/chunk=24.00 (expect 24=overworld / 16=nether,end) -> OK  [失步签名：远低于期望值或非整数值]
+top pairs:
+y-section dist (cy*16；Y 无符号读，4032-4080 段 = cy −4..−1): []

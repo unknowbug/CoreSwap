@@ -1,0 +1,40 @@
+# 260910-06 E5 一手输出：tag7 长度读法对照（region-os-r1 全量）
+region-os-r1: 旧(u1) ok=7703 bad=46 badStatus=7703 keys=7703
+region-os-r1: 新(i4) ok=7749 bad=0 badStatus=7749 keys=7749
+  keys 差: 46 only_old= 0
+  旧有 keys 中 Status 非字符串(=疑似失步) = 7703  / 新 = 7749
+# ⚠️ 读法说明（主会话注，勿误读）：
+#   1) 有效判据 = **ok/bad 两列 + keys 差**：旧读法（tag7 长度按 1 字节）丢 46 个 chunk（ok 7703 / bad 46），
+#      规范读法（tag7 = TAG_Int 4B）全部解析（ok 7749 / bad 0），keys 无丢失（only_old=0）。
+#   2) `badStatus` 列是**脚本自身缺陷**（复合键名未 decode ⇒ `d.get('Status')` 恒失败），
+#      **不代表 chunk 损坏/失步**，两读法下均为全量、无判别力；原样留档以存真。
+#   3) 复现脚本 = cmd-output/tag7_scan.py（tag 类型普查）+ cmd-output/tag7_impact.py（本对照）。
+# 附：diffs-fixed 汇总（规范读法，权威）
+## diff-anchor_async.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=222809 (0.0292%) sections same/diff=179853/6123
+## diff-anchor_sync.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=132795 (0.0174%) sections same/diff=182175/3801
+## diff-cross_os1_x_oa1.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=226928 (0.0298%) sections same/diff=179776/6200
+## diff-cross_os2_x_oa2.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=229428 (0.0301%) sections same/diff=179620/6356
+## diff-ctrl_vanilla_x_async.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=247636 (0.0325%) sections same/diff=178949/7027
+## diff-sanity_mixlog_oa1_x_oaS1.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=225884 (0.0297%) sections same/diff=179781/6195
+## diff-self_os.txt
+A chunks=7749 B chunks=7749
+common=7749
+blocks=761757696 diff=0 (0.0000%) sections same/diff=185976/0

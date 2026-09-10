@@ -338,3 +338,14 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
   2. 「互相勘误」反模式：两数组注释（或复刻侧引用两数组的两处代码注释）相邻时，顺序不同不是谁写错了——勿把另一处的序当 typo 纠正到同一序上。本轮 judge 审查实例：tree.rs cocoa 注释 vs fallen_tree 注释各引不同数组，序不同是正确的。发现「两处 HORIZONTAL 序不一致」先查各自 Java 出处再定性。
   3. 判错签名：复刻某随机方向机制后，四方向统计分布系统性对不上（尤其两两互换形态）→ 首查引用的是哪个 HORIZONTAL 数组。
 - **证据**：Direction.java:49-52 + Direction.java:601 + Util.java:863-865；落盘引证 .investigations/mc-1216-port-260908-15/b5b6-worker-delivery.md §2 idk-②；.artifacts/mc-1216-port-260908-15/b5b6-verdict-260908-15.md §3。
+
+## 发现 #24 简记: MC 1.20.1 `PalettedContainer.swap()` 自带 `lock()/unlock()`（`LockHelper` **非可重入**）——`ChunkSection.lock()` 只与 `setBlockState(..., lock=false)`/`swapUnsafe` 配套（260910-06）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-06；主会话（实测线程栈 dump + 一手调用链）；**candidate**（dump 决定性证据 + 调用链 file:line；vanilla 对照为源码直读）；compiler-idioms / Java（MC）API 惯用法与锁语义。
+- **来源定位（调用链）**：`CppBridge` `writeChunk` → `ChunkSection.setBlockState(x, sy, z, st)`（**4 参重载 ⇒ `lock=true`**）→ `ChunkSection.setBlockState(x,y,z,state,true)` → **`PalettedContainer.swap(x,y,z,value)`**（`:142`：`this.lock(); try{…} finally{ this.unlock(); }`）→ **`LockHelper.lock()`**（`:42`，**非可重入 Semaphore**，`acquire` 阻塞）/ `PalettedContainer.lock(:45)`；vanilla 对照 = `NoiseChunkGenerator.java:337-346`（外层 sections 锁 + 持锁期 `setBlockState(..., lock=false)` 即 `swapUnsafe`，**不加内层锁**）。溯源：错误台账 `.investigations/perf-reg-260910-06/errors-260910-06.md` E1；判决 `.artifacts/perf-reg-260910-06/verdict-260910-06.md` §2/§8。
+- **语义（是什么）**：
+  1. `ChunkSection.setBlockState(x,y,z,state)` 的 **4 参重载 = `lock=true`**，内部走 `PalettedContainer.swap()`，而 `swap()` **自己负责** `lock()/unlock()`（**写路径自带锁**）。
+  2. 该锁实现（`LockHelper`）**不可重入**：同线程二次 `lock()` 不是计数 +1，而是**永久阻塞**（无异常、无日志、CPU≈0）。
+  3. 因此 `ChunkSection.lock()`（外层持锁）**只在写路径改用不带内层锁的接口**（`setBlockState(..., lock=false)` / `swapUnsafe`）时才成立——**「外层段锁 + `lock=false` 写」是成对契约**：只加外层锁 = **自锁死**；只用 `lock=false` = **失去互斥**。
+- **判据（可复用）**：① 复刻/接管类改动凡要**自行加段级锁**，MUST 先核该段内所有写接口是否**自带锁**（在被调方找 `lock()` / `try{…} finally{ unlock(); }`）；自带则不要在外层再加，或整段改用 `lock=false` 系列（二选一，不可混）；② 排查签名 = 线程栈里**同一把锁出现两次（持锁帧 + acquire 帧）** + 进程 CPU≈0（方法面判据见 workflow-patterns #113）；③ 跨版本/跨实现的搬运核对表把**锁语义**单列一栏（与 API 形态 / 签名 / 参数映射并列）。
+- **家族索引**：workflow-patterns #113（主判据与错误链）、compiler-idioms #11（诊断门控在初始化器内唯一置位——同为「初始化/持锁期语义」类简条）、#12（mixin 包约束——同为「平台语义约束」简条）。

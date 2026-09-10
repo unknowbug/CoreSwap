@@ -1227,3 +1227,45 @@ entries:
     path: 'perf-closeout-260910-05/judge-verdict-nether-end-260910-05.md'
     kind: review
     status: draft
+
+  # ===== 260910-06：1.20.1 R3 异步化（重活移出 worldgen 单车道）+ 同构建态 A/B + 内容指纹门 =====
+  - id: 'swe:perf-reg-260910-06:verdict'
+    path: 'perf-reg-260910-06/verdict-260910-06.md'
+    kind: analysis
+    status: candidate  # judge = PASS-with-conditions（第 1 轮 J1-J12 + 第 2 轮 C1-C6 均已应用）；用户未 confirmed（AI 不得自授）
+    # 结论：1.20.1 overworld/nether/end 三分支 populateNoise 接管段改为 supplyAsync(Util.getMainWorkerExecutor())，
+    #   把重活移出 worldgen 单车道；Rust/C++ 零改动（执行体 = 与 260910-05 同源 dll sha 597e12ed…）。
+    # 形态直证：inflight max 1（sync）→ 23（async）；比值（Chunky 进程内计时口径）sync 222/227s vs async 37/38s = 5.97-6.00×；
+    #   wallgen 口径 5.47-5.73×；相对 vanilla（50s）异步快 1.32-1.35×、同步慢 4.44-4.54×；serverCpu 330→456-468s（延迟换 CPU）。
+    # 行为门（决定性、噪声无关）：同 chunk 原生输出 FNV 指纹 sync×async = **4140/4140 相同、0 不一致**、臂内无重复（judge 独立全量复核一致）。
+    # 旁证（检验力低已声明，**规范读法**数字；旧读法已废）：region 逐块对拍 common=7749 / 分母 761,757,696；
+    #   self 0.0000% / 正对照(vanilla×async) 0.0325% / sync 锚 0.0174% / async 锚 0.0292% / 跨形态 0.0298-0.0301%；
+    #   跨形态严格 > 两锚 ⇒ 预登记判据「≤锚」未满足 ⇒ 是否在噪声带内**不可判**（§4.2）。
+    # 工具缺陷（E4/E5）：对拍工具 tag7（TAG_Byte_Array）长度两版都按 1 字节读（规范 TAG_Int 4B）⇒ 旧读法静默丢 chunk 且
+    #   section/块分母 ×0.457（85,047→185,976、348,352,512→761,757,696、11.04→24.00 sec/chunk）；**上游 260910-05 数字须复算、禁按比例打折**。
+    # 交付：coreswap-1.20.1-1.0.28.jar sha 297680e7…（三元组 MATCH；J9 注释修正后强制重编逐字节相同）。
+    # 证据：.investigations/perf-reg-260910-06/（cmd-output **173 条** MANIFEST + 8 臂 region + logs + diffs[旧]/diffs-fixed[权威] +
+    #   chunky-task-state + java-snapshot/post + tag7 普查/对照输出 + errors E1-E5）。
+    # 计划（含 §14 执行中架构变更）：.investigations/000-架构设计/架构计划-260910-06.md
+  - id: 'swe:nether-end-verify-260910-06:handoff-verify'
+    path: '../.investigations/nether-end-verify-260910-06/handoff-verify-260910-06.md'
+    kind: evidence
+    status: candidate
+    # 交接结论廉价复核（零重跑，只读 260910-05 归档）：V1 推翻「4761>4225 = 重复接管调用」（4761 行 = 4761 互异坐标 = 69×69，重复组 0）；
+    #   V2 推翻「region 含非本臂生成 chunk」（6 臂 region 槽位时间戳全在本臂窗口内）；V3 缺口 chunk = structure_starts 低状态残缺 chunk（benign）。
+    # 触发 §15.4 取代记录：.artifacts/perf-closeout-260910-05/verdict-nether-end-260910-05.md §8（原文不删不改 + 双指针 + 一行理由）。
+  - id: 'swe:perf-reg-260910-06:judge'
+    path: 'perf-reg-260910-06/judge-verdict-260910-06.md'
+    kind: review
+    status: draft  # 审查意见，不改 status；第 1 轮 = PASS-with-conditions（J1-J12）+ 第 2 轮聚焦复审 = PASS-with-conditions（C1-C6）
+    # 三源核对（artifacts 快照 / worktree diff[含 runtime 被 gitignore 的边界声明] / 验证记录）+ 数字逐格回一手文件 +
+    #   自写解析器独立全量 join（4140/4140、差集 0、hash 不一致 0、dup 0、nz 0 处不同）+ MANIFEST 全量逐条哈希 +
+    #   三元组全量重算 MATCH + javap 双 jar pre/post 结论 + 05 判词 §15.4 取代记录形态合规。
+    # 第 1 轮条件 J1-J12 已应用（verdict §9）；第 2 轮复审（聚焦 E5 + §4.2 重测）：A 七行 7/7 一致无错值、B E5 四问全过
+    #   （并指出影响面远超 0.6%：分母 ×2.187、禁按比例打折）、C/D 七条新发现、条件 C1-C6 已应用（verdict §10）。
+  - id: 'swe:perf-reg-260910-06:knowledge-draft'
+    path: '../.investigations/perf-reg-260910-06/knowledge-draft-260910-06.md'
+    kind: knowledge
+    status: candidate  # subagent 草稿；主会话已应用（workflow #113/#114/#115、build-tooling #51/#52/#53、compiler-idioms #24 + INDEX + 1.20.1 时间线）
+    # 草稿含价值门逐条判定、8 项「不写」理由、6 条原料矛盾/缺口（E4 正文缺失、分母口径、家族引用号、CPU 两源窗口、
+    #   时间线归口、tag7 规范线索）——后两项已由主会话处置（E5 立项 + 归口说明）。

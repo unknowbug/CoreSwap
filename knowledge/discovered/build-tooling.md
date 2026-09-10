@@ -954,3 +954,45 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **内容（三点）**：① 命令 `chunky world minecraft:the_nether` / `minecraft:the_end` **被接受**（`Task finished for … Processed: 4225 chunks (100.00%)`）；② 存档 region 路径按维度分目录——nether = `run\world\DIM-1\region`、end = `run\world\DIM1\region`（驱动脚本用 `reg` 字段显式指定，别照抄 overworld 的 `region`）；③ 首用 **sanity 判据** = `[Mixin] populateNoise(nether|end) intercepted` 行数 **+** `[WG-FILL]` 行数（本案两维各 4761 = 4761）；两者均依赖 `-Pmixlog=1`，故 **A/B 臂未开日志时 `interceptDim=0` 属预期**，不能读成「接管没生效」（形态证据改用 `inflight max`）。
 - **判据**：新维度载具首用 MUST 先过**三查**再开 A/B——维度名被接受 / 接管生效有行数（含写回行）/ region 路径存在；「接管计数为 0」先核**日志门控是否开**（#25/#8 家族门控），再怀疑管线。
 - **家族索引**：#26（Chunky 区域级载体——本条为其维度扩展）、#25（mixin 门控 sysprop/env）、#80（时序/触发条件）、#107 家族补充案例（本批 A4——本条为其**载体侧**判据）。
+
+## 发现 #51: 多项目 gradle 构建下**裸任务名会级联**到子工程——1.20.1 根项目 `runServer` 连带 `:content-test:runServer`（第二服务器共用同一 `run` 目录）（260910-06）
+
+- **发现时间 / 置信度 / module**：260910-06；**candidate**（一手日志任务行 + 对照臂差异；错误文案一手）；build-tooling / gradle 任务接线（#8/#47「接线/映射错觉」家族**第六形态：任务名作用域**）。
+- **来源定位**：错误台账 `.investigations/perf-reg-260910-06/errors-260910-06.md` **E2**；驱动就地注释与修好后的调用 = `.investigations/perf-reg-260910-06/cmd-output/run_arms_1201.ps1`（`@(":runServer") + $extra`）；对照臂 = 1.21.6 侧只有 `> Task :runServer`。
+- **现象**：1.20.1 臂日志出现 `> Task :content-test:runServer`（**两次**），随后 `Failed to start the minecraft server … testcontent.TestContentMod.<clinit> … IllegalStateException: This registry can't create intrusive holders`；该子工程服务器**共用同一个 `run` 目录 / 同一个 world**；1.21.6 臂的 `^> Task` 列表无此行。
+- **根因（机制）**：在仓库根执行**裸任务名** `gradle runServer` 时，gradle 名称匹配命中**所有子工程**的同名任务；1.20.1 的 `content-test` 是独立 loom 工程，其 `runServer` 必然失败（测试内容 mod 不能独立启动），且与主服务器抢同一 world 目录。
+- **定位（便宜的自证）**：`Select-String -Pattern '^> Task'` 列出 gradle **实际执行**的任务（级联任务是一行显式日志，**不看必漏**），与对照臂任务行集合比对即可判。
+- **修复**：驱动改用**根项目限定名** `gradle :runServer`。
+- **教训 / 判据**：① **多项目构建里任务名 MUST 限定到根项目**（`:<root-task>`）；② 「我以为我跑的就是那个任务」的接线错觉家族（#8/#9/#19/#47）在此多一维——**任务名作用域**，判据 = `^> Task` 列表与对照臂不一致；③ **主服务器照跑不构成「批次干净」**：与之并存的子工程任务失败/抢资源可同时发生；④ ⚠️ **归因链留档（同形不同因）**：该级联一度被当作「`Processed` 恒 0」的嫌疑，最终由 E1 的线程栈 dump 定因为**自锁死**——级联是**真坑但不是本块卡死根因**。「现象同形」不等于「根因同一」，两者各自需要独立证据。
+- **家族索引**：#8/#9/#19/#25（`-P`→`-D` 接线链）、#47（映射**作用域**——本条为**任务名作用域**姊妹条）、#15/#28（run 口径参数集）、workflow-patterns #81/#37（生效证据行为化——本条证据面 = 任务行）。
+
+## 发现 #52: Chunky 任务状态**跨 run 持久化**在 `config/chunky/tasks/`，删 `run/world` 不清它 ⇒ 残留任务让 `chunky start` 静默不开始，伪装成同形不同因的「卡死」（260910-06）
+
+- **发现时间 / 置信度 / module**：260910-06；**candidate**（一手回显字面量 + 清目录后同臂跑通）；build-tooling / 验证载体（#26 Chunky 载体系列；#18 残留态家族第三形态）。
+- **来源定位**：错误台账 **E3**；驱动修正 = `cmd-output/run_arms_1201.ps1`（每臂 `Remove-Item run\run\config\chunky\tasks -Recurse -Force`，紧邻既有的删 world）；Chunky **1.3.146**；任务状态文件已补档 `cmd-output/chunky-task-state/260910-06-overworld.properties`。
+- **现象**：某臂 `chunky start` 回 **`[Chunky] A task was already started for this world. … type '/chunky confirm'.`**——该臂因此**根本没有新任务**，最终表现为「`Processed` 恒 0」，与 E1 的卡死**现象同形、机制不同**。
+- **根因（机制）**：Chunky 把任务状态落到 `run\config\chunky\tasks\<namespace>\<dim>.properties`（实测 `chunks=…, cancelled=false`），**删 `run\world` 不会清它**；驱动原来只删 world ⇒ 上一臂残留任务状态污染本臂。
+- **定位**：回显字面量本身即判据；再核 `config\chunky\tasks\**` 的 `cancelled/chunks` 字段。
+- **修复**：驱动每臂开跑前清 `run\config\chunky\tasks`。
+- **教训 / 判据**：① **「清环境」清单 MUST 覆盖工具自己的状态目录**，不只世界/存档目录——否则「上一臂的残留」会伪装成「本臂的失败」，制造**同形不同因的假因果**（#18 的第三形态）；② 遇「工具明明该开始却什么都没做」，**先读工具自己的回显/状态文件**，再怀疑被测管线；③ 同形现象（`Processed` 恒 0）在本块集齐三种因（E1 自锁死 / E3 残留任务 / 级联干扰的初判），**判据必须能区分因，不能只看现象**。
+- **家族索引**：#18（残留世界缓存制造假象——本条为其**工具状态目录**形态）、#26（Chunky 区域级载体——本条为其前置清理条件）、#46（沙箱/工具环境坑）、workflow-patterns #113（同形不同因判据）。
+
+## 发现 #53: region 对拍工具在**无 `xPos` 键的载体**上必须按「region 文件名 + 槽位索引」推导坐标；且**「与已验证版逐行对齐」是必要非充分——还须过 NBT 规范**（`tag7` 长度 = TAG_Int(4B)）（260910-06）
+
+- **发现时间 / 置信度 / module**：260910-06；**candidate**（一手：首版 760 chunk 且不报错；对齐后自比 0 差 + 正对照非零；**再由规范核对抓出继承缺陷 46/7749**）；build-tooling / MCA·NBT 工具链（#20 的**第二/第三形态**：本条是「payload 长度读错 ⇒ 指针走错」，#20 是「指针根本不推进」）。
+- **来源定位**：工具 = `.investigations/perf-reg-260910-06/cmd-output/diff_1201.py`（`payload()` 已注明与 260910-05 版 `diff_arms.py` 对齐 + 本轮 `tag7` 规范修正就地注释；坐标推导 `cx = rx*32 + (slot & 31)`、`cz = rz*32 + (slot >> 5)`）；自检 = `diffs-fixed/diff-self_os.txt`（`common=7749` / `diff=0`）；正对照 = `diffs-fixed/diff-ctrl_vanilla_x_async.txt`（247,636 块差）；tag 普查件 = `cmd-output/tag7_scan.py`、`cmd-output/tag7_impact.py`；错误台账 **E4 / E5**。
+- **现象（两次，形态不同）**：
+  1. 本块首次**手写** NBT reader ⇒ 全域 chunk 只解析出 **760 个**（**且不抛任何异常**）——下游「可比块数/差异率」全部失真。
+  2. 修正为「与 260910-05 已验证版逐行对齐」后看似正常（common=7703、自比 0 差、正对照非零），但**读码复核**发现两版共有的 `t == 7`（TAG_Byte_Array）长度按 **1 字节（`u1`）**读，而 NBT 规范是 **TAG_Int（4 字节）** ⇒ 实测同目录两读法：旧 **7703 ok / 46 bad**、新（规范）**7749 ok / 0 bad** = **静默丢 46/7749 = 0.6% chunk**。
+- **根因（机制）**：手写二进制 reader **无校验**，tag→payload 长度映射写错即**指针失步**（desync），后续被 `try/except: continue` 静默截断/丢弃而非报错。**失步签名 = tag 类型普查里出现非 NBT 合法 tag 号**（15/16/18/32/64/…/255）。
+- **定位（四步自检，MUST）**：① **自比**（同臂 × 同臂）必须 `diff=0` **且 common 非空**；② **灵敏度正对照**（已知不同两臂）必须报非零；③ **解析 chunk 数 ≈ 生成器自报数 / region 槽位数**（本案首版即在此穿帮）；④ **规范核对**（关键 tag 的载荷长度/结构逐条过规范；案例证明第 ④ 步不可省——第 ①-③ 步全绿仍有两版共有的规范错）。
+- **修复**：坐标按 region+槽位推导；reader 与已验证版对齐**并**按规范修正 `tag7`；重跑全部对拍（权威 = 判决 §4.2 的规范读法表）。
+- **教训 / 判据**：① **无 `xPos` 载体的坐标唯一来源 = region 文件名 + 槽位索引**（1.20.1；#20 已有同判据）——照抄「读 `xPos` 取键」会丢掉**所有** chunk ⇒ common=0 的**全量假阴性**；② **手写 reader MUST 与已验证版本逐行对齐**（reader 是对拍链公共地基）；③ **但「与已验证版对齐」不等于「解析正确」**——被继承的工具缺陷会随「对齐」动作一起继承；工具复核 MUST 加**规范/冗余量核对**；④ 对拍工具首用 MUST 跑完自检再把数字当结论（**先查工具不查结论**）；⑤ 复用既有工具时**注释里钉死「与哪个版本的哪一段一致」**，使下次改动可回溯；⑥ 工具缺陷修正后**必须重跑受影响结论**（本案跨形态读数由 0.058-0.065% 修正到 0.030% 量级，判据解读随之改变）。
+- **家族索引**：#20（1.20.1 chunk NBT 解析两坑——本条为第二/第三形态）、#10/#11（参照/解析产物核对以内容实测为准）、#27（静默退化家族）、workflow-patterns #12/#13（工具 bug 伪装成结论 / 空集先疑工具）、#115（判据面能上移就上移）。
+
+> **E5 补充（260910-06 复审 C1 追记）**：本条（#53）的「丢 46/7749 = 0.6% chunk」只是**可见的一小半**——同一对照下
+> **section 并集 85,047 → 185,976（×2.187）**、**块分母 348,352,512 → 761,757,696（×2.187）**、**sections/chunk 11.04 → 24.00**
+> （= 1.20.1 overworld 合法结构值，旧读法只摸到真实空间的 45.7%）；且新旧映射**非单调**（正对照 0.0351%→0.0325% 略降）⇒
+> **禁按固定比例折算**，**凡引用旧读法数字的已 confirmed 结论（260910-05/1.21.6）必须复算**。
+> ⇒ 判据再升一级：**工具首用除四步自检外，加「结构值断言」**（本案 `sections/chunk` 应 = 24/16；旧读法 11.04 会被立刻判死）——
+> 该断言已落地在 `diff_1201.py` 的 `[SELFCHECK]` 输出（见 `.investigations/perf-reg-260910-06/cmd-output/selfcheck-demo-260910-06.txt`）。

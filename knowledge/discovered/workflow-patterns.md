@@ -1870,3 +1870,43 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   3. **「接管基线（sync × vanilla）差异落在自身噪声带内」≠「接管已验证」**：nether 接管基线 `0.1020%` < 自身噪声 `0.1406%`，只能读作「差异未超出 run 级噪声」——1.21.6 nether/end 接管属**首次验证**，不能据此宣布对齐。
   4. **形态证据以 `inflight max`（1 → 23）为准，不以日志行数**：A/B 臂按设计未开 `-Pmixlog`（双臂对称），`interceptDim=0` 属预期；日志门控只影响日志不影响行为（门控改动本身需双臂对称声明）。
 - **家族索引**：#107（主条 + 修复验证）、本批 #111（噪声锚分形态/分维度）、#33（载具/维度可比性）、#26（Chunky 区域级载体）、#103（机器噪声带）、#51（噪声与信号同阶）。
+
+### 发现 #113（最高价值·错误优先）: 跨实现搬运「锁语义」必须成对核对——外层段锁与写路径自带内层锁是配套契约，只搬一半即**同线程自锁死**（260910-06）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-06（实际 2026-09-10 20:16–22:2x，Get-Date 锚定）；主会话（实测 + 自建线程栈看门狗 dump 一手定位）；**candidate**（数据层决定性证据 = 线程栈 dump 内含同一把锁的「持锁帧 + acquire 帧」；同步/异步两臂对照排除竞争变量；修复后两臂跑通且有量级与内容门）——confirmed 留用户；workflow-patterns / 跨实现搬运纪律（build-tooling #8/#47「接线/映射错觉」家族的**锁语义维**）。
+- **来源定位**：`runtime/1.20.1/java/.../mixin/NoiseChunkGeneratorMixin.java`（首版含 `wgLockSections`/`wgUnlock` + `whenCompleteAsync` 完成跳回；post 快照已为无外层锁形态）；`.../wg/bench/CppBridge.java`（`writeChunk` → `sec.setBlockState(x, sy, z, st)` 4 参重载）；错误台账 `.investigations/perf-reg-260910-06/errors-260910-06.md` **E1**（含 dump 栈原文与 vanilla 对照 `NoiseChunkGenerator.java:337-346`）；架构计划 `.investigations/000-架构设计/架构计划-260910-06.md` §14.1；判决 `.artifacts/perf-reg-260910-06/verdict-260910-06.md` §2/§4.1/§7.5。
+- **现象（错误链）**：Chunky 任务启动后**零进展**，且**同步臂与异步臂都卡**——`[Chunky] Task running for minecraft:overworld. Processed: 0 chunks (0.00%), ETA: 0:00:00, Rate: 0.0 cps, Current: 0, 0`（一手 `cmd-output/results.txt` 的 2 条 STALL 行）；`run\world\region` mca mtime 停在任务起始时刻；**等 40min 不复原**（不是慢，是停）。CPU 两源读数（同量级、窗口不同）：活采样 `0.1s/12s ≈ 0.01 核`（errors E1）与累计 `11-13s / wallgen 204s ≈ 0.05-0.06 核`（`results.txt`）。
+- **根因（机制）**：把 vanilla 1.20.1 `NoiseChunkGenerator.populateNoise`(:337-346) 的**外层 sections 锁**照搬进自家接管段，但自家写回路径**自带逐次锁**：`CppBridge.writeChunk:519 sec.setBlockState(x,sy,z,st)` → **4 参重载（`lock=true`）** → `ChunkSection.setBlockState(x,y,z,state,true)` → **`PalettedContainer.swap(x,y,z,value)`（`this.lock(); try{…} finally{ this.unlock(); }`，`:142`）** → `LockHelper.lock()`（`:42`，**非可重入 Semaphore**，`acquire` 阻塞）⇒ 同线程**已持有**该 section 锁时，写回内部再次 `lock()` = **永久 park**（无异常、无日志）。vanilla 能加外层锁，是因为它自己的 fill 持锁后改用 `setBlockState(..., lock=false)`（`swapUnsafe`，**不加内层锁**）——**「外层段锁 + `lock=false` 写」是成对契约**。
+- **证据（怎么定位的，可复用）**：
+  1. **双臂对照排除竞争变量**：同步臂**也**卡 ⇒「异步分派 / `whenCompleteAsync` 完成跳回」被排除，嫌疑立即收敛到**两臂共有**的新增项（= 外层锁）。此步无需 dump 即成立，是最便宜的第一刀。
+  2. **dump 直读阻塞链（决定性）**：沙箱 `jstack`/`jcmd` 全拒访（attach 被拦）⇒ 自建门控看门狗自打线程栈（#114），一次 dump 读出 `Worker-Main-*` `state=WAITING` 且**同一把锁出现两次**：`LockHelper.lock(:42)` ← `PalettedContainer.lock(:45)` ← `PalettedContainer.swap(:142)` ← `ChunkSection.setBlockState(:63)` ← `CppBridge.writeChunk(:519)` ← `fillChunk(:394)` ← …`wgPopulateNoise`。
+  3. ⚠️ **证据保全教训**：该 dump 的原始日志在**后续成功复跑时被覆盖**（同文件名），归档仅存 `results.txt` 的 STALL 行 + `CppBridge.java`/`ChunkSection.java`/`PalettedContainer.java`/`LockHelper.java` 的源码级锁链（judge 独立复核过该链）。⇒ **卡死轮日志 MUST 在复跑前另存**（临时产物唯一区纪律的补充：证据优先级高于工作区整洁）。
+- **判据（MUST，可复用）**：
+  1. **照抄参考实现的「锁语义」前，MUST 先核自家写路径的锁语义与可重入性**——查「我这条路最终调到的写接口带不带锁」；自带锁则**不要**在外层再加，或整段改用 `lock=false` 系列接口（二选一，不可混）。
+  2. **判别签名（三件齐）= 两条臂都卡 + CPU ≈ 0（进程原地耗电）+ dump 里同一把锁出现「持锁帧 + acquire 帧」**。这是**单线程非可重入自锁死**，不是 ABBA 互等死锁，更不是性能问题——不要派性能诊断轮次。
+  3. **「卡死 ≠ 慢」：先量 CPU 增量 + 进展探针，再谈性能**；驱动 MUST 带**早停探针**（本案 `Processed` 恒 0 超 180s 即落盘诊断并退出，替代 40min 盲等）。
+  4. **同族附注（API 形态维）**：搬运同一机制时**同名 API 的形态也可能不同**——1.20.1 `Util.getMainWorkerExecutor()` 返回 `ExecutorService`（`Util.java:229`），1.21.6 才是 `NameableExecutor`/`.named(...)`（照抄 `.named()` 在 1.20.1 编译不过）。⇒ 跨实现搬运核对表 = **锁语义 / 签名 / 参数映射 / API 形态** 四栏，缺任一栏都可能静默或响亮失败。
+- **家族索引**：build-tooling #8/#47（映射/接线错觉）、workflow-patterns #107/#108（形态错即性能错——本条为「形态错即卡死」的更强形态）、#100/#102（归因须在真实通路上核对——本条是「卡点根本不是性能」的对照面）、#114（本条定位所依赖的诊断件）；compiler-idioms #24（本条所用锁语义事实的惯用法简条）。
+
+### 发现 #114 简记: 沙箱禁 JVM attach 时，「门控看门狗自打线程栈」是停滞定位最廉价、往往也是唯一的手段（260910-06）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-06；主会话（一手实测：attach 全拒 + 看门狗 dump 一步读出阻塞链）；**确定**（本机沙箱复现 + 应用成功一次）；workflow-patterns / 停滞定位手法（build-tooling #46 的**方法侧**配对条）。
+- **来源定位**：`runtime/1.20.1/java/.../wg/bench/StallWatch.java`（59 行；post 快照 + `SHA256SUMS.txt` 登记 sha256）；挂点 = `CppBridge.init` 末尾 `StallWatch.start()`；栈解析件 `cmd-output/parse_stallwatch.py`；应用实例 = errors E1 的 `[STALLWATCH]` 段。
+- **手法**：`-Dcoreswap.stallwatch=<秒>`（**默认完全关**：启动读一次 prop，未设即 return ⇒ 生产零成本）；打开后起 daemon 线程（名 `coreswap-stallwatch`），每 N 秒把 `Thread.getAllStackTraces()` **全量**打 stdout（前缀 `[STALLWATCH]`，逐线程含 `name/id/state/daemon` + 每帧 `at`），随 gradle 日志落盘即可 grep；幂等启动（`started` volatile + `synchronized` 守卫）；dump 段整体 `catch (Throwable ignored)`——**看门狗自身绝不打断主流程**。
+- **价值**：沙箱禁 attach（`jstack`/`jcmd` exit 1，build-tooling #46）时「卡死」类故障本**没有观测面**；自打栈把线程栈变成**日志内证据**——本案一次 dump 即读出阻塞链，成本比反复猜机制低一个量级（对照：纯日志/`chunky progress` 只能判「停」，不能判「为什么停」）。
+- **陷阱 / 纪律**：① 默认关 + 间隔可调（诊断门控纪律，同 #11 家族：不得改生产语义与成本）；② **间隔即成本**——全线程栈 dump 在重并发下不便宜，按等待窗口取值（本案 30s），不要 1s 级常开；③ dump 是**瞬时快照**，单次可能打偏 ⇒ 与 #106「双 dump 间隔观察」配合：两帧同点 = 钉死，帧在移动 = 进展崩塌（另一态）；④ 输出走 stdout 需独立前缀与既有噪声区分。
+- **家族索引**：build-tooling #46（沙箱 attach 拒访——本条为其**方法侧**配对）、workflow-patterns #106（双 dump 三态观察法——本条为其在禁 attach 环境的落地通道）、#113（本条能力的首个应用实例）。
+
+### 发现 #115 简记: 噪声无关的内容指纹门——对「每 chunk 原生输出」取位置敏感指纹跨形态逐 chunk 比对，绕开 run 级非确定淹没（260910-06）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-06；主会话（仪器 + A/B）+ knowledge subagent（日志抽样独立复核）；**candidate**（覆盖面 = 两条 mixlog 臂日志中的**全部** overworld 接管 chunk，无抽样；judge 独立全量 join 复核一致）；workflow-patterns / 等价门手法（#111 的**绕噪声**配对条、#52 确定性 dump 载体的内容域形态）。
+- **来源定位**：仪器 = `CppBridge.wgBufHash`（**FNV-1a 64**，对 `fillBlocks` 写回 buffer **逐 int 位置敏感**混入）+ `[WG-CONTENT] chunk(x,z) hash=<hex> nz=<n>`（`-Pmixlog=1` 门控）；判决 = `.artifacts/perf-reg-260910-06/verdict-260910-06.md` §4.1；一手日志 = `cmd-output/logs/osS-r2.log`（sync）/ `oaS-r2.log`（async）。
+- **观察**：1.20.1 载体 **run 级非确定**（规范读法实测：sync 同形态锚 **0.0174%**、async **0.0292%**、跨形态 **0.0298/0.0301%**、vanilla×async 正对照 **0.0325%**、自比 0）与待测信号**同阶** ⇒ region 逐块门检验力低（#111 的形态）。把门面从「存档 region 最终状态」上移到「本实现**每 chunk 的原生输出**」后：sync × async **4140/4140 chunk 指纹全等、0 不一致**，且臂内无「同 chunk 多份互异指纹」（= 无重复/非确定重生成），`nz` 亦 0 处不同。
+  ⚠️ **工具缺陷对照**：同批 region 门在**旧读法**（`tag7` 长度读 1 字节）下曾给跨形态 0.0576/0.0648% —— 属**失步 chunk 制造的幻影差异**（见 build-tooling #53/E5）；规范读法重测后跨形态落到 async 锚同阶。⇒ 引用本条数字前 MUST 核工具读法口径。
+- **判据（可复用）**：
+  1. **当载体 run 级非确定淹没逐块门时，先在实现侧找可指纹化的「每 chunk 原生输出」并把门移到那里**——对写回 buffer 逐元素做位置敏感指纹（本案 FNV-1a 64 逐 int），跨形态/跨臂按 **chunk 键**比对；该门**不经过** Java carver/feature 调度序 ⇒ **噪声无关**，判据回到二值强判据（0 不一致），「落在噪声带内」的读法困境整个消失。
+  2. **该门顺带回答「有无跨 chunk 状态」**：若输出依赖完成序/跨写，指纹会按臂分叉；全等 ⇒ 当前出货语义下该实现 = **per-chunk 纯函数**（#110 静态结论的**行为侧对偶**）。
+  3. **覆盖面必须随判据声明**：本案指纹门只覆盖 overworld 接管 chunk（**4140 / Chunky `Processed: 4225` = 98.0%**；相对 69×69 网格 87.0%；第三口径 4175 见判决 §4.4）；nether/end 未开 mixlog（递延）。`nz` 可作非空气块数 sanity（本案约 1.6万-4.3万）。
+  4. **边界**：指纹取在写回**之前** ⇒ 覆盖「原生计算」，**不覆盖写回/并发路径**（本案 b3 开放项）。
+  5. 与 #111 的分工：**噪声锚解决「region 门能读多严」，指纹门解决「根本不需要噪声锚」**——能上移判据面时优先上移。
+- **家族索引**：#111（噪声锚分形态/维度——本条给「绕开噪声」的上移形态）、#52（确定性 dump 载体——本条为内容/指纹域形态）、#110（「纯 memo + 纯函数」静态结论——本条为其行为侧对偶）、#33/#36（可比性 / 执行体三元组）。

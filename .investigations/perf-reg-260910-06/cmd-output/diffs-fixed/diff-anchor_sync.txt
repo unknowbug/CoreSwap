@@ -1,0 +1,27 @@
+A chunks=7749 B chunks=7749
+common=7749
+box x -46..44 z -44..42 | status(A) top=[('minecraft:full', 4317), ('minecraft:structure_starts', 2592), ('minecraft:biomes', 288)]
+===全域差分普查===
+blocks=761757696 diff=132795 (0.0174%) sections same/diff=182175/3801
+top pairs:
+  minecraft:kelp_plant -> minecraft:water: 12880
+  minecraft:water -> minecraft:kelp_plant: 12747
+  minecraft:andesite -> minecraft:granite: 9304
+  minecraft:granite -> minecraft:andesite: 8597
+  minecraft:diorite -> minecraft:andesite: 8510
+  minecraft:andesite -> minecraft:diorite: 7713
+  minecraft:granite -> minecraft:diorite: 7023
+  minecraft:diorite -> minecraft:granite: 6964
+  minecraft:water -> minecraft:tall_seagrass: 5861
+  minecraft:tall_seagrass -> minecraft:water: 5784
+  minecraft:deepslate -> minecraft:sculk: 4676
+  minecraft:sculk -> minecraft:deepslate: 4259
+  minecraft:air -> minecraft:sculk_vein: 3288
+  minecraft:sculk_vein -> minecraft:air: 2858
+  minecraft:kelp -> minecraft:water: 2625
+  minecraft:water -> minecraft:kelp: 2621
+  minecraft:seagrass -> minecraft:water: 2340
+  minecraft:water -> minecraft:seagrass: 2335
+  minecraft:oak_leaves -> minecraft:air: 2046
+  minecraft:coal_ore -> minecraft:stone: 2043
+y-section dist: [(0, 18428), (16, 19106), (32, 40732), (48, 27436), (64, 2815), (80, 2651), (96, 1034), (112, 120), (128, 599), (4032, 2256), (4048, 5652), (4064, 5400), (4080, 6566)]
