@@ -78,7 +78,7 @@ __pycache__/
 # external reference clones (read-only)
 .investigations/reference/
 
-# MC probe project build/cache (migrated from E:\PYTHON\MC; runtime env in runtime/)
+# MC probe project build/cache（260910-07 起工程本体在 versions/<ver>/java，运行环境仍在 runtime/）
 runtime/1.20.1/java/build/
 runtime/1.20.1/java/.gradle/
 runtime/1.20.1/java/run/
@@ -93,6 +93,21 @@ runtime/1.20.1/java/data/
 
 # Java MOD 运行时工程（本地私有，不入库）
 /runtime/
+
+# 260910-07 迁移：Java mod 工程本体移到 versions/<ver>/java（**源码/构建定义/worldgen-data 入库**）；
+# 派生与缓存一律忽略——run/ 是运行环境（含 runDir 指回的 runtime/ 路径）、build//.gradle/ 是构建缓存、
+# src/main/resources/native/ 是 processResources 从 target/release 复制的 dll。
+versions/*/java/build/
+versions/*/java/.gradle/
+versions/*/java/run/
+versions/*/java/*/run/
+versions/*/java/src/main/resources/native/
+
+# 260910-07 补充：全局 `data/` + `**/data/*`（:19-20）是**目录级 prune**，会把
+# `src/main/resources/worldgen-data/data/**`（2758 个 JSON）整片吃掉 ⇒ 按本项目 #24 教训加**逐级白名单链**
+# （父目录未被忽略才能用 `!` 重包含；`!` 规则必须写在 `data/` 之后）。只对本子树放宽。
+!/versions/*/java/src/main/resources/worldgen-data/data/
+!/versions/*/java/src/main/resources/worldgen-data/data/**
 /spec/
 .investigations/multiworld-port/MCP-Reborn/
 

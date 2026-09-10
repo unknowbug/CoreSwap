@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "coreswap1216",
+  "version": "${version}",
+  "name": "CoreSwap 1.21.6 probe",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["wg.bench.BenchMod"]
+  },
+  "mixins": [
+    "coreswap.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.6"
+  }
+}

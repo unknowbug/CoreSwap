@@ -1,0 +1,251 @@
+plugins {
+    id 'fabric-loom' version '1.10.5'
+}
+
+version = '1.21.6-0.1.0'
+group = 'wg'
+
+base {
+    archivesName = 'coreswap1216'
+}
+
+repositories {
+    // mavenCentral/repo1 经代理 403（260908-08 首建实测×2），试阿里云公共镜像
+    maven { url = 'https://maven.aliyun.com/repository/public' }
+    maven { url = 'https://repo1.maven.org/maven2' }
+}
+
+// ⚠️ 版本四元组待首建验证（260908-08 H2' 决定性探针）：yarn build 号 / loader / fabric-api
+// 为 best-known 值，loom 报 not-found 时以报错清单为准修正。
+dependencies {
+    minecraft "com.mojang:minecraft:1.21.6"
+    mappings "net.fabricmc:yarn:1.21.6+build.1:v2"
+    modImplementation "net.fabricmc:fabric-loader:0.16.14"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:0.127.0+1.21.6"
+}
+
+// 多版本 dll 冲突裁决（Phase 2 设计初版）：1.21.6 薄壳 cdylib 包名用 worldgen1216
+// → 产物 target/release/worldgen1216.dll，processResources 仍 rename 成 worldgen.dll 打包，
+//   与 1.20.1 薄壳的 target/release/worldgen.dll 输入互不覆盖。
+processResources {
+    inputs.property "version", project.version
+    // dll 尚未产出时守卫跳过（Rust 1.21.6 薄壳落地后自动成为任务输入）
+    def dllFile = file('E:/PYTHON/CoreSwap/target/release/worldgen1216.dll')
+    if (dllFile.exists()) inputs.files dllFile
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+    doFirst {
+        def src = file('E:/PYTHON/CoreSwap/target/release/worldgen1216.dll')
+        if (src.exists()) {
+            copy {
+                from src
+                into file('src/main/resources/native')
+                rename { 'worldgen.dll' }
+            }
+            println "[coreswap1216] synced Rust dll: " + src.length() + " bytes"
+        } else {
+            println "[coreswap1216] WARN: worldgen1216.dll not found (expected before Rust port lands)"
+        }
+    }
+}
+
+loom {
+    runs {
+        // 公共 bench/替换参数：server 与 client 共用
+        // 260908-10 T0-2：从 1.20.1 build.gradle 移植（原 1.21.6 版零映射 → 探针参数静默不生效，
+        //   #8/#19 家族：gradle -P 与 -D 是两个命名域，缺映射行 = 开关永远关）。
+        def benchVmArgs = { run ->
+            def benchSeed = project.findProperty('benchSeed') ?: '-8248318472910187742'
+            def benchSize = project.findProperty('benchSize') ?: '8'
+            def benchOriginX = project.findProperty('benchOriginX') ?: '200'
+            def benchOriginZ = project.findProperty('benchOriginZ') ?: '200'
+            def benchOut = project.findProperty('benchOut') ?: 'E:/PYTHON/CoreSwap/versions/1.21.6/data'
+            run.vmArg "-Dbench.seed=${benchSeed}"
+            run.vmArg "-Dbench.size=${benchSize}"
+            run.vmArg "-Dbench.originX=${benchOriginX}"
+            run.vmArg "-Dbench.originZ=${benchOriginZ}"
+            run.vmArg "-Dbench.out=${benchOut}"
+            if (project.findProperty('benchMacroTime') != null) run.vmArg "-Dbench.macroTime=true"
+            if (project.findProperty('probeCount') != null) run.vmArg "-Dprobe.count=${project.findProperty('probeCount')}"
+            if (project.findProperty('routerProbe') != null) run.vmArg "-Drouter.probe=true"
+            if (project.findProperty('routerEsh') != null) run.vmArg "-Drouter.esh=true"
+            if (project.findProperty('routerX') != null) run.vmArg "-Drouter.x=${project.findProperty('routerX')}"
+            if (project.findProperty('routerZ') != null) run.vmArg "-Drouter.z=${project.findProperty('routerZ')}"
+            if (project.findProperty('routerY') != null) run.vmArg "-Drouter.y=${project.findProperty('routerY')}"
+            if (project.findProperty('routerYFrom') != null) run.vmArg "-Drouter.yFrom=${project.findProperty('routerYFrom')}"
+            if (project.findProperty('routerYTo') != null) run.vmArg "-Drouter.yTo=${project.findProperty('routerYTo')}"
+            if (project.findProperty('routerYStep') != null) run.vmArg "-Drouter.yStep=${project.findProperty('routerYStep')}"
+            if (project.findProperty('routerDim') != null) run.vmArg "-Drouter.dim=${project.findProperty('routerDim')}"
+            if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=true"
+            if (project.findProperty('cppVanilla') != null) run.vmArg "-Dcpp.vanilla=1"
+            if (project.findProperty('cppWorldgenDir') != null) run.vmArg "-Dcpp.worldgen.dir=${project.findProperty('cppWorldgenDir')}"
+            if (project.findProperty('routerB3dDump') != null) run.vmArg "-Drouter.b3dDump=1"
+            if (project.findProperty('seedLog') != null) run.vmArg "-Dwg.seedlog=true"
+            if (project.findProperty('treediag') != null) run.vmArg "-Dwg.treediag=true"
+            if (project.findProperty('diagchunk') != null) run.vmArg "-Dwg.diagchunk=${project.findProperty('diagchunk')}"
+            if (project.findProperty('oreProbe') != null) run.vmArg "-Dore.probe=true"
+            if (project.findProperty('oreChunkX') != null) run.vmArg "-Dore.chunkX=${project.findProperty('oreChunkX')}"
+            if (project.findProperty('oreChunkZ') != null) run.vmArg "-Dore.chunkZ=${project.findProperty('oreChunkZ')}"
+            if (project.findProperty('blockProbe') != null) run.vmArg "-Dblock.probe=true"
+            if (project.findProperty('lightDataDump') != null) run.vmArg "-DlightDataDump=${project.findProperty('lightDataDump')}"
+            if (project.findProperty('lightRust') != null) run.vmArg "-Dcoreswap.light.rust=1"
+            if (project.findProperty('lightData') != null) run.vmArg "-Dcoreswap.light.data=${project.findProperty('lightData')}"
+            if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
+            if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
+            if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
+            if (project.findProperty('blockProbeFull') != null) run.vmArg "-DblockProbe.full=${project.findProperty('blockProbeFull')}"
+            if (project.findProperty('biome6oct') != null) run.vmArg "-Dbiome6oct=true"
+            if (project.findProperty('biome6cal') != null) run.vmArg "-Dbiome6cal=true"
+            if (project.findProperty('biome6') != null) run.vmArg "-Dbiome6=true"
+            if (project.findProperty('biome6dim') != null) run.vmArg "-Dbiome6.dim=${project.findProperty('biome6dim')}"
+            if (project.findProperty('biome6mnDump') != null) run.vmArg "-Dbiome6.mnDump=${project.findProperty('biome6mnDump')}"
+            if (project.findProperty('biome6points') != null) run.vmArg "-Dbiome6.points=${project.findProperty('biome6points')}"
+            if (project.findProperty('noisePoints') != null) run.vmArg "-Drouter.noisePoints=${project.findProperty('noisePoints')}"
+            if (project.findProperty('noisePointsDim') != null) run.vmArg "-DnoisePoints.dim=${project.findProperty('noisePointsDim')}"
+            if (project.findProperty('biome6.cellDump') != null) run.vmArg "-Dbiome6.cellDump=${project.findProperty('biome6.cellDump')}"
+            if (project.findProperty('biome6.colDump') != null) run.vmArg "-Dbiome6.colDump=${project.findProperty('biome6.colDump')}"
+            if (project.findProperty('biomeProbe') != null) run.vmArg "-Dbiome.probe=true"
+            if (project.findProperty('biomePreset') != null) run.vmArg "-Dbiome.preset=${project.findProperty('biomePreset')}"
+            if (project.findProperty('noiseProbe') != null) run.vmArg "-Dnoise.probe=true"
+            if (project.findProperty('heightProbe') != null) run.vmArg "-Dheight.probe=true"
+            if (project.findProperty('noiseNames') != null) run.vmArg "-Dnoise.names=${project.findProperty('noiseNames')}"
+            if (project.findProperty('noiseSuffix') != null) run.vmArg "-Dnoise.suffix=${project.findProperty('noiseSuffix')}"
+            if (project.findProperty('densityProbe') != null) run.vmArg "-DdensityProbe=true"
+            if (project.findProperty('densityProbeDimension') != null) run.vmArg "-DdensityProbe.dimension=${project.findProperty('densityProbeDimension')}"
+            if (project.findProperty('densityProbeChunkX') != null) run.vmArg "-DdensityProbe.chunkX=${project.findProperty('densityProbeChunkX')}"
+            if (project.findProperty('densityProbeChunkZ') != null) run.vmArg "-DdensityProbe.chunkZ=${project.findProperty('densityProbeChunkZ')}"
+            if (project.findProperty('densityProbeX') != null) run.vmArg "-DdensityProbe.x=${project.findProperty('densityProbeX')}"
+            if (project.findProperty('densityProbeZ') != null) run.vmArg "-DdensityProbe.z=${project.findProperty('densityProbeZ')}"
+            if (project.findProperty('chunkRandomProbe') != null) run.vmArg "-DchunkRandom.probe=true"
+            if (project.findProperty('jniNether') != null) run.vmArg "-Djni.nether=true"
+            if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
+            if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
+            if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
+            // 句柄级阶段开关（260902-09）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；7 = noise-only
+            if (project.findProperty('rustStages') != null) run.vmArg "-Dcoreswap.rust.stages=${project.findProperty('rustStages')}"
+            if (project.findProperty('coreswapThreads') != null) run.vmArg "-Dcoreswap.threads=${project.findProperty('coreswapThreads')}"
+            // 260910-04 口径净化/诊断映射（必须在 benchVmArgs 闭包内：`run` 只在此作用域可见，
+            // 放进 tasks.matching{} 会报 unknown property 'run'——本轮已踩，见错误台账）
+            if (project.findProperty('mixlog') != null) run.vmArg "-Dcoreswap.mixlog=1"
+            if (project.findProperty('chunktime') != null) run.vmArg "-Dcoreswap.chunktime=1"
+            // 260910-04 池缩放判别：-PmaxBgThreads=N → -Dmax.bg.threads=N（MC Util.getAvailableBackgroundThreads 上限）
+            if (project.findProperty('maxBgThreads') != null) run.vmArg "-Dmax.bg.threads=${project.findProperty('maxBgThreads')}"
+            // R3 A/B：-Psyncfill=1 → 走旧同步填充路径（默认异步，对齐 vanilla wgen_fill_noise 形态）
+            if (project.findProperty('syncfill') != null) run.vmArg "-Dcoreswap.syncfill=1"
+            if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
+            // mod 方块注册冒烟（260907-07 方案 C）：值 = 注册条数上限（空串/非数字 = 不限）
+            if (project.findProperty('cppBlockRegister') != null) run.vmArg "-Dcpp.blockRegister=${project.findProperty('cppBlockRegister')}"
+            if (project.findProperty('compProbe') != null) {
+                run.vmArg "-Dcomp.probe=true"
+                if (project.findProperty('compX') != null) run.vmArg "-Dcomp.x=${project.findProperty('compX')}"
+                if (project.findProperty('compZ') != null) run.vmArg "-Dcomp.z=${project.findProperty('compZ')}"
+                if (project.findProperty('compY') != null) run.vmArg "-Dcomp.y=${project.findProperty('compY')}"
+            }
+            if (project.findProperty('readWorldProbe') != null) run.vmArg "-DreadWorld.probe=true"
+            if (project.findProperty('bench.mismatchOut') != null) run.vmArg "-Dbench.mismatchOut=${project.findProperty('bench.mismatchOut')}"
+            if (project.findProperty('wgDumpBiome') != null) run.vmArg "-Dwg.dumpbiome=1"
+            if (project.findProperty('wgDiagNether') != null) run.vmArg "-Dwg.diagNether=1"
+            if (project.findProperty('blobProbe') != null) {
+                run.vmArg "-Dblob.probe=1"
+                if (project.findProperty('blobProbeOut') != null) run.vmArg "-DblobProbe.out=${project.findProperty('blobProbeOut')}"
+            }
+            if (project.findProperty('surfaceColDump') != null) {
+                run.vmArg "-DsurfaceColDump=1"
+                if (project.findProperty('colDumpOut') != null) run.vmArg "-DcolDump.out=${project.findProperty('colDumpOut')}"
+            }
+            if (project.findProperty('colProfProbe') != null) run.vmArg "-Dcolprof.probe=1"
+            if (project.findProperty('colProfMode') != null) run.vmArg "-Dcolprof.mode=${project.findProperty('colProfMode')}"
+            if (project.findProperty('colProfR') != null) run.vmArg "-Dcolprof.r=${project.findProperty('colProfR')}"
+            if (project.findProperty('surfaceDump') != null) {
+                run.vmArg "-Dsurfacedump.probe=1"
+                if (project.findProperty('surfaceDumpChunkX') != null) run.vmArg "-Dsurfacedump.chunkX=${project.findProperty('surfaceDumpChunkX')}"
+                if (project.findProperty('surfaceDumpChunkZ') != null) run.vmArg "-Dsurfacedump.chunkZ=${project.findProperty('surfaceDumpChunkZ')}"
+                if (project.findProperty('surfaceDumpSize') != null) run.vmArg "-Dsurfacedump.size=${project.findProperty('surfaceDumpSize')}"
+                if (project.findProperty('surfaceDumpOut') != null) run.vmArg "-Dsurfacedump.out=${project.findProperty('surfaceDumpOut')}"
+                if (project.findProperty('surfaceDumpOutPost') != null) run.vmArg "-Dsurfacedump.outPost=${project.findProperty('surfaceDumpOutPost')}"
+            }
+            if (project.findProperty('noiseDump') != null) {
+                run.vmArg "-Dnoisedump.probe=1"
+                if (project.findProperty('noiseDumpChunkX') != null) run.vmArg "-Dnoisedump.chunkX=${project.findProperty('noiseDumpChunkX')}"
+                if (project.findProperty('noiseDumpChunkZ') != null) run.vmArg "-Dnoisedump.chunkZ=${project.findProperty('noiseDumpChunkZ')}"
+                if (project.findProperty('noiseDumpSize') != null) run.vmArg "-Dnoisedump.size=${project.findProperty('noiseDumpSize')}"
+                if (project.findProperty('noiseDumpOut') != null) run.vmArg "-Dnoisedump.out=${project.findProperty('noiseDumpOut')}"
+            }
+            if (project.findProperty('estDump') != null) {
+                run.vmArg "-Destdump.probe=1"
+                if (project.findProperty('estDumpOriginX') != null) run.vmArg "-Destdump.originX=${project.findProperty('estDumpOriginX')}"
+                if (project.findProperty('estDumpOriginZ') != null) run.vmArg "-Destdump.originZ=${project.findProperty('estDumpOriginZ')}"
+                if (project.findProperty('estDumpSize') != null) run.vmArg "-Destdump.size=${project.findProperty('estDumpSize')}"
+                if (project.findProperty('estDumpOut') != null) run.vmArg "-Destdump.out=${project.findProperty('estDumpOut')}"
+                if (project.findProperty('estDumpChunkX') != null) run.vmArg "-Destdump.chunkX=${project.findProperty('estDumpChunkX')}"
+                if (project.findProperty('estDumpChunkZ') != null) run.vmArg "-Destdump.chunkZ=${project.findProperty('estDumpChunkZ')}"
+            }
+            if (project.findProperty('aqDump') != null) {
+                run.vmArg "-Daqdump.probe=1"
+                if (project.findProperty('aqDumpPoints') != null) run.vmArg "-Daqdump.points=${project.findProperty('aqDumpPoints')}"
+                if (project.findProperty('aqDumpOut') != null) run.vmArg "-Daqdump.out=${project.findProperty('aqDumpOut')}"
+            }
+            if (project.findProperty('benchProbe') != null) run.vmArg "-Dworldgen.bench=true"
+        }
+        server {
+            server()
+            name = "Server"
+            programArgs '--nogui'
+            // 260910-07 迁移：工程搬到 versions/1.21.6/java（源码入库），**运行环境留在 runtime/**。
+            // ⚠️ loom 的 runDir 是 String 且按**工程目录相对解析**（绝对路径会被拼成 工程目录\E:\… ⇒ CreateProcess error=267）。
+            runDir "../../../runtime/1.21.6/java/run"
+            vmArg "-Dfabric.systemLibraries="
+            benchVmArgs(delegate)
+            // 原生崩溃诊断：hs_err 写到固定路径（崩溃日志铁律）
+            vmArg "-XX:ErrorFile=E:/PYTHON/CoreSwap/runtime/1.21.6/java/run/hs_err_%p.log"
+        }
+        client {
+            client()
+            name = "Client"
+            runDir "../../../runtime/1.21.6/java/run"
+            benchVmArgs(delegate)
+            vmArg "-XX:ErrorFile=E:/PYTHON/CoreSwap/runtime/1.21.6/java/run/hs_err_%p.log"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+// -PfeatureLog=1 → native WG_FEATURELOG env（gradle property 通道，绕开 daemon env 卫生问题 #32 家族）
+tasks.matching { it.name == 'runServer' }.configureEach {
+    if (project.findProperty('featureLog') != null) environment("WG_FEATURELOG", "1")
+    // -PfeatureSeqLog=1 → Java 侧 WG_FEATURESEQ env（P-b1 序列探针，chunk(0,0) (k,p,fid) dump，260909-02）
+    if (project.findProperty('featureSeqLog') != null) environment("WG_FEATURESEQ", "1")
+    // 260908-10 P7 残差归因：-PaqDumpRust=<点文件> → native WG_AQDUMP env（Rust 侧 aquifer 全链路 dump，
+    // 与 Java -PaqDump 同点文件/同 seed 同跑，逐字段对比）
+    if (project.findProperty('aqDumpRust') != null) {
+        println "[dbg] runServer env WG_AQDUMP=${project.findProperty('aqDumpRust')} configured"
+        environment("WG_AQDUMP", project.findProperty('aqDumpRust'))
+    }
+    // 260910-04 性能回归判别矩阵（C 组臂）：-PcaMin=0 / -PestL2=0 → native env。
+    // 走 gradle property 通道而非宿主 env（daemon 复用吞 env，#32/#53/#20 死参数假判别家族）；
+    // Rust 侧语义 = 默认开、显式 "0" 关（worldgen_handle.rs env_enabled / ca_min 解析）。
+    // 行为化证据配套：native 首次 fill 打一行 [WG-CONF]（#81「A=B 不证分支生效」）。
+    if (project.findProperty('caMin') != null) {
+        println "[dbg] runServer env WG_CA_MIN=${project.findProperty('caMin')} configured"
+        environment("WG_CA_MIN", project.findProperty('caMin'))
+    }
+    if (project.findProperty('estL2') != null) {
+        println "[dbg] runServer env WG_EST_L2=${project.findProperty('estL2')} configured"
+        environment("WG_EST_L2", project.findProperty('estL2'))
+    }
+    if (project.findProperty('caCap') != null) {
+        println "[dbg] runServer env WG_CA_CAP=${project.findProperty('caCap')} configured"
+        environment("WG_CA_CAP", project.findProperty('caCap'))
+    }
+    // -Pmixlog=1 → mixin per-chunk 日志开（260910-04 口径净化对照臂 C0 用；默认关 = 生产语义）
+    // -Pchunktime=1 → chunk 级分段计时（mixin 段 / JNI / writeChunk / heightmap / scan / 段间 gap）
+    if (project.findProperty('defaultBlock') != null) {
+        println "[dbg] runServer env CORESWAP_DEFAULT_BLOCK=${project.findProperty('defaultBlock')} configured"
+        environment("CORESWAP_DEFAULT_BLOCK", project.findProperty('defaultBlock'))
+        doFirst { println "[dbg] runServer launching with env CORESWAP_DEFAULT_BLOCK=${environment['CORESWAP_DEFAULT_BLOCK']}" }
+    }
+}

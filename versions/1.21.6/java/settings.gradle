@@ -1,0 +1,13 @@
+pluginManagement {
+    repositories {
+        maven { url = "https://maven.fabricmc.net/" }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'worldgen-bench'
+
+// 最小内容 mod 载体（260907-09 真实 mod 端到端实测）：
+// 注册 2 个自定义方块，验证 CoreSwap mod 方块注册→写回链路对真实第三方 mod 方块生效
+include 'content-test'

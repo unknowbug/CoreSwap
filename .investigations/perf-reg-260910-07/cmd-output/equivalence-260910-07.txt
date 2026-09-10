@@ -1,0 +1,15 @@
+# 260910-07 Java 工程迁移 —— 等价性门（逐条目 sha256，排除 META-INF）
+[1.20.1] entries old=1077 new=1077 | only-old=0 only-new=0 content-diff=0
+[1.20.1] old jar sha = 297680e796b64c50244bff80610f7b77ccbfbcd10104c7d26c9cc23ade9e35cb
+[1.20.1] new jar sha = 297680e796b64c50244bff80610f7b77ccbfbcd10104c7d26c9cc23ade9e35cb
+[1.20.1] target dll=597e12ed2275ada51d1681071c552e6626fdf024fa1889df11b2b14208a9fc84
+[1.20.1] jar-inner dll=597e12ed2275ada51d1681071c552e6626fdf024fa1889df11b2b14208a9fc84
+[1.20.1] TRIPLE MATCH = True
+
+[1.21.6] entries old=1797 new=1797 | only-old=0 only-new=0 content-diff=0
+[1.21.6] old jar sha = 16d5e5e7adf0780c74d4be60ac85298ec9bfcd45d347f5fcf40b1f4fe77bfc8e
+[1.21.6] new jar sha = 16d5e5e7adf0780c74d4be60ac85298ec9bfcd45d347f5fcf40b1f4fe77bfc8e
+[1.21.6] target dll=abd7d8893d22e030a52568ec5e4741689761229a341157ff3e6e0e4bbf792131
+[1.21.6] jar-inner dll=abd7d8893d22e030a52568ec5e4741689761229a341157ff3e6e0e4bbf792131
+[1.21.6] TRIPLE MATCH = True
+

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "testcontent",
+  "version": "1.0.0",
+  "name": "Content Test",
+  "description": "Minimal content mod carrier for CoreSwap real-mod end-to-end verification (260907-09).",
+  "authors": ["unknowbug"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["testcontent.TestContentMod"]
+  }
+}

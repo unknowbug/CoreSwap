@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "coreswap",
+  "version": "${version}",
+  "name": "CoreSwap",
+  "description": "Native (Rust) Minecraft world generation core: same seeds, same worlds, vanilla-compatible blocks, faster chunk generation. Pairs with Sodium/Iris (Sodium renders, CoreSwap generates).",
+  "authors": ["unknowbug"],
+  "contact": {
+    "homepage": "https://github.com/unknowbug/CoreSwap",
+    "sources": "https://github.com/unknowbug/CoreSwap"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["wg.bench.BenchMod"]
+  },
+  "mixins": [
+    "coreswap.mixins.json"
+  ]
+}
