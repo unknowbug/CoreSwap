@@ -924,3 +924,33 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **修复（建议）**：统一 fragment 契约为「顶层 = 单个 entry 映射」（或让脚本显式接受 list 并逐条合并）；应用前把 list 形态片段改写为逐条映射，或主会话手工合并；脚本对输入形态 SHOULD 显式校验并给可读错误。
 - **教训/判据**：① 交付 + 合并的组合 MUST 钉死**片段 schema**（顶层类型/字段名/嵌套层级），写进 `core.artifact` §5.1 的片段约定并由脚本强制；② `AttributeError: 'list' object has no attribute '<mapping method>'` 是「工具假定映射、实际收到序列」的签名，遇到直接查片段顶层类型即可，不必调试合并逻辑；③ 交付方声明的形态（文件头注释「追加到 entries 末尾」）不等于脚本接受的形态。
 - **家族索引**：#8/#19/#25（契约/接线维）、#33 家族（交付形态与消费方不一致）。
+
+## 发现 #49 简记: PowerShell `pwsh -File script.ps1 -Arms a,b,c` 把逗号串当**单个字符串**——多值参数必须用数组 `@("a","b")`（260910-05）
+
+- **发现时间 / 置信度 / module**：260910-05；**签名侧确定**（一手报错原文 + 修复后跑通）；build-tooling / 驱动脚本参数传递。
+- **来源定位**：`.investigations/perf-closeout-260910-05/record.md` §2.1「踩坑 E1」；脚本 `.investigations/perf-closeout-260910-05/cmd-output/run_arms3.ps1`（臂定义处）。
+- **现象**：`pwsh -File run_arms3.ps1 -Arms r3,r3log,r3feat,r3sync` ⇒ 脚本报 **`unknown arm r3,r3log,r3feat,r3sync`**——被拒的名字是**带逗号的整串**，即逗号串作为一个臂名进入参数（零臂可跑）。
+- **根因（机制）**：逗号数组语法在 **`-File` 的实参串**上未生效，整串被当成单个字符串绑定到数组形参（得到长度为 1 的元素）。⚠️ 本块未做 PowerShell 参数绑定的最小复现 ⇒ **机制侧 Degraded（表述以实测签名为准）**，签名侧确定。
+- **定位**：看**报错里的名字形态**即可判别——出现「带分隔符的整串」= 分隔符未解释；若只取到第一个名字则是另一类签名（绑定截断）。本案属前者。
+- **修复**：调用侧显式构造数组 `& <script> -Arms @("r3","r3log",...)`（或在脚本内对字符串参数做 `-split ','` 兜底）。
+- **教训/判据**：① `-File` 传参一律按**字符串语义**预期，多值 MUST 用 `@(...)` 显式数组；② 驱动脚本启动时**回显实际收到的参数**（本案 results 行含 `args=`/`stages=`/`calog=`/`world=`，使每臂口径事后可回查）——#37/#81「生效证据必须行为化」的**编排侧**形态；③ 批量跑批脚本的臂名解析失败应**立即非零退出**（本案是响亮失败，优于 #20/#53 家族的静默不生效）。
+- **家族索引**：#37/#81（生效证据行为化）、#20/#53（参数静默不生效——本条为「响亮失败」对偶）、#28（冒烟/存档口径参数集）。
+
+## 发现 #50: `merge_index.py` 写回根 index 是「解析 + **重建**」——注释与四字段以外的一切被静默丢弃（本仓库根索引 1200+ 行、其中 300+ 行注释承载结论摘要）⇒ 带注释的根索引禁跑该工具（260910-05）
+
+- **发现时间 / 置信度 / module**：260910-05；**确定**（一手读工具源码 + 现网根索引实测注释行数；本块已按规避方案执行）；build-tooling / index 合并链（#48 同脚本的**第二形态**：一个是崩溃，一个是静默损毁）。
+- **来源定位**：`scripts/merge_index.py`：`:37` `ENTRY_KEYS = ('id','path','kind','status')` + `:49-56` `norm_entries`（每条 entry 白名单化为四字段，`:55` = `{k: e.get(k,'') for k in ENTRY_KEYS}`）+ `:129-139`（写回时**新建整个文档** `{schema_version, project, module, entries}` 后 `yaml.safe_dump` **覆写**根文件）；现网 `.artifacts/index.yaml`（共 1229 行，以 `#` 开头者 300+ 行；本批写入后实测）；规避实例 = `.artifacts/index.yaml:1188-1189`（手工追加 + 就地写下「勿跑」警告）+ `record.md` §1.3。
+- **现象/风险**：对该根索引跑合并后，**全部注释**与**非四字段信息**消失（本仓库根索引正用注释承载各块结论摘要，如 `:1194-1204` 的 260910-05 块）；无警告、无备份、**退出码 0**。
+- **根因（机制）**：工具是 **parse → 重建 → dump**，而不是「原地编辑」。三处叠加：① 条目被 `norm_entries` 白名单化成四字段（未知/扩展字段丢）；② 写回 dict 只含四个顶层键（顶层其它键丢）；③ YAML 加载器**不保留注释**（注释丢）。⇒ 只要写回路径经过 parse/dump，**注释必然丢**（语言层面事实，无需复现）。
+- **定位**：读脚本「写回」段（看它是 edit 还是 rebuild）+ 数现网目标文件的注释行数（307）+ 对照本仓库根索引的实际用法（注释型承载）⇒ 直接判定不兼容。
+- **修复/规避**：**带注释的根索引 MUST NOT 跑 `merge_index.py`**——改**手工追加** entry（本案做法；或先备份注释、跑完恢复）。根治方向：工具改 ruamel.yaml round-trip，或把结论摘要从注释迁为条目字段。现网已在 `.artifacts/index.yaml:1189` 就地写下警告。
+- **教训/判据**：① 对「**承载结论/说明的索引文件**」跑任何自动合并工具前，MUST 先核「写回是**原地编辑**还是**重建**」——重建式工具 = 注释与未知字段一律丢，且通常静默；② 本工具的契约是「**四字段 entries 集合**」，**不是**本仓库根索引的维护器：#48（片段形态崩溃）+ 本条（写回语义）合起来 = 两侧都不适配，本仓库应固定用「手工追加 + 注释承载」；③ **静默数据销毁签名** = 退出码 0 + 无警告 + 目标文件结构被替换（比报错危险得多，同族 #27 existence-only marker 静默 fallback、#16「死分支」）。
+- **家族索引**：#48（同脚本 · 片段形态面）、#27 家族（静默退化/静默销毁）、#18（产物在盘 ≠ 本次生成——本条为「工具成功 ≠ 内容保留」）、#10（产物判新旧用内容指纹）。
+
+### #26 家族补充案例（260910-05）: Chunky 载具的**维度扩展**——`chunky world minecraft:the_nether|the_end` 可用 + region 路径 `DIM-1`/`DIM1` + 首用 sanity 判据
+
+- **发现时间 / 置信度 / module**：260910-05；确定（一手九臂 `results.txt` + 日志）；build-tooling / 验证载体（#26 的维度面）。
+- **来源定位**：`.investigations/perf-closeout-260910-05/record.md` §5.2/§5.3；`.artifacts/perf-closeout-260910-05/verdict-nether-end-260910-05.md` §2；一手 `.tmp/perf-reg-260910-05/results.txt`（`naS-r1` 行：`world=minecraft:the_nether … mixinLines=4761 interceptDim=4761`）。
+- **内容（三点）**：① 命令 `chunky world minecraft:the_nether` / `minecraft:the_end` **被接受**（`Task finished for … Processed: 4225 chunks (100.00%)`）；② 存档 region 路径按维度分目录——nether = `run\world\DIM-1\region`、end = `run\world\DIM1\region`（驱动脚本用 `reg` 字段显式指定，别照抄 overworld 的 `region`）；③ 首用 **sanity 判据** = `[Mixin] populateNoise(nether|end) intercepted` 行数 **+** `[WG-FILL]` 行数（本案两维各 4761 = 4761）；两者均依赖 `-Pmixlog=1`，故 **A/B 臂未开日志时 `interceptDim=0` 属预期**，不能读成「接管没生效」（形态证据改用 `inflight max`）。
+- **判据**：新维度载具首用 MUST 先过**三查**再开 A/B——维度名被接受 / 接管生效有行数（含写回行）/ region 路径存在；「接管计数为 0」先核**日志门控是否开**（#25/#8 家族门控），再怀疑管线。
+- **家族索引**：#26（Chunky 区域级载体——本条为其维度扩展）、#25（mixin 门控 sysprop/env）、#80（时序/触发条件）、#107 家族补充案例（本批 A4——本条为其**载体侧**判据）。
