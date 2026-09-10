@@ -161,6 +161,11 @@
 - 关键更正：① E2 根因全链统一为「**推断·未核**」+ 记录 C7-C9① ↔ nether-C5② 的时点冲突与取舍；② CPU 臂数 = 13 行表 12 行为 `-1`，仅 `ea-r2`（86）与 `eaS-r1`（99）两臂采到；③ `verdict-nether-end:44` 跨维串号 `7567/7543` → **`7543/7542`**（C1/E4 家族三犯）；④ eaS 证据归档 + MANIFEST 刷新 **269 条**；⑤ nether 噪声第二处口径（async 代理）；⑥ end 零差内联限定；⑦ `pending_writes` 量级口径。
 - 审查文件：`.artifacts/perf-closeout-260910-05/judge-verdict-final-260910-05.md`。
 
+### 6.2 confirmed + 测试构建（2026-09-10 19:58）
+- 用户四项 confirmed：C7-①（空集）/ C7-②③（基线+幅度）/ §15.4 取代 / nether/end 推广；已写入两份 verdict 头 + 根 `index.yaml` 四条 + `index-entry.yaml` + NEXT。
+- 1.21.6 测试 jar 构建：`runtime/1.21.6/java/build/libs/coreswap1216-1.21.6-0.1.0.jar`，sha256 `16d5e5e7adf0780c…`，jar 内 dll 与 target 一致（`abd7d8893d22e030…`）。
+- 1.20.1 亦构建（1.0.27，三元组 MATCH），用户明确暂不处理。
+
 ### 6.1 登记后续项（本块未做，留给下轮）
 1. **nether 同形态非确定 ~0.14%（vs overworld 0.0092%）成因未查**（候选：nether 结构/熔岩湖按 chunk 完成序放置、region 目录含非本臂生成 chunk）。
 2. **重复接管调用**（`populatedNoise` 调用 4761 > chunks 4225）成因未查；与 `feedBeardifier`/`fillChunk` 同 chunk 交错的既有风险面同族。

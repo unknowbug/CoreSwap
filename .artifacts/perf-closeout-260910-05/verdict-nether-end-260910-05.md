@@ -1,6 +1,6 @@
 # verdict — nether/end 异步化推广（R3 同款改造 + 各自行为门）
 
-> 区块：260910-05。状态：**candidate**（judge J3/J4 = PASS-with-conditions，**C1-C10 已应用**，见 §7；confirmed 留用户 HOOK-3/HOOK-4）。
+> 区块：260910-05。状态：**confirmed**（用户 260910-05 明确授权，2026-09-10 19:58；judge J3/J4 = PASS-with-conditions，C1-C10 已应用，另有收尾审查 FIN-C1-C9 已应用）。
 > 上游：260910-04 R3（overworld 异步化，confirmed）；本块 `verdict-c7-260910-05.md`（C7 收口）。
 > 证据链：`.investigations/perf-closeout-260910-05/`（`record.md` §5 / `java-snapshot/pre|post` / `cmd-output/`，含 251 条 MANIFEST-sha256）+ `.tmp/perf-reg-260910-05/`（原始日志与 `results.txt`，不入库）。
 

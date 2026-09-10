@@ -1190,7 +1190,7 @@ entries:
   - id: 'swe:perf-closeout-260910-05:verdict-c7'
     path: 'perf-closeout-260910-05/verdict-c7-260910-05.md'
     kind: analysis
-    status: candidate  # judge PASS-with-conditions（C1-C9 已应用）；confirmed 留用户
+    status: confirmed  # 用户 260910-05 明确授权（2026-09-10 19:58）；judge PASS-with-conditions C1-C9 + 收尾审查 FIN-C1-C9 已应用
     # C7-①（judge C7-① 收口）：pending_cross_writes 跨 chunk 写序竞争假说 = **空集**（当前出货语义 mask=3 下不可达）。
     #   静态链：CppBridge.resolveStageMask() 默认 0b011 → skip_features → worldgen_handle.rs:669-671 不进 apply_features；
     #     缓冲生产点 :1088 / 消费点 :1053 都在 apply_features（体 :1036-1375）内，唯一调用点 :671；neighbor_terrain 调用点 :1124/:1242 同族不可达。
@@ -1210,7 +1210,7 @@ entries:
   - id: 'swe:perf-closeout-260910-05:verdict-nether-end'
     path: 'perf-closeout-260910-05/verdict-nether-end-260910-05.md'
     kind: analysis
-    status: candidate  # judge J3/J4 = PASS-with-conditions（C1-C10 已应用）；confirmed 留用户
+    status: confirmed  # 用户 260910-05 明确授权（2026-09-10 19:58）；judge J3/J4 PASS-with-conditions C1-C10 + 收尾审查 FIN-C1-C9 已应用
     # nether/end 分支 R3 同款异步化（Java 侧纯调度形态；Rust 零改动 ⇒ 执行体与 260910-04 同源；7 个 coreswap 臂 dllsha=abd7d8893d22e030，nv/ev 为 vanilla 臂 dllsha=-）：
     #   形态证据 inflight max 1 → 23（两维复现，同一仪器）。
     #   性能（**口径点明**）：Chunky 进程内任务计时 nether 3.3-3.5×（69s→20/21s）、end 3.0×（18s→6s）；脚本侧 wallgen 仅 2.34×（70.1→30.0）/ 2.00×（20.0→10.0）；

@@ -5,7 +5,7 @@ entries:
   - id: 'swe:perf-closeout-260910-05:verdict-c7'
     path: 'perf-closeout-260910-05/verdict-c7-260910-05.md'
     kind: analysis
-    status: candidate
+    status: confirmed
   - id: 'swe:perf-closeout-260910-05:judge-c7'
     path: 'perf-closeout-260910-05/judge-verdict-c7-260910-05.md'
     kind: review
@@ -13,7 +13,7 @@ entries:
   - id: 'swe:perf-closeout-260910-05:verdict-nether-end'
     path: 'perf-closeout-260910-05/verdict-nether-end-260910-05.md'
     kind: analysis
-    status: candidate
+    status: confirmed
   - id: 'swe:perf-closeout-260910-05:judge-nether-end'
     path: 'perf-closeout-260910-05/judge-verdict-nether-end-260910-05.md'
     kind: review
