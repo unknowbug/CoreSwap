@@ -23,17 +23,26 @@ worldgen 核心已**从 C++ 迁移到 Rust**。现在一个 `worldgen.dll` 打�
 
 **为什么换 Rust**：桥 + 引擎同一门语言（少一条工具链）、热多线程路径的内存安全、以及 build-time **密度函数 transpiler**（vanilla JSON → 专用原生代码）兼职正确性裁判——transpiled 管线与运行时解释器证明等价（浮点残差 <5e-7），能抓到生产采样域看不见的语义 bug。
 
-## 当前状态（2026-09-06，v1.0.26）
+## 当前状态（2026-09-11，v1.0.28）
 
-- ✅ **主世界全原生**：密度 → 含水层 → 矿脉 → 表面规则 → 雕刻器 → 装饰。端到端**存档口径块级对齐 ≈ 99.0%**（大 region sweep 三采样均值 99.01%；残差为密度零面附近的浮点擦边带，非地形结构差）；密度场对齐至浮点残差（<5e-7）。游戏内实测通过（服务端 + 客户端）
+- ✅ **主世界地形全原生**：密度 → 含水层 → 矿脉 → 表面规则——**雕刻器与装饰层保留 vanilla Java（为 MOD 兼容）**。端到端**存档口径块级对齐 ≈ 99.0%**（大 region sweep 三采样均值 99.01%；残差为密度零面附近的浮点擦边带，非地形结构差）；密度场对齐至浮点残差（<5e-7）。游戏内实测通过（服务端 + 客户端）
 - ✅ **下界全原生**：端到端块级对齐 **99.9992%**（两个 4×4 region 共 16 块失配，全部归因已闭合的密度擦边机制）；极限坐标已验证（±30M 角点，98.85–99.85%）
 - ✅ **末地全原生（1.0.26 新增）**：主岛 + 外岛——从零移植 vanilla 的 `EndIslands` 密度函数（SimplexNoiseSampler + worldSeed 直传噪声链）与基于位置的 `TheEndBiomeSource` 判定器——**与 vanilla 逐位一致：36/36 chunk、0 块失配**（同种子生产存档对比，Forge 专用服务端，含黑石柱/出口传送门/黑曜石平台等 vanilla feature 全部由 Java 层在原生地形之上正常放置）
-- ✅ **世界生成性能——快过 vanilla Java**：大样本端到端基准（256 chunk、全新世界、稳定中位数）Rust 管线 **~28 ms/chunk vs vanilla Java ~32–33 ms/chunk**；含水层 est 重写（该阶段 -63.5%）后，真实游戏区块加载**玩家实测明显快于原版**，且自带完整并行（自适应 worker 池 + 跨 chunk 共享缓存）。全部收益无损——不靠近似
+- ⚡ **世界生成性能——快过 vanilla Java，且比我们自己的上一版快 5.6 倍**：全新世界、Chunky 预生成、按整片区域的 wall clock 计：
+
+  | 样本 | vanilla Java | CoreSwap 1.0.28 | 加速 |
+  |---|---|---|---|
+  | 4,225 chunk | 47–50 s（≈86 ch/s） | **36–38 s（≈114 ch/s）** | **≈1.3×** |
+  | 16,129 chunk | 190 s（84.9 ch/s） | **151 s（106.8 ch/s）** | **≈1.26×** |
+  | 4,225 chunk（1.0.27，同 jar 的旧单车道路径） | — | 202 s → **36 s** | **5.6×**（1.0.28 vs 1.0.27） |
+
+  原因：Minecraft 的 worldgen 车道是串行的——一次一个 chunk，**≈1.4 核忙**。1.0.28 把重的噪声填充工作从这条车道搬到工作池上，同一台机器因此能跑出 **≈11.6 核**的世界生成吞吐。全部收益无损——不靠近似。
+  <sub>方法：专用 Fabric 1.20.1 开发服务端、无客户端渲染；全新世界，seed `417950215108767439`，区域中心 (-48,-11)；Ryzen 9 7845HX（12C/24T）、Windows 11；每配置 3–4 次取范围；「ch/s」= wall clock 每秒 chunk 数；CPU 数字为整个 JVM 的利用率。vanilla 全管线跑 Java；CoreSwap 用 Rust 跑密度/含水层/矿脉/表面规则，雕刻器与装饰层留给 vanilla Java。以上是**批量预生成**口径的数字——客户端同机渲染时，体感差异因机器而异。</sub>
 - ✅ **jar 自包含**：mod jar 内置完整 worldgen 数据集（849 文件）+ 原生 dll——丢进 `mods/` 即用，零配置、无需外部数据目录；解压带版本哈希自更新
 - ✅ **启动期安全网**：surface 引擎可查询的每个噪声采样器都在启动期对照预加载表机械校验——缺 key 在启动即 fail-fast 并给出精确诊断，而不是在稀有 biome 游玩中途崩溃
 - ✅ **双加载器支持——Fabric + Forge**：一个 jar 两边通用。Fabric 原生；Forge 经 [Sinytra Connector](https://modrinth.com/mod/connector)（该环境 400+ mod 包实测）。Forge 已是**一等公民、生产级实测**：Forge 47.4.5 专用服务端、生产 SRG 重映射运行时，三个原版维度全部接管并与 vanilla 存档同种子逐位验证
 - ✅ **与 Sodium/Iris 互补**：Sodium 管渲染（帧率）、CoreSwap 管生成（探索加载）——互不冲突
-- 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.26`
+- 📦 下载：[Releases](https://github.com/unknowbug/CoreSwap/releases)——`1.0.28`
 - 🔭 路线：光照（LIGHT）、实体 AI（Brain / Goal / 寻路）Rust 化
 
 ## 安装教程
@@ -118,7 +127,7 @@ Rust 核心与 vanilla 完全同构地重建密度场：
 - **噪声原语**：Xoroshiro128PlusPlus 随机数、MD5 种子派生、Perlin / octave / double-perlin 采样器——对齐 Mojang 实现
 - **密度函数树**：运行时从 vanilla `worldgen` JSON 加载（`noise_settings/<dim>.json` + `density_function/<dim>/*.json`），镜像 `NoiseConfig` 的 visitor 语义——**数据驱动，无维度专属代码**（插值 cell 尺寸、高度、海平面、表面规则全部来自 JSON；多世界原生）
 - **Build-time transpiler**（`build.rs`）：把同一份 JSON 编译成专用原生函数（spline 内联、缓存解算、CSE）——独立的第二评估路径，用作正确性裁判并经 env 门控接入生产
-- **块级管线**：density → aquifer → ore veins → surface rules → carvers → features，镜像 vanilla 阶段语义（含下界的噪声/世界双高度、末地的 simplex 岛屿密度函数 + 位置式 biome 判定）
+- **块级管线**：density → aquifer → ore veins → surface rules → carvers → features，镜像 vanilla 阶段语义（含下界的噪声/世界双高度、末地的 simplex 岛屿密度函数 + 位置式 biome 判定）。**出厂的 1.20.1 mod 里，Rust 引擎负责 density → aquifer → ore veins → surface rules；雕刻器与装饰层保留 vanilla Java（为 MOD 兼容），Rust 侧这两阶段的实现以门控关闭状态出厂。**
 
 ## 路线图
 
