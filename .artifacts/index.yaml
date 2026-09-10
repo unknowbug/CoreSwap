@@ -1151,7 +1151,7 @@ entries:
   - id: 'swe:camin-perf:b3a-cap2048-26090906'
     path: 'camin-perf/b3a-cap2048-26090906.md'
     kind: analysis
-    status: confirmed  # 用户「授权确认」260909-06（judge review-260909-06 PASS-with-conditions 三条件已应用）
+    status: confirmed  # 用户「授权确认」260910-01（实际 2026-09-10 12:58）（judge review-260909-06 PASS-with-conditions 三条件已应用）
     # B3a 3×3 Rc 快照：hash 逐位不变（on 6908dbfc / off 115641b8 三点复验），单独增益 ~2%；CAP 256→2048（用户拍板，~800MB 服务器不构成约束）：clear-all 惩罚 ~10-11% wall 消除，与快照互补杠杆（#102）。
     # 组合后残差：32×32 口径 15.2ms/chunk（9.3%），16×16 ~30ms（尾缘语义项 region 虚高，#104）；±5% 目标未达（诚实声明）。
     # 取代记录：#101 判据①（51ns 摊销值）+ 260909-04 E2b（<2% 排除被修正，差异真实、机制=clear-all 纯增重生成打主管线缓存）。

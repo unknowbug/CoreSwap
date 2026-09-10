@@ -61,4 +61,4 @@
 - ⚠️ **降级声明（§9.7）**：本块全部读数 = bin-diag camin_bench 载体（串行 region 16/32 边长、bench 口径），与存档 dump 口径不可比；CAP 内存账：BlockColumn ≈384KB/条 → 2048 ≈800MB。
 - ⚠️ **±5% 目标诚实声明**：B3a+CAP2048 组合后残差仍 ~15ms/chunk（32×32 口径），「on≈off±5%」未达成——剩余为尾缘语义固有 + 主管线语义成本，bench 内不可再消（in vivo 连续生成按边际摊薄）。
 - 🔍 **IDK**：IDK-b1 (c) per-read 同步成本 ~13ms/chunk 为 1.68M reads × ~2μs 粗口径上界，未独立实测；IDK-b2 pending_writes=0 为单 region 单样本，外推其他区域/维度需复核；IDK-b3 CAP 2048 在多世界/大 region 场景的内存上限行为未测。
-- 状态：✅ 实现落盘 + hash/wall 硬门已验；知识库批次已应用（commit f66ade3）；✅ 用户 confirmed（260909-06）。git 基线 e91c7f6（代码）/ f66ade3（docs）。
+- 状态：✅ 实现落盘 + hash/wall 硬门已验；知识库批次已应用（commit f66ade3）；✅ 用户 confirmed（260910-01，实际 2026-09-10 12:58）。git 基线 e91c7f6（代码）/ f66ade3（docs）。
