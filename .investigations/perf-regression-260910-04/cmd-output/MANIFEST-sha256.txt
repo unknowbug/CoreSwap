@@ -1,7 +1,7 @@
-# 260910-04 原始证据归档（judge C1）— 生成于 2026-09-10 18:09:24，18:10 刷新（补完整 in-flight run）
-# 说明：ct1-r1.log（旧名）= 18:03 那次未完成 run 的快照（仅前 3072 chunk）；ct1-inflight-r2.log = 同构建态**完整 run**（4225 chunks，Total 0:04:24，含 inflight max=1 与末行 Σ）。
-# 更早的 n=1024 Σ 行（mixin=51.00/gap=948.16）原文已被重跑覆盖，只能由 record.md 转录引用（Degraded，judge C1/F）。
-# Java 侧改动在 /runtime/ 下（.gitignore:95）→ 无 git diff 源；本清单 sha256 为唯一完整性判据（judge C7）。
+# 260910-04 原始证据归档（judge C1）— 生成于 2026-09-10 18:30:03（R3 修复后刷新）
+# 覆盖：C 组判别矩阵 + A/A2 native + 池缩放 + in-flight 直证 + **R3 同构建态 A/B 与三臂行为等价对拍**。
+# 诚实声明：更早一次 ct1 run 的 n=1024 Σ 行原文被重跑覆盖（仅 record.md 转录，Degraded）；同配置 run-to-run 基线对未采集。
+# Java 侧改动在 /runtime/（.gitignore:95）→ 无 git diff 源；本清单 sha256 为唯一完整性判据（judge C7）。
 b4330bb0dbdb47f0aff53e83512c0f9b77473b8931306ad431b17789bf72f5ff  c1-r1.log  13636B
 65b2d963f26a49de66893e3b8b96d7fff1bc966c767ddb111ba6b582342aa54a  c1-r1.log.err  6724B
 6a02828b92a9a99f34ef2bc473e67b9a936fe152466aa342046f4b9f45d85c41  c2-r1.log  17292B
@@ -12,15 +12,22 @@ fb20cda7aea9ebf89feaf64a2a118f7e1b3414e3a72981d2c5c202abc51b5195  ct1-inflight-r
 0f8889f428cda128ec9836443794fdbbd7d11a7c23ab2683d3c8ff354a6b8963  ct1-inflight-r2.log.err  6724B
 30639213bbc4cacb14458a93e14284c393fe9110b0f916f5a0ac751bb8394081  ct1-r1.log  18172B
 0f8889f428cda128ec9836443794fdbbd7d11a7c23ab2683d3c8ff354a6b8963  ct1-r1.log.err  6724B
+25a3485754efa40887ee6868cba0942354017d28dae0d6bc960a82f67d508318  diff_arms.py  6492B
+de318854dd1af91d0b625460154762743301a356704724ef14637895c8959a18  diff-r3-vs-r3sync.txt  4038B
+1f99ecc5b9daf0f7cf1d96dcc169d8d9778750da1cfd9b6ab4c69ae683a9ca49  diff-r3-vs-vanilla.txt  4057B
+f7cc4c2bc8596edca1766df03ca17f60dacc1238da6d405a0591f53dd97848e2  diff-r3sync-vs-vanilla.txt  4062B
 87202d504bd8cfc01320a98e682c689225e023863e0fb80b048c5fea6210b217  native-A.txt  21861B
 f6a477d8c96e36664caeaa523bd2006400d395dc90b5b7d765829730833ad862  native-A2.txt  1499B
 8403c96eca8acc2cf970a6cad44177addff005b217409b6c619734e4273b801e  probe_rate.ps1  3126B
+9abe18545b114bbddf79f1c94f7351c136d0e0c867f9b4415e998cf6118790ba  r3-async-r1.log  21586B
+8477199875fc8575f54dbc3f307211fd489f5374bcab5e49aec69f6b0e172f57  r3sync-r1.log  25319B
+50865b853ae9893bdcaae93d36dcab26d3afb2d567331eaf05e1a19489417d50  r3sync-r1.log.err  6724B
 d72f9d25bc2d54c27ef92f1ccb480cdeb6a16eede30f6d4507eb90a1e398752e  rate-coreswap-pool4.log  3561B
 a988d5d1d9d2bfa30e5f6605ca9786f01cf105725be5e1a550c6788add80695a  rate-coreswap-pool4.log.err  1197B
 0c5b1e567527a2042f9ea7be5baf215bbfff467fc312c82be58ffebe598ff270  rate-vanilla-pool4.log  10427B
 a988d5d1d9d2bfa30e5f6605ca9786f01cf105725be5e1a550c6788add80695a  rate-vanilla-pool4.log.err  1197B
 11740faf71dd5a866bc3e43fd5d6f7f64d00551bfd9944b8bda86fad6bd7184c  rcon_one.py  989B
-229ff672a821fac363e97a30c73148d1ee038e5aa97be5440f2ac816ffa152bd  results.txt  1604B
+9b581573e6b314e0dae0d0b3fc18b5369e8efd7d36f0b13960381a538524b82a  results.txt  2270B
 e6f74a9a71c30e792cb0d8fe0ebc66d142116f06b06acf1aab304547109f98a3  run_arms2.ps1  9391B
 6fb27ed3171c2a743a4fa37e02bffcc99462536da8b6e5ae31c355088bf7930f  run_native_A.ps1  2726B
 67be521faee09c928c69eeea693cbf96a7f8bff74687630cc38234d93357d6f3  run_native_A2.ps1  1752B

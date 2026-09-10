@@ -1739,6 +1739,53 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **家族索引**：#83（性能分母/结构场景——本条为「瓶颈在并行结构不在算力」形态）、#100/#102（性能课题归因必须在真实通路上核对多面——本条补「执行位置：哪条车道/哪个池」为性能结构面）、#28（性能 run 串行测量纪律）、#36/#98（执行体与生效口径——本条为「执行位置」维）、新 #109（臂无关尺子）。
 
 
+### 发现 #107 修复验证（260910-04 追加）：异步化把并行度从 1 恢复到 23
+
+- **时间 / 发现者 / 置信度 / module**：260910-04（实际 2026-09-10；异步臂 `r3-r1` 日志时间戳 18:13，同步臂 `r3sync-r1` 18:15-18:20，背靠背同批）；主会话（实测，同构建态单变量 A/B + 并发度直读 + 逐块对拍门）；**candidate（同批 A/B + 直证；confirmed 留人类）**；workflow-patterns / 接管形态修复验证（#107 的修复侧）。
+- **来源定位**：
+  - 修复点 = `runtime/1.21.6/java/src/main/java/wg/bench/mixin/NoiseChunkGeneratorMixin.java:57-58`（`WG_FILL_POOL = Util.getMainWorkerExecutor().named("coreswap_fill_noise")`）+ `:145-149`（同步/异步二选一：`SYNCFILL ? completedFuture(work.get()) : supplyAsync(work, WG_FILL_POOL)`）；A/B 开关映射 `runtime/1.21.6/java/build.gradle:134-135`（`-Psyncfill=1` → `-Dcoreswap.syncfill=1`，默认异步）；并发度仪器 `runtime/1.21.6/java/src/main/java/wg/bench/ChunkTiming.java:27-40`（`inflightEnter/Exit` 原子计数）。
+  - 机器可读逐臂记录 = `.tmp/perf-reg-260910-04/results.txt` 第 10-12 行（`r3-r1` / `r3sync-r1` / `vanilla1216-r1`）。
+  - 异步臂完整日志 = `.investigations/perf-regression-260910-04/cmd-output/r3-async-r1.log`（第 147 行 `[CHUNKTIME] n=4608` 末行；第 148 行 Chunky `Total time: 0:00:42`；第 139 行 `Rate: 102.7 cps`）。
+  - 同步臂完整日志 = `.tmp/perf-reg-260910-04/logs/r3sync-r1.log`（第 165 行 `[CHUNKTIME] n=4608` 末行；第 167 行 `Total time: 0:04:39`）——⚠️ **未归档到 `.investigations/`**（见诚实边界 3）。
+  - 逐块对拍工具 = `.tmp/hang-repro-260910/diff_arms.py`；三臂 region 归档 = `.investigations/perf-regression-260910-04/cmd-output/region-{r3,r3sync,vanilla-260910-04}/`；历史双臂基线原文 = `.tmp/hang-repro-260910/diff-result.txt:74`。
+  - 上游定责 = `.artifacts/perf-regression-260910-04/verdict-260910-04.md` §3 R3（candidate，待用户 confirmed）。
+- **数据（同构建态 A/B，带 run 标识）**：
+
+| 臂 | run id | 接管形态 | Chunky Total | wallgen | serverCpu | 派生核数 | `inflight max` | 每 chunk 线程周期（armAgnostic featInterval，末次报告） | 每 chunk 接管段（mixin） |
+|---|---|---|---|---|---|---|---|---|---|
+| **r3** | `r3-r1` | **异步**（提交 `coreswap_fill_noise` 池，默认） | **0:00:42（42s）** | 50.1s | 543 | **10.8 核** | **23** | **242.52ms**（n=4411） | 103.47ms〔jni 96.81 / write 6.19 / hmap 0.42 / beard 0.03〕 |
+| **r3sync** | `r3sync-r1` | **同步**（`-Dcoreswap.syncfill=1`，同 dll sha `abd7d889…`） | **0:04:39（279s）** | 280.3s | 375 | **1.34 核** | **1** | **1413.65ms**（n=4416） | 53.87ms〔jni 50.19 / write 3.38 / hmap 0.21 / beard 0.02〕 |
+| vanilla | `vanilla1216-r1` | 原版（`wgen_fill_noise`） | **0:00:52（52s）** | 60.1s | 316 | 5.26 核 | （无仪器） | （无仪器） | （无仪器） |
+
+  - 派生核数 = `serverCpu / wallgen`（同表两列相除：543/50.1 = 10.84；375/280.3 = 1.34；316/60.1 = 5.26）；三臂同 seed `417950215108767439`、同 region **4225 chunks**（逐臂 `Processed: 4225 chunks` 核对一致）、同 dll sha `abd7d8893d22e030`。
+  - **唯一变量 = 同步/异步形态**：**279s / 42s = 6.64×**；R3 后 coreswap 反超 vanilla：**52s / 42s = 1.24×**；并发度直读 **inflight max 23 vs 1**；每 chunk 线程周期 **1413.65 / 242.52 = 5.83×**（与 wall 比 6.64× 同阶自洽）。
+  - **同一 Σ/wall 判据（#107/#108）在修复前后翻转**：`r3sync` 末次报告 Σ = sumMixin 248.3 + sumCarve 6.0 + sumFeat 12.2 = **266.5s / wallgen 280.3s = 95.1%**（≈ #107 定责时的 92.2%，即开关确实复现了「车道饱和」旧形态）；`r3` Σ = 476.8 + 7.4 + 15.8 = **500.0s / wallgen 50.1s = 9.98**（≈ 派生核数 10.8）⇒ 同一把尺子从 ≈1 翻到 ≈10-23 量级**（Σ/wall 是核数当量；线程数直读仍是 `inflight max`）。同线程间隔 `gap` 亦从 1224.00ms（`r3sync` 末行）降到 94.58ms（`r3` 末行）。
+  - 口径备注：末次报告 n=4411/4416 > region 4225 chunks（+4.4%/+4.5%）——接管计含区域边界外邻 chunk 重生成，属既有语义；sumMixin 是**线程时间之和**（池内多线程累加），不是 wall，勿与 wall 混用。
+- **行为等价门结果（全域逐块普查，非零容忍）**：三臂 region 全量逐 chunk 逐 section 对拍（工具 `diff_arms.py`，分母 = 共同 chunk 内「两侧 section 并集」的方块数，故每对分母随 section 存在性微移；`375,554,048 − 375,549,952 = 4,096 = 恰 1 个 section`）：
+
+| 对拍对 | 差异方块 | 分母 | 占比 |
+|---|---|---|---|
+| r3 vs vanilla | 44,921 | 375,554,048 | **0.0120%** |
+| r3 vs r3sync | 45,948 | 375,554,048 | **0.0122%** |
+| r3sync vs vanilla | 41,809 | 375,554,048 | **0.0111%** |
+| 历史双臂基线（260910-04 前，同作业线上） | 56,214 | 375,549,952 | **0.0150%** |
+
+  ⇒ 三对差值 **0.0111-0.0122% 与历史基线 0.0150% 同量级且不高于它**：R3 **未引入超出既有 run 级非确定的额外内容差**（管线本身有 run 级非确定，历史双臂即非零）。⇒ 门是**同量级门**，不是零容忍门。
+- **推广判据（MUST，可复用）——「接管类优化 = 把重活从被串行化的执行点搬到工作池」的验证三件套**：
+  1. **① 同构建态单变量 A/B（形态开关，背靠背）**：把旧形态**保留为开关**而不是删掉（本案 `-Dcoreswap.syncfill=1`），同 dll sha / 同 seed / 同 region / 背靠背各 1 run ⇒ 差异唯一变量 = 同步/异步形态。禁止用「改前历史数字 vs 改后数字」代替（跨批 ±20% 摆动带会淹没或伪造结论，#103/#108）。
+  2. **② 并发度直读（in-flight 计数：1 → N）**：在被搬动的重活**进出点各加一次原子计数**（本案 `ChunkTiming.inflightEnter/Exit`，随 `-Dcoreswap.chunktime` 门控），直接读出「同时刻在飞数」与历史峰值。判据 = 旧形态**恒为 1**（结构证明）、新形态达到池并发数（本案 **23** = 该池并发线程数）。这是「搬成功了」的**直接证据**，不要只靠 wall 推断。
+  3. **③ 行为等价门（逐块对拍，与既有 run 级噪声基线同量级即可，非零容忍）**：逐 chunk 逐 section 全量对拍，判据 = 新形态差值 **≤ 既有 run 级非确定基线**（本案三对 0.0111-0.0122% ≤ 0.0150%）。**零容忍是错的门**——本管线有 run 级非确定（历史双臂同配置即 0.015%），零容忍会产生假阴性并逼出无意义的「逐位对齐」轮次。参考量级：介于噪声基线与基线 1.5× 之间需查；超出量级即拒收。
+  - **附加结构证据**：搬动成功后，**同一 Σ(被搬出执行点内工作)/wall 判据应翻转**（本案 0.95 → 9.98）；**arm-agnostic 同尺复核**（#109 的 featInterval 1413.65 → 242.52ms = 5.83×）与 wall 比同阶 ⇒ 三路（wall / 直读并发 / 同尺周期）互证。
+- **陷阱（MUST）**：**重活进池后「每 chunk 段内延迟」会上升，不得读成回归**——本案接管段 mixin 53.87 → **103.47ms**（jni 50.19 → 96.81ms），因为同池 23 并发争用；而 wall 反降 6.64×。判据只看 wall / 吞吐，段内数字此时测的是「池内争用下的段延迟」，与单车道时的段延迟**不同物**（同族：吞吐均值 vs 每 chunk 延迟分离铁律）。
+- **诚实边界（缺口，不夸大）**：
+  1. **同配置 run-to-run 基线对本块未采集**：只有「同构建态同步 1 run vs 异步 1 run」这一对 A/B；按本项目跨 run ±20% 摆动带（#108：234s vs 283s），**6.64× 远超摆动带 ⇒ 方向可信，但幅度是单对读数**；要量级置信区间 SHOULD 补同批 ABBA ≥3 对。
+  2. 三臂逐块对拍数字（44,921 / 45,948 / 41,809）**目前未落盘**为任何 diff 输出文件（`.investigations/`、`.tmp/` 全树检索零命中）——门**可复现**（region 三臂归档 + `diff_arms.py`），但数字本身只能靠重跑复核；MUST 补跑并落盘 diff 输出。
+  3. 归档链对 R3 臂**滞后**：同步臂原始日志只在 `.tmp/perf-reg-260910-04/logs/r3sync-r1.log`（未进 `cmd-output/`）；`cmd-output/results.txt` 仍是 R3 前的 9 行版（R3 两行只在 `.tmp` 的 12 行版里）；`MANIFEST-sha256.txt` 生成于 18:09，早于 R3 跑批（18:13/18:15），故 R3 臂日志与结果行未纳入清单。
+  4. **worldgen 车道自身的 busy/inFlight 计数仍未做**（#107 判据 4 / b1 @idk）：本块 `inflight` 计的是**接管段在飞数（池侧）**，不是车道占用；「车道已不再是限流点」由 wall（42s ≤ vanilla 52s）与并发 23 推断，仍属推断（上游限流线未排除）。
+  5. vanilla 对照臂 `vanilla1216-r1`（52s）**未开** `-Dcoreswap.chunktime`；仪器化对照是 `vt1-r1`（53s，serverCpu 296 → 4.93 核）。跨臂每 chunk 段内数字**不可**与 coreswap 臂直接比（仪器不对称）。
+  6. **数字差异标注**：同步形态「每 chunk 线程时间 1325ms」出自 R3 **之前**的 ct1 臂（#109 / verdict §2.3）；本块同步臂**自身日志末值 = 1413.65ms**（+6.7%，同量级）。本条的 A/B 一律引用后者（同 run 同批自洽），1325ms 保留为历史读数，两者不混用。
+- **家族索引**：#107（主条——本条为其修复验证）、#108（Σ/wall 判据使用要点——本条给出判据在同一课题上的**翻转**形态）、#109（臂无关尺子——本条补同 build A/B 对）、#103/#51/#18（噪声带 / 跨 run 绝对值不可引）、#83（性能分母 / 结构场景）、#100/#102（归因须在真实通路上核对多面）。
+
 ## 发现 #108: 「Σ(被串行化执行点内工作) ≈ wall ⇒ 并行度塌陷（≈1）」判据的使用要点与陷阱（260910-04）
 
 - **发现时间 / 发现者 / 置信度 / module**：260910-04；主会话（实测）+ b1 worker（判据组织）；**candidate**（同批实测；跨 run 摆动实测）；workflow-patterns / 性能判据口径。

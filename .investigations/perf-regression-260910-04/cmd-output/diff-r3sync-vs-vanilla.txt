@@ -1,0 +1,96 @@
+vanilla chunks=7959 coreswap chunks=7959
+common=7959
+===定点对拍（邻居更新坐标 ±4 柱采样）===
+pos(-522,63,139):
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+  y=65: V=air            C=air            
+(-805,57,138) chunk(-51,8) NOT in both arms
+pos(-500,6,240):
+  y=4: V=diorite        C=diorite        
+  y=5: V=stone          C=stone          
+  y=6: V=water          C=water          
+  y=7: V=water          C=water          
+  y=8: V=water          C=water          
+(-874,48,-588) chunk(-55,-37) NOT in both arms
+pos(-296,48,-18):
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+  y=50: V=air            C=air            
+pos(-443,60,311):
+  y=58: V=air            C=air            
+  y=59: V=air            C=air            
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+pos(-556,60,316):
+  y=58: V=air            C=air            
+  y=59: V=air            C=air            
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+pos(-71,56,-517):
+  y=54: V=air            C=air            
+  y=55: V=air            C=air            
+  y=56: V=air            C=air            
+  y=57: V=air            C=air            
+  y=58: V=air            C=air            
+(-1531,61,239) chunk(-96,14) NOT in both arms
+pos(-471,45,-215):
+  y=43: V=air            C=air            
+  y=44: V=air            C=air            
+  y=45: V=air            C=air            
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+pos(-592,42,216):
+  y=40: V=water          C=water          
+  y=41: V=water          C=water          
+  y=42: V=water          C=water          
+  y=43: V=water          C=water          
+  y=44: V=water          C=water          
+pos(-527,52,78):
+  y=50: V=air            C=air            
+  y=51: V=air            C=air            
+  y=52: V=air            C=air            
+  y=53: V=air            C=air            
+  y=54: V=air            C=air            
+pos(-424,62,74):
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+pos(-196,47,295):
+  y=45: V=air            C=air            
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+===全域差分普查===
+blocks=375549952 diff=41809 (0.0111%) sections same/diff=91154/533
+top pairs:
+  minecraft:deepslate -> minecraft:air: 19590
+  minecraft:air -> minecraft:deepslate: 3047
+  minecraft:stone -> minecraft:air: 2182
+  minecraft:air -> minecraft:stone: 1628
+  minecraft:andesite -> minecraft:diorite: 1214
+  minecraft:granite -> minecraft:diorite: 1186
+  minecraft:tuff -> minecraft:air: 846
+  minecraft:granite -> minecraft:andesite: 834
+  minecraft:diorite -> minecraft:andesite: 657
+  minecraft:kelp_plant -> minecraft:water: 649
+  minecraft:water -> minecraft:kelp_plant: 642
+  minecraft:andesite -> minecraft:granite: 577
+  minecraft:tall_seagrass -> minecraft:water: 566
+  minecraft:deepslate -> minecraft:sculk: 544
+  minecraft:diorite -> minecraft:air: 510
+  minecraft:air -> minecraft:water: 498
+  minecraft:water -> minecraft:tall_seagrass: 476
+  minecraft:air -> minecraft:diorite: 475
+  minecraft:sculk -> minecraft:deepslate: 394
+  minecraft:air -> minecraft:granite: 333
+y-section dist: [(0, 10364), (16, 2224), (32, 3963), (48, 69), (64, 72), (80, 44), (96, 21), (112, 10), (4032, 730), (4048, 11651), (4064, 4138), (4080, 8523)]
