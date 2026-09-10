@@ -22,6 +22,8 @@ function Get-ArmSpec([string]$Arm) {
         "c5" { return @{ ver = "1.21.6"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1216", "-PcppWorldgenDir=$w1216", "-PcaMin=0", "-PestL2=0", "-PcoreswapThreads=1") } }
         "c6" { return @{ ver = "1.21.6"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1216", "-PcppWorldgenDir=$w1216", "-PcaCap=65536") } }
         "ct1" { return @{ ver = "1.21.6"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1216", "-PcppWorldgenDir=$w1216", "-Pchunktime=1") } }
+        "r3" { return @{ ver = "1.21.6"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1216", "-PcppWorldgenDir=$w1216", "-Pchunktime=1") } }
+        "r3sync" { return @{ ver = "1.21.6"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1216", "-PcppWorldgenDir=$w1216", "-Pchunktime=1", "-Psyncfill=1") } }
         "coreswap1201" { return @{ ver = "1.20.1"; mode = "coreswap"; x = @("-PcppReplace=true", "-PcppLib=$d1201", "-PcppWorldgenDir=$w1201") } }
         "vanilla1216" { return @{ ver = "1.21.6"; mode = "vanilla"; x = @("-PcppVanilla=true") } }
         "vt1" { return @{ ver = "1.21.6"; mode = "vanilla"; x = @("-PcppVanilla=true", "-Pchunktime=1") } }

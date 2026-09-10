@@ -1779,8 +1779,8 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **陷阱（MUST）**：**重活进池后「每 chunk 段内延迟」会上升，不得读成回归**——本案接管段 mixin 53.87 → **103.47ms**（jni 50.19 → 96.81ms），因为同池 23 并发争用；而 wall 反降 6.64×。判据只看 wall / 吞吐，段内数字此时测的是「池内争用下的段延迟」，与单车道时的段延迟**不同物**（同族：吞吐均值 vs 每 chunk 延迟分离铁律）。
 - **诚实边界（缺口，不夸大）**：
   1. **同配置 run-to-run 基线对本块未采集**：只有「同构建态同步 1 run vs 异步 1 run」这一对 A/B；按本项目跨 run ±20% 摆动带（#108：234s vs 283s），**6.64× 远超摆动带 ⇒ 方向可信，但幅度是单对读数**；要量级置信区间 SHOULD 补同批 ABBA ≥3 对。
-  2. 三臂逐块对拍数字（44,921 / 45,948 / 41,809）**目前未落盘**为任何 diff 输出文件（`.investigations/`、`.tmp/` 全树检索零命中）——门**可复现**（region 三臂归档 + `diff_arms.py`），但数字本身只能靠重跑复核；MUST 补跑并落盘 diff 输出。
-  3. 归档链对 R3 臂**滞后**：同步臂原始日志只在 `.tmp/perf-reg-260910-04/logs/r3sync-r1.log`（未进 `cmd-output/`）；`cmd-output/results.txt` 仍是 R3 前的 9 行版（R3 两行只在 `.tmp` 的 12 行版里）；`MANIFEST-sha256.txt` 生成于 18:09，早于 R3 跑批（18:13/18:15），故 R3 臂日志与结果行未纳入清单。
+  2. 三臂逐块对拍数字（44,921 / 45,948 / 41,809）**已落盘**（`cmd-output/diff-r3-vs-vanilla.txt` / `diff-r3-vs-r3sync.txt` / `diff-r3sync-vs-vanilla.txt`，18:30 入 MANIFEST）；门可复现（region 三臂归档 + 同归档 `diff_arms.py`）。
+  3. 归档链**已补齐**（260910-04 18:30）：同步臂 `cmd-output/r3sync-r1.log`、异步臂 `r3-async-r1.log`、`results.txt`（12 行含 R3 两行）、含 R3 臂定义的 `run_arms2.ps1`、`diff-result-historical-260910-03.txt`、三臂 region `.mca` 全量 sha 均已入 `MANIFEST-sha256.txt`（83 条）。
   4. **worldgen 车道自身的 busy/inFlight 计数仍未做**（#107 判据 4 / b1 @idk）：本块 `inflight` 计的是**接管段在飞数（池侧）**，不是车道占用；「车道已不再是限流点」由 wall（42s ≤ vanilla 52s）与并发 23 推断，仍属推断（上游限流线未排除）。
   5. vanilla 对照臂 `vanilla1216-r1`（52s）**未开** `-Dcoreswap.chunktime`；仪器化对照是 `vt1-r1`（53s，serverCpu 296 → 4.93 核）。跨臂每 chunk 段内数字**不可**与 coreswap 臂直接比（仪器不对称）。
   6. **数字差异标注**：同步形态「每 chunk 线程时间 1325ms」出自 R3 **之前**的 ct1 臂（#109 / verdict §2.3）；本块同步臂**自身日志末值 = 1413.65ms**（+6.7%，同量级）。本条的 A/B 一律引用后者（同 run 同批自洽），1325ms 保留为历史读数，两者不混用。
