@@ -1184,3 +1184,46 @@ entries:
     path: 'perf-regression-260910-04/candidates/b2-writeback-sideeffects.md'
     kind: analysis
     status: draft  # fan-out 候选：REFUTED（作为 948ms 主体），仅留 <=3.7ms/chunk 级优化项
+
+  # === 260910-05 块：C7 收口（R3 正确性竞争假说 + 同配置 run-to-run 基线）+ nether/end 异步化推广 ===
+  # 手工追加（**勿跑 scripts/merge_index.py**：其写回只保留 {id,path,kind,status} 四字段，会丢弃本文件全部注释）
+  - id: 'swe:perf-closeout-260910-05:verdict-c7'
+    path: 'perf-closeout-260910-05/verdict-c7-260910-05.md'
+    kind: analysis
+    status: candidate  # judge PASS-with-conditions（C1-C9 已应用）；confirmed 留用户
+    # C7-①（judge C7-① 收口）：pending_cross_writes 跨 chunk 写序竞争假说 = **空集**（当前出货语义 mask=3 下不可达）。
+    #   静态链：CppBridge.resolveStageMask() 默认 0b011 → skip_features → worldgen_handle.rs:669-671 不进 apply_features；
+    #     缓冲生产点 :1088 / 消费点 :1053 都在 apply_features（体 :1036-1375）内，唯一调用点 :671；neighbor_terrain 调用点 :1124/:1242 同族不可达。
+    #   行为化：负对照 r3log-r2（mask=3 + WG_CA_LOG=1）[CA] 行 = 0；正对照 r3feat-r2（mask=5）[CA] 行 = 1711、[WG-CONF] flags=5；
+    #     双通道直证（JVM banner 有 -Dcoreswap.rust.stages=5 + stageMask=5 为 JNI 回读 + WG_CA_LOG env 生效）；历史同载体 calog-e2 257 行同向。
+    #   前置条件登记：未来重启 Rust features 接管（bit1 清零）MUST 先加「迟到写/已生效/终态常驻」三数（按 chunk/线程分桶，不得复用全局 CA_* 计数）。
+    # C7-②（本轮新采）：同配置 run-to-run 基线 = sync 0.0086% / async 0.0092%（同阶，async 略高 +7%，方向与 #67 一致但单对不显著）；
+    #   跨形态 0.0122%/0.0130%（高于同形态基线 ~0.004pp ⇒ 未归因形态分量）；跨实现 0.0111-0.0148%；历史代理基线 0.0150%。
+    # C7-③ 幅度范围 = 5.8×-7.2×（非诊断臂口径 5.8×-6.8×）；相对 vanilla 快 1.24-1.33×；inflight 23（async）vs 1（sync）。
+    # §15.4 取代记录：取代 260910-04/verdict-260910-04.md:106「代理基线级筛选结论：R3 未引入超出既有 run 级非确定的内容差」
+    #   （原文不删不改）——新锚点下「未超出 run 级非确定」的因果指认不再成立，替代陈述 = 差异高于同配置基线 ~0.004pp 但 ≤ 历史代理基线。
+    # 证据：.investigations/perf-closeout-260910-05/（record.md / scout-vanilla-crosswrite.md / cmd-output 251 条 MANIFEST-sha256 / java-snapshot pre|post）。
+  - id: 'swe:perf-closeout-260910-05:judge-c7'
+    path: 'perf-closeout-260910-05/judge-verdict-c7-260910-05.md'
+    kind: review
+    status: draft  # 审查意见，不改 status；条件支持 confirmed（C1-C9 应用后）
+  - id: 'swe:perf-closeout-260910-05:verdict-nether-end'
+    path: 'perf-closeout-260910-05/verdict-nether-end-260910-05.md'
+    kind: analysis
+    status: candidate  # judge J3/J4 = PASS-with-conditions（C1-C10 已应用）；confirmed 留用户
+    # nether/end 分支 R3 同款异步化（Java 侧纯调度形态；Rust 零改动 ⇒ 执行体与 260910-04 同源；7 个 coreswap 臂 dllsha=abd7d8893d22e030，nv/ev 为 vanilla 臂 dllsha=-）：
+    #   形态证据 inflight max 1 → 23（两维复现，同一仪器）。
+    #   性能（**口径点明**）：Chunky 进程内任务计时 nether 3.3-3.5×（69s→20/21s）、end 3.0×（18s→6s）；脚本侧 wallgen 仅 2.34×（70.1→30.0）/ 2.00×（20.0→10.0）；
+    #     相对 vanilla（同口径）nether async 快 2.7-2.8×、end async 6s ≈ vanilla 5s；sync 形态 wallgen 净亏损（70.1>60.0、20.0>10.0）。**禁用「端到端」措辞**（未测）。
+    #   行为门（预登记，单对点估计/检验力低）：nether 跨形态 0.1219% ≤ 同形态噪声 0.1406%（**async 代理**——该维只有 1 个 sync run，无 sync run-to-run 对）✅；
+    #     end 跨形态 **0 块差** ✅ 且经四重论证（同链在 es×ev 检出 7 块 ⇒ 有灵敏度；common=7567 无单侧排除；section 并集 494,100,480 非空；三 region sha 互异）。
+    #   附带读数：nether 接管 0.1020% vs vanilla **低于**其自身 async 代理噪声 ⇒ 差异落在噪声带内，**不等于**接管已验证（1.21.6 nether/end 首次验证）；
+    #     end 的 7 块 > 同形态噪声 0 ⇒ 跨实现差在该维**可检出**，不得与零差并列；「确定性」限定在 coreswap 臂内 + 该 region 集。
+    #   CPU：ea-r2 = 86 CPU·s/6s ⇒ **更多总 CPU 换更低延迟**（延迟结论非效率结论）；nether 侧总 CPU 未测；本批 CPU 缺失**根因未核**（两轮 judge 各见一版脚本，归档副本均为修后版 ⇒ 文件级不可复核）。
+    # 捆绑改动：CppBridge [WG-FILL] println 门控（MIXLOG，R1 同族拉平）——**只门控 println**，nzBuf 扫描 + 16 点读回仍每 chunk 无条件执行；A/B 双臂对称未开日志。
+    # sanity：naS-r1/eaS-r1 各 21s/7s，`populateNoise(nether|end) intercepted` + `[WG-FILL]` 均 **4761 = 调用次数**（非 chunk 数；>4225 ⇒ 存在重复接管调用，登记后续项）。
+    # VCS 替代：runtime/ 被 gitignore ⇒ java-snapshot pre|post 承载 diff（mixin 69 行 / CppBridge 10 行）。
+  - id: 'swe:perf-closeout-260910-05:judge-nether-end'
+    path: 'perf-closeout-260910-05/judge-verdict-nether-end-260910-05.md'
+    kind: review
+    status: draft

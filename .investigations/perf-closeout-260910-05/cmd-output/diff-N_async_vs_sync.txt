@@ -1,0 +1,96 @@
+vanilla chunks=7543 coreswap chunks=7542
+common=7542
+===定点对拍（邻居更新坐标 ±4 柱采样）===
+pos(-522,63,139):
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+  y=65: V=air            C=air            
+(-805,57,138) chunk(-51,8) NOT in both arms
+pos(-500,6,240):
+  y=4: V=bedrock        C=bedrock        
+  y=5: V=netherrack     C=netherrack     
+  y=6: V=netherrack     C=netherrack     
+  y=7: V=netherrack     C=netherrack     
+  y=8: V=netherrack     C=netherrack     
+(-874,48,-588) chunk(-55,-37) NOT in both arms
+pos(-296,48,-18):
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+  y=50: V=air            C=air            
+pos(-443,60,311):
+  y=58: V=air            C=air            
+  y=59: V=air            C=air            
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+pos(-556,60,316):
+  y=58: V=air            C=air            
+  y=59: V=air            C=air            
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+pos(-71,56,-517):
+  y=54: V=air            C=air            
+  y=55: V=air            C=air            
+  y=56: V=air            C=air            
+  y=57: V=air            C=air            
+  y=58: V=air            C=air            
+(-1531,61,239) chunk(-96,14) NOT in both arms
+pos(-471,45,-215):
+  y=43: V=air            C=air            
+  y=44: V=air            C=air            
+  y=45: V=air            C=air            
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+pos(-592,42,216):
+  y=40: V=air            C=air            
+  y=41: V=air            C=air            
+  y=42: V=air            C=air            
+  y=43: V=air            C=air            
+  y=44: V=air            C=air            
+pos(-527,52,78):
+  y=50: V=air            C=air            
+  y=51: V=air            C=air            
+  y=52: V=air            C=air            
+  y=53: V=air            C=air            
+  y=54: V=air            C=air            
+pos(-424,62,74):
+  y=60: V=air            C=air            
+  y=61: V=air            C=air            
+  y=62: V=air            C=air            
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+pos(-196,47,295):
+  y=45: V=air            C=air            
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+===全域差分普查===
+blocks=209981440 diff=255942 (0.1219%) sections same/diff=50508/757
+top pairs:
+  minecraft:basalt -> minecraft:blackstone: 39240
+  minecraft:blackstone -> minecraft:basalt: 36987
+  minecraft:basalt -> minecraft:air: 36036
+  minecraft:air -> minecraft:basalt: 24722
+  minecraft:basalt -> minecraft:netherrack: 20754
+  minecraft:netherrack -> minecraft:basalt: 20668
+  minecraft:netherrack -> minecraft:blackstone: 12922
+  minecraft:blackstone -> minecraft:netherrack: 12349
+  minecraft:air -> minecraft:netherrack: 12253
+  minecraft:netherrack -> minecraft:air: 10667
+  minecraft:bedrock -> minecraft:air: 8495
+  minecraft:air -> minecraft:bedrock: 7626
+  minecraft:blackstone -> minecraft:air: 5839
+  minecraft:air -> minecraft:blackstone: 4298
+  minecraft:gravel -> minecraft:air: 330
+  minecraft:nether_wart_block -> minecraft:air: 307
+  minecraft:air -> minecraft:gravel: 268
+  minecraft:air -> minecraft:nether_wart_block: 234
+  minecraft:basalt -> minecraft:nether_quartz_ore: 217
+  minecraft:nether_quartz_ore -> minecraft:basalt: 212
+y-section dist: [(0, 217366), (16, 28732), (32, 2444), (48, 2014), (64, 1599), (80, 501), (96, 1081), (112, 2205)]

@@ -1,0 +1,20 @@
+schema_version: 1
+project: CoreSwap
+module: swe
+entries:
+  - id: 'swe:perf-closeout-260910-05:verdict-c7'
+    path: 'perf-closeout-260910-05/verdict-c7-260910-05.md'
+    kind: analysis
+    status: candidate
+  - id: 'swe:perf-closeout-260910-05:judge-c7'
+    path: 'perf-closeout-260910-05/judge-verdict-c7-260910-05.md'
+    kind: review
+    status: draft
+  - id: 'swe:perf-closeout-260910-05:verdict-nether-end'
+    path: 'perf-closeout-260910-05/verdict-nether-end-260910-05.md'
+    kind: analysis
+    status: candidate
+  - id: 'swe:perf-closeout-260910-05:judge-nether-end'
+    path: 'perf-closeout-260910-05/judge-verdict-nether-end-260910-05.md'
+    kind: review
+    status: draft
