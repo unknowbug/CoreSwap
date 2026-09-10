@@ -79,6 +79,7 @@ CoreSwap/
 │   └── src/                   # engine: density / aquifer / surface / carver / features / noise / biomes
 └── versions/
     ├── 1.20.1/              # ← current
+    │   ├── java/            # Fabric mod project (source; run env lives in runtime/)
     │   ├── rust/            # version thin shell → builds worldgen.dll (cdylib)
     │   ├── cpp/             # archived C++ core (historical reference)
     │   ├── data/            # worldgen JSON + reference block data (for verification)
@@ -86,7 +87,7 @@ CoreSwap/
     └── <future versions>/
 ```
 
-The Fabric mod project lives in [`runtime/1.20.1/java`](./runtime/1.20.1/java) (fabric-loom). Its build syncs the freshly compiled Rust dll into the mod jar automatically.
+The Fabric mod project lives in [`versions/1.20.1/java`](./versions/1.20.1/java) (fabric-loom). Its build syncs the freshly compiled Rust dll into the mod jar automatically. Its **run environment** (worlds/mods/config) lives separately in [`runtime/1.20.1/java/run`](./runtime/1.20.1/java/run) — the project is source, `runtime/` is environment (2026-09-10 split).
 
 ## Building from source
 
@@ -102,7 +103,7 @@ The Fabric mod project lives in [`runtime/1.20.1/java`](./runtime/1.20.1/java) (
 cargo build --release -p worldgen
 
 :: 2. build the mod (syncs the dll into the jar automatically)
-cd runtime\1.20.1\java
+cd versions\1.20.1\java
 gradle build
 :: jar lands in build\libs\coreswap-1.20.1-*.jar
 ```

@@ -80,6 +80,7 @@ CoreSwap/
 │   └── src/                   # 引擎：density / aquifer / surface / carver / features / noise / biomes
 └── versions/
     ├── 1.20.1/              # ← 当前
+    │   ├── java/            # Fabric mod 工程（源码；运行环境在 runtime/）
     │   ├── rust/            # 版本薄壳 → 编出 worldgen.dll（cdylib）
     │   ├── cpp/             # 已归档 C++ 核心（历史参考）
     │   ├── data/            # worldgen JSON + 参照方块数据（验证用）
@@ -87,7 +88,7 @@ CoreSwap/
     └── <future versions>/
 ```
 
-Fabric mod 工程在 [`runtime/1.20.1/java`](./runtime/1.20.1/java)（fabric-loom）。构建时自动把新编译的 Rust dll 同步进 mod jar。
+Fabric mod 工程在 [`versions/1.20.1/java`](./versions/1.20.1/java)（fabric-loom）；**运行环境**（世界/mods/配置）单独在 [`runtime/1.20.1/java/run`](./runtime/1.20.1/java/run)——工程是源码、`runtime/` 是环境（2026-09-10 拆分）。构建时自动把新编译的 Rust dll 同步进 mod jar。
 
 ## 从源码构建
 
@@ -103,7 +104,7 @@ Fabric mod 工程在 [`runtime/1.20.1/java`](./runtime/1.20.1/java)（fabric-loo
 cargo build --release -p worldgen
 
 :: 2. 编 mod（自动把 dll 同步进 jar）
-cd runtime\1.20.1\java
+cd versions\1.20.1\java
 gradle build
 :: jar 在 build\libs\coreswap-1.20.1-*.jar
 ```
