@@ -10,9 +10,9 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
   - .investigations/perf-reg-260910-07/cmd-output/{equivalence-260910-07.txt,ignore-checks-260910-07.txt}
   - .tmp/perf-reg-260910-07/{results.txt,logs/oa-r1.log,logs/oa-r2.log,run_arms_1201.ps1}（驱动/原始运行证据副本，不入库）
   - 工作区实际状态：versions/<ver>/java/**、runtime/<ver>/java/**、.gitignore、AGENTS.md、NEXT_SESSION.md、.artifacts/index.yaml、git HEAD/worktree
-审查时点锚: 初审快照 2026-09-10 23:00:11（HEAD=d5151a1）/ 复审定稿快照 23:03（**HEAD=43076b3**，审查期间主会话连推 3 步：22:57:13 amend、23:01:35 提交 `43076b3`、23:02–23:03 继续改 .gitignore/RELEASE-CONTRACT）
-结论等级: PASS-with-conditions（初审的 blocking 项 C1 已在审查期间修复并经本 judge 核验；**新增 C13**——归档件中两支关键 `.log` 仍因全局 `*.log` 未被 git 收录，建议按 blocking 对待）
-推荐状态: 保持 candidate（本意见不改任何 status；confirmed 只能由人类授予）
+审查时点锚: 初审快照 23:00:11（HEAD=d5151a1）/ 复审 23:03（HEAD=43076b3）/ **收尾核验 23:06（HEAD=b8f91b4）** —— 审查期间主会话连推 3 次提交并应用了 C1-C12（见 §0/§0.1/§0.2）
+结论等级: PASS-with-conditions（C1-C12 已闭合并经我逐点复核；**剩 must-fix = C13**（两支决定性 `.log` 仍因 `.gitignore:7 *.log` 未入 git）、**will-fix = C14**（等价性脚本 3 行假绿门禁）；二者修完本 judge 侧无阻塞）
+推荐状态: 保持 candidate；C13/C14 修复后**可建议人类拍板 confirmed**（confirmed 只能由人类授予，且受 verdict 自身实机前提约束）
 ---
 
 # judge 审查意见 — 260910-07「Java mod 工程迁出 runtime/」
@@ -45,7 +45,32 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
 | `NEXT_SESSION.md:26`「5 周」 | 仍未同步为 11.1 天 | ❌ C12 仍成立 |
 | verdict V2/V4/§5/V5 四处（C5/C6/C7/C8） | `43076b3` 已把 verdict 入库，但四处文字未改（V2 仍「oj」；V4 仍「8 条全对」；§5:55 仍「见 §7 提交记录」；V5 仍「记录即算」） | ❌ C5/C6/C7/C8 仍成立 |
 
-**仍成立的条件**（复审后逐条复看现行文本）：**C13（新发现，建议按 blocking 对待：两支决定性 `.log` 仍在 git 之外，`.gitignore:7 *.log` 静默跳过）**、C5（V4 行仍写「8 条全对」，证据文件现为 **10 格 + 计数段**）、C6（V2 行仍写「**oj** 异步」，实际臂名 `oa`）、C7（§5:55 仍写「见 §7 提交记录」，§7 无提交记录）、C8（V5 仍无回滚步骤清单）、C9（§7.3 债清单仍漏 `versions/<ver>/java/{build,.gradle}`）、C10（pin 失效条件）、C11（文字类）、**C12（NEXT_SESSION.md:26「5 周」未同步更正）**。已闭合：C1、C2、C3、C4（+ 1.21.6 三元组、`.gitignore` 再改无回归、RELEASE-CONTRACT 补齐）。
+### 0.2 收尾核验（父会话通知「条件已全部应用」后，23:04–23:06，对 HEAD=`b8f91b4`）
+
+主会话回报 C1-C12 全部应用；我按「只读 + 定位到行」复核，**逐条实测通过**（新增 2 项）：
+
+| 条件 | 复核对象（实读） | 结论 |
+|---|---|---|
+| C5 | verdict L40「证据文件现含 **33 行**」；`ignore-checks-260910-07.txt` 实为 **33 行**，新增格 = `.gradle/`(两版本,:98)、1.21.6 `build/`(:97)、1.21.6 `run/`(:99)、`content-test/run`(:100)、假想新文件 `NewFile.java`、`data/**/biome/plains.json` | ✅ 与我独立 `check-ignore` 结果一致（.gitignore 改动后行号已整体上移） |
+| C6 | verdict L38 已为「（**`oa`** 异步 + `-Pchunktime=1`）」 | ✅ |
+| C7 | verdict L55 已列 `d5151a1`(2876 文件) / `43076b3`(16 文件) + §8 应用记录 | ✅ |
+| C8 | verdict L41 已补四步回滚清单（反向 Move-Item → 还原 .gitignore/AGENTS → 删 runDir → 复建验 sha） | ✅ |
+| C9 | verdict L70 已补「新旧**两套**缓存并存」并引 `.gitignore:97-98` | ✅ |
+| C11 | `run_rust_client.ps1:94` 注释改为「260910-07 起 = versions/1.20.1/java；运行环境在 runtime/1.20.1/java/run」 | ✅ |
+| C12 | `NEXT_SESSION.md:26` = 「**11.1 天**（`0fc44d3` 08-30 20:29 → `d5151a1` 09-10 22:56）」+ 同族更早一犯 | ✅ |
+| 顺手项 | `RELEASE-CONTRACT.md:21` 模板注记新路径；`.gitignore` legacy 四条已删、`/runtime/`(:92) 整树覆盖（我复测 build/run/data/src 仍全部 IGNORED，**无回归**） | ✅ |
+| **C2** | `equivalence_check_260910-07.ps1`（67 行）全读 + 主会话已在两版本原位复跑（1077/1797、0/0/0、整包 sha 同值、TRIPLE MATCH、exit 0） | ✅ 脚本可用；**但见下面 C14 的两处门禁缺陷** |
+| **C13** | `git ls-files '…/cmd-output'`（HEAD=`b8f91b4`）仍**只有 `.log.err`，无 `oa-r{1,2}.log`**；`check-ignore` 仍命中 `.gitignore:7 *.log` | ❌ **仍未修复 → must-fix** |
+| **C14（新）** | `equivalence_check_260910-07.ps1`：L39-40 依赖 `$env:JAVA_HOME\bin\jar.exe` 但**不校验**（若未设/失效 → 解包为空 → `entries old=0 new=0`，L52 打印 0/0/0，L67 判据全为假 ⇒ **exit 0 + `[OK] PASSED` 假绿**）；L65 `TRIPLE MATCH` **未纳入 L67 退出判据**（三元组不符仍 exit 0） | ❌ **will-fix（3 行）** |
+
+**收尾结论**：C1-C12 全部闭合（含我此前未核的 1.21.6 三元组已补核通过）；剩 **C13（证据入库，must-fix，1 条命令）** 与 **C14（脚本假绿门禁，3 行）**。二者修完，本 judge 侧对「迁移成立 + 等价性门」**无阻塞**；是否 confirmed 由人类拍板（并受 verdict 自身的实机前提约束，不属本 judge 判定范围）。
+
+**仍成立的条件**（收尾核验 §0.2 后）：**must-fix = C13**（两支决定性 `.log` 仍在 git 之外）、**will-fix = C14**（等价性脚本的两处假绿门禁，3 行）；C15-info（见下）。已闭合：C1、C2、C3、C4、C5、C6、C7、C8、C9、C11、C12（+ 1.21.6 三元组补核、`.gitignore` 再改无回归、RELEASE-CONTRACT 补齐、V5 回滚四步、§8 应用记录）。
+
+| # | 级别 | 位置 | 问题 | 建议动作 |
+|---|---|---|---|---|
+| **C15** | info | `ignore-checks-260910-07.txt` 两代行号并存；假想新文件标 `TRACKED` | ① 原始 8 格引 `.gitignore:95/100-104`，而 `.gitignore` 删 legacy 四条后行号上移（现 `/runtime/`=:92、java 四条=:97-100），同一文件里两代行号并存易误读；② 不存在的假想文件被标 `TRACKED (not ignored)`，语义应为「not ignored（不存在）」 | 在文件头加一行「行号以 260910-07 收尾版 .gitignore 为准（:92/:97-100）；早期 8 格行号为改前版本」；假想格标签改 `NOT-IGNORED (hypothetical)` |
+| **C16** | info（confirmed 前必改，非阻塞） | verdict L4 + `.artifacts/index.yaml:1277` | 本审查意见已落盘（`judge-verdict-260910-07.md`），但两处仍写「**judge 未做** / judge pending」⇒ 记录与事实不符（status 仍应保持 candidate，只改这句描述） | 改为「judge 已做：`judge-verdict-260910-07.md` = PASS-with-conditions（C1-C12 已闭合；C13/C14 待修）」 |
 
 ## 1. 三源核对（spec §4 / §15.4 Judge review baseline）
 
@@ -186,7 +211,8 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
 | **C10** | info | 全文 pin | 本审查与父会话收尾并发：审查期间 HEAD 由 `bd23b9a`(22:56:59) 被 amend 为 `d5151a1`(22:57:13，.gitignore 回调白名单链 6 行)，其后 index.yaml(22:57:47)/NEXT_SESSION.md(22:58:24)/knowledge-draft(23:00) 才落盘 | 若下一个提交再动 `.gitignore`/verdict/证据文件，请按「重算两支 jar sha + `check-ignore` 三条 + `git ls-files` 两树计数」做一次廉价复核，再据以推进 confirmed |
 | **C11** | info | `versions/1.20.1/java/run_rust_client.ps1:94`；verdict §2「环境」行；§1 目标句 | ① 注释仍写「切到 mod 工程（runtime）」（功能已改，仅注释陈旧）；② §2 把 `scripts/` 写成两版本共有（实测 1.21.6 无 `scripts/`）且未列 `.gitignore:109-110` 白名单链；③ 「零数据搬迁」宜限定为「主 runDir 零搬迁」（content-test/run 0.08MB 已随迁，§7.1 已声明）；④ `results.txt` 里两条 `FAIL_no_done` 行建议备注来源（E1/E2）（verdict 复审已补「臂名复用说明」✓） | 逐条改字/备注即可 |
 | **C12** | should-fix | `NEXT_SESSION.md:26` | 该行仍写「`0fc44d3` 的 `/runtime/` 整树 untrack …（**5 周**无 git 史）」——verdict §1 已更正为 **11.1 天**（我用 `git log --date=iso` 复算 `0fc44d3`(08-30 20:29:53) → `d5151a1`(09-10 22:56:59) = 11 天 2h27m ≈ 11.10 天，**更正正确**），但活交接文档未同步 ⇒ 同一事实两处数字互斥 | 把 `NEXT_SESSION.md:26` 的「5 周」改为「11.1 天（08-30→09-10）」；全库其余「5 周」字样已 grep 确认清零 |
-| **C13** | **建议按 blocking 对待**（新增，§0.1） | `.gitignore:7` + `43076b3` 的归档提交；`cmd-output/MANIFEST-sha256.txt` | `43076b3` 提交了 `logs/oa-r{1,2}.log.err`/`results.txt`/`MANIFEST` 等，但 **`logs/oa-r1.log`、`logs/oa-r2.log`（V2 的决定性日志）未被 git 收录**——全局 `*.log`（`.gitignore:7`）使 `git add` 静默跳过；对照 260910-06 块同目录已跟踪 **176 文件 / 10 个 `.log`**（日志入库是既有惯例） | `git add -f .investigations/perf-reg-260910-07/cmd-output/logs/*.log`（或加 `!.investigations/**/cmd-output/logs/*.log` 白名单），并把「`MANIFEST` 条目数 vs `git ls-files` 检出数」作为归档自检一行写进 MANIFEST 尾部 |
+| **C13** | **must-fix**（§0.1/§0.2） | `.gitignore:7` + 归档提交；`cmd-output/MANIFEST-sha256.txt` | **至 HEAD=`b8f91b4` 仍未修复**：`logs/oa-r1.log`、`logs/oa-r2.log`（V2 决定性日志）未被 git 收录——全局 `*.log` 使 `git add` 静默跳过（`.log.err` 不匹配才入库）；对照 260910-06 同目录已跟踪 176 文件 / 10 个 `.log`（日志入库是既有惯例） | `git add -f .investigations/perf-reg-260910-07/cmd-output/logs/*.log`（或加 `!.investigations/**/cmd-output/logs/*.log` 白名单），并在 MANIFEST 尾部加一行「条目数 vs `git ls-files` 检出数」自检 |
+| **C14** | will-fix（3 行，建议同批） | `equivalence_check_260910-07.ps1` L39-40 / L52 / L65-67 | ① 解包依赖 `$env:JAVA_HOME` 但不校验 ⇒ 失败时 `entries=0/0/0` 仍走 L67 判据全假 → **exit 0 `[OK] PASSED` 假绿**（本项目 #23/#25/#40 家族）；② `TRIPLE MATCH`（L65）未纳入 L67 退出判据 ⇒ 三元组不符仍 exit 0 | ① L52 后加 `if ($oh.Count -eq 0 -or $nh.Count -eq 0) { Write-Output '[FAIL] empty extraction (JAVA_HOME?)'; exit 2 }`；② L67 判据末尾追加 `-or ($tSha -ne $iSha)` 并对 `$iSha` 做存在性判断 |
 
 ## 9. 覆盖面声明（我实际核了什么 / 没核什么）
 
@@ -199,6 +225,8 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
 6. 引用面：187 个活文件全量正则清扫（定义域见 §5）+ 两个 `build.gradle` 的 runDir/vmArg 行 + AGENTS.md:138 + `run_rust_client.ps1` 变量/注释 + git 侧 `.gitignore` 与 HEAD 提交内容/reflog。
 7. 置信度与子角色：verdict 全文 + index.yaml:1273-1299 的 status 与注释 + 计划 §6/§7/§9 的预置项。
 8. 复审补档核验（§0）：新归档的 5 个文件 vs `.tmp/` 原件 **sha256 逐一比对**（全 MATCH）；`MANIFEST-sha256.txt` 8 行在场；`git ls-files` 对 `build/run/.gradle/native` 四类 = **0**；`worldgen-data/data/**/overworld.json` 两版本确在库；「11.1 天」独立算术复算；`git ls-files` 视角的 `run_arms_1201.ps1`/`rcon_one.py` 归档在位。
+9. 第三轮（§0.1）：1.21.6 `target/release/worldgen1216.dll` sha 实测；`equivalence_check_260910-07.ps1` 全 67 行实读（含逻辑缺陷定位）；`.gitignore` 再改后四类 runtime 路径 `check-ignore` 复测（全部仍忽略）；**`git ls-files …/cmd-output` 与 `MANIFEST-sha256.txt` 条目逐一对照**（发现 2 个 `.log` 缺失 → C13）；`RELEASE-CONTRACT.md` 补丁实读；`43076b3` 的 16 个文件清单与 shortstat。
+10. 收尾核验（§0.2，HEAD=`b8f91b4`）：verdict L38/L40/L41/L55/L70 + §8 应用记录逐行实读；`ignore-checks-260910-07.txt` 33 行全读；`NEXT_SESSION.md:26`、`run_rust_client.ps1:91-95`、`RELEASE-CONTRACT.md:19-22`、`.gitignore`（legacy 段 + `:92`）实读；两 jar 的 `native/` 条目实列（确认脚本 L62 硬编码 `native/worldgen.dll` 对两版本都成立）；`$env:JAVA_HOME` 实查（=jdk-24，脚本未校验该依赖 → C14）。
 
 **抽样核**
 1. 计划 §2 事实表 F1-F10：抽验 F1/F4/F5/F7/F9（文件计数、dll 复制步骤、runDir DSL、settings/gradle.properties）——**未逐条复验 F2/F3/F6/F8/F10**（F2 需解包对照 class↔源清单、F3 需体量分解、F6 需读 `x` magic、F10 需 `git log --all` 追三处 commit；本次等价性门已从更上游覆盖 F2 的实质关注）。
@@ -207,8 +235,8 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
 
 **未核（附原因）**
 1. **未重跑 `gradle :build` / `:runServer`**：judge 会话无构建/运行授权（且重跑会污染 runDir/环境与既有读数）；替代强证据 = 旧/新 jar 整文件 sha 逐字节相同 + 新 jar ctime 证明真重编 + 目标 dll 与运行日志 dll 同值。
-2. **未独立复算 1.21.6 侧 dll sha（`abd7d889…`）**：未在本次扫描域内定位 1.21.6 薄壳产物路径，故该格仅采信证据 + 1.21.6 jar 整文件 sha 已复算（jar 内 dll 因而随文件 sha 一并确定）。
-3. **未跑 ignore-checks 的生成脚本**（脚本不存在，见 C2）；`ignore-checks-260910-07.txt` 的 `TRACKED (not ignored)` 是包装层自述标签，我已用原生 `git check-ignore -v` 独立复核其结论。
+2. ~~未独立复算 1.21.6 侧 dll sha~~ → **已补核**（§0.1：`target/release/worldgen1216.dll` = `abd7d889…`，与证据逐字符一致）；仍**未**核的是 1.21.6 jar 内 dll 解包复算（整文件 sha 已复算 ⇒ 内含物随之确定，冗余）。
+3. **未跑 ignore-checks 的生成脚本**（该脚本仓库内不存在；`ignore-checks-260910-07.txt` 的 `TRACKED (not ignored)` 是包装层自述标签，我已用原生 `git check-ignore -v` 独立复核其结论）。
 4. **未核 content-test 子工程 `:runServer` 行为**（§7.1 的「本就不影响主流程」声明未独立复验）。
 5. **未分析隔离件 `x`（4.2MB，magic `33 42 47 57`）的身份**（本块按计划只做「不删、移入 `.tmp`」，不属审查判据）。
 6. **未访问任何 workspace 外路径**（`E:\PYTHON\MC` 按 AGENTS.md §四铁律禁读禁写）。
@@ -223,5 +251,8 @@ role: judge（core-judge / anchor-judge §15.4 隔离审查者）
 | 22:57:13 | amend → `d5151a1`（`.gitignore` 回调白名单链 6 行；diff `d5151a1^..d5151a1` 中它相对 `bd23b9a` = +6 行） | `git reflog --date=iso`、`git diff --stat d5151a1 bd23b9a` |
 | 22:57:47 / 22:58:24 / 23:00 | `.artifacts/index.yaml`（未提交）/ `NEXT_SESSION.md` / `knowledge-draft-260910-07.md`（未跟踪） 依次落盘 | 文件 mtime + `git status --porcelain` |
 | 23:00–23:02 | 主会话在我出意见前继续推进：verdict 补「复审补档/离库窗口更正/臂名复用说明/V4 第 9 格/§7.5 1.21.6 未覆盖」；`cmd-output/` 新增 `results.txt`、`logs/`、`run_arms_1201.ps1`、`rcon_one.py`、`MANIFEST-sha256.txt`；`ignore-checks` 增 15 行；knowledge 三文件 + 两版本时间线开始改动 | `git status`（此时 verdict 已 ` M`）+ 我的 sha256 比对 |
+| 23:01:35 | 提交 `43076b3`（16 文件 +879/-3）：verdict 新版、index.yaml、`cmd-output/` 归档件（**不含两支 `.log`**）、knowledge-draft、knowledge 三文件、两版本时间线 —— **本 judge 文件亦在此提交内**（当时为初审版，其后我继续改 → 现为 ` M`） | `git show --name-only 43076b3` + `git ls-files '…/cmd-output'` |
+| 23:02–23:03 | `equivalence_check_260910-07.ps1` 落盘（未跟踪）；`.gitignore` 删 `runtime/1.20.1/java/*` 四行改由 `/runtime/` 覆盖（我 `check-ignore` 复测无回归）；`RELEASE-CONTRACT.md` 补新 jar 路径说明 | 三者的 `git status`/`git diff` |
 
 > 因此：**`.gitignore` 白名单链缺失一说是 bd23b9a 的瞬态，不适用于现 HEAD**；上文 C4 只保留「verdict/证据未覆盖该链」，不主张机制缺失。
+> **本意见的定稿 pin = HEAD `43076b3`（23:01:35）+ 23:03 worktree**；`43076b3` 之后主会话仍有 3 处未提交改动（本 judge 文件、`.gitignore`、`RELEASE-CONTRACT.md`）与 1 个未跟踪脚本，收尾提交后 C10 的廉价复核仍然适用。

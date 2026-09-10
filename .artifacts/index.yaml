@@ -1274,7 +1274,7 @@ entries:
   - id: 'swe:perf-reg-260910-07:verdict'
     path: 'perf-reg-260910-07/verdict-260910-07.md'
     kind: analysis
-    status: candidate  # judge 未做 / 用户未 confirmed（AI 不得自授 confirmed）
+    status: candidate  # judge 已做 = PASS-with-conditions（初判 C1-C12 + 收尾 C13/C14 + info C15/C16 全部已应用）；用户未 confirmed（AI 不得自授）
     # 迁移：runtime/<ver>/java 的 loom dev 工程（= **出货 mod 的 49 个源文件/版本** + 构建定义 + worldgen-data）
     #   → versions/<ver>/java（入库）；运行环境（run/ 698MB/56MB）原地留 runtime/，由 build.gradle 的
     #   runDir "../../../runtime/<ver>/java/run" 指回（**loom runDir 按工程目录相对解析**，绝对路径会拼坏）。

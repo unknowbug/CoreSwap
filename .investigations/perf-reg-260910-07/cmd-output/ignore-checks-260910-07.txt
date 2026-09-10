@@ -1,3 +1,8 @@
+# ⚠️ 读法头注（judge C15）：
+#   1) 本文件含**两代 `.gitignore` 行号**：前 8 格（早期版，引 :95/:100-104）+ 收尾版（引 :92/:97-100）；
+#      行号随 260910-07 的 gitignore 编辑而变，**结论（IGNORED/TRACKED）不受影响**（judge 已用 --no-index 复测）。
+#   2) 「TRACKED (not ignored)」为原脚本标签；**假想新文件**（如 NewFile.java）语义应为 `NOT-IGNORED (hypothetical)`。
+#   3) 一切以 `git check-ignore -v -- <path>` 的原生输出为准。
 # 260910-07 gitignore 双向核（check-ignore）
 versions/1.20.1/java/src/main/java/wg/bench/CppBridge.java       TRACKED (not ignored)
 versions/1.20.1/java/src/main/resources/worldgen-data/biome_params.json TRACKED (not ignored)

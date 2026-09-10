@@ -1,0 +1,175 @@
+Starting a Gradle Daemon, 7 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Configure project :content-test
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[22:51:03] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.20.1 with Fabric Loader 0.15.11
+[22:51:03] [main/INFO] (FabricLoader) Loading 48 mods:
+	- chunky 1.3.146
+	- coreswap 1.20.1-1.0.28
+	- fabric-api 0.92.0+1.20.1
+	- fabric-api-base 0.4.31+1802ada577
+	- fabric-api-lookup-api-v1 1.6.36+1802ada577
+	- fabric-biome-api-v1 13.0.13+1802ada577
+	- fabric-block-api-v1 1.0.11+1802ada577
+	- fabric-block-view-api-v2 1.0.1+1802ada577
+	- fabric-command-api-v1 1.2.34+f71b366f77
+	- fabric-command-api-v2 2.2.13+1802ada577
+	- fabric-commands-v0 0.2.51+df3654b377
+	- fabric-containers-v0 0.1.64+df3654b377
+	- fabric-content-registries-v0 4.0.11+1802ada577
+	- fabric-convention-tags-v1 1.5.5+1802ada577
+	- fabric-crash-report-info-v1 0.2.19+1802ada577
+	- fabric-data-attachment-api-v1 1.0.0+de0fd6d177
+	- fabric-data-generation-api-v1 12.3.4+1802ada577
+	- fabric-dimensions-v1 2.1.54+1802ada577
+	- fabric-entity-events-v1 1.6.0+1c78457f77
+	- fabric-events-interaction-v0 0.6.2+1802ada577
+	- fabric-events-lifecycle-v0 0.2.63+df3654b377
+	- fabric-game-rule-api-v1 1.0.40+1802ada577
+	- fabric-gametest-api-v1 1.2.13+1802ada577
+	- fabric-item-api-v1 2.1.28+1802ada577
+	- fabric-item-group-api-v1 4.0.12+1802ada577
+	- fabric-lifecycle-events-v1 2.2.22+1802ada577
+	- fabric-loot-api-v2 1.2.1+1802ada577
+	- fabric-loot-tables-v1 1.1.45+9e7660c677
+	- fabric-message-api-v1 5.1.9+1802ada577
+	- fabric-mining-level-api-v1 2.1.50+1802ada577
+	- fabric-networking-api-v1 1.3.11+1802ada577
+	- fabric-networking-v0 0.3.51+df3654b377
+	- fabric-object-builder-api-v1 11.1.3+1802ada577
+	- fabric-particles-v1 1.1.2+1802ada577
+	- fabric-recipe-api-v1 1.0.21+1802ada577
+	- fabric-registry-sync-v0 2.3.3+1802ada577
+	- fabric-rendering-data-attachment-v1 0.3.37+92a0d36777
+	- fabric-rendering-fluids-v1 3.0.28+1802ada577
+	- fabric-resource-conditions-api-v1 2.3.8+1802ada577
+	- fabric-resource-loader-v0 0.11.10+1802ada577
+	- fabric-screen-handler-api-v1 1.3.30+1802ada577
+	- fabric-transfer-api-v1 3.3.4+1802ada577
+	- fabric-transitive-access-wideners-v1 4.3.1+1802ada577
+	- fabricloader 0.15.11
+	- java 17
+	- minecraft 1.20.1
+	- mixinextras 0.3.5
+	- testcontent 1.0.0
+[22:51:07] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.5 Source=file:/E:/PYTHON/CoreSwap/.gradle-home/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.13.3+mixin.0.8.5/9527e6b0d2449408958fd1302594dc65ec5ade9c/sponge-mixin-0.13.3+mixin.0.8.5.jar Service=Knot/Fabric Env=SERVER
+[22:51:07] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[22:51:07] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[22:51:08] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.3.5).
+[22:51:10] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[22:51:10] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[22:51:10] [main/WARN] (WmiQueryHandler) COM exception querying Win32_VideoController, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[22:51:10] [main/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[22:51:19] [main/INFO] (Minecraft) [STDOUT]: [TestContent] registered testcontent:test_brick raw=1003 testcontent:test_lamp raw=1004
+[22:51:19] [main/INFO] (Minecraft) Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[22:51:22] [main/INFO] (Minecraft) Loaded 7 recipes
+[22:51:22] [main/INFO] (Minecraft) Loaded 1271 advancements
+[22:51:23] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 64 new biomes in 2.297 ms
+[22:51:23] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.20.1
+[22:51:23] [Server thread/INFO] (Minecraft) Loading properties
+[22:51:23] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[22:51:23] [Server thread/INFO] (Minecraft) Generating keypair
+[22:51:23] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[22:51:23] [Server thread/INFO] (Minecraft) Using default channel type
+[22:51:23] [Server thread/INFO] (Minecraft) Preparing level "world"
+[22:51:27] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[22:51:27] [Worker-Main-17/INFO] (Minecraft) Preparing spawn area: 0%
+[22:51:27] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 0%
+[22:51:28] [Worker-Main-13/INFO] (Minecraft) Preparing spawn area: 0%
+[22:51:28] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 0%
+[22:51:29] [Worker-Main-18/INFO] (Minecraft) Preparing spawn area: 2%
+[22:51:29] [Worker-Main-13/INFO] (Minecraft) Preparing spawn area: 4%
+[22:51:30] [Worker-Main-16/INFO] (Minecraft) Preparing spawn area: 7%
+[22:51:30] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 11%
+[22:51:31] [Worker-Main-21/INFO] (Minecraft) Preparing spawn area: 16%
+[22:51:31] [Worker-Main-18/INFO] (Minecraft) Preparing spawn area: 18%
+[22:51:32] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 25%
+[22:51:32] [Worker-Main-18/INFO] (Minecraft) Preparing spawn area: 29%
+[22:51:33] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 34%
+[22:51:33] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 38%
+[22:51:34] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 42%
+[22:51:34] [Worker-Main-16/INFO] (Minecraft) Preparing spawn area: 48%
+[22:51:35] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 53%
+[22:51:35] [Worker-Main-10/INFO] (Minecraft) Preparing spawn area: 55%
+[22:51:36] [Worker-Main-7/INFO] (Minecraft) Preparing spawn area: 62%
+[22:51:36] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 67%
+[22:51:37] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 72%
+[22:51:37] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 77%
+[22:51:38] [Worker-Main-21/INFO] (Minecraft) Preparing spawn area: 83%
+[22:51:38] [Worker-Main-12/INFO] (Minecraft) Preparing spawn area: 89%
+[22:51:39] [Worker-Main-14/INFO] (Minecraft) Preparing spawn area: 93%
+[22:51:39] [Server thread/INFO] (Minecraft) Time elapsed: 12469 ms
+[22:51:39] [Server thread/INFO] (Minecraft) Done (15.687s)! For help, type "help"
+[22:51:39] [Server thread/INFO] (Minecraft) Starting remote control listener
+[22:51:39] [Server thread/INFO] (Minecraft) Thread RCON Listener started
+[22:51:39] [Server thread/INFO] (Minecraft) RCON running on 0.0.0.0:25575
+[22:51:39] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[22:51:39] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=597e12ed2275ada5...
+[22:51:39] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initNether seed=417950215108767439 enabled=true stageMask=3
+[22:51:39] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initEnd seed=417950215108767439 enabled=true stageMask=3
+[22:51:39] [Server thread/INFO] (Minecraft) [STDOUT]: [BenchMod] CoreSwap replace mode: C++ worldgen active
+[22:51:48] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:51:48] [RCON Client /127.0.0.1 #2/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:51:49] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:51:49] [RCON Client /127.0.0.1 #3/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:51:50] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:51:50] [RCON Client /127.0.0.1 #4/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:51:51] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:51:51] [RCON Client /127.0.0.1 #5/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:51:52] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:overworld. Processed: 9 chunks (0.21%), ETA: 0:01:28, Rate: 47.9 cps, Current: -29, -29
+[22:51:54] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=256 perChunk(ms): mixin=101.97 gap=73.23 | sumMixin=26.1s sumGap=18.7s | inflight max=23 now=7
+[22:51:56] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=512 perChunk(ms): mixin=104.30 gap=81.25 | sumMixin=53.4s sumGap=41.6s | inflight max=23 now=17
+[22:51:58] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=768 perChunk(ms): mixin=105.12 gap=83.40 | sumMixin=80.7s sumGap=64.1s | inflight max=23 now=18
+[22:52:00] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1024 perChunk(ms): mixin=103.25 gap=88.14 | sumMixin=105.7s sumGap=90.3s | inflight max=23 now=21
+[22:52:01] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:52:01] [RCON Client /127.0.0.1 #6/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:52:02] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:overworld. Processed: 947 chunks (22.41%), ETA: 0:00:35, Rate: 92.7 cps, Current: -8, -26
+[22:52:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1280 perChunk(ms): mixin=101.99 gap=94.36 | sumMixin=130.6s sumGap=120.8s | inflight max=23 now=20
+[22:52:05] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1536 perChunk(ms): mixin=100.52 gap=93.06 | sumMixin=154.4s sumGap=142.9s | inflight max=23 now=22
+[22:52:07] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1792 perChunk(ms): mixin=99.38 gap=93.67 | sumMixin=178.1s sumGap=167.8s | inflight max=23 now=23
+[22:52:09] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2048 perChunk(ms): mixin=98.27 gap=94.24 | sumMixin=201.3s sumGap=193.0s | inflight max=23 now=2
+[22:52:12] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2304 perChunk(ms): mixin=99.29 gap=98.85 | sumMixin=228.8s sumGap=227.8s | inflight max=23 now=16
+[22:52:12] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:52:12] [RCON Client /127.0.0.1 #7/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:52:13] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:overworld. Processed: 2128 chunks (50.37%), ETA: 0:00:20, Rate: 100.1 cps, Current: -35, -16
+[22:52:14] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2560 perChunk(ms): mixin=100.04 gap=102.50 | sumMixin=256.1s sumGap=262.4s | inflight max=23 now=12
+[22:52:16] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2816 perChunk(ms): mixin=100.93 gap=101.74 | sumMixin=284.2s sumGap=286.5s | inflight max=23 now=16
+[22:52:19] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3072 perChunk(ms): mixin=101.85 gap=102.05 | sumMixin=312.9s sumGap=313.5s | inflight max=23 now=15
+[22:52:21] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3328 perChunk(ms): mixin=102.22 gap=103.49 | sumMixin=340.2s sumGap=344.4s | inflight max=23 now=11
+[22:52:23] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:overworld. Processed: 3083 chunks (72.97%), ETA: 0:00:11, Rate: 100.2 cps, Current: -15, 13
+[22:52:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3584 perChunk(ms): mixin=103.41 gap=102.98 | sumMixin=370.6s sumGap=369.1s | inflight max=23 now=18
+[22:52:26] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3840 perChunk(ms): mixin=103.95 gap=103.11 | sumMixin=399.2s sumGap=396.0s | inflight max=23 now=15
+[22:52:29] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4096 perChunk(ms): mixin=104.51 gap=102.93 | sumMixin=428.1s sumGap=421.6s | inflight max=23 now=19
+[22:52:29] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 4225 chunks (100.00%), Total time: 0:00:38
+[22:52:36] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:52:36] [RCON Client /127.0.0.1 #8/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:52:38] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[22:52:38] [Server thread/INFO] (Minecraft) [Rcon: Stopping the server]
+[22:52:38] [RCON Client /127.0.0.1 #9/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[22:52:38] [Server thread/INFO] (Minecraft) Stopping server
+[22:52:38] [Server thread/INFO] (Minecraft) Saving players
+[22:52:38] [Server thread/INFO] (Minecraft) Saving worlds
+[22:52:38] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[22:52:40] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[22:52:40] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[22:52:40] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[22:52:40] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[22:52:40] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[22:52:40] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+[22:52:40] [Server thread/INFO] (Minecraft) Thread RCON Listener stopped
+
+BUILD SUCCESSFUL in 1m 55s
+6 actionable tasks: 1 executed, 5 up-to-date

@@ -1,6 +1,6 @@
-3da6e5a23ae32c5b2e79ff39424a731d2cf289a8d59642e67e7e341a86ae2853  4176  equivalence_check_260910-07.ps1
+f44f06f7114d143d0e87f741589ed7500ddc5f1d583c04361471e71a5dd06b21  4876  equivalence_check_260910-07.ps1
 704f46bd7e3244a14f36ded8879f421d0db387c1fa49fbebfaf243a77fcf21f0  1011  equivalence-260910-07.txt
-430ecffd28e1b59f87da2e80bae85d6fc2719eb601b6bbc51dea7a932a5a2bd4  2926  ignore-checks-260910-07.txt
+5f9f8f9a5b71aee9e6e92d639bc4a8e6804b557d664c807634245d8cb80cfb92  3451  ignore-checks-260910-07.txt
 a2a9c01666f9fb4ae31be6b9f239288085d642742022a190f86f05ab770415dc  15634  logs\oa-r1.log
 ef72fc6ce82505757ccd74ce86365d8f86a39c877a1fa16c4804eb400572d04d  6124  logs\oa-r1.log.err
 ca793c1003b3f4c79d36f89bb9dc5c10b5912e3c1db123fff51f51a42cdcdad6  14353  logs\oa-r2.log
@@ -8,3 +8,10 @@ f1465f82f0fad37762fdbf6d1ccc7cc4cd14678f473171e0da7a8cbdf8575646  6124  logs\oa-
 11740faf71dd5a866bc3e43fd5d6f7f64d00551bfd9944b8bda86fad6bd7184c  989  rcon_one.py
 48b5d616b9b71740e655b9fbddcd3b352ddac6e04e95795a23a7cdc0a7d65d1b  1111  results.txt
 0eb02d6791254583b6d283a854496ffe2888f3d21972ce58b4adf26e1c6150af  11521  run_arms_1201.ps1
+
+# 260910-07（judge C13）自检：MANIFEST 声明的证据条目数 vs git 实际跟踪数（**本 MANIFEST 自身不计入自己的条目数**）
+MANIFEST entries (excl. self) = 10
+git ls-files (本目录)        = 11   (= 10 + 本 MANIFEST 自身 1 → 期望 11)
+匹配 = True
+# 说明：`.log`（stdout 证据主体：CHUNKTIME / WG-CONTENT / 拦截行计数）曾被 `.gitignore:7` 的 `*.log` 静默跳过，
+#       现由 `.gitignore:120` 白名单放行 + `git add -f` 入库（两条 oa-r{1,2}.log 已跟踪）。

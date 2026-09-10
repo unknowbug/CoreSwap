@@ -114,3 +114,7 @@ versions/*/java/src/main/resources/native/
 
 # 结构整改可逆归档（260908-08，本地保存不入库）
 archive/
+
+# 260910-07（judge C13）：`.investigations/**/cmd-output/logs/` 下的 `.log` 是**证据主体**（stdout：
+# CHUNKTIME / WG-CONTENT / 拦截行计数），全局限定 `*.log`（:7）会让 `git add` **静默跳过**它们 ⇒ 白名单放行。
+!.investigations/**/cmd-output/logs/*.log

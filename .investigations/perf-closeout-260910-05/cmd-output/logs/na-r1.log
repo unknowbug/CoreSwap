@@ -1,0 +1,171 @@
+Starting a Gradle Daemon, 10 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[19:14:53] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.21.6 with Fabric Loader 0.16.14
+[19:14:53] [main/INFO] (FabricLoader) Loading 42 mods:
+	- chunky 1.4.40
+	- coreswap1216 1.21.6-0.1.0
+	- fabric-api 0.127.0+1.21.6
+	- fabric-api-base 0.4.63+9ec45cd89c
+	- fabric-api-lookup-api-v1 1.6.99+9ec45cd89c
+	- fabric-biome-api-v1 16.0.10+fa6cb72b9c
+	- fabric-block-api-v1 1.1.2+78dbe4fb9c
+	- fabric-block-view-api-v2 1.0.30+d32f812d9c
+	- fabric-command-api-v2 2.2.52+b39a696a9c
+	- fabric-content-registries-v0 10.0.17+fa6cb72b9c
+	- fabric-convention-tags-v1 2.1.37+7f945d5b9c
+	- fabric-convention-tags-v2 2.15.2+d9a896309c
+	- fabric-crash-report-info-v1 0.3.14+fa6cb72b9c
+	- fabric-data-attachment-api-v1 1.8.8+d9a896309c
+	- fabric-data-generation-api-v1 23.2.0+a12c79229c
+	- fabric-dimensions-v1 4.0.18+75fa737a9c
+	- fabric-entity-events-v1 2.1.0+c9e472739c
+	- fabric-events-interaction-v0 4.0.22+0d4d74479c
+	- fabric-game-rule-api-v1 1.0.71+9ec45cd89c
+	- fabric-gametest-api-v1 3.1.8+39ce47f59c
+	- fabric-item-api-v1 11.4.2+5e29f1899c
+	- fabric-item-group-api-v1 4.2.12+9ec45cd89c
+	- fabric-lifecycle-events-v1 2.6.2+db4dfd859c
+	- fabric-loot-api-v2 3.0.54+3f89f5a59c
+	- fabric-loot-api-v3 2.0.1+f40817309c
+	- fabric-message-api-v1 6.1.0+8efa0e499c
+	- fabric-networking-api-v1 5.0.0+d32f812d9c
+	- fabric-object-builder-api-v1 21.1.5+946cf7899c
+	- fabric-particles-v1 4.1.6+c1dce2189c
+	- fabric-recipe-api-v1 8.1.13+39ce47f59c
+	- fabric-registry-sync-v0 6.1.25+9ec45cd89c
+	- fabric-rendering-fluids-v1 3.1.29+fa6cb72b9c
+	- fabric-resource-conditions-api-v1 5.0.23+908cbc919c
+	- fabric-resource-loader-v0 3.1.10+fa6cb72b9c
+	- fabric-screen-handler-api-v1 1.3.134+d32f812d9c
+	- fabric-tag-api-v1 1.2.0+75110b049c
+	- fabric-transfer-api-v1 6.0.4+074c84ee9c
+	- fabric-transitive-access-wideners-v1 6.4.0+ac3e15d19c
+	- fabricloader 0.16.14
+	- java 21
+	- minecraft 1.21.6
+	- mixinextras 0.4.1
+[19:14:57] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/E:/PYTHON/CoreSwap/.gradle-home/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.15.5+mixin.0.8.7/22f9eb729e216a091673a574a5906dc1b9027fb3/sponge-mixin-0.15.5+mixin.0.8.7.jar Service=Knot/Fabric Env=SERVER
+[19:14:57] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[19:14:57] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[19:14:58] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.4.1).
+[19:14:59] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[19:14:59] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[19:14:59] [main/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[19:15:06] [main/INFO] (Minecraft) Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[19:15:07] [main/INFO] (Minecraft) No existing world data, creating new world
+[19:15:08] [main/INFO] (Minecraft) Loaded 1407 recipes
+[19:15:08] [main/INFO] (Minecraft) Loaded 1520 advancements
+[19:15:08] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 65 new biomes in 1.185 ms
+[19:15:08] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.21.6
+[19:15:08] [Server thread/INFO] (Minecraft) Loading properties
+[19:15:08] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[19:15:08] [Server thread/INFO] (Minecraft) Generating keypair
+[19:15:08] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[19:15:08] [Server thread/INFO] (Minecraft) Using default channel type
+[19:15:08] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[19:15:08] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[19:15:08] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[19:15:08] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[19:15:08] [Server thread/INFO] (Minecraft) Preparing level "world"
+[19:15:11] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[19:15:11] [Worker-Main-21/INFO] (Minecraft) Preparing spawn area: 2%
+[19:15:11] [Worker-Main-8/INFO] (Minecraft) Preparing spawn area: 2%
+[19:15:12] [Worker-Main-19/INFO] (Minecraft) Preparing spawn area: 18%
+[19:15:12] [Worker-Main-8/INFO] (Minecraft) Preparing spawn area: 51%
+[19:15:13] [Worker-Main-3/INFO] (Minecraft) Preparing spawn area: 89%
+[19:15:13] [Server thread/INFO] (Minecraft) Time elapsed: 2014 ms
+[19:15:13] [Server thread/INFO] (Minecraft) Done (4.475s)! For help, type "help"
+[19:15:13] [Server thread/INFO] (Minecraft) Starting remote control listener
+[19:15:13] [Server thread/INFO] (Minecraft) Thread RCON Listener started
+[19:15:13] [Server thread/INFO] (Minecraft) RCON running on 0.0.0.0:25575
+[19:15:13] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[19:15:13] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+[19:15:13] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initNether seed=417950215108767439 enabled=true stageMask=3
+[19:15:13] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initEnd seed=417950215108767439 enabled=true stageMask=3
+[19:15:13] [Server thread/INFO] (Minecraft) [STDOUT]: [BenchMod] CoreSwap replace mode: C++ worldgen active
+[19:15:20] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:20] [RCON Client /127.0.0.1 #2/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:21] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:21] [RCON Client /127.0.0.1 #3/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:22] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:22] [RCON Client /127.0.0.1 #4/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:23] [RCON Client /127.0.0.1 #5/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:24] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:the_nether. Processed: 57 chunks (1.35%), ETA: 0:00:28, Rate: 148.8 cps, Current: -26, -32
+[19:15:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=256 perChunk(ms): mixin=47.03 [jni=0.00 write=0.00 hmap=0.12 scan=0.00 beard=0.05] gap=49.52 | stage carve=1.72 feat=3.94 | armAgnostic featInterval=781.64ms(n=256) | sumMixin=12.0s sumGap=12.7s sumCarve=0.4s sumFeat=1.0s | inflight max=23 now=0
+[19:15:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=256 perChunk(ms): mixin=50.19 [jni=0.00 write=0.00 hmap=0.13 scan=0.00 beard=0.06] gap=71.23 | stage carve=1.72 feat=3.99 | armAgnostic featInterval=769.30ms(n=261) | sumMixin=12.8s sumGap=18.2s sumCarve=0.4s sumFeat=1.0s | inflight max=23 now=23
+[19:15:25] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=512 perChunk(ms): mixin=43.21 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.07] gap=57.13 | stage carve=1.16 feat=2.40 | armAgnostic featInterval=476.04ms(n=493) | sumMixin=22.1s sumGap=29.2s sumCarve=0.6s sumFeat=1.2s | inflight max=23 now=22
+[19:15:25] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=512 perChunk(ms): mixin=45.30 [jni=0.00 write=0.00 hmap=0.12 scan=0.00 beard=0.07] gap=57.98 | stage carve=1.19 feat=2.44 | armAgnostic featInterval=460.16ms(n=512) | sumMixin=23.2s sumGap=29.7s sumCarve=0.6s sumFeat=1.2s | inflight max=23 now=19
+[19:15:26] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=768 perChunk(ms): mixin=41.59 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.05] gap=49.71 | stage carve=0.93 feat=1.85 | armAgnostic featInterval=352.02ms(n=713) | sumMixin=31.9s sumGap=38.2s sumCarve=0.7s sumFeat=1.4s | inflight max=23 now=22
+[19:15:26] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=768 perChunk(ms): mixin=43.14 [jni=0.00 write=0.00 hmap=0.12 scan=0.00 beard=0.06] gap=50.69 | stage carve=0.98 feat=1.90 | armAgnostic featInterval=334.51ms(n=768) | sumMixin=33.1s sumGap=38.9s sumCarve=0.8s sumFeat=1.5s | inflight max=23 now=4
+[19:15:27] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1024 perChunk(ms): mixin=38.55 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.05] gap=58.16 | stage carve=0.85 feat=2.17 | armAgnostic featInterval=291.58ms(n=950) | sumMixin=39.5s sumGap=59.6s sumCarve=0.9s sumFeat=2.2s | inflight max=23 now=12
+[19:15:28] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1024 perChunk(ms): mixin=41.60 [jni=0.00 write=0.00 hmap=0.12 scan=0.00 beard=0.05] gap=63.87 | stage carve=0.91 feat=2.26 | armAgnostic featInterval=278.53ms(n=1024) | sumMixin=42.6s sumGap=65.4s sumCarve=0.9s sumFeat=2.3s | inflight max=23 now=3
+[19:15:28] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1280 perChunk(ms): mixin=36.21 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.04] gap=58.13 | stage carve=0.80 feat=1.97 | armAgnostic featInterval=251.29ms(n=1212) | sumMixin=46.3s sumGap=74.4s sumCarve=1.0s sumFeat=2.5s | inflight max=23 now=9
+[19:15:29] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1280 perChunk(ms): mixin=38.54 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.04] gap=59.95 | stage carve=0.84 feat=2.06 | armAgnostic featInterval=242.95ms(n=1280) | sumMixin=49.3s sumGap=76.7s sumCarve=1.1s sumFeat=2.6s | inflight max=23 now=0
+[19:15:30] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1536 perChunk(ms): mixin=34.68 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.04] gap=65.28 | stage carve=0.77 feat=2.21 | armAgnostic featInterval=226.55ms(n=1456) | sumMixin=53.3s sumGap=100.3s sumCarve=1.2s sumFeat=3.4s | inflight max=23 now=22
+[19:15:30] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1536 perChunk(ms): mixin=36.14 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.04] gap=70.75 | stage carve=0.81 feat=2.43 | armAgnostic featInterval=224.92ms(n=1536) | sumMixin=55.5s sumGap=108.7s sumCarve=1.2s sumFeat=3.7s | inflight max=23 now=0
+[19:15:31] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1792 perChunk(ms): mixin=33.17 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.04] gap=71.73 | stage carve=0.75 feat=2.48 | armAgnostic featInterval=215.92ms(n=1693) | sumMixin=59.4s sumGap=128.5s sumCarve=1.4s sumFeat=4.4s | inflight max=23 now=22
+[19:15:32] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=1792 perChunk(ms): mixin=34.57 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.04] gap=77.68 | stage carve=0.78 feat=2.72 | armAgnostic featInterval=213.13ms(n=1792) | sumMixin=61.9s sumGap=139.2s sumCarve=1.4s sumFeat=4.9s | inflight max=23 now=9
+[19:15:33] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2048 perChunk(ms): mixin=31.75 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=75.87 | stage carve=0.72 feat=2.67 | armAgnostic featInterval=205.73ms(n=1939) | sumMixin=65.0s sumGap=155.4s sumCarve=1.5s sumFeat=5.5s | inflight max=23 now=20
+[19:15:34] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2048 perChunk(ms): mixin=33.89 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=82.12 | stage carve=0.75 feat=2.87 | armAgnostic featInterval=204.98ms(n=2048) | sumMixin=69.4s sumGap=168.2s sumCarve=1.5s sumFeat=5.9s | inflight max=23 now=0
+[19:15:34] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2304 perChunk(ms): mixin=31.46 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=78.85 | stage carve=0.70 feat=2.72 | armAgnostic featInterval=199.28ms(n=2187) | sumMixin=72.5s sumGap=181.7s sumCarve=1.6s sumFeat=6.3s | inflight max=23 now=21
+[19:15:34] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:the_nether. Processed: 1892 chunks (44.78%), ETA: 0:00:12, Rate: 181.9 cps, Current: 27, -15
+[19:15:35] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2304 perChunk(ms): mixin=33.26 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=82.22 | stage carve=0.74 feat=2.84 | armAgnostic featInterval=195.01ms(n=2304) | sumMixin=76.6s sumGap=189.4s sumCarve=1.7s sumFeat=6.5s | inflight max=23 now=0
+[19:15:35] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2560 perChunk(ms): mixin=31.49 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=76.76 | stage carve=0.70 feat=2.61 | armAgnostic featInterval=188.65ms(n=2426) | sumMixin=80.6s sumGap=196.5s sumCarve=1.8s sumFeat=6.7s | inflight max=23 now=5
+[19:15:36] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2560 perChunk(ms): mixin=33.41 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.03] gap=80.70 | stage carve=0.75 feat=2.66 | armAgnostic featInterval=184.86ms(n=2560) | sumMixin=85.5s sumGap=206.6s sumCarve=1.9s sumFeat=6.8s | inflight max=23 now=15
+[19:15:36] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2816 perChunk(ms): mixin=30.90 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=74.15 | stage carve=0.69 feat=2.44 | armAgnostic featInterval=183.11ms(n=2610) | sumMixin=87.0s sumGap=208.8s sumCarve=1.9s sumFeat=6.9s | inflight max=23 now=17
+[19:15:37] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=2816 perChunk(ms): mixin=32.76 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.03] gap=76.78 | stage carve=0.73 feat=2.52 | armAgnostic featInterval=174.68ms(n=2816) | sumMixin=92.2s sumGap=216.2s sumCarve=2.1s sumFeat=7.1s | inflight max=23 now=0
+[19:15:37] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3072 perChunk(ms): mixin=30.32 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=71.80 | stage carve=0.67 feat=2.33 | armAgnostic featInterval=172.84ms(n=2869) | sumMixin=93.1s sumGap=220.6s sumCarve=2.1s sumFeat=7.2s | inflight max=23 now=15
+[19:15:37] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3072 perChunk(ms): mixin=32.68 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.03] gap=73.83 | stage carve=0.72 feat=2.38 | armAgnostic featInterval=166.51ms(n=3072) | sumMixin=100.4s sumGap=226.8s sumCarve=2.2s sumFeat=7.3s | inflight max=23 now=0
+[19:15:38] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3328 perChunk(ms): mixin=30.49 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=69.08 | stage carve=0.67 feat=2.21 | armAgnostic featInterval=166.13ms(n=3098) | sumMixin=101.5s sumGap=229.9s sumCarve=2.2s sumFeat=7.3s | inflight max=23 now=21
+[19:15:38] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3328 perChunk(ms): mixin=32.48 [jni=0.00 write=0.00 hmap=0.11 scan=0.00 beard=0.03] gap=72.43 | stage carve=0.71 feat=2.28 | armAgnostic featInterval=159.60ms(n=3328) | sumMixin=108.1s sumGap=241.1s sumCarve=2.4s sumFeat=7.6s | inflight max=23 now=4
+[19:15:38] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3584 perChunk(ms): mixin=30.21 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=67.71 | stage carve=0.66 feat=2.13 | armAgnostic featInterval=158.67ms(n=3355) | sumMixin=108.3s sumGap=242.7s sumCarve=2.4s sumFeat=7.6s | inflight max=23 now=16
+[19:15:39] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3584 perChunk(ms): mixin=31.50 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.03] gap=70.73 | stage carve=0.70 feat=2.23 | armAgnostic featInterval=154.30ms(n=3584) | sumMixin=112.9s sumGap=253.5s sumCarve=2.5s sumFeat=8.0s | inflight max=23 now=0
+[19:15:40] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3840 perChunk(ms): mixin=29.72 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=68.47 | stage carve=0.66 feat=2.14 | armAgnostic featInterval=153.99ms(n=3633) | sumMixin=114.1s sumGap=262.9s sumCarve=2.5s sumFeat=8.2s | inflight max=23 now=13
+[19:15:41] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=3840 perChunk(ms): mixin=31.33 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=74.48 | stage carve=0.71 feat=2.35 | armAgnostic featInterval=151.90ms(n=3840) | sumMixin=120.3s sumGap=286.0s sumCarve=2.7s sumFeat=9.0s | inflight max=23 now=4
+[19:15:41] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4096 perChunk(ms): mixin=29.58 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=71.01 | stage carve=0.67 feat=2.25 | armAgnostic featInterval=152.16ms(n=3894) | sumMixin=121.1s sumGap=290.9s sumCarve=2.7s sumFeat=9.2s | inflight max=23 now=13
+[19:15:42] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4096 perChunk(ms): mixin=30.77 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=75.17 | stage carve=0.68 feat=2.42 | armAgnostic featInterval=149.77ms(n=4096) | sumMixin=126.0s sumGap=307.9s sumCarve=2.8s sumFeat=9.9s | inflight max=23 now=0
+[19:15:42] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4352 perChunk(ms): mixin=29.18 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=72.18 | stage carve=0.65 feat=2.32 | armAgnostic featInterval=149.51ms(n=4158) | sumMixin=127.0s sumGap=314.1s sumCarve=2.8s sumFeat=10.1s | inflight max=23 now=22
+[19:15:43] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4352 perChunk(ms): mixin=30.20 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=76.49 | stage carve=0.67 feat=2.49 | armAgnostic featInterval=148.17ms(n=4352) | sumMixin=131.4s sumGap=332.9s sumCarve=2.9s sumFeat=10.8s | inflight max=23 now=0
+[19:15:44] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [CHUNKTIME] n=4608 perChunk(ms): mixin=28.78 [jni=0.00 write=0.00 hmap=0.10 scan=0.00 beard=0.02] gap=73.59 | stage carve=0.64 feat=2.40 | armAgnostic featInterval=147.55ms(n=4399) | sumMixin=132.6s sumGap=339.1s sumCarve=2.9s sumFeat=11.1s | inflight max=23 now=12
+[19:15:44] [Server thread/INFO] (Minecraft) [Chunky] Task running for minecraft:the_nether. Processed: 4137 chunks (97.92%), ETA: 0:00:00, Rate: 202.8 cps, Current: 27, 8
+[19:15:45] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:the_nether. Processed: 4225 chunks (100.00%), Total time: 0:00:21
+[19:15:57] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:57] [RCON Client /127.0.0.1 #6/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:58] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[19:15:58] [Server thread/INFO] (Minecraft) [Rcon: Stopping the server]
+[19:15:58] [RCON Client /127.0.0.1 #7/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[19:15:58] [Server thread/INFO] (Minecraft) Stopping server
+[19:15:58] [Server thread/INFO] (Minecraft) Saving players
+[19:15:58] [Server thread/INFO] (Minecraft) Saving worlds
+[19:15:59] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[19:15:59] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[19:15:59] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[19:15:59] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[19:15:59] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[19:15:59] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[19:15:59] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+[19:15:59] [Server thread/INFO] (Minecraft) Thread RCON Listener stopped
+
+[Incubating] Problems report is available at: file:///E:/PYTHON/CoreSwap/runtime/1.21.6/java/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 24s
+6 actionable tasks: 1 executed, 5 up-to-date

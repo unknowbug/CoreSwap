@@ -28,6 +28,9 @@ if (-not $TargetDll) {
 foreach ($p in @($OldJar, $NewJar, $TargetDll)) {
     if (-not (Test-Path $p)) { Write-Output "[FAIL] missing: $p"; exit 1 }
 }
+# judge C14：解包依赖 jar.exe，未设/失效必须**响亮失败**——否则解包为空会让下面「0/0/0」假绿通过（#23/#25/#40 家族）
+$jarExe = Join-Path $env:JAVA_HOME 'bin\jar.exe'
+if (-not (Test-Path $jarExe)) { Write-Output "[FAIL] jar.exe not found (JAVA_HOME='$env:JAVA_HOME')"; exit 1 }
 Write-Output "# equivalence_check_260910-07  version=$Version  $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Output "old jar    = $OldJar"
 Write-Output "new jar    = $NewJar"
@@ -36,8 +39,8 @@ Write-Output "target dll = $TargetDll"
 $work = Join-Path $env:TEMP ("eq-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path "$work\old", "$work\new" | Out-Null
 Copy-Item $OldJar "$work\old.jar" -Force; Copy-Item $NewJar "$work\new.jar" -Force
-Push-Location "$work\old"; & "$env:JAVA_HOME\bin\jar.exe" xf ../old.jar 2>$null; Pop-Location
-Push-Location "$work\new"; & "$env:JAVA_HOME\bin\jar.exe" xf ../new.jar 2>$null; Pop-Location
+Push-Location "$work\old"; & $jarExe xf ../old.jar 2>$null; Pop-Location
+Push-Location "$work\new"; & $jarExe xf ../new.jar 2>$null; Pop-Location
 
 function Entries([string]$dir) {
     Get-ChildItem $dir -Recurse -File | Where-Object { $_.FullName -notmatch '\\META-INF\\' } |
@@ -45,6 +48,9 @@ function Entries([string]$dir) {
 }
 $oh = @{}; Entries "$work\old" | ForEach-Object { $oh[$_.Rel] = $_.Sha }
 $nh = @{}; Entries "$work\new" | ForEach-Object { $nh[$_.Rel] = $_.Sha }
+# judge C14：空解包守卫——entries=0 时下面「0/0/0」会假绿（#23/#25/#40 家族）
+if ($oh.Count -eq 0 -or $nh.Count -eq 0) { Write-Output "[FAIL] empty extraction (entries old=$($oh.Count) new=$($nh.Count)) - JAVA_HOME/jar.exe?"; exit 2 }
+if (-not (Test-Path "$work\new\native\worldgen.dll")) { Write-Output "[FAIL] jar-inner native/worldgen.dll missing (jar layout changed?)"; exit 2 }
 $onlyOld = @($oh.Keys | Where-Object { -not $nh.ContainsKey($_) })
 $onlyNew = @($nh.Keys | Where-Object { -not $oh.ContainsKey($_) })
 $contentDiff = @($oh.Keys | Where-Object { $nh.ContainsKey($_) -and $nh[$_] -ne $oh[$_] })
@@ -64,4 +70,4 @@ Write-Output "target dll    = $tSha"
 Write-Output "jar-inner dll = $iSha"
 Write-Output ("TRIPLE MATCH = " + ($tSha -eq $iSha))
 Remove-Item $work -Recurse -Force -EA SilentlyContinue
-if ($onlyOld.Count -or $onlyNew.Count -or $contentDiff.Count -or ($oldSha -ne $newSha)) { exit 2 } else { Write-Output "[OK] migration equivalence gate PASSED"; exit 0 }
+if ($onlyOld.Count -or $onlyNew.Count -or $contentDiff.Count -or ($oldSha -ne $newSha) -or ($tSha -ne $iSha)) { exit 2 } else { Write-Output "[OK] migration equivalence gate PASSED"; exit 0 }
