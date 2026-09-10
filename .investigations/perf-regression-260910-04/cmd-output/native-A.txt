@@ -1,0 +1,256 @@
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=true
+[WG-CONF] ca_min=true est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=39987.5ms per_chunk=156.20ms hash=6908dbfc9a79c40a placed_hint=0
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=false
+[WG-CONF] ca_min=false est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=34606.7ms per_chunk=135.18ms hash=115641b86711d9cd placed_hint=0
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=true
+[WG-CONF] ca_min=true est_l2=false ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=42495.2ms per_chunk=166.00ms hash=6908dbfc9a79c40a placed_hint=0
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown placement modifier type: minecraft:carving_mask
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=true
+[WG-CONF] ca_min=true est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+[BLOCKS] unknown block 'minecraft:pale_oak_leaves' -> AIR (register via wg_register_block)
+RESULT: chunks=256 wall=14924.8ms per_chunk=58.30ms hash=a1eaf55b24ddf771 placed_hint=0
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown placement modifier type: minecraft:carving_mask
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=false
+[WG-CONF] ca_min=false est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+[BLOCKS] unknown block 'minecraft:pale_oak_leaves' -> AIR (register via wg_register_block)
+RESULT: chunks=256 wall=12218.6ms per_chunk=47.73ms hash=297caba75877db85 placed_hint=0

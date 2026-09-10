@@ -640,6 +640,25 @@ impl WorldgenHandle {
             self.fill_terrain_column(cx, cz)
         };
         let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
+        // 260910-04 配置行为化证据（#81「A=B 不证分支生效」+ #37「行为化日志」）：
+        // 进程内首次 fill 打印一次**生效**开关——使 -PcaMin=0 / -PestL2=0 / stageMask 的 A/B
+        // 判别具备「分支真被走到」的直接证据，而非仅命令行/属性转录（#32/#53 死参数假判别家族）。
+        // 一次性（非每 chunk 刷屏、非每点）；热路径成本 = 每 chunk 一次 relaxed atomic swap。
+        {
+            use std::sync::atomic::{AtomicBool, Ordering};
+            static CONF_ECHOED: AtomicBool = AtomicBool::new(false);
+            if !CONF_ECHOED.swap(true, Ordering::Relaxed) {
+                eprintln!("[WG-CONF] ca_min={} est_l2={} ca_cap={} flags={} skip_features={} skip_carver={} skip_surface={} coreswap_threads={}",
+                    ca_min,
+                    env_enabled("WG_EST_L2"),
+                    Self::ca_cap(),
+                    flags,
+                    flags & FLAG_SKIP_FEATURES != 0,
+                    flags & FLAG_SKIP_CARVER != 0,
+                    flags & FLAG_SKIP_SURFACE != 0,
+                    std::env::var("CORESWAP_THREADS").unwrap_or_else(|_| "(unset)".to_string()));
+            }
+        }
         // surface 规则外的 feature 侧 biome 输入（与 fill_terrain_column 内 carver 用同源语义）
         let biome_at = |x: i32, y: i32, z: i32| -> String {
             let bp = NoisePos { x: (x >> 2) << 2, y: (y >> 2) << 2, z: (z >> 2) << 2 };

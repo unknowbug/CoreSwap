@@ -1,0 +1,20 @@
+
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=true
+[WG-CONF] ca_min=true est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=10204.8ms per_chunk=39.86ms hash=0603683700a83f53 placed_hint=0
+
+
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=false
+[WG-CONF] ca_min=false est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=10095.2ms per_chunk=39.43ms hash=0603683700a83f53 placed_hint=0
+
+
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=true
+[WG-CONF] ca_min=true est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=9869.6ms per_chunk=38.55ms hash=a6226a22c3e751e4 placed_hint=0
+
+
+handle: min_y=-64 height=384 seed=-8248318472910187742 wg=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen N=16x16 origin=(0,0) WG_CA_MIN=false
+[WG-CONF] ca_min=false est_l2=true ca_cap=2048 flags=0 skip_features=false skip_carver=false skip_surface=false coreswap_threads=(unset)
+RESULT: chunks=256 wall=10921.0ms per_chunk=42.66ms hash=a6226a22c3e751e4 placed_hint=0
+

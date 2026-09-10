@@ -1,0 +1,9 @@
+c1-r1	coreswap	ver=1.21.6	total=0:03:54	sec=234	wallgen=240.6	boot=44.2	mixinLines=0	wmThreads=5	dllsha=abd7d8893d22e030	conf=ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)
+c2-r1	coreswap	ver=1.21.6	total=0:04:39	sec=279	chunks=4225	wallgen=280.6	boot=39.2	mixinLines=0	serverCpu=488	dllsha=abd7d8893d22e030	conf=ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)
+ct1-r1	FAIL_no_done
+ct1-r1	FAIL_no_done
+ct1-r1	coreswap	ver=1.21.6	total=?	sec=-1	chunks=?	wallgen=190.5	boot=45.2	mixinLines=0	serverCpu=-1	dllsha=abd7d8893d22e030	conf=-
+ct1-r1	coreswap	ver=1.21.6	total=?	sec=-1	chunks=?	wallgen=110.1	boot=39.1	mixinLines=0	serverCpu=-1	dllsha=abd7d8893d22e030	conf=ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)
+ct1-r1	coreswap	ver=1.21.6	total=0:04:43	sec=283	chunks=4225	wallgen=290.3	boot=39.1	mixinLines=0	serverCpu=370	dllsha=abd7d8893d22e030	conf=ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)
+vt1-r1	vanilla	ver=1.21.6	total=0:00:53	sec=53	chunks=4225	wallgen=60.1	boot=39.2	mixinLines=0	serverCpu=296	dllsha=-	conf=-
+ct1-r1	coreswap	ver=1.21.6	total=0:04:24	sec=264	chunks=4225	wallgen=270.3	boot=42.2	mixinLines=0	serverCpu=367	dllsha=abd7d8893d22e030	conf=ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)

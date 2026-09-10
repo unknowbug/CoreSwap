@@ -1158,3 +1158,23 @@ entries:
     # §9.7：bench 载体 + 机器噪声带 ±10% 同批配对交错口径（#103），跨批次绝对值不可比。
     # 改动：worldgen_handle.rs（B3a 快照 + ca_cap 2048 + WG_CA_MEMODIAG 扩展）；commit e91c7f6。
     # 来源：.investigations/camin-perf/probe-260909-06.md + cmd-output/build-test-260909-06.md。
+
+  # === 260910-04 块：1.21.6 性能回归定责（candidate，待 judge + 用户 confirmed） ===
+  - id: 'swe:perf-regression-260910-04:verdict'
+    path: 'perf-regression-260910-04/verdict-260910-04.md'
+    kind: analysis
+    status: candidate  # judge 审查中；confirmed 只能由人类授予
+    # 结论：5.15x 回归 = 我们把 47ms Rust 重活同步做在 MC 唯一 worldgen 串行车道内（ChunkTaskScheduler 单 entry 在飞）→ 并行度 1.000。
+    # 证据：Σ(接管 251.1s+carve 5.7s+feat 12.3s)=269.1s vs wall 283-290s（93%）；vanilla Σ=17.0s vs wall 60.1s（重活在池）；
+    #       每 chunk 线程时间 coreswap 1422ms vs vanilla 299ms；native in-game 语义 39.86ms(1.21.6)/38.55ms(1.20.1)；实机 JNI 47.2ms。
+    # 已排除（各带实测）：引擎/跨版本回归、线程 spawn（threads=1 更慢 279s）、日志（仅 13%）、CA_MIN、est_l2、carve、features、写回副作用（b2 REFUTED ≤3.7ms）。
+    # 落地：R1 mixin per-chunk 日志门控（268→234s，1.21.6+1.20.1 双版本）；[WG-CONF] 行为化配置证据；chunk 级分段计时（默认关）。
+    # 口径修正：Chunky 1.4.40 无 chunkradius 子命令 → 实际 region = 默认 radius 500 = 4225 chunks（历史"chunkradius=56"表述失真，可比性不受影响）。
+  - id: 'swe:perf-regression-260910-04:candidate-b1'
+    path: 'perf-regression-260910-04/candidates/b1-choreography.md'
+    kind: analysis
+    status: draft  # fan-out 候选；主会话已用实测数据验证其定量闭环（Σ≈wall 93%）
+  - id: 'swe:perf-regression-260910-04:candidate-b2'
+    path: 'perf-regression-260910-04/candidates/b2-writeback-sideeffects.md'
+    kind: analysis
+    status: draft  # fan-out 候选：REFUTED（作为 948ms 主体），仅留 <=3.7ms/chunk 级优化项

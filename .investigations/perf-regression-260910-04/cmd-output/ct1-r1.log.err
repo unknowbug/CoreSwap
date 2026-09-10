@@ -1,0 +1,76 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=E:\PYTHON\CoreSwap\.tmp\java-tmp
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/D:/gradle/gradle-8.13/lib/native-platform-0.22-milestone-28.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Caught exception: Couldn't open current thread, error = 5
+Exception in thread "File watcher server" net.rubygrapefruit.platform.NativeException: Couldn't open current thread, error = 5
+	at org.gradle.fileevents.internal.AbstractNativeFileEventFunctions$NativeFileWatcher.initializeRunLoop0(Native Method)
+	at org.gradle.fileevents.internal.AbstractNativeFileEventFunctions$NativeFileWatcher.initializeRunLoop(AbstractNativeFileEventFunctions.java:25)
+	at org.gradle.fileevents.internal.AbstractFileEventFunctions$AbstractFileWatcher$1.run(AbstractFileEventFunctions.java:151)
+Picked up JAVA_TOOL_OPTIONS: -Djava.io.tmpdir=E:\PYTHON\CoreSwap\.tmp\java-tmp
+[placement] unsupported block predicate type: minecraft:inside_world_bounds
+[BLOCKS] unknown block 'minecraft:flowing_water' -> AIR (register via wg_register_block)
+[BLOCKS] unknown block 'minecraft:empty' -> AIR (register via wg_register_block)
+[tree] unsupported trunk placer type: minecraft:cherry_trunk_placer
+[tree] unsupported foliage placer type: minecraft:cherry_foliage_placer
+[feature-loader] unknown configured feature type: minecraft:sculk_patch (minecraft:sculk_patch_deep_dark)
+[tree] unsupported block state provider type: minecraft:noise_threshold_provider（告警不静默，S4 全量加载门）
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_packed)
+[feature-loader] unknown configured feature type: minecraft:iceberg (minecraft:iceberg_blue)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_coal)
+[feature-loader] unknown configured feature type: minecraft:fossil (minecraft:fossil_diamonds)
+[feature-loader] unknown configured feature type: minecraft:large_dripstone (minecraft:large_dripstone)
+[feature-loader] unknown configured feature type: minecraft:dripstone_cluster (minecraft:dripstone_cluster)
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[feature-loader] unknown configured feature type: minecraft:pointed_dripstone ()
+[tree] unsupported block state provider type: minecraft:noise_provider（告警不静默，S4 全量加载门）
+[placement] unsupported block predicate type: minecraft:has_sturdy_face
+[tree] unsupported block state provider type: minecraft:randomized_int_state_provider（告警不静默，S4 全量加载门）
+[tree] unsupported block state provider type: minecraft:dual_noise_provider（告警不静默，S4 全量加载门）
+[feature-loader] forest_rock config parse failed: minecraft:forest_rock
+[feature-loader] unknown configured feature type: minecraft:coral_tree ()
+[feature-loader] unknown configured feature type: minecraft:coral_claw ()
+[feature-loader] unknown configured feature type: minecraft:coral_mushroom ()
+[tree] unsupported foliage placer type: minecraft:spruce_foliage_placer
+[tree] unsupported foliage placer type: minecraft:pine_foliage_placer
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:giant_trunk_placer
+[tree] unsupported foliage placer type: minecraft:mega_pine_foliage_placer
+[tree] unsupported tree decorator type: minecraft:alter_ground
+[tree] unsupported trunk placer type: minecraft:forking_trunk_placer
+[tree] unsupported foliage placer type: minecraft:acacia_foliage_placer
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:upwards_branching_trunk_placer
+[tree] unsupported foliage placer type: minecraft:random_spread_foliage_placer
+[tree] unsupported tree decorator type: minecraft:attached_to_leaves
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported tree decorator type: minecraft:pale_moss
+[tree] unsupported tree decorator type: minecraft:creaking_heart
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[tree] unsupported trunk placer type: minecraft:dark_oak_trunk_placer
+[tree] unsupported foliage placer type: minecraft:dark_oak_foliage_placer
+[tree] unsupported feature size type: minecraft:three_layers_feature_size（数据集存在，L3）
+[feature-loader] unknown configured feature type: minecraft:delta_feature (minecraft:delta)
+[feature-loader] unknown configured feature type: minecraft:basalt_columns (minecraft:small_basalt_columns)
+[feature-loader] unknown configured feature type: minecraft:basalt_columns (minecraft:large_basalt_columns)
+[feature-loader] unknown configured feature type: minecraft:netherrack_replace_blobs (minecraft:basalt_blobs)
+[feature-loader] unknown configured feature type: minecraft:netherrack_replace_blobs (minecraft:blackstone_blobs)
+[feature-loader] unknown configured feature type: minecraft:glowstone_blob (minecraft:glowstone_extra)
+[feature-loader] unknown configured feature type: minecraft:glowstone_blob (minecraft:glowstone_extra)
+[feature-loader] unknown configured feature type: minecraft:weeping_vines (minecraft:weeping_vines)
+[feature-loader] unknown configured feature type: minecraft:huge_fungus (minecraft:crimson_fungus)
+[feature-loader] unknown configured feature type: minecraft:basalt_pillar (minecraft:basalt_pillar)
+[feature-loader] unknown configured feature type: minecraft:huge_fungus (minecraft:warped_fungus)
+[feature-loader] unknown configured feature type: minecraft:twisting_vines (minecraft:twisting_vines)
+[WG-CONF] ca_min=true est_l2=true ca_cap=2048 flags=3 skip_features=true skip_carver=true skip_surface=false coreswap_threads=(unset)

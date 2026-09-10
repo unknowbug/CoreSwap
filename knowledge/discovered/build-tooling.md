@@ -885,3 +885,42 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
   2. existence-only marker 的语义边界：只证「缓存非空/上次解压过」，不证「缓存 = 当前版本资源集」——**跨版本共享缓存路径必须配内容指纹**（逐字节或 hash 比对锚点文件），extractNativeDll 早已有同款而 extractWorldgenDir 没有 = 同类判据接线不齐的欠账。
   3. 家族索引：#27（marker 单判·增量缺失形态）、#18（产物在盘≠本次生成）、#96（加载路径跟实际 run 形态走）——共同上位原则：**「数据/产物与当前版本资源集等价」必须有独立证据，existence 是最弱的一档**。
 
+## 发现 #46: 沙箱内 WMI/CIM cmdlet 会阻塞、JVM attach 工具一律拒访——编排脚本配方：进程属性识别 + .NET `Process.Threads`（260910-04）
+
+- **发现时间 / 置信度 / module**：260910-04；确定（本块一手实测：cmdlet 阻塞/报错 + `jcmd` IOException 双证）；build-tooling / 沙箱环境坑（错误优先）。
+- **来源定位**：`.investigations/perf-regression-260910-04/record.md` §6 E1/E4；驱动脚本 `.tmp/perf-reg-260910-04/*.ps1`。
+- **现象（五段式·现象）**：① 跑批脚本「启动了服务器但从不发 RCON 命令」，进程挂死，服务器日志无 RCON Client 行；② `Get-CimInstance` 报「无法从客户端访问 CIM 资源」；③ `jcmd <pid> Thread.print` 返回 `IOException: 拒绝访问`，dump 文件 8 字节（空壳）。
+- **根因（机制）**：① 本沙箱**没有 WMI/CIM 后端**——依赖它的 cmdlet（`Get-NetTCPConnection` 等）不是抛异常而是**阻塞**（失败形态 = 静默挂起）；② 沙箱**禁命名管道**，JVM attach 机制走命名管道 ⇒ `jcmd`/`jstack`/`jmap` 一类 attach 工具**一律不可用**（与命令参数/权限无关）。
+- **定位**：手动 RCON 可用 + 日志无 RCON Client 行 ⇒ 卡点在脚本「发现服务器/端口」步；`Get-CimInstance` 直接复现 CIM 后端缺失；jcmd 报错文本 + dump 8 字节确认 attach 失败。
+- **修复**：编排脚本**禁用一切 WMI/CIM cmdlet**，改用「WorkingSet 最大 / CPU 最高 的 java 进程」识别服务器；线程状态观测改 .NET `Process.Threads`（`ThreadState`/`WaitReason`）。
+- **教训/判据（可复用）**：
+  1. **沙箱可用性判据必须实测，不能凭常识**——被拦的形态可能是**阻塞**而非异常；脚本静默挂死先怀疑「某步 cmdlet 后端不可用」，而不是先查被测程序。
+  2. 需要被禁通道（命名管道 / CIM / attach）的能力，开工前先做**最小可用性试跑**，再决定观测面（本块为此多绕一轮）。
+  3. 「产出文件已生成」≠「有内容」——8 字节 dump 是假证据（核大小/内容；同族 #42 瞬时拒访，另有本课题错误台账 E5「日志 tail 滞后 → 结论取落盘终值」）。
+  4. 替代面清单：**进程识别** → 进程属性枚举（WorkingSet/CPU 排序）；**线程状态** → .NET `Process.Threads`；**服务端口** → 被测程序自身日志/RCON 可达性探测（不要用 WMI 网络 cmdlet）。
+- **家族索引**：#42（沙箱拒访/瞬时环境错误）、#21（编排脚本外部状态依赖）、workflow-patterns #106（冻结类故障观察法——本条为其 dump 通道的沙箱替代面）。
+
+
+## 发现 #47 简记: gradle `-P`→`-D` 映射的「作用域」坑——`run` 只在 `loom.runs` 闭包内可见，写进 `tasks.matching{}` 会配置期失败（260910-04）
+
+- **发现时间 / 置信度 / module**：260910-04；确定（一手构建日志 + 移回后映射生效）；build-tooling / 构建配置（#8/#19 家族新形态——**现网该家族已计至「第四形态」（260908-10 补充案例），故本条按序计为第五形态**；任务书简述的「第三形态」与现网计数不符，以现网为准）。
+- **来源定位**：`.investigations/perf-regression-260910-04/record.md` §6 E2 + §5；`runtime/1.21.6/java/build.gradle`。
+- **现象**：构建日志 line 235 报 `Could not get unknown property 'run' for task ':runServer'`（**配置期**失败，runServer 起不来）。
+- **根因（机制）**：映射被写进 `tasks.matching { it.name == 'runServer' }` 闭包——`run` 只在 `loom.runs` 的 `benchVmArgs` 闭包作用域内可见；`tasks.matching{}` 的闭包委托对象是 Task，无 `run` 属性。这是「参数接线」家族的**第三维（作用域）**：通道对（property 通道）、名字对（映射行名）、**位置错（闭包）**→ 仍不通。
+- **修复**：映射移回 `benchVmArgs` 闭包（`-Pmixlog / -Pchunktime / -PmaxBgThreads / -PcaMin / -PestL2 / -PcaCap`）。
+- **教训/判据**：
+  1. 新增 `-P`→`-D` 映射 MUST 核**三查：通道 / 名字 / 闭包位置**（#8/#19/#25/#32 家族的第三维）。
+  2. 本形态是**响亮失败**（配置期 unknown property），优于家族的静默不生效形态——**配置期报错先查闭包作用域，别去查参数名**。
+  3. 「编译过/配置过 ≠ 接线生效」通用判据不变：生效证据 = 被测程序回显/行为化日志（#81/#37），构建成功不构成接线证据。
+- **家族索引**：#8、#19、#25、#32、#81/#37。
+
+
+## 发现 #48 简记: `merge_index.py` 对「顶层 list 形态」的 index-entry.yaml 片段崩溃——片段 schema 契约不统一（260910-04）
+
+- **发现时间 / 置信度 / module**：260910-04；**机制部分 Degraded**（本 subagent 不能跑命令，未亲自复现）；build-tooling / 工具坑（index 合并链）。
+- **来源定位**：`.artifacts/8576-24blocks/biome-fix/index-entry.yaml`（本次直读确认其顶层是 `- id: ...` **YAML 序列**，供粘贴到 `entries` 之下）；崩溃记录 = 主会话按 `ref_merge_index` 合并该片段时实测 `AttributeError: 'list' object has no attribute 'get'`（一手运行记录，本稿未复现）。
+- **现象**：`merge_index.py` 合并上述片段时抛 `AttributeError: 'list' object has no attribute 'get'`。
+- **根因（机制）**：**片段 schema 契约不统一**——worker 交付的是「entries 追加片段」（顶层为序列），而合并脚本假定顶层是**单个 entry 映射**（对解析结果直接调 `.get(...)`）；序列对象没有 `.get` ⇒ AttributeError。即「脚本假定 vs 交付形态」错配，属 #8 家族的**契约维**形态。
+- **修复（建议）**：统一 fragment 契约为「顶层 = 单个 entry 映射」（或让脚本显式接受 list 并逐条合并）；应用前把 list 形态片段改写为逐条映射，或主会话手工合并；脚本对输入形态 SHOULD 显式校验并给可读错误。
+- **教训/判据**：① 交付 + 合并的组合 MUST 钉死**片段 schema**（顶层类型/字段名/嵌套层级），写进 `core.artifact` §5.1 的片段约定并由脚本强制；② `AttributeError: 'list' object has no attribute '<mapping method>'` 是「工具假定映射、实际收到序列」的签名，遇到直接查片段顶层类型即可，不必调试合并逻辑；③ 交付方声明的形态（文件头注释「追加到 entries 末尾」）不等于脚本接受的形态。
+- **家族索引**：#8/#19/#25（契约/接线维）、#33 家族（交付形态与消费方不一致）。

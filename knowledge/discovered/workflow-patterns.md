@@ -1724,3 +1724,48 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **证据**：`.investigations/vivo-freeze-260910-03/record.md` 现场证据节；`.tmp/hang-repro-260910/client-threaddump-*.txt` + count_entities.py。
 - **家族索引**：#85（关服瞬间批量异常时序排除）、#36（dump 状态 = 执行体观察面）。
 
+## 发现 #107（最高价值·错误优先）: 「同步接管阻塞单车道调度器」——把重活同步做在被调度器串行化的执行点上，整条管线的并行度塌成 1（260910-04）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-04（实际 2026-09-10）；主会话（实测）+ b1 fan-out worker（一手源码静态推导）；**candidate**（数据层实测成立：chunk 级计时双跑一致 + Σ/wall 93% + 池缩放反向旁证；「单车道 busy/inFlight 直接计数」未做 ⇒ 机制命名部分 = **Degraded（静态一手源码，未跑车道占用探针）**，故机制命名建议 candidate 并保留 b1 @idk）；workflow-patterns / 性能结构归因 + 接管形态。
+- **来源定位**：`.artifacts/perf-regression-260910-04/verdict-260910-04.md`（candidate，§1 定量闭环 / §2 证据链）；`.investigations/perf-regression-260910-04/record.md` §2.4-§2.5；`.artifacts/perf-regression-260910-04/candidates/b1-choreography.md`（一手源码 file:line 全表）；b2（写回副作用候选）= REFUTED（≤3.7ms/chunk = 0.37% 周期）。
+- **现象（错误链）**：1.21.6 生产 5.15× 回归（4225 chunks：vanilla 52s vs coreswap 268s，5.15×；处理臂含历史 per-chunk 日志成本，见本课题错误台账 `perf-regression-errors.md` 的 E6 口径修正）。chunk 级计时：`mixin=51.0ms [jni=47.2 write=3.5 hmap=0.22 scan=0.08 beard=0.04]`、`carve=1.3ms`、`feat=3.1ms`（≈55.4ms/chunk），而同一 Worker-Main 线程「上次接管返回 → 本次接管开始」的 `gap=948ms/chunk`（占周期 95%）；进程 CPU 仅 **1.27-1.7 核 / 24**（vanilla 同仪器 **4.93 核**），线程绝大多数 parked。
+- **根因（机制）**：MC 1.21.6 的 worldgen 推进只有**一条车道**——`SimpleConsecutiveExecutor("worldgen")`（`ServerChunkLoadingManager.java:192,196`）+ `ChunkTaskScheduler` **同时只允许 1 个 entry 在飞**（下一个 entry 必须等当前 entry 的 task 全部跑完才 `poll`；`ChunkTaskScheduler.java:44-84`，`pollOnUpdate` 门只在单车道 dispatcher 内读写）。vanilla 在 `NoiseChunkGenerator.populateNoise` 里 `supplyAsync(..., Util.getMainWorkerExecutor().named("wgen_fill_noise"))`（`NoiseChunkGenerator.java:326-353`）把同量级重活甩给 23 线程池，**车道任务只做 µs 级调度**（pending future 就是「把 worker 还回池」的 yield 点）。我们的 mixin 在 `populateNoise` **HEAD** 同步做完 `feedBeardifier + fillChunk + writeChunk` 并返回**已完成** future（`runtime/1.21.6/java/src/main/java/wg/bench/mixin/NoiseChunkGeneratorMixin.java:76-113`）⇒ `ChunkLoader.load` 的 `getNow(null)` 永远非 null ⇒ 同一次车道任务里把整条链（含区域内邻居）一路同步跑完 ⇒ **任何时刻全世界最多 1 个接管在执行**，与线程池大小无关。
+- **证据（怎么定位的）**：① **Σ ≈ wall**：Σ(接管 mixin 232.4 + carve 5.4 + features 11.4) = **249.2s** vs 实测 wall 270.3s（Chunky Total 264s）→ 92.2%（**同批同 run** `ct1-inflight-r2`；早次 run 口径 269.1s/290.3s=92.7% 同向）（vanilla 侧 Σ 17.0s vs 60.1s = 28%，重活在池里）；若机制错，coreswap 的 Σ 应 ≪ wall（如 <60%）——b1 的证伪测试① PASS。② **池大小反向旁证**：coreswap `-PcoreswapThreads=1` = 279s（比 234s **更慢**）→ 线程 spawn/池容量不是限流点；vanilla 池 23→4 时 52s→**76s**（**池敏感**），两臂方向相反。③ 算术闭合：4225 × ~55ms ≈ 232s，与 instrument-off 臂 234s 同阶（**推断性归因**，非「wall 就是结构下限」的等式；judge C2 限定）。④ b2（写回语义副作用）REFUTED：可归因项 ≤3.7ms/chunk（0.37%），后续 stage 逐条核对 ≈0（光照不读高度图、4 张高度图必被 FEATURES 重建、post-processing 方向为负、序列化只由内容决定）。
+- **判据（MUST，可复用）**：
+  1. **性能回归先算「被串行化执行点内的工作量之和」vs wall**——比值 ≈1 即并行度塌陷（本案 93%）；这比逐段优化/逐项排除有效得多：它一次给出「瓶颈在结构不在算力」的定量闭环。
+  2. **「线程池大小调参无效 + CPU 占用极低 + 线程大量 park」= 单车道症状三联**（本案：`-PcoreswapThreads=1` 反而更慢 / 1.27-1.7 核 / gap 948ms）。三联齐出时不要再去查 CPU 侧（引擎算力、全局锁、JNI 拷贝）——它们在这条链上**不可观测**（并发恒为 1，锁不会被争用）。
+  3. **接管类优化必须对齐原实现的「同步/异步形态」，不能只对齐语义正确性**——我们语义上完全正确（hash 哨兵逐位同），但把本该异步卸到池里的重活同步留在了唯一的串行车道上，形态错即性能错。接管评审 MUST 附一栏「原实现在哪条车道/哪个池上执行、我们的接管点是否保持同样的 yield 形态」。
+  4. 反向护栏：Σ≈wall 只证「车道饱和」，不排除上游限流（`ThrottledChunkTaskScheduler maxConcurrentChunks=4`，`ChunkLevelManager.java:49-56`，b1 @idk 未验证）——宣布结构定论前 SHOULD 补车道 busy/inFlight 直接计数（b1 建议测量 2；若 R3 后 wall 仍远高于 vanilla，优先查此）。
+- **家族索引**：#83（性能分母/结构场景——本条为「瓶颈在并行结构不在算力」形态）、#100/#102（性能课题归因必须在真实通路上核对多面——本条补「执行位置：哪条车道/哪个池」为性能结构面）、#28（性能 run 串行测量纪律）、#36/#98（执行体与生效口径——本条为「执行位置」维）、新 #109（臂无关尺子）。
+
+
+## 发现 #108: 「Σ(被串行化执行点内工作) ≈ wall ⇒ 并行度塌陷（≈1）」判据的使用要点与陷阱（260910-04）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-04；主会话（实测）+ b1 worker（判据组织）；**candidate**（同批实测；跨 run 摆动实测）；workflow-patterns / 性能判据口径。
+- **来源定位**：`.artifacts/perf-regression-260910-04/verdict-260910-04.md` §1/§4（§9.7 声明）；`candidates/b1-choreography.md` 反证条件 1/2。
+- **观察（判据怎么用）**：coreswap **同批同 run** Σ=249.2s vs wall 270.3s（**92.2%**，`ct1-inflight-r2`；早次 run 269.1/290.3=92.7% 同向）；vanilla Σ=17.0s vs wall 53-60.1s（28%）——**同一个比值口径**在两臂上把「车道饱和」与「重活在池里」分开。本轮同配置不同 run 的 wall 摆动可见（c1 instrument-off **234s** vs ct1 instrument-on **264s/283s**，±20%）。
+- **要点与陷阱（MUST）**：
+  1. **同批同臂才可比**：Σ 与 wall 必须来自**同一次 run**（同一批采样行）；跨 run/跨批次拼接的 Σ 与 wall 不构成比值证据。
+  2. **比值抗摆动，绝对值不可引**：跨 run ±20% 摆动时（234 vs 283）比值判据仍成立——因为 Σ 与 wall **同向变化**（机器整体快/慢同时缩放两者）；但**绝对值禁止跨 run 引用**（#18 跨 session 数字 / #51 噪声基线 / #103 机器噪声带家族）。
+  3. **必须与「进程 CPU / 核数」联用**：比值≈1 + 进程 CPU 低核数（本案 coreswap 1.27-1.36 核实测 vs vanilla 4.93 核）= 串行车道双证据；单独 Σ≈wall 可能是「单线程任务但 CPU 满」（那是算力受限，不是车道）。
+  4. **Σ 的分母界定必须与被串行化执行点一致**：先确认哪些阶段真的在同一条 lane 内（本案 carve/features 在 vanilla 里本来也同步在 lane 内，故计入 Σ；SURFACE 亦然），漏计/多计都会把比值推离 1——比值异常先回查阶段归属（b1 §证据 A/C）。
+  5. **比值≈1 只证「车道饱和」，不排除上游限流**：结合队列深度/loader 积压（b1 建议测量 3）才能给「等号」；否则只能给不等式。
+- **家族索引**：#107（主条）、#83（分母/场景）、#18/#51/#103（跨 run 绝对值不可引）、#24（同批交错）。
+
+
+### 发现 #109 简记: 臂无关「每 chunk 线程时间」尺子——在两侧都会经过的方法上打同线程间隔点，可给两臂同一把尺子（260910-04）
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-04；主会话（实测，`-Dcoreswap.chunktime=1` 的 featInterval）；**candidate**（单 region 单会话口径）；workflow-patterns / 测量手法。
+- **手法**：在**两侧都会经过**的方法（本案 `ChunkGenerator.generateFeatures` HEAD）打同线程间隔点，测「同一线程两次到达该点的间隔」= 该线程的**周期**。本案 coreswap **1325ms**（完整 run；早次 run 1422ms，跨 run 漂 ±7-12%）vs vanilla **299ms**（比值 **4.4×**），与 wall 比 283/53 = **5.34×** 同阶自洽。
+- **价值**：这是**臂无关**的尺子——不依赖阶段计时探针（避开多线程探针污染铁律）、不依赖两臂载体/阶段口径一致；它天然包含「排队 + 执行」，测的是线程周期而非 CPU 成本，正好与「并行度」这一待测量同构。
+- **陷阱**：① 它测的是周期不是成本——两臂同期比同阶**不能**反推「谁算得多」（要算量另配计数器）；② 间隔点必须选两侧共有的方法（选错成只在一侧经过的点，比值即无意义）；③ 与 wall 比值对照时须声明 wall 口径（Chunky Total vs 生成段）。
+- **家族索引**：#107/#108、#83（分母）、#103（噪声）。
+
+
+### 发现 #83/#51 家族补充案例（260910-04）: 驱动参数「看起来设置了但无效」——Chunky 1.4.40 无 `chunkradius` 子命令，实际一直用默认 radius 500 方块 = 4225 chunks；脚本自述的「已设置」不构成生效证据
+
+- **发现时间 / 发现者 / 置信度 / module**：260910-04；主会话（回显核对 + 逐臂 chunk 数核对）；**candidate**（实测回显 + 4225 逐臂核对一致）；workflow-patterns / 口径纪律（#83 分母口径 + #51 跨 run 可比性）。
+- **现象**：驱动脚本历来自述并 echo「chunkradius=56」，历史文档/交接一并转述「chunkradius=56 → 4225 chunks」；实际 Chunky 1.4.40 **无 `chunkradius` 子命令**（回显 `Incorrect argument`），区域一直是**默认 radius 500 方块 = 4225 chunks**（逐臂核对一致）。
+- **根因（机制）**：口径声明来自**驱动脚本自述**而非**被测程序回显**——脚本把「我发了这条命令」当「参数生效」；Chunky 对未知子命令不中断脚本、只回一行 `Incorrect argument`，脚本自己的 echo 文案遂成第二真相源，并被下游继续转抄（scout 成本图 `pipeline-cost-map.md` §0 亦照抄失真措辞）。
+- **判据（MUST）**：① **口径声明（region 规模/采样范围/参数集）MUST 来自被测程序回显或日志，不能来自驱动脚本自述**；脚本自己 echo 的「已设置」文案零证据力（与 #37/#81「生效证据必须行为化」同族）。② 转述历史口径前先核被测程序回显（#90 转抄漂移家族——失真措辞会跨文档存活）。③ 本例各臂都吃同一默认值故**基线仍可比**（4225 逐臂一致）；**若只有部分臂受影响，就会直接变成假差异**（#20/#53「默认值当公理」的风险面）——这正是此类口径失真必须记录而非「无害」的原因。
+- **家族索引**：#83（性能分母分场景——本条为「分母口径被脚本自述污染」形态）、#51（跨 run 可比性——同默认口径才可比）、#37/#81（生效证据行为化）、#20/#53（默认值当公理）、#90（转抄漂移）。

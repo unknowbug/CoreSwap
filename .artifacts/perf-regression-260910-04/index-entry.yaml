@@ -1,0 +1,20 @@
+schema_version: 1
+project: CoreSwap
+module: swe
+entries:
+  - id: 'swe:perf-regression-260910-04:verdict'
+    path: 'perf-regression-260910-04/verdict-260910-04.md'
+    kind: analysis
+    status: candidate
+  - id: 'swe:perf-regression-260910-04:candidate-b1'
+    path: 'perf-regression-260910-04/candidates/b1-choreography.md'
+    kind: analysis
+    status: draft
+  - id: 'swe:perf-regression-260910-04:candidate-b2'
+    path: 'perf-regression-260910-04/candidates/b2-writeback-sideeffects.md'
+    kind: analysis
+    status: draft
+  - id: 'swe:perf-regression-260910-04:judge'
+    path: 'perf-regression-260910-04/judge-verdict-260910-04.md'
+    kind: review
+    status: draft
