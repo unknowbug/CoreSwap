@@ -3121,3 +3121,14 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 ---
 
 - ✅ **用户实机观察（观察级，2026-09-10 23:1x 追记于 260910-07 块）**：用户用 `coreswap-1.20.1-1.0.28.jar`（sha `297680e7…`）**在自建实例上跑过三个世界（主世界 / 下界 / 末地），无问题**。⇒ 这是 **1.20.1 nether/end 异步化的首个 vivo 覆盖**（此前 260910-06 §7.1 仅壳内 sanity）。⚠️ **降级声明（#64/#65/#86）**：未受控观察（无坐标/无落盘/无重复/未声明对照基线/未量化/未声明 mod 列表）⇒ **只作方向性旁证，不构成定量结论**；未覆盖性能量化与特定 mod 兼容性。记录见 `.artifacts/perf-reg-260910-06/verdict-260910-06.md` §10。
+
+---
+
+## 260911-04（实际 2026-09-11 18:38–19:10 前后：vivo 卡顿收口——exec 缺省开转正拍板 → perfprofile 移除 + 1.0.29 出单全链 → judge PASS-with-conditions 四条件应用）✅ 用户已 confirmed（「EXEC 模式完美解决问题可以发 release 了」）；工单 pending 待 Maint 发布
+
+> 过程产物 `.investigations/vivo-stutter-260911-02/fps-verdict-260911-04.md`（FPS 判读 + 拍板记录）；`.artifacts/releases/judge-verdict-260911-04.md`（judge 原文归档，N-2 落盘件）+ `RELEASE-1.0.29.md`（pending）+ `INDEX.md`（已登记 pending 行）；提交 `cf9fa54`。通用模式 → workflow-patterns #126（mtime 严格序倒挂，本块新判据）+ build-tooling #57（池宽语义换算）。
+
+- ✅ **exec 转正拍板（重大方向，用户实机确认）**：实机验证「EXEC 模式完美解决问题」→ exec 模式缺省开转正（回退 = `-Dcoreswap.exec=0` 走 P1 信号量路径）；**池宽维持「物理核 − 2」用户语义不再测试**——现实现缺省 `logical/2 − 2` 与其 SMT2 下同源等价（引擎 `adaptive_threads` 同口径），池宽**零代码改动**。maxinflight 缺省值决策随转正自然关闭（仅回退路径使用，维持同源缺省）。
+- ✅ **perfprofile 移除 + 1.0.29 出单全链**：`cf9fa54`（perfprofile 临时件全树移除 + version bump 1.0.29；exec 实现链 `0ecac5c`→`d20aac1`，Rust 零改动）→ 重编 final jar（18:55，`--rerun-tasks` 全量）→ **三元组 MATCH**：jar sha256 `b057fda216012647a0e0ea6bbe0d1b4967a5458950ddc5f208dc85f48c312239`；jar 内 `native/worldgen.dll` = `dd3b645f2c79d2cb54619e0ecb95f9b913b3fe02f30d74eba9ea5ee92886765d` = `target/release/worldgen.dll`（12:53 刷，早于 Java 改动，与 Rust 零改动一致）。judge 亲算复核一致。判读 + 拍板建议 candidate；AI 侧不授 confirmed 标签（用户实机确认即拍板，AI 仅记录）。
+- ✅ **judge（MUST：重大方向 + 工单出单）**：节点① exec 转正 + 池宽维持 = PASS；节点② 出单 = **PASS-with-conditions**，四条件全部已应用——N-1 INDEX.md 登记 1.0.29 pending 行；N-2 judge 意见落盘至 `.artifacts/releases/judge-verdict-260911-04.md`；**N-3 mtime 严格序措辞**（jar mtime 18:55:17 早于 commit 时间戳 18:55:41 达 24 秒——「重编 > 删除 commit」严格不成立，工单改为「同分钟、commit 落盘于构建后」，sha 三元组以内容指纹为准 → 判据沉淀 workflow-patterns #126）；N-4 §4 补「关联 bug 卡回填：不适用」声明。其余核对：HEAD=`cf9fa54`、perfprofile 零残留、C1-C4 全核销（C3 三项落工单 §5 已知边界）、撤单 1.0.28 关系清楚。
+- 🔍 **open（遗留）**：① **Maint 发布**——RELEASE-1.0.29.md pending，告知用户转交 Maint 会话（Maint 侧仍有第二重独立 hash 校对 + 逐次人工确认门）；② C1 补 run（wall 差定量）——用户实机已接受效果，wall 定量裁决不再需要；仅当后续需要性能定量口径时补单 run；③ 1.0.29 状态回写待 Maint 在其工作区 `status/` 落镜像后闭环。

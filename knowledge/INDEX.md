@@ -140,3 +140,5 @@
 
 > 260911-03 追加：workflow-patterns 新增**发现 #122**（vivo 并发度 = 调用方池宽，引擎线程参数是死参数——测量并发先看「谁在调」不是「参数是多少」，#20 死参数家族并发域形态）+ **发现 #123**（目标 mod 自带执行器绕开共享池争用——「装某 mod 卡顿消失」是共享池争用的判别信号，可形成可检验预测，但只证争用面不证争用源）+ **发现 #124**（「先量后改」再 +1——F2 写回优化被成本拆分测量毙掉（上限 6.5%），预算转 exec 模式拿到同 run 族 wall −12.5%；上限核算 = 免写码的端到端推演）+ **发现 #125**（引擎背压两种形态同构不同质——信号量 acquireUninterruptibly（车道等待不干活）vs CallerRunsPolicy（车道亲做重活），声明背压行为必须区分形态，延迟性质不可互换表述；judge C2 教训）+ **#81 补充案例**（exec 缺省开零 env sanity boot 行为化自证——正日志命中 + 被短路分支日志缺席双向证据）。来源：.investigations/vivo-stutter-260911-02/exec-mode-result-260911-03.md（exec 模式 candidate，judge PASS-with-conditions 条件已应用；用户实机 FPS 数据未回收）。
 
+> 260911-04 追加：workflow-patterns 新增**发现 #126**（工单时间链禁写 mtime 严格序——commit 时间戳结构性地晚于工作树产物 mtime，「同分钟构建+提交」下严格序断言必被倒挂挑刺（本案 jar mtime 早 commit 24 秒）；判据 = 时间链措辞用「同分钟、commit 落盘于构建后」顺序语义 + sha 三元组内容指纹终审，mtime 只作旁证；#121 措辞级修正形态、#23 家族溯源叙述域第三形态）+ build-tooling 新增**发现 #57 简记**（池宽语义「物理核−2」≈ `logical/2−2` 在 SMT2 下同源等价——用户语义与实现公式换算 MUST 声明条件域，非 SMT2/大小核机器上不成立）。来源：.artifacts/releases/judge-verdict-260911-04.md + .investigations/vivo-stutter-260911-02/fps-verdict-260911-04.md（1.0.29 出单 pending，用户 confirmed exec 转正）。
+
