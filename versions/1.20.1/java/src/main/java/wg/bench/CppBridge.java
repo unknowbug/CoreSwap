@@ -363,7 +363,9 @@ public final class CppBridge {
      * per-chunk {@code [WG-FILL]} 读回自证行门控（260910-06，1.21.6 260910-05 R1 同族拉平）：
      * nether/end 的该行为**无条件 println**，在 23 线程并发下是 log4j（同步 appender）串行点，
      * 也是生产 jar 的真实成本。默认关（生产语义），诊断 {@code -Pmixlog=1} / {@code -Dcoreswap.mixlog=1} 打开。
-     * 注意：**只门控 println**，nzBuf 扫描与 16 点读回仍每 chunk 执行（与 1.21.6 侧口径一致）。
+     * 260911-05 A1b 修正（judge C2）：原注释「只门控 println，nzBuf 扫描与 16 点读回仍每 chunk 执行」
+     * 已**失效**——三者（nzBuf 全量扫描、16 点读回、[WG-CONTENT] 指纹）现统一由本门控整块控制；
+     * overworld 的「整块全空气」异常信号改由 O(1) 短路探测保留（见 fillChunk）。
      */
     private static final boolean MIXLOG = System.getProperty("coreswap.mixlog") != null;
 
@@ -405,15 +407,18 @@ public final class CppBridge {
             System.out.println("[CppBridge] DIAG fillBlocks got=" + got + " chunk(" + cx + "," + cz + ")");
             return;
         }
-        // 诊断 + 行为门指纹（260911-05 A1b：**整块**门控在 MIXLOG 后——原实现「只门控 println、
-        // nz 全 buffer 扫描恒执行」= 每 chunk 98304 次读的生产成本，而扫描结果只被门控内的打印消费，
-        // 故随门控一起关。诊断信号（buf-all-air / buf-sparse / [WG-CONTENT]）改由 -Pmixlog=1 提供。）
+        // 生产侧 O(1) 短路探测（260911-05 A1b + judge C2）：整块全空气 = 「Rust 输出全 0」异常信号，
+        // 原为无条件 println + 98,304 次全量计数。改为「遇到首个非零即停」的短路扫描：典型 buf[0] 非零
+        // ⇒ 单次数组读即返回，既保留该信号又不吃热路径成本。原 `buf-sparse`（nz<1000）分级诊断随全量
+        // 扫描一并移除（需要时用 -Pmixlog=1 的 nz 字段）。
+        if (buf[0] == 0) {
+            boolean allAir = true;
+            for (int k = 1; k < buf.length; k++) if (buf[k] != 0) { allAir = false; break; }
+            if (allAir) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
+        }
         if (MIXLOG) {
             int nz = 0;
             for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
-            if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
-            else if (nz < 1000)
-                System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
             // 行为门指纹（260910-06）：应在 sync/async 两形态下逐 chunk 相同
             System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
                     + Long.toHexString(wgBufHash(buf)) + " nz=" + nz);
@@ -557,7 +562,11 @@ public final class CppBridge {
                     if (id == 0) {   // A1a：raw id 0 = minecraft:air（blocks.json 实证）
                         if (WBCHECK) {
                             WB_AIR_SKIP.incrementAndGet();
-                            if (!sec.getBlockState(x, sy, z).isAir()) WB_STALE_NONAIR.incrementAndGet();
+                            // judge C5 严格化：跳过的写是「写 minecraft:air 默认态」，故前提必须是
+                            // 「当前格恰为 Blocks.AIR」而非泛 isAir()——持 cave_air/void_air 的格子旧形态
+                            // 会被改写成 air、新形态不会 ⇒ 用 isAir() 会漏计该类违例（vanilla 参照
+                            // Heightmap.java:53 亦用 isOf(Blocks.AIR)）。
+                            if (!sec.getBlockState(x, sy, z).isOf(Blocks.AIR)) WB_STALE_NONAIR.incrementAndGet();
                         }
                         if (SKIPAIR) continue;
                     }

@@ -1302,3 +1302,30 @@ entries:
     path: 'perf-release-260911-01/verdict-260911-01.md'
     kind: analysis
     status: confirmed
+
+  - id: 'swe:a1-opt-pool-260911-05:plan'
+    path: '../.investigations/000-架构设计/架构计划-260911-05.md'
+    kind: plan
+    status: candidate
+    # 重量档计划（用户 HOOK-1 批准：C 线先行 → 1.21.6 收口 + 跨版本回灌核查）；A1c 经 HOOK-2 用户裁决放弃。
+  - id: 'swe:a1-opt-pool-260911-05:record'
+    path: '../.investigations/a1-opt-pool-260911-05/record-260911-05.md'
+    kind: analysis
+    status: candidate
+    # A1 优化池：A1a 写回跳空气（三维实证 stale_nonair=0：2.76 亿/1.95 亿/1.55 亿空气格；跨臂+跨 dll 指纹 4140/4140 全等）、
+    #   A1b 诊断扫描门控（保留 O(1) 全空气短路探测）、A1d adaptive_threads count=1 clamp（[WG-THREADS] nthreads=1 自证）、
+    #   A1c 前提被 vanilla Heightmap.java:37-71 证伪（本就单遍）→ 用户裁决不实施。
+    # 验证分层：指纹门 Full / A1a 等价性 Full / 收益 Degraded（cpu 493→476 = −3.4% 落在 ±10% 噪声带，只作趋势）。
+  - id: 'swe:a1-opt-pool-260911-05:a2-dim-gate'
+    path: '../.investigations/a1-opt-pool-260911-05/a2-dim-gate-260911-05.md'
+    kind: analysis
+    status: candidate
+    # A2 全维行为门：发现并修复 end 路径缺 [WG-CONTENT] 载体（intercepted=4761 而 contentLines=0）；
+    #   补后 nether/end 各 4761/4761 跨形态+跨 run 逐 chunk 指纹 diff=0（overworld 4140/4140）。
+    #   分母语义 = 经接管 chunk 数（≠ Chunky Processed）；写回路径未覆盖（降级）。
+  - id: 'swe:a1-opt-pool-260911-05:judge-review'
+    path: '../.investigations/a1-opt-pool-260911-05/review-260911-05.md'
+    kind: review
+    status: candidate
+    # judge（隔离子进程）= A1/A2 均 PASS-with-conditions；C1-C12 + I1-I4 全部已应用（逐条处置表见该文件 §7）。
+    #   judge 未改任何 status；A1/A2 维持 candidate，confirmed 留人类。
