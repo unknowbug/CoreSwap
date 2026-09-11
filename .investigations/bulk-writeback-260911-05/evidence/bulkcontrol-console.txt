@@ -1,0 +1,53 @@
+===== C post-judge: bulk x2 + wbcheck  dll=838e89794a54e19d  start 22:22:39 =====
+===== ARM c-bulk2 (bulkwb=1, bulk 同实现 run) =====
+########## c-bulk2 start 22:22:40 form=async dll=838e89794a54e19d cores=0 ##########
+[c-bulk2] staged target dll = 838e89794a54e19d (want 838e89794a54e19d)
+[c-bulk2][dll] OK executed=838e89794a54e19d
+[c-bulk2][rcon] > chunky quiet 10
+[c-bulk2][rcon] [Chunky] Quiet interval set to 10 seconds.
+[c-bulk2][rcon] > chunky world minecraft:overworld
+[c-bulk2][rcon] [Chunky] World changed to minecraft:overworld.
+[c-bulk2][rcon] > chunky center -48 -11
+[c-bulk2][rcon] [Chunky] Center changed to -48, -11.
+[c-bulk2][rcon] > chunky radius 160
+[c-bulk2][rcon] [Chunky] Radius changed to 160.
+[c-bulk2][rcon] > chunky start
+[c-bulk2][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[c-bulk2][result] chunks=441 totalSec=4 cps=110.2 cpuSec=62 jvmCpu=6.2 maxWsMB=2218 maxPrivMB=2265
+########## c-bulk2 DONE chunks=441 in 4s = 110.2 chunks/s ##########
+[c-bulk2] archived world-c-bulk2 region files = 6
+===== ARM c-bulk3 (bulkwb=1, bulk 同实现 run) =====
+########## c-bulk3 start 22:23:59 form=async dll=838e89794a54e19d cores=0 ##########
+[c-bulk3] staged target dll = 838e89794a54e19d (want 838e89794a54e19d)
+[c-bulk3][dll] OK executed=838e89794a54e19d
+[c-bulk3][rcon] > chunky quiet 10
+[c-bulk3][rcon] [Chunky] Quiet interval set to 10 seconds.
+[c-bulk3][rcon] > chunky world minecraft:overworld
+[c-bulk3][rcon] [Chunky] World changed to minecraft:overworld.
+[c-bulk3][rcon] > chunky center -48 -11
+[c-bulk3][rcon] [Chunky] Center changed to -48, -11.
+[c-bulk3][rcon] > chunky radius 160
+[c-bulk3][rcon] [Chunky] Radius changed to 160.
+[c-bulk3][rcon] > chunky start
+[c-bulk3][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[c-bulk3][result] chunks=441 totalSec=4 cps=110.2 cpuSec=58 jvmCpu=5.8 maxWsMB=2309 maxPrivMB=2364
+########## c-bulk3 DONE chunks=441 in 4s = 110.2 chunks/s ##########
+[c-bulk3] archived world-c-bulk3 region files = 6
+===== ARM c-wbcheck (old + wbcheck=1) =====
+########## c-wbcheck start 22:25:18 form=async dll=838e89794a54e19d cores=0 ##########
+[c-wbcheck] staged target dll = 838e89794a54e19d (want 838e89794a54e19d)
+[c-wbcheck][dll] OK executed=838e89794a54e19d
+[c-wbcheck][rcon] > chunky quiet 10
+[c-wbcheck][rcon] [Chunky] Quiet interval set to 10 seconds.
+[c-wbcheck][rcon] > chunky world minecraft:overworld
+[c-wbcheck][rcon] [Chunky] World changed to minecraft:overworld.
+[c-wbcheck][rcon] > chunky center -48 -11
+[c-wbcheck][rcon] [Chunky] Center changed to -48, -11.
+[c-wbcheck][rcon] > chunky radius 160
+[c-wbcheck][rcon] [Chunky] Radius changed to 160.
+[c-wbcheck][rcon] > chunky start
+[c-wbcheck][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[c-wbcheck][result] chunks=441 totalSec=4 cps=110.2 cpuSec=61 jvmCpu=6.1 maxWsMB=2334 maxPrivMB=2378
+########## c-wbcheck DONE chunks=441 in 4s = 110.2 chunks/s ##########
+restored target dll = 838e89794a54e19d (want 838e89794a54e19d) OK
+===== done 22:26:37 =====

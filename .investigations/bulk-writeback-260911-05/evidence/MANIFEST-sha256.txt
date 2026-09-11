@@ -1,17 +1,14 @@
-# C 线证据 MANIFEST（260911-05）— sha256 双重校对用
-# 生成: 2026-09-11 22:01:46  执行体 dll sha256(前16) = 838e89794a54e19d
-#
-# [A] 原始运行日志（.tmp 临时区，不入库；下方入库副本 raw-*.log 与其逐字节同源）
-22fd830ac69d171cab4554a3ee3b9f724c3685c6f222a9c6ae5f194e496db2ba  c-old.log
-c98f0b8c5b98c036547607716ba80b35763725d084a3fed6535e9cfcba42070e  c-bulk.log
-8f981c55982a318cb5f94fe7db5b6b166fe314255ba54cb345748f315430aedf  c-nether-old.log
-851e365d81addb8db9626b18389bdccebc4fdc38be02aab0ec1437580943b37b  c-nether-bulk.log
-fe1671977158e43b907ac6c4390b2c6b508f59a8bd229372cbdddaff56974695  c-end-old.log
-0836c3077bb5ef7b53d7b4aab77ade9f647e39973036d10fd1a7b780107d56ce  c-end-bulk.log
-#
-# [B] 入库副本与抽取载体（evidence/，不含本文件自身）
+# C 线（bulk-writeback-260911-05）sha256 全清单 —— 生成于 2026-09-11 22:31:11（日期锚 Get-Date）
+
+# === evidence/ 入库副本 ===
 803a47ea98d4c03e4353e85358866986dd89042429d367fb188ea67e3691fc21  bulk-summaries.txt
+08adf1426a46ca051783b67beb0a32f451ca214cca7a82c31fb1ab66a0bcfd67  bulkcontrol-console.txt
 61c3231ab1819bd189beeecffa51317d5efdaaf862389addfcb135d222b5ac81  cmp_wb.py
+eb18957895c8b5c1e4ff8d576c0e1cdd8f7c0363e0b40691cb052279bbdc4219  cmp-tier12-end.txt
+815d706d84da10de2e19066233ecd6a33051088217390092c9d33e6d0c46faf0  cmp-tier12-nether.txt
+4973acd5545b25468d2185f5b97fcae4fbd2e9f9aa0f09da37b6454694a05fa4  cmp-tier12-overworld.txt
+943807baa6510b74c3f7e07f1c7adc23374f0a4bd2001ba1efad2cbc780afd69  control-console.txt
+749a58d6b6a9b3a18268ecb407d02c53283bae89b016a0bdc54886afb9897582  e1-daemon-539-iae.txt
 f5d9ed408e46515575741dc18e71d1a15d8b49d720593f0422e1d606a6c2eed8  impl-diff-260911-05.txt
 c98f0b8c5b98c036547607716ba80b35763725d084a3fed6535e9cfcba42070e  raw-c-bulk.log
 0836c3077bb5ef7b53d7b4aab77ade9f647e39973036d10fd1a7b780107d56ce  raw-c-end-bulk.log
@@ -19,23 +16,47 @@ fe1671977158e43b907ac6c4390b2c6b508f59a8bd229372cbdddaff56974695  raw-c-end-old.
 851e365d81addb8db9626b18389bdccebc4fdc38be02aab0ec1437580943b37b  raw-c-nether-bulk.log
 8f981c55982a318cb5f94fe7db5b6b166fe314255ba54cb345748f315430aedf  raw-c-nether-old.log
 22fd830ac69d171cab4554a3ee3b9f724c3685c6f222a9c6ae5f194e496db2ba  raw-c-old.log
+dfa70b80749ac5275db92189a08db96fa4b261f41c578e0d5a570beaad7c5d34  region-old_vs_bulk.txt
+2e15e07203a2ee40fc79b3d135162fdc76cc86b364737e62ebcf6d618dfddc39  region-old_vs_old2.txt
+79e0b0b6ef330caada5d3c80edf2d877dedf1122b49692686ef7765616afc309  region-old2_vs_old3.txt
+b822b89d850209939a9a6839df52c4b5deabf190daa0ffd8d97e83b3d4cdc58d  run_c_bulkcontrol.ps1
+a7f3f6a5c22f663e9d87fefa10f1b602b9173e8b9c6f256b5093345b3ad9c1b9  run_c_control.ps1
 bf823f78863f1f3d0a2b0fb4d23301d6226a64b3afbb93b3ad4a47e34803dcb9  run_c_dims.ps1
 f68abb844abe6759176071fb01db970760649be116d469657e70e6fd7f8b12e8  run_c_full.ps1
+4feb80d64967b199c2cd4ee031ec6b9da372dc463884bdca07d5999843f42039  run_c_norandom.ps1
+faeafac5349e796280dad465b359dddfa8f6c009b88c55b8b902a76c407dcdce  slice-bulk1_bulk2.txt
+d100587229beefc31ca2db42a469b9a460886a8ca4b51bcc5fe1a66f03e2be5d  slice-bulk1_bulk3.txt
+e52e738b6871e93c60726e8709617f7eb76497aaa4e371fe94534653837675a7  slice-bulk2_bulk3.txt
+6fd3e3e00e17ece8a462a54b226d3560c79e7e0dda629644d65cc33f1ee5b390  slice-ctrl1-old_old2.txt
+6cac0baeff3270ae995d9919d23e614c4320ac932cc76e28119163d8fc4845ad  slice-ctrl2-old2_old3.txt
+e9118473423c857b1c806a2c3b0388c958ad7ff1d6b8b43ab2cd20d1a3236b19  slice-nr-old_bulk-norandom.txt
+dd429244806d49175d1ffb8daa8fae8855fc915dac1c670004cf1bc19064ee76  slice-test-old_bulk.txt
+3d3d1a8adcbc053cd56bb8135d6dd3a01336957eb0932d0ab48b9f417fe8e5a5  tier3_attribution.py
+3ffe20d4c72fa160f4e39d4ac0371b0d17892af14b7106f13713544dc926e13b  tier3_content_profile.py
 188bf6f785ff4ff34e9ac8c2774b8c882854d32da6c736d6e407295c502cc72a  tier3_slice.py
+cff1d1a683b839736a968eded8e215b80bdf607777012ef7dd3f7c4f8831456a  tier3-attribution.txt
 dfa70b80749ac5275db92189a08db96fa4b261f41c578e0d5a570beaad7c5d34  tier3-diff.txt
+60076f522a57358a37cc3f9edca4b851ffd1f648829bf525144f11af9523b3d3  tier3-norandom-full.txt
 dd429244806d49175d1ffb8daa8fae8855fc915dac1c670004cf1bc19064ee76  tier3-slice.txt
+5de01abf522ecbf19f8eacf4d72cb5ec83dc8099e434377c22953d4ab695f5c3  tier4-round1-daemon.txt
 734d4a6729d053f888e9a6e1858be6a66a02bad7d8c100b52d446c0d25d423b6  wbc-c-bulk.txt
 40a573a05e6714fccd89d743eadce50160d76535882897809487aa8f643ceccc  wbc-c-end-bulk.txt
 66448638204b82860c8b57ada45637b7f6f670d303bb47007f4acaaaa913dc7b  wbc-c-end-old.txt
 938e0a6baaffc4912f3e9685bf6220a1e7008a1de15bb48ff8a8be5deb856211  wbc-c-nether-bulk.txt
 3673ca3477c17ce6aac4abe6fca33649a956ac057698b15244ea317f362200dd  wbc-c-nether-old.txt
 1caa434db61f5b645aac2494717c0b48b7abc01b76ffc8c08aaf0e61df5a82f4  wbc-c-old.txt
-#
-# [C] 源码与产物
-bdf2a29cd41f2336c66d6ec90843ec0c6c3813cbe494c10c78fe6f0ce892fbe0  versions\1.20.1\java\src\main\java\wg\bench\BulkWb.java
-372801a3b7f7d04ab2b78dcb5519f08f23b793da4592b85f35486612ad0bc7fb  versions\1.20.1\java\src\main\java\wg\bench\mixin\ChunkSectionAccessor.java
-99c1d410a2e9f3b4fce0615fa817ae88b80b7217d31e990c64186e71ffa88816  versions\1.20.1\java\src\main\resources\coreswap.mixins.json
-dffbac4abea7b3dd01c2c94a9932281143fc0f77a9c6f3a259b9ae1154878aee  versions\1.20.1\java\src\main\java\wg\bench\CppBridge.java
-66da081e141ab7a2f2e28fb97a2bf1256f655da525badb10afaae600feae1691  .investigations\bulk-writeback-260911-05\record-260911-05.md
-b00d54fa0b9c6334bed85b4c0d791f0f5afcaa90451bd9c94c5cee9be802e289  .investigations\bulk-writeback-260911-05\plan-260911-05.md
-ba3c91143c75776e1fe0ab03d3445405cfe74d29db66cbac6f04af9044c37bbf  .artifacts\bulk-writeback-260911-05\verdict-260911-05.md
+016a5b310fd42a0ecdfe00e30f68f68a35b4ec18e8ff85457b10fe37ea2a2f34  wbcheck-premise.txt
+
+# === 交付源码（Java 侧，Rust 零改动）===
+bdf2a29cd41f2336c66d6ec90843ec0c6c3813cbe494c10c78fe6f0ce892fbe0  BulkWb.java
+372801a3b7f7d04ab2b78dcb5519f08f23b793da4592b85f35486612ad0bc7fb  ChunkSectionAccessor.java
+dffbac4abea7b3dd01c2c94a9932281143fc0f77a9c6f3a259b9ae1154878aee  CppBridge.java
+99c1d410a2e9f3b4fce0615fa817ae88b80b7217d31e990c64186e71ffa88816  coreswap.mixins.json
+
+# === 记录 / 审查 / 计划 ===
+2c87ae72e8a0b89bb4110552ffac1065161a460b1bde85a32c8f9e495508a501  record-260911-05.md
+50d9369cf18cc3230e7f5d57a6c4f79eb293b34e0e2f0ca25c3b05ccc5f14a9b  review-260911-05.md
+6d2da8b40ab266ef2ac85b465d388b098ee43d1c709dba9c7060f1aa7ff24912  plan-260911-05.md
+9c7143f0eee32966ca1a4d77254bb83911092d89f86ed61c6fe90355463b25b9  api-probe-260911-05.md
+1fd021cb2f91183433f664ccef9f75f98b41994e9ad1abf1c6f281d228088fb9  verify-design-draft-260911-05.md
+ca01c06f25da42d39521dc3b8bf19261bd6059f1e7b42b0f4a86611a144903d5  verdict-260911-05.md

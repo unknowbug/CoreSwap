@@ -1,0 +1,1 @@
+[22:26:30] [Server thread/INFO] (Minecraft) [STDOUT]: [WB-CHECK] air_skipped=40329368 stale_nonair=0 (stale_nonair=0 ⇒ 跳过空气写与逐格写等价)

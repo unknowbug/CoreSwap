@@ -1,0 +1,13 @@
+[世界] A=3190 B=3190 common=3190  (A=world-old B=world-bulk)
+
+=== both_empty ===  chunk=1854  blocks=182255616  diff=0 (0.0000%)
+=== any_content ===  chunk=1336  blocks=131334144  diff=86841 (0.0661%)
+    minecraft:sculk -> minecraft:deepslate: 9111
+    minecraft:deepslate -> minecraft:sculk: 6623
+    minecraft:sculk_vein -> minecraft:air: 6074
+    minecraft:air -> minecraft:sculk_vein: 5477
+    minecraft:kelp_plant -> minecraft:water: 4913
+
+合计 blocks=313589760 diff=86841 (0.0277%)
+差分中落在「任一侧有内容」chunk 的比例 = 100.00%
+差分中落在「两侧皆空」chunk 的比例     = 0.00%

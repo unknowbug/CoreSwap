@@ -1,0 +1,37 @@
+===== C Tier3 control (old x2)  dll=838e89794a54e19d  start 22:06:55 =====
+===== ARM c-old2 (bulkwb=0, run 2/3) =====
+########## c-old2 start 22:06:56 form=async dll=838e89794a54e19d cores=0 ##########
+[c-old2] staged target dll = 838e89794a54e19d (want 838e89794a54e19d)
+[c-old2][dll] OK executed=838e89794a54e19d
+[c-old2][rcon] > chunky quiet 10
+[c-old2][rcon] [Chunky] Quiet interval set to 10 seconds.
+[c-old2][rcon] > chunky world minecraft:overworld
+[c-old2][rcon] [Chunky] World changed to minecraft:overworld.
+[c-old2][rcon] > chunky center -48 -11
+[c-old2][rcon] [Chunky] Center changed to -48, -11.
+[c-old2][rcon] > chunky radius 160
+[c-old2][rcon] [Chunky] Radius changed to 160.
+[c-old2][rcon] > chunky start
+[c-old2][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[c-old2][result] chunks=441 totalSec=4 cps=110.2 cpuSec=60 jvmCpu=6 maxWsMB=2233 maxPrivMB=2282
+########## c-old2 DONE chunks=441 in 4s = 110.2 chunks/s ##########
+[c-old2] archived world-c-old2 region files = 6
+===== ARM c-old3 (bulkwb=0, run 2/3) =====
+########## c-old3 start 22:08:17 form=async dll=838e89794a54e19d cores=0 ##########
+[c-old3] staged target dll = 838e89794a54e19d (want 838e89794a54e19d)
+[c-old3][dll] OK executed=838e89794a54e19d
+[c-old3][rcon] > chunky quiet 10
+[c-old3][rcon] [Chunky] Quiet interval set to 10 seconds.
+[c-old3][rcon] > chunky world minecraft:overworld
+[c-old3][rcon] [Chunky] World changed to minecraft:overworld.
+[c-old3][rcon] > chunky center -48 -11
+[c-old3][rcon] [Chunky] Center changed to -48, -11.
+[c-old3][rcon] > chunky radius 160
+[c-old3][rcon] [Chunky] Radius changed to 160.
+[c-old3][rcon] > chunky start
+[c-old3][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[c-old3][result] chunks=441 totalSec=4 cps=110.2 cpuSec=58 jvmCpu=5.8 maxWsMB=2308 maxPrivMB=2395
+########## c-old3 DONE chunks=441 in 4s = 110.2 chunks/s ##########
+[c-old3] archived world-c-old3 region files = 6
+restored target dll = 838e89794a54e19d (want 838e89794a54e19d) OK
+===== done 22:09:42 =====

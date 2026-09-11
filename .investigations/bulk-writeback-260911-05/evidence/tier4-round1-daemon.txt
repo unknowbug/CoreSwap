@@ -1,0 +1,8 @@
+=== Tier 4 第 1 轮原始载体摘录（字段名 pack= 而非定稿轮 build=，仪器口径不同）===
+--- .gradle-home\daemon\8.13\daemon-48928.out.log ---
+  L930: [21:40:50] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+  L931: [21:40:50] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-PERBLOCK] calls=607 ns/call(total)=2070297 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+--- .gradle-home\daemon\8.13\daemon-46112.out.log ---
+  L315: [21:41:58] [CoreSwap-Fill-8/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+  L930: [21:42:13] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] calls=607 sections_replaced=4856 air_sections_skipped=9712 idlist_hits=0 max_distinct=7 ns/section: pack=30403 readPacket=4542 counts_set=237 ns/call(total)=1052606 ns/chunk_est=1052606 (per-section ns; compare against per-block setBlockState path)
+  L931: [21:42:13] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)

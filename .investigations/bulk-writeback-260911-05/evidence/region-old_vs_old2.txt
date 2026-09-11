@@ -1,0 +1,51 @@
+vanilla chunks=3190 coreswap chunks=3190
+common=3190
+===定点对拍（邻居更新坐标 ±4 柱采样）===
+(-522,63,139) chunk(-33,8) NOT in both arms
+(-805,57,138) chunk(-51,8) NOT in both arms
+(-500,6,240) chunk(-32,15) NOT in both arms
+(-874,48,-588) chunk(-55,-37) NOT in both arms
+pos(-296,48,-18):
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+  y=50: V=air            C=air            
+(-443,60,311) chunk(-28,19) NOT in both arms
+(-556,60,316) chunk(-35,19) NOT in both arms
+(-71,56,-517) chunk(-5,-33) NOT in both arms
+(-1531,61,239) chunk(-96,14) NOT in both arms
+(-471,45,-215) chunk(-30,-14) NOT in both arms
+(-592,42,216) chunk(-37,13) NOT in both arms
+(-527,52,78) chunk(-33,4) NOT in both arms
+(-424,62,74) chunk(-27,4) NOT in both arms
+pos(-196,47,295):
+  y=45: V=air            C=air            
+  y=46: V=air            C=air            
+  y=47: V=air            C=air            
+  y=48: V=air            C=air            
+  y=49: V=air            C=air            
+===全域差分普查===
+blocks=313589760 diff=75974 (0.0242%) sections same/diff=75015/1545
+top pairs:
+  minecraft:sculk -> minecraft:deepslate: 9323
+  minecraft:deepslate -> minecraft:sculk: 6394
+  minecraft:sculk_vein -> minecraft:air: 6285
+  minecraft:air -> minecraft:sculk_vein: 5552
+  minecraft:kelp_plant -> minecraft:water: 4372
+  minecraft:water -> minecraft:kelp_plant: 4134
+  minecraft:andesite -> minecraft:granite: 4080
+  minecraft:andesite -> minecraft:diorite: 3557
+  minecraft:diorite -> minecraft:granite: 3021
+  minecraft:granite -> minecraft:diorite: 2742
+  minecraft:granite -> minecraft:andesite: 2685
+  minecraft:diorite -> minecraft:andesite: 2042
+  minecraft:tall_seagrass -> minecraft:water: 2031
+  minecraft:water -> minecraft:tall_seagrass: 1972
+  minecraft:oak_leaves -> minecraft:air: 1645
+  minecraft:air -> minecraft:oak_leaves: 1593
+  minecraft:stone -> minecraft:coal_ore: 1397
+  minecraft:coal_ore -> minecraft:stone: 1355
+  minecraft:kelp -> minecraft:water: 899
+  minecraft:water -> minecraft:seagrass: 853
+y-section dist: [(0, 7355), (16, 7742), (32, 12960), (48, 11491), (64, 1979), (80, 2958), (96, 572), (112, 128), (128, 725), (144, 5), (4032, 5333), (4048, 9501), (4064, 9217), (4080, 6008)]

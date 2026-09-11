@@ -1,0 +1,28 @@
+[切片] 走过 bulk 写回的 chunk = 607 个（[WG-CONTENT-WB] 行）
+[世界] A=3190 B=3190 common=3190  (A=world-old, B=world-c-old2)
+
+[切片] 走过写回且两世界都有的 chunk = 607 / 3190
+
+=== 切片 A：仅走过 bulk 写回的 chunk ===
+blocks=59670528 diff=14837 (0.0249%) sections same/diff=14148/420
+  minecraft:kelp_plant -> minecraft:water: 1911
+  minecraft:water -> minecraft:kelp_plant: 1811
+  minecraft:diorite -> minecraft:granite: 1397
+  minecraft:andesite -> minecraft:diorite: 1190
+  minecraft:water -> minecraft:tall_seagrass: 1136
+  minecraft:granite -> minecraft:diorite: 1135
+  minecraft:tall_seagrass -> minecraft:water: 1130
+  minecraft:andesite -> minecraft:granite: 1057
+
+=== 切片 B：未走过本代码路径的 chunk（对照） ===
+blocks=253919232 diff=61137 (0.0241%) sections same/diff=60867/1125
+  minecraft:sculk -> minecraft:deepslate: 9323
+  minecraft:deepslate -> minecraft:sculk: 6394
+  minecraft:sculk_vein -> minecraft:air: 6285
+  minecraft:air -> minecraft:sculk_vein: 5552
+  minecraft:andesite -> minecraft:granite: 3023
+  minecraft:kelp_plant -> minecraft:water: 2461
+  minecraft:andesite -> minecraft:diorite: 2367
+  minecraft:water -> minecraft:kelp_plant: 2323
+
+>>> 若切片 A 的 diff=0 ⇒ 写回路径在最终存档层亦无可测差异，全域残差来自未走本路径的 chunk

@@ -1,0 +1,21 @@
+[c-old] dll=838e89794a54e19d  chunks(Chunky)=441  [WG-CONTENT-WB] 行数=607  [WG-BULKWB] 行数=2
+[c-bulk] dll=838e89794a54e19d  chunks(Chunky)=441  [WG-CONTENT-WB] 行数=607  [WG-BULKWB] 行数=3
+
+chunk 集: old=607 bulk=607 common=607 only_old=0 only_bulk=0
+
+=== Tier 1 判据：逐 chunk 方块状态 hash 全等（零差） ===
+hash 不等 chunk 数 = 0   nz 不等 chunk 数 = 0
+
+=== Tier 2 判据：派生字段（三计数）指纹全等（零差） ===
+dh 不等 chunk 数 = 0
+
+=== [WG-BULKWB] 自证/汇总 ===
+  [c-old] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+  [c-old] ns/call(total) 同仪器)
+  [c-old] [WG-PERBLOCK] calls=607 ns/call(total)=2151591 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+  [c-bulk] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+  [c-bulk] calls=607 sections_replaced=4856 air_sections_skipped=9712 idlist_hits=0 max_distinct=7 ns/section: build=75666 (incl. readPacket=5963) counts_set=116 ns/call(total)=652202 (per-section ns; compare against per-block setBlockState path)
+  [c-bulk] ns/call(total) 同仪器)
+  [c-bulk] [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+
+>>> Tier 1 (方块状态) = PASS   Tier 2 (派生字段) = PASS   综合 = PASS   (common=607, hash_diff=0, dh_diff=0, nz_diff=0, only_old=0, only_bulk=0)

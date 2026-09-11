@@ -1,0 +1,4 @@
+=== E1 载体摘录：.gradle-home\daemon\8.13\daemon-22804.out.log  匹配 DIAG write threw = 539 ===
+  L317: [21:29:46] [CoreSwap-Fill-10/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-12,-3): java.lang.IllegalArgumentException: The value 0 i
+  L318: [21:29:46] [CoreSwap-Fill-3/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-12,-10): java.lang.IllegalArgumentException: The value 0 i
+  L319: [21:29:46] [CoreSwap-Fill-8/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-11,-6): java.lang.IllegalArgumentException: The value 0 is

@@ -1374,16 +1374,47 @@ entries:
     #   （自然生成 max_distinct=7 ⇒ ID_LIST 实测不可达，必须刻意压测）。
     # 性能（同 run 同仪器单变量 -Dcoreswap.bulkwb，只包写回调用）：旧逐块 → bulk
     #   overworld 2,151,591→**652,202** ns/chunk（−69.7%）· nether 2,657,477→**859,626**（−67.7%）· end 2,809,444→**804,970**（−71.4%）；
-    #   分项 counts_set 由 calculateCounts 的 72,480 ns/section → ~100 ns/section。
+    #   **表述须为区间 −49%~−70%**（另一轮 2,070,297→1,052,606 = −49.2%；旧侧跨 run ±1.9%、bulk 侧 ±23%，两轮字段名不同）。
+    #   §9.7 声明（judge S3）：counts_set 72,480 ns/section（整个 calculateCounts 调用）→ 116 ns/section 是**跨载体量并列**，
+    #   不可读成「计数成本降到 1/600」——calculateCounts 被**消除**，替代成本（O(distinct)）**并入 build**（build=75,666 含 readPacket）。
     #   ⚠️ 价值定位 = **可维护性/可移植性为主**，性能为次要附带；写回仅占 chunk 时间约 2-6% ⇒ 端到端落在 ±10% 噪声带内**不主张**。
-    # 实施期两项高价值发现（record §3）：① calculateCounts() 与增量 setBlockState **计数语义不一致**
+    # 实施期三项高价值发现（record §3）：① calculateCounts() 与增量 setBlockState **计数语义不一致**
     #   （流体重复计入 nonEmptyBlockCount；nonEmptyFluidCount 只计有随机刻的流体）⇒ 走构造器会静默改变
     #   hasRandomFluidTicks()/客户端包语义，已改为复刻增量语义；② bits==0 单态 section **不得构造 PackedIntegerArray**
-    #   （Validate 1..32 抛 IAE，首跑 539 次异常）。
-    # ⚠️ Tier 3 判据**降级声明**：原「region 逐块差 0」在本 harness 不可达——全域 0.0277% 中
-    #   **从未走过本代码路径的 chunk 也有 0.0260%**（切片证据）⇒ 残差为跨 run 固有抖动（FEATURES 产物 + 随机刻可改写方块的双向对称变化）。
-    #   口径外溢：历史上基于 live-server region 对拍的保真度数字（含 B1 复算 0.0133-0.0198%）同受该抖动限制，不可当绝对保真度读。
-    # 分层：等价性 = Full（同 JVM 写回后读回，逐 chunk 零差）；性能 = Partial（分项计时，跨 run 只作趋势）；
-    #   region 层 = Degraded/不可判。回退开关 -Dcoreswap.bulkwb=0 保留（即时降级 + A/B 单变量）。
-    # 遗留：R9-b 并发可见性专项未做（论证：新路径 24 次锁/chunk vs 老路径数万次，且填私有容器后单次引用发布）；sync 形态未跑。
-    # 证据：.investigations/bulk-writeback-260911-05/{record-260911-05.md, plan §0 修订 R1-R4, api-probe, scout-map, verify-design-draft}。
+    #   （Validate 1..32 抛 IAE，首跑 539 次异常）；③「607 vs 441」误推为「重复接管存在」——Chunky center 是**方块坐标**
+    #   （-48,-11 块 = chunk (-3,-1)，半径 160 块 = 10 chunk ⇒ 441 = 21×21 ✔），607 行坐标零重复，差额 166 = 服务器自生成邻近 chunk。
+    # ⚠️ Tier 3 **判据未满足（FAIL）+ 残差未归因**（judge M1 判决后定稿；原「降级为不可判」措辞已被取代）：
+    #   预注册判据 verify-design-draft:29-33 = **diff = 0**，实测全域 0.0277% ⇒ 未达成。
+    #   补跑 judge 指出的唯一缺失对照 **bulk × bulk**（3 对）：切片 A = 0.0352/0.0358/0.0272%；old×old 3 对 = 0.0249/0.0239/0.0284%
+    #   ⇒ **交付对 0.0348% 落在 bulk 臂自身跨 run 区间内 ⇒ 无「写回引入系统性存档层差异」的证据**。
+    #   弱信号（如实登记）：按「对里是否含 bulk 臂」分组两组**不重叠**（含 bulk 0.0258-0.0284% vs 两 old 0.0238-0.0253%，全域口径）
+    #   ⇒ 最自然读法是 **bulk 臂自身跨 run 离散度更高（方差效应非均值效应）**；n=3/组 ⇒ 仅提示性、未达显著。
+    #   机制候选并列：A 运行期调度（bulk 每 chunk 快 ~1.5ms ⇒ 改并行流水线中「邻块写特征」先后）/ B 容器编码差异（**不成立**：Tier 1/2 已证写回后状态逐位全等）/ C 开放。
+    #   噪声底主体在 **vanilla FEATURES 阶段**：关掉全部 live-server 随机源后差分仍 0.0259%、top pairs 仍是特征产物 ⇒ 随机刻只占 6-11%。
+    #   分母口径：313,589,760 块中 **58.1%（1854 chunk）从未生成内容**（纯稀释分母；两侧皆空 chunk 差**恰好 0**，100% 差分在有内容的 1336 chunk 上 = 0.0661%）；
+    #   成因一手源 = ChunkSerializer:301-312 对每个 section 索引**无条件**写 block_states（无 isEmpty() 检查）。
+    #   ⚠️ 口径外溢（judge S8 **收窄**）：region 层百分比受「跨 run 抖动 + 分母含未生成 chunk」两项影响，**跨载体不可互引**；
+    #   任何载体数值 MUST 由其**自身同形态对照**界定（本块 = 0.0239-0.0358% 切片 A / 0.0238-0.0284% 全域；B1 = 其自测 0.0133%/0.0169%）——
+    #   **本块撤回**原「含 B1 数值同受该抖动限制」句（违反 B1 自身「不同载体不可互引」，且方向不对），**不在 B1 侧写任何限定**。
+    # 分层：等价性 = Full，但**限「写回点内存态」**（judge M3：存档层未证等价；前提 = section 入口全空气，已由 wbcheck 臂实测
+    #   air_skipped=40,329,368 / stale_nonair=0，并由 Tier 1 全等独立蕴含）；性能 = Partial（分项计时，跨 run 只作趋势）；
+    #   region 层 = **判据未满足（FAIL）**。回退开关 -Dcoreswap.bulkwb=0 保留（即时降级 + A/B 单变量）。
+    # 遗留：R9-b 并发可见性专项未做；且经 judge S1 更正——新路径 readPacket 锁的是**私有未发布容器** ⇒ 对共享容器**零互斥**，
+    #   老路径的「多线程访问即 crash」**检测器被移除** ⇒ 正确性完全外移到「每 chunk 单写者」假设（未验证）；
+    #   「24 次锁/chunk」只是**上界**（实测均值 8.0 = 4856/607）。plan §10.3（消费者缓存）已在 record §7 遗留 2 收口。
+    #   编码非规范位宽（judge S5，登记不修）：ARRAY 支写 1..4（规范恒 4）、ID_LIST 支写 9/10（规范恒 15）——解码等价、今天无缺陷，
+    #   精确修法见 record §7 遗留 7，留待 1.21.6 移植随适配核一并修正。sync 形态未跑。
+    # 证据：.investigations/bulk-writeback-260911-05/{record-260911-05.md（§9 证据清单 40 项 / §10 审查响应表）, review-260911-05.md,
+    #   plan §0 R1-R6, api-probe, scout-map, verify-design-draft, evidence/（含 8 组切片 + 3 份补跑驱动 + cmp-tier12 三份 + wbcheck 前提 + 归属脚本）}。
+  - id: 'swe:bulk-writeback-260911-05:judge-review'
+    path: '../.investigations/bulk-writeback-260911-05/review-260911-05.md'
+    kind: review
+    status: candidate
+    # C judge（隔离 subagent）**PASS-with-conditions**：代码交付本体成立（Tier 1/2 三维度全量独立复算差 0、四支编码逐支对读 vanilla 解码侧成立、
+    #   性能百分比自洽、E2 计数语义表逐行准确），但结论载体中的 Tier 3 判据与归因被**本工作块自己产出的对照 run** 否定。
+    # MUST 3：M1（Tier 3 三处载体改判为「判据未满足 + 未归因」+ 对照证据入库 + 两候选并列）/ M2（record §5 附测「写回落在差分更低的一半」
+    #   归因谬误——该落差在同实现对照中同样成立，属切片群体构成属性）/ M3（「等价」收窄到写回点内存态 + 声明「section 入口全空气」前提）。
+    #   **三项均已落地**（含补跑 bulk×bulk 判决实验与 wbcheck 前提实测）。SHOULD 10 项（S1 R9 论证不成立→整段更正并收口 plan §10.3 /
+    #   S2 四类证据落盘缺口→全部补入 evidence/ / S3 counts_set 跨载体→§9.7 改述 / S4 自检共享假设→补范围声明 / S5 ARRAY 非规范位宽→登记不修 /
+    #   S6 三源不一致→提交+刷新 MANIFEST+同步 index / S7 两处取代指针 / S8 口径外溢越界→收窄并撤回 / S9 plan 漏登路线变更→补 R5 / S10 错误记录遗漏→补 E3/E4）。
+    #   程序声明两条：① 任务书「judge 无 shell」前提有误（judge 实际有 pwsh，故改为全量机械复算，提高 M1 强度）；② 建议状态保持 candidate。
