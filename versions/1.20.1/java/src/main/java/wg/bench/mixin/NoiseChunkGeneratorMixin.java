@@ -71,6 +71,51 @@ public abstract class NoiseChunkGeneratorMixin {
     private static final boolean SYNCFILL = System.getProperty("coreswap.syncfill") != null;
 
     /**
+     * P1（260911-02）in-flight 限流：恢复**引擎设计并发度**。
+     *
+     * <p>Phase 1 实测（`.investigations/vivo-stutter-260911-02/f2-phase1-cost-split.md`）：
+     * vivo 路径每 chunk 调一次 native fill，引擎侧线程参数（客户端 physical-2）只 spawn 空转线程，
+     * **真实并发度 = Java 池宽 = cores-1（本机 23，实测 {@code inflight max=23}）** ⇒ 超订 12 物理核：
+     * 每 chunk fill 50 ms（单线程真值）→ 96 ms（1.9×），总 CPU +42%（331→471 cpuSec），
+     * 而 wall 在池宽 11 已与 23 持平（41 vs 38 s）——**超订不换吞吐，只烧 CPU**（客户端上与网格构建
+     * 共用同一池 ⇒ 饿死渲染线程）。
+     *
+     * <p>规模：{@code -Dcoreswap.maxinflight=N} 显式覆盖；缺省 = 物理核-2（与引擎
+     * {@code adaptive_threads} 同源：{@code logical/2 - 2}）；{@code N<=0} = 不限（改造前行为）。
+     */
+    private static final int WG_MAX_INFLIGHT = resolveMaxInflight();
+
+    /** 限流规模一次性自证日志（#81 行为化：参数生效必须可从日志核对）。 */
+    private static final java.util.concurrent.atomic.AtomicBoolean wgInflightLogged =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    private static void wgLogInflightOnce() {
+        if (wgInflightLogged.compareAndSet(false, true)) {
+            System.out.println("[WG-INFLIGHT] max_inflight="
+                    + (WG_MAX_INFLIGHT > 0 ? String.valueOf(WG_MAX_INFLIGHT) : "unlimited")
+                    + " logical=" + Runtime.getRuntime().availableProcessors()
+                    + " syncfill=" + SYNCFILL);
+        }
+    }
+
+    /** 许可在**调用线程**获取、任务完成释放 ⇒ 池内只跑已获许可的任务（不阻塞池线程）。 */
+    private static final java.util.concurrent.Semaphore WG_FILL_PERMITS =
+            WG_MAX_INFLIGHT > 0 ? new java.util.concurrent.Semaphore(WG_MAX_INFLIGHT) : null;
+
+    private static int resolveMaxInflight() {
+        String p = System.getProperty("coreswap.maxinflight");
+        if (p != null) {
+            try {
+                return Integer.parseInt(p.trim());
+            } catch (NumberFormatException e) {
+                System.out.println("[WG-INFLIGHT] bad -Dcoreswap.maxinflight=" + p + " → 用缺省");
+            }
+        }
+        int logical = Runtime.getRuntime().availableProcessors();
+        return Math.max(1, logical / 2 - 2);
+    }
+
+    /**
      * 三分支共用的分派器（R3 形态，260910-06）：
      * <ul>
      *   <li>默认：{@code supplyAsync(work, WG_FILL_POOL)}——重活离开 worldgen 车道
@@ -94,7 +139,22 @@ public abstract class NoiseChunkGeneratorMixin {
         if (SYNCFILL) {
             return java.util.concurrent.CompletableFuture.completedFuture(work.get());
         }
-        return java.util.concurrent.CompletableFuture.supplyAsync(work, WG_FILL_POOL);
+        final java.util.concurrent.Semaphore permits = WG_FILL_PERMITS;
+        if (permits == null) {
+            wgLogInflightOnce();
+            return java.util.concurrent.CompletableFuture.supplyAsync(work, WG_FILL_POOL);
+        }
+        wgLogInflightOnce();
+        // P1：在调用线程（worldgen 车道）取许可 ⇒ 池内最多 WG_MAX_INFLIGHT 个 fill 同时在飞。
+        permits.acquireUninterruptibly();
+        java.util.concurrent.CompletableFuture<Chunk> f;
+        try {
+            f = java.util.concurrent.CompletableFuture.supplyAsync(work, WG_FILL_POOL);
+        } catch (Throwable t) {
+            permits.release();   // 提交失败不得泄漏许可（否则许可耗尽 = 永久停顿）
+            throw t;
+        }
+        return f.whenComplete((r, e) -> permits.release());
     }
 
     /** noise_settings 注册 id，如 "minecraft:overworld"；无 key（dynamic entry）返回 "(unknown)"。 */
