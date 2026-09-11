@@ -354,7 +354,7 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 
 ### 发现 #24 补充案例（260911-05）：批量导入共享容器的**锁粒度与发布原子性**——`readPacket` 自带一对锁，且填私有容器后单次引用发布
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 R9 并发/锁论证）；**candidate**；compiler-idioms / 锁语义（**#24 主条在「批量写」形态下的量化面**）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 R9 并发/锁论证）；**confirmed**（用户授予 2026-09-11 22:58）；compiler-idioms / 锁语义（**#24 主条在「批量写」形态下的量化面**）。
 - **来源定位**：`PalettedContainer.java:203-215`（`readPacket` = `lock()` / `try{…} finally{ unlock(); }`，`:204`/`:213`）；`ChunkSection.java:48-54`（lock/unlock 转发）；`NoiseChunkGenerator.java:342-346`（生成 range 内全 section 上锁）/ `:416`（持锁期 `setBlockState(..., lock=false)` = `swapUnsafe`）/ `:351-355`（统一解锁）；`LockHelper.java:20-21`/`:31-71`（`Semaphore(1)` + `ReentrantLock`，争用即 crash「Accessing … from multiple threads」）；实现 `BulkWb`（每 section 一次 `readPacket`）+ `ChunkSectionAccessor`（原地换容器 + 直写三计数）。
 - **观察（锁粒度量化）**：
   - 老 CoreSwap 逐块路径：mixin 在 `populateNoise` HEAD cancel ⇒ vanilla 上锁段整体被跳过；随后**每非空气块**一次 `ChunkSection.setBlockState(x,y,z,st)`（4 参 = `lock=true`）⇒ **每非空气块一对 `LockHelper` 操作**（每 chunk 量级估计数万次，非实测计数），且逐块变异**共享的活容器**（存在数万个中间态可见窗口）。
@@ -372,7 +372,7 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 > **推翻理由（一行）**：**「锁次数更少」不是「并发语义更强」**——被比较的两把锁**保护的对象不同**（新路径锁的是**私有未发布容器**，老路径锁的是**已发布活容器**），且漏记了「老路径的锁兼作并发冲突检测器、该检测能力被移除」这一项。
 > **不被取代的部分**：**发布原子性**方向成立（见下「仍成立的子结论」）。
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；judge（S1/A12）指出 + 主会话复核源码；**candidate**；compiler-idioms / 锁语义（**`#24` 主条在「批量写」形态下的更正**）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；judge（S1/A12）指出 + 主会话复核源码；**confirmed**（用户授予 2026-09-11 22:58）；compiler-idioms / 锁语义（**`#24` 主条在「批量写」形态下的更正**）。
 - **来源定位**：`PalettedContainer.java:28-49`（`:36` `private volatile Data<T> data`、`:44-46` `lock()` → `LockHelper`）、`:141-149`（`swap()` 自带 `lock()/unlock()`）、`:203-215`（`readPacket` 自带 `lock()/unlock()`）；`BulkWb.java:265-267`（**在私有容器上**构造 + `readPacket`）/ `:166`（取返回值）/ `:170-171`（写入 section = **发布**）；`CppBridge.java:596-610`（老路径逐非空气块 4 参 `setBlockState` = `lock=true`，**锁活容器**）；`record-260911-05.md` §6 R9 更正 / §7 遗留 1、2；judge `review-260911-05.md` S1/A12。
 
 **事实部分（judge 逐条复核成立，本稿复核一致）**

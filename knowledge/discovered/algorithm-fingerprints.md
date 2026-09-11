@@ -476,7 +476,7 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 
 ## 发现 #22 简记: MC 1.20.1 `PalettedContainer.readPacket` 逐字节编码契约 + `BLOCK_STATE` 位宽映射指纹（含 `bits==0` 无 storage）（260911-05）
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 API 前置探针 + 实施）；**candidate**；algorithm-fingerprints / MC 序列化编码契约。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 API 前置探针 + 实施）；**confirmed**（用户授予 2026-09-11 22:58）；algorithm-fingerprints / MC 序列化编码契约。
 - **来源定位**：vanilla 一手源 `.tmp/scout-260905-08/mcsrc/`：`PalettedContainer.java:203-215`（`readPacket`）/ `:398-404`（`record DataProvider` 包私有 + `bits == 0 ? EmptyPaletteStorage : PackedIntegerArray`）/ `:420-430`（`BLOCK_STATE` 的 switch）/ `:465-467`（`computeIndex`）；`PacketByteBuf.java:859-867`（`writeLongArray` 带 VarInt 长度前缀）/ `:924-932`（`readLongArray` 仅在长度相符时复用传入数组）；`SingularPalette.java:67-68`、`ArrayPalette.java:85-90`、`BiMapPalette.java:74-79`、`IdListPalette.java:45-46`（空实现）；`PackedIntegerArray.java:257`（`Validate 1..32`）/ `:261`（`elementsPerLong = 64/bits`）/ `:266`（`longs = ceil(size/elementsPerLong)`）。一手产物 `.investigations/bulk-writeback-260911-05/api-probe-260911-05.md` §2/§3。
 - **观察（逐字节契约）**：`readPacket(buf)` = `byte 请求位宽 i`（`:207`）→ `getCompatibleData(prev, i)`（按 i 选 provider）→ `palette.readPacket(buf)` → `buf.readLongArray(storage.getData())`（`:210`）→ 换 `this.data`。
 
@@ -501,7 +501,7 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 
 ## 发现 #23: `ChunkSection` 三个派生计数在 vanilla 内部有**两套语义**——`calculateCounts()`（全量重算）≠ 增量 `setBlockState`，且三计数**不入存档**（260911-05，最高价值·错误优先）
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施期，为绕过 72.5µs/section 读 `calculateCounts` 源码时发现）；**candidate**（Tier 2 逐 chunk 全等 + 一手源对表；confirmed 留人类）；algorithm-fingerprints / MC section 派生状态语义（完整错误链见 `.investigations/bulk-writeback-260911-05/errors-260911-05.md` E2）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施期，为绕过 72.5µs/section 读 `calculateCounts` 源码时发现）；**confirmed**（用户授予 2026-09-11 22:58）（Tier 2 逐 chunk 全等 + 一手源对表；confirmed 留人类）；algorithm-fingerprints / MC section 派生状态语义（完整错误链见 `.investigations/bulk-writeback-260911-05/errors-260911-05.md` E2）。
 - **来源定位**：`ChunkSection.java:27-31`（构造器自动 `calculateCounts()`）/ `:60-93`（增量 `setBlockState`）/ `:111-140`（`calculateCounts`）；`NoiseChunkGenerator.java:416`（生成期走增量、`lock=false`）；`ChunkSerializer.java:310-311`（只写 `block_states`/`biomes`）；实现 `BulkWb.buildContainer` ②段 + `ChunkSectionAccessor`（4 写 + 3 读）。
 - **观察（逐条对表）**：
 
@@ -526,7 +526,7 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 
 ## 发现 #24 简记: vanilla 分块容器「规范编码字节」= **storage 的 elementBits**，不是请求位宽——「非规范但解码等价」= 对 switch 宽容度的不必要依赖（260911-05）
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施 + judge S5 复核并扩大）；**candidate**（一手源逐行直读 + 本块实测偏差登记；confirmed 留人类）；algorithm-fingerprints / MC 序列化编码规范性。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施 + judge S5 复核并扩大）；**confirmed**（用户授予 2026-09-11 22:58；一手源逐行直读 + 本块实测偏差登记）；algorithm-fingerprints / MC 序列化编码规范性。
 - **来源定位**：vanilla 一手源 `.tmp/scout-260905-08/mcsrc/net/minecraft/world/chunk/PalettedContainer.java`：`:383-387`（`Data.writePacket`：`buf.writeByte(this.storage.getElementBits())` ← **规范字节的唯一来源**）/ `:420-430`（`BLOCK_STATE.createDataProvider` 的 switch）/ `:125-130`（`getCompatibleData` → `createDataProvider(this.idList, bits)`：**解码侧把收到的字节原样喂回同一个 switch**）/ `:203-215`（`readPacket` 读 `byte i`）；实现侧 `BulkWb.java:243`（写 `pb.writeByte(bits)`，`bits = MathHelper.ceilLog2(distinct)`，见 `:234`）与 `:249-250`（`storageBits = idList ? ceilLog2(Block.STATE_IDS.size()) : (bits <= 4 ? 4 : bits)`）。
 - **观察（规范值 vs 本块写值，逐支）**：
 

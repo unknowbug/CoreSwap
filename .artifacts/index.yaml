@@ -1363,7 +1363,7 @@ entries:
   - id: 'swe:bulk-writeback-260911-05:verdict'
     path: 'bulk-writeback-260911-05/verdict-260911-05.md'
     kind: analysis
-    status: candidate
+    status: confirmed   # 用户授予 2026-09-11 22:58（judge PASS-with-conditions；M1/M2/M3 已应用）
     # D1 落地：Java 侧把 Rust buf 整段转成 section 级 PalettedContainer 并原地换容器，
     #   取代每 chunk 98,304 次 ChunkSection.setBlockState。路线 = R-C 公开 readPacket(PacketByteBuf)
     #   （原案 5 参构造器因第 3 参 PalettedContainer.DataProvider 是包私有 record 而不可调用）；

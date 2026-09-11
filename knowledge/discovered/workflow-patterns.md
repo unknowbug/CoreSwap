@@ -2189,7 +2189,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ### 发现 #25 补充案例（260911-05）：计划期技术断言的静态失真两形态——「public 构造器 ≠ 可调用」与「不需要 X」的无验证断言
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线计划 §0 修订 R1/R2）；**candidate**；workflow-patterns / 计划期断言核对（**#25 主判据在「计划文件」域的形态**）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线计划 §0 修订 R1/R2）；**confirmed**（用户授予 2026-09-11 22:58）；workflow-patterns / 计划期断言核对（**#25 主判据在「计划文件」域的形态**）。
 - **来源定位**：`.investigations/bulk-writeback-260911-05/plan-260911-05.md` §0（R1/R2 修订记录）+ `api-probe-260911-05.md` §1/§6；实现侧 `BulkWb.java` 类注释 + `ChunkSectionAccessor.java`。
 - **观察（两形态）**：
   1. **R1「API 可用性」**：计划 §4.2 原案用 5 参 `PalettedContainer` 构造器——构造器**本身 public**，但第 3 参类型 `PalettedContainer.DataProvider` 是**包私有 record**（`PalettedContainer.java:398`，无修饰符）⇒ 包外**无法命名该类型**，调用点写不出来。API 前置探针一轮否决，改走公开 `readPacket(PacketByteBuf)`（反而更优：storage longs 整段自建，连 per-position 容器写都省掉）。
@@ -2206,7 +2206,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ### 发现 #110 补充案例（260911-05）：生产不可达的编码分支 MUST 用合成输入压测并显式声明——「全绿但未覆盖」
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线编码四支自检）；**candidate**；workflow-patterns / 可达性证明的**对偶面**（#110 主条证明「路径不可达」，本条要求「不可达分支仍须覆盖」）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线编码四支自检）；**confirmed**（用户授予 2026-09-11 22:58）；workflow-patterns / 可达性证明的**对偶面**（#110 主条证明「路径不可达」，本条要求「不可达分支仍须覆盖」）。
 - **来源定位**：`.investigations/bulk-writeback-260911-05/record-260911-05.md` §4「编码分支自检」；实现 `BulkWb.selfTest()`（`-Dcoreswap.bulkwbtest=1`）；证据 `evidence/bulk-summaries.txt`（四行 `[WG-BULKWB-TEST] PASS` + `all branches PASS`）。
 - **观察**：自然生成 `max_distinct` = 7（overworld）/ 7（nether）/ 2（end）、`idlist_hits=0`（三维持）⇒ 编码四支里的 **ID_LIST 支在生产数据上不可达**；若不刻意压测，该分支「全绿但未覆盖」（编译过 + 无异常 = 零证据）。做法 = 合成 buf 四例（distinct = 1 / 3 / 20 / **300**）逐位读回 4096 位置比对 `CppBridge.stateById`，四支全绿。
 - **判据（可复用）**：① 凡判定某分支在生产数据上**不可达**，MUST 同时给出「合成输入覆盖」证据，并在结论里**显式声明不可达 + 已合成覆盖**（不得只写「四支全绿」而不提可达性）；② 合成例按**分支边界**取（SINGULAR / ARRAY / BI_MAP / ID_LIST 各一，末支取 >256 distinct 刚好越界），不是随便取样；③ 自检开关默认关（生产零成本），但结论引用时必须声明「该证据来自**合成自检**，不是生产观测」。
@@ -2216,7 +2216,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ### 发现 #110 补充案例 其二（260911-05，judge S4）: 合成自检的**共享假设边界**——期望侧与被测侧共享假设时，自检对该类错误**零鉴别力**
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线编码四支自检）+ judge S4 指出边界未声明；**candidate**；workflow-patterns / 自检证据强度（**#110 补充案例「合成压测不可达分支」的强度边界**——其一要求「不可达分支必须压测」，其二界定「压测**能验什么**」）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线编码四支自检）+ judge S4 指出边界未声明；**confirmed**（用户授予 2026-09-11 22:58）；workflow-patterns / 自检证据强度（**#110 补充案例「合成压测不可达分支」的强度边界**——其一要求「不可达分支必须压测」，其二界定「压测**能验什么**」）。
 - **来源定位**：实现 `BulkWb.selfTest()`（`BulkWb.java:292-321`，本稿实读）；**编码侧** `stateRawId` = `Block.STATE_IDS.getRawId(CppBridge.stateById(blockRawId))`（`:129-132`，本稿实读）；**期望侧** `want = CppBridge.stateById(src[i])`（`:310`）；**索引** `x = i & 15, z = (i >> 4) & 15, y = i >> 8`（`:308`）+ `pc.get(x, y, z)`（`:309`）；记录 `record-260911-05.md` §1「编码四支」段 / §4；judge `review-260911-05.md` S4/A9。
 - **观察（两处共享假设）**：
   1. **`stateById` 双侧共用**：编码侧取 raw id 经 `CppBridge.stateById(...)` 再取 `STATE_IDS.getRawId`（`:129-132`），期望侧**也用** `CppBridge.stateById(src[i])`（`:310`）⇒ 自检只验「编码 ↔ vanilla 解码器」往返一致，**验不出 `stateById` 映射函数本身的错误**——**M14 那类「raw id vs 全局 state id」域错位不会被本自检捕获**。
@@ -2235,7 +2235,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ### 发现 #14 补充案例（260911-05）：等价门必须与被测变更**同层**——`[WG-CONTENT]`（Rust buf 层指纹）对 Java 侧写回变更结构性不敏感
 
-- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线验证设计）；**candidate**；workflow-patterns / 探针同源性（#14 主条为「**阶段**同源」，本条为「**数据层**同源」）。
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线验证设计）；**confirmed**（用户授予 2026-09-11 22:58）；workflow-patterns / 探针同源性（#14 主条为「**阶段**同源」，本条为「**数据层**同源」）。
 - **来源定位**：`.investigations/bulk-writeback-260911-05/verify-design-draft-260911-05.md` §3 + `plan-260911-05.md` §2.2；实现锚 = `CppBridge` 的 `[WG-CONTENT]`（hash **Rust 输出的 buf**）与 `BulkWb.readbackHash`（hash **写回后** section 读回）。
 - **观察**：C 的变量在 **Java 侧消费**（写回机制），而 `[WG-CONTENT]` 指纹算的是 **Rust 输出的 `buf`**——buf 不变则 hash **必然**相同 ⇒ 该门对本次变更**不可能**检出回归（1.21.6 侧该门还整体缺失）。C 的等价性只能由「写回**之后**读回」的 Tier 1 门承载。
 - **判据（可复用）**：① 设计/引用行为门时先问「**被测变量在哪一层**」——门观测的数据层必须覆盖被测变更所在的层，否则该门对该变更**零判别力**（「门全绿」不构成证据）；② 同一载体里可以有多层指纹，**层名必须写进结论**（本案 `[WG-CONTENT]` = buf 层 / `[WG-CONTENT-WB]` = 写回后读回层），避免下游把 buf 层绿读成消费层绿；③ 与 #36（执行体同源）互补：**执行体同源 ≠ 数据层同源**。
