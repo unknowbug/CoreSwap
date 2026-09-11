@@ -1,8 +1,9 @@
 ---
 version: 1.0.28
-status: pending
+status: aborted
 date: 2026-09-11 13:10
 ---
+<!-- 2026-09-11 撤单（用户拍板）：用户实机测试反馈「还是有问题」，工单未投递 Maint，主工作区主动撤回（未出发布动作，无 Maint 侧回执）。撤单原因细节与后续排查见新课题记录。本单 sha/changelog 保留作历史，重发须刷新工单重走契约流程。 -->
 ## 1. 构建产物
 - jar: `E:\PYTHON\CoreSwap\versions\1.20.1\java\build\libs\coreswap-1.20.1-1.0.28.jar`
 - jar sha256: `0023654788d7db39699ba421ebfbb0cb4e283cfd5d0fb1c1df95206cc079fe99`

@@ -1301,4 +1301,4 @@ entries:
   - id: 'swe:perf-release-260911-01:ca-min-gate-verdict'
     path: 'perf-release-260911-01/verdict-260911-01.md'
     kind: analysis
-    status: candidate
+    status: confirmed
