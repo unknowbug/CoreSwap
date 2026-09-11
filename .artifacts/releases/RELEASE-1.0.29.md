@@ -1,6 +1,6 @@
 ---
 version: 1.0.29
-status: pending
+status: published
 date: 2026-09-11 18:58
 ---
 <!-- 1.0.28 工单已 abort（2026-09-11 用户撤单，未投递 Maint）→ 本票为新版本号 1.0.29（用户拍板 260911-04）。相对 aborted 1.0.28 的增量：exec 模式（自有有界执行器，缺省开）+ perfprofile 临时件移除。 -->
