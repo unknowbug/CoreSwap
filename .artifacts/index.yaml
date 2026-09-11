@@ -1297,3 +1297,8 @@ entries:
     status: candidate
     # 重量档计划（用户 HOOK-1 批准三项：目标路径 versions/<ver>/java、环境原地 runtime/<ver>/java/run、
     #   入库范围含 worldgen-data + 散件隔离到 .tmp/ 不删）；含 §2 侦察事实表（F1-F10）与 §4 判据先写死。
+
+  - id: 'swe:perf-release-260911-01:ca-min-gate-verdict'
+    path: 'perf-release-260911-01/verdict-260911-01.md'
+    kind: analysis
+    status: candidate
