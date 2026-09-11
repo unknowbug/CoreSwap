@@ -1,0 +1,44 @@
+=== ① 切片 A 九行：证据文件 vs 记录 §5.4 表 ===
+[OK]   slice-ctrl1-old_old2.txt 证据=0.0249 期望=0.0249 记录含=True
+[OK]   slice-ctrl2-old2_old3.txt 证据=0.0284 期望=0.0284 记录含=True
+[OK]   slice-ctrl3-old_old3.txt 证据=0.0239 期望=0.0239 记录含=True
+[OK]   slice-bulk1_bulk2.txt 证据=0.0352 期望=0.0352 记录含=True
+[OK]   slice-bulk1_bulk3.txt 证据=0.0358 期望=0.0358 记录含=True
+[OK]   slice-bulk2_bulk3.txt 证据=0.0272 期望=0.0272 记录含=True
+[OK]   slice-test-old_bulk.txt 证据=0.0348 期望=0.0348 记录含=True
+[OK]   slice-nr-old_bulk-norandom.txt 证据=0.0311 期望=0.0311 记录含=True
+
+=== ② Tier 1/2：cmp-tier12 三类差 ===
+[OK]   cmp-tier12-overworld 607 common
+[OK]   cmp-tier12-nether 625 common
+[OK]   cmp-tier12-end 625 common
+
+=== ③ 前提实测（wbcheck） ===
+[OK]   stale_nonair=0 40329368
+[OK]   记录引用该数字 
+
+=== ④ 稀释归属 ===
+[OK]   both_empty diff=0 
+[OK]   any_content 0.0661% 
+[OK]   100% 落在有内容 chunk 
+
+=== ⑤ Tier 4 两轮 + 字段名差异 ===
+[OK]   第 1 轮旧值 2070297 
+[OK]   第 1 轮新值 1052606 
+[OK]   字段名 pack=（非 build） 
+
+=== ⑥ 三载体措辞是否已改判（M1） ===
+[OK]   record: 含「判据未满足」 
+[OK]   record: 含 bulk × bulk / bulk×bulk 
+[OK]   record: 结论区未标记的「不可判」= 0 (0 处)
+       [INFO] record 全文「不可判」共 10 处，结论区 9 处（其余为错误记录本体/其它工作块）
+[OK]   verdict: 含「判据未满足」 
+[OK]   verdict: 含 bulk × bulk / bulk×bulk 
+[OK]   verdict: 结论区未标记的「不可判」= 0 (0 处)
+       [INFO] verdict 全文「不可判」共 0 处，结论区 0 处（其余为错误记录本体/其它工作块）
+[OK]   index.yaml: 含「判据未满足」 
+[OK]   index.yaml: 含 bulk × bulk / bulk×bulk 
+[OK]   index.yaml: 结论区未标记的「不可判」= 0 (0 处)
+       [INFO] index.yaml 全文「不可判」共 2 处，结论区 1 处（其余为错误记录本体/其它工作块）
+
+===== 合计 OK=28 FAIL=0 =====
