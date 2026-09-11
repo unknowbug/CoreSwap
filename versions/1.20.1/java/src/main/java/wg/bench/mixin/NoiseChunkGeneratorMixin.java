@@ -116,6 +116,93 @@ public abstract class NoiseChunkGeneratorMixin {
     }
 
     /**
+     * exec 模式（260911-03）：CoreSwap fill 改投<b>自有有界执行器</b>，完全退出 vanilla 共享池
+     * （{@code Util.getMainWorkerExecutor()} 同时承载 ChunkBuilder 网格构建——javap 已证同池，
+     * vivo 低帧根因 = fill 挤占网格构建线程）。与 P1 信号量互补：
+     * P1 只限制「在共享池上同时飞多少个 fill」，fill 仍占共享池线程槽位；exec 把 fill
+     * 整体搬走 ⇒ 网格构建拿回全池，车道不阻塞。
+     *
+     * <p>开关：260911-03 preview 起<b>缺省开</b>；{@code -Dcoreswap.exec=0} 回退 shared 池
+     * （+P1 信号量路径）。池宽：{@code -Dcoreswap.execpool=N} 显式覆盖；缺省与 P1 同源
+     * （{@code logical/2 - 2}）。形态：{@code ThreadPoolExecutor(N, N, keepAlive,
+     * LinkedBlockingQueue(128), namedFactory, CallerRunsPolicy)}——队列满时回退调用线程
+     * （worldgen 车道）执行 = 天然背压，不丢任务；固定 N 线程 + 有界队列 = in-flight 上限
+     * 即池宽，无需再加信号量。
+     */
+    private static final boolean EXEC_MODE = resolveExecMode();
+
+    private static boolean resolveExecMode() {
+        String p = System.getProperty("coreswap.exec");
+        if (p != null) {
+            p = p.trim();
+            if (p.equals("0") || p.equalsIgnoreCase("false")) return false;
+            if (p.equals("1") || p.equalsIgnoreCase("true")) return true;
+            System.out.println("[WG-EXEC] bad -Dcoreswap.exec=" + p + " → 用缺省(开)");
+        }
+        return true;
+    }
+
+    /** exec 池宽（缺省 = logical/2-2，与 WG_MAX_INFLIGHT 同源口径）。 */
+    private static final int WG_EXEC_POOL_SIZE = resolveExecPoolSize();
+
+    private static int resolveExecPoolSize() {
+        String p = System.getProperty("coreswap.execpool");
+        if (p != null) {
+            try {
+                int n = Integer.parseInt(p.trim());
+                if (n > 0) return n;
+                System.out.println("[WG-EXEC] bad -Dcoreswap.execpool=" + p + " → 用缺省");
+            } catch (NumberFormatException e) {
+                System.out.println("[WG-EXEC] bad -Dcoreswap.execpool=" + p + " → 用缺省");
+            }
+        }
+        int logical = Runtime.getRuntime().availableProcessors();
+        return Math.max(1, logical / 2 - 2);
+    }
+
+    /** exec 模式一次性自证日志（#81 行为化：开关生效必须可从日志核对）。 */
+    private static final java.util.concurrent.atomic.AtomicBoolean wgExecLogged =
+            new java.util.concurrent.atomic.AtomicBoolean();
+
+    /**
+     * 自有有界执行器（exec 模式）。惰性初始化（首次 dispatch 才建，避免非接管形态空建池）；
+     * 线程命名 CoreSwap-Fill-N 便于 jstack 归因；daemon=true 不阻停机。
+     */
+    private static volatile java.util.concurrent.ThreadPoolExecutor wgOwnPool;
+
+    private static java.util.concurrent.ThreadPoolExecutor wgOwnPool() {
+        java.util.concurrent.ThreadPoolExecutor p = wgOwnPool;
+        if (p != null) return p;
+        synchronized (NoiseChunkGeneratorMixin.class) {
+            if (wgOwnPool == null) {
+                final int n = WG_EXEC_POOL_SIZE;
+                java.util.concurrent.atomic.AtomicInteger seq = new java.util.concurrent.atomic.AtomicInteger();
+                wgOwnPool = new java.util.concurrent.ThreadPoolExecutor(
+                        n, n, 60L, java.util.concurrent.TimeUnit.SECONDS,
+                        new java.util.concurrent.LinkedBlockingQueue<>(128),
+                        r -> {
+                            Thread t = new Thread(r, "CoreSwap-Fill-" + seq.incrementAndGet());
+                            t.setDaemon(true);
+                            return t;
+                        },
+                        new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+                wgOwnPool.allowCoreThreadTimeOut(true);
+            }
+            p = wgOwnPool;
+        }
+        return p;
+    }
+
+    private static void wgLogExecOnce() {
+        if (wgExecLogged.compareAndSet(false, true)) {
+            System.out.println("[WG-EXEC] mode=own-pool pool=" + WG_EXEC_POOL_SIZE
+                    + " queue=128 rejectedPolicy=CallerRuns"
+                    + " logical=" + Runtime.getRuntime().availableProcessors()
+                    + " syncfill=" + SYNCFILL);
+        }
+    }
+
+    /**
      * 三分支共用的分派器（R3 形态，260910-06）：
      * <ul>
      *   <li>默认：{@code supplyAsync(work, WG_FILL_POOL)}——重活离开 worldgen 车道
@@ -138,6 +225,11 @@ public abstract class NoiseChunkGeneratorMixin {
             java.util.function.Supplier<Chunk> work) {
         if (SYNCFILL) {
             return java.util.concurrent.CompletableFuture.completedFuture(work.get());
+        }
+        if (EXEC_MODE) {
+            wgLogExecOnce();
+            // exec：fill 投自有有界执行器（池宽即 in-flight 上限），不经共享池、不加信号量。
+            return java.util.concurrent.CompletableFuture.supplyAsync(work, wgOwnPool());
         }
         final java.util.concurrent.Semaphore permits = WG_FILL_PERMITS;
         if (permits == null) {
