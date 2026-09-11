@@ -1171,6 +1171,7 @@ entries:
     # R3 修复（confirmed）：接管段异步化（提交 Util.getMainWorkerExecutor().named("coreswap_fill_noise")，对齐 vanilla wgen_fill_noise；A/B 开关 -Dcoreswap.syncfill=1）
     #   → 同构建态单变量 A/B：r3sync 279s/1.34 核/inflight max=1 ↔ r3 **42s/10.8 核/inflight max=23**＝6.64×；比 vanilla 52s 快 1.24×。
     #   行为等价门（代理基线级，非零差）：r3 vs vanilla 0.0120%、r3 vs r3sync 0.0122%、r3sync vs vanilla 0.0111% ≤ 历史基线 0.0150%。
+    #   ⛔ 数值已被取代（260911-05，§15.4）：上述门读数系**旧读法**产物（对拍工具 tag7 长度按 1 字节读）；规范读法 = 跨实现 0.0192-0.0198%、跨形态 0.0173/0.0177%、历史基线复算 0.0180% ⇒ 「≤ 基线」不成立。见 .investigations/e5-recompute-260911-05/record-260911-05.md §3/§4。
     # 措辞限制（judge 明令）：不得写「内容零差 / 并行度精确 1.000 / R3 绝对无内容影响」；R3 幅度为单对读数。
     # confirmed 后第一优先（judge C7）：pending_cross_writes 跨 chunk 写序会计（worldgen_handle.rs:1050-1063,1085-1091）+ 同配置 run-to-run 基线对 + ABBA ≥3 对。
     # 落地：R1 mixin per-chunk 日志门控（1.21.6+1.20.1 双版本）；[WG-CONF] 行为化配置证据；chunk 级分段计时与 in-flight 计数（默认关）。
@@ -1199,9 +1200,11 @@ entries:
     #   前置条件登记：未来重启 Rust features 接管（bit1 清零）MUST 先加「迟到写/已生效/终态常驻」三数（按 chunk/线程分桶，不得复用全局 CA_* 计数）。
     # C7-②（本轮新采）：同配置 run-to-run 基线 = sync 0.0086% / async 0.0092%（同阶，async 略高 +7%，方向与 #67 一致但单对不显著）；
     #   跨形态 0.0122%/0.0130%（高于同形态基线 ~0.004pp ⇒ 未归因形态分量）；跨实现 0.0111-0.0148%；历史代理基线 0.0150%。
+    #   ⛔ 数值已被取代（260911-05，§15.4 同批）：规范读法 = sync 0.0133% / async 0.0169% / 跨形态 0.0173-0.0177% / 跨实现 0.0192-0.0198% / 历史基线 0.0180%。
     # C7-③ 幅度范围 = 5.8×-7.2×（非诊断臂口径 5.8×-6.8×）；相对 vanilla 快 1.24-1.33×；inflight 23（async）vs 1（sync）。
     # §15.4 取代记录：取代 260910-04/verdict-260910-04.md:106「代理基线级筛选结论：R3 未引入超出既有 run 级非确定的内容差」
     #   （原文不删不改）——新锚点下「未超出 run 级非确定」的因果指认不再成立，替代陈述 = 差异高于同配置基线 ~0.004pp 但 ≤ 历史代理基线。
+    #   ⛔ 该替代陈述的**后半已失效**（260911-05，§15.4）：历史代理基线同口径复算 = 0.0180%，跨实现读数 0.0192-0.0198% **反超** 0.0012-0.0018pp；前半（高于同配置基线）在新口径下相对 async 自比仅 +0.0004-0.0008pp ⇒ 与 run 级摆动不可分。
     # 证据：.investigations/perf-closeout-260910-05/（record.md / scout-vanilla-crosswrite.md / cmd-output 251 条 MANIFEST-sha256 / java-snapshot pre|post）。
   - id: 'swe:perf-closeout-260910-05:judge-c7'
     path: 'perf-closeout-260910-05/judge-verdict-c7-260910-05.md'
@@ -1217,6 +1220,7 @@ entries:
     #     相对 vanilla（同口径）nether async 快 2.7-2.8×、end async 6s ≈ vanilla 5s；sync 形态 wallgen 净亏损（70.1>60.0、20.0>10.0）。**禁用「端到端」措辞**（未测）。
     #   行为门（预登记，单对点估计/检验力低）：nether 跨形态 0.1219% ≤ 同形态噪声 0.1406%（**async 代理**——该维只有 1 个 sync run，无 sync run-to-run 对）✅；
     #     end 跨形态 **0 块差** ✅ 且经四重论证（同链在 es×ev 检出 7 块 ⇒ 有灵敏度；common=7567 无单侧排除；section 并集 494,100,480 非空；三 region sha 互异）。
+    #   ⛔ 数值已被取代（260911-05，§15.4）：nether 跨形态 0.2978% ≤ 同形态噪声 0.3759%（**方向与 PASS 结论不变**）；end 仍 7/0/0；`common` 7567→**7569**、分母 494,010,368→**496,041,984**；**「na-r1×ns 单侧排除 7543/7542」这一观察本身是旧读法产物**（新读法两侧均 7569）。
     #   附带读数：nether 接管 0.1020% vs vanilla **低于**其自身 async 代理噪声 ⇒ 差异落在噪声带内，**不等于**接管已验证（1.21.6 nether/end 首次验证）；
     #     end 的 7 块 > 同形态噪声 0 ⇒ 跨实现差在该维**可检出**，不得与零差并列；「确定性」限定在 coreswap 臂内 + 该 region 集。
     #   CPU：ea-r2 = 86 CPU·s/6s ⇒ **更多总 CPU 换更低延迟**（延迟结论非效率结论）；nether 侧总 CPU 未测；本批 CPU 缺失**根因未核**（两轮 judge 各见一版脚本，归档副本均为修后版 ⇒ 文件级不可复核）。
@@ -1329,3 +1333,28 @@ entries:
     status: candidate
     # judge（隔离子进程）= A1/A2 均 PASS-with-conditions；C1-C12 + I1-I4 全部已应用（逐条处置表见该文件 §7）。
     #   judge 未改任何 status；A1/A2 维持 candidate，confirmed 留人类。
+
+  # === 260911-05 B1 块：E5 规范读法复算（1.21.6 全量对拍口径修正）===
+  - id: 'swe:e5-recompute-260911-05:record'
+    path: '../.investigations/e5-recompute-260911-05/record-260911-05.md'
+    kind: analysis
+    status: candidate
+    # E5 债务清偿：对拍工具 tag7（TAG_Byte_Array）长度字段 u1(1B) → i4(4B)（NBT 规范 = TAG_Int），离线复算 15 对（含**历史代理基线**，
+    #   其 region 载体仍在 .tmp/hang-repro-260910/arms/，旧读数归档副本同 sha256 c9c0e9a0…）。
+    # 量级改写（旧 → 新）：同形态 sync 0.0086→**0.0133%**、async 0.0092→**0.0169%**、跨形态 0.0122/0.0130→**0.0173/0.0177%**、
+    #   跨实现 0.0111-0.0148→**0.0192-0.0198%**、历史代理基线 0.0150→**0.0180%**（⇒「R3 差异 ≤ 基线」上界论证**失效**）、
+    #   nether 0.1020/0.1219/0.1406→**0.2703/0.2978/0.3759%**（门仍 PASS）、end 7/0/0 不变（仅分母 494,010,368→496,041,984）。
+    # 分母倍 overworld **2.095** / nether·end **2.362**，% 倍 **1.20-2.67 非单调 ⇒ 禁按比例折算**；sections/chunk 11.52→**24.00**（overworld）/ 6.80→**16.00**（nether·end）。
+    # §15.4 取代链 **S1-S6**（原文不删不改）：S1 260910-04/verdict:106 · S2 260910-05/verdict-c7 §2/§2.1/§2.2/§4 · S3 verdict-nether-end §3+§8 E5 追记 ·
+    #   S4 knowledge algorithm-fingerprints #21 · S5 知识库/1.21.6 时间线/index 摘要（11 条已应用）· S6 定点段「假一致」（旧 9/45 vs 规范 50/55）。
+    # judge = PASS-with-conditions（B-C1/B-C2/B-C3 MUST 已应用；数值零错值，17/17 结构断言独立复算成立）。
+    # 验证分层：解析正确性 = Full（结构断言 sections/chunk = 维度高/16 + 规范依据 + 旧读法失真对照）；自比 0 差**降级为确定性证据**（恒真对照）。
+    # 证据：同目录 recompute/（17 份输出）+ MANIFEST-sha256.txt（64 行）+ diff_arms_fixed.py + 3 个驱动 + knowledge-update-draft-260911-05.md。
+    # ⚠️ 新基线载体仍在 .tmp（不入库）⇒ 仅 MANIFEST sha 兜可核性。
+  - id: 'swe:e5-recompute-260911-05:judge-review'
+    path: '../.investigations/e5-recompute-260911-05/review-260911-05.md'
+    kind: review
+    status: candidate
+    # B1 judge（隔离子进程）PASS-with-conditions：15 对 × 四列逐格复核零错值；工具单变量确认（仅 tag7 一行 + 3 行注释）；
+    #   MUST = B-C1 取代链漏项（知识库+时间线）/ B-C2 S3 指针错位 / B-C3 旧侧回指与 index 摘要——三项均已应用。
+    #   SHOULD（B-C4 基线已归档同 sha、B-C5 MANIFEST、B-C7 自比恒真、B-C8 缺口成因已收敛、B-C9 async 代理限定、B-C11 open 收窄）亦已应用。

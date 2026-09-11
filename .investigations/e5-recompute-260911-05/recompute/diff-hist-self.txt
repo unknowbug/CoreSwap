@@ -1,0 +1,76 @@
+vanilla chunks=8004 coreswap chunks=8004
+common=8004
+===定点对拍（邻居更新坐标 ±4 柱采样）===
+pos(-522,63,139):
+  y=61: V=water          C=water          
+  y=62: V=water          C=water          
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+  y=65: V=air            C=air            
+(-805,57,138) chunk(-51,8) NOT in both arms
+pos(-500,6,240):
+  y=4: V=diorite        C=diorite        
+  y=5: V=stone          C=stone          
+  y=6: V=water          C=water          
+  y=7: V=water          C=water          
+  y=8: V=water          C=water          
+(-874,48,-588) chunk(-55,-37) NOT in both arms
+pos(-296,48,-18):
+  y=46: V=water          C=water          
+  y=47: V=water          C=water          
+  y=48: V=water          C=water          
+  y=49: V=water          C=water          
+  y=50: V=water          C=water          
+pos(-443,60,311):
+  y=58: V=water          C=water          
+  y=59: V=water          C=water          
+  y=60: V=water          C=water          
+  y=61: V=water          C=water          
+  y=62: V=water          C=water          
+pos(-556,60,316):
+  y=58: V=water          C=water          
+  y=59: V=water          C=water          
+  y=60: V=water          C=water          
+  y=61: V=water          C=water          
+  y=62: V=water          C=water          
+pos(-71,56,-517):
+  y=54: V=water          C=water          
+  y=55: V=water          C=water          
+  y=56: V=water          C=water          
+  y=57: V=water          C=water          
+  y=58: V=water          C=water          
+(-1531,61,239) chunk(-96,14) NOT in both arms
+pos(-471,45,-215):
+  y=43: V=stone          C=stone          
+  y=44: V=gravel         C=gravel         
+  y=45: V=water          C=water          
+  y=46: V=water          C=water          
+  y=47: V=water          C=water          
+pos(-592,42,216):
+  y=40: V=water          C=water          
+  y=41: V=water          C=water          
+  y=42: V=water          C=water          
+  y=43: V=water          C=water          
+  y=44: V=water          C=water          
+pos(-527,52,78):
+  y=50: V=water          C=water          
+  y=51: V=water          C=water          
+  y=52: V=water          C=water          
+  y=53: V=water          C=water          
+  y=54: V=water          C=water          
+pos(-424,62,74):
+  y=60: V=water          C=water          
+  y=61: V=water          C=water          
+  y=62: V=water          C=water          
+  y=63: V=air            C=air            
+  y=64: V=air            C=air            
+pos(-196,47,295):
+  y=45: V=water          C=water          
+  y=46: V=water          C=water          
+  y=47: V=water          C=water          
+  y=48: V=water          C=water          
+  y=49: V=water          C=water          
+===全域差分普查===
+blocks=786825216 diff=0 (0.0000%) sections same/diff=192096/0
+top pairs:
+y-section dist: []
