@@ -35,9 +35,12 @@ fn adaptive_threads(param_threads: i32, count: usize) -> usize {
         let t = physical.saturating_sub(2).max(1); // 留 2 核
         t
     };
-    // MT3 修复（对齐 C++ 候选方案）：count=1（实机 M=1 每次单 chunk 调用）不 clamp，
-    // 池按请求线程数建 worker 并保持——否则每次调用池被 clamp 到 1 worker = 结构性串行。
-    if count > 1 { threads.min(count).max(1) } else { threads.max(1) }
+    // 260911-05（A1d）修正：原 MT3 注释（「count=1 不 clamp」）针对的是**已不存在的常驻池**——
+    // 当时 clamp 会把池的 worker 数永久压到 1 = 结构性串行。现实现为 per-call `std::thread::scope`
+    // （见 wg_fill_blocks_multi），每次调用重建线程、调用结束即回收，故 count=1 时 clamp 到 1
+    // 既安全又消除线程风暴：改前每 chunk spawn `物理核-2`（本机 10）个线程、其中 9 个立即空转退出
+    // （worldgen-core 无池、无跨调用状态）。批量路径（count>1）语义不变 = min(threads, count)。
+    threads.min(count).max(1)
 }
 
 // 输出指针 Send 包装：闭包调用 write() 方法（而非访问 .0 字段）写自己线程的 out，
@@ -138,6 +141,15 @@ pub extern "C" fn wg_fill_blocks_multi(handle: *mut c_void,
     let czs = unsafe { std::slice::from_raw_parts(chunk_zs, count) };
     let out_ptrs = unsafe { std::slice::from_raw_parts(outs, count) };
     let nthreads = adaptive_threads(threads, count);
+    // 一次性自证行（WG_THREADLOG=1，只打首调用；AtomicBool 门控 ⇒ 热路径零 env 查询）。
+    // 用途：A1d「count=1 不再 spawn 线程风暴」的行为化证据（正日志 + nthreads 值）。
+    {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        static LOGGED: AtomicBool = AtomicBool::new(false);
+        if !LOGGED.swap(true, Ordering::Relaxed) && std::env::var("WG_THREADLOG").is_ok() {
+            eprintln!("[WG-THREADS] count={} threads_param={} nthreads={}", count, threads, nthreads);
+        }
+    }
 
     let h_arc = std::sync::Arc::new(h);
     // 把 out 指针包成 SendOut（每个 chunk 一个），Arc 共享，闭包按索引写各自的 out（Write 方法，非 .0 字段）
