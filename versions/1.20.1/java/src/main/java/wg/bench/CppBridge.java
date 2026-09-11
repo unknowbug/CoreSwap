@@ -61,30 +61,6 @@ public final class CppBridge {
         }
     }
 
-    // ===== 260911-02 临时诊断（Phase 1 测量，验证后移除）：-Dcoreswap.perfprofile=1 =====
-    // 目的：把 [CHUNKTIME] mixin=117ms/chunk 拆成 fillBlocks(JNI) / nz 全量扫描 / 逐块写回 / 高度图。
-    // 计时粒度 = 每 chunk 每段一次 nanoTime（4 次/chunk，相对 117ms 可忽略，符合「探针不得每点执行」）。
-    private static final boolean PERFPROF = System.getProperty("coreswap.perfprofile") != null;
-    private static final java.util.concurrent.atomic.LongAdder PP_FILL = new java.util.concurrent.atomic.LongAdder();
-    private static final java.util.concurrent.atomic.LongAdder PP_SCAN = new java.util.concurrent.atomic.LongAdder();
-    private static final java.util.concurrent.atomic.LongAdder PP_WRITE = new java.util.concurrent.atomic.LongAdder();
-    private static final java.util.concurrent.atomic.LongAdder PP_HEIGHT = new java.util.concurrent.atomic.LongAdder();
-    private static final java.util.concurrent.atomic.AtomicLong PP_N = new java.util.concurrent.atomic.AtomicLong();
-
-    private static void ppReport() {
-        if (!PERFPROF) return;
-        long n = PP_N.incrementAndGet();
-        if (n % 512 != 0) return;
-        double d = n;
-        System.out.println("[PERFPROF] n=" + n
-                + " fill=" + String.format("%.2f", PP_FILL.sum() / 1e6 / d)
-                + " scan=" + String.format("%.2f", PP_SCAN.sum() / 1e6 / d)
-                + " write=" + String.format("%.2f", PP_WRITE.sum() / 1e6 / d)
-                + " height=" + String.format("%.2f", PP_HEIGHT.sum() / 1e6 / d)
-                + " sum=" + String.format("%.2f", (PP_FILL.sum() + PP_SCAN.sum() + PP_WRITE.sum() + PP_HEIGHT.sum()) / 1e6 / d)
-                + " ms/chunk(线程墙钟累计/块数)");
-    }
-
     private CppBridge() {}
 
     // 句柄级阶段开关掩码（双跑修复 2026-09-08）：bit0=SKIP_CARVER bit1=SKIP_FEATURES。
@@ -418,7 +394,6 @@ public final class CppBridge {
         int cx = chunk.getPos().x, cz = chunk.getPos().z;
         int[] buf = BUF.get();  // per-thread buffer（ThreadLocal，~384KB/worker，RQ-004）
         int got = 0;
-        long ppT0 = PERFPROF ? System.nanoTime() : 0L;
         try {
             got = CppWorldgen.fillBlocks(h, new int[]{cx}, new int[]{cz},
                     new int[][]{buf}, THREADS);
@@ -426,16 +401,13 @@ public final class CppBridge {
             System.out.println("[CppBridge] DIAG fillBlocks threw chunk(" + cx + "," + cz + "): " + t);
             return;
         }
-        if (PERFPROF) PP_FILL.add(System.nanoTime() - ppT0);
         if (got != 1) {
             System.out.println("[CppBridge] DIAG fillBlocks got=" + got + " chunk(" + cx + "," + cz + ")");
             return;
         }
         // 诊断：C++ 输出是否全 air（区分「C++ 输出 0」与「写入丢失」）
-        long ppT1 = PERFPROF ? System.nanoTime() : 0L;
         int nz = 0;
         for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
-        if (PERFPROF) PP_SCAN.add(System.nanoTime() - ppT1);
         if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
         else if (nz < 1000)
             System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
@@ -447,7 +419,6 @@ public final class CppBridge {
         } catch (Throwable t) {
             System.out.println("[CppBridge] DIAG write threw chunk(" + cx + "," + cz + "): " + t);
         }
-        ppReport();
     }
 
     // nether 维度：min_y=0/height=256（buffer 16*16*256），netherHandle 分派
@@ -548,7 +519,6 @@ public final class CppBridge {
         int secCount = height / 16;
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[secCount];
         for (int secIdx = 0; secIdx < secCount; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
-        long ppT0 = PERFPROF ? System.nanoTime() : 0L;
         for (int by = 0; by < height; by++) {
             net.minecraft.world.chunk.ChunkSection sec = sections[by >> 4];
             int sy = by & 15;
@@ -579,7 +549,6 @@ public final class CppBridge {
         }
         // 补设高度图（原版 populateNoise 只设 WORLD_SURFACE_WG；buildSurface 被跳过，
         // 需一次性补齐全部，否则 FULL 后的生物生成/寻路/光照依赖错乱）
-        long ppT1 = PERFPROF ? System.nanoTime() : 0L;
         Heightmap.populateHeightmaps(chunk, java.util.Set.of(
                 Heightmap.Type.WORLD_SURFACE_WG,
                 Heightmap.Type.WORLD_SURFACE,
@@ -587,10 +556,6 @@ public final class CppBridge {
                 Heightmap.Type.OCEAN_FLOOR,
                 Heightmap.Type.MOTION_BLOCKING,
                 Heightmap.Type.MOTION_BLOCKING_NO_LEAVES));
-        if (PERFPROF) {
-            PP_WRITE.add(ppT1 - ppT0);
-            PP_HEIGHT.add(System.nanoTime() - ppT1);
-        }
     }
 
     public static void destroy() {

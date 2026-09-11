@@ -3,7 +3,8 @@ plugins {
 }
 
 // 260910-06：1.0.28 = 1.20.1 R3 异步化（重活移出 worldgen 单车道；同构建态 A/B = `-Psyncfill=1`）
-version = '1.20.1-1.0.28'
+// 260911-04：1.0.29 = exec 模式缺省开（自有有界执行器，fill 退出 vanilla 共享池）+ 移除 perfprofile 临时件
+version = '1.20.1-1.0.29'
 group = 'wg'
 
 base {
