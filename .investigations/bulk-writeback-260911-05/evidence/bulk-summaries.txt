@@ -1,0 +1,26 @@
+[c-old] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-old] [WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+[c-old] [WG-PERBLOCK] calls=607 ns/call(total)=2151591 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[c-bulk] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-bulk] [WG-BULKWB-TEST] PASS distinct=1 (readback 4096 positions; SINGULAR branch)
+[c-bulk] [WG-BULKWB-TEST] PASS distinct=3 (readback 4096 positions; ARRAY branch)
+[c-bulk] [WG-BULKWB] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[c-bulk] [WG-BULKWB-TEST] PASS distinct=20 (readback 4096 positions; BI_MAP branch)
+[c-bulk] [WG-BULKWB-TEST] PASS distinct=300 (readback 4096 positions; ID_LIST branch)
+[c-bulk] [WG-BULKWB-TEST] all branches PASS (SINGULAR/ARRAY/BI_MAP/ID_LIST)
+[c-bulk] [WG-BULKWB] calls=607 sections_replaced=4856 air_sections_skipped=9712 idlist_hits=0 max_distinct=7 ns/section: build=75666 (incl. readPacket=5963) counts_set=116 ns/call(total)=652202 (per-section ns; compare against per-block setBlockState path)
+[c-bulk] [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[c-nether-old] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-nether-old] [WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+[c-nether-old] [WG-PERBLOCK] calls=625 ns/call(total)=2657477 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[c-nether-bulk] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-nether-bulk] [WG-BULKWB] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[c-nether-bulk] [WG-BULKWB] calls=625 sections_replaced=4815 air_sections_skipped=5185 idlist_hits=0 max_distinct=7 ns/section: build=107850 (incl. readPacket=3896) counts_set=87 ns/call(total)=859626 (per-section ns; compare against per-block setBlockState path)
+[c-nether-bulk] [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[c-end-old] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-end-old] [WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+[c-end-old] [WG-PERBLOCK] calls=625 ns/call(total)=2809444 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[c-end-bulk] [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457600 sha256=838e89794a54e19d...
+[c-end-bulk] [WG-BULKWB] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[c-end-bulk] [WG-BULKWB] calls=625 sections_replaced=562 air_sections_skipped=4438 idlist_hits=0 max_distinct=2 ns/section: build=78695 (incl. readPacket=13343) counts_set=92 ns/call(total)=804970 (per-section ns; compare against per-block setBlockState path)
+[c-end-bulk] [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)

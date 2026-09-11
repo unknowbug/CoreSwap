@@ -118,3 +118,8 @@ archive/
 # 260910-07（judge C13）：`.investigations/**/cmd-output/logs/` 下的 `.log` 是**证据主体**（stdout：
 # CHUNKTIME / WG-CONTENT / 拦截行计数），全局限定 `*.log`（:7）会让 `git add` **静默跳过**它们 ⇒ 白名单放行。
 !.investigations/**/cmd-output/logs/*.log
+
+# 260911-05：`.investigations/**/evidence/` 下的 `raw-*.log` 是 Tier 1/2/4 的**原始运行日志**
+# （`[WG-CONTENT-WB]` 逐 chunk 指纹 + `[WG-BULKWB]` 计时 + 四支自检），同受 :7 全局 `*.log` 影响
+# ⇒ 白名单放行（与上条同因，260910-07 judge C13 已立先例）。
+!.investigations/**/evidence/*.log

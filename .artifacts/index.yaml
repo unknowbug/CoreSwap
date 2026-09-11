@@ -1358,3 +1358,32 @@ entries:
     # B1 judge（隔离子进程）PASS-with-conditions：15 对 × 四列逐格复核零错值；工具单变量确认（仅 tag7 一行 + 3 行注释）；
     #   MUST = B-C1 取代链漏项（知识库+时间线）/ B-C2 S3 指针错位 / B-C3 旧侧回指与 index 摘要——三项均已应用。
     #   SHOULD（B-C4 基线已归档同 sha、B-C5 MANIFEST、B-C7 自比恒真、B-C8 缺口成因已收敛、B-C9 async 代理限定、B-C11 open 收窄）亦已应用。
+
+  # === 260911-05 C 块：bulk section 写回（D1 落地，Rust 零改动）===
+  - id: 'swe:bulk-writeback-260911-05:verdict'
+    path: 'bulk-writeback-260911-05/verdict-260911-05.md'
+    kind: analysis
+    status: candidate
+    # D1 落地：Java 侧把 Rust buf 整段转成 section 级 PalettedContainer 并原地换容器，
+    #   取代每 chunk 98,304 次 ChunkSection.setBlockState。路线 = R-C 公开 readPacket(PacketByteBuf)
+    #   （原案 5 参构造器因第 3 参 PalettedContainer.DataProvider 是包私有 record 而不可调用）；
+    #   另加 1 个 ChunkSectionAccessor mixin（4 写 + 3 读）绕过 calculateCounts。
+    # 等价性（决定性）：Tier 1 写回后逐 chunk 读回 FNV-1a 64 + Tier 2 派生字段指纹（三计数序列），
+    #   overworld 607 / nether 625 / end 625 次写回调用**差均为 0**，两臂 chunk 集相同、零异常；
+    #   覆盖 59,670,528（overworld）×4096 位置；编码四支 SINGULAR/ARRAY/BI_MAP/**ID_LIST** 合成自检逐位读回全绿
+    #   （自然生成 max_distinct=7 ⇒ ID_LIST 实测不可达，必须刻意压测）。
+    # 性能（同 run 同仪器单变量 -Dcoreswap.bulkwb，只包写回调用）：旧逐块 → bulk
+    #   overworld 2,151,591→**652,202** ns/chunk（−69.7%）· nether 2,657,477→**859,626**（−67.7%）· end 2,809,444→**804,970**（−71.4%）；
+    #   分项 counts_set 由 calculateCounts 的 72,480 ns/section → ~100 ns/section。
+    #   ⚠️ 价值定位 = **可维护性/可移植性为主**，性能为次要附带；写回仅占 chunk 时间约 2-6% ⇒ 端到端落在 ±10% 噪声带内**不主张**。
+    # 实施期两项高价值发现（record §3）：① calculateCounts() 与增量 setBlockState **计数语义不一致**
+    #   （流体重复计入 nonEmptyBlockCount；nonEmptyFluidCount 只计有随机刻的流体）⇒ 走构造器会静默改变
+    #   hasRandomFluidTicks()/客户端包语义，已改为复刻增量语义；② bits==0 单态 section **不得构造 PackedIntegerArray**
+    #   （Validate 1..32 抛 IAE，首跑 539 次异常）。
+    # ⚠️ Tier 3 判据**降级声明**：原「region 逐块差 0」在本 harness 不可达——全域 0.0277% 中
+    #   **从未走过本代码路径的 chunk 也有 0.0260%**（切片证据）⇒ 残差为跨 run 固有抖动（FEATURES 产物 + 随机刻可改写方块的双向对称变化）。
+    #   口径外溢：历史上基于 live-server region 对拍的保真度数字（含 B1 复算 0.0133-0.0198%）同受该抖动限制，不可当绝对保真度读。
+    # 分层：等价性 = Full（同 JVM 写回后读回，逐 chunk 零差）；性能 = Partial（分项计时，跨 run 只作趋势）；
+    #   region 层 = Degraded/不可判。回退开关 -Dcoreswap.bulkwb=0 保留（即时降级 + A/B 单变量）。
+    # 遗留：R9-b 并发可见性专项未做（论证：新路径 24 次锁/chunk vs 老路径数万次，且填私有容器后单次引用发布）；sync 形态未跑。
+    # 证据：.investigations/bulk-writeback-260911-05/{record-260911-05.md, plan §0 修订 R1-R4, api-probe, scout-map, verify-design-draft}。

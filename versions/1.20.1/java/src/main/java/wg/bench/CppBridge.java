@@ -545,8 +545,42 @@ public final class CppBridge {
             new java.util.concurrent.atomic.AtomicLong();
     private static final java.util.concurrent.atomic.AtomicLong WB_STALE_NONAIR =
             new java.util.concurrent.atomic.AtomicLong();
+    /** C 线 Tier 4：旧逐块路径的**对称**计时（仅 {@code -Dcoreswap.bulkwblog=1} 臂）——
+     *  使两臂能在**同一 run / 同一仪器**下比较写回分项（bulk 侧见 BulkWb 的 ns/call(total)）。 */
+    private static final boolean WBLOG = System.getProperty("coreswap.bulkwblog") != null;
+    private static final java.util.concurrent.atomic.AtomicLong PB_CALLS =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.concurrent.atomic.AtomicLong PB_NS =
+            new java.util.concurrent.atomic.AtomicLong();
 
+    /**
+     * C 线（260911-05，用户批准 D1）分派点：**bulk 整段替换**（默认）↔ 旧逐块路径
+     * （{@code -Dcoreswap.bulkwb=0}）。高度图与 Tier 1 指纹门在两形态**共用**，
+     * 保证 A/B 唯一变量 = 写回形态（口径对等纪律，见 index.yaml 260910-05 条教训）。
+     */
     private static void writeChunk(Chunk chunk, int cx, int cz, int[] buf, int height) {
+        if (BulkWb.ON) {
+            BulkWb.writeSections(chunk, cx, cz, buf, height);
+        } else {
+            writeChunkPerBlock(chunk, cx, cz, buf, height);
+        }
+        // 补设高度图（原版 populateNoise 只设 WORLD_SURFACE_WG；buildSurface 被跳过，
+        // 需一次性补齐全部，否则 FULL 后的生物生成/寻路/光照依赖错乱）
+        Heightmap.populateHeightmaps(chunk, java.util.Set.of(
+                Heightmap.Type.WORLD_SURFACE_WG,
+                Heightmap.Type.WORLD_SURFACE,
+                Heightmap.Type.OCEAN_FLOOR_WG,
+                Heightmap.Type.OCEAN_FLOOR,
+                Heightmap.Type.MOTION_BLOCKING,
+                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES));
+        // Tier 1（默认关，-Dcoreswap.wbcontent=1）：写回**之后**的逐 chunk 读回指纹门。
+        // 与 [WG-CONTENT]（Rust buf 层）不同层——后者对 Java 侧消费的变更不敏感。
+        BulkWb.contentLine(chunk, cx, cz);
+    }
+
+    /** 旧逐块路径（A1a 跳空气 + WBCHECK 自检）；保留为 A/B 回退与降级路径。 */
+    private static void writeChunkPerBlock(Chunk chunk, int cx, int cz, int[] buf, int height) {
+        long tPb0 = WBLOG ? System.nanoTime() : 0L;
         int secCount = height / 16;
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[secCount];
         for (int secIdx = 0; secIdx < secCount; secIdx++) sections[secIdx] = chunk.getSection(secIdx);
@@ -570,34 +604,37 @@ public final class CppBridge {
                         }
                         if (SKIPAIR) continue;
                     }
-                    BlockState st = STATE_BY_ID.get(id);
-                    if (st == null) {
-                        // M14 根因修复（2026-09-01）：Rust buf 携带的是 blocks.json 域的
-                        // block 注册表 raw id（"minecraft:stone": 1），不是全局 block state id。
-                        // 正确映射 = Registries.BLOCK.getRawId → block.getDefaultState()。
-                        // 6a7337d 改用 Block.STATE_IDS（state id 域）是反向修复——只修对了
-                        // 分析/显示层的对照，把写入路径也改错：nether 块 raw id 在 STATE_IDS
-                        // 域错位解码成 oak_leaves×3150（实机「怪异城」= 此处写入的错块）。
-                        net.minecraft.block.Block b = net.minecraft.registry.Registries.BLOCK.get(id);
-                        st = b == null ? AIR : b.getDefaultState();
-                        if (st == null) st = AIR;
-                        STATE_BY_ID.set(id, st);  // 幂等 set（并发同 id 同值，无锁安全）
-                    }
+                    BlockState st = stateById(id);
                     // 必须用 ChunkSection.setBlockState（内部=container.set + nonEmptyBlockCount 更新）：
                     // 直写 container.set 不更新计数 → isEmpty() 误判 true → 全部读成空气（历史根因）
                     sec.setBlockState(x, sy, z, st);
                 }
             }
         }
-        // 补设高度图（原版 populateNoise 只设 WORLD_SURFACE_WG；buildSurface 被跳过，
-        // 需一次性补齐全部，否则 FULL 后的生物生成/寻路/光照依赖错乱）
-        Heightmap.populateHeightmaps(chunk, java.util.Set.of(
-                Heightmap.Type.WORLD_SURFACE_WG,
-                Heightmap.Type.WORLD_SURFACE,
-                Heightmap.Type.OCEAN_FLOOR_WG,
-                Heightmap.Type.OCEAN_FLOOR,
-                Heightmap.Type.MOTION_BLOCKING,
-                Heightmap.Type.MOTION_BLOCKING_NO_LEAVES));
+        if (WBLOG) {
+            PB_CALLS.incrementAndGet();
+            PB_NS.addAndGet(System.nanoTime() - tPb0);
+        }
+    }
+
+    /**
+     * raw block id → {@link BlockState}（M14 根因修复的唯一实现处；C 线 bulk 路径复用同一份缓存与语义）。
+     *
+     * <p>M14 根因（2026-09-01）：Rust buf 携带的是 blocks.json 域的 **block 注册表 raw id**
+     * （"minecraft:stone": 1），不是全局 **block state id**。正确映射 = {@code Registries.BLOCK.getRawId}
+     * → {@code block.getDefaultState()}。6a7337d 改用 {@code Block.STATE_IDS}（state id 域）是反向修复——
+     * 只修对了分析/显示层的对照，把写入路径也改错：nether 块 raw id 在 STATE_IDS 域错位解码成
+     * oak_leaves×3150（实机「怪异城」= 此处写入的错块）。
+     */
+    static BlockState stateById(int id) {
+        BlockState st = STATE_BY_ID.get(id);
+        if (st == null) {
+            net.minecraft.block.Block b = net.minecraft.registry.Registries.BLOCK.get(id);
+            st = b == null ? AIR : b.getDefaultState();
+            if (st == null) st = AIR;
+            STATE_BY_ID.set(id, st);  // 幂等 set（并发同 id 同值，无锁安全）
+        }
+        return st;
     }
 
     public static void destroy() {
@@ -608,6 +645,14 @@ public final class CppBridge {
             System.out.println("[WB-CHECK] air_skipped=" + WB_AIR_SKIP.get()
                     + " stale_nonair=" + WB_STALE_NONAIR.get()
                     + " (stale_nonair=0 ⇒ 跳过空气写与逐格写等价)");
+        }
+        // C 线 bulk 写回汇总（仅 -Dcoreswap.bulkwblog=1 臂）：section 数 / 跳空气 / ID_LIST 命中 / 分项 ns
+        BulkWb.reportSummary();
+        // C 线 Tier 4：旧逐块路径对称计时（同 run 可比）
+        if (WBLOG) {
+            long pc = PB_CALLS.get();
+            System.out.println("[WG-PERBLOCK] calls=" + pc + " ns/call(total)="
+                    + (pc > 0 ? PB_NS.get() / pc : -1) + " (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)");
         }
         enabled = false;
         handle = 0;

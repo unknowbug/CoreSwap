@@ -26,6 +26,7 @@
     "ServerLightingProviderMixin",
     "LightingProviderAccessor",
     "ChunkLightProviderAccessor",
+    "ChunkSectionAccessor",
     "ThreadedAnvilChunkStorageAccessor"
   ],
   "injectors": {
