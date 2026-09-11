@@ -125,9 +125,12 @@ public abstract class NoiseChunkGeneratorMixin {
      * <p>开关：260911-03 preview 起<b>缺省开</b>；{@code -Dcoreswap.exec=0} 回退 shared 池
      * （+P1 信号量路径）。池宽：{@code -Dcoreswap.execpool=N} 显式覆盖；缺省与 P1 同源
      * （{@code logical/2 - 2}）。形态：{@code ThreadPoolExecutor(N, N, keepAlive,
-     * LinkedBlockingQueue(128), namedFactory, CallerRunsPolicy)}——队列满时回退调用线程
-     * （worldgen 车道）执行 = 天然背压，不丢任务；固定 N 线程 + 有界队列 = in-flight 上限
-     * 即池宽，无需再加信号量。
+     * LinkedBlockingQueue(128), namedFactory, CallerRunsPolicy)}——队列满（128）背压时经
+     * CallerRuns 回退调用线程（worldgen 车道）内联执行 fill，常态不阻塞车道、不丢任务
+     * （judge C2 260911-03：原「车道不阻塞」断言与 CallerRuns 路径矛盾，已修正）；
+     * 固定 N 线程 + 有界队列 = in-flight 上限即池宽，无需再加信号量。
+     * 分派优先级（judge C4）：SYNCFILL &gt; EXEC_MODE &gt; P1 信号量——exec 开时
+     * {@code coreswap.maxinflight} 被忽略（此时无 [WG-INFLIGHT] 行属预期）。
      */
     private static final boolean EXEC_MODE = resolveExecMode();
 

@@ -1,6 +1,8 @@
 # exec 模式（自有有界执行器）测量记录 — 260911-03
 
-> 状态：**candidate**（本地测量完成，judge 待跑，用户实机 FPS 数据未回收）
+> 状态：**candidate**（judge PASS-with-conditions 已应用；用户实机 FPS 数据未回收）
+> judge = 260911-03（subagent，三源核对全过）。条件处置：C2 措辞修正已改代码（javadoc，行为零变化）；C1 wall 结论标注「单 run 趋势」（三臂 n=1，wall 差 −12.5% 与基线族 run-to-run 离散 ±10% 同量级；fill/指纹结论稳健）；C3 出单前声明（低核数池宽、多维度共用单池、maxWs +2.1GB 待用户实机关闭）；C4 分派优先级 exec > maxinflight 已注明 javadoc。
+> preview jar 更新：judge 后重打（C2 注释版），sha256 前缀 `f2a21a43…`，jar 内 dll = target = `dd3b645f…`。
 > 执行体：dll `dd3b645f…`（零改动）；Java 侧 `NoiseChunkGeneratorMixin` 新增 exec 分派 + 缺省开（preview 起）。
 > §9.7 口径声明：载体 = Chunky radius 500（4225 chunks，seed 417950215108767439，同驱动 run_ab.ps1 同日串行三臂）；与 260911-02 的 cap 曲线为**跨 run 数字，只作趋势参照不作裁量**（#51）；本表内三臂同 run 族可直接比。
 
