@@ -617,7 +617,13 @@ impl WorldgenHandle {
         // neighbor_terrain 全量重算 + 主管线无条件再算一遍」的双算（scout C1 的真实形态）。
         // 命中即免重算（缓存列 = 同一 fill_terrain_column 产物，逐位一致）；ca_min 关闭时零开销。
         let ca_min = std::env::var("WG_CA_MIN").map(|v| v != "0").unwrap_or(true);
-        let (mut col, heightmap) = if ca_min {
+        // 260911-01：flags 提前 load + skip_features 判定同源提取（原 features 门控处判法，逐字一致）。
+        // stageMask=3（features 跳过）时 terrain_cache 只写不读（消费方在 features 阶段邻 chunk 读），
+        // ca_min 缓存路径纯成本（260910-08 实测 ~393KB col clone/chunk）——追加门控：仅 features
+        // 实际启用时走缓存；features 跳过时与 else 分支同为直算 fill_terrain_column，零缓存开销。
+        let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
+        let skip_features = flags & FLAG_SKIP_FEATURES != 0 || std::env::var("WG_SKIP_FEATURES").is_ok();
+        let (mut col, heightmap) = if ca_min && !skip_features {
             let hit = self.terrain_cache.lock().ok()
                 .and_then(|c| c.get(&(cx, cz)).cloned());
             match hit {
@@ -639,7 +645,6 @@ impl WorldgenHandle {
         } else {
             self.fill_terrain_column(cx, cz)
         };
-        let flags = self.flags.load(std::sync::atomic::Ordering::Relaxed);
         // 260910-04 配置行为化证据（#81「A=B 不证分支生效」+ #37「行为化日志」）：
         // 进程内首次 fill 打印一次**生效**开关——使 -PcaMin=0 / -PestL2=0 / stageMask 的 A/B
         // 判别具备「分支真被走到」的直接证据，而非仅命令行/属性转录（#32/#53 死参数假判别家族）。
@@ -666,7 +671,7 @@ impl WorldgenHandle {
         };
 
         // 5. features（装饰层：矿石/disk/spring/freeze_top/underwater_magma）
-        let skip_features = flags & FLAG_SKIP_FEATURES != 0 || std::env::var("WG_SKIP_FEATURES").is_ok();
+        // skip_features 判定已同源提前至缓存门控处（260911-01），此处直接复用。
         if !skip_features {
             let n_features = self.apply_features(&mut col, cx, cz, &heightmap, &biome_at);
             if std::env::var("WG_FEATURELOG").is_ok() {
