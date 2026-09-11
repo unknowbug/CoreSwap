@@ -472,3 +472,76 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 > ⇒ **判据 ①②③ 方向全部不变**（① 维度间不可互引噪声基线；② 确定性维上非零即信号 / end 可升位级门；③ nether 高噪声维上「未超出 run 级噪声」措辞禁令），**end = 0 的结论亦不变**（仅分母更新）。
 > ⇒ **判据 ④ 的机制候选须标「成因域收窄」**：**不在 Rust 填充层**（同批对的新旧差纯为**读法效应**——同工具、同改法、同 region，唯一变量是 `tag 7` 长度字段；旧读法造成的 sections/chunk 失真 `11.52→24.0000` 是**解析层**失真，不是维度机制差异；Rust 填充在比对集内表现为 per-chunk 确定性），**下游未测**（原两条候选——Java 装饰/结构按 chunk 完成序放置、region 内含非本臂生成的 chunk——**均未被本块检验**）⇒ 成因标 **open（收窄：非解析层、非 Rust 填充层；下游未测）**。取代链：`record-260911-05.md` §3/§4/§5 **S4**。
 
+---
+
+## 发现 #22 简记: MC 1.20.1 `PalettedContainer.readPacket` 逐字节编码契约 + `BLOCK_STATE` 位宽映射指纹（含 `bits==0` 无 storage）（260911-05）
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 API 前置探针 + 实施）；**candidate**；algorithm-fingerprints / MC 序列化编码契约。
+- **来源定位**：vanilla 一手源 `.tmp/scout-260905-08/mcsrc/`：`PalettedContainer.java:203-215`（`readPacket`）/ `:398-404`（`record DataProvider` 包私有 + `bits == 0 ? EmptyPaletteStorage : PackedIntegerArray`）/ `:420-430`（`BLOCK_STATE` 的 switch）/ `:465-467`（`computeIndex`）；`PacketByteBuf.java:859-867`（`writeLongArray` 带 VarInt 长度前缀）/ `:924-932`（`readLongArray` 仅在长度相符时复用传入数组）；`SingularPalette.java:67-68`、`ArrayPalette.java:85-90`、`BiMapPalette.java:74-79`、`IdListPalette.java:45-46`（空实现）；`PackedIntegerArray.java:257`（`Validate 1..32`）/ `:261`（`elementsPerLong = 64/bits`）/ `:266`（`longs = ceil(size/elementsPerLong)`）。一手产物 `.investigations/bulk-writeback-260911-05/api-probe-260911-05.md` §2/§3。
+- **观察（逐字节契约）**：`readPacket(buf)` = `byte 请求位宽 i`（`:207`）→ `getCompatibleData(prev, i)`（按 i 选 provider）→ `palette.readPacket(buf)` → `buf.readLongArray(storage.getData())`（`:210`）→ 换 `this.data`。
+
+  | 请求位宽 i | provider | palette 段字节 | storage 位宽 | storage 值域 |
+  |---|---|---|---|---|
+  | 0 | SINGULAR | `VarInt rawStateId` | 0（`EmptyPaletteStorage`，**无 storage 对象**） | —（写 0 个 long） |
+  | 1-4 | ARRAY | `VarInt size` + size × `VarInt rawStateId` | **恒 4** | 局部 palette 索引 |
+  | 5-8 | BI_MAP | 同上 | = i | 局部 palette 索引 |
+  | ≥9 | ID_LIST | **无字节**（空实现） | `ceilLog2(idList.size())` | **全局 state id**（`idList.getRawId`） |
+
+  - 实测自证（overworld/nether/end 三维一致）：`state_ids_size=24137`、`idlist_bits=15`、`max_distinct` = 7 / 7 / 2、`idlist_hits=0`。
+  - **零布局转换**：`computeIndex(x,y,z) = (y<<4|z)<<4|x` 与 Rust buf 的 y-major 切片布局逐位相同 ⇒ section s 恰是连续切片 `buf[s*4096,(s+1)*4096)`。
+  - ⚠️ **`readLongArray` 的静默丢弃**：`readPacket` **丢弃返回值**；`readLongArray(toArray)` 仅在 `toArray.length == VarInt 长度` 时复用传入数组，否则**新建数组并返回**（读进来的值被丢掉，storage 保持原值）——**长度不符不抛异常、不报错**（对比 `PackedIntegerArray(elementBits,size,long[])` 构造器在长度不符时抛 `InvalidLengthException`）。⇒ 自建 buf 时 storage long 数必须精确等于 `ceil(size/(64/bits))`（**推导值**：4bit → 256 longs、15bit → 1024 longs）。
+- **如何利用（判据）**：
+  1. 要**整段导入** `PalettedContainer` 时用公开 `readPacket`（自建 buffer），不必逐点 `set`；但 MUST 自复刻 `BLOCK_STATE` 的 switch（provider 类型**包私有**，包外不可命名）。
+  2. **位宽 0 = 无 storage，不是「0 位 storage」**——不得对 0 位构造 `PackedIntegerArray`（E1：`Validate 1..32` 抛 IAE，首跑 539 次）。
+  3. 复刻 MC 的 switch **逐 case 过目标构造器前置条件**（第 0 支没有 storage 对象）。
+  4. 手写该 buffer 的**长度字段必须按契约对表**（palette 段有无、VarInt 前缀），错一位即「静默丢数据 + 无异常」（与 build-tooling #58 同族：单点长度笔误 → 结构级失真）。
+- **家族索引**：algorithm-fingerprints #23（同案计数语义差）、compiler-idioms #6（raw id vs state id 双域——本契约 ≥9 支走 state id 域）、compiler-idioms #24 补充案例（`readPacket` 自带锁）、build-tooling #58（长度字段对表）。
+
+---
+
+## 发现 #23: `ChunkSection` 三个派生计数在 vanilla 内部有**两套语义**——`calculateCounts()`（全量重算）≠ 增量 `setBlockState`，且三计数**不入存档**（260911-05，最高价值·错误优先）
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施期，为绕过 72.5µs/section 读 `calculateCounts` 源码时发现）；**candidate**（Tier 2 逐 chunk 全等 + 一手源对表；confirmed 留人类）；algorithm-fingerprints / MC section 派生状态语义（完整错误链见 `.investigations/bulk-writeback-260911-05/errors-260911-05.md` E2）。
+- **来源定位**：`ChunkSection.java:27-31`（构造器自动 `calculateCounts()`）/ `:60-93`（增量 `setBlockState`）/ `:111-140`（`calculateCounts`）；`NoiseChunkGenerator.java:416`（生成期走增量、`lock=false`）；`ChunkSerializer.java:310-311`（只写 `block_states`/`biomes`）；实现 `BulkWb.buildContainer` ②段 + `ChunkSectionAccessor`（4 写 + 3 读）。
+- **观察（逐条对表）**：
+
+  | 计数 | 增量 `setBlockState` | `calculateCounts` |
+  |---|---|---|
+  | `nonEmptyBlockCount` | 非空气 +1 | 非空气 +1 **且流体非空再 +1**（同格重复计入） |
+  | `randomTickableBlockCount` | 非空气 ∧ `hasRandomTicks` | 同 |
+  | `nonEmptyFluidCount` | **流体非空** +1 | 仅**流体自身 `hasRandomTicks()`**（静水 `WaterFluid.Still.hasRandomTicks()=false` ⇒ 静水 section = 0，增量 = 4096） |
+
+  - 实测成本：构造器路线 `calculateCounts` = **72,480 ns/section**（占被替换 section 成本 64%）；自算（去重遍顺带，O(distinct)）= **116 ns/section**。
+  - 生成期语义由**调用点**决定：vanilla `populateNoise` 走增量 ⇒ 增量语义才是生成期 vanilla 语义（也是老逐块路径语义）。
+  - **三计数不入存档** ⇒ region 对拍看不到；唯一可见面 = 生成期到下次存读之间的**内存态**：`hasRandomFluidTicks()`（→ 流体随机刻调度）、`isEmpty()` / `nonEmptyBlockCount`（→ 客户端包 `toPacket`）。
+  - 等价性验证：Tier 2 派生字段指纹（`dh=` = 三计数逐 section 序列）**607/625/625 逐 chunk 差 0**（三维持；本稿独立复算自归档抽取件）。
+- **如何利用（判据）**：
+  1. **同一语义在 vanilla 内部有两套实现时 MUST 逐条对表**；生成期语义按**调用点**定，不按「哪个 API 更现成」定。
+  2. **「构造器会自动算好」是危险直觉**——它算的是另一套定义（走 `new ChunkSection(pc,biome)` 会静默改变 `hasRandomFluidTicks()` / 客户端包语义）。
+  3. **等价门必须分层**：状态层指纹（方块 id 序列）对派生字段语义差**结构性不敏感** ⇒ 派生字段必须**独立成门**。
+  4. 判定某派生字段「不入存档」时 MUST 同时声明其**唯一可见面**，否则会被误读成「region 对拍过了 = 没问题」。
+- **家族索引**：compiler-idioms #24 补充案例（同 section 的锁语义）、algorithm-fingerprints #22（同案编码契约）、workflow-patterns #129（本案 Tier 3 判据降级）、workflow-patterns #14 补充案例（层不匹配的门零判别力）。
+
+---
+
+## 发现 #24 简记: vanilla 分块容器「规范编码字节」= **storage 的 elementBits**，不是请求位宽——「非规范但解码等价」= 对 switch 宽容度的不必要依赖（260911-05）
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线实施 + judge S5 复核并扩大）；**candidate**（一手源逐行直读 + 本块实测偏差登记；confirmed 留人类）；algorithm-fingerprints / MC 序列化编码规范性。
+- **来源定位**：vanilla 一手源 `.tmp/scout-260905-08/mcsrc/net/minecraft/world/chunk/PalettedContainer.java`：`:383-387`（`Data.writePacket`：`buf.writeByte(this.storage.getElementBits())` ← **规范字节的唯一来源**）/ `:420-430`（`BLOCK_STATE.createDataProvider` 的 switch）/ `:125-130`（`getCompatibleData` → `createDataProvider(this.idList, bits)`：**解码侧把收到的字节原样喂回同一个 switch**）/ `:203-215`（`readPacket` 读 `byte i`）；实现侧 `BulkWb.java:243`（写 `pb.writeByte(bits)`，`bits = MathHelper.ceilLog2(distinct)`，见 `:234`）与 `:249-250`（`storageBits = idList ? ceilLog2(Block.STATE_IDS.size()) : (bits <= 4 ? 4 : bits)`）。
+- **观察（规范值 vs 本块写值，逐支）**：
+
+  | 分支 | `createDataProvider` 分支（`:423-428`） | storage 实际位宽 | **规范字节**（`writePacket:384`） | 本块 `BulkWb.java:243` 写出值 |
+  |---|---|---|---|---|
+  | SINGULAR | `case 0 → DataProvider(SINGULAR, 0)` | 0（`EmptyPaletteStorage`，无 storage 对象） | **0** | 0 ✔ |
+  | ARRAY | `case 1,2,3,4 → DataProvider(ARRAY, **4**)` | **恒 4**（与请求位宽无关） | **4** | **1..4**（= `ceilLog2(distinct)`）✘ 非规范 |
+  | BI_MAP | `case 5,6,7,8 → DataProvider(BI_MAP, bits)` | = 请求位宽 | = 请求位宽 | 5..8 ✔ |
+  | ID_LIST | `default（≥9）→ DataProvider(ID_LIST, ceilLog2(idList.size()))` | **15**（`ceilLog2(Block.STATE_IDS.size())`；实测 `state_ids_size=24137`） | **15** | **9/10**（= `ceilLog2(distinct)`）✘ 非规范 |
+
+- **为什么「解码等价」**：`readPacket:207-208` 把读到的字节 `i` 原样交给 `getCompatibleData(:125-130)` → `createDataProvider(idList, i)` ⇒ 同一个 switch 把 **1..4 全映到 `ARRAY(4)`**、把 **≥9（含 9/10）全映到 `ID_LIST(15)`** ⇒ 写 1..4（ARRAY 支）或写 9/10（ID_LIST 支）**解码结果完全等价**（本块 Tier 1/2 逐 chunk 全等亦旁证）。
+- **为什么仍是脆弱点（判据）**：这是**对 switch 宽容度的不必要依赖**——「今天无缺陷、移植时咬人」：1.21.6 或未来版本若**收窄 switch 分支**、或改动 `getCompatibleData` 的「可复用 previousData」判定，同一字节流会**静默变行为**（无异常）。
+  - **判据（MUST）**：**编码器 MUST 写 storage 位宽**（与构造 `PackedIntegerArray` 用的 `storageBits` **同源**），不得写「请求位宽 / 局部 distinct 位宽」。
+  - **精确修法**（`BulkWb.java:243` 处，与 `:249-250` 同源）：
+    `int storageBits = (bits == 0) ? 0 : (idList ? MathHelper.ceilLog2(Block.STATE_IDS.size()) : (bits <= 4 ? 4 : bits)); pb.writeByte(storageBits);`
+- **本块处置（登记不修）**：偏差 = ARRAY 支写 1..4、ID_LIST 支写 9/10（`record-260911-05.md` §7 遗留 7）；judge 最小上呈条件不含 S5，且改码会使 6 臂证据全部失效 ⇒ **留待 1.21.6 移植随共享 Java 适配核一并修正**。⚠️ 因该偏差存在，本块「编码四支全绿」的合成自检**不构成规范性证据**（自检 ARRAY 例 distinct=3 恰好覆盖该非规范路径，见 workflow-patterns #110 补充案例 其二）。
+- **交叉引用（不重复展开）**：`bits == 0`（SINGULAR）时 storage = `EmptyPaletteStorage`，**不得构造 `PackedIntegerArray`**（elementBits=0 触发 `Validate 1..32` 抛 IAE，260911-05 首跑 539 次）——见 `发现 #22` 与错误台账 E1，此处不重复。
+- **家族索引**：algorithm-fingerprints #22（**同代码点的解码侧**逐字节契约——本条为**编码侧规范性**）、#23（同 section 的派生计数两套语义）、compiler-idioms #6（raw id vs state id 双域——ID_LIST 支走 state id 域）、compiler-idioms #15（位打包标量域的「部分位判零」——同属「位宽/掩码约定」家族）、workflow-patterns #14 补充案例（门必须与被测变更同层）。

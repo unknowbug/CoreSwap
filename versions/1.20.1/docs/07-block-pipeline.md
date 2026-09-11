@@ -203,6 +203,8 @@ Java 的 base_3d_noise **逐块重算 24 次 Perlin（无缓存）**。若 C++ �
 - **修复**：用 `ChunkSection.setBlockState(x, y, z, state)`（yarn 名，不是 `set`）——内部 = container.set + 计数更新，开销极小
 - 不要反射改计数（运行时字段是混淆名，且 setBlockState 更干净）
 
+> ⚠️ **补充（260911-05，C 线 bulk section 写回）**：本条结论**不推翻**——「写路径必须维护三计数」仍成立，且旧逐块路径保留为回退（`-Dcoreswap.bulkwb=0`）。C 线把机制升级为「**整段导入 + 原地换容器 + 经 mixin `@Accessor` 显式直写三计数**」：不再逐块 `setBlockState`，但**必须复刻同一套增量语义**（`calculateCounts` 是另一套定义，见本篇新增小节 + algorithm-fingerprints #23）；`@Accessor` 是**编译期 mixin**，不是本条禁止的「运行时反射改计数」（混淆名问题不存在）。判据不变：**任何绕过 `setBlockState` 的写路径都必须显式维护三个派生计数**。
+
 ### 坑 3：getSection(int) 语义用越界实测确认
 
 - 1.20.1 `Chunk.getSection(int)` 是 **0-based 数组索引**（0..23 = y -64..319）
@@ -706,7 +708,8 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 `
 
 - **Rust 侧**：worldgen_handle.rs（WorldgenHandle::create + fill_chunk_blocks，fill_chunk 宏观 → BlockColumn → build_surface → carver 17×17 邻域）+ pi.rs（C ABI 导出 wg_*）。Cargo.toml crate-type = ["cdylib", "rlib"]。
-- **C++ JNI 桥**：ust_jni_bridge.cpp 加载 WorldgenRust.dll（LoadLibrary + GetProcAddress），导出 6 个 Java_wg_CppWorldgen_* 函数。JNI 桥 = **薄转发层**（JNI 数组 ↔ C 指针转换 + 调 wg_*），与 C++ jni_bridge.cpp 同构。
+- **C++ JNI 桥**：
+ust_jni_bridge.cpp 加载 WorldgenRust.dll（LoadLibrary + GetProcAddress），导出 6 个 Java_wg_CppWorldgen_* 函数。JNI 桥 = **薄转发层**（JNI 数组 ↔ C 指针转换 + 调 wg_*），与 C++ jni_bridge.cpp 同构。
 - **mod 加载**：Java 侧 JNI 调用 init/fillBlocks/setBeardifier/densityParams，与 C++ worldgen.dll 加载路径同构。
 
 ### 验证（三层递进，Partial 分层）
@@ -770,7 +773,8 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 
 ### 关键设计语义（可复用）
 
-**「并发生成路径零锁」三件套**（详见 unctional-errors.md F1-F3）：
+**「并发生成路径零锁」三件套**（详见 
+unctional-errors.md F1-F3）：
 - ① &mut 方法体实际只读 → 改 &self（签名谎报可变性 = 隐性锁来源）
 - ② Option 高度图 None → 还原 Java 哨兵回退（getOceanFloorTopY 返回 min_y-1）
 - ③ 「低频写 + 高频并发读」用 RwLock（读共享无争用）；持锁跨度最小化（读出来 clone 释放）
@@ -1225,3 +1229,61 @@ Java wg.CppWorldgen（mod 加载，调用 init/fillBlocks/setBeardifier/densityP
 - **三候选封闭**：❌ aquifer floodedness / ❌ 流面 est 翻转 / ❌ surface-carver 级联（y 均匀分布直接排除后两者；分布形态与液面带不符排除前者）。
 - §9.7 口径：同 260904-03（WGB2 FULL 存档口径 4×4 @ chunk(200,200)，16 chunk×98304 cell）。
 - ❌ 已挂起（260904-15 用户拍板）：本篇挂起族 = aquifer 域 2（(198,18,198) water→dirt、(237,42,224) gravel→water，固/液边界真实方块级残差）+ ore_vein 域 1（(237,41,224)）——永久挂起，归因保持 candidate、坐标不删；光照/流体课题可引用为已知差异源；多世界新 seed 流下此族为残差放大候选（详注见 11 篇）。
+
+## 2026-09-11 C 线：Java 侧 bulk section 写回（D1，Rust 零改动）— candidate（judge PASS-with-conditions；M1/M2/M3 已应用 / confirmed 留用户）
+
+> 载体与依据：`.artifacts/bulk-writeback-260911-05/verdict-260911-05.md`（candidate）+ `.investigations/bulk-writeback-260911-05/record-260911-05.md`（§3 两个错误 / §4 Tier 1-4 / §5 Tier 3 判据未满足（FAIL）+ 未归因 / §6 R8/R9）+ `plan-260911-05.md` §0（修订 R1-R6）+ `evidence/`（MANIFEST sha 清单）。提交 `8dd9e71`（判后修订 `cfd2036`/`ea545d1`/`e6c900b`）。通用模式 → knowledge/discovered：algorithm-fingerprints #22/#23、compiler-idioms #24 补充案例、workflow-patterns #129 / #25 补充案例 / #110 补充案例 / #14 补充案例（subagent 草稿 → 主会话应用）。
+
+### 形态（D1 落地）
+- 把「Rust 填好的扁平 `int[]`（y-major raw block id）」一次性转成 section 级 `PalettedContainer`，取代**每 chunk 98,304 次 `ChunkSection.setBlockState`**；调用点与时机不变（NOISE 阶段接管点内、高度图之前），**Rust/JNI/数据驱动边界零改动**。
+- 路线 = 公开 `PalettedContainer.readPacket(PacketByteBuf)`（自建 buffer；原案 5 参构造器因第 3 参 `DataProvider` 是包私有 record 而不可调用）+ `ChunkSectionAccessor` mixin（4 写 + 3 读）**原地换容器 + 直写三计数**（不新建 section、不调 `calculateCounts`、生物群系容器原样保留）。
+- 回退开关 `-Dcoreswap.bulkwb=0`（旧逐块路径**保留不删**，即时降级 + A/B 单变量）；诊断 `-Dcoreswap.bulkwblog` / `-Dcoreswap.wbcontent` / `-Dcoreswap.bulkwbtest`（默认全关，生产零成本）。
+
+### 等价性（Full，噪声无关；§9.7 三要素）
+- **载体**：同 JVM 内、写回**之后**读回全部 section 算 FNV-1a 64（`[WG-CONTENT-WB] hash=`）+ 三计数序列指纹（`dh=`）。
+- **覆盖面**：写回调用 607（overworld）/ 625（nether）/ 625（end），各 24/16/8 section × 4096 位置（overworld = 59,670,528 位置）。
+- **可比性**：同构建态、同 dll（`838e89794a54e19d`）、同 seed/区域、背靠背两臂，**唯一变量 = `-Dcoreswap.bulkwb`**。
+- **结果**：Tier 1（状态层）与 Tier 2（派生层）**逐 chunk 差均为 0**，两臂 chunk 集相同（`only_old=0` / `only_bulk=0`）、零异常；编码四支 SINGULAR/ARRAY/BI_MAP/**ID_LIST** 合成自检逐位读回全绿（自然生成 `max_distinct=7` / `idlist_hits=0` ⇒ ID_LIST 生产不可达，必须刻意压测）。
+- ⚠️ `[WG-CONTENT]`（Rust **buf** 层指纹）**与本门不同层**：buf 不变则 hash 必相同 ⇒ 对 Java 侧消费的变更**不敏感**，C 的等价性只能由本门承载（判据 → workflow-patterns #14 补充案例）。
+
+### 两个实施期错误（最高价值，五段式见错误台账）
+1. **E1**：`bits==0` 的单态 section **不得构造 `PackedIntegerArray`**（`Validate 1..32` 抛 IAE，首跑 539 次）——位宽 0 = **无 storage**，不是「0 位 storage」；复刻 MC 的 switch 必须逐 case 过构造器前置条件。
+2. **E2**：`calculateCounts()` 与增量 `setBlockState` 的**计数语义不一致**（流体重复计入 `nonEmptyBlockCount`；`nonEmptyFluidCount` 只计有随机刻的流体）⇒ 走构造器会**静默改变** `hasRandomFluidTicks()` / 客户端包语义；已改为复刻**增量**语义（生成期 vanilla 语义由调用点决定）。三计数**不入存档**（`ChunkSerializer:310-311`）⇒ region 对拍看不到，唯一可见面 = 生成期内存态。
+
+### 性能（Partial：分项计时，跨 run 只作趋势）
+
+| 维度 | 旧逐块 ns/chunk | bulk ns/chunk | 变化 |
+|---|---|---|---|
+| overworld | 2,151,591 | **652,202** | −69.7% |
+| nether | 2,657,477 | **859,626** | −67.7% |
+| end | 2,809,444 | **804,970** | −71.4% |
+
+- 分项（定稿轮）：`build=75,666 ns/section`（含 `readPacket=5,963`）、`counts_set=116 ns/section`（原 `calculateCounts` 72,480 ns/section）；`sections_replaced=4856` / `air_sections_skipped=9712`（= 607×24）。
+- ⚠️ **价值定位**：**可维护性/可移植性为主**（消掉逐块循环与 per-version 诊断，为共享 Java 适配核与 1.21.6 收敛铺路）；性能为次要附带，写回仅占 chunk 时间约 2-6% ⇒ **端到端落在 ±10% 机器噪声带内，不予主张**（本 run wall/CPU 因指纹门重载不可用于端到端）。
+
+### Tier 3 判据未满足（FAIL）+ 残差未归因（judge M1/M2 修订；原「降级」定性作废）
+- **预注册判据**（`verify-design-draft-260911-05.md:29-33`）= **`diff = 0`**（**不是**「≤ 噪声基线」）；实测全域 `blocks=313,589,760 diff=86,841 = **0.0277%**`（`sections same/diff = 74822/1738`）⇒ **判据未满足（FAIL）**。**不得**写成「不可达 / 不可判 / 降级为噪声底受限」——那是把 FAIL 掩盖成测量能力问题。
+- **补跑变更臂自身对照（`bulk × bulk`，2 个新 run；同 dll / 同参数 / 唯一变量 = run）**——接管坐标集跨 4 run 完全相同（607，差 0），切片可跨对直接比较。切片 A = 607 个走过 bulk 写回的 chunk（59,670,528 块）；全域 = 313,589,760 块：
+
+  | 对 | 性质 | 切片 A | 全域 |
+  |---|---|---|---|
+  | old × old2 | 同实现(old) | 0.0249% | 0.0242% |
+  | old × old3 | 同实现(old) | 0.0239% | 0.0253% |
+  | old2 × old3 | 同实现(old) | 0.0284% | 0.0238% |
+  | **bulk × bulk2** | 同实现(bulk) | **0.0352%** | 0.0258% |
+  | **bulk × bulk3** | 同实现(bulk) | **0.0358%** | 0.0284% |
+  | **bulk2 × bulk3** | 同实现(bulk) | 0.0272% | 0.0263% |
+  | **old × bulk（交付对）** | 单变量=写回路径 | **0.0348%** | 0.0277% |
+  | old × bulk（关随机刻/天气/刷怪/火焰） | 单变量 | 0.0311% | 0.0259% |
+
+- **三条定稿结论**：① 预注册判据 `diff = 0` ⇒ **未满足（FAIL）**（全域 0.0277%）；② 交付对 0.0348% **落在 bulk 臂自身跨 run 区间 0.0272–0.0358% 之内** ⇒ **无「写回引入系统性存档层差异」的证据**；弱信号如实登记（含 bulk 的 5 对全域 0.0258–0.0284% vs 两 old 的 3 对 0.0238–0.0253%，两组不重叠 ⇒ 最自然读法 = **bulk 臂自身跨 run 离散度更高（方差效应而非均值效应）**；n = 3/组、切片 A 区间仍重叠 ⇒ **仅提示性、未达显著**）；机制候选并列：**A** 运行期调度（bulk 每 chunk 快 ~1.5 ms ⇒ 改变并行生成流水线中「邻块写特征」先后）/ **B** 容器编码差异（**不成立方向**：Tier 1/2 已证写回后状态逐位全等）/ **C** 开放；③ **噪声底主体在 vanilla FEATURES 阶段**——关掉全部 live-server 随机源后差分仍 **0.0259%**、top pairs 仍是特征产物 ⇒ **随机刻只占 6–11%**（0.0277→0.0259；切片 A 0.0348→0.0311）。
+- **分母口径**：313,589,760 块中 **58.1%（1854 个 chunk）从未生成内容**（`ChunkSerializer` 对光照范围内每个 section 无条件写盘 ⇒ 未走到 NOISE 阶段的部分生成 chunk，**纯稀释分母**）；两侧皆空 chunk 差分**恰好 0**，100% 的差分落在有内容的 **1336** 个 chunk 上 = **0.0661%**。凡后续用 region 层百分比做判据，MUST 声明「分母含未生成 chunk」。
+- ❌ **排除清单（judge M2）**：「切片 A（0.0348%）低于切片 B 有内容子群（≈0.0922%）⇒ 写回落在差分更低的一半」——**归因谬误**，该落差在**同实现对照**里同样成立（old × old2 0.0249% vs 0.0853%、old × old3 0.0239% vs 0.0908%、old2 × old3 0.0284% vs 0.0805%），属**切片群体构成属性**，与写回无关。
+- **等价性主张边界**：C 线的等价性**只由 Tier 1/2 承载**（写回点内存态逐位全等，决定性）；**存档层不主张等价**。判据沉淀 → `knowledge/discovered/workflow-patterns.md` 发现 #129（三条可复用判据：终态二分 / 变更臂自身对照不可替代 / 切片归因适用条件）。
+
+### R8/R9 论证（judge 前置）
+- **R9（锁语义）——❌ 原结论「新路径不比老路径弱且在锁粒度/原子性上更强」已被 judge（S1/A12）推翻，更正如下**：`readPacket` 锁的是**刚构造、尚未发布、其他线程不可达的私有容器** ⇒ 对**共享容器零互斥**；老路径锁的是**已发布的活容器**，其锁兼作「多线程访问同一容器」的 crash **检测器**（`LockHelper`）——该检测能力**被移除**。「每 chunk 24 次锁 vs 老路径数万次」**不是同一件事的强弱**，且 24 只是**上界**（实测均值 **8.0 次/chunk** = `sections_replaced 4856 / 607`）。**正确表述**：正确性完全**外移到「每 chunk 单写者」这一外部保证**（老路径也依赖，但其锁附带检测）；该保证**未验证**（R9-b）。仍成立的子结论：**发布原子性**方向成立（`PalettedContainer.data` 是 `volatile`，`readPacket` 在发布前完成全部内部写 ⇒ 读者只见旧或新）；但 section 数组里的容器引用本身非 `volatile`，形式上仍是 data race。
+- **R8（`BelowZeroRetrogen`）**：1.20.1 该 flag 仅由**旧存档 chunk NBT** 携带（`ChunkSerializer:185/281-284`）；本 harness 每臂删 world 重新生成 ⇒ flag 恒不置；且 C 不动生物群系容器、不动 FEATURES 阶段 ⇒ 即便触发也无新增暴露面。
+
+### 遗留 / 未覆盖
+- **遗留 / 未覆盖**：R9-b 并发可见性专项未做；`plan §10.3`（消费者缓存前置）已收口——**原地换容器** ⇒ 缓存 **section 实例**的消费者安全，缓存**容器**的消费者会读到**孤儿容器**（残留风险：modpack/未来版本若新增此类消费者，本实现会静默失效）；**编码非规范位宽（judge S5，登记不修）**：`BulkWb.java:243` 写**请求位宽**，vanilla `Data.writePacket:384` 写的是 `storage.getElementBits()` ⇒ ARRAY 支写 1..4（规范恒 4）、ID_LIST 支写 9/10（规范恒 15）；**解码等价、今天无缺陷**，留待 1.21.6 移植随适配核修正；ID_LIST 仅合成覆盖（生产不可达）；`MAX_ID=4096` 沿用老路径同款约束；**sync 形态未跑**；端到端 wall 不主张；**Tier 3 弱信号未闭合**（bulk 臂自身离散度略高，n=3 未达显著）；共享 Java 适配核抽取在 C 完成后另立（本块只落 1.20.1 一份）。

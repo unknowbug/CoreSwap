@@ -349,3 +349,53 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
   3. 因此 `ChunkSection.lock()`（外层持锁）**只在写路径改用不带内层锁的接口**（`setBlockState(..., lock=false)` / `swapUnsafe`）时才成立——**「外层段锁 + `lock=false` 写」是成对契约**：只加外层锁 = **自锁死**；只用 `lock=false` = **失去互斥**。
 - **判据（可复用）**：① 复刻/接管类改动凡要**自行加段级锁**，MUST 先核该段内所有写接口是否**自带锁**（在被调方找 `lock()` / `try{…} finally{ unlock(); }`）；自带则不要在外层再加，或整段改用 `lock=false` 系列（二选一，不可混）；② 排查签名 = 线程栈里**同一把锁出现两次（持锁帧 + acquire 帧）** + 进程 CPU≈0（方法面判据见 workflow-patterns #113）；③ 跨版本/跨实现的搬运核对表把**锁语义**单列一栏（与 API 形态 / 签名 / 参数映射并列）。
 - **家族索引**：workflow-patterns #113（主判据与错误链）、compiler-idioms #11（诊断门控在初始化器内唯一置位——同为「初始化/持锁期语义」类简条）、#12（mixin 包约束——同为「平台语义约束」简条）。
+
+---
+
+### 发现 #24 补充案例（260911-05）：批量导入共享容器的**锁粒度与发布原子性**——`readPacket` 自带一对锁，且填私有容器后单次引用发布
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（C 线 R9 并发/锁论证）；**candidate**；compiler-idioms / 锁语义（**#24 主条在「批量写」形态下的量化面**）。
+- **来源定位**：`PalettedContainer.java:203-215`（`readPacket` = `lock()` / `try{…} finally{ unlock(); }`，`:204`/`:213`）；`ChunkSection.java:48-54`（lock/unlock 转发）；`NoiseChunkGenerator.java:342-346`（生成 range 内全 section 上锁）/ `:416`（持锁期 `setBlockState(..., lock=false)` = `swapUnsafe`）/ `:351-355`（统一解锁）；`LockHelper.java:20-21`/`:31-71`（`Semaphore(1)` + `ReentrantLock`，争用即 crash「Accessing … from multiple threads」）；实现 `BulkWb`（每 section 一次 `readPacket`）+ `ChunkSectionAccessor`（原地换容器 + 直写三计数）。
+- **观察（锁粒度量化）**：
+  - 老 CoreSwap 逐块路径：mixin 在 `populateNoise` HEAD cancel ⇒ vanilla 上锁段整体被跳过；随后**每非空气块**一次 `ChunkSection.setBlockState(x,y,z,st)`（4 参 = `lock=true`）⇒ **每非空气块一对 `LockHelper` 操作**（每 chunk 量级估计数万次，非实测计数），且逐块变异**共享的活容器**（存在数万个中间态可见窗口）。
+  - bulk 路径：`readPacket` **自带一对锁** ⇒ 每**被替换** section 一对（实测 `sections_replaced` / `calls`：overworld 4856/607 ≈ **8.0**、nether 4815/625 ≈ **7.7**、end 562/625 ≈ **0.9**；上限 = 24/16/8 section per chunk）；且填的是**尚未发布的私有容器**，最后以**单次引用写**发布 ⇒ 并发读者只见「旧（全空气）」或「新（完整）」，**无部分写可见窗口**。
+  - 自洽核对：`sections_replaced + air_sections_skipped = 14,568 = 607×24`（overworld：8.0 替换 + 16.0 空气短路 = 24）。
+- **判据（可复用）**：① **批量导入共享容器 = 锁粒度更粗 + 发布更原子**（先建私有对象 → 单次引用发布）——这是**两个独立收益**，评估并发安全性时 MUST 分开陈述；② 复刻/接管类改动涉及「整段替换 vs 逐点写」时，锁语义核对表加两栏：**锁次数**（每块 vs 每段）与**发布原子性**（活容器逐点变异 vs 私有对象单次发布）；③ 判「新路径不比老路径弱」时，`readPacket` / `swap` 这类**自带锁**的接口按「一次调用一对锁」计，不得漏算成无锁。
+- **残余风险（诚实声明）**：`sections[s]` 的容器引用非 `volatile`，跨线程可见性依赖既有 chunk 发布/同步机制（与老路径相同）；**未做**并发压力下的可见性专项验证（R9-b，登记为未验证项）。
+- **家族索引**：compiler-idioms #24（主条——`swap()` 自带锁 + 「外层段锁 + `lock=false` 写」成对契约）、workflow-patterns #113（跨实现搬运锁语义主判据）、algorithm-fingerprints #22（`readPacket` 契约）、workflow-patterns #115（内容指纹门的边界：指纹取在写回之前，不覆盖写回/并发路径）。
+
+---
+
+### 发现 #24 更正（260911-05，judge S1；§15.4 取代记录——**原「#24 补充案例（260911-05）」正文不删不改**）
+
+> **取代指针**：本条 **supersedes** `发现 #24 补充案例（260911-05）：批量导入共享容器的锁粒度与发布原子性` 的**结论部分**（「新路径不比老路径弱 / 在锁粒度与原子性上更强」）。
+> **推翻理由（一行）**：**「锁次数更少」不是「并发语义更强」**——被比较的两把锁**保护的对象不同**（新路径锁的是**私有未发布容器**，老路径锁的是**已发布活容器**），且漏记了「老路径的锁兼作并发冲突检测器、该检测能力被移除」这一项。
+> **不被取代的部分**：**发布原子性**方向成立（见下「仍成立的子结论」）。
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；judge（S1/A12）指出 + 主会话复核源码；**candidate**；compiler-idioms / 锁语义（**`#24` 主条在「批量写」形态下的更正**）。
+- **来源定位**：`PalettedContainer.java:28-49`（`:36` `private volatile Data<T> data`、`:44-46` `lock()` → `LockHelper`）、`:141-149`（`swap()` 自带 `lock()/unlock()`）、`:203-215`（`readPacket` 自带 `lock()/unlock()`）；`BulkWb.java:265-267`（**在私有容器上**构造 + `readPacket`）/ `:166`（取返回值）/ `:170-171`（写入 section = **发布**）；`CppBridge.java:596-610`（老路径逐非空气块 4 参 `setBlockState` = `lock=true`，**锁活容器**）；`record-260911-05.md` §6 R9 更正 / §7 遗留 1、2；judge `review-260911-05.md` S1/A12。
+
+**事实部分（judge 逐条复核成立，本稿复核一致）**
+- `LockHelper` 是**真锁**（`Semaphore(1)` + `ReentrantLock`），冲突时**阻塞并抛**「Accessing … from multiple threads」crash（`LockHelper.java:31-54/56-71`）。
+- `PalettedContainer.swap()` 与 `readPacket` **各自**带一对 `lock()/unlock()`（本稿实读 `:141-149` / `:203-215`）；vanilla `populateNoise` 的生成期上锁段被 mixin（HEAD cancel）整体跳过（本块之前既如此，C 未改变）。
+- 老路径**每非空气块**一次 4 参 `setBlockState`（= `lock=true`，`CppBridge.java:607-610`）。
+
+**更正三点**
+1. **新路径的锁对共享容器零互斥**：`BulkWb` 在 `buildContainer` 内构造**刚 new、尚未发布、其他线程不可达**的私有容器并调 `readPacket`（`BulkWb.java:265-267`），**之后**才于 `:170-171` 写入 section（= 发布）⇒ 该锁只保护「本线程独占的临时对象」，**不提供任何对共享容器的互斥**；把它与老路径的锁按「次数」比较**不是同一件事的强弱**。
+2. **老路径的锁附带「并发冲突检测」，该能力被移除**：老路径锁的是**活容器**，`LockHelper` 在争用时**立即 crash** ⇒ 它是「多线程访问同一容器」的**检测器/断言**；新路径的私有容器锁**永不争用** ⇒ **该检测能力在 C 之后消失**（冲突从「立即 crash」退化为「静默 data race」）。
+3. **「每 chunk 24 次锁」是上界，不是实测值**：24 = 24 个 section 全被替换才成立；**实测均值 = 8.0 次/chunk**（`sections_replaced 4856 / calls 607`；nether 4815/625 ≈ 7.7、end 562/625 ≈ 0.9）。用上界与老路径比 = 双重不对等（对象不对等 + 量级取上界）。
+
+**正确表述（取代原结论）**
+- 新路径的正确性**完全外移到「每 chunk 单写者」这一外部保证**——老路径**也**依赖同一保证，但其锁**附带检测**；该外部保证本块**未验证**（`record §7 遗留 1` R9-b）。
+- `plan §10.3` 自认 MUST 的前置（NOISE→LIGHT 之间是否有消费者缓存 `ChunkSection` **实例/容器**）本块已在 `record §7 遗留 2` 收口：原地换容器 ⇒ 缓存**实例**安全；缓存**容器**会读到**孤儿容器**；残留风险 = modpack / 未来版本新增「缓存容器」消费者时**静默失效**（老路径不会）。
+
+**仍成立的子结论（方向性，不取代）**
+- **发布原子性方向成立**：`PalettedContainer.data` 是 `volatile`（`:36`，本稿实读），且 `readPacket` 在发布前完成全部内部写 ⇒ 读者只见「旧（全空气）」或「新（完整）」，**无部分写可见窗口**。
+- **但**：section 数组里的**容器引用本身非 volatile**，x86 TSO 下实践安全，**形式上仍是 data race**（原条已诚实声明）。
+
+**教训（可复用判错经验）**：**「次数更少的锁」不是「并发语义更强」**——评估锁变更 MUST 问三件事：
+1. 锁保护的**对象**是否**共享/已发布**？（**私有未发布对象上的锁 = 零互斥**）
+2. 原有的**冲突检测/断言**是否随之消失？（真锁 + 争用即 crash = 检测器；锁到私有对象上 = **检测器被移除**）
+3. 正确性依赖的**外部前提**（本例「每 chunk 单写者」）是否被**显式声明并验证**？（未声明的前提 = 未验证假设）
+
+- **家族索引**：compiler-idioms #24（主条——`swap()` 自带锁 + 「外层段锁 + `lock=false` 写」成对契约；**本条为其批量形态的更正**）、workflow-patterns #113（跨实现搬运锁语义必须成对核对）、#42（静态机制断言未实测当公理——「不比老路径弱」即此类断言）、#25（静态调研结论失真）、#118（自证行必须做成硬门禁——「检测器被移除」= 检测能力从硬门禁退化为无门禁）。
