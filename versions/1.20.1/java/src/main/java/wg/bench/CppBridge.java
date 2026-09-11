@@ -405,15 +405,19 @@ public final class CppBridge {
             System.out.println("[CppBridge] DIAG fillBlocks got=" + got + " chunk(" + cx + "," + cz + ")");
             return;
         }
-        // 诊断：C++ 输出是否全 air（区分「C++ 输出 0」与「写入丢失」）
-        int nz = 0;
-        for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
-        if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
-        else if (nz < 1000)
-            System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
-        // 行为门指纹（260910-06，MIXLOG 门控）：应在 sync/async 两形态下逐 chunk 相同
-        if (MIXLOG) System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
-                + Long.toHexString(wgBufHash(buf)) + " nz=" + nz);
+        // 诊断 + 行为门指纹（260911-05 A1b：**整块**门控在 MIXLOG 后——原实现「只门控 println、
+        // nz 全 buffer 扫描恒执行」= 每 chunk 98304 次读的生产成本，而扫描结果只被门控内的打印消费，
+        // 故随门控一起关。诊断信号（buf-all-air / buf-sparse / [WG-CONTENT]）改由 -Pmixlog=1 提供。）
+        if (MIXLOG) {
+            int nz = 0;
+            for (int k = 0; k < buf.length; k++) if (buf[k] != 0) nz++;
+            if (nz == 0) System.out.println("[CppBridge] DIAG buf-all-air chunk(" + cx + "," + cz + ")");
+            else if (nz < 1000)
+                System.out.println("[CppBridge] DIAG buf-sparse chunk(" + cx + "," + cz + ") nz=" + nz);
+            // 行为门指纹（260910-06）：应在 sync/async 两形态下逐 chunk 相同
+            System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
+                    + Long.toHexString(wgBufHash(buf)) + " nz=" + nz);
+        }
         try {
             writeChunk(chunk, cx, cz, buf, 384);
         } catch (Throwable t) {
@@ -447,24 +451,25 @@ public final class CppBridge {
         } catch (Throwable t) {
             System.out.println("[CppBridge] DIAG write(nether) threw chunk(" + cx + "," + cz + "): " + t);
         }
-        // 读回自证：buf → chunk 写入是否生效（每 chunk 1 行，量小）
-        int nzBuf = 0;
-        for (int v : buf) if (v != 0) nzBuf++;
-        // 行为门指纹（260910-06，MIXLOG 门控）
-        if (MIXLOG) System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
-                + Long.toHexString(wgBufHash(buf)) + " nz=" + nzBuf);
-        try {
-            var s4 = chunk.getSection(4);
-            int na = 0;
-            for (int x = 0; x < 16; x += 4) {
-                for (int z = 0; z < 16; z += 4) {
-                    if (!s4.getBlockState(x, 8, z).isAir()) na++;
+        // 读回自证 + 行为门指纹（260911-05 A1b：整块门控——nzBuf 扫描与 16 点读回只被门控内打印消费）
+        if (MIXLOG) {
+            int nzBuf = 0;
+            for (int v : buf) if (v != 0) nzBuf++;
+            System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
+                    + Long.toHexString(wgBufHash(buf)) + " nz=" + nzBuf);
+            try {
+                var s4 = chunk.getSection(4);
+                int na = 0;
+                for (int x = 0; x < 16; x += 4) {
+                    for (int z = 0; z < 16; z += 4) {
+                        if (!s4.getBlockState(x, 8, z).isAir()) na++;
+                    }
                 }
+                System.out.println("[WG-FILL] chunk(" + cx + "," + cz + ") bufNonzero=" + nzBuf
+                        + " readback=nonair " + na + "/16 status=" + chunk.getStatus());
+            } catch (Throwable t) {
+                System.out.println("[WG-FILL] readback threw: " + t);
             }
-            if (MIXLOG) System.out.println("[WG-FILL] chunk(" + cx + "," + cz + ") bufNonzero=" + nzBuf
-                    + " readback=nonair " + na + "/16 status=" + chunk.getStatus());
-        } catch (Throwable t) {
-            System.out.println("[WG-FILL] readback threw: " + t);
         }
     }
 
@@ -494,27 +499,44 @@ public final class CppBridge {
         } catch (Throwable t) {
             System.out.println("[CppBridge] DIAG write(end) threw chunk(" + cx + "," + cz + "): " + t);
         }
-        // 读回自证：end 高度 128 = 8 sections，取 section 2（y 32-47，中心岛顶面附近）
-        int nzBuf = 0;
-        for (int v : buf) if (v != 0) nzBuf++;
-        try {
-            var s2 = chunk.getSection(2);
-            int na = 0;
-            for (int x = 0; x < 16; x += 4) {
-                for (int z = 0; z < 16; z += 4) {
-                    if (!s2.getBlockState(x, 8, z).isAir()) na++;
+        // 读回自证（end 高度 128 = 8 sections，取 section 2（y 32-47，中心岛顶面附近））
+        // 260911-05 A1b：整块门控（nzBuf 扫描与读回只被门控内打印消费）
+        if (MIXLOG) {
+            int nzBuf = 0;
+            for (int v : buf) if (v != 0) nzBuf++;
+            try {
+                var s2 = chunk.getSection(2);
+                int na = 0;
+                for (int x = 0; x < 16; x += 4) {
+                    for (int z = 0; z < 16; z += 4) {
+                        if (!s2.getBlockState(x, 8, z).isAir()) na++;
+                    }
                 }
+                System.out.println("[WG-FILL] chunk(" + cx + "," + cz + ") bufNonzero=" + nzBuf
+                        + " readback=nonair " + na + "/16 status=" + chunk.getStatus());
+            } catch (Throwable t) {
+                System.out.println("[WG-FILL] readback threw: " + t);
             }
-            if (MIXLOG) System.out.println("[WG-FILL] chunk(" + cx + "," + cz + ") bufNonzero=" + nzBuf
-                    + " readback=nonair " + na + "/16 status=" + chunk.getStatus());
-        } catch (Throwable t) {
-            System.out.println("[WG-FILL] readback threw: " + t);
         }
     }
 
     // 直写 PalettedContainer（跳过 chunk.setBlockState 的 heightmap/blockEntity 开销）
     // 泛化维度（2026-08-30 多世界）：height 参数（overworld 384/24 sections；nether 256/16 sections）。
     // Chunk.getSection(int) 是 0-based 索引（相对维度 bottomY；buf[0] = y=min_y=bottomY）。
+    //
+    // A1a（260911-05）：**空气不写**——对空气格写 air 是语义 no-op（palette 内容与 nonEmptyBlockCount
+    // 均不变），但原实现每 chunk 仍做 98,304 次 setBlockState（含空气）。前提 = 被跳过的格子当前即空气；
+    // 接管点 = populateNoise HEAD cancel（NoiseChunkGeneratorMixin:273-283）⇒ 目标 chunk 全新，
+    // 前提应恒成立，并由 WBCHECK 自检门控逐格实证（见下）。
+    private static final boolean WBCHECK = System.getProperty("coreswap.wbcheck") != null;
+    /** A1a 的 A/B 开关（{@code -Dcoreswap.skipair=0} = 旧形态「逐格写含空气」，默认开 = 跳过空气）。
+     *  静态 final ⇒ JIT 常量折叠，热路径零分支成本；用途 = 同构建态单变量 A/B（R3 验证三件套之一）。 */
+    private static final boolean SKIPAIR = !"0".equals(System.getProperty("coreswap.skipair"));
+    private static final java.util.concurrent.atomic.AtomicLong WB_AIR_SKIP =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.concurrent.atomic.AtomicLong WB_STALE_NONAIR =
+            new java.util.concurrent.atomic.AtomicLong();
+
     private static void writeChunk(Chunk chunk, int cx, int cz, int[] buf, int height) {
         int secCount = height / 16;
         net.minecraft.world.chunk.ChunkSection[] sections = new net.minecraft.world.chunk.ChunkSection[secCount];
@@ -528,6 +550,13 @@ public final class CppBridge {
                     int id = buf[base + x];
                     if (id < 0 || id >= MAX_ID)
                         throw new IllegalArgumentException("bad id " + id + " chunk(" + cx + "," + cz + ")");
+                    if (id == 0) {   // A1a：raw id 0 = minecraft:air（blocks.json 实证）
+                        if (WBCHECK) {
+                            WB_AIR_SKIP.incrementAndGet();
+                            if (!sec.getBlockState(x, sy, z).isAir()) WB_STALE_NONAIR.incrementAndGet();
+                        }
+                        if (SKIPAIR) continue;
+                    }
                     BlockState st = STATE_BY_ID.get(id);
                     if (st == null) {
                         // M14 根因修复（2026-09-01）：Rust buf 携带的是 blocks.json 域的
@@ -561,6 +590,12 @@ public final class CppBridge {
     public static void destroy() {
         // 只标记禁用并摘除句柄；真实释放由 shutdown hook 完成
         // （防止「保存并退出」时异步 chunk 生成还在 fillBlocks 里用已释放句柄 → use-after-free）
+        // A1a 等价性自检汇总（仅 WBCHECK 臂）：stale_nonair 必须为 0，否则「空气不写」前提被证伪
+        if (WBCHECK) {
+            System.out.println("[WB-CHECK] air_skipped=" + WB_AIR_SKIP.get()
+                    + " stale_nonair=" + WB_STALE_NONAIR.get()
+                    + " (stale_nonair=0 ⇒ 跳过空气写与逐格写等价)");
+        }
         enabled = false;
         handle = 0;
         netherEnabled = false;
