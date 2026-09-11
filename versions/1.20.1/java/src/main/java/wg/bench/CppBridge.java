@@ -501,9 +501,13 @@ public final class CppBridge {
         }
         // 读回自证（end 高度 128 = 8 sections，取 section 2（y 32-47，中心岛顶面附近））
         // 260911-05 A1b：整块门控（nzBuf 扫描与读回只被门控内打印消费）
+        // 260911-05 A2：补 `[WG-CONTENT]` 指纹行——overworld/nether 早有、end 缺失
+        // （260911-05 A2 首轮实证：end 臂 intercepted=4761 而 contentLines=0），全维行为门要求三维同载体。
         if (MIXLOG) {
             int nzBuf = 0;
             for (int v : buf) if (v != 0) nzBuf++;
+            System.out.println("[WG-CONTENT] chunk(" + cx + "," + cz + ") hash="
+                    + Long.toHexString(wgBufHash(buf)) + " nz=" + nzBuf);
             try {
                 var s2 = chunk.getSection(2);
                 int na = 0;
