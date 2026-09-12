@@ -1,1 +1,6 @@
+# [INVALID] 本文件是 javap 失败输出，无证据价值（保留仅为可追溯）
+# 原因：对 fabric-loom/1.21.6/minecraft-merged.jar（官方混淆名 a.class/aa.class）用中缀名 net.minecraft.class_2841 反编译 ⇒ 找不到类
+# 有效替代：U9-runtime-PalettedContainer.txt（运行期 remapped jar，named 名）
+# 由 judge 审查点 C-U9 / worker v2 §6 指出；260912-02 主会话标注
+
 ����: �Ҳ�����: net.minecraft.class_2841

@@ -1,0 +1,141 @@
+# judge 请求的最小命令原始输出（260912-02 主会话执行；**原始输出，不含综合结论**）
+生成 2026-09-12 17:25:43
+
+## 0) MUST-5 独立验证：逐次 JVM 运行切分异常行（本会话自做）
+  === 1201-fix-bulk.log  总行数=2633  runServer 任务启动点=2
+    段1 行24..68  task='> Task :content-test:runServer'  mods=[5]  WMI=4  非WMI异常行=4  testcontent命中=3
+    段2 行69..2633  task='> Task :runServer'  mods=[48]  WMI=4  非WMI异常行=0  testcontent命中=2
+  === 1201-att-perblock.log  总行数=2634  runServer 任务启动点=2
+    段1 行24..68  task='> Task :content-test:runServer'  mods=[5]  WMI=4  非WMI异常行=4  testcontent命中=3
+    段2 行69..2634  task='> Task :runServer'  mods=[48]  WMI=4  非WMI异常行=0  testcontent命中=2
+  === log-1.20.1-post.txt  总行数=2580  runServer 任务启动点=1
+    段1 行17..2580  task='> Task :runServer'  mods=[48]  WMI=4  非WMI异常行=0  testcontent命中=2
+  === log-1.20.1-pre-r1.txt  总行数=2633  runServer 任务启动点=2
+    段1 行24..68  task='> Task :content-test:runServer'  mods=[5]  WMI=4  非WMI异常行=4  testcontent命中=3
+    段2 行69..2633  task='> Task :runServer'  mods=[48]  WMI=4  非WMI异常行=0  testcontent命中=2
+
+## 1) 新 fp 全 64 位 sha256 + size
+  382c497b228883ce3b1d786e975e77ef5436716ebaf6af8fec14863976036f03     34946  fp-1.20.1-att-bulk.content.txt
+  4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21     83804  fp-1.20.1-att-bulk.txt
+  356842cf6ce0d0064bcc55d791912573d78eb590e6d08a1dce61c573f8175cce     48858  fp-1.20.1-att-bulk.wb.txt
+  382c497b228883ce3b1d786e975e77ef5436716ebaf6af8fec14863976036f03     34946  fp-1.20.1-att-perblock.content.txt
+  4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21     83804  fp-1.20.1-att-perblock.txt
+  356842cf6ce0d0064bcc55d791912573d78eb590e6d08a1dce61c573f8175cce     48858  fp-1.20.1-att-perblock.wb.txt
+  382c497b228883ce3b1d786e975e77ef5436716ebaf6af8fec14863976036f03     34946  fp-1.20.1-fix-bulk.content.txt
+  4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21     83804  fp-1.20.1-fix-bulk.txt
+  356842cf6ce0d0064bcc55d791912573d78eb590e6d08a1dce61c573f8175cce     48858  fp-1.20.1-fix-bulk.wb.txt
+  382c497b228883ce3b1d786e975e77ef5436716ebaf6af8fec14863976036f03     34946  fp-1.20.1-fix-perblock.content.txt
+  4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21     83804  fp-1.20.1-fix-perblock.txt
+  356842cf6ce0d0064bcc55d791912573d78eb590e6d08a1dce61c573f8175cce     48858  fp-1.20.1-fix-perblock.wb.txt
+  ae643ed8c6054ab0d82acfbca2724b401232f1df5b4d8acb9e0ae7e291c00934     35960  fp-1.21.6-att-bulk.content.txt
+  8184d609847c704e461d1a52e2c6fa8434db7de622dbec3ba98f662094f9878a     86248  fp-1.21.6-att-bulk.txt
+  ae5ddee139d9cd10372c9405859058ea74a328eb4e32749d982be1adfeed1357     50288  fp-1.21.6-att-bulk.wb.txt
+  ae643ed8c6054ab0d82acfbca2724b401232f1df5b4d8acb9e0ae7e291c00934     35960  fp-1.21.6-fix-bulk.content.txt
+  8184d609847c704e461d1a52e2c6fa8434db7de622dbec3ba98f662094f9878a     86248  fp-1.21.6-fix-bulk.txt
+  ae5ddee139d9cd10372c9405859058ea74a328eb4e32749d982be1adfeed1357     50288  fp-1.21.6-fix-bulk.wb.txt
+  ae643ed8c6054ab0d82acfbca2724b401232f1df5b4d8acb9e0ae7e291c00934     35960  fp-1.21.6-fix-default.content.txt
+  8184d609847c704e461d1a52e2c6fa8434db7de622dbec3ba98f662094f9878a     86248  fp-1.21.6-fix-default.txt
+  ae5ddee139d9cd10372c9405859058ea74a328eb4e32749d982be1adfeed1357     50288  fp-1.21.6-fix-default.wb.txt
+  5add6dc619b679cd85bf4c2e90ee235db5f60024d252fb7d88bf58091a9f1e9c      2811  fp-1.21.6-fix-WBTEST.content.txt
+  23d987f771bcdd7c9bd8d43ea12263e80fa20325d1871bdc903cef72db2fe24b      6745  fp-1.21.6-fix-WBTEST.txt
+  7b83f90edc1c48f635f49a59f9a558b2c0ca8c5ee02a83dd92d04768f9cca4e7      3934  fp-1.21.6-fix-WBTEST.wb.txt
+  3b30cf09463ce6d43ccc380d0c6edc5be64b3df105ceafe81412ffcf2bc6621b      4948  fp-1.21.6-probe-b2a-WBTEST.txt
+
+## 2) git 提交与工作区状态
+  2c3be2a fix(java-core): route bulk storage frame through per-version seam (F1)
+   ...274\272\351\231\267\345\256\232\344\275\215.md" |  206 ++
+   .../evidence/A1-commands.txt                       |   21 +
+   .../evidence/A1-javap-PacketByteBuf-1.20.1.txt     | 3475 ++++++++++++++++++
+   .../evidence/A1-javap-PacketByteBuf-1.21.6.txt     | 3837 ++++++++++++++++++++
+   .../evidence/A1-javap-PalettedContainer-1.20.1.txt |  862 +++++
+   .../evidence/A1-javap-PalettedContainer-1.21.6.txt |  885 +++++
+   .../evidence/A1b-ArrayPalette-1.20.1.txt           |  305 ++
+   .../evidence/A1b-ArrayPalette-1.21.6.txt           |  304 ++
+   .../evidence/A1b-Data-1.20.1.txt                   |  142 +
+   .../evidence/A1b-Data-1.21.6.txt                   |  138 +
+   .../evidence/A1b-PaletteProvider$1-1.20.1.txt      |   60 +
+  --- git status --short
+   M ".investigations/000-\346\236\266\346\236\204\350\256\276\350\256\241/\346\236\266\346\236\204\350\256\241\345\210\222-260912-02-1.21.6\345\274\272\345\210\266bulk\347\274\272\351\231\267\345\256\232\344\275\215.md"
+   M .investigations/shared-java-core-260912-02/evidence/U9-runtime-class_2841.txt
+  ?? .investigations/shared-java-core-260912-02/evidence/cmd-260912-02-judge-requested.txt
+  ?? .investigations/shared-java-core-260912-02/judge-260912-02.md
+
+## 3) javap：两版 WgCompat / BulkWb 的 storage 帧调用点（C-18 1.20.1 腿收口）
+  === 1.20.1 WgCompat.writeStorageLongs 体
+    public static void writeStorageLongs(net.minecraft.class_2540, long[]);
+  === 1.20.1 BulkWb 内 writeStorageLongs 调用次数（计数）
+    writeStorageLongs 出现次数 = 2
+  === 1.21.6 WgCompat.writeStorageLongs 体
+    public static void writeStorageLongs(net.minecraft.class_2540, long[]);
+  === 1.21.6 BulkWb 内 writeStorageLongs 调用次数（计数）
+    writeStorageLongs 出现次数 = 2
+
+## 4) 1.21.6 台的任务路径（为何未跑 content-test）
+  1216:18: $proj = "$root\versions\1.21.6\java"
+  1216:39: $env:GRADLE_USER_HOME = "$root\.gradle-home"; $env:PYTHONIOENCODING = "utf-8"
+  1216:45: Push-Location $proj; gradle --stop --console=plain 2>$null | Out-Null; Pop-Location
+  1216:56: $p = Start-Process -FilePath "gradle" -ArgumentList @("runServer", "-PcppReplace=true", "-PcppLib=$dll",
+  1216:58: -WorkingDirectory $proj -RedirectStandardOutput $log -RedirectStandardError $err -PassThru -NoNewWindow
+  1201:16: $proj = "$root\versions\1.20.1\java"
+  1201:33: $env:GRADLE_USER_HOME = "$root\.gradle-home"; $env:PYTHONIOENCODING = "utf-8"
+  1201:39: Push-Location $proj; gradle --stop --console=plain 2>$null | Out-Null; Pop-Location
+  1201:48: $p = Start-Process -FilePath "gradle" -ArgumentList @("runServer", "-PcppReplace=true", "-Psyncfill=1",
+  1201:50: -WorkingDirectory $proj -RedirectStandardOutput $log -RedirectStandardError $err -PassThru -NoNewWindow
+
+## 5) gradle 任务路径 dry-run 直证（runServer vs :runServer）
+  [no-colon] FAILURE: Build failed with an exception.
+  ---
+  [colon] FAILURE: Build failed with an exception.
+
+## 5b) gradle dry-run 完整输出（含失败原因）
+  --- [no-colon] gradle --offline --dry-run runServer
+    
+    FAILURE: Build failed with an exception.
+    
+    * What went wrong:
+    Gradle could not start your build.
+    > Could not initialize native services.
+    > Failed to load native library 'native-platform.dll' for Windows 11 amd64.
+    
+    * Try:
+    > Run with --stacktrace option to get the stack trace.
+    > Run with --info or --debug option to get more log output.
+    > Run with --scan to get full insights.
+    > Get more help at https://help.gradle.org.
+
+## 5c) 带 GRADLE_USER_HOME 的 dry-run 直证（主会话）
+  --- 1.20.1：gradle --offline --dry-run runServer（无冒号）
+    :compileJava SKIPPED
+    :processResources SKIPPED
+    :classes SKIPPED
+    :generateLog4jConfig SKIPPED
+    :generateRemapClasspath SKIPPED
+    :generateDLIConfig SKIPPED
+    :configureLaunch SKIPPED
+    :runServer SKIPPED
+    :content-test:compileJava SKIPPED
+    :content-test:processResources SKIPPED
+    :content-test:classes SKIPPED
+    :content-test:generateLog4jConfig SKIPPED
+    :content-test:generateRemapClasspath SKIPPED
+    :content-test:generateDLIConfig SKIPPED
+    :content-test:configureLaunch SKIPPED
+    :content-test:runServer SKIPPED
+  --- 1.20.1：gradle --offline --dry-run :runServer（有冒号）
+    :compileJava SKIPPED
+    :processResources SKIPPED
+    :classes SKIPPED
+    :generateLog4jConfig SKIPPED
+    :generateRemapClasspath SKIPPED
+    :generateDLIConfig SKIPPED
+    :configureLaunch SKIPPED
+    :runServer SKIPPED
+  --- 1.21.6：gradle --offline --dry-run runServer（无冒号）
+    :compileJava SKIPPED
+    :processResources SKIPPED
+    :classes SKIPPED
+    :generateLog4jConfig SKIPPED
+    :generateRemapClasspath SKIPPED
+    :generateDLIConfig SKIPPED
+    :configureLaunch SKIPPED
+    :runServer SKIPPED

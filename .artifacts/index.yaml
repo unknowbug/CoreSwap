@@ -1458,3 +1458,74 @@ entries:
     #   「仅调试属性」成立、生产行为不变 a-e 全过、V2/V3 指纹复算 607/607 全等），问题集中在记录/声明/落盘层 C1-C9。
     # 新增风险 N1 = 1.21.6 bulk 路径**确认缺陷**（非仅「难证」）；C1-C9 已在 commit 0e94d0b 全部响应（C4 注释修补经复算 = 字节中性）。
     # 建议：C1-C5 修完前维持 draft；confirmed 留人类。
+
+  # ===== 260912-02：1.21.6「强制 bulk 写回」崩解缺陷定位 + F1 修复（分版缝 WgCompat.writeStorageLongs） =====
+  - id: 'swe:shared-java-core-260912-02:plan'
+    path: '../.investigations/000-架构设计/架构计划-260912-02-1.21.6强制bulk缺陷定位.md'
+    kind: plan
+    status: candidate
+    # 重量档计划（任务 = 定位并修复 1.21.6 `-Dcoreswap.bulkwb=1` 崩解，解除 D-4(i) 阻断）；**用户已批准 HOOK-A/B/C**：
+    #   HOOK-A 架构批准；HOOK-B = 用户选 A「先跑决定性判别」（§8.0）；HOOK-C① = F1 方案批准（§11.1）。
+    # fan-out **未触发**（纪律说明：判定树被预登记的决定性证据坍缩，非主会话自推取舍）：b1/b3/b4/b2b 逐条排除、b2a 静态端到端确立（§8.0）。
+    # §1 已知事实 1-7 + scout 追加事实 8-10；§8bis 修复缝候选 F1/F2/F3/F5/F4 + V1b 判据降级声明；§11 全节执行记录；§12 = Phase 3 审查结论与条件闭合。
+    # judge MUST-3/4/5 更正后表述已落 §11.2：修复前 r160 真值 = 130 chunk / 132 次 / wb=0（r16 的 49/50 单列，不得同格引用）；
+    #   异常面按**单次 JVM 运行**口径重新归因（gradle 任务路径冒号）。
+    # 指纹同一性（sha256 家族穷举定案，§11.2）：1.21.6 `8184d609…f9878a`/86248 B = **4 份**（新件 3 + 冻结默认基线 1）；
+    #   1.20.1 `4b10f2be…ed9e21`/83804 B = **10 份**（新件 4 + 冻结 6，冻结含 **pre-r1/pre-r2**）；穷举口径 = 合并指纹件排除 `.content`/`.wb`。
+    #   认知边界：指纹**对写回内容面敏感**（反例 = 修复前 1.21.6 `wb=0` + 每 chunk 抛）但**观察面有限** ⇒ 不可单靠指纹支撑「无回归」。
+    # 关键证据：evidence/arm-commands-260912-02.txt（9 臂命令行 + 基座 + 自证判据预登记）、
+    #   evidence/cmd-260912-02-judge-requested.txt（逐 run 切分 §0 / 全 64 位 sha §1 / git §2 / javap §3 / dry-run 任务图 §5c）、
+    #   evidence/javap-seam-260912-02.txt（缝体 invokevirtual method_10789/68087 + BulkWb 内 2 处 invokestatic）.
+
+  - id: 'swe:shared-java-core-260912-02:record'
+    path: '../.investigations/shared-java-core-260912-02/verify-260912-02.md'
+    kind: record
+    status: draft
+    # **status 维持 draft**：judge verdict = **PASS-with-conditions**（「被验收命题已被运行级证据充分支撑、逐条回原始证据复算后无一被推翻」，
+    #   但存在字面未满足判据 / 数字归因缺陷 / 流程 MUST 未完成）。
+    # 判据表 C-1…C-20：**除 C-17 外全部满足或按分层判定闭合** —— C-4/C-5/C-13/C-20 由 16 位前缀升为**整文件全 64 位 sha 同一**；
+    #   **C-18 1.20.1 腿 = PASS**（jar 级**纯转发**直证 `evidence/javap-seam-260912-02.txt:4-13`：`invokevirtual #45` 同一被调方法+同一实参 ⇒ 写出帧同构），
+    #   其 1.21.6 腿未直采、由读端运行级等价取代（judge 判「非前置」）；**C-17 字面 FAIL**（机制已归因为计数载体缺陷，判据重述待人类批准）。
+    # C-17 真实机制 = 计数**跨两次 JVM 运行聚合**（无冒号 `runServer` 同时命中 `:runServer` 与 `:content-test:runServer`；
+    #   tool-run_1201_arm.ps1:48/:94；dry-run 直证）⇒ 逐 run 切分后两侧同档（4 WMI / 0 非 WMI）；判据重述 **须人类批准**，批准前按字面 FAIL。
+    # 范围边界（未越界）：仅 overworld（nether/end 覆盖 = 0）；1.21.6 `BULKWB_ON=false` **未翻转**；不发版、不主张性能；
+    #   1.20.1 侧表述按 judge §13③ 收紧为「**未观测到 F1 相关回归**」（overworld / 写回内容层 / 单次 JVM 运行口径；条目级 3 变更 / 0 增 0 删、
+    #   `CppBridge*.class` 不变、`BulkWb$TL` 仅 LineNumberTable +4 位移）；边界 = 指纹**对写回内容面敏感**但**观察面有限**，且写出帧字节未直采
+    #   （1.20.1 以 jar 级纯转发 + 与冻结基线整文件同一代替，1.21.6 以读端 4096 点 + 625 chunk 等价代替）。
+    # 关键证据：evidence/arm-summary-260912-02.txt、cmp-260912-02-raw.txt（8 组）、cmp-260912-02-att-raw.txt（att 8 组 + 补跑 2 条字面 Rustbuf 比对）、
+    #   manifest-diff-postF1-{1.20.1,1.21.6}.txt、TL-javapv-{1.20.1,1.21.6}-{post4,postF1}.txt、cmd-260912-02-judge-requested.txt.
+
+  - id: 'swe:shared-java-core-260912-02:judge-review'
+    path: '../.investigations/shared-java-core-260912-02/judge-260912-02.md'
+    kind: review
+    status: candidate
+    # judge（隔离 subagent；**只出意见，不改任何 status**）verdict = **PASS-with-conditions**（PASS 不成立：C-17 字面 FAIL、C-18 半条未直测、
+    #   2 处数字 + 1 处归因错误；FAIL 不成立：未发现任何「修复无效」或「1.20.1 行为回归」证据，单变量 A/B 修复前 FAIL → 修复后全 PASS 成立）。
+    # 问题分布：**MUST × 5**（错误台账缺失 / `.artifacts` 未登记 / 「5 份 fp 同一」虚高 / r16 数字混入 r160 行 / C-17 归因错误）；
+    #   **SHOULD × 6**（记录滞后、U9 未测量写成已观测、冻结构建态未声明、fix-bulk 臂本体无自证、EXPECTED 标签循环性、可比性缺「计数载体」）；
+    #   **NOTE × 8**；**续审新发现 × 3**（9.1 回传「工作区干净」不成立 → 基线声明；9.2 git show 截断；9.3 javap 捕获不完整 = confirmed 前置，已由
+    #   `evidence/javap-seam-260912-02.txt` 补闭）。
+    # judge 独立新发现（本块最有价值）：C-17 的 12 vs 4 = **gradle 任务路径冒号**导致的计数载体缺陷（可控），同机制解释 260912-01 的 `WMI 4↔8`。
+    # §3.2 独立等价性论证（**不依赖 C-20 传递链**）：冻结 1.21.6-default 臂修复前 625/625、0 EntryMissing 且当时 `BULKWB_ON=false` ⇒ 其为逐块路径；
+    #   F1 未触碰逐块路径（`CppBridge*.class` 条目 sha 不变）；修复后 bulk 臂 fp 与该逐块基线整文件同一 ⇒ 「修复后 bulk 写端产出 ≡ 未被 F1 触碰的逐块写端产出」。
+    # confirmed 建议范围（4 项）：F1 有效性 / 根因 b2a / 1.20.1 内容层无回归（按单次 JVM 运行口径 + 全 64 位同一）/ 1.21.6 默认臂未退化；
+    #   **不含** nether/end 覆盖、性能结论、`BULKWB_ON` 翻转。confirmed 留人类。
+
+  - id: 'swe:shared-java-core-260912-02:errors'
+    path: '../.investigations/shared-java-core-260912-02/errors-260912-02.md'
+    kind: errors
+    status: candidate
+    # 本块错误台账 **13 条（W1–W13，本块编号，与 260912-01 的 E1–E6 区分）**，五段式 + 判错经验 + 速查表（W13 = `merge_index.py` 裸列表根崩溃，框架侧工具缺陷）。
+    # 要点：W1 dll 自证正则失效（`dll= sha256=` vs 真实 `dll=<path> size=<n> sha256=<hash>`）⇒ C1 臂误判 ARM-VOID；
+    #   W2 指纹归一化只剥时间戳留线程名；W3 指纹层混用（Rust buf vs Java 读回）；W4 早停截断（C1 臂 ~49 chunk）；
+    #   W5 Rustbuf 层对比漏跑；**W6 臂变量生效未自证（最有价值）**：`bulkwb=1/0` 无逐臂 in-log 生效证据 ⇒ 等价性可能为假阳性（KB #81 家族），
+    #     修复 = 加 `bulkwblog=1` 跑正/负自证臂 + C-20 串链；**教训 = 等价性结论 MUST 与臂变量生效自证配对（in-log / 逐臂 / 正负成对）**；
+    #   W7 计数载体缺陷（无冒号 `runServer` + `content-test` 子工程 ⇒ 两次 JVM 运行写同一日志，计数聚合 ⇒ 假告警；上一块 judge 已记录该机制而本块未继承）；
+    #   W8 数字跨臂误用 + 「五份 fp」虚高 ⇒ 「**汇总数字未回底本复算**」族 **复发**（260912-01 E4 → 本块 W8）；
+    #   W9 K2 表述越界（sources jar 只对 `.gradle-home` 不成立）；W10 `BulkWb$TL.class` 未声明（后确认仅 LineNumberTable +4 位移）；
+    #   W11 U9 未测量写成已观测 + javap 失败输出被当证据（已标 `[INVALID]`）；W12 裸跑 gradle 未设 `GRADLE_USER_HOME` 环境坑。
+    # §15.4 取代链：本件承载 `supersedes: errors-260912-01.md#E5`（E5「根因未定位/修复未做」→ 帧契约变更 + F1 已修复并运行级验证）；
+    #   E5 侧**纯追加前向节**已落盘（`errors-260912-01.md` 末尾「E5 后续闭合（取代链，2026-09-12 260912-02 块）」，原文未改）。
+    # 关键证据：evidence/arm-commands-260912-02.txt、arm-summary-260912-02.txt、cmp-260912-02-att-raw.txt、
+    #   cmd-260912-02-judge-requested.txt（§0/§5b/§5c）、tool-run_1201_arm.ps1、tool-run_1216_arm.ps1、manifest-diff-postF1-*.txt、
+    #   TL-javapv-*.txt、U9-runtime-*.txt、git-diff-260912-02.txt、scout-interpretation-A1.md（§10.5）.

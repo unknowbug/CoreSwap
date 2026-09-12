@@ -1,0 +1,117 @@
+# 缝方法与调用点的 jar 级 javap 原始捕获（补 judge §9.3 前置项；**原始输出**）
+生成 2026-09-12 17:34:37
+
+===== [1.20.1] jar sha256 = c6603d924612bf7daddc739bd7091208fd4e96ab8e2237179861cc94c49159f8
+  --- WgCompat.writeStorageLongs 体（含 Code: 与 invoke* 原文）
+        public static void writeStorageLongs(net.minecraft.class_2540, long[]);
+          Code:
+               0: aload_0
+               1: aload_1
+               2: invokevirtual #45                 // Method net/minecraft/class_2540.method_10789:([J)Lnet/minecraft/class_2540;
+               5: pop
+               6: return
+      }
+  --- BulkWb 内 writeStorageLongs 调用点（原文行 + 所属方法名）
+      L386  所属=private static net.minecraft.class_2841<net.minecraft.class_2680> buildContainer(int[], int, wg.bench.BulkWb$TL, boolean);
+             343: invokestatic  #293                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+      L479  所属=private static net.minecraft.class_2841<net.minecraft.class_2680> buildContainer(int[], int, wg.bench.BulkWb$TL, boolean);
+             549: invokestatic  #293                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+
+===== [1.21.6] jar sha256 = e29f854ebdd73d87b6a5cb177be6c55275315572913293d809d252040f3de460
+  --- WgCompat.writeStorageLongs 体（含 Code: 与 invoke* 原文）
+        public static void writeStorageLongs(net.minecraft.class_2540, long[]);
+          Code:
+               0: aload_0
+               1: aload_1
+               2: invokevirtual #45                 // Method net/minecraft/class_2540.method_68087:([J)Lnet/minecraft/class_2540;
+               5: pop
+               6: return
+      }
+  --- BulkWb 内 writeStorageLongs 调用点（原文行 + 所属方法名）
+      L386  所属=private static net.minecraft.class_2841<net.minecraft.class_2680> buildContainer(int[], int, wg.bench.BulkWb$TL, boolean);
+             343: invokestatic  #292                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+      L479  所属=private static net.minecraft.class_2841<net.minecraft.class_2680> buildContainer(int[], int, wg.bench.BulkWb$TL, boolean);
+             549: invokestatic  #292                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+
+===== git show --stat --name-status 2c3be2a（全量，补 judge §9.2） =====
+2c3be2a62140cf4ad297e5b50f206271707292e6 2026-09-12 17:13:50+0800 fix(java-core): route bulk storage frame through per-version seam (F1)
+
+A	".investigations/000-\346\236\266\346\236\204\350\256\276\350\256\241/\346\236\266\346\236\204\350\256\241\345\210\222-260912-02-1.21.6\345\274\272\345\210\266bulk\347\274\272\351\231\267\345\256\232\344\275\215.md"
+A	.investigations/shared-java-core-260912-02/evidence/A1-commands.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1-javap-PacketByteBuf-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1-javap-PacketByteBuf-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1-javap-PalettedContainer-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1-javap-PalettedContainer-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-ArrayPalette-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-ArrayPalette-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-Data-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-Data-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider$1-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider$1-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider$2-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider$2-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/A1b-PaletteProvider-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A3-ChunkSection-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/A3b-ChunkSection-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/C1-commands.txt
+A	.investigations/shared-java-core-260912-02/evidence/C1-log-1216-probe-b2a-WBTEST.log
+A	.investigations/shared-java-core-260912-02/evidence/TL-javapv-1.20.1-post4.txt
+A	.investigations/shared-java-core-260912-02/evidence/TL-javapv-1.20.1-postF1.txt
+A	.investigations/shared-java-core-260912-02/evidence/TL-javapv-1.21.6-post4.txt
+A	.investigations/shared-java-core-260912-02/evidence/TL-javapv-1.21.6-postF1.txt
+A	.investigations/shared-java-core-260912-02/evidence/U9-runtime-PacketByteBuf.txt
+A	.investigations/shared-java-core-260912-02/evidence/U9-runtime-PalettedContainer.txt
+A	.investigations/shared-java-core-260912-02/evidence/U9-runtime-class_2841.txt
+A	.investigations/shared-java-core-260912-02/evidence/arm-commands-260912-02.txt
+A	.investigations/shared-java-core-260912-02/evidence/arm-summary-260912-02.txt
+A	.investigations/shared-java-core-260912-02/evidence/cmp-260912-02-att-raw.txt
+A	.investigations/shared-java-core-260912-02/evidence/cmp-260912-02-raw.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-bulk.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-bulk.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-bulk.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-perblock.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-perblock.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-att-perblock.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-bulk.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-bulk.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-bulk.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-perblock.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-perblock.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.20.1-fix-perblock.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-att-bulk.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-att-bulk.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-att-bulk.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-WBTEST.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-WBTEST.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-WBTEST.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-bulk.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-bulk.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-bulk.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-default.content.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-default.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-fix-default.wb.txt
+A	.investigations/shared-java-core-260912-02/evidence/fp-1.21.6-probe-b2a-WBTEST.txt
+A	.investigations/shared-java-core-260912-02/evidence/git-diff-260912-02.txt
+A	.investigations/shared-java-core-260912-02/evidence/log-1.20.1-att-bulk.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.20.1-att-perblock.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.20.1-fix-bulk.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.20.1-fix-perblock.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.21.6-att-bulk.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.21.6-fix-WBTEST.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.21.6-fix-bulk.log
+A	.investigations/shared-java-core-260912-02/evidence/log-1.21.6-fix-default.log
+A	.investigations/shared-java-core-260912-02/evidence/log-build-1.20.1.log
+A	.investigations/shared-java-core-260912-02/evidence/log-build-1.21.6.log
+A	.investigations/shared-java-core-260912-02/evidence/manifest-diff-postF1-1.20.1.txt
+A	.investigations/shared-java-core-260912-02/evidence/manifest-diff-postF1-1.21.6.txt
+A	.investigations/shared-java-core-260912-02/evidence/manifest-postF1-1.20.1.tsv
+A	.investigations/shared-java-core-260912-02/evidence/manifest-postF1-1.21.6.tsv
+A	.investigations/shared-java-core-260912-02/evidence/tool-run_1201_arm.ps1
+A	.investigations/shared-java-core-260912-02/evidence/tool-run_1216_arm.ps1
+A	.investigations/shared-java-core-260912-02/scout-interpretation-A1.md
+A	.investigations/shared-java-core-260912-02/scout-map.md
+A	.investigations/shared-java-core-260912-02/verify-260912-02.md
+M	java-core/src/main/java/wg/bench/BulkWb.java
+M	versions/1.20.1/java/src/main/java/wg/bench/WgCompat.java
+M	versions/1.21.6/java/src/main/java/wg/bench/WgCompat.java

@@ -1,0 +1,38 @@
+Compiled from "WgCompat.java"
+public final class wg.bench.WgCompat {
+  public static final boolean BULKWB_ON;
+
+  public static final boolean SKIPAIR_ON;
+
+  private wg.bench.WgCompat();
+    Code:
+         0: aload_0
+         1: invokespecial #13                 // Method java/lang/Object."<init>":()V
+         4: return
+
+  public static boolean flag(java.lang.String, boolean);
+    Code:
+         0: aload_0
+         1: invokestatic  #25                 // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+         4: astore_2
+         5: aload_2
+         6: ifnonnull     13
+         9: iload_1
+        10: goto          27
+        13: ldc           #29                 // String 0
+        15: aload_2
+        16: invokevirtual #33                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        19: ifne          26
+        22: iconst_1
+        23: goto          27
+        26: iconst_0
+        27: ireturn
+
+  public static void writeStorageLongs(net.minecraft.class_2540, long[]);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #45                 // Method net/minecraft/class_2540.method_68087:([J)Lnet/minecraft/class_2540;
+         5: pop
+         6: return
+}

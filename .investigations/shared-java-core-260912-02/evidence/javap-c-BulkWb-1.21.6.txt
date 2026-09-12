@@ -1,0 +1,1202 @@
+Compiled from "BulkWb.java"
+public final class wg.bench.BulkWb {
+  static final boolean ON;
+
+  private static final boolean LOG;
+
+  private static final boolean WBCONTENT;
+
+  private static final boolean WBTEST;
+
+  private static final int MAX_ID;
+
+  private static final int SEC_SIZE;
+
+  private static final java.util.concurrent.atomic.AtomicLong N_SECTIONS;
+
+  private static final java.util.concurrent.atomic.AtomicLong N_CALLS;
+
+  private static final java.util.concurrent.atomic.AtomicLong N_AIR_SKIP;
+
+  private static final java.util.concurrent.atomic.AtomicLong N_IDLIST;
+
+  private static final java.util.concurrent.atomic.AtomicLong T_PACK_NS;
+
+  private static final java.util.concurrent.atomic.AtomicLong T_READ_NS;
+
+  private static final java.util.concurrent.atomic.AtomicLong T_COUNTS_NS;
+
+  private static final java.util.concurrent.atomic.AtomicLong T_TOTAL_NS;
+
+  private static final java.util.concurrent.atomic.AtomicBoolean REPORTED;
+
+  private static final java.util.concurrent.atomic.AtomicBoolean TESTED;
+
+  private static final java.util.concurrent.atomic.AtomicInteger MAX_DISTINCT;
+
+  private static final java.lang.ThreadLocal<wg.bench.BulkWb$TL> TLS;
+
+  private static final long[] EMPTY_LONGS;
+
+  private wg.bench.BulkWb();
+    Code:
+         0: aload_0
+         1: invokespecial #50                 // Method java/lang/Object."<init>":()V
+         4: return
+
+  private static int stateRawId(int);
+    Code:
+         0: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+         3: iload_0
+         4: invokestatic  #67                 // Method wg/bench/CppBridge.stateById:(I)Lnet/minecraft/class_2680;
+         7: invokevirtual #73                 // Method net/minecraft/class_2361.method_10206:(Ljava/lang/Object;)I
+        10: ireturn
+
+  static void writeSections(net.minecraft.class_2791, int, int, int[], int);
+    Code:
+         0: iload         4
+         2: bipush        16
+         4: irem
+         5: ifeq          23
+         8: new           #82                 // class java/lang/IllegalArgumentException
+        11: dup
+        12: iload         4
+        14: invokedynamic #94,  0             // InvokeDynamic #0:makeConcatWithConstants:(I)Ljava/lang/String;
+        19: invokespecial #97                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        22: athrow
+        23: getstatic     #99                 // Field WBTEST:Z
+        26: ifeq          32
+        29: invokestatic  #102                // Method selfTest:()V
+        32: iload         4
+        34: bipush        16
+        36: idiv
+        37: istore        5
+        39: aload_0
+        40: invokevirtual #108                // Method net/minecraft/class_2791.method_12006:()[Lnet/minecraft/class_2826;
+        43: astore        6
+        45: getstatic     #110                // Field TLS:Ljava/lang/ThreadLocal;
+        48: invokevirtual #116                // Method java/lang/ThreadLocal.get:()Ljava/lang/Object;
+        51: checkcast     #7                  // class wg/bench/BulkWb$TL
+        54: astore        7
+        56: getstatic     #118                // Field LOG:Z
+        59: ifeq          68
+        62: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+        65: goto          69
+        68: lconst_0
+        69: lstore        8
+        71: getstatic     #118                // Field LOG:Z
+        74: ifeq          84
+        77: getstatic     #128                // Field N_CALLS:Ljava/util/concurrent/atomic/AtomicLong;
+        80: invokevirtual #133                // Method java/util/concurrent/atomic/AtomicLong.incrementAndGet:()J
+        83: pop2
+        84: iconst_0
+        85: istore        10
+        87: iload         10
+        89: iload         5
+        91: if_icmpge     328
+        94: iload         10
+        96: sipush        4096
+        99: imul
+       100: istore        11
+       102: aload         6
+       104: iload         10
+       106: aaload
+       107: astore        12
+       109: iconst_1
+       110: istore        13
+       112: iconst_0
+       113: istore        14
+       115: iload         14
+       117: sipush        4096
+       120: if_icmpge     145
+       123: aload_3
+       124: iload         11
+       126: iload         14
+       128: iadd
+       129: iaload
+       130: ifeq          139
+       133: iconst_0
+       134: istore        13
+       136: goto          145
+       139: iinc          14, 1
+       142: goto          115
+       145: iload         13
+       147: ifeq          174
+       150: aload         12
+       152: invokevirtual #141                // Method net/minecraft/class_2826.method_38292:()Z
+       155: ifeq          174
+       158: getstatic     #118                // Field LOG:Z
+       161: ifeq          322
+       164: getstatic     #143                // Field N_AIR_SKIP:Ljava/util/concurrent/atomic/AtomicLong;
+       167: invokevirtual #133                // Method java/util/concurrent/atomic/AtomicLong.incrementAndGet:()J
+       170: pop2
+       171: goto          322
+       174: aload_3
+       175: iload         11
+       177: aload         7
+       179: iconst_1
+       180: invokestatic  #147                // Method buildContainer:([IILwg/bench/BulkWb$TL;Z)Lnet/minecraft/class_2841;
+       183: astore        14
+       185: getstatic     #118                // Field LOG:Z
+       188: ifeq          197
+       191: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       194: goto          198
+       197: lconst_0
+       198: lstore        15
+       200: aload         12
+       202: checkcast     #149                // class wg/bench/mixin/ChunkSectionAccessor
+       205: astore        17
+       207: aload         17
+       209: aload         14
+       211: invokeinterface #153,  2          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgSetBlockStateContainer:(Lnet/minecraft/class_2841;)V
+       216: aload         17
+       218: aload         7
+       220: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       223: iconst_1
+       224: iaload
+       225: i2s
+       226: invokeinterface #160,  2          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgSetNonEmptyBlockCount:(S)V
+       231: aload         17
+       233: aload         7
+       235: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       238: iconst_2
+       239: iaload
+       240: i2s
+       241: invokeinterface #163,  2          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgSetRandomTickableBlockCount:(S)V
+       246: aload         17
+       248: aload         7
+       250: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       253: iconst_3
+       254: iaload
+       255: i2s
+       256: invokeinterface #166,  2          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgSetNonEmptyFluidCount:(S)V
+       261: getstatic     #118                // Field LOG:Z
+       264: ifeq          322
+       267: getstatic     #168                // Field T_COUNTS_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       270: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       273: lload         15
+       275: lsub
+       276: invokevirtual #172                // Method java/util/concurrent/atomic/AtomicLong.addAndGet:(J)J
+       279: pop2
+       280: getstatic     #174                // Field N_SECTIONS:Ljava/util/concurrent/atomic/AtomicLong;
+       283: invokevirtual #133                // Method java/util/concurrent/atomic/AtomicLong.incrementAndGet:()J
+       286: pop2
+       287: aload         7
+       289: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       292: iconst_0
+       293: iaload
+       294: istore        18
+       296: getstatic     #176                // Field MAX_DISTINCT:Ljava/util/concurrent/atomic/AtomicInteger;
+       299: invokevirtual #181                // Method java/util/concurrent/atomic/AtomicInteger.get:()I
+       302: istore        19
+       304: iload         18
+       306: iload         19
+       308: if_icmple     322
+       311: getstatic     #176                // Field MAX_DISTINCT:Ljava/util/concurrent/atomic/AtomicInteger;
+       314: iload         19
+       316: iload         18
+       318: invokevirtual #185                // Method java/util/concurrent/atomic/AtomicInteger.compareAndSet:(II)Z
+       321: pop
+       322: iinc          10, 1
+       325: goto          87
+       328: getstatic     #118                // Field LOG:Z
+       331: ifeq          347
+       334: getstatic     #187                // Field T_TOTAL_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       337: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       340: lload         8
+       342: lsub
+       343: invokevirtual #172                // Method java/util/concurrent/atomic/AtomicLong.addAndGet:(J)J
+       346: pop2
+       347: invokestatic  #190                // Method reportOnce:()V
+       350: return
+
+  private static net.minecraft.class_2841<net.minecraft.class_2680> buildContainer(int[], int, wg.bench.BulkWb$TL, boolean);
+    Code:
+         0: getstatic     #118                // Field LOG:Z
+         3: ifeq          12
+         6: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+         9: goto          13
+        12: lconst_0
+        13: lstore        4
+        15: aload_2
+        16: invokestatic  #218                // Method nextEpoch:(Lwg/bench/BulkWb$TL;)I
+        19: istore        6
+        21: iconst_0
+        22: istore        7
+        24: iconst_0
+        25: istore        8
+        27: iload         8
+        29: sipush        4096
+        32: if_icmpge     156
+        35: aload_0
+        36: iload_1
+        37: iload         8
+        39: iadd
+        40: iaload
+        41: istore        9
+        43: iload         9
+        45: iflt          56
+        48: iload         9
+        50: sipush        4096
+        53: if_icmplt     72
+        56: new           #82                 // class java/lang/IllegalArgumentException
+        59: dup
+        60: iload         9
+        62: iload_1
+        63: invokedynamic #223,  0            // InvokeDynamic #1:makeConcatWithConstants:(II)Ljava/lang/String;
+        68: invokespecial #97                 // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        71: athrow
+        72: aload_2
+        73: getfield      #226                // Field wg/bench/BulkWb$TL.stamp:[I
+        76: iload         9
+        78: iaload
+        79: iload         6
+        81: if_icmpne     96
+        84: aload_2
+        85: getfield      #229                // Field wg/bench/BulkWb$TL.scratch:[I
+        88: iload         9
+        90: iaload
+        91: istore        10
+        93: goto          130
+        96: iload         7
+        98: istore        10
+       100: aload_2
+       101: getfield      #226                // Field wg/bench/BulkWb$TL.stamp:[I
+       104: iload         9
+       106: iload         6
+       108: iastore
+       109: aload_2
+       110: getfield      #229                // Field wg/bench/BulkWb$TL.scratch:[I
+       113: iload         9
+       115: iload         10
+       117: iastore
+       118: aload_2
+       119: getfield      #232                // Field wg/bench/BulkWb$TL.palRaw:[I
+       122: iload         7
+       124: iload         9
+       126: iastore
+       127: iinc          7, 1
+       130: aload_2
+       131: getfield      #235                // Field wg/bench/BulkWb$TL.localIdx:[I
+       134: iload         8
+       136: iload         10
+       138: iastore
+       139: aload_2
+       140: getfield      #238                // Field wg/bench/BulkWb$TL.cnt:[I
+       143: iload         10
+       145: dup2
+       146: iaload
+       147: iconst_1
+       148: iadd
+       149: iastore
+       150: iinc          8, 1
+       153: goto          27
+       156: iconst_0
+       157: istore        8
+       159: iconst_0
+       160: istore        9
+       162: iconst_0
+       163: istore        10
+       165: iconst_0
+       166: istore        11
+       168: iload         11
+       170: iload         7
+       172: if_icmpge     258
+       175: aload_2
+       176: getfield      #238                // Field wg/bench/BulkWb$TL.cnt:[I
+       179: iload         11
+       181: iaload
+       182: istore        12
+       184: aload_2
+       185: getfield      #238                // Field wg/bench/BulkWb$TL.cnt:[I
+       188: iload         11
+       190: iconst_0
+       191: iastore
+       192: aload_2
+       193: getfield      #232                // Field wg/bench/BulkWb$TL.palRaw:[I
+       196: iload         11
+       198: iaload
+       199: invokestatic  #67                 // Method wg/bench/CppBridge.stateById:(I)Lnet/minecraft/class_2680;
+       202: astore        13
+       204: aload         13
+       206: invokevirtual #243                // Method net/minecraft/class_2680.method_26215:()Z
+       209: ifne          234
+       212: iload         8
+       214: iload         12
+       216: iadd
+       217: istore        8
+       219: aload         13
+       221: invokevirtual #246                // Method net/minecraft/class_2680.method_26229:()Z
+       224: ifeq          234
+       227: iload         9
+       229: iload         12
+       231: iadd
+       232: istore        9
+       234: aload         13
+       236: invokevirtual #250                // Method net/minecraft/class_2680.method_26227:()Lnet/minecraft/class_3610;
+       239: invokevirtual #255                // Method net/minecraft/class_3610.method_15769:()Z
+       242: ifne          252
+       245: iload         10
+       247: iload         12
+       249: iadd
+       250: istore        10
+       252: iinc          11, 1
+       255: goto          168
+       258: iload         7
+       260: iconst_1
+       261: if_icmpgt     268
+       264: iconst_0
+       265: goto          273
+       268: iload         7
+       270: invokestatic  #260                // Method net/minecraft/class_3532.method_15342:(I)I
+       273: istore        11
+       275: iload         11
+       277: bipush        9
+       279: if_icmplt     286
+       282: iconst_1
+       283: goto          287
+       286: iconst_0
+       287: istore        12
+       289: aload_2
+       290: getfield      #264                // Field wg/bench/BulkWb$TL.bb:Lio/netty/buffer/ByteBuf;
+       293: invokevirtual #270                // Method io/netty/buffer/ByteBuf.clear:()Lio/netty/buffer/ByteBuf;
+       296: pop
+       297: new           #272                // class net/minecraft/class_2540
+       300: dup
+       301: aload_2
+       302: getfield      #264                // Field wg/bench/BulkWb$TL.bb:Lio/netty/buffer/ByteBuf;
+       305: invokespecial #275                // Method net/minecraft/class_2540."<init>":(Lio/netty/buffer/ByteBuf;)V
+       308: astore        13
+       310: aload         13
+       312: iload         11
+       314: invokevirtual #279                // Method net/minecraft/class_2540.method_52997:(I)Lnet/minecraft/class_2540;
+       317: pop
+       318: iload         11
+       320: ifne          349
+       323: aload         13
+       325: aload_2
+       326: getfield      #232                // Field wg/bench/BulkWb$TL.palRaw:[I
+       329: iconst_0
+       330: iaload
+       331: invokestatic  #281                // Method stateRawId:(I)I
+       334: invokevirtual #284                // Method net/minecraft/class_2540.method_10804:(I)Lnet/minecraft/class_2540;
+       337: pop
+       338: aload         13
+       340: getstatic     #286                // Field EMPTY_LONGS:[J
+       343: invokestatic  #292                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+       346: goto          552
+       349: iload         12
+       351: ifeq          366
+       354: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+       357: invokevirtual #295                // Method net/minecraft/class_2361.method_10204:()I
+       360: invokestatic  #260                // Method net/minecraft/class_3532.method_15342:(I)I
+       363: goto          378
+       366: iload         11
+       368: iconst_4
+       369: if_icmpgt     376
+       372: iconst_4
+       373: goto          378
+       376: iload         11
+       378: istore        14
+       380: new           #297                // class net/minecraft/class_3508
+       383: dup
+       384: iload         14
+       386: sipush        4096
+       389: invokespecial #300                // Method net/minecraft/class_3508."<init>":(II)V
+       392: astore        15
+       394: iload         12
+       396: ifeq          471
+       399: iconst_0
+       400: istore        16
+       402: iload         16
+       404: iload         7
+       406: if_icmpge     432
+       409: aload_2
+       410: getfield      #303                // Field wg/bench/BulkWb$TL.palStateIds:[I
+       413: iload         16
+       415: aload_2
+       416: getfield      #232                // Field wg/bench/BulkWb$TL.palRaw:[I
+       419: iload         16
+       421: iaload
+       422: invokestatic  #281                // Method stateRawId:(I)I
+       425: iastore
+       426: iinc          16, 1
+       429: goto          402
+       432: iconst_0
+       433: istore        16
+       435: iload         16
+       437: sipush        4096
+       440: if_icmpge     468
+       443: aload         15
+       445: iload         16
+       447: aload_2
+       448: getfield      #303                // Field wg/bench/BulkWb$TL.palStateIds:[I
+       451: aload_2
+       452: getfield      #235                // Field wg/bench/BulkWb$TL.localIdx:[I
+       455: iload         16
+       457: iaload
+       458: iaload
+       459: invokevirtual #306                // Method net/minecraft/class_3508.method_15210:(II)V
+       462: iinc          16, 1
+       465: goto          435
+       468: goto          542
+       471: iconst_0
+       472: istore        16
+       474: iload         16
+       476: sipush        4096
+       479: if_icmpge     502
+       482: aload         15
+       484: iload         16
+       486: aload_2
+       487: getfield      #235                // Field wg/bench/BulkWb$TL.localIdx:[I
+       490: iload         16
+       492: iaload
+       493: invokevirtual #306                // Method net/minecraft/class_3508.method_15210:(II)V
+       496: iinc          16, 1
+       499: goto          474
+       502: aload         13
+       504: iload         7
+       506: invokevirtual #284                // Method net/minecraft/class_2540.method_10804:(I)Lnet/minecraft/class_2540;
+       509: pop
+       510: iconst_0
+       511: istore        16
+       513: iload         16
+       515: iload         7
+       517: if_icmpge     542
+       520: aload         13
+       522: aload_2
+       523: getfield      #232                // Field wg/bench/BulkWb$TL.palRaw:[I
+       526: iload         16
+       528: iaload
+       529: invokestatic  #281                // Method stateRawId:(I)I
+       532: invokevirtual #284                // Method net/minecraft/class_2540.method_10804:(I)Lnet/minecraft/class_2540;
+       535: pop
+       536: iinc          16, 1
+       539: goto          513
+       542: aload         13
+       544: aload         15
+       546: invokevirtual #310                // Method net/minecraft/class_3508.method_15212:()[J
+       549: invokestatic  #292                // Method wg/bench/WgCompat.writeStorageLongs:(Lnet/minecraft/class_2540;[J)V
+       552: getstatic     #118                // Field LOG:Z
+       555: ifeq          564
+       558: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       561: goto          565
+       564: lconst_0
+       565: lstore        14
+       567: new           #12                 // class net/minecraft/class_2841
+       570: dup
+       571: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+       574: getstatic     #316                // Field net/minecraft/class_2246.field_10124:Lnet/minecraft/class_2248;
+       577: invokevirtual #320                // Method net/minecraft/class_2248.method_9564:()Lnet/minecraft/class_2680;
+       580: getstatic     #324                // Field net/minecraft/class_2841$class_6563.field_34569:Lnet/minecraft/class_2841$class_6563;
+       583: invokespecial #327                // Method net/minecraft/class_2841."<init>":(Lnet/minecraft/class_2359;Ljava/lang/Object;Lnet/minecraft/class_2841$class_6563;)V
+       586: astore        16
+       588: aload         16
+       590: aload         13
+       592: invokevirtual #331                // Method net/minecraft/class_2841.method_12326:(Lnet/minecraft/class_2540;)V
+       595: getstatic     #118                // Field LOG:Z
+       598: ifeq          614
+       601: getstatic     #333                // Field T_READ_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       604: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       607: lload         14
+       609: lsub
+       610: invokevirtual #172                // Method java/util/concurrent/atomic/AtomicLong.addAndGet:(J)J
+       613: pop2
+       614: iload         12
+       616: ifeq          630
+       619: iload_3
+       620: ifeq          630
+       623: getstatic     #335                // Field N_IDLIST:Ljava/util/concurrent/atomic/AtomicLong;
+       626: invokevirtual #133                // Method java/util/concurrent/atomic/AtomicLong.incrementAndGet:()J
+       629: pop2
+       630: aload_2
+       631: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       634: iconst_0
+       635: iload         7
+       637: iastore
+       638: aload_2
+       639: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       642: iconst_1
+       643: iload         8
+       645: iastore
+       646: aload_2
+       647: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       650: iconst_2
+       651: iload         9
+       653: iastore
+       654: aload_2
+       655: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       658: iconst_3
+       659: iload         10
+       661: iastore
+       662: getstatic     #118                // Field LOG:Z
+       665: ifeq          681
+       668: getstatic     #337                // Field T_PACK_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       671: invokestatic  #124                // Method java/lang/System.nanoTime:()J
+       674: lload         4
+       676: lsub
+       677: invokevirtual #172                // Method java/util/concurrent/atomic/AtomicLong.addAndGet:(J)J
+       680: pop2
+       681: aload         16
+       683: areturn
+
+  private static int nextEpoch(wg.bench.BulkWb$TL);
+    Code:
+         0: aload_0
+         1: getfield      #359                // Field wg/bench/BulkWb$TL.epoch:I
+         4: iconst_1
+         5: iadd
+         6: istore_1
+         7: iload_1
+         8: ifgt          21
+        11: aload_0
+        12: getfield      #226                // Field wg/bench/BulkWb$TL.stamp:[I
+        15: iconst_0
+        16: invokestatic  #365                // Method java/util/Arrays.fill:([II)V
+        19: iconst_1
+        20: istore_1
+        21: aload_0
+        22: iload_1
+        23: putfield      #359                // Field wg/bench/BulkWb$TL.epoch:I
+        26: iload_1
+        27: ireturn
+
+  private static void selfTest();
+    Code:
+         0: getstatic     #368                // Field TESTED:Ljava/util/concurrent/atomic/AtomicBoolean;
+         3: iconst_0
+         4: iconst_1
+         5: invokevirtual #373                // Method java/util/concurrent/atomic/AtomicBoolean.compareAndSet:(ZZ)Z
+         8: ifne          12
+        11: return
+        12: iconst_4
+        13: anewarray     #135                // class "[I"
+        16: dup
+        17: iconst_0
+        18: iconst_1
+        19: newarray       int
+        21: dup
+        22: iconst_0
+        23: iconst_1
+        24: iastore
+        25: aastore
+        26: dup
+        27: iconst_1
+        28: iconst_3
+        29: newarray       int
+        31: dup
+        32: iconst_0
+        33: iconst_1
+        34: iastore
+        35: dup
+        36: iconst_1
+        37: iconst_2
+        38: iastore
+        39: dup
+        40: iconst_2
+        41: iconst_3
+        42: iastore
+        43: aastore
+        44: dup
+        45: iconst_2
+        46: bipush        20
+        48: newarray       int
+        50: dup
+        51: iconst_0
+        52: iconst_1
+        53: iastore
+        54: dup
+        55: iconst_1
+        56: iconst_2
+        57: iastore
+        58: dup
+        59: iconst_2
+        60: iconst_3
+        61: iastore
+        62: dup
+        63: iconst_3
+        64: iconst_4
+        65: iastore
+        66: dup
+        67: iconst_4
+        68: iconst_5
+        69: iastore
+        70: dup
+        71: iconst_5
+        72: bipush        6
+        74: iastore
+        75: dup
+        76: bipush        6
+        78: bipush        7
+        80: iastore
+        81: dup
+        82: bipush        7
+        84: bipush        8
+        86: iastore
+        87: dup
+        88: bipush        8
+        90: bipush        9
+        92: iastore
+        93: dup
+        94: bipush        9
+        96: bipush        10
+        98: iastore
+        99: dup
+       100: bipush        10
+       102: bipush        11
+       104: iastore
+       105: dup
+       106: bipush        11
+       108: bipush        12
+       110: iastore
+       111: dup
+       112: bipush        12
+       114: bipush        13
+       116: iastore
+       117: dup
+       118: bipush        13
+       120: bipush        14
+       122: iastore
+       123: dup
+       124: bipush        14
+       126: bipush        15
+       128: iastore
+       129: dup
+       130: bipush        15
+       132: bipush        16
+       134: iastore
+       135: dup
+       136: bipush        16
+       138: bipush        17
+       140: iastore
+       141: dup
+       142: bipush        17
+       144: bipush        18
+       146: iastore
+       147: dup
+       148: bipush        18
+       150: bipush        19
+       152: iastore
+       153: dup
+       154: bipush        19
+       156: bipush        20
+       158: iastore
+       159: aastore
+       160: dup
+       161: iconst_3
+       162: sipush        300
+       165: newarray       int
+       167: aastore
+       168: astore_0
+       169: iconst_0
+       170: istore_1
+       171: iload_1
+       172: sipush        300
+       175: if_icmpge     192
+       178: aload_0
+       179: iconst_3
+       180: aaload
+       181: iload_1
+       182: iload_1
+       183: iconst_1
+       184: iadd
+       185: iastore
+       186: iinc          1, 1
+       189: goto          171
+       192: new           #7                  // class wg/bench/BulkWb$TL
+       195: dup
+       196: invokespecial #376                // Method wg/bench/BulkWb$TL."<init>":()V
+       199: astore_1
+       200: aload_0
+       201: astore_2
+       202: aload_2
+       203: arraylength
+       204: istore_3
+       205: iconst_0
+       206: istore        4
+       208: iload         4
+       210: iload_3
+       211: if_icmpge     439
+       214: aload_2
+       215: iload         4
+       217: aaload
+       218: astore        5
+       220: sipush        4096
+       223: newarray       int
+       225: astore        6
+       227: iconst_0
+       228: istore        7
+       230: iload         7
+       232: sipush        4096
+       235: if_icmpge     258
+       238: aload         6
+       240: iload         7
+       242: aload         5
+       244: iload         7
+       246: aload         5
+       248: arraylength
+       249: irem
+       250: iaload
+       251: iastore
+       252: iinc          7, 1
+       255: goto          230
+       258: aload         6
+       260: iconst_0
+       261: aload_1
+       262: iconst_0
+       263: invokestatic  #147                // Method buildContainer:([IILwg/bench/BulkWb$TL;Z)Lnet/minecraft/class_2841;
+       266: astore        7
+       268: aload_1
+       269: getfield      #156                // Field wg/bench/BulkWb$TL.out:[I
+       272: iconst_0
+       273: iaload
+       274: istore        8
+       276: iconst_0
+       277: istore        9
+       279: iload         9
+       281: sipush        4096
+       284: if_icmpge     377
+       287: iload         9
+       289: bipush        15
+       291: iand
+       292: istore        10
+       294: iload         9
+       296: iconst_4
+       297: ishr
+       298: bipush        15
+       300: iand
+       301: istore        11
+       303: iload         9
+       305: bipush        8
+       307: ishr
+       308: istore        12
+       310: aload         7
+       312: iload         10
+       314: iload         12
+       316: iload         11
+       318: invokevirtual #380                // Method net/minecraft/class_2841.method_12321:(III)Ljava/lang/Object;
+       321: checkcast     #240                // class net/minecraft/class_2680
+       324: astore        13
+       326: aload         6
+       328: iload         9
+       330: iaload
+       331: invokestatic  #67                 // Method wg/bench/CppBridge.stateById:(I)Lnet/minecraft/class_2680;
+       334: astore        14
+       336: aload         13
+       338: aload         14
+       340: if_acmpeq     371
+       343: new           #382                // class java/lang/AssertionError
+       346: dup
+       347: aload         5
+       349: arraylength
+       350: iload         9
+       352: aload         13
+       354: invokestatic  #388                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+       357: aload         14
+       359: invokestatic  #388                // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+       362: invokedynamic #393,  0            // InvokeDynamic #2:makeConcatWithConstants:(IILjava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       367: invokespecial #396                // Method java/lang/AssertionError."<init>":(Ljava/lang/Object;)V
+       370: athrow
+       371: iinc          9, 1
+       374: goto          279
+       377: getstatic     #399                // Field java/lang/System.out:Ljava/io/PrintStream;
+       380: aload         5
+       382: arraylength
+       383: iload         8
+       385: sipush        256
+       388: if_icmple     397
+       391: ldc_w         #401                // String ID_LIST
+       394: goto          425
+       397: iload         8
+       399: bipush        16
+       401: if_icmple     410
+       404: ldc_w         #405                // String BI_MAP
+       407: goto          425
+       410: iload         8
+       412: iconst_1
+       413: if_icmple     422
+       416: ldc_w         #407                // String ARRAY
+       419: goto          425
+       422: ldc_w         #409                // String SINGULAR
+       425: invokedynamic #414,  0            // InvokeDynamic #3:makeConcatWithConstants:(ILjava/lang/String;)Ljava/lang/String;
+       430: invokevirtual #417                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       433: iinc          4, 1
+       436: goto          208
+       439: getstatic     #399                // Field java/lang/System.out:Ljava/io/PrintStream;
+       442: ldc_w         #419                // String [WG-BULKWB-TEST] all branches PASS (SINGULAR/ARRAY/BI_MAP/ID_LIST)
+       445: invokevirtual #417                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       448: return
+
+  private static void reportOnce();
+    Code:
+         0: getstatic     #118                // Field LOG:Z
+         3: ifne          7
+         6: return
+         7: getstatic     #428                // Field REPORTED:Ljava/util/concurrent/atomic/AtomicBoolean;
+        10: iconst_0
+        11: iconst_1
+        12: invokevirtual #373                // Method java/util/concurrent/atomic/AtomicBoolean.compareAndSet:(ZZ)Z
+        15: ifeq          44
+        18: getstatic     #399                // Field java/lang/System.out:Ljava/io/PrintStream;
+        21: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+        24: invokevirtual #295                // Method net/minecraft/class_2361.method_10204:()I
+        27: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+        30: invokevirtual #295                // Method net/minecraft/class_2361.method_10204:()I
+        33: invokestatic  #260                // Method net/minecraft/class_3532.method_15342:(I)I
+        36: invokedynamic #431,  0            // InvokeDynamic #4:makeConcatWithConstants:(II)Ljava/lang/String;
+        41: invokevirtual #417                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        44: return
+
+  static long readbackHash(net.minecraft.class_2791);
+    Code:
+         0: ldc2_w        #434                // long -3750763034362895579l
+         3: lstore_1
+         4: aload_0
+         5: invokevirtual #108                // Method net/minecraft/class_2791.method_12006:()[Lnet/minecraft/class_2826;
+         8: astore_3
+         9: aload_3
+        10: arraylength
+        11: istore        4
+        13: iconst_0
+        14: istore        5
+        16: iload         5
+        18: iload         4
+        20: if_icmpge     147
+        23: aload_3
+        24: iload         5
+        26: aaload
+        27: astore        6
+        29: aload         6
+        31: ifnonnull     37
+        34: goto          141
+        37: iconst_0
+        38: istore        7
+        40: iload         7
+        42: bipush        16
+        44: if_icmpge     141
+        47: iconst_0
+        48: istore        8
+        50: iload         8
+        52: bipush        16
+        54: if_icmpge     135
+        57: iconst_0
+        58: istore        9
+        60: iload         9
+        62: bipush        16
+        64: if_icmpge     129
+        67: getstatic     #61                 // Field net/minecraft/class_2248.field_10651:Lnet/minecraft/class_2361;
+        70: aload         6
+        72: iload         9
+        74: iload         7
+        76: iload         8
+        78: invokevirtual #439                // Method net/minecraft/class_2826.method_12254:(III)Lnet/minecraft/class_2680;
+        81: invokevirtual #73                 // Method net/minecraft/class_2361.method_10206:(Ljava/lang/Object;)I
+        84: istore        10
+        86: iconst_0
+        87: istore        11
+        89: iload         11
+        91: iconst_4
+        92: if_icmpge     123
+        95: lload_1
+        96: iload         10
+        98: iload         11
+       100: bipush        8
+       102: imul
+       103: iushr
+       104: sipush        255
+       107: iand
+       108: i2l
+       109: lxor
+       110: lstore_1
+       111: lload_1
+       112: ldc2_w        #440                // long 1099511628211l
+       115: lmul
+       116: lstore_1
+       117: iinc          11, 1
+       120: goto          89
+       123: iinc          9, 1
+       126: goto          60
+       129: iinc          8, 1
+       132: goto          50
+       135: iinc          7, 1
+       138: goto          40
+       141: iinc          5, 1
+       144: goto          16
+       147: lload_1
+       148: lreturn
+
+  static void contentLine(net.minecraft.class_2791, int, int);
+    Code:
+         0: getstatic     #449                // Field WBCONTENT:Z
+         3: ifne          7
+         6: return
+         7: iconst_0
+         8: istore_3
+         9: aload_0
+        10: invokevirtual #108                // Method net/minecraft/class_2791.method_12006:()[Lnet/minecraft/class_2826;
+        13: astore        4
+        15: aload         4
+        17: arraylength
+        18: istore        5
+        20: iconst_0
+        21: istore        6
+        23: iload         6
+        25: iload         5
+        27: if_icmpge     130
+        30: aload         4
+        32: iload         6
+        34: aaload
+        35: astore        7
+        37: aload         7
+        39: ifnull        124
+        42: aload         7
+        44: invokevirtual #141                // Method net/minecraft/class_2826.method_38292:()Z
+        47: ifeq          53
+        50: goto          124
+        53: iconst_0
+        54: istore        8
+        56: iload         8
+        58: bipush        16
+        60: if_icmpge     124
+        63: iconst_0
+        64: istore        9
+        66: iload         9
+        68: bipush        16
+        70: if_icmpge     118
+        73: iconst_0
+        74: istore        10
+        76: iload         10
+        78: bipush        16
+        80: if_icmpge     112
+        83: aload         7
+        85: iload         10
+        87: iload         8
+        89: iload         9
+        91: invokevirtual #439                // Method net/minecraft/class_2826.method_12254:(III)Lnet/minecraft/class_2680;
+        94: getstatic     #316                // Field net/minecraft/class_2246.field_10124:Lnet/minecraft/class_2248;
+        97: invokevirtual #453                // Method net/minecraft/class_2680.method_27852:(Lnet/minecraft/class_2248;)Z
+       100: ifne          106
+       103: iinc          3, 1
+       106: iinc          10, 1
+       109: goto          76
+       112: iinc          9, 1
+       115: goto          66
+       118: iinc          8, 1
+       121: goto          56
+       124: iinc          6, 1
+       127: goto          23
+       130: ldc2_w        #434                // long -3750763034362895579l
+       133: lstore        4
+       135: aload_0
+       136: invokevirtual #108                // Method net/minecraft/class_2791.method_12006:()[Lnet/minecraft/class_2826;
+       139: astore        6
+       141: aload         6
+       143: arraylength
+       144: istore        7
+       146: iconst_0
+       147: istore        8
+       149: iload         8
+       151: iload         7
+       153: if_icmpge     271
+       156: aload         6
+       158: iload         8
+       160: aaload
+       161: astore        9
+       163: aload         9
+       165: ifnonnull     171
+       168: goto          265
+       171: aload         9
+       173: checkcast     #149                // class wg/bench/mixin/ChunkSectionAccessor
+       176: astore        10
+       178: iconst_3
+       179: newarray       int
+       181: dup
+       182: iconst_0
+       183: aload         10
+       185: invokeinterface #457,  1          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgGetNonEmptyBlockCount:()S
+       190: iastore
+       191: dup
+       192: iconst_1
+       193: aload         10
+       195: invokeinterface #460,  1          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgGetRandomTickableBlockCount:()S
+       200: iastore
+       201: dup
+       202: iconst_2
+       203: aload         10
+       205: invokeinterface #463,  1          // InterfaceMethod wg/bench/mixin/ChunkSectionAccessor.wgGetNonEmptyFluidCount:()S
+       210: iastore
+       211: astore        11
+       213: aload         11
+       215: astore        12
+       217: aload         12
+       219: arraylength
+       220: istore        13
+       222: iconst_0
+       223: istore        14
+       225: iload         14
+       227: iload         13
+       229: if_icmpge     265
+       232: aload         12
+       234: iload         14
+       236: iaload
+       237: istore        15
+       239: lload         4
+       241: iload         15
+       243: ldc_w         #464                // int 65535
+       246: iand
+       247: i2l
+       248: lxor
+       249: lstore        4
+       251: lload         4
+       253: ldc2_w        #440                // long 1099511628211l
+       256: lmul
+       257: lstore        4
+       259: iinc          14, 1
+       262: goto          225
+       265: iinc          8, 1
+       268: goto          149
+       271: getstatic     #399                // Field java/lang/System.out:Ljava/io/PrintStream;
+       274: iload_1
+       275: iload_2
+       276: aload_0
+       277: invokestatic  #466                // Method readbackHash:(Lnet/minecraft/class_2791;)J
+       280: invokestatic  #472                // Method java/lang/Long.toHexString:(J)Ljava/lang/String;
+       283: lload         4
+       285: invokestatic  #472                // Method java/lang/Long.toHexString:(J)Ljava/lang/String;
+       288: iload_3
+       289: invokedynamic #477,  0            // InvokeDynamic #5:makeConcatWithConstants:(IILjava/lang/String;Ljava/lang/String;I)Ljava/lang/String;
+       294: invokevirtual #417                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       297: return
+
+  static void reportSummary();
+    Code:
+         0: getstatic     #118                // Field LOG:Z
+         3: ifne          7
+         6: return
+         7: getstatic     #174                // Field N_SECTIONS:Ljava/util/concurrent/atomic/AtomicLong;
+        10: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        13: lstore_0
+        14: getstatic     #128                // Field N_CALLS:Ljava/util/concurrent/atomic/AtomicLong;
+        17: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        20: lstore_2
+        21: getstatic     #399                // Field java/lang/System.out:Ljava/io/PrintStream;
+        24: lload_2
+        25: lload_0
+        26: getstatic     #143                // Field N_AIR_SKIP:Ljava/util/concurrent/atomic/AtomicLong;
+        29: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        32: getstatic     #335                // Field N_IDLIST:Ljava/util/concurrent/atomic/AtomicLong;
+        35: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        38: getstatic     #176                // Field MAX_DISTINCT:Ljava/util/concurrent/atomic/AtomicInteger;
+        41: invokevirtual #181                // Method java/util/concurrent/atomic/AtomicInteger.get:()I
+        44: lload_0
+        45: lconst_0
+        46: lcmp
+        47: ifle          102
+        50: getstatic     #337                // Field T_PACK_NS:Ljava/util/concurrent/atomic/AtomicLong;
+        53: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        56: lload_0
+        57: ldiv
+        58: getstatic     #333                // Field T_READ_NS:Ljava/util/concurrent/atomic/AtomicLong;
+        61: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        64: lload_0
+        65: ldiv
+        66: getstatic     #168                // Field T_COUNTS_NS:Ljava/util/concurrent/atomic/AtomicLong;
+        69: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        72: lload_0
+        73: ldiv
+        74: lload_2
+        75: lconst_0
+        76: lcmp
+        77: ifle          91
+        80: getstatic     #187                // Field T_TOTAL_NS:Ljava/util/concurrent/atomic/AtomicLong;
+        83: invokevirtual #485                // Method java/util/concurrent/atomic/AtomicLong.get:()J
+        86: lload_2
+        87: ldiv
+        88: goto          94
+        91: ldc2_w        #486                // long -1l
+        94: invokedynamic #492,  0            // InvokeDynamic #6:makeConcatWithConstants:(JJJJ)Ljava/lang/String;
+        99: goto          105
+       102: ldc_w         #494                // String
+       105: invokedynamic #499,  0            // InvokeDynamic #7:makeConcatWithConstants:(JJJJILjava/lang/String;)Ljava/lang/String;
+       110: invokevirtual #417                // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+       113: return
+
+  static {};
+    Code:
+         0: ldc_w         #504                // String coreswap.bulkwb
+         3: iconst_0
+         4: invokestatic  #508                // Method wg/bench/WgCompat.flag:(Ljava/lang/String;Z)Z
+         7: putstatic     #510                // Field ON:Z
+        10: ldc_w         #512                // String coreswap.bulkwblog
+        13: invokestatic  #516                // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+        16: ifnull        23
+        19: iconst_1
+        20: goto          24
+        23: iconst_0
+        24: putstatic     #118                // Field LOG:Z
+        27: ldc_w         #518                // String coreswap.wbcontent
+        30: invokestatic  #516                // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+        33: ifnull        40
+        36: iconst_1
+        37: goto          41
+        40: iconst_0
+        41: putstatic     #449                // Field WBCONTENT:Z
+        44: ldc_w         #520                // String coreswap.bulkwbtest
+        47: invokestatic  #516                // Method java/lang/System.getProperty:(Ljava/lang/String;)Ljava/lang/String;
+        50: ifnull        57
+        53: iconst_1
+        54: goto          58
+        57: iconst_0
+        58: putstatic     #99                 // Field WBTEST:Z
+        61: new           #130                // class java/util/concurrent/atomic/AtomicLong
+        64: dup
+        65: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+        68: putstatic     #174                // Field N_SECTIONS:Ljava/util/concurrent/atomic/AtomicLong;
+        71: new           #130                // class java/util/concurrent/atomic/AtomicLong
+        74: dup
+        75: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+        78: putstatic     #128                // Field N_CALLS:Ljava/util/concurrent/atomic/AtomicLong;
+        81: new           #130                // class java/util/concurrent/atomic/AtomicLong
+        84: dup
+        85: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+        88: putstatic     #143                // Field N_AIR_SKIP:Ljava/util/concurrent/atomic/AtomicLong;
+        91: new           #130                // class java/util/concurrent/atomic/AtomicLong
+        94: dup
+        95: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+        98: putstatic     #335                // Field N_IDLIST:Ljava/util/concurrent/atomic/AtomicLong;
+       101: new           #130                // class java/util/concurrent/atomic/AtomicLong
+       104: dup
+       105: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+       108: putstatic     #337                // Field T_PACK_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       111: new           #130                // class java/util/concurrent/atomic/AtomicLong
+       114: dup
+       115: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+       118: putstatic     #333                // Field T_READ_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       121: new           #130                // class java/util/concurrent/atomic/AtomicLong
+       124: dup
+       125: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+       128: putstatic     #168                // Field T_COUNTS_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       131: new           #130                // class java/util/concurrent/atomic/AtomicLong
+       134: dup
+       135: invokespecial #521                // Method java/util/concurrent/atomic/AtomicLong."<init>":()V
+       138: putstatic     #187                // Field T_TOTAL_NS:Ljava/util/concurrent/atomic/AtomicLong;
+       141: new           #370                // class java/util/concurrent/atomic/AtomicBoolean
+       144: dup
+       145: invokespecial #522                // Method java/util/concurrent/atomic/AtomicBoolean."<init>":()V
+       148: putstatic     #428                // Field REPORTED:Ljava/util/concurrent/atomic/AtomicBoolean;
+       151: new           #370                // class java/util/concurrent/atomic/AtomicBoolean
+       154: dup
+       155: invokespecial #522                // Method java/util/concurrent/atomic/AtomicBoolean."<init>":()V
+       158: putstatic     #368                // Field TESTED:Ljava/util/concurrent/atomic/AtomicBoolean;
+       161: new           #178                // class java/util/concurrent/atomic/AtomicInteger
+       164: dup
+       165: invokespecial #523                // Method java/util/concurrent/atomic/AtomicInteger."<init>":()V
+       168: putstatic     #176                // Field MAX_DISTINCT:Ljava/util/concurrent/atomic/AtomicInteger;
+       171: invokedynamic #537,  0            // InvokeDynamic #8:get:()Ljava/util/function/Supplier;
+       176: invokestatic  #541                // Method java/lang/ThreadLocal.withInitial:(Ljava/util/function/Supplier;)Ljava/lang/ThreadLocal;
+       179: putstatic     #110                // Field TLS:Ljava/lang/ThreadLocal;
+       182: iconst_0
+       183: newarray       long
+       185: putstatic     #286                // Field EMPTY_LONGS:[J
+       188: return
+}
