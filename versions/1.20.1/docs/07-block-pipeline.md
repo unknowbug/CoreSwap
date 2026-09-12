@@ -1357,7 +1357,7 @@ unctional-errors.md F1-F3）：
 ### 遗留 / 未覆盖（Wave 2）
 - **1.21.6 强制 bulk 缺陷（确认缺陷）**：`EntryMissingException: Missing Palette entry for index 2…8` 根因未定位 ⇒ **阻断 D-4(i)**；默认臂干净 ⇒ **不阻断 Wave 2**（`errors-260912-01.md` E5 + record §4.7.8）。
 - **内容等价性缺口**：① 1.21.6 写回替换无证据（该版 pre 无对照载体）；② `writeChunkPerBlock` 无运行期证据（1.20.1 回退路径；低成本闭合 = 跑 `-Dcoreswap.bulkwb=0` 臂与生产臂对比 `[WG-CONTENT-WB]`，未做）；③ **nether/end 零覆盖**（本波门仅 overworld，而被改的 `writeChunk` 共享三维度）。
-- **judge 已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 已回填/ 用户未 confirmed**；1.20.1 class 条目**未做全量 javap 逐条对拍**（4 条 `javap -c -p` 全等证明 + 一次方法级对拍；judge 抽样复核 5/5 成立）；`stateById` 归一后 6 行残差已用**源码逐字对照**排除（序号伪差）。
+- **judge 已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 已回填 / 用户已 confirmed 2026-09-12 15:52**；1.20.1 class 条目**未做全量 javap 逐条对拍**（4 条 `javap -c -p` 全等证明 + 一次方法级对拍；judge 抽样复核 5/5 成立）；`stateById` 归一后 6 行残差已用**源码逐字对照**排除（序号伪差）。
 - 1.20.1 生产路径新增 **4 次 `System.nanoTime()`/chunk**（≈80ns/chunk 为算术估计、未实测；保留 1.21.6 逐字形态、不做微优化）；1.21.6 S-6/S-7 诊断面差异已按批准生效。
 - **证据落盘（judge C5）**：判据已从 `.tmp/` 复制到 tracked **`evidence/`**（42 文件 + `MANIFEST.txt`：清单 / 差异输出 / 门控原样行 / 完整日志 / 复现工具；jar 本体与中间 dump 不入库、只入 sha）⇒ 判据可从仓库复现（此前「只在 `.tmp`」的状态已终结）。
 - **再发布提醒**：`build/libs` 现产物与已发布 1.0.29 的 jar sha `b057fda2…` **不同**（发布 jar 已被本地构建就地覆盖，§2.6「构建产物目录不是存档目录」）⇒ 再发布 MUST 重跑全量回归 + 三元组重算。

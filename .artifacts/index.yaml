@@ -1436,7 +1436,7 @@ entries:
     # V1b 逐条声明：1.20.1 = 6 变动 + 1 新增；1.21.6 = 5 变动 + 5 新增。构建三态：post1（含头注释）→ post2（判定基线
     #   jar 0681ec03…/772d7a6e…）→ post3/post4（权威 dll dd3b645f…/abd7d889…，461baedc…/772d7a6e…）。
     # V2/V3 运行期门：1.20.1 = post 臂 vs pre 臂（worktree @ ce5286b）×2 —— [WG-CONTENT]（Rust buf 层）与 [WG-CONTENT-WB]
-    #   （Java 写回读回层）各 607 行、三臂多重集与序列全等；覆盖边界 = bulk 写回路径（= 1.20.1 生产路径）+ 仅 overworld
+    #   （Java 写回读回层）各 607 行、三臂多重集全等（序列不承载判据，§15.4 校正）；覆盖边界 = bulk 写回路径（= 1.20.1 生产路径）+ 仅 overworld
     #   （writeChunkPerBlock 未执行、nether/end 零覆盖，均已声明）。1.21.6 默认臂 = PASS（625/625，无 mixin 失败）。
     # 🔴 1.21.6 强制 bulk 臂（-Dcoreswap.bulkwb=1）= 崩解：130 chunk 抛 EntryMissingException（PalettedContainer/ArrayPalette
     #   经 ChunkSection.getBlockState），根因未定位；默认关 ⇒ 不阻断本波、阻断 D-4(i)。状态 = draft（candidate 前 judge 已过，confirmed 留人类）。
