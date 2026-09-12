@@ -1,0 +1,13 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post3-1.20.1.tsv  jar_sha256=461baedcb729dc9bc3b0e08458908c7756954f6d4560fa3e2f0cf0d87d2c115c entries=1082 classes=58 non_meta=1081
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post4-1.20.1.tsv  jar_sha256=461baedcb729dc9bc3b0e08458908c7756954f6d4560fa3e2f0cf0d87d2c115c entries=1082 classes=58 non_meta=1081
+# expect_patterns = []
+
+相同条目 = 1082
+差异条目 = 0（预期 0 / 非预期 0）
+新增条目 = 0
+删除条目 = 0
+
+## 结论
+V1 verdict = PASS（无非预期差异）
+

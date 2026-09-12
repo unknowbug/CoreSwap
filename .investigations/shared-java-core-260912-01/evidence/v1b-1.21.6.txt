@@ -1,0 +1,37 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-pre-1.21.6.tsv  jar_sha256=16d5e5e7adf0780c74d4be60ac85298ec9bfcd45d347f5fcf40b1f4fe77bfc8e entries=1798 classes=54 non_meta=1797
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post2-1.21.6.tsv  jar_sha256=772d7a6ed0bbdbfc319ed35b8df642052069b3443ab9359ceec999c9c5eace5b entries=1803 classes=59 non_meta=1802
+# expect_patterns = []
+
+相同条目 = 1793
+差异条目 = 5（预期 0 / 非预期 5）
+新增条目 = 5
+删除条目 = 0
+
+## 差异明细（全量，逐条归类）
+[UNEXPECTED] coreswap.mixins.json
+    pre =810e3452981b8c3e23ecb8addc1204daf1b45591dd4c4f940e086238844e6b1a
+    post=065cea004d04909b4b144a87e474f61c4c60e24746b1844ee1ae611633b2fd91
+[UNEXPECTED] coreswap1216-refmap.json
+    pre =f87c5775208f73e045bfc7de84f2cf7fdcfb65bd3082f20278f14d194cdbe5e3
+    post=557ecf47e73f3689f7ef74b47e365fc702cc4cf9d8f021721139018935881723
+[UNEXPECTED] wg/bench/ChunkTiming.class
+    pre =8dd4a79d9398acf80888a73d3907610e081da26090076772b3620a82408fea05
+    post=553c5313f897e874f07458571a5126d1892f88c5c247d33325364b2629c3eaad
+[UNEXPECTED] wg/bench/CppBridge$1.class
+    pre =56555fe0256e849b418ac42b161e2d9dc65e172a304b9b492f971211e0ce9eb9
+    post=1fca044fad609ee3bc511119d58fcb4622c11020bfea2faea389a5d0f6bbc8dc
+[UNEXPECTED] wg/bench/CppBridge.class
+    pre =aa0f82797a398c2453958743f526a96ccff8914725b33c23bc40abe5068d0f11
+    post=cdb5e73af6f643ad611eacdf15618b7452146c1958908953e7603c99a06d0ee7
+
+## 新增条目
++ wg/bench/BulkWb$TL.class  sha=a04e98f84ed30412e936fd20a2936fa71d9c23e4635d6a88ffa8198fefa3f067
++ wg/bench/BulkWb.class  sha=1a7595b32807a302d02a662ecd096a7dcc2f1673d3ad41ecf0a5a2bb17aa751d
++ wg/bench/StallWatch.class  sha=68e305c29471f17bc274fcd72d69925f0d714c23da318a28b84b6143406c5990
++ wg/bench/WgCompat.class  sha=0a64c1957e03a7d0fb8ad9459df713d7ab1b0d5b75e45a12e2cc2cf63cb60ac7
++ wg/bench/mixin/ChunkSectionAccessor.class  sha=070188df4416056860226df0e707f0cc6ff7a4fce9dae84668567e9870006a2d
+
+## 结论
+V1 verdict = FAIL（存在非预期差异/增删条目，须逐条声明或修正）
+

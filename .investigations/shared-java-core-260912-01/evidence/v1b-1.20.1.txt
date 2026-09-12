@@ -1,0 +1,36 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-pre-1.20.1.tsv  jar_sha256=1027f4f6403aca26d2e30cb818ec1c20d833d0de70d5e84ea77bb27606894b9a entries=1081 classes=57 non_meta=1080
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post2-1.20.1.tsv  jar_sha256=0681ec03f420103e9bbbde5556dab4bfdb5c0cb7f11c65e648ec036909fcd59b entries=1082 classes=58 non_meta=1081
+# expect_patterns = []
+
+相同条目 = 1075
+差异条目 = 6（预期 0 / 非预期 6）
+新增条目 = 1
+删除条目 = 0
+
+## 差异明细（全量，逐条归类）
+[UNEXPECTED] wg/bench/BulkWb$TL.class
+    pre =86f9f5b1b2ca2686be40e5865049927fff678ccd4036d9d23a1c5cffb4bf74c2
+    post=e9d3b18fe0654290bdf2821245a44fb00a84dd83b309883ba3eb91c39d0dfc8c
+[UNEXPECTED] wg/bench/BulkWb.class
+    pre =9bf9e72173718dc09875374608f7244596e6e3f70ef9e4e221eb1b5b813748c2
+    post=ea4b1a07c4732bf7259990a36d360a5b78a4a8d3b9aeec7c5e5babe367f5b90a
+[UNEXPECTED] wg/bench/ChunkTiming.class
+    pre =89298165d8178708c4f0f83b2e7cf9eb35f99e2a2242d1bc2a2b99a4ed6a914c
+    post=d8f2ed0ad1b69b747b94566017d571b88b16ede17692a8886558dea9ae0c3994
+[UNEXPECTED] wg/bench/CoreSwapFixHelper.class
+    pre =e2de66e3eb28530c15a9c7c016336fc0e3bd7a5698c2718fcfa639d7196e13d5
+    post=21c92cabad614cce8a9c10caa8f977a76f597e0670e7023bf6544f0dd458c638
+[UNEXPECTED] wg/bench/CppBridge$1.class
+    pre =439bc898ca5d539a16d976fa3fb4a7275a1d5645a7e931f8253da9cc353e4fdc
+    post=6f0d0fa3b28a446f5dd7a5e6631d15316586e2a97c8f15b3eadd8fc8ef4d589b
+[UNEXPECTED] wg/bench/CppBridge.class
+    pre =c2b677c0b0eb2c8b8614ff1c51b696bfc705af825b7b703cca8c41981cb16bd0
+    post=c4cc2c167736be4be37c02cede33a5e2cae5fda37659823f509db7cb63d94da1
+
+## 新增条目
++ wg/bench/WgCompat.class  sha=9719931f2e88250ffc8604124800d10c2997e0f1705590f3a800a9bd7f8a983b
+
+## 结论
+V1 verdict = FAIL（存在非预期差异/增删条目，须逐条声明或修正）
+

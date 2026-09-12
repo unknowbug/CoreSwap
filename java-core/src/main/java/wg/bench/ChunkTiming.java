@@ -12,11 +12,11 @@ package wg.bench;
  * <p><b>合并说明（260912-01 D3）</b>：本类 = 两版并集（1.20.1 精简版的全部成员是 1.21.6 版的
  * 真子集 ⇒ 并集 = 1.21.6 成员集，无 1.20.1 独有成员）。各版只调用自己接线的分项：
  * <ul>
- *   <li><b>1.20.1</b>：仅 {@code mixin/NoiseChunkGeneratorMixin} 调 {@link #enter}/{@link #exit}/
- *       {@link #inflightEnter}/{@link #inflightExit}；其 {@code CppBridge} 无分项钩子、且无
- *       {@code NoiseChunkGeneratorTimingMixin}/{@code ChunkGeneratorFeaturesMixin}
- *       ⇒ {@code jni/write/hmap/scan/beard/carve/feat} 与 {@code featInterval} 在该版**恒 0**
- *       （1.20.1 旧版自声明「不打印恒 0 的假分项」由此**显式撤销**，属已批准的诊断面差异）。</li>
+ *   <li><b>1.20.1</b>：{@code mixin/NoiseChunkGeneratorMixin} 调 {@link #enter}/{@link #exit}/
+ *       {@link #inflightEnter}/{@link #inflightExit}；**共享 {@code CppBridge} 已接线 {@code addJni}/
+ *       {@code addScan}/{@code addWrite}/{@code addHmap}**（本波合并后；旧的「该版无分项钩子 ⇒ 恒 0」
+ *       自述已被合并证伪）。该版无 {@code NoiseChunkGeneratorTimingMixin}/{@code ChunkGeneratorFeaturesMixin}
+ *       ⇒ 恒 0 的分项仅 {@code beard/carve/feat/featInterval}（属已批准的诊断面差异）。</li>
  *   <li><b>1.21.6</b>：全分项接线（{@code CppBridge} 的 addJni/addScan/addWrite/addHmap、
  *       {@code NoiseChunkGeneratorMixin} 的 addBeard、{@code NoiseChunkGeneratorTimingMixin} 的
  *       addCarve、{@code ChunkGeneratorFeaturesMixin} 的 featTick/addFeat）。</li>

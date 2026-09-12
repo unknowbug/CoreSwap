@@ -1,0 +1,18 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post2-1.20.1.tsv  jar_sha256=0681ec03f420103e9bbbde5556dab4bfdb5c0cb7f11c65e648ec036909fcd59b entries=1082 classes=58 non_meta=1081
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post3-1.20.1.tsv  jar_sha256=461baedcb729dc9bc3b0e08458908c7756954f6d4560fa3e2f0cf0d87d2c115c entries=1082 classes=58 non_meta=1081
+# expect_patterns = []
+
+相同条目 = 1081
+差异条目 = 1（预期 0 / 非预期 1）
+新增条目 = 0
+删除条目 = 0
+
+## 差异明细（全量，逐条归类）
+[UNEXPECTED] native/worldgen.dll
+    pre =838e89794a54e19de14b5e3c34fd60880a4879cd5105e666b88ee70c4571a554
+    post=dd3b645f2c79d2cb54619e0ecb95f9b913b3fe02f30d74eba9ea5ee92886765d
+
+## 结论
+V1 verdict = FAIL（存在非预期差异/增删条目，须逐条声明或修正）
+

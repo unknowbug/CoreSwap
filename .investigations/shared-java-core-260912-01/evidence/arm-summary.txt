@@ -1,0 +1,43 @@
+===== 1.20.1-post  (E:\PYTHON\CoreSwap\.tmp\vivo-stutter-260911-02\ab-threads\logs\w2c-post-1.20.1.log) =====
+[CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=dd3b645f2c79d2cb...
+[14:57:07] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:05
+BUILD SUCCESSFUL in 1m 15s
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=4 testcontent=2
+
+===== 1.20.1-pre-r1  (E:\PYTHON\CoreSwap\.tmp\shared-java-core-260912-01\w2\1201-w2c-pre-1.20.1.log) =====
+[CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=dd3b645f2c79d2cb...
+[14:58:38] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:05
+BUILD SUCCESSFUL in 1m 16s
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=8 testcontent=5
+
+===== 1.20.1-pre-r2  (E:\PYTHON\CoreSwap\.tmp\shared-java-core-260912-01\w2\1201-w2d-pre-1.20.1.log) =====
+[CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.20.1\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=dd3b645f2c79d2cb...
+[15:14:41] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:04
+BUILD SUCCESSFUL in 1m 12s
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=8 testcontent=5
+
+===== 1.21.6-default  (E:\PYTHON\CoreSwap\.tmp\shared-java-core-260912-01\w2\1216-w2-post-1.21.6.log) =====
+[CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+[15:00:04] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:06
+BUILD SUCCESSFUL in 56s
+[counts] WG-CONTENT=625 WG-CONTENT-WB=625 EntryMissing=0 WMI=3 testcontent=0
+
+===== 1.21.6-bulk  (E:\PYTHON\CoreSwap\.tmp\shared-java-core-260912-01\w2\1216-w2-bulk-1.21.6.log) =====
+[CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+[CppBridge] DIAG write threw chunk(-14,-9): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-12,-11): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-13,-11): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-12,-12): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-13,-13): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-13,-12): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-15,-9): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-14,-12): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-14,-11): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[CppBridge] DIAG write threw chunk(-11,-13): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[counts] WG-CONTENT=130 WG-CONTENT-WB=0 EntryMissing=132 WMI=6 testcontent=0
+

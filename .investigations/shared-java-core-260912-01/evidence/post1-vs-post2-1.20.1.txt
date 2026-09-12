@@ -1,0 +1,21 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.tmp\shared-java-core-260912-01\w2\manifest-1.20.1.tsv  jar_sha256=41f4a551d20a87e87ab2c350897b05194cfe0d70fd7def7b2804c25dfc166de7 entries=1082 classes=58 non_meta=1081
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post2-1.20.1.tsv  jar_sha256=0681ec03f420103e9bbbde5556dab4bfdb5c0cb7f11c65e648ec036909fcd59b entries=1082 classes=58 non_meta=1081
+# expect_patterns = []
+
+相同条目 = 1080
+差异条目 = 2（预期 0 / 非预期 2）
+新增条目 = 0
+删除条目 = 0
+
+## 差异明细（全量，逐条归类）
+[UNEXPECTED] wg/bench/CoreSwapFixHelper.class
+    pre =33033ab26aeebb6f7001b5ee73d0e5f30044e4c49de469cd08e8281cfcb96af6
+    post=21c92cabad614cce8a9c10caa8f977a76f597e0670e7023bf6544f0dd458c638
+[UNEXPECTED] wg/bench/StallWatch.class
+    pre =e78f09e7b8d732cb0806865498475bd1e1735f18df3a2647a1636d5a19a8f3e0
+    post=e31271759773cb4d45e51f8f933380cd69400224f5a721f0ce9a64d546c4d171
+
+## 结论
+V1 verdict = FAIL（存在非预期差异/增删条目，须逐条声明或修正）
+
