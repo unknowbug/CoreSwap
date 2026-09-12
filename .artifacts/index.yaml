@@ -1418,3 +1418,43 @@ entries:
     #   S2 四类证据落盘缺口→全部补入 evidence/ / S3 counts_set 跨载体→§9.7 改述 / S4 自检共享假设→补范围声明 / S5 ARRAY 非规范位宽→登记不修 /
     #   S6 三源不一致→提交+刷新 MANIFEST+同步 index / S7 两处取代指针 / S8 口径外溢越界→收窄并撤回 / S9 plan 漏登路线变更→补 R5 / S10 错误记录遗漏→补 E3/E4）。
     #   程序声明两条：① 任务书「judge 无 shell」前提有误（judge 实际有 pwsh，故改为全量机械复算，提高 M1 强度）；② 建议状态保持 candidate。
+
+  - id: 'swe:shared-java-core-260912-01:plan'
+    path: '../.investigations/000-架构设计/架构计划-260912-01-共享Java适配核心.md'
+    kind: plan
+    status: candidate
+    # 用户已批准（HOOK-1 + HOOK-2）：主线 D3 共享 Java 适配核；Scope A（最小运行核）；共享源 + 1.21.6 默认关（待其自身 A/B 后翻转）；
+    #   S-1 = 1.21.6 补同形 mixin/ChunkSectionAccessor + mixins.json/refmap 注册（该版 BulkWb 的编译前置）。
+    # §14.1 立 V1 适用边界（V1-strict = 纯移动 / V1b = 语义统一：未变侧字节锚 + 变动条目逐条声明 + 变动侧 MUST 跑运行期门）；
+    #   §14.2 = 计划期断言自检教训；§14.3 = 范围措辞修正（exec/P1/maxinflight 属 scope C，非 CppBridge）。
+
+  - id: 'swe:shared-java-core-260912-01:record'
+    path: '../.investigations/shared-java-core-260912-01/record-260912-01.md'
+    kind: record
+    status: draft
+    # Wave 1 纯移动（V1-strict PASS，ce5286b）+ Wave 2 语义统一（V1b PASS-with-declarations，997d40f）：8 类共享核 + 分版缝 WgCompat。
+    # V1b 逐条声明：1.20.1 = 6 变动 + 1 新增；1.21.6 = 5 变动 + 5 新增。构建三态：post1（含头注释）→ post2（判定基线
+    #   jar 0681ec03…/772d7a6e…）→ post3/post4（权威 dll dd3b645f…/abd7d889…，461baedc…/772d7a6e…）。
+    # V2/V3 运行期门：1.20.1 = post 臂 vs pre 臂（worktree @ ce5286b）×2 —— [WG-CONTENT]（Rust buf 层）与 [WG-CONTENT-WB]
+    #   （Java 写回读回层）各 607 行、三臂多重集与序列全等；覆盖边界 = bulk 写回路径（= 1.20.1 生产路径）+ 仅 overworld
+    #   （writeChunkPerBlock 未执行、nether/end 零覆盖，均已声明）。1.21.6 默认臂 = PASS（625/625，无 mixin 失败）。
+    # 🔴 1.21.6 强制 bulk 臂（-Dcoreswap.bulkwb=1）= 崩解：130 chunk 抛 EntryMissingException（PalettedContainer/ArrayPalette
+    #   经 ChunkSection.getBlockState），根因未定位；默认关 ⇒ 不阻断本波、阻断 D-4(i)。状态 = draft（candidate 前 judge 已过，confirmed 留人类）。
+
+  - id: 'swe:shared-java-core-260912-01:errors'
+    path: '../.investigations/shared-java-core-260912-01/errors-260912-01.md'
+    kind: errors
+    status: draft
+    # 错误台账（五段式 + 现象→根因速查表）E1-E5：① dll 血统污染（A/B 收尾 restore + target 残留实验 dll ⇒ 两臂执行不同引擎、
+    #   整轮对照判定作废；判据 = 逐臂读 [CppBridge] dll= 自证行）② fresh worktree 的 CRLF 全量伪差异（1024 条、class 条目 0）
+    #   ③ javap 方法级对拍三陷阱（lambda 序号 / zip 级联 / 常量池未归一）④ 门数字未复算即入记录（judge 复算推翻「异常行 0/0」）
+    #   ⑤ 1.21.6 强制 bulk 崩解（确认缺陷）。
+
+  - id: 'swe:shared-java-core-260912-01:judge-review'
+    path: '../.investigations/shared-java-core-260912-01/review-wave2-260912-01.md'
+    kind: review
+    status: candidate
+    # judge（隔离 subagent）独立复算 7 项主张 = PASS-with-conditions：出货线（1.20.1）核心命题全部成立（V1b 声明完整、5/5 条
+    #   「仅调试属性」成立、生产行为不变 a-e 全过、V2/V3 指纹复算 607/607 全等），问题集中在记录/声明/落盘层 C1-C9。
+    # 新增风险 N1 = 1.21.6 bulk 路径**确认缺陷**（非仅「难证」）；C1-C9 已在 commit 0e94d0b 全部响应（C4 注释修补经复算 = 字节中性）。
+    # 建议：C1-C5 修完前维持 draft；confirmed 留人类。
