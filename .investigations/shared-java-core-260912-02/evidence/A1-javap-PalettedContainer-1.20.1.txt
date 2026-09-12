@@ -1,0 +1,862 @@
+Compiled from "PalettedContainer.java"
+public class net.minecraft.world.chunk.PalettedContainer<T> implements net.minecraft.world.chunk.PaletteResizeListener<T>, net.minecraft.world.chunk.ReadableContainer<T> {
+  private static final int field_34557;
+
+  private final net.minecraft.world.chunk.PaletteResizeListener<T> dummyListener;
+
+  private final net.minecraft.util.collection.IndexedIterable<T> idList;
+
+  private volatile net.minecraft.world.chunk.PalettedContainer$Data<T> data;
+
+  private final net.minecraft.world.chunk.PalettedContainer$PaletteProvider paletteProvider;
+
+  private final net.minecraft.util.thread.LockHelper lockHelper;
+
+  public void lock();
+    Code:
+         0: aload_0
+         1: getfield      #90                 // Field lockHelper:Lnet/minecraft/util/thread/LockHelper;
+         4: invokevirtual #94                 // Method net/minecraft/util/thread/LockHelper.lock:()V
+         7: return
+
+  public void unlock();
+    Code:
+         0: aload_0
+         1: getfield      #90                 // Field lockHelper:Lnet/minecraft/util/thread/LockHelper;
+         4: invokevirtual #100                // Method net/minecraft/util/thread/LockHelper.unlock:()V
+         7: return
+
+  public static <T> com.mojang.serialization.Codec<net.minecraft.world.chunk.PalettedContainer<T>> createPalettedContainerCodec(net.minecraft.util.collection.IndexedIterable<T>, com.mojang.serialization.Codec<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, T);
+    Code:
+         0: invokedynamic #121,  0            // InvokeDynamic #0:read:()Lnet/minecraft/world/chunk/ReadableContainer$Reader;
+         5: astore        4
+         7: aload_0
+         8: aload_1
+         9: aload_2
+        10: aload_3
+        11: aload         4
+        13: invokestatic  #125                // Method createCodec:(Lnet/minecraft/util/collection/IndexedIterable;Lcom/mojang/serialization/Codec;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Ljava/lang/Object;Lnet/minecraft/world/chunk/ReadableContainer$Reader;)Lcom/mojang/serialization/Codec;
+        16: areturn
+
+  public static <T> com.mojang.serialization.Codec<net.minecraft.world.chunk.ReadableContainer<T>> createReadableContainerCodec(net.minecraft.util.collection.IndexedIterable<T>, com.mojang.serialization.Codec<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, T);
+    Code:
+         0: invokedynamic #139,  0            // InvokeDynamic #1:read:()Lnet/minecraft/world/chunk/ReadableContainer$Reader;
+         5: astore        4
+         7: aload_0
+         8: aload_1
+         9: aload_2
+        10: aload_3
+        11: aload         4
+        13: invokestatic  #125                // Method createCodec:(Lnet/minecraft/util/collection/IndexedIterable;Lcom/mojang/serialization/Codec;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Ljava/lang/Object;Lnet/minecraft/world/chunk/ReadableContainer$Reader;)Lcom/mojang/serialization/Codec;
+        16: areturn
+
+  private static <T, C extends net.minecraft.world.chunk.ReadableContainer<T>> com.mojang.serialization.Codec<C> createCodec(net.minecraft.util.collection.IndexedIterable<T>, com.mojang.serialization.Codec<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, T, net.minecraft.world.chunk.ReadableContainer$Reader<T, C>);
+    Code:
+         0: aload_1
+         1: aload_3
+         2: invokedynamic #155,  0            // InvokeDynamic #2:apply:(Lcom/mojang/serialization/Codec;Ljava/lang/Object;)Ljava/util/function/Function;
+         7: invokestatic  #159                // Method com/mojang/serialization/codecs/RecordCodecBuilder.create:(Ljava/util/function/Function;)Lcom/mojang/serialization/Codec;
+        10: aload         4
+        12: aload_0
+        13: aload_2
+        14: invokedynamic #169,  0            // InvokeDynamic #3:apply:(Lnet/minecraft/world/chunk/ReadableContainer$Reader;Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)Ljava/util/function/Function;
+        19: aload_0
+        20: aload_2
+        21: invokedynamic #179,  0            // InvokeDynamic #4:apply:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)Ljava/util/function/Function;
+        26: invokeinterface #183,  3          // InterfaceMethod com/mojang/serialization/Codec.comapFlatMap:(Ljava/util/function/Function;Ljava/util/function/Function;)Lcom/mojang/serialization/Codec;
+        31: areturn
+
+  public net.minecraft.world.chunk.PalettedContainer(net.minecraft.util.collection.IndexedIterable<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.PalettedContainer$DataProvider<T>, net.minecraft.util.collection.PaletteStorage, java.util.List<T>);
+    Code:
+         0: aload_0
+         1: invokespecial #192                // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: invokedynamic #202,  0            // InvokeDynamic #5:onResize:()Lnet/minecraft/world/chunk/PaletteResizeListener;
+        10: putfield      #204                // Field dummyListener:Lnet/minecraft/world/chunk/PaletteResizeListener;
+        13: aload_0
+        14: new           #92                 // class net/minecraft/util/thread/LockHelper
+        17: dup
+        18: ldc           #206                // String PalettedContainer
+        20: invokespecial #209                // Method net/minecraft/util/thread/LockHelper."<init>":(Ljava/lang/String;)V
+        23: putfield      #90                 // Field lockHelper:Lnet/minecraft/util/thread/LockHelper;
+        26: aload_0
+        27: aload_1
+        28: putfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+        31: aload_0
+        32: aload_2
+        33: putfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        36: aload_0
+        37: new           #20                 // class net/minecraft/world/chunk/PalettedContainer$Data
+        40: dup
+        41: aload_3
+        42: aload         4
+        44: aload_3
+        45: invokevirtual #217                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.factory:()Lnet/minecraft/world/chunk/Palette$Factory;
+        48: aload_3
+        49: invokevirtual #221                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.bits:()I
+        52: aload_1
+        53: aload_0
+        54: aload         5
+        56: invokeinterface #224,  5          // InterfaceMethod net/minecraft/world/chunk/Palette$Factory.create:(ILnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PaletteResizeListener;Ljava/util/List;)Lnet/minecraft/world/chunk/Palette;
+        61: invokespecial #227                // Method net/minecraft/world/chunk/PalettedContainer$Data."<init>":(Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;Lnet/minecraft/util/collection/PaletteStorage;Lnet/minecraft/world/chunk/Palette;)V
+        64: putfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        67: return
+
+  private net.minecraft.world.chunk.PalettedContainer(net.minecraft.util.collection.IndexedIterable<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.PalettedContainer$Data<T>);
+    Code:
+         0: aload_0
+         1: invokespecial #192                // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: invokedynamic #202,  0            // InvokeDynamic #5:onResize:()Lnet/minecraft/world/chunk/PaletteResizeListener;
+        10: putfield      #204                // Field dummyListener:Lnet/minecraft/world/chunk/PaletteResizeListener;
+        13: aload_0
+        14: new           #92                 // class net/minecraft/util/thread/LockHelper
+        17: dup
+        18: ldc           #206                // String PalettedContainer
+        20: invokespecial #209                // Method net/minecraft/util/thread/LockHelper."<init>":(Ljava/lang/String;)V
+        23: putfield      #90                 // Field lockHelper:Lnet/minecraft/util/thread/LockHelper;
+        26: aload_0
+        27: aload_1
+        28: putfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+        31: aload_0
+        32: aload_2
+        33: putfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        36: aload_0
+        37: aload_3
+        38: putfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        41: return
+
+  public net.minecraft.world.chunk.PalettedContainer(net.minecraft.util.collection.IndexedIterable<T>, T, net.minecraft.world.chunk.PalettedContainer$PaletteProvider);
+    Code:
+         0: aload_0
+         1: invokespecial #192                // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: invokedynamic #202,  0            // InvokeDynamic #5:onResize:()Lnet/minecraft/world/chunk/PaletteResizeListener;
+        10: putfield      #204                // Field dummyListener:Lnet/minecraft/world/chunk/PaletteResizeListener;
+        13: aload_0
+        14: new           #92                 // class net/minecraft/util/thread/LockHelper
+        17: dup
+        18: ldc           #206                // String PalettedContainer
+        20: invokespecial #209                // Method net/minecraft/util/thread/LockHelper."<init>":(Ljava/lang/String;)V
+        23: putfield      #90                 // Field lockHelper:Lnet/minecraft/util/thread/LockHelper;
+        26: aload_0
+        27: aload_3
+        28: putfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        31: aload_0
+        32: aload_1
+        33: putfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+        36: aload_0
+        37: aload_0
+        38: aconst_null
+        39: iconst_0
+        40: invokevirtual #243                // Method getCompatibleData:(Lnet/minecraft/world/chunk/PalettedContainer$Data;I)Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        43: putfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        46: aload_0
+        47: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        50: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        53: aload_2
+        54: invokeinterface #251,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.index:(Ljava/lang/Object;)I
+        59: pop
+        60: return
+
+  private net.minecraft.world.chunk.PalettedContainer$Data<T> getCompatibleData(net.minecraft.world.chunk.PalettedContainer$Data<T>, int);
+    Code:
+         0: aload_0
+         1: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+         4: aload_0
+         5: getfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+         8: iload_2
+         9: invokevirtual #258                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.createDataProvider:(Lnet/minecraft/util/collection/IndexedIterable;I)Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+        12: astore_3
+        13: aload_1
+        14: ifnull        30
+        17: aload_3
+        18: aload_1
+        19: invokevirtual #262                // Method net/minecraft/world/chunk/PalettedContainer$Data.configuration:()Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+        22: invokevirtual #266                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.equals:(Ljava/lang/Object;)Z
+        25: ifeq          30
+        28: aload_1
+        29: areturn
+        30: aload_3
+        31: aload_0
+        32: getfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+        35: aload_0
+        36: aload_0
+        37: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        40: invokevirtual #269                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.getContainerSize:()I
+        43: invokevirtual #273                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.createData:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PaletteResizeListener;I)Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        46: areturn
+
+  public int onResize(int, T);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: astore_3
+         5: aload_0
+         6: aload_3
+         7: iload_1
+         8: invokevirtual #243                // Method getCompatibleData:(Lnet/minecraft/world/chunk/PalettedContainer$Data;I)Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        11: astore        4
+        13: aload         4
+        15: aload_3
+        16: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        19: aload_3
+        20: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        23: invokevirtual #281                // Method net/minecraft/world/chunk/PalettedContainer$Data.importFrom:(Lnet/minecraft/world/chunk/Palette;Lnet/minecraft/util/collection/PaletteStorage;)V
+        26: aload_0
+        27: aload         4
+        29: putfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        32: aload         4
+        34: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        37: aload_2
+        38: invokeinterface #251,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.index:(Ljava/lang/Object;)I
+        43: ireturn
+
+  public T swap(int, int, int, T);
+    Code:
+         0: aload_0
+         1: invokevirtual #290                // Method lock:()V
+         4: aload_0
+         5: aload_0
+         6: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+         9: iload_1
+        10: iload_2
+        11: iload_3
+        12: invokevirtual #294                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.computeIndex:(III)I
+        15: aload         4
+        17: invokevirtual #297                // Method swap:(ILjava/lang/Object;)Ljava/lang/Object;
+        20: astore        5
+        22: aload_0
+        23: invokevirtual #298                // Method unlock:()V
+        26: aload         5
+        28: areturn
+        29: astore        6
+        31: aload_0
+        32: invokevirtual #298                // Method unlock:()V
+        35: aload         6
+        37: athrow
+      Exception table:
+         from    to  target type
+             4    22    29   any
+            29    31    29   any
+
+  public T swapUnsafe(int, int, int, T);
+    Code:
+         0: aload_0
+         1: aload_0
+         2: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+         5: iload_1
+         6: iload_2
+         7: iload_3
+         8: invokevirtual #294                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.computeIndex:(III)I
+        11: aload         4
+        13: invokevirtual #297                // Method swap:(ILjava/lang/Object;)Ljava/lang/Object;
+        16: areturn
+
+  private T swap(int, T);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         7: aload_2
+         8: invokeinterface #251,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.index:(Ljava/lang/Object;)I
+        13: istore_3
+        14: aload_0
+        15: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        18: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        21: iload_1
+        22: iload_3
+        23: invokeinterface #307,  3          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.swap:(II)I
+        28: istore        4
+        30: aload_0
+        31: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        34: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        37: iload         4
+        39: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        44: areturn
+
+  public void set(int, int, int, T);
+    Code:
+         0: aload_0
+         1: invokevirtual #290                // Method lock:()V
+         4: aload_0
+         5: aload_0
+         6: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+         9: iload_1
+        10: iload_2
+        11: iload_3
+        12: invokevirtual #294                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.computeIndex:(III)I
+        15: aload         4
+        17: invokevirtual #318                // Method set:(ILjava/lang/Object;)V
+        20: aload_0
+        21: invokevirtual #298                // Method unlock:()V
+        24: goto          36
+        27: astore        5
+        29: aload_0
+        30: invokevirtual #298                // Method unlock:()V
+        33: aload         5
+        35: athrow
+        36: return
+      Exception table:
+         from    to  target type
+             4    20    27   any
+            27    29    27   any
+
+  private void set(int, T);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         7: aload_2
+         8: invokeinterface #251,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.index:(Ljava/lang/Object;)I
+        13: istore_3
+        14: aload_0
+        15: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        18: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        21: iload_1
+        22: iload_3
+        23: invokeinterface #322,  3          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.set:(II)V
+        28: return
+
+  public T get(int, int, int);
+    Code:
+         0: aload_0
+         1: aload_0
+         2: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+         5: iload_1
+         6: iload_2
+         7: iload_3
+         8: invokevirtual #294                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.computeIndex:(III)I
+        11: invokevirtual #325                // Method get:(I)Ljava/lang/Object;
+        14: areturn
+
+  protected T get(int);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: astore_2
+         5: aload_2
+         6: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         9: aload_2
+        10: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        13: iload_1
+        14: invokeinterface #329,  2          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.get:(I)I
+        19: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        24: areturn
+
+  public void forEachValue(java.util.function.Consumer<T>);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: invokevirtual #336                // Method net/minecraft/world/chunk/PalettedContainer$Data.palette:()Lnet/minecraft/world/chunk/Palette;
+         7: astore_2
+         8: new           #338                // class it/unimi/dsi/fastutil/ints/IntArraySet
+        11: dup
+        12: invokespecial #339                // Method it/unimi/dsi/fastutil/ints/IntArraySet."<init>":()V
+        15: astore_3
+        16: aload_0
+        17: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        20: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        23: aload_3
+        24: dup
+        25: invokestatic  #344                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;
+        28: pop
+        29: invokedynamic #357,  0            // InvokeDynamic #6:accept:(Lit/unimi/dsi/fastutil/ints/IntSet;)Ljava/util/function/IntConsumer;
+        34: invokeinterface #361,  2          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.forEach:(Ljava/util/function/IntConsumer;)V
+        39: aload_3
+        40: aload_1
+        41: aload_2
+        42: invokedynamic #369,  0            // InvokeDynamic #7:accept:(Ljava/util/function/Consumer;Lnet/minecraft/world/chunk/Palette;)Lit/unimi/dsi/fastutil/ints/IntConsumer;
+        47: invokeinterface #374,  2          // InterfaceMethod it/unimi/dsi/fastutil/ints/IntSet.forEach:(Lit/unimi/dsi/fastutil/ints/IntConsumer;)V
+        52: return
+
+  public void readPacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_0
+         1: invokevirtual #290                // Method lock:()V
+         4: aload_1
+         5: invokevirtual #388                // Method net/minecraft/network/PacketByteBuf.readByte:()B
+         8: istore_2
+         9: aload_0
+        10: aload_0
+        11: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        14: iload_2
+        15: invokevirtual #243                // Method getCompatibleData:(Lnet/minecraft/world/chunk/PalettedContainer$Data;I)Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        18: astore_3
+        19: aload_3
+        20: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        23: aload_1
+        24: invokeinterface #390,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.readPacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        29: aload_1
+        30: aload_3
+        31: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        34: invokeinterface #394,  1          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getData:()[J
+        39: invokevirtual #398                // Method net/minecraft/network/PacketByteBuf.readLongArray:([J)[J
+        42: pop
+        43: aload_0
+        44: aload_3
+        45: putfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        48: aload_0
+        49: invokevirtual #298                // Method unlock:()V
+        52: goto          64
+        55: astore        4
+        57: aload_0
+        58: invokevirtual #298                // Method unlock:()V
+        61: aload         4
+        63: athrow
+        64: return
+      Exception table:
+         from    to  target type
+             4    48    55   any
+            55    57    55   any
+
+  public void writePacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_0
+         1: invokevirtual #290                // Method lock:()V
+         4: aload_0
+         5: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         8: aload_1
+         9: invokevirtual #402                // Method net/minecraft/world/chunk/PalettedContainer$Data.writePacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        12: aload_0
+        13: invokevirtual #298                // Method unlock:()V
+        16: goto          26
+        19: astore_2
+        20: aload_0
+        21: invokevirtual #298                // Method unlock:()V
+        24: aload_2
+        25: athrow
+        26: return
+      Exception table:
+         from    to  target type
+             4    12    19   any
+
+  private static <T> com.mojang.serialization.DataResult<net.minecraft.world.chunk.PalettedContainer<T>> read(net.minecraft.util.collection.IndexedIterable<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.ReadableContainer$Serialized<T>);
+    Code:
+         0: aload_2
+         1: invokevirtual #407                // Method net/minecraft/world/chunk/ReadableContainer$Serialized.paletteEntries:()Ljava/util/List;
+         4: astore_3
+         5: aload_1
+         6: invokevirtual #269                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.getContainerSize:()I
+         9: istore        4
+        11: aload_1
+        12: aload_0
+        13: aload_3
+        14: invokeinterface #412,  1          // InterfaceMethod java/util/List.size:()I
+        19: invokevirtual #416                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.getBits:(Lnet/minecraft/util/collection/IndexedIterable;I)I
+        22: istore        5
+        24: aload_1
+        25: aload_0
+        26: iload         5
+        28: invokevirtual #258                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.createDataProvider:(Lnet/minecraft/util/collection/IndexedIterable;I)Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+        31: astore        6
+        33: iload         5
+        35: ifne          52
+        38: new           #418                // class net/minecraft/util/collection/EmptyPaletteStorage
+        41: dup
+        42: iload         4
+        44: invokespecial #420                // Method net/minecraft/util/collection/EmptyPaletteStorage."<init>":(I)V
+        47: astore        7
+        49: goto          215
+        52: aload_2
+        53: invokevirtual #425                // Method net/minecraft/world/chunk/ReadableContainer$Serialized.storage:()Ljava/util/Optional;
+        56: astore        8
+        58: aload         8
+        60: invokevirtual #431                // Method java/util/Optional.isEmpty:()Z
+        63: ifeq          75
+        66: invokedynamic #442,  0            // InvokeDynamic #8:get:()Ljava/util/function/Supplier;
+        71: invokestatic  #448                // Method com/mojang/serialization/DataResult.error:(Ljava/util/function/Supplier;)Lcom/mojang/serialization/DataResult;
+        74: areturn
+        75: aload         8
+        77: invokevirtual #450                // Method java/util/Optional.get:()Ljava/lang/Object;
+        80: checkcast     #452                // class java/util/stream/LongStream
+        83: invokeinterface #455,  1          // InterfaceMethod java/util/stream/LongStream.toArray:()[J
+        88: astore        9
+        90: aload         6
+        92: invokevirtual #217                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.factory:()Lnet/minecraft/world/chunk/Palette$Factory;
+        95: getstatic     #459                // Field net/minecraft/world/chunk/PalettedContainer$PaletteProvider.ID_LIST:Lnet/minecraft/world/chunk/Palette$Factory;
+        98: if_acmpne     181
+       101: new           #461                // class net/minecraft/world/chunk/BiMapPalette
+       104: dup
+       105: aload_0
+       106: iload         5
+       108: invokedynamic #466,  0            // InvokeDynamic #9:onResize:()Lnet/minecraft/world/chunk/PaletteResizeListener;
+       113: aload_3
+       114: invokespecial #469                // Method net/minecraft/world/chunk/BiMapPalette."<init>":(Lnet/minecraft/util/collection/IndexedIterable;ILnet/minecraft/world/chunk/PaletteResizeListener;Ljava/util/List;)V
+       117: astore        10
+       119: new           #40                 // class net/minecraft/util/collection/PackedIntegerArray
+       122: dup
+       123: iload         5
+       125: iload         4
+       127: aload         9
+       129: invokespecial #472                // Method net/minecraft/util/collection/PackedIntegerArray."<init>":(II[J)V
+       132: astore        11
+       134: iload         4
+       136: newarray       int
+       138: astore        12
+       140: aload         11
+       142: aload         12
+       144: invokevirtual #476                // Method net/minecraft/util/collection/PackedIntegerArray.writePaletteIndices:([I)V
+       147: aload         12
+       149: aload_0
+       150: aload         10
+       152: invokedynamic #486,  0            // InvokeDynamic #10:applyAsInt:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/Palette;)Ljava/util/function/IntUnaryOperator;
+       157: invokestatic  #490                // Method applyEach:([ILjava/util/function/IntUnaryOperator;)V
+       160: new           #40                 // class net/minecraft/util/collection/PackedIntegerArray
+       163: dup
+       164: aload         6
+       166: invokevirtual #221                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.bits:()I
+       169: iload         4
+       171: aload         12
+       173: invokespecial #493                // Method net/minecraft/util/collection/PackedIntegerArray."<init>":(II[I)V
+       176: astore        7
+       178: goto          199
+       181: new           #40                 // class net/minecraft/util/collection/PackedIntegerArray
+       184: dup
+       185: aload         6
+       187: invokevirtual #221                // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.bits:()I
+       190: iload         4
+       192: aload         9
+       194: invokespecial #472                // Method net/minecraft/util/collection/PackedIntegerArray."<init>":(II[J)V
+       197: astore        7
+       199: goto          215
+       202: astore        10
+       204: aload         10
+       206: invokedynamic #503,  0            // InvokeDynamic #11:get:(Lnet/minecraft/util/collection/PackedIntegerArray$InvalidLengthException;)Ljava/util/function/Supplier;
+       211: invokestatic  #448                // Method com/mojang/serialization/DataResult.error:(Ljava/util/function/Supplier;)Lcom/mojang/serialization/DataResult;
+       214: areturn
+       215: new           #2                  // class net/minecraft/world/chunk/PalettedContainer
+       218: dup
+       219: aload_0
+       220: aload_1
+       221: aload         6
+       223: aload         7
+       225: aload_3
+       226: invokespecial #505                // Method "<init>":(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;Lnet/minecraft/util/collection/PaletteStorage;Ljava/util/List;)V
+       229: invokestatic  #509                // Method com/mojang/serialization/DataResult.success:(Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;
+       232: areturn
+      Exception table:
+         from    to  target type
+            90   199   202   Class net/minecraft/util/collection/PackedIntegerArray$InvalidLengthException
+
+  public net.minecraft.world.chunk.ReadableContainer$Serialized<T> serialize(net.minecraft.util.collection.IndexedIterable<T>, net.minecraft.world.chunk.PalettedContainer$PaletteProvider);
+    Code:
+         0: aload_0
+         1: invokevirtual #290                // Method lock:()V
+         4: new           #461                // class net/minecraft/world/chunk/BiMapPalette
+         7: dup
+         8: aload_1
+         9: aload_0
+        10: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        13: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        16: invokeinterface #529,  1          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getElementBits:()I
+        21: aload_0
+        22: getfield      #204                // Field dummyListener:Lnet/minecraft/world/chunk/PaletteResizeListener;
+        25: invokespecial #532                // Method net/minecraft/world/chunk/BiMapPalette."<init>":(Lnet/minecraft/util/collection/IndexedIterable;ILnet/minecraft/world/chunk/PaletteResizeListener;)V
+        28: astore_3
+        29: aload_2
+        30: invokevirtual #269                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.getContainerSize:()I
+        33: istore        4
+        35: iload         4
+        37: newarray       int
+        39: astore        5
+        41: aload_0
+        42: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        45: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        48: aload         5
+        50: invokeinterface #533,  2          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.writePaletteIndices:([I)V
+        55: aload         5
+        57: aload_0
+        58: aload_3
+        59: invokedynamic #541,  0            // InvokeDynamic #12:applyAsInt:(Lnet/minecraft/world/chunk/PalettedContainer;Lnet/minecraft/world/chunk/BiMapPalette;)Ljava/util/function/IntUnaryOperator;
+        64: invokestatic  #490                // Method applyEach:([ILjava/util/function/IntUnaryOperator;)V
+        67: aload_2
+        68: aload_1
+        69: aload_3
+        70: invokevirtual #544                // Method net/minecraft/world/chunk/BiMapPalette.getSize:()I
+        73: invokevirtual #416                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider.getBits:(Lnet/minecraft/util/collection/IndexedIterable;I)I
+        76: istore        6
+        78: iload         6
+        80: ifeq          114
+        83: new           #40                 // class net/minecraft/util/collection/PackedIntegerArray
+        86: dup
+        87: iload         6
+        89: iload         4
+        91: aload         5
+        93: invokespecial #493                // Method net/minecraft/util/collection/PackedIntegerArray."<init>":(II[I)V
+        96: astore        8
+        98: aload         8
+       100: invokevirtual #545                // Method net/minecraft/util/collection/PackedIntegerArray.getData:()[J
+       103: invokestatic  #551                // Method java/util/Arrays.stream:([J)Ljava/util/stream/LongStream;
+       106: invokestatic  #555                // Method java/util/Optional.of:(Ljava/lang/Object;)Ljava/util/Optional;
+       109: astore        7
+       111: goto          119
+       114: invokestatic  #558                // Method java/util/Optional.empty:()Ljava/util/Optional;
+       117: astore        7
+       119: new           #35                 // class net/minecraft/world/chunk/ReadableContainer$Serialized
+       122: dup
+       123: aload_3
+       124: invokevirtual #561                // Method net/minecraft/world/chunk/BiMapPalette.getElements:()Ljava/util/List;
+       127: aload         7
+       129: invokespecial #564                // Method net/minecraft/world/chunk/ReadableContainer$Serialized."<init>":(Ljava/util/List;Ljava/util/Optional;)V
+       132: astore        8
+       134: aload_0
+       135: invokevirtual #298                // Method unlock:()V
+       138: aload         8
+       140: areturn
+       141: astore        9
+       143: aload_0
+       144: invokevirtual #298                // Method unlock:()V
+       147: aload         9
+       149: athrow
+      Exception table:
+         from    to  target type
+             4   134   141   any
+           141   143   141   any
+
+  private static <T> void applyEach(int[], java.util.function.IntUnaryOperator);
+    Code:
+         0: iconst_m1
+         1: istore_2
+         2: iconst_m1
+         3: istore_3
+         4: iconst_0
+         5: istore        4
+         7: iload         4
+         9: aload_0
+        10: arraylength
+        11: if_icmpge     49
+        14: aload_0
+        15: iload         4
+        17: iaload
+        18: istore        5
+        20: iload         5
+        22: iload_2
+        23: if_icmpeq     38
+        26: iload         5
+        28: istore_2
+        29: aload_1
+        30: iload         5
+        32: invokeinterface #573,  2          // InterfaceMethod java/util/function/IntUnaryOperator.applyAsInt:(I)I
+        37: istore_3
+        38: aload_0
+        39: iload         4
+        41: iload_3
+        42: iastore
+        43: iinc          4, 1
+        46: goto          7
+        49: return
+
+  public int getPacketSize();
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: invokevirtual #579                // Method net/minecraft/world/chunk/PalettedContainer$Data.getPacketSize:()I
+         7: ireturn
+
+  public boolean hasAny(java.util.function.Predicate<T>);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         7: aload_1
+         8: invokeinterface #585,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.hasAny:(Ljava/util/function/Predicate;)Z
+        13: ireturn
+
+  public net.minecraft.world.chunk.PalettedContainer<T> copy();
+    Code:
+         0: new           #2                  // class net/minecraft/world/chunk/PalettedContainer
+         3: dup
+         4: aload_0
+         5: getfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+         8: aload_0
+         9: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        12: aload_0
+        13: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        16: invokevirtual #593                // Method net/minecraft/world/chunk/PalettedContainer$Data.copy:()Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        19: invokespecial #595                // Method "<init>":(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Lnet/minecraft/world/chunk/PalettedContainer$Data;)V
+        22: areturn
+
+  public net.minecraft.world.chunk.PalettedContainer<T> slice();
+    Code:
+         0: new           #2                  // class net/minecraft/world/chunk/PalettedContainer
+         3: dup
+         4: aload_0
+         5: getfield      #211                // Field idList:Lnet/minecraft/util/collection/IndexedIterable;
+         8: aload_0
+         9: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        12: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        15: iconst_0
+        16: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        21: aload_0
+        22: getfield      #213                // Field paletteProvider:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        25: invokespecial #598                // Method "<init>":(Lnet/minecraft/util/collection/IndexedIterable;Ljava/lang/Object;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)V
+        28: areturn
+
+  public void count(net.minecraft.world.chunk.PalettedContainer$Counter<T>);
+    Code:
+         0: aload_0
+         1: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         4: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         7: invokeinterface #603,  1          // InterfaceMethod net/minecraft/world/chunk/Palette.getSize:()I
+        12: iconst_1
+        13: if_icmpne     48
+        16: aload_1
+        17: aload_0
+        18: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        21: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+        24: iconst_0
+        25: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        30: aload_0
+        31: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        34: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        37: invokeinterface #604,  1          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getSize:()I
+        42: invokeinterface #607,  3          // InterfaceMethod net/minecraft/world/chunk/PalettedContainer$Counter.accept:(Ljava/lang/Object;I)V
+        47: return
+        48: new           #609                // class it/unimi/dsi/fastutil/ints/Int2IntOpenHashMap
+        51: dup
+        52: invokespecial #610                // Method it/unimi/dsi/fastutil/ints/Int2IntOpenHashMap."<init>":()V
+        55: astore_2
+        56: aload_0
+        57: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+        60: getfield      #277                // Field net/minecraft/world/chunk/PalettedContainer$Data.storage:Lnet/minecraft/util/collection/PaletteStorage;
+        63: aload_2
+        64: invokedynamic #618,  0            // InvokeDynamic #13:accept:(Lit/unimi/dsi/fastutil/ints/Int2IntOpenHashMap;)Ljava/util/function/IntConsumer;
+        69: invokeinterface #361,  2          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.forEach:(Ljava/util/function/IntConsumer;)V
+        74: aload_2
+        75: invokevirtual #622                // Method it/unimi/dsi/fastutil/ints/Int2IntOpenHashMap.int2IntEntrySet:()Lit/unimi/dsi/fastutil/ints/Int2IntMap$FastEntrySet;
+        78: aload_0
+        79: aload_1
+        80: invokedynamic #634,  0            // InvokeDynamic #14:accept:(Lnet/minecraft/world/chunk/PalettedContainer;Lnet/minecraft/world/chunk/PalettedContainer$Counter;)Ljava/util/function/Consumer;
+        85: invokeinterface #636,  2          // InterfaceMethod it/unimi/dsi/fastutil/ints/Int2IntMap$FastEntrySet.forEach:(Ljava/util/function/Consumer;)V
+        90: return
+
+  private void method_21733(net.minecraft.world.chunk.PalettedContainer$Counter, it.unimi.dsi.fastutil.ints.Int2IntMap$Entry);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         5: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         8: aload_2
+         9: invokeinterface #644,  1          // InterfaceMethod it/unimi/dsi/fastutil/ints/Int2IntMap$Entry.getIntKey:()I
+        14: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        19: aload_2
+        20: invokeinterface #647,  1          // InterfaceMethod it/unimi/dsi/fastutil/ints/Int2IntMap$Entry.getIntValue:()I
+        25: invokeinterface #607,  3          // InterfaceMethod net/minecraft/world/chunk/PalettedContainer$Counter.accept:(Ljava/lang/Object;I)V
+        30: return
+
+  private static void increment(it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap, int);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: iconst_1
+         3: invokevirtual #652                // Method it/unimi/dsi/fastutil/ints/Int2IntOpenHashMap.addTo:(II)I
+         6: pop
+         7: return
+
+  private int method_44340(net.minecraft.world.chunk.BiMapPalette, int);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: getfield      #229                // Field data:Lnet/minecraft/world/chunk/PalettedContainer$Data;
+         5: getfield      #247                // Field net/minecraft/world/chunk/PalettedContainer$Data.palette:Lnet/minecraft/world/chunk/Palette;
+         8: iload_2
+         9: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        14: invokevirtual #654                // Method net/minecraft/world/chunk/BiMapPalette.index:(Ljava/lang/Object;)I
+        17: ireturn
+
+  private static java.lang.String method_49527(net.minecraft.util.collection.PackedIntegerArray$InvalidLengthException);
+    Code:
+         0: aload_0
+         1: invokevirtual #657                // Method net/minecraft/util/collection/PackedIntegerArray$InvalidLengthException.getMessage:()Ljava/lang/String;
+         4: invokedynamic #669,  0            // InvokeDynamic #15:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+         9: areturn
+
+  private static int method_44344(net.minecraft.util.collection.IndexedIterable, net.minecraft.world.chunk.Palette, int);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: iload_2
+         3: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+         8: invokeinterface #673,  2          // InterfaceMethod net/minecraft/util/collection/IndexedIterable.getRawId:(Ljava/lang/Object;)I
+        13: ireturn
+
+  private static int method_44349(int, java.lang.Object);
+    Code:
+         0: iconst_0
+         1: ireturn
+
+  private static java.lang.String method_49528();
+    Code:
+         0: ldc_w         #675                // String Missing values for non-zero storage
+         3: areturn
+
+  private static void method_39794(java.util.function.Consumer, net.minecraft.world.chunk.Palette, int);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: iload_2
+         3: invokeinterface #311,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+         8: invokeinterface #680,  2          // InterfaceMethod java/util/function/Consumer.accept:(Ljava/lang/Object;)V
+        13: return
+
+  private static net.minecraft.world.chunk.ReadableContainer$Serialized method_38302(net.minecraft.util.collection.IndexedIterable, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.ReadableContainer);
+    Code:
+         0: aload_2
+         1: aload_0
+         2: aload_1
+         3: invokeinterface #683,  3          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.serialize:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)Lnet/minecraft/world/chunk/ReadableContainer$Serialized;
+         8: areturn
+
+  private static com.mojang.serialization.DataResult method_44342(net.minecraft.world.chunk.ReadableContainer$Reader, net.minecraft.util.collection.IndexedIterable, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.ReadableContainer$Serialized);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: aload_3
+         4: invokeinterface #685,  4          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer$Reader.read:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Lnet/minecraft/world/chunk/ReadableContainer$Serialized;)Lcom/mojang/serialization/DataResult;
+         9: areturn
+
+  private static com.mojang.datafixers.kinds.App method_38296(com.mojang.serialization.Codec, java.lang.Object, com.mojang.serialization.codecs.RecordCodecBuilder$Instance);
+    Code:
+         0: aload_2
+         1: aload_0
+         2: aload_1
+         3: invokestatic  #693                // Method net/minecraft/util/dynamic/Codecs.orElsePartial:(Ljava/lang/Object;)Lcom/mojang/serialization/Codec$ResultFunction;
+         6: invokeinterface #697,  2          // InterfaceMethod com/mojang/serialization/Codec.mapResult:(Lcom/mojang/serialization/Codec$ResultFunction;)Lcom/mojang/serialization/Codec;
+        11: invokeinterface #701,  1          // InterfaceMethod com/mojang/serialization/Codec.listOf:()Lcom/mojang/serialization/Codec;
+        16: ldc_w         #702                // String palette
+        19: invokeinterface #706,  2          // InterfaceMethod com/mojang/serialization/Codec.fieldOf:(Ljava/lang/String;)Lcom/mojang/serialization/MapCodec;
+        24: invokedynamic #712,  0            // InvokeDynamic #16:apply:()Ljava/util/function/Function;
+        29: invokevirtual #718                // Method com/mojang/serialization/MapCodec.forGetter:(Ljava/util/function/Function;)Lcom/mojang/serialization/codecs/RecordCodecBuilder;
+        32: getstatic     #722                // Field com/mojang/serialization/Codec.LONG_STREAM:Lcom/mojang/serialization/codecs/PrimitiveCodec;
+        35: ldc_w         #723                // String data
+        38: invokeinterface #728,  2          // InterfaceMethod com/mojang/serialization/codecs/PrimitiveCodec.optionalFieldOf:(Ljava/lang/String;)Lcom/mojang/serialization/MapCodec;
+        43: invokedynamic #732,  0            // InvokeDynamic #17:apply:()Ljava/util/function/Function;
+        48: invokevirtual #718                // Method com/mojang/serialization/MapCodec.forGetter:(Ljava/util/function/Function;)Lcom/mojang/serialization/codecs/RecordCodecBuilder;
+        51: invokevirtual #736                // Method com/mojang/serialization/codecs/RecordCodecBuilder$Instance.group:(Lcom/mojang/datafixers/kinds/App;Lcom/mojang/datafixers/kinds/App;)Lcom/mojang/datafixers/Products$P2;
+        54: aload_2
+        55: invokedynamic #744,  0            // InvokeDynamic #18:apply:()Ljava/util/function/BiFunction;
+        60: invokevirtual #747                // Method com/mojang/datafixers/Products$P2.apply:(Lcom/mojang/datafixers/kinds/Applicative;Ljava/util/function/BiFunction;)Lcom/mojang/datafixers/kinds/App;
+        63: areturn
+
+  private static com.mojang.serialization.DataResult method_44348(net.minecraft.util.collection.IndexedIterable, net.minecraft.world.chunk.PalettedContainer$PaletteProvider, net.minecraft.world.chunk.ReadableContainer$Serialized);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: invokestatic  #110                // Method read:(Lnet/minecraft/util/collection/IndexedIterable;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;Lnet/minecraft/world/chunk/ReadableContainer$Serialized;)Lcom/mojang/serialization/DataResult;
+         6: invokedynamic #757,  0            // InvokeDynamic #19:apply:()Ljava/util/function/Function;
+        11: invokevirtual #761                // Method com/mojang/serialization/DataResult.map:(Ljava/util/function/Function;)Lcom/mojang/serialization/DataResult;
+        14: areturn
+
+  private static net.minecraft.world.chunk.ReadableContainer method_44341(net.minecraft.world.chunk.PalettedContainer);
+    Code:
+         0: aload_0
+         1: areturn
+
+  private static int method_12333(int, java.lang.Object);
+    Code:
+         0: iconst_0
+         1: ireturn
+}

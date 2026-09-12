@@ -1,0 +1,167 @@
+Classfile /E:/PYTHON/CoreSwap/.tmp/shared-java-core-260912-02/cmd-output/tl/1.21.6-OLD-TL.class
+  Last modified 1980��1��1��; size 811 bytes
+  SHA-256 checksum a04e98f84ed30412e936fd20a2936fa71d9c23e4635d6a88ffa8198fefa3f067
+  Compiled from "BulkWb.java"
+final class wg.bench.BulkWb$TL
+  minor version: 0
+  major version: 65
+  flags: (0x0030) ACC_FINAL, ACC_SUPER
+  this_class: #2                          // wg/bench/BulkWb$TL
+  super_class: #4                         // java/lang/Object
+  interfaces: 0, fields: 9, methods: 1, attributes: 3
+Constant pool:
+   #1 = Utf8               wg/bench/BulkWb$TL
+   #2 = Class              #1             // wg/bench/BulkWb$TL
+   #3 = Utf8               java/lang/Object
+   #4 = Class              #3             // java/lang/Object
+   #5 = Utf8               BulkWb.java
+   #6 = Utf8               wg/bench/BulkWb
+   #7 = Class              #6             // wg/bench/BulkWb
+   #8 = Utf8               TL
+   #9 = Utf8               scratch
+  #10 = Utf8               [I
+  #11 = Utf8               stamp
+  #12 = Utf8               localIdx
+  #13 = Utf8               cnt
+  #14 = Utf8               palRaw
+  #15 = Utf8               palStateIds
+  #16 = Utf8               out
+  #17 = Utf8               bb
+  #18 = Utf8               Lio/netty/buffer/ByteBuf;
+  #19 = Utf8               epoch
+  #20 = Utf8               I
+  #21 = Utf8               <init>
+  #22 = Utf8               ()V
+  #23 = NameAndType        #21:#22        // "<init>":()V
+  #24 = Methodref          #4.#23         // java/lang/Object."<init>":()V
+  #25 = NameAndType        #9:#10         // scratch:[I
+  #26 = Fieldref           #2.#25         // wg/bench/BulkWb$TL.scratch:[I
+  #27 = NameAndType        #11:#10        // stamp:[I
+  #28 = Fieldref           #2.#27         // wg/bench/BulkWb$TL.stamp:[I
+  #29 = NameAndType        #12:#10        // localIdx:[I
+  #30 = Fieldref           #2.#29         // wg/bench/BulkWb$TL.localIdx:[I
+  #31 = NameAndType        #13:#10        // cnt:[I
+  #32 = Fieldref           #2.#31         // wg/bench/BulkWb$TL.cnt:[I
+  #33 = NameAndType        #14:#10        // palRaw:[I
+  #34 = Fieldref           #2.#33         // wg/bench/BulkWb$TL.palRaw:[I
+  #35 = NameAndType        #15:#10        // palStateIds:[I
+  #36 = Fieldref           #2.#35         // wg/bench/BulkWb$TL.palStateIds:[I
+  #37 = NameAndType        #16:#10        // out:[I
+  #38 = Fieldref           #2.#37         // wg/bench/BulkWb$TL.out:[I
+  #39 = Utf8               io/netty/buffer/Unpooled
+  #40 = Class              #39            // io/netty/buffer/Unpooled
+  #41 = Utf8               buffer
+  #42 = Utf8               (I)Lio/netty/buffer/ByteBuf;
+  #43 = NameAndType        #41:#42        // buffer:(I)Lio/netty/buffer/ByteBuf;
+  #44 = Methodref          #40.#43        // io/netty/buffer/Unpooled.buffer:(I)Lio/netty/buffer/ByteBuf;
+  #45 = NameAndType        #17:#18        // bb:Lio/netty/buffer/ByteBuf;
+  #46 = Fieldref           #2.#45         // wg/bench/BulkWb$TL.bb:Lio/netty/buffer/ByteBuf;
+  #47 = NameAndType        #19:#20        // epoch:I
+  #48 = Fieldref           #2.#47         // wg/bench/BulkWb$TL.epoch:I
+  #49 = Utf8               this
+  #50 = Utf8               Lwg/bench/BulkWb$TL;
+  #51 = Utf8               Code
+  #52 = Utf8               LineNumberTable
+  #53 = Utf8               LocalVariableTable
+  #54 = Utf8               InnerClasses
+  #55 = Utf8               SourceFile
+  #56 = Utf8               NestHost
+{
+  final int[] scratch;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] stamp;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] localIdx;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] cnt;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] palRaw;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] palStateIds;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final int[] out;
+    descriptor: [I
+    flags: (0x0010) ACC_FINAL
+
+  final io.netty.buffer.ByteBuf bb;
+    descriptor: Lio/netty/buffer/ByteBuf;
+    flags: (0x0010) ACC_FINAL
+
+  int epoch;
+    descriptor: I
+    flags: (0x0000)
+
+  private wg.bench.BulkWb$TL();
+    descriptor: ()V
+    flags: (0x0002) ACC_PRIVATE
+    Code:
+      stack=2, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #24                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: sipush        4096
+         8: newarray       int
+        10: putfield      #26                 // Field scratch:[I
+        13: aload_0
+        14: sipush        4096
+        17: newarray       int
+        19: putfield      #28                 // Field stamp:[I
+        22: aload_0
+        23: sipush        4096
+        26: newarray       int
+        28: putfield      #30                 // Field localIdx:[I
+        31: aload_0
+        32: sipush        4096
+        35: newarray       int
+        37: putfield      #32                 // Field cnt:[I
+        40: aload_0
+        41: sipush        4096
+        44: newarray       int
+        46: putfield      #34                 // Field palRaw:[I
+        49: aload_0
+        50: sipush        4096
+        53: newarray       int
+        55: putfield      #36                 // Field palStateIds:[I
+        58: aload_0
+        59: iconst_4
+        60: newarray       int
+        62: putfield      #38                 // Field out:[I
+        65: aload_0
+        66: sipush        8192
+        69: invokestatic  #44                 // Method io/netty/buffer/Unpooled.buffer:(I)Lio/netty/buffer/ByteBuf;
+        72: putfield      #46                 // Field bb:Lio/netty/buffer/ByteBuf;
+        75: aload_0
+        76: iconst_0
+        77: putfield      #48                 // Field epoch:I
+        80: return
+      LineNumberTable:
+        line 113: 0
+        line 114: 4
+        line 115: 13
+        line 116: 22
+        line 117: 31
+        line 118: 40
+        line 119: 49
+        line 120: 58
+        line 121: 65
+        line 122: 75
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      81     0  this   Lwg/bench/BulkWb$TL;
+}
+InnerClasses:
+  private static final #8= #2 of #7;      // TL=class wg/bench/BulkWb$TL of class wg/bench/BulkWb
+SourceFile: "BulkWb.java"
+NestHost: class wg/bench/BulkWb

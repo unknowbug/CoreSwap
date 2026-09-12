@@ -1,0 +1,138 @@
+Compiled from "PalettedContainer.java"
+final class net.minecraft.world.chunk.PalettedContainer$Data<T> extends java.lang.Record {
+  private final net.minecraft.world.chunk.PalettedContainer$DataProvider<T> configuration;
+
+  final net.minecraft.util.collection.PaletteStorage storage;
+
+  final net.minecraft.world.chunk.Palette<T> palette;
+
+  net.minecraft.world.chunk.PalettedContainer$Data(net.minecraft.world.chunk.PalettedContainer$DataProvider<T>, net.minecraft.util.collection.PaletteStorage, net.minecraft.world.chunk.Palette<T>);
+    Code:
+         0: aload_0
+         1: invokespecial #31                 // Method java/lang/Record."<init>":()V
+         4: aload_0
+         5: aload_1
+         6: putfield      #33                 // Field configuration:Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+         9: aload_0
+        10: aload_2
+        11: putfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+        14: aload_0
+        15: aload_3
+        16: putfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+        19: return
+
+  public void importFrom(net.minecraft.world.chunk.Palette<T>, net.minecraft.util.collection.PaletteStorage);
+    Code:
+         0: iconst_0
+         1: istore_3
+         2: iload_3
+         3: aload_2
+         4: invokeinterface #49,  1           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getSize:()I
+         9: if_icmpge     54
+        12: aload_1
+        13: aload_2
+        14: iload_3
+        15: invokeinterface #53,  2           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.get:(I)I
+        20: invokeinterface #58,  2           // InterfaceMethod net/minecraft/world/chunk/Palette.get:(I)Ljava/lang/Object;
+        25: astore        4
+        27: aload_0
+        28: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+        31: iload_3
+        32: aload_0
+        33: getfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+        36: aload         4
+        38: invokeinterface #62,  2           // InterfaceMethod net/minecraft/world/chunk/Palette.index:(Ljava/lang/Object;)I
+        43: invokeinterface #66,  3           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.set:(II)V
+        48: iinc          3, 1
+        51: goto          2
+        54: return
+
+  public int getPacketSize();
+    Code:
+         0: iconst_1
+         1: aload_0
+         2: getfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+         5: invokeinterface #74,  1           // InterfaceMethod net/minecraft/world/chunk/Palette.getPacketSize:()I
+        10: iadd
+        11: aload_0
+        12: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+        15: invokeinterface #78,  1           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getData:()[J
+        20: arraylength
+        21: bipush        8
+        23: imul
+        24: iadd
+        25: ireturn
+
+  public void writePacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+         5: invokeinterface #84,  1           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getElementBits:()I
+        10: invokevirtual #90                 // Method net/minecraft/network/PacketByteBuf.writeByte:(I)Lnet/minecraft/network/PacketByteBuf;
+        13: pop
+        14: aload_0
+        15: getfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+        18: aload_1
+        19: invokeinterface #92,  2           // InterfaceMethod net/minecraft/world/chunk/Palette.writePacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        24: aload_1
+        25: aload_0
+        26: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+        29: invokeinterface #78,  1           // InterfaceMethod net/minecraft/util/collection/PaletteStorage.getData:()[J
+        34: invokevirtual #96                 // Method net/minecraft/network/PacketByteBuf.writeFixedLengthLongArray:([J)Lnet/minecraft/network/PacketByteBuf;
+        37: pop
+        38: return
+
+  public net.minecraft.world.chunk.PalettedContainer$Data<T> copy(net.minecraft.world.chunk.PaletteResizeListener<T>);
+    Code:
+         0: new           #2                  // class net/minecraft/world/chunk/PalettedContainer$Data
+         3: dup
+         4: aload_0
+         5: getfield      #33                 // Field configuration:Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+         8: aload_0
+         9: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+        12: invokeinterface #104,  1          // InterfaceMethod net/minecraft/util/collection/PaletteStorage.copy:()Lnet/minecraft/util/collection/PaletteStorage;
+        17: aload_0
+        18: getfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+        21: aload_1
+        22: invokeinterface #107,  2          // InterfaceMethod net/minecraft/world/chunk/Palette.copy:(Lnet/minecraft/world/chunk/PaletteResizeListener;)Lnet/minecraft/world/chunk/Palette;
+        27: invokespecial #109                // Method "<init>":(Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;Lnet/minecraft/util/collection/PaletteStorage;Lnet/minecraft/world/chunk/Palette;)V
+        30: areturn
+
+  public final java.lang.String toString();
+    Code:
+         0: aload_0
+         1: invokedynamic #128,  0            // InvokeDynamic #0:toString:(Lnet/minecraft/world/chunk/PalettedContainer$Data;)Ljava/lang/String;
+         6: areturn
+
+  public final int hashCode();
+    Code:
+         0: aload_0
+         1: invokedynamic #132,  0            // InvokeDynamic #0:hashCode:(Lnet/minecraft/world/chunk/PalettedContainer$Data;)I
+         6: ireturn
+
+  public final boolean equals(java.lang.Object);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokedynamic #137,  0            // InvokeDynamic #0:equals:(Lnet/minecraft/world/chunk/PalettedContainer$Data;Ljava/lang/Object;)Z
+         7: ireturn
+
+  public net.minecraft.world.chunk.PalettedContainer$DataProvider<T> configuration();
+    Code:
+         0: aload_0
+         1: getfield      #33                 // Field configuration:Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+         4: areturn
+
+  public net.minecraft.util.collection.PaletteStorage storage();
+    Code:
+         0: aload_0
+         1: getfield      #35                 // Field storage:Lnet/minecraft/util/collection/PaletteStorage;
+         4: areturn
+
+  public net.minecraft.world.chunk.Palette<T> palette();
+    Code:
+         0: aload_0
+         1: getfield      #37                 // Field palette:Lnet/minecraft/world/chunk/Palette;
+         4: areturn
+}

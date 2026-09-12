@@ -27,7 +27,11 @@ import wg.bench.mixin.ChunkSectionAccessor;
  *       我们自己构造 buffer（storage longs 整段打包），反而**连 per-position 容器写都省掉**。</li>
  *   <li><b>buffer 契约</b>（{@code readPacket} 逐字节）：{@code byte 请求位宽} →
  *       palette 段（0：{@code VarInt rawStateId}；1..8：{@code VarInt size} + {@code size×VarInt rawStateId}；
- *       ≥9：**无字节**）→ {@code writeLongArray(storage.getData())}（带 VarInt 长度前缀）。</li>
+ *       ≥9：**无字节**）→ storage 段（**分版本帧**，260912-02 F1 修正：1.20.1 = {@code writeLongArray}
+ *       **带 VarInt 长度前缀**，配同版 {@code readLongArray(long[])}；1.21.6 = {@code writeFixedLengthLongArray}
+ *       **定长、无前缀**，配同版 {@code readFixedLengthLongArray(long[])}——两者 {@code readPacket} 指令偏移
+ *       逐条相同，唯一差异即此调用，字节码级证据见
+ *       {@code .investigations/shared-java-core-260912-02/evidence/A1-*.txt}）。缝 = {@link WgCompat#writeStorageLongs}。</li>
  *   <li><b>storage 值域/位宽</b>（{@code BLOCK_STATE.createDataProvider} 的 switch，{@code :420-430}）：
  *       0→无；1..4→**恒 4 位**、**局部索引**；5..8→请求位宽、**局部索引**；
  *       ≥9→{@code ceilLog2(Block.STATE_IDS.size())}、**全局 state id**。Java 必须自复刻这 6 行 switch
@@ -244,7 +248,7 @@ public final class BulkWb {
         pb.writeByte(bits);
         if (bits == 0) {
             pb.writeVarInt(stateRawId(tl.palRaw[0]));
-            pb.writeLongArray(EMPTY_LONGS);
+            WgCompat.writeStorageLongs(pb, EMPTY_LONGS);
         } else {
             // ARRAY 恒 4 位（:425）；BI_MAP 用请求位宽（:426）；ID_LIST 用全局 state id 域位宽（:427）
             int storageBits = idList ? MathHelper.ceilLog2(Block.STATE_IDS.size())
@@ -259,7 +263,7 @@ public final class BulkWb {
                 pb.writeVarInt(distinct);
                 for (int k = 0; k < distinct; k++) pb.writeVarInt(stateRawId(tl.palRaw[k]));
             }
-            pb.writeLongArray(pa.getData());
+            WgCompat.writeStorageLongs(pb, pa.getData());
         }
 
         long tRead0 = LOG ? System.nanoTime() : 0L;

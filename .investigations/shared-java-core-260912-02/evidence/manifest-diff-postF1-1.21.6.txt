@@ -1,0 +1,23 @@
+# V1 jar 条目级对拍（CoreSwap 共享 Java 适配核抽取 260912-01）
+# pre  = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\manifest-post4-1.21.6.tsv  jar_sha256=772d7a6ed0bbdbfc319ed35b8df642052069b3443ab9359ceec999c9c5eace5b entries=1803 classes=59 non_meta=1802
+# post = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\manifest-postF1-1.21.6.tsv  jar_sha256=e29f854ebdd73d87b6a5cb177be6c55275315572913293d809d252040f3de460 entries=1803 classes=59 non_meta=1802
+# expect_patterns = ['wg/bench/(BulkWb|WgCompat)']
+
+相同条目 = 1800
+差异条目 = 3（预期 3 / 非预期 0）
+新增条目 = 0
+删除条目 = 0
+
+## 差异明细（全量，逐条归类）
+[EXPECTED] wg/bench/BulkWb$TL.class
+    pre =a04e98f84ed30412e936fd20a2936fa71d9c23e4635d6a88ffa8198fefa3f067
+    post=331ca7bb76440b1b08d9a315b9c96a42e5f41f56efc714344739c32480990e95
+[EXPECTED] wg/bench/BulkWb.class
+    pre =1a7595b32807a302d02a662ecd096a7dcc2f1673d3ad41ecf0a5a2bb17aa751d
+    post=cd2eccc02acf6a3813e2e281583d8355b1039e10804ef941eb9ab733c85f970e
+[EXPECTED] wg/bench/WgCompat.class
+    pre =0a64c1957e03a7d0fb8ad9459df713d7ab1b0d5b75e45a12e2cc2cf63cb60ac7
+    post=e936f7223ec8b6eac9cf102093b121a418eebd35d19480d69bb0e19adf8dd2af
+
+## 结论
+V1 verdict = PASS（无非预期差异）

@@ -1,0 +1,44 @@
+Compiled from "PalettedContainer.java"
+class net.minecraft.world.chunk.PalettedContainer$PaletteProvider$2 extends net.minecraft.world.chunk.PalettedContainer$PaletteProvider {
+  net.minecraft.world.chunk.PalettedContainer$PaletteProvider$2(int);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: invokespecial #21                 // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider."<init>":(I)V
+         5: return
+
+  public <A> net.minecraft.world.chunk.PalettedContainer$DataProvider<A> createDataProvider(net.minecraft.util.collection.IndexedIterable<A>, int);
+    Code:
+         0: iload_2
+         1: tableswitch   { // 0 to 3
+
+                       0: 32
+
+                       1: 46
+
+                       2: 46
+
+                       3: 46
+                 default: 60
+            }
+        32: new           #10                 // class net/minecraft/world/chunk/PalettedContainer$DataProvider
+        35: dup
+        36: getstatic     #33                 // Field SINGULAR:Lnet/minecraft/world/chunk/Palette$Factory;
+        39: iload_2
+        40: invokespecial #36                 // Method net/minecraft/world/chunk/PalettedContainer$DataProvider."<init>":(Lnet/minecraft/world/chunk/Palette$Factory;I)V
+        43: goto          79
+        46: new           #10                 // class net/minecraft/world/chunk/PalettedContainer$DataProvider
+        49: dup
+        50: getstatic     #39                 // Field ARRAY:Lnet/minecraft/world/chunk/Palette$Factory;
+        53: iload_2
+        54: invokespecial #36                 // Method net/minecraft/world/chunk/PalettedContainer$DataProvider."<init>":(Lnet/minecraft/world/chunk/Palette$Factory;I)V
+        57: goto          79
+        60: new           #10                 // class net/minecraft/world/chunk/PalettedContainer$DataProvider
+        63: dup
+        64: getstatic     #44                 // Field net/minecraft/world/chunk/PalettedContainer$PaletteProvider.ID_LIST:Lnet/minecraft/world/chunk/Palette$Factory;
+        67: aload_1
+        68: invokeinterface #48,  1           // InterfaceMethod net/minecraft/util/collection/IndexedIterable.size:()I
+        73: invokestatic  #54                 // Method net/minecraft/util/math/MathHelper.ceilLog2:(I)I
+        76: invokespecial #36                 // Method net/minecraft/world/chunk/PalettedContainer$DataProvider."<init>":(Lnet/minecraft/world/chunk/Palette$Factory;I)V
+        79: areturn
+}

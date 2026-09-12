@@ -1,0 +1,505 @@
+Starting a Gradle Daemon, 1 stopped Daemon could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[16:28:02] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.21.6 with Fabric Loader 0.16.14
+[16:28:02] [main/INFO] (FabricLoader) Loading 42 mods:
+	- chunky 1.4.40
+	- coreswap1216 1.21.6-0.1.0
+	- fabric-api 0.127.0+1.21.6
+	- fabric-api-base 0.4.63+9ec45cd89c
+	- fabric-api-lookup-api-v1 1.6.99+9ec45cd89c
+	- fabric-biome-api-v1 16.0.10+fa6cb72b9c
+	- fabric-block-api-v1 1.1.2+78dbe4fb9c
+	- fabric-block-view-api-v2 1.0.30+d32f812d9c
+	- fabric-command-api-v2 2.2.52+b39a696a9c
+	- fabric-content-registries-v0 10.0.17+fa6cb72b9c
+	- fabric-convention-tags-v1 2.1.37+7f945d5b9c
+	- fabric-convention-tags-v2 2.15.2+d9a896309c
+	- fabric-crash-report-info-v1 0.3.14+fa6cb72b9c
+	- fabric-data-attachment-api-v1 1.8.8+d9a896309c
+	- fabric-data-generation-api-v1 23.2.0+a12c79229c
+	- fabric-dimensions-v1 4.0.18+75fa737a9c
+	- fabric-entity-events-v1 2.1.0+c9e472739c
+	- fabric-events-interaction-v0 4.0.22+0d4d74479c
+	- fabric-game-rule-api-v1 1.0.71+9ec45cd89c
+	- fabric-gametest-api-v1 3.1.8+39ce47f59c
+	- fabric-item-api-v1 11.4.2+5e29f1899c
+	- fabric-item-group-api-v1 4.2.12+9ec45cd89c
+	- fabric-lifecycle-events-v1 2.6.2+db4dfd859c
+	- fabric-loot-api-v2 3.0.54+3f89f5a59c
+	- fabric-loot-api-v3 2.0.1+f40817309c
+	- fabric-message-api-v1 6.1.0+8efa0e499c
+	- fabric-networking-api-v1 5.0.0+d32f812d9c
+	- fabric-object-builder-api-v1 21.1.5+946cf7899c
+	- fabric-particles-v1 4.1.6+c1dce2189c
+	- fabric-recipe-api-v1 8.1.13+39ce47f59c
+	- fabric-registry-sync-v0 6.1.25+9ec45cd89c
+	- fabric-rendering-fluids-v1 3.1.29+fa6cb72b9c
+	- fabric-resource-conditions-api-v1 5.0.23+908cbc919c
+	- fabric-resource-loader-v0 3.1.10+fa6cb72b9c
+	- fabric-screen-handler-api-v1 1.3.134+d32f812d9c
+	- fabric-tag-api-v1 1.2.0+75110b049c
+	- fabric-transfer-api-v1 6.0.4+074c84ee9c
+	- fabric-transitive-access-wideners-v1 6.4.0+ac3e15d19c
+	- fabricloader 0.16.14
+	- java 21
+	- minecraft 1.21.6
+	- mixinextras 0.4.1
+[16:28:05] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/E:/PYTHON/CoreSwap/.gradle-home/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.15.5+mixin.0.8.7/22f9eb729e216a091673a574a5906dc1b9027fb3/sponge-mixin-0.15.5+mixin.0.8.7.jar Service=Knot/Fabric Env=SERVER
+[16:28:05] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[16:28:05] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[16:28:05] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[16:28:06] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.4.1).
+[16:28:07] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:28:07] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:28:07] [main/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:28:13] [main/INFO] (Minecraft) Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[16:28:14] [main/INFO] (Minecraft) No existing world data, creating new world
+[16:28:15] [main/INFO] (Minecraft) Loaded 1407 recipes
+[16:28:15] [main/INFO] (Minecraft) Loaded 1520 advancements
+[16:28:15] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 65 new biomes in 1.334 ms
+[16:28:15] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.21.6
+[16:28:15] [Server thread/INFO] (Minecraft) Loading properties
+[16:28:15] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[16:28:15] [Server thread/INFO] (Minecraft) Generating keypair
+[16:28:15] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[16:28:15] [Server thread/INFO] (Minecraft) Using default channel type
+[16:28:15] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[16:28:15] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[16:28:15] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[16:28:15] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[16:28:15] [Server thread/INFO] (Minecraft) Preparing level "world"
+[16:28:17] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[16:28:17] [Worker-Main-5/INFO] (Minecraft) Preparing spawn area: 2%
+[16:28:18] [Worker-Main-4/INFO] (Minecraft) Preparing spawn area: 2%
+[16:28:18] [Worker-Main-16/INFO] (Minecraft) Preparing spawn area: 18%
+[16:28:19] [Worker-Main-6/INFO] (Minecraft) Preparing spawn area: 51%
+[16:28:19] [Server thread/INFO] (Minecraft) Time elapsed: 1872 ms
+[16:28:19] [Server thread/INFO] (Minecraft) Done (3.987s)! For help, type "help"
+[16:28:19] [Server thread/INFO] (Minecraft) Starting remote control listener
+[16:28:19] [Server thread/INFO] (Minecraft) Thread RCON Listener started
+[16:28:19] [Server thread/INFO] (Minecraft) RCON running on 0.0.0.0:25575
+[16:28:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[16:28:20] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+[16:28:20] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initNether seed=417950215108767439 enabled=true stageMask=3
+[16:28:20] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initEnd seed=417950215108767439 enabled=true stageMask=3
+[16:28:20] [Server thread/INFO] (Minecraft) [STDOUT]: [BenchMod] CoreSwap replace mode: C++ worldgen active
+[16:29:19] [Server thread/INFO] (Minecraft) Server empty for 60 seconds, pausing
+[16:30:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:30:23] [RCON Client /127.0.0.1 #2/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:30:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:30:23] [RCON Client /127.0.0.1 #3/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:30:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:30:23] [RCON Client /127.0.0.1 #4/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:30:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:30:23] [RCON Client /127.0.0.1 #5/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:30:23] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:30:23] [RCON Client /127.0.0.1 #6/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-4)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-3)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-2)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-1)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,0)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-4)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-3)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-2)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-1)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,0)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-4)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-3)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-2)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-1)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,0)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-4)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-3)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-2)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-1)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,0)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-4)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-3)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-2)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-1)
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,0)
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-3) hash=32ee3c79c5a8da8c nz=32512
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-3) hash=735109f10711f375 nz=32512
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-4) hash=bcc5405866f8dbc nz=32512
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-2) hash=8d00db3f7dc0ff6e nz=32512
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] PASS distinct=1 (readback 4096 positions; SINGULAR branch)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] state_ids_size=27946 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,-3): java.lang.AssertionError: [WG-BULKWB-TEST] FAIL branch distinct=3 i=0 got=Block{minecraft:granite} want=Block{minecraft:stone}
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,1)
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,1)
+[16:30:24] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-1) hash=b8fa1499a90ec58c nz=32512
+[16:30:24] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-2) hash=147f4c400929b26c nz=32122
+[16:30:24] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-4) hash=c5d7ebd85d6ca23e nz=32512
+[16:30:24] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-3) hash=bcd8ae48f1341da4 nz=32453
+[16:30:24] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-3) hash=38d9b29a38125f96 nz=32399
+[16:30:24] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,0) hash=38a4f6ae8349889c nz=30223
+[16:30:24] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,0) hash=6c4c2dff4d8a5195 nz=28931
+[16:30:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-2) hash=b2ce38e4e8d5400f nz=31179
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-1) hash=e710d2bb92f1fa84 nz=32512
+[16:30:24] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-4) hash=5aa7650d81f5ce1e nz=32512
+[16:30:24] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-2) hash=7bb4166e49f00b87 nz=30510
+[16:30:24] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-3) hash=8e8af5ceadb7abfe nz=32136
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,0) hash=8ffcde8af0217d87 nz=32428
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-1) hash=9cae1ed8a9759d8e nz=30455
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-1) hash=4c650b550602db1d nz=30223
+[16:30:24] [Worker-Main-24/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,0) hash=22fc428d477abc84 nz=32512
+[16:30:24] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-2) hash=7d649ae47f9b55e5 nz=32512
+[16:30:24] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-4) hash=1f46af131abefb44 nz=32512
+[16:30:24] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-4) hash=e93802381de8c3ae nz=32512
+[16:30:24] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,2)
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,2)
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,2)
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,2)
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,2)
+[16:30:24] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-4)
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-3)
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-2)
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-1)
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,0)
+[16:30:24] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-24/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-1) hash=70f2b8d43eaa22dd nz=32388
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,1)
+[16:30:24] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,2)
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-4)
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-3)
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-2)
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-1)
+[16:30:24] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,0)
+[16:30:24] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,0) hash=bdfcc53c3c10bc2e nz=32512
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,1)
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,1) hash=bb3bf2c2dd1f9fbd nz=31458
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,1) hash=67f1142a1d1269d5 nz=32362
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-4)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-3)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,0)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-4)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-3)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,0)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-4)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-3)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,0)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-4)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-3)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,0)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-4)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-3)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-2)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-1)
+[16:30:24] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,0)
+[16:30:24] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,1) hash=4dfa95a9ea89b12d nz=32512
+[16:30:24] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,1) hash=4762234f01043404 nz=31848
+[16:30:24] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-4) hash=4b78057d5c4952e7 nz=32512
+[16:30:24] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,1) hash=d0f1430c924c1e6c nz=32038
+[16:30:24] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-2) hash=c39089148dd9bf9c nz=32512
+[16:30:24] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,2) hash=f88dd2f60945acce nz=32512
+[16:30:24] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-5,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-10/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,2) hash=117f23933a13ef77 nz=32512
+[16:30:24] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-3) hash=7748cc3475bbb70c nz=32189
+[16:30:24] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-6,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+[16:30:24] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,2) hash=e754aa3366b08957 nz=32512
+[16:30:24] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-4,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,0) hash=98fa676aefc32e94 nz=32512
+[16:30:24] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-1) hash=1015560d430cd0c nz=30494
+[16:30:24] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,2) hash=91e62e7e5c2de75d nz=32390
+[16:30:24] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-3,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-24/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-2) hash=7f220f360add2a37 nz=31295
+[16:30:24] [Worker-Main-24/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,-2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-1) hash=3b8d508aa7593525 nz=31894
+[16:30:24] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,-1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-3) hash=9a5e77515c4b3325 nz=32512
+[16:30:24] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-4) hash=8c46ba0c9fabd1e nz=31908
+[16:30:24] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,-3): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,-4): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,2) hash=32eccec8a0747476 nz=32199
+[16:30:24] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-2,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,1) hash=7599091647654b6e nz=32512
+[16:30:24] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,2) hash=7108d9d245f69d55 nz=32512
+[16:30:24] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(-1,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,0) hash=e2ea5b2e5a024414 nz=32505
+[16:30:24] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,0): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-10/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,1) hash=d007f1339d6d94b5 nz=32512
+[16:30:24] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,1): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,2) hash=f261d8c4e64fa783 nz=32422
+[16:30:24] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [CppBridge] DIAG write threw chunk(0,2): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
+[16:30:24] [Worker-Main-10/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+---- Minecraft Crash Report ----
+// Uh... Did I do that?
+
+Time: 2026-09-12 16:30:24
+Description: Exception generating new chunk
+
+net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+	at knot//net.minecraft.world.chunk.ArrayPalette.get(ArrayPalette.java:76)
+	at knot//net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:163)
+	at knot//net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:157)
+	at knot//net.minecraft.world.chunk.ChunkSection.getBlockState(ChunkSection.java:51)
+	at knot//net.minecraft.world.chunk.ProtoChunk.getBlockState(ProtoChunk.java:109)
+	at knot//net.minecraft.world.gen.carver.Carver.carveAtPoint(Carver.java:133)
+	at knot//net.minecraft.world.gen.carver.Carver.carveRegion(Carver.java:123)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:133)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:120)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:59)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:17)
+	at knot//net.minecraft.world.gen.carver.ConfiguredCarver.carve(ConfiguredCarver.java:35)
+	at knot//net.minecraft.world.gen.chunk.NoiseChunkGenerator.carve(NoiseChunkGenerator.java:281)
+	at knot//net.minecraft.world.chunk.ChunkGenerating.carve(ChunkGenerating.java:97)
+	at knot//net.minecraft.world.chunk.ChunkGenerationStep.run(ChunkGenerationStep.java:33)
+	at knot//net.minecraft.server.world.ServerChunkLoadingManager.generate(ServerChunkLoadingManager.java:661)
+	at knot//net.minecraft.world.chunk.AbstractChunkHolder.generate(AbstractChunkHolder.java:101)
+	at knot//net.minecraft.world.chunk.ChunkLoader.load(ChunkLoader.java:148)
+	at knot//net.minecraft.world.chunk.ChunkLoader.loadAll(ChunkLoader.java:125)
+	at knot//net.minecraft.world.chunk.ChunkLoader.loadNextStatus(ChunkLoader.java:76)
+	at knot//net.minecraft.world.chunk.ChunkLoader.run(ChunkLoader.java:61)
+	at knot//net.minecraft.server.world.ServerChunkLoadingManager.method_60446(ServerChunkLoadingManager.java:695)
+	at knot//net.minecraft.server.world.ChunkTaskScheduler.method_63554(ChunkTaskScheduler.java:88)
+	at knot//net.minecraft.util.thread.TaskExecutor.method_63604(TaskExecutor.java:21)
+	at knot//net.minecraft.util.Util.runInNamedZone(Util.java:297)
+	at knot//net.minecraft.util.thread.ConsecutiveExecutor.runOnce(ConsecutiveExecutor.java:50)
+	at knot//net.minecraft.util.thread.ConsecutiveExecutor.run(ConsecutiveExecutor.java:62)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1423)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+
+A detailed walkthrough of the error, its code path and all known details is as follows:
+---------------------------------------------------------------------------------------
+
+-- Head --
+Thread: Worker-Main-10
+Stacktrace:
+	at knot//net.minecraft.world.chunk.ArrayPalette.get(ArrayPalette.java:76)
+	at knot//net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:163)
+	at knot//net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:157)
+	at knot//net.minecraft.world.chunk.ChunkSection.getBlockState(ChunkSection.java:51)
+	at knot//net.minecraft.world.chunk.ProtoChunk.getBlockState(ProtoChunk.java:109)
+	at knot//net.minecraft.world.gen.carver.Carver.carveAtPoint(Carver.java:133)
+	at knot//net.minecraft.world.gen.carver.Carver.carveRegion(Carver.java:123)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:133)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:120)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:59)
+	at knot//net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:17)
+	at knot//net.minecraft.world.gen.carver.ConfiguredCarver.carve(ConfiguredCarver.java:35)
+	at knot//net.minecraft.world.gen.chunk.NoiseChunkGenerator.carve(NoiseChunkGenerator.java:281)
+	at knot//net.minecraft.world.chunk.ChunkGenerating.carve(ChunkGenerating.java:97)
+	at knot//net.minecraft.world.chunk.ChunkGenerationStep.run(ChunkGenerationStep.java:33)
+
+-- Chunk to be generated --
+Details:
+	Status being generated: minecraft:carvers
+	Location: -4,-2
+	Position hash: -4294967300
+	Generator: net.minecraft.world.gen.chunk.NoiseChunkGenerator@5c873d76
+Stacktrace:
+	at knot//net.minecraft.server.world.ServerChunkLoadingManager.generate(ServerChunkLoadingManager.java:661)
+	at knot//net.minecraft.world.chunk.AbstractChunkHolder.generate(AbstractChunkHolder.java:101)
+	at knot//net.minecraft.world.chunk.ChunkLoader.load(ChunkLoader.java:148)
+	at knot//net.minecraft.world.chunk.ChunkLoader.loadAll(ChunkLoader.java:125)
+	at knot//net.minecraft.world.chunk.ChunkLoader.loadNextStatus(ChunkLoader.java:76)
+	at knot//net.minecraft.world.chunk.ChunkLoader.run(ChunkLoader.java:61)
+	at knot//net.minecraft.server.world.ServerChunkLoadingManager.method_60446(ServerChunkLoadingManager.java:695)
+	at knot//net.minecraft.server.world.ChunkTaskScheduler.method_63554(ChunkTaskScheduler.java:88)
+	at knot//net.minecraft.util.thread.TaskExecutor.method_63604(TaskExecutor.java:21)
+	at knot//net.minecraft.util.Util.runInNamedZone(Util.java:297)
+	at knot//net.minecraft.util.thread.ConsecutiveExecutor.runOnce(ConsecutiveExecutor.java:50)
+	at knot//net.minecraft.util.thread.ConsecutiveExecutor.run(ConsecutiveExecutor.java:62)
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1423)
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387)
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312)
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843)
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808)
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188)
+
+-- System Details --
+Details:
+	Minecraft Version: 1.21.6
+	Minecraft Version ID: 1.21.6
+	Operating System: Windows 11 (amd64) version 10.0
+	Java Version: 21.0.1, Oracle Corporation
+	Java VM Version: Java HotSpot(TM) 64-Bit Server VM (mixed mode, sharing), Oracle Corporation
+	Memory: 548562400 bytes (523 MiB) / 905969664 bytes (864 MiB) up to 12700352512 bytes (12112 MiB)
+	CPUs: 24
+	Processor Vendor: AuthenticAMD
+	Processor Name: AMD Ryzen 9 7845HX with Radeon Graphics        
+	Identifier: AuthenticAMD Family 25 Model 97 Stepping 2
+	Microarchitecture: Zen 3
+	Frequency (GHz): 2.99
+	Number of physical packages: 1
+	Number of physical CPUs: 12
+	Number of logical CPUs: 24
+	Graphics card #0 name: AMD Radeon(TM) Graphics
+	Graphics card #0 vendor: Advanced Micro Devices, Inc.
+	Graphics card #0 VRAM (MiB): 512.00
+	Graphics card #0 deviceId: VideoController1
+	Graphics card #0 versionInfo: 32.0.21045.5002
+	Graphics card #1 name: NVIDIA GeForce RTX 4060 Laptop GPU
+	Graphics card #1 vendor: NVIDIA
+	Graphics card #1 VRAM (MiB): 8188.00
+	Graphics card #1 deviceId: VideoController2
+	Graphics card #1 versionInfo: 32.0.16.1692
+	Virtual memory max (MiB): 97572.03
+	Virtual memory used (MiB): 45091.04
+	Swap memory total (MiB): 49152.00
+	Swap memory used (MiB): 447.82
+	Space in storage for jna.tmpdir (MiB): <path not set>
+	Space in storage for org.lwjgl.system.SharedLibraryExtractPath (MiB): <path not set>
+	Space in storage for io.netty.native.workdir (MiB): <path not set>
+	Space in storage for java.io.tmpdir (MiB): available: 676683.31, total: 1953513.00
+	Space in storage for workdir (MiB): available: 676683.31, total: 1953513.00
+	JVM Flags: 1 total; -XX:ErrorFile=E:/PYTHON/CoreSwap/runtime/1.21.6/java/run/hs_err_%p.log
+	Fabric Mods: 
+		chunky: Chunky 1.4.40
+		coreswap1216: CoreSwap 1.21.6 probe 1.21.6-0.1.0
+		fabric-api: Fabric API 0.127.0+1.21.6
+		fabric-api-base: Fabric API Base 0.4.63+9ec45cd89c
+		fabric-api-lookup-api-v1: Fabric API Lookup API (v1) 1.6.99+9ec45cd89c
+		fabric-biome-api-v1: Fabric Biome API (v1) 16.0.10+fa6cb72b9c
+		fabric-block-api-v1: Fabric Block API (v1) 1.1.2+78dbe4fb9c
+		fabric-block-view-api-v2: Fabric BlockView API (v2) 1.0.30+d32f812d9c
+		fabric-command-api-v2: Fabric Command API (v2) 2.2.52+b39a696a9c
+		fabric-content-registries-v0: Fabric Content Registries (v0) 10.0.17+fa6cb72b9c
+		fabric-convention-tags-v1: Fabric Convention Tags 2.1.37+7f945d5b9c
+		fabric-convention-tags-v2: Fabric Convention Tags (v2) 2.15.2+d9a896309c
+		fabric-crash-report-info-v1: Fabric Crash Report Info (v1) 0.3.14+fa6cb72b9c
+		fabric-data-attachment-api-v1: Fabric Data Attachment API (v1) 1.8.8+d9a896309c
+		fabric-data-generation-api-v1: Fabric Data Generation API (v1) 23.2.0+a12c79229c
+		fabric-dimensions-v1: Fabric Dimensions API (v1) 4.0.18+75fa737a9c
+		fabric-entity-events-v1: Fabric Entity Events (v1) 2.1.0+c9e472739c
+		fabric-events-interaction-v0: Fabric Events Interaction (v0) 4.0.22+0d4d74479c
+		fabric-game-rule-api-v1: Fabric Game Rule API (v1) 1.0.71+9ec45cd89c
+		fabric-gametest-api-v1: Fabric Game Test API (v1) 3.1.8+39ce47f59c
+		fabric-item-api-v1: Fabric Item API (v1) 11.4.2+5e29f1899c
+		fabric-item-group-api-v1: Fabric Item Group API (v1) 4.2.12+9ec45cd89c
+		fabric-lifecycle-events-v1: Fabric Lifecycle Events (v1) 2.6.2+db4dfd859c
+		fabric-loot-api-v2: Fabric Loot API (v2) 3.0.54+3f89f5a59c
+		fabric-loot-api-v3: Fabric Loot API (v3) 2.0.1+f40817309c
+		fabric-message-api-v1: Fabric Message API (v1) 6.1.0+8efa0e499c
+		fabric-networking-api-v1: Fabric Networking API (v1) 5.0.0+d32f812d9c
+		fabric-object-builder-api-v1: Fabric Object Builder API (v1) 21.1.5+946cf7899c
+		fabric-particles-v1: Fabric Particles (v1) 4.1.6+c1dce2189c
+		fabric-recipe-api-v1: Fabric Recipe API (v1) 8.1.13+39ce47f59c
+		fabric-registry-sync-v0: Fabric Registry Sync (v0) 6.1.25+9ec45cd89c
+		fabric-rendering-fluids-v1: Fabric Rendering Fluids (v1) 3.1.29+fa6cb72b9c
+		fabric-resource-conditions-api-v1: Fabric Resource Conditions API (v1) 5.0.23+908cbc919c
+		fabric-resource-loader-v0: Fabric Resource Loader (v0) 3.1.10+fa6cb72b9c
+		fabric-screen-handler-api-v1: Fabric Screen Handler API (v1) 1.3.134+d32f812d9c
+		fabric-tag-api-v1: Fabric Tag API (v1) 1.2.0+75110b049c
+		fabric-transfer-api-v1: Fabric Transfer API (v1) 6.0.4+074c84ee9c
+		fabric-transitive-access-wideners-v1: Fabric Transitive Access Wideners (v1) 6.4.0+ac3e15d19c
+		fabricloader: Fabric Loader 0.16.14
+		java: Java HotSpot(TM) 64-Bit Server VM 21
+		minecraft: Minecraft 1.21.6
+		mixinextras: MixinExtras 0.4.1
+[16:30:24] [Server thread/ERROR] (Minecraft) Error executing task on Chunk source main thread executor for minecraft:overworld
+net.minecraft.util.crash.CrashException: Exception generating new chunk
+	at knot/net.minecraft.server.world.ServerChunkLoadingManager.method_60445(ServerChunkLoadingManager.java:676) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.ThreadExecutor.executeTask(ThreadExecutor.java:164) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ServerChunkManager$MainThreadExecutor.executeTask(ServerChunkManager.java:623) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.ThreadExecutor.runTask(ThreadExecutor.java:138) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ServerChunkManager$MainThreadExecutor.runTask(ServerChunkManager.java:632) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ServerChunkManager.executeQueuedTasks(ServerChunkManager.java:282) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.runOneTask(MinecraftServer.java:871) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.runTask(MinecraftServer.java:859) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.ThreadExecutor.runTasks(ThreadExecutor.java:147) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.runTasks(MinecraftServer.java:823) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.runTasksTillTickEnd(MinecraftServer.java:830) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.runServer(MinecraftServer.java:713) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.MinecraftServer.method_29739(MinecraftServer.java:291) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at java.base/java.lang.Thread.run(Thread.java:1583) [?:?]
+Caused by: net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 8.
+	at knot/net.minecraft.world.chunk.ArrayPalette.get(ArrayPalette.java:76) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:163) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.PalettedContainer.get(PalettedContainer.java:157) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkSection.getBlockState(ChunkSection.java:51) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ProtoChunk.getBlockState(ProtoChunk.java:109) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.Carver.carveAtPoint(Carver.java:133) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.Carver.carveRegion(Carver.java:123) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:133) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.CaveCarver.carveTunnels(CaveCarver.java:120) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:59) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.CaveCarver.carve(CaveCarver.java:17) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.carver.ConfiguredCarver.carve(ConfiguredCarver.java:35) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.gen.chunk.NoiseChunkGenerator.carve(NoiseChunkGenerator.java:281) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkGenerating.carve(ChunkGenerating.java:97) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkGenerationStep.run(ChunkGenerationStep.java:33) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ServerChunkLoadingManager.generate(ServerChunkLoadingManager.java:661) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.AbstractChunkHolder.generate(AbstractChunkHolder.java:101) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkLoader.load(ChunkLoader.java:148) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkLoader.loadAll(ChunkLoader.java:125) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkLoader.loadNextStatus(ChunkLoader.java:76) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.world.chunk.ChunkLoader.run(ChunkLoader.java:61) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ServerChunkLoadingManager.method_60446(ServerChunkLoadingManager.java:695) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.server.world.ChunkTaskScheduler.method_63554(ChunkTaskScheduler.java:88) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.TaskExecutor.method_63604(TaskExecutor.java:21) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.Util.runInNamedZone(Util.java:297) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.ConsecutiveExecutor.runOnce(ConsecutiveExecutor.java:50) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at knot/net.minecraft.util.thread.ConsecutiveExecutor.run(ConsecutiveExecutor.java:62) ~[minecraft-merged-b07cf08c30-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar:?]
+	at java.base/java.util.concurrent.ForkJoinTask$RunnableExecuteAction.exec(ForkJoinTask.java:1423) ~[?:?]
+	at java.base/java.util.concurrent.ForkJoinTask.doExec(ForkJoinTask.java:387) ~[?:?]
+	at java.base/java.util.concurrent.ForkJoinPool$WorkQueue.topLevelExec(ForkJoinPool.java:1312) ~[?:?]
+	at java.base/java.util.concurrent.ForkJoinPool.scan(ForkJoinPool.java:1843) ~[?:?]
+	at java.base/java.util.concurrent.ForkJoinPool.runWorker(ForkJoinPool.java:1808) ~[?:?]
+	at java.base/java.util.concurrent.ForkJoinWorkerThread.run(ForkJoinWorkerThread.java:188) ~[?:?]

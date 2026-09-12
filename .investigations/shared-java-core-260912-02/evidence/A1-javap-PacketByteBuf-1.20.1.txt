@@ -1,0 +1,3475 @@
+Compiled from "PacketByteBuf.java"
+public class net.minecraft.network.PacketByteBuf extends io.netty.buffer.ByteBuf {
+  private static final int MAX_VAR_INT_LENGTH;
+
+  private static final int MAX_VAR_LONG_LENGTH;
+
+  public static final int MAX_READ_NBT_SIZE;
+
+  private final io.netty.buffer.ByteBuf parent;
+
+  public static final short DEFAULT_MAX_STRING_LENGTH;
+
+  public static final int MAX_TEXT_LENGTH;
+
+  private static final int field_39381;
+
+  private static final int field_39382;
+
+  private static final int field_39383;
+
+  private static final com.google.gson.Gson GSON;
+
+  public net.minecraft.network.PacketByteBuf(io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: invokespecial #54                 // Method io/netty/buffer/ByteBuf."<init>":()V
+         4: aload_0
+         5: aload_1
+         6: putfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         9: return
+
+  public static int getVarIntLength(int);
+    Code:
+         0: iconst_1
+         1: istore_1
+         2: iload_1
+         3: iconst_5
+         4: if_icmpge     26
+         7: iload_0
+         8: iconst_m1
+         9: iload_1
+        10: bipush        7
+        12: imul
+        13: ishl
+        14: iand
+        15: ifne          20
+        18: iload_1
+        19: ireturn
+        20: iinc          1, 1
+        23: goto          2
+        26: iconst_5
+        27: ireturn
+
+  public static int getVarLongLength(long);
+    Code:
+         0: iconst_1
+         1: istore_2
+         2: iload_2
+         3: bipush        10
+         5: if_icmpge     31
+         8: lload_0
+         9: ldc2_w        #65                 // long -1l
+        12: iload_2
+        13: bipush        7
+        15: imul
+        16: lshl
+        17: land
+        18: lconst_0
+        19: lcmp
+        20: ifne          25
+        23: iload_2
+        24: ireturn
+        25: iinc          2, 1
+        28: goto          2
+        31: bipush        10
+        33: ireturn
+
+  public <T> T decode(com.mojang.serialization.DynamicOps<net.minecraft.nbt.NbtElement>, com.mojang.serialization.Codec<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #77                 // Method readUnlimitedNbt:()Lnet/minecraft/nbt/NbtCompound;
+         4: astore_3
+         5: aload_2
+         6: aload_1
+         7: aload_3
+         8: invokeinterface #83,  3           // InterfaceMethod com/mojang/serialization/Codec.parse:(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;
+        13: aload_3
+        14: invokedynamic #103,  0            // InvokeDynamic #0:apply:(Lnet/minecraft/nbt/NbtCompound;)Ljava/util/function/Function;
+        19: invokestatic  #109                // Method net/minecraft/util/Util.getResult:(Lcom/mojang/serialization/DataResult;Ljava/util/function/Function;)Ljava/lang/Object;
+        22: areturn
+
+  public <T> void encode(com.mojang.serialization.DynamicOps<net.minecraft.nbt.NbtElement>, com.mojang.serialization.Codec<T>, T);
+    Code:
+         0: aload_2
+         1: aload_1
+         2: aload_3
+         3: invokeinterface #121,  3          // InterfaceMethod com/mojang/serialization/Codec.encodeStart:(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;
+         8: aload_3
+         9: invokedynamic #131,  0            // InvokeDynamic #1:apply:(Ljava/lang/Object;)Ljava/util/function/Function;
+        14: invokestatic  #109                // Method net/minecraft/util/Util.getResult:(Lcom/mojang/serialization/DataResult;Ljava/util/function/Function;)Ljava/lang/Object;
+        17: checkcast     #133                // class net/minecraft/nbt/NbtElement
+        20: astore        4
+        22: aload_0
+        23: aload         4
+        25: checkcast     #135                // class net/minecraft/nbt/NbtCompound
+        28: invokevirtual #139                // Method writeNbt:(Lnet/minecraft/nbt/NbtCompound;)Lnet/minecraft/network/PacketByteBuf;
+        31: pop
+        32: return
+
+  public <T> T decodeAsJson(com.mojang.serialization.Codec<T>);
+    Code:
+         0: getstatic     #148                // Field GSON:Lcom/google/gson/Gson;
+         3: aload_0
+         4: invokevirtual #152                // Method readString:()Ljava/lang/String;
+         7: ldc           #154                // class com/google/gson/JsonElement
+         9: invokestatic  #160                // Method net/minecraft/util/JsonHelper.deserialize:(Lcom/google/gson/Gson;Ljava/lang/String;Ljava/lang/Class;)Ljava/lang/Object;
+        12: checkcast     #154                // class com/google/gson/JsonElement
+        15: astore_2
+        16: aload_1
+        17: getstatic     #166                // Field com/mojang/serialization/JsonOps.INSTANCE:Lcom/mojang/serialization/JsonOps;
+        20: aload_2
+        21: invokeinterface #83,  3           // InterfaceMethod com/mojang/serialization/Codec.parse:(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;
+        26: astore_3
+        27: aload_3
+        28: invokedynamic #173,  0            // InvokeDynamic #2:apply:()Ljava/util/function/Function;
+        33: invokestatic  #109                // Method net/minecraft/util/Util.getResult:(Lcom/mojang/serialization/DataResult;Ljava/util/function/Function;)Ljava/lang/Object;
+        36: areturn
+
+  public <T> void encodeAsJson(com.mojang.serialization.Codec<T>, T);
+    Code:
+         0: aload_1
+         1: getstatic     #166                // Field com/mojang/serialization/JsonOps.INSTANCE:Lcom/mojang/serialization/JsonOps;
+         4: aload_2
+         5: invokeinterface #121,  3          // InterfaceMethod com/mojang/serialization/Codec.encodeStart:(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;
+        10: astore_3
+        11: aload_0
+        12: getstatic     #148                // Field GSON:Lcom/google/gson/Gson;
+        15: aload_3
+        16: aload_2
+        17: invokedynamic #186,  0            // InvokeDynamic #3:apply:(Ljava/lang/Object;)Ljava/util/function/Function;
+        22: invokestatic  #109                // Method net/minecraft/util/Util.getResult:(Lcom/mojang/serialization/DataResult;Ljava/util/function/Function;)Ljava/lang/Object;
+        25: checkcast     #154                // class com/google/gson/JsonElement
+        28: invokevirtual #192                // Method com/google/gson/Gson.toJson:(Lcom/google/gson/JsonElement;)Ljava/lang/String;
+        31: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+        34: pop
+        35: return
+
+  public <T> void writeRegistryValue(net.minecraft.util.collection.IndexedIterable<T>, T);
+    Code:
+         0: aload_1
+         1: aload_2
+         2: invokeinterface #207,  2          // InterfaceMethod net/minecraft/util/collection/IndexedIterable.getRawId:(Ljava/lang/Object;)I
+         7: istore_3
+         8: iload_3
+         9: iconst_m1
+        10: if_icmpne     28
+        13: new           #209                // class java/lang/IllegalArgumentException
+        16: dup
+        17: aload_2
+        18: aload_1
+        19: invokedynamic #221,  0            // InvokeDynamic #4:makeConcatWithConstants:(Ljava/lang/Object;Lnet/minecraft/util/collection/IndexedIterable;)Ljava/lang/String;
+        24: invokespecial #224                // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        27: athrow
+        28: aload_0
+        29: iload_3
+        30: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        33: pop
+        34: return
+
+  public <T> void writeRegistryEntry(net.minecraft.util.collection.IndexedIterable<net.minecraft.registry.entry.RegistryEntry<T>>, net.minecraft.registry.entry.RegistryEntry<T>, net.minecraft.network.PacketByteBuf$PacketWriter<T>);
+    Code:
+         0: getstatic     #240                // Field net/minecraft/network/PacketByteBuf$1.field_41713:[I
+         3: aload_2
+         4: invokeinterface #244,  1          // InterfaceMethod net/minecraft/registry/entry/RegistryEntry.getType:()Lnet/minecraft/registry/entry/RegistryEntry$Type;
+         9: invokevirtual #248                // Method net/minecraft/registry/entry/RegistryEntry$Type.ordinal:()I
+        12: iaload
+        13: lookupswitch  { // 2
+
+                       1: 40
+
+                       2: 87
+                 default: 106
+            }
+        40: aload_1
+        41: aload_2
+        42: invokeinterface #207,  2          // InterfaceMethod net/minecraft/util/collection/IndexedIterable.getRawId:(Ljava/lang/Object;)I
+        47: istore        4
+        49: iload         4
+        51: iconst_m1
+        52: if_icmpne     75
+        55: new           #209                // class java/lang/IllegalArgumentException
+        58: dup
+        59: aload_2
+        60: invokeinterface #251,  1          // InterfaceMethod net/minecraft/registry/entry/RegistryEntry.value:()Ljava/lang/Object;
+        65: aload_1
+        66: invokedynamic #221,  0            // InvokeDynamic #4:makeConcatWithConstants:(Ljava/lang/Object;Lnet/minecraft/util/collection/IndexedIterable;)Ljava/lang/String;
+        71: invokespecial #224                // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        74: athrow
+        75: aload_0
+        76: iload         4
+        78: iconst_1
+        79: iadd
+        80: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        83: pop
+        84: goto          106
+        87: aload_0
+        88: iconst_0
+        89: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        92: pop
+        93: aload_3
+        94: aload_0
+        95: aload_2
+        96: invokeinterface #251,  1          // InterfaceMethod net/minecraft/registry/entry/RegistryEntry.value:()Ljava/lang/Object;
+       101: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+       106: return
+
+  public <T> T readRegistryValue(net.minecraft.util.collection.IndexedIterable<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_2
+         5: aload_1
+         6: iload_2
+         7: invokeinterface #271,  2          // InterfaceMethod net/minecraft/util/collection/IndexedIterable.get:(I)Ljava/lang/Object;
+        12: areturn
+
+  public <T> net.minecraft.registry.entry.RegistryEntry<T> readRegistryEntry(net.minecraft.util.collection.IndexedIterable<net.minecraft.registry.entry.RegistryEntry<T>>, net.minecraft.network.PacketByteBuf$PacketReader<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_3
+         5: iload_3
+         6: ifne          20
+         9: aload_2
+        10: aload_0
+        11: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        16: invokestatic  #281                // InterfaceMethod net/minecraft/registry/entry/RegistryEntry.of:(Ljava/lang/Object;)Lnet/minecraft/registry/entry/RegistryEntry;
+        19: areturn
+        20: aload_1
+        21: iload_3
+        22: iconst_1
+        23: isub
+        24: invokeinterface #271,  2          // InterfaceMethod net/minecraft/util/collection/IndexedIterable.get:(I)Ljava/lang/Object;
+        29: checkcast     #15                 // class net/minecraft/registry/entry/RegistryEntry
+        32: astore        4
+        34: aload         4
+        36: ifnonnull     53
+        39: new           #209                // class java/lang/IllegalArgumentException
+        42: dup
+        43: iload_3
+        44: invokedynamic #286,  0            // InvokeDynamic #5:makeConcatWithConstants:(I)Ljava/lang/String;
+        49: invokespecial #224                // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+        52: athrow
+        53: aload         4
+        55: areturn
+
+  public static <T> java.util.function.IntFunction<T> getMaxValidator(java.util.function.IntFunction<T>, int);
+    Code:
+         0: iload_1
+         1: aload_0
+         2: invokedynamic #303,  0            // InvokeDynamic #6:apply:(ILjava/util/function/IntFunction;)Ljava/util/function/IntFunction;
+         7: areturn
+
+  public <T, C extends java.util.Collection<T>> C readCollection(java.util.function.IntFunction<C>, net.minecraft.network.PacketByteBuf$PacketReader<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_3
+         5: aload_1
+         6: iload_3
+         7: invokeinterface #313,  2          // InterfaceMethod java/util/function/IntFunction.apply:(I)Ljava/lang/Object;
+        12: checkcast     #315                // class java/util/Collection
+        15: astore        4
+        17: iconst_0
+        18: istore        5
+        20: iload         5
+        22: iload_3
+        23: if_icmpge     47
+        26: aload         4
+        28: aload_2
+        29: aload_0
+        30: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        35: invokeinterface #319,  2          // InterfaceMethod java/util/Collection.add:(Ljava/lang/Object;)Z
+        40: pop
+        41: iinc          5, 1
+        44: goto          20
+        47: aload         4
+        49: areturn
+
+  public <T> void writeCollection(java.util.Collection<T>, net.minecraft.network.PacketByteBuf$PacketWriter<T>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokeinterface #330,  1          // InterfaceMethod java/util/Collection.size:()I
+         7: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        10: pop
+        11: aload_1
+        12: invokeinterface #334,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+        17: astore_3
+        18: aload_3
+        19: invokeinterface #340,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        24: ifeq          47
+        27: aload_3
+        28: invokeinterface #343,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        33: astore        4
+        35: aload_2
+        36: aload_0
+        37: aload         4
+        39: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        44: goto          18
+        47: return
+
+  public <T> java.util.List<T> readList(net.minecraft.network.PacketByteBuf$PacketReader<T>);
+    Code:
+         0: aload_0
+         1: invokedynamic #359,  0            // InvokeDynamic #7:apply:()Ljava/util/function/IntFunction;
+         6: aload_1
+         7: invokevirtual #361                // Method readCollection:(Ljava/util/function/IntFunction;Lnet/minecraft/network/PacketByteBuf$PacketReader;)Ljava/util/Collection;
+        10: checkcast     #363                // class java/util/List
+        13: areturn
+
+  public it.unimi.dsi.fastutil.ints.IntList readIntList();
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_1
+         5: new           #367                // class it/unimi/dsi/fastutil/ints/IntArrayList
+         8: dup
+         9: invokespecial #368                // Method it/unimi/dsi/fastutil/ints/IntArrayList."<init>":()V
+        12: astore_2
+        13: iconst_0
+        14: istore_3
+        15: iload_3
+        16: iload_1
+        17: if_icmpge     37
+        20: aload_2
+        21: aload_0
+        22: invokevirtual #267                // Method readVarInt:()I
+        25: invokeinterface #373,  2          // InterfaceMethod it/unimi/dsi/fastutil/ints/IntList.add:(I)Z
+        30: pop
+        31: iinc          3, 1
+        34: goto          15
+        37: aload_2
+        38: areturn
+
+  public void writeIntList(it.unimi.dsi.fastutil.ints.IntList);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokeinterface #379,  1          // InterfaceMethod it/unimi/dsi/fastutil/ints/IntList.size:()I
+         7: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        10: pop
+        11: aload_1
+        12: aload_0
+        13: invokedynamic #385,  0            // InvokeDynamic #8:accept:(Lnet/minecraft/network/PacketByteBuf;)Lit/unimi/dsi/fastutil/ints/IntConsumer;
+        18: invokeinterface #389,  2          // InterfaceMethod it/unimi/dsi/fastutil/ints/IntList.forEach:(Lit/unimi/dsi/fastutil/ints/IntConsumer;)V
+        23: return
+
+  public <K, V, M extends java.util.Map<K, V>> M readMap(java.util.function.IntFunction<M>, net.minecraft.network.PacketByteBuf$PacketReader<K>, net.minecraft.network.PacketByteBuf$PacketReader<V>);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore        4
+         6: aload_1
+         7: iload         4
+         9: invokeinterface #313,  2          // InterfaceMethod java/util/function/IntFunction.apply:(I)Ljava/lang/Object;
+        14: checkcast     #397                // class java/util/Map
+        17: astore        5
+        19: iconst_0
+        20: istore        6
+        22: iload         6
+        24: iload         4
+        26: if_icmpge     65
+        29: aload_2
+        30: aload_0
+        31: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        36: astore        7
+        38: aload_3
+        39: aload_0
+        40: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        45: astore        8
+        47: aload         5
+        49: aload         7
+        51: aload         8
+        53: invokeinterface #401,  3          // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+        58: pop
+        59: iinc          6, 1
+        62: goto          22
+        65: aload         5
+        67: areturn
+
+  public <K, V> java.util.Map<K, V> readMap(net.minecraft.network.PacketByteBuf$PacketReader<K>, net.minecraft.network.PacketByteBuf$PacketReader<V>);
+    Code:
+         0: aload_0
+         1: invokedynamic #421,  0            // InvokeDynamic #9:apply:()Ljava/util/function/IntFunction;
+         6: aload_1
+         7: aload_2
+         8: invokevirtual #423                // Method readMap:(Ljava/util/function/IntFunction;Lnet/minecraft/network/PacketByteBuf$PacketReader;Lnet/minecraft/network/PacketByteBuf$PacketReader;)Ljava/util/Map;
+        11: areturn
+
+  public <K, V> void writeMap(java.util.Map<K, V>, net.minecraft.network.PacketByteBuf$PacketWriter<K>, net.minecraft.network.PacketByteBuf$PacketWriter<V>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokeinterface #429,  1          // InterfaceMethod java/util/Map.size:()I
+         7: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        10: pop
+        11: aload_1
+        12: aload_0
+        13: aload_2
+        14: aload_3
+        15: invokedynamic #438,  0            // InvokeDynamic #10:accept:(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/network/PacketByteBuf$PacketWriter;Lnet/minecraft/network/PacketByteBuf$PacketWriter;)Ljava/util/function/BiConsumer;
+        20: invokeinterface #441,  2          // InterfaceMethod java/util/Map.forEach:(Ljava/util/function/BiConsumer;)V
+        25: return
+
+  public void forEachInCollection(java.util.function.Consumer<net.minecraft.network.PacketByteBuf>);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_2
+         5: iconst_0
+         6: istore_3
+         7: iload_3
+         8: iload_2
+         9: if_icmpge     25
+        12: aload_1
+        13: aload_0
+        14: invokeinterface #453,  2          // InterfaceMethod java/util/function/Consumer.accept:(Ljava/lang/Object;)V
+        19: iinc          3, 1
+        22: goto          7
+        25: return
+
+  public <E extends java.lang.Enum<E>> void writeEnumSet(java.util.EnumSet<E>, java.lang.Class<E>);
+    Code:
+         0: aload_2
+         1: invokevirtual #466                // Method java/lang/Class.getEnumConstants:()[Ljava/lang/Object;
+         4: checkcast     #468                // class "[Ljava/lang/Enum;"
+         7: astore_3
+         8: new           #470                // class java/util/BitSet
+        11: dup
+        12: aload_3
+        13: arraylength
+        14: invokespecial #472                // Method java/util/BitSet."<init>":(I)V
+        17: astore        4
+        19: iconst_0
+        20: istore        5
+        22: iload         5
+        24: aload_3
+        25: arraylength
+        26: if_icmpge     50
+        29: aload         4
+        31: iload         5
+        33: aload_1
+        34: aload_3
+        35: iload         5
+        37: aaload
+        38: invokevirtual #477                // Method java/util/EnumSet.contains:(Ljava/lang/Object;)Z
+        41: invokevirtual #481                // Method java/util/BitSet.set:(IZ)V
+        44: iinc          5, 1
+        47: goto          22
+        50: aload_0
+        51: aload         4
+        53: aload_3
+        54: arraylength
+        55: invokevirtual #485                // Method writeBitSet:(Ljava/util/BitSet;I)V
+        58: return
+
+  public <E extends java.lang.Enum<E>> java.util.EnumSet<E> readEnumSet(java.lang.Class<E>);
+    Code:
+         0: aload_1
+         1: invokevirtual #466                // Method java/lang/Class.getEnumConstants:()[Ljava/lang/Object;
+         4: checkcast     #468                // class "[Ljava/lang/Enum;"
+         7: astore_2
+         8: aload_0
+         9: aload_2
+        10: arraylength
+        11: invokevirtual #500                // Method readBitSet:(I)Ljava/util/BitSet;
+        14: astore_3
+        15: aload_1
+        16: invokestatic  #503                // Method java/util/EnumSet.noneOf:(Ljava/lang/Class;)Ljava/util/EnumSet;
+        19: astore        4
+        21: iconst_0
+        22: istore        5
+        24: iload         5
+        26: aload_2
+        27: arraylength
+        28: if_icmpge     56
+        31: aload_3
+        32: iload         5
+        34: invokevirtual #505                // Method java/util/BitSet.get:(I)Z
+        37: ifeq          50
+        40: aload         4
+        42: aload_2
+        43: iload         5
+        45: aaload
+        46: invokevirtual #506                // Method java/util/EnumSet.add:(Ljava/lang/Object;)Z
+        49: pop
+        50: iinc          5, 1
+        53: goto          24
+        56: aload         4
+        58: areturn
+
+  public <T> void writeOptional(java.util.Optional<T>, net.minecraft.network.PacketByteBuf$PacketWriter<T>);
+    Code:
+         0: aload_1
+         1: invokevirtual #514                // Method java/util/Optional.isPresent:()Z
+         4: ifeq          27
+         7: aload_0
+         8: iconst_1
+         9: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        12: pop
+        13: aload_2
+        14: aload_0
+        15: aload_1
+        16: invokevirtual #520                // Method java/util/Optional.get:()Ljava/lang/Object;
+        19: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        24: goto          33
+        27: aload_0
+        28: iconst_0
+        29: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        32: pop
+        33: return
+
+  public <T> java.util.Optional<T> readOptional(net.minecraft.network.PacketByteBuf$PacketReader<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #528                // Method readBoolean:()Z
+         4: ifeq          18
+         7: aload_1
+         8: aload_0
+         9: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        14: invokestatic  #531                // Method java/util/Optional.of:(Ljava/lang/Object;)Ljava/util/Optional;
+        17: areturn
+        18: invokestatic  #535                // Method java/util/Optional.empty:()Ljava/util/Optional;
+        21: areturn
+
+  public <T> T readNullable(net.minecraft.network.PacketByteBuf$PacketReader<T>);
+    Code:
+         0: aload_0
+         1: invokevirtual #528                // Method readBoolean:()Z
+         4: ifeq          15
+         7: aload_1
+         8: aload_0
+         9: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        14: areturn
+        15: aconst_null
+        16: areturn
+
+  public <T> void writeNullable(T, net.minecraft.network.PacketByteBuf$PacketWriter<T>);
+    Code:
+         0: aload_1
+         1: ifnull        21
+         4: aload_0
+         5: iconst_1
+         6: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+         9: pop
+        10: aload_2
+        11: aload_0
+        12: aload_1
+        13: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        18: goto          27
+        21: aload_0
+        22: iconst_0
+        23: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        26: pop
+        27: return
+
+  public <L, R> void writeEither(com.mojang.datafixers.util.Either<L, R>, net.minecraft.network.PacketByteBuf$PacketWriter<L>, net.minecraft.network.PacketByteBuf$PacketWriter<R>);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: aload_2
+         3: invokedynamic #556,  0            // InvokeDynamic #11:accept:(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/network/PacketByteBuf$PacketWriter;)Ljava/util/function/Consumer;
+         8: invokevirtual #562                // Method com/mojang/datafixers/util/Either.ifLeft:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+        11: aload_0
+        12: aload_3
+        13: invokedynamic #567,  0            // InvokeDynamic #12:accept:(Lnet/minecraft/network/PacketByteBuf;Lnet/minecraft/network/PacketByteBuf$PacketWriter;)Ljava/util/function/Consumer;
+        18: invokevirtual #570                // Method com/mojang/datafixers/util/Either.ifRight:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+        21: pop
+        22: return
+
+  public <L, R> com.mojang.datafixers.util.Either<L, R> readEither(net.minecraft.network.PacketByteBuf$PacketReader<L>, net.minecraft.network.PacketByteBuf$PacketReader<R>);
+    Code:
+         0: aload_0
+         1: invokevirtual #528                // Method readBoolean:()Z
+         4: ifeq          18
+         7: aload_1
+         8: aload_0
+         9: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        14: invokestatic  #583                // Method com/mojang/datafixers/util/Either.left:(Ljava/lang/Object;)Lcom/mojang/datafixers/util/Either;
+        17: areturn
+        18: aload_2
+        19: aload_0
+        20: invokeinterface #277,  2          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketReader.apply:(Ljava/lang/Object;)Ljava/lang/Object;
+        25: invokestatic  #586                // Method com/mojang/datafixers/util/Either.right:(Ljava/lang/Object;)Lcom/mojang/datafixers/util/Either;
+        28: areturn
+
+  public byte[] readByteArray();
+    Code:
+         0: aload_0
+         1: aload_0
+         2: invokevirtual #593                // Method readableBytes:()I
+         5: invokevirtual #596                // Method readByteArray:(I)[B
+         8: areturn
+
+  public net.minecraft.network.PacketByteBuf writeByteArray(byte[]);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: arraylength
+         3: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+         6: pop
+         7: aload_0
+         8: aload_1
+         9: invokevirtual #603                // Method writeBytes:([B)Lio/netty/buffer/ByteBuf;
+        12: pop
+        13: aload_0
+        14: areturn
+
+  public byte[] readByteArray(int);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_2
+         5: iload_2
+         6: iload_1
+         7: if_icmple     25
+        10: new           #607                // class io/netty/handler/codec/DecoderException
+        13: dup
+        14: iload_2
+        15: iload_1
+        16: invokedynamic #612,  0            // InvokeDynamic #13:makeConcatWithConstants:(II)Ljava/lang/String;
+        21: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        24: athrow
+        25: iload_2
+        26: newarray       byte
+        28: astore_3
+        29: aload_0
+        30: aload_3
+        31: invokevirtual #616                // Method readBytes:([B)Lio/netty/buffer/ByteBuf;
+        34: pop
+        35: aload_3
+        36: areturn
+
+  public net.minecraft.network.PacketByteBuf writeIntArray(int[]);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: arraylength
+         3: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+         6: pop
+         7: aload_1
+         8: astore_2
+         9: aload_2
+        10: arraylength
+        11: istore_3
+        12: iconst_0
+        13: istore        4
+        15: iload         4
+        17: iload_3
+        18: if_icmpge     40
+        21: aload_2
+        22: iload         4
+        24: iaload
+        25: istore        5
+        27: aload_0
+        28: iload         5
+        30: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        33: pop
+        34: iinc          4, 1
+        37: goto          15
+        40: aload_0
+        41: areturn
+
+  public int[] readIntArray();
+    Code:
+         0: aload_0
+         1: aload_0
+         2: invokevirtual #593                // Method readableBytes:()I
+         5: invokevirtual #625                // Method readIntArray:(I)[I
+         8: areturn
+
+  public int[] readIntArray(int);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_2
+         5: iload_2
+         6: iload_1
+         7: if_icmple     25
+        10: new           #607                // class io/netty/handler/codec/DecoderException
+        13: dup
+        14: iload_2
+        15: iload_1
+        16: invokedynamic #628,  0            // InvokeDynamic #14:makeConcatWithConstants:(II)Ljava/lang/String;
+        21: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        24: athrow
+        25: iload_2
+        26: newarray       int
+        28: astore_3
+        29: iconst_0
+        30: istore        4
+        32: iload         4
+        34: aload_3
+        35: arraylength
+        36: if_icmpge     53
+        39: aload_3
+        40: iload         4
+        42: aload_0
+        43: invokevirtual #267                // Method readVarInt:()I
+        46: iastore
+        47: iinc          4, 1
+        50: goto          32
+        53: aload_3
+        54: areturn
+
+  public net.minecraft.network.PacketByteBuf writeLongArray(long[]);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: arraylength
+         3: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+         6: pop
+         7: aload_1
+         8: astore_2
+         9: aload_2
+        10: arraylength
+        11: istore_3
+        12: iconst_0
+        13: istore        4
+        15: iload         4
+        17: iload_3
+        18: if_icmpge     40
+        21: aload_2
+        22: iload         4
+        24: laload
+        25: lstore        5
+        27: aload_0
+        28: lload         5
+        30: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+        33: pop
+        34: iinc          4, 1
+        37: goto          15
+        40: aload_0
+        41: areturn
+
+  public long[] readLongArray();
+    Code:
+         0: aload_0
+         1: aconst_null
+         2: invokevirtual #643                // Method readLongArray:([J)[J
+         5: areturn
+
+  public long[] readLongArray(long[]);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_0
+         3: invokevirtual #593                // Method readableBytes:()I
+         6: bipush        8
+         8: idiv
+         9: invokevirtual #647                // Method readLongArray:([JI)[J
+        12: areturn
+
+  public long[] readLongArray(long[], int);
+    Code:
+         0: aload_0
+         1: invokevirtual #267                // Method readVarInt:()I
+         4: istore_3
+         5: aload_1
+         6: ifnull        15
+         9: aload_1
+        10: arraylength
+        11: iload_3
+        12: if_icmpeq     39
+        15: iload_3
+        16: iload_2
+        17: if_icmple     35
+        20: new           #607                // class io/netty/handler/codec/DecoderException
+        23: dup
+        24: iload_3
+        25: iload_2
+        26: invokedynamic #650,  0            // InvokeDynamic #15:makeConcatWithConstants:(II)Ljava/lang/String;
+        31: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        34: athrow
+        35: iload_3
+        36: newarray       long
+        38: astore_1
+        39: iconst_0
+        40: istore        4
+        42: iload         4
+        44: aload_1
+        45: arraylength
+        46: if_icmpge     63
+        49: aload_1
+        50: iload         4
+        52: aload_0
+        53: invokevirtual #654                // Method readLong:()J
+        56: lastore
+        57: iinc          4, 1
+        60: goto          42
+        63: aload_1
+        64: areturn
+
+  public byte[] getWrittenBytes();
+    Code:
+         0: aload_0
+         1: invokevirtual #659                // Method writerIndex:()I
+         4: istore_1
+         5: iload_1
+         6: newarray       byte
+         8: astore_2
+         9: aload_0
+        10: iconst_0
+        11: aload_2
+        12: invokevirtual #663                // Method getBytes:(I[B)Lio/netty/buffer/ByteBuf;
+        15: pop
+        16: aload_2
+        17: areturn
+
+  public net.minecraft.util.math.BlockPos readBlockPos();
+    Code:
+         0: aload_0
+         1: invokevirtual #654                // Method readLong:()J
+         4: invokestatic  #671                // Method net/minecraft/util/math/BlockPos.fromLong:(J)Lnet/minecraft/util/math/BlockPos;
+         7: areturn
+
+  public net.minecraft.network.PacketByteBuf writeBlockPos(net.minecraft.util.math.BlockPos);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #677                // Method net/minecraft/util/math/BlockPos.asLong:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: areturn
+
+  public net.minecraft.util.math.ChunkPos readChunkPos();
+    Code:
+         0: new           #682                // class net/minecraft/util/math/ChunkPos
+         3: dup
+         4: aload_0
+         5: invokevirtual #654                // Method readLong:()J
+         8: invokespecial #685                // Method net/minecraft/util/math/ChunkPos."<init>":(J)V
+        11: areturn
+
+  public net.minecraft.network.PacketByteBuf writeChunkPos(net.minecraft.util.math.ChunkPos);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #690                // Method net/minecraft/util/math/ChunkPos.toLong:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: areturn
+
+  public net.minecraft.util.math.ChunkSectionPos readChunkSectionPos();
+    Code:
+         0: aload_0
+         1: invokevirtual #654                // Method readLong:()J
+         4: invokestatic  #699                // Method net/minecraft/util/math/ChunkSectionPos.from:(J)Lnet/minecraft/util/math/ChunkSectionPos;
+         7: areturn
+
+  public net.minecraft.network.PacketByteBuf writeChunkSectionPos(net.minecraft.util.math.ChunkSectionPos);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #702                // Method net/minecraft/util/math/ChunkSectionPos.asLong:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: areturn
+
+  public net.minecraft.util.math.GlobalPos readGlobalPos();
+    Code:
+         0: aload_0
+         1: getstatic     #711                // Field net/minecraft/registry/RegistryKeys.WORLD:Lnet/minecraft/registry/RegistryKey;
+         4: invokevirtual #715                // Method readRegistryKey:(Lnet/minecraft/registry/RegistryKey;)Lnet/minecraft/registry/RegistryKey;
+         7: astore_1
+         8: aload_0
+         9: invokevirtual #717                // Method readBlockPos:()Lnet/minecraft/util/math/BlockPos;
+        12: astore_2
+        13: aload_1
+        14: aload_2
+        15: invokestatic  #723                // Method net/minecraft/util/math/GlobalPos.create:(Lnet/minecraft/registry/RegistryKey;Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/util/math/GlobalPos;
+        18: areturn
+
+  public void writeGlobalPos(net.minecraft.util.math.GlobalPos);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #732                // Method net/minecraft/util/math/GlobalPos.getDimension:()Lnet/minecraft/registry/RegistryKey;
+         5: invokevirtual #736                // Method writeRegistryKey:(Lnet/minecraft/registry/RegistryKey;)V
+         8: aload_0
+         9: aload_1
+        10: invokevirtual #739                // Method net/minecraft/util/math/GlobalPos.getPos:()Lnet/minecraft/util/math/BlockPos;
+        13: invokevirtual #741                // Method writeBlockPos:(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/network/PacketByteBuf;
+        16: pop
+        17: return
+
+  public org.joml.Vector3f readVector3f();
+    Code:
+         0: new           #746                // class org/joml/Vector3f
+         3: dup
+         4: aload_0
+         5: invokevirtual #750                // Method readFloat:()F
+         8: aload_0
+         9: invokevirtual #750                // Method readFloat:()F
+        12: aload_0
+        13: invokevirtual #750                // Method readFloat:()F
+        16: invokespecial #753                // Method org/joml/Vector3f."<init>":(FFF)V
+        19: areturn
+
+  public void writeVector3f(org.joml.Vector3f);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #759                // Method org/joml/Vector3f.x:()F
+         5: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: aload_1
+        11: invokevirtual #766                // Method org/joml/Vector3f.y:()F
+        14: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        17: pop
+        18: aload_0
+        19: aload_1
+        20: invokevirtual #769                // Method org/joml/Vector3f.z:()F
+        23: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        26: pop
+        27: return
+
+  public org.joml.Quaternionf readQuaternionf();
+    Code:
+         0: new           #774                // class org/joml/Quaternionf
+         3: dup
+         4: aload_0
+         5: invokevirtual #750                // Method readFloat:()F
+         8: aload_0
+         9: invokevirtual #750                // Method readFloat:()F
+        12: aload_0
+        13: invokevirtual #750                // Method readFloat:()F
+        16: aload_0
+        17: invokevirtual #750                // Method readFloat:()F
+        20: invokespecial #777                // Method org/joml/Quaternionf."<init>":(FFFF)V
+        23: areturn
+
+  public void writeQuaternionf(org.joml.Quaternionf);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: getfield      #783                // Field org/joml/Quaternionf.x:F
+         5: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: aload_1
+        11: getfield      #785                // Field org/joml/Quaternionf.y:F
+        14: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        17: pop
+        18: aload_0
+        19: aload_1
+        20: getfield      #787                // Field org/joml/Quaternionf.z:F
+        23: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        26: pop
+        27: aload_0
+        28: aload_1
+        29: getfield      #790                // Field org/joml/Quaternionf.w:F
+        32: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        35: pop
+        36: return
+
+  public net.minecraft.text.Text readText();
+    Code:
+         0: aload_0
+         1: ldc           #42                 // int 262144
+         3: invokevirtual #795                // Method readString:(I)Ljava/lang/String;
+         6: invokestatic  #799                // Method net/minecraft/text/Text$Serializer.fromJson:(Ljava/lang/String;)Lnet/minecraft/text/MutableText;
+         9: astore_1
+        10: aload_1
+        11: ifnonnull     25
+        14: new           #607                // class io/netty/handler/codec/DecoderException
+        17: dup
+        18: ldc_w         #801                // String Received unexpected null component
+        21: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        24: athrow
+        25: aload_1
+        26: areturn
+
+  public net.minecraft.network.PacketByteBuf writeText(net.minecraft.text.Text);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokestatic  #810                // Method net/minecraft/text/Text$Serializer.toJson:(Lnet/minecraft/text/Text;)Ljava/lang/String;
+         5: ldc           #42                 // int 262144
+         7: invokevirtual #813                // Method writeString:(Ljava/lang/String;I)Lnet/minecraft/network/PacketByteBuf;
+        10: areturn
+
+  public <T extends java.lang.Enum<T>> T readEnumConstant(java.lang.Class<T>);
+    Code:
+         0: aload_1
+         1: invokevirtual #466                // Method java/lang/Class.getEnumConstants:()[Ljava/lang/Object;
+         4: checkcast     #468                // class "[Ljava/lang/Enum;"
+         7: aload_0
+         8: invokevirtual #267                // Method readVarInt:()I
+        11: aaload
+        12: areturn
+
+  public net.minecraft.network.PacketByteBuf writeEnumConstant(java.lang.Enum<?>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #825                // Method java/lang/Enum.ordinal:()I
+         5: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+         8: areturn
+
+  public int readVarInt();
+    Code:
+         0: iconst_0
+         1: istore_1
+         2: iconst_0
+         3: istore_2
+         4: aload_0
+         5: invokevirtual #831                // Method readByte:()B
+         8: istore_3
+         9: iload_1
+        10: iload_3
+        11: bipush        127
+        13: iand
+        14: iload_2
+        15: iinc          2, 1
+        18: bipush        7
+        20: imul
+        21: ishl
+        22: ior
+        23: istore_1
+        24: iload_2
+        25: iconst_5
+        26: if_icmple     40
+        29: new           #833                // class java/lang/RuntimeException
+        32: dup
+        33: ldc_w         #835                // String VarInt too big
+        36: invokespecial #836                // Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+        39: athrow
+        40: iload_3
+        41: sipush        128
+        44: iand
+        45: sipush        128
+        48: if_icmpeq     4
+        51: goto          54
+        54: iload_1
+        55: ireturn
+
+  public long readVarLong();
+    Code:
+         0: lconst_0
+         1: lstore_1
+         2: iconst_0
+         3: istore_3
+         4: aload_0
+         5: invokevirtual #831                // Method readByte:()B
+         8: istore        4
+        10: lload_1
+        11: iload         4
+        13: bipush        127
+        15: iand
+        16: i2l
+        17: iload_3
+        18: iinc          3, 1
+        21: bipush        7
+        23: imul
+        24: lshl
+        25: lor
+        26: lstore_1
+        27: iload_3
+        28: bipush        10
+        30: if_icmple     44
+        33: new           #833                // class java/lang/RuntimeException
+        36: dup
+        37: ldc_w         #841                // String VarLong too big
+        40: invokespecial #836                // Method java/lang/RuntimeException."<init>":(Ljava/lang/String;)V
+        43: athrow
+        44: iload         4
+        46: sipush        128
+        49: iand
+        50: sipush        128
+        53: if_icmpeq     4
+        56: goto          59
+        59: lload_1
+        60: lreturn
+
+  public net.minecraft.network.PacketByteBuf writeUuid(java.util.UUID);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #849                // Method java/util/UUID.getMostSignificantBits:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: aload_1
+        11: invokevirtual #852                // Method java/util/UUID.getLeastSignificantBits:()J
+        14: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+        17: pop
+        18: aload_0
+        19: areturn
+
+  public java.util.UUID readUuid();
+    Code:
+         0: new           #846                // class java/util/UUID
+         3: dup
+         4: aload_0
+         5: invokevirtual #654                // Method readLong:()J
+         8: aload_0
+         9: invokevirtual #654                // Method readLong:()J
+        12: invokespecial #858                // Method java/util/UUID."<init>":(JJ)V
+        15: areturn
+
+  public net.minecraft.network.PacketByteBuf writeVarInt(int);
+    Code:
+         0: iload_1
+         1: bipush        -128
+         3: iand
+         4: ifne          15
+         7: aload_0
+         8: iload_1
+         9: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+        12: pop
+        13: aload_0
+        14: areturn
+        15: aload_0
+        16: iload_1
+        17: bipush        127
+        19: iand
+        20: sipush        128
+        23: ior
+        24: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+        27: pop
+        28: iload_1
+        29: bipush        7
+        31: iushr
+        32: istore_1
+        33: goto          0
+
+  public net.minecraft.network.PacketByteBuf writeVarLong(long);
+    Code:
+         0: lload_1
+         1: ldc2_w        #865                // long -128l
+         4: land
+         5: lconst_0
+         6: lcmp
+         7: ifne          19
+        10: aload_0
+        11: lload_1
+        12: l2i
+        13: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+        16: pop
+        17: aload_0
+        18: areturn
+        19: aload_0
+        20: lload_1
+        21: ldc2_w        #867                // long 127l
+        24: land
+        25: l2i
+        26: sipush        128
+        29: ior
+        30: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+        33: pop
+        34: lload_1
+        35: bipush        7
+        37: lushr
+        38: lstore_1
+        39: goto          0
+
+  public net.minecraft.network.PacketByteBuf writeNbt(net.minecraft.nbt.NbtCompound);
+    Code:
+         0: aload_1
+         1: ifnonnull     13
+         4: aload_0
+         5: iconst_0
+         6: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+         9: pop
+        10: goto          38
+        13: aload_1
+        14: new           #873                // class io/netty/buffer/ByteBufOutputStream
+        17: dup
+        18: aload_0
+        19: invokespecial #875                // Method io/netty/buffer/ByteBufOutputStream."<init>":(Lio/netty/buffer/ByteBuf;)V
+        22: invokestatic  #881                // Method net/minecraft/nbt/NbtIo.write:(Lnet/minecraft/nbt/NbtCompound;Ljava/io/DataOutput;)V
+        25: goto          38
+        28: astore_2
+        29: new           #883                // class io/netty/handler/codec/EncoderException
+        32: dup
+        33: aload_2
+        34: invokespecial #886                // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/Throwable;)V
+        37: athrow
+        38: aload_0
+        39: areturn
+      Exception table:
+         from    to  target type
+            13    25    28   Class java/io/IOException
+
+  public net.minecraft.nbt.NbtCompound readNbt();
+    Code:
+         0: aload_0
+         1: new           #891                // class net/minecraft/nbt/NbtTagSizeTracker
+         4: dup
+         5: ldc2_w        #892                // long 2097152l
+         8: invokespecial #894                // Method net/minecraft/nbt/NbtTagSizeTracker."<init>":(J)V
+        11: invokevirtual #897                // Method readNbt:(Lnet/minecraft/nbt/NbtTagSizeTracker;)Lnet/minecraft/nbt/NbtCompound;
+        14: areturn
+
+  public net.minecraft.nbt.NbtCompound readUnlimitedNbt();
+    Code:
+         0: aload_0
+         1: getstatic     #901                // Field net/minecraft/nbt/NbtTagSizeTracker.EMPTY:Lnet/minecraft/nbt/NbtTagSizeTracker;
+         4: invokevirtual #897                // Method readNbt:(Lnet/minecraft/nbt/NbtTagSizeTracker;)Lnet/minecraft/nbt/NbtCompound;
+         7: areturn
+
+  public net.minecraft.nbt.NbtCompound readNbt(net.minecraft.nbt.NbtTagSizeTracker);
+    Code:
+         0: aload_0
+         1: invokevirtual #905                // Method readerIndex:()I
+         4: istore_2
+         5: aload_0
+         6: invokevirtual #831                // Method readByte:()B
+         9: istore_3
+        10: iload_3
+        11: ifne          16
+        14: aconst_null
+        15: areturn
+        16: aload_0
+        17: iload_2
+        18: invokevirtual #907                // Method readerIndex:(I)Lio/netty/buffer/ByteBuf;
+        21: pop
+        22: new           #909                // class io/netty/buffer/ByteBufInputStream
+        25: dup
+        26: aload_0
+        27: invokespecial #910                // Method io/netty/buffer/ByteBufInputStream."<init>":(Lio/netty/buffer/ByteBuf;)V
+        30: aload_1
+        31: invokestatic  #914                // Method net/minecraft/nbt/NbtIo.read:(Ljava/io/DataInput;Lnet/minecraft/nbt/NbtTagSizeTracker;)Lnet/minecraft/nbt/NbtCompound;
+        34: areturn
+        35: astore        4
+        37: new           #883                // class io/netty/handler/codec/EncoderException
+        40: dup
+        41: aload         4
+        43: invokespecial #886                // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/Throwable;)V
+        46: athrow
+      Exception table:
+         from    to  target type
+            22    34    35   Class java/io/IOException
+
+  public net.minecraft.network.PacketByteBuf writeItemStack(net.minecraft.item.ItemStack);
+    Code:
+         0: aload_1
+         1: invokevirtual #922                // Method net/minecraft/item/ItemStack.isEmpty:()Z
+         4: ifeq          16
+         7: aload_0
+         8: iconst_0
+         9: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        12: pop
+        13: goto          71
+        16: aload_0
+        17: iconst_1
+        18: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        21: pop
+        22: aload_1
+        23: invokevirtual #926                // Method net/minecraft/item/ItemStack.getItem:()Lnet/minecraft/item/Item;
+        26: astore_2
+        27: aload_0
+        28: getstatic     #932                // Field net/minecraft/registry/Registries.ITEM:Lnet/minecraft/registry/DefaultedRegistry;
+        31: aload_2
+        32: invokevirtual #934                // Method writeRegistryValue:(Lnet/minecraft/util/collection/IndexedIterable;Ljava/lang/Object;)V
+        35: aload_0
+        36: aload_1
+        37: invokevirtual #937                // Method net/minecraft/item/ItemStack.getCount:()I
+        40: invokevirtual #862                // Method writeByte:(I)Lio/netty/buffer/ByteBuf;
+        43: pop
+        44: aconst_null
+        45: astore_3
+        46: aload_2
+        47: invokevirtual #942                // Method net/minecraft/item/Item.isDamageable:()Z
+        50: ifne          60
+        53: aload_2
+        54: invokevirtual #945                // Method net/minecraft/item/Item.isNbtSynced:()Z
+        57: ifeq          65
+        60: aload_1
+        61: invokevirtual #948                // Method net/minecraft/item/ItemStack.getNbt:()Lnet/minecraft/nbt/NbtCompound;
+        64: astore_3
+        65: aload_0
+        66: aload_3
+        67: invokevirtual #139                // Method writeNbt:(Lnet/minecraft/nbt/NbtCompound;)Lnet/minecraft/network/PacketByteBuf;
+        70: pop
+        71: aload_0
+        72: areturn
+
+  public net.minecraft.item.ItemStack readItemStack();
+    Code:
+         0: aload_0
+         1: invokevirtual #528                // Method readBoolean:()Z
+         4: ifne          11
+         7: getstatic     #955                // Field net/minecraft/item/ItemStack.EMPTY:Lnet/minecraft/item/ItemStack;
+        10: areturn
+        11: aload_0
+        12: getstatic     #932                // Field net/minecraft/registry/Registries.ITEM:Lnet/minecraft/registry/DefaultedRegistry;
+        15: invokevirtual #957                // Method readRegistryValue:(Lnet/minecraft/util/collection/IndexedIterable;)Ljava/lang/Object;
+        18: checkcast     #939                // class net/minecraft/item/Item
+        21: astore_1
+        22: aload_0
+        23: invokevirtual #831                // Method readByte:()B
+        26: istore_2
+        27: new           #919                // class net/minecraft/item/ItemStack
+        30: dup
+        31: aload_1
+        32: iload_2
+        33: invokespecial #960                // Method net/minecraft/item/ItemStack."<init>":(Lnet/minecraft/item/ItemConvertible;I)V
+        36: astore_3
+        37: aload_3
+        38: aload_0
+        39: invokevirtual #962                // Method readNbt:()Lnet/minecraft/nbt/NbtCompound;
+        42: invokevirtual #966                // Method net/minecraft/item/ItemStack.setNbt:(Lnet/minecraft/nbt/NbtCompound;)V
+        45: aload_3
+        46: areturn
+
+  public java.lang.String readString();
+    Code:
+         0: aload_0
+         1: sipush        32767
+         4: invokevirtual #795                // Method readString:(I)Ljava/lang/String;
+         7: areturn
+
+  public java.lang.String readString(int);
+    Code:
+         0: iload_1
+         1: invokestatic  #971                // Method toEncodedStringLength:(I)I
+         4: istore_2
+         5: aload_0
+         6: invokevirtual #267                // Method readVarInt:()I
+         9: istore_3
+        10: iload_3
+        11: iload_2
+        12: if_icmple     30
+        15: new           #607                // class io/netty/handler/codec/DecoderException
+        18: dup
+        19: iload_3
+        20: iload_2
+        21: invokedynamic #974,  0            // InvokeDynamic #16:makeConcatWithConstants:(II)Ljava/lang/String;
+        26: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        29: athrow
+        30: iload_3
+        31: ifge          45
+        34: new           #607                // class io/netty/handler/codec/DecoderException
+        37: dup
+        38: ldc_w         #976                // String The received encoded string buffer length is less than zero! Weird string!
+        41: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        44: athrow
+        45: aload_0
+        46: aload_0
+        47: invokevirtual #905                // Method readerIndex:()I
+        50: iload_3
+        51: getstatic     #982                // Field java/nio/charset/StandardCharsets.UTF_8:Ljava/nio/charset/Charset;
+        54: invokevirtual #986                // Method toString:(IILjava/nio/charset/Charset;)Ljava/lang/String;
+        57: astore        4
+        59: aload_0
+        60: aload_0
+        61: invokevirtual #905                // Method readerIndex:()I
+        64: iload_3
+        65: iadd
+        66: invokevirtual #907                // Method readerIndex:(I)Lio/netty/buffer/ByteBuf;
+        69: pop
+        70: aload         4
+        72: invokevirtual #991                // Method java/lang/String.length:()I
+        75: iload_1
+        76: if_icmple     98
+        79: new           #607                // class io/netty/handler/codec/DecoderException
+        82: dup
+        83: aload         4
+        85: invokevirtual #991                // Method java/lang/String.length:()I
+        88: iload_1
+        89: invokedynamic #994,  0            // InvokeDynamic #17:makeConcatWithConstants:(II)Ljava/lang/String;
+        94: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        97: athrow
+        98: aload         4
+       100: areturn
+
+  public net.minecraft.network.PacketByteBuf writeString(java.lang.String);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: sipush        32767
+         5: invokevirtual #813                // Method writeString:(Ljava/lang/String;I)Lnet/minecraft/network/PacketByteBuf;
+         8: areturn
+
+  public net.minecraft.network.PacketByteBuf writeString(java.lang.String, int);
+    Code:
+         0: aload_1
+         1: invokevirtual #991                // Method java/lang/String.length:()I
+         4: iload_2
+         5: if_icmple     26
+         8: new           #883                // class io/netty/handler/codec/EncoderException
+        11: dup
+        12: aload_1
+        13: invokevirtual #991                // Method java/lang/String.length:()I
+        16: iload_2
+        17: invokedynamic #999,  0            // InvokeDynamic #18:makeConcatWithConstants:(II)Ljava/lang/String;
+        22: invokespecial #1000               // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/String;)V
+        25: athrow
+        26: aload_1
+        27: getstatic     #982                // Field java/nio/charset/StandardCharsets.UTF_8:Ljava/nio/charset/Charset;
+        30: invokevirtual #1003               // Method java/lang/String.getBytes:(Ljava/nio/charset/Charset;)[B
+        33: astore_3
+        34: iload_2
+        35: invokestatic  #971                // Method toEncodedStringLength:(I)I
+        38: istore        4
+        40: aload_3
+        41: arraylength
+        42: iload         4
+        44: if_icmple     64
+        47: new           #883                // class io/netty/handler/codec/EncoderException
+        50: dup
+        51: aload_3
+        52: arraylength
+        53: iload         4
+        55: invokedynamic #1006,  0           // InvokeDynamic #19:makeConcatWithConstants:(II)Ljava/lang/String;
+        60: invokespecial #1000               // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/String;)V
+        63: athrow
+        64: aload_0
+        65: aload_3
+        66: arraylength
+        67: invokevirtual #228                // Method writeVarInt:(I)Lnet/minecraft/network/PacketByteBuf;
+        70: pop
+        71: aload_0
+        72: aload_3
+        73: invokevirtual #603                // Method writeBytes:([B)Lio/netty/buffer/ByteBuf;
+        76: pop
+        77: aload_0
+        78: areturn
+
+  private static int toEncodedStringLength(int);
+    Code:
+         0: iload_0
+         1: iconst_3
+         2: imul
+         3: ireturn
+
+  public net.minecraft.util.Identifier readIdentifier();
+    Code:
+         0: new           #1012               // class net/minecraft/util/Identifier
+         3: dup
+         4: aload_0
+         5: sipush        32767
+         8: invokevirtual #795                // Method readString:(I)Ljava/lang/String;
+        11: invokespecial #1013               // Method net/minecraft/util/Identifier."<init>":(Ljava/lang/String;)V
+        14: areturn
+
+  public net.minecraft.network.PacketByteBuf writeIdentifier(net.minecraft.util.Identifier);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1018               // Method net/minecraft/util/Identifier.toString:()Ljava/lang/String;
+         5: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: aload_0
+        10: areturn
+
+  public <T> net.minecraft.registry.RegistryKey<T> readRegistryKey(net.minecraft.registry.RegistryKey<? extends net.minecraft.registry.Registry<T>>);
+    Code:
+         0: aload_0
+         1: invokevirtual #1023               // Method readIdentifier:()Lnet/minecraft/util/Identifier;
+         4: astore_2
+         5: aload_1
+         6: aload_2
+         7: invokestatic  #1028               // Method net/minecraft/registry/RegistryKey.of:(Lnet/minecraft/registry/RegistryKey;Lnet/minecraft/util/Identifier;)Lnet/minecraft/registry/RegistryKey;
+        10: areturn
+
+  public void writeRegistryKey(net.minecraft.registry.RegistryKey<?>);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1035               // Method net/minecraft/registry/RegistryKey.getValue:()Lnet/minecraft/util/Identifier;
+         5: invokevirtual #1037               // Method writeIdentifier:(Lnet/minecraft/util/Identifier;)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: return
+
+  public java.util.Date readDate();
+    Code:
+         0: new           #1042               // class java/util/Date
+         3: dup
+         4: aload_0
+         5: invokevirtual #654                // Method readLong:()J
+         8: invokespecial #1043               // Method java/util/Date."<init>":(J)V
+        11: areturn
+
+  public net.minecraft.network.PacketByteBuf writeDate(java.util.Date);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1049               // Method java/util/Date.getTime:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: aload_0
+        10: areturn
+
+  public java.time.Instant readInstant();
+    Code:
+         0: aload_0
+         1: invokevirtual #654                // Method readLong:()J
+         4: invokestatic  #1058               // Method java/time/Instant.ofEpochMilli:(J)Ljava/time/Instant;
+         7: areturn
+
+  public void writeInstant(java.time.Instant);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1064               // Method java/time/Instant.toEpochMilli:()J
+         5: invokevirtual #637                // Method writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: pop
+         9: return
+
+  public java.security.PublicKey readPublicKey();
+    Code:
+         0: aload_0
+         1: sipush        512
+         4: invokevirtual #596                // Method readByteArray:(I)[B
+         7: invokestatic  #1075               // Method net/minecraft/network/encryption/NetworkEncryptionUtils.decodeEncodedRsaPublicKey:([B)Ljava/security/PublicKey;
+        10: areturn
+        11: astore_1
+        12: new           #607                // class io/netty/handler/codec/DecoderException
+        15: dup
+        16: ldc_w         #1077               // String Malformed public key bytes
+        19: aload_1
+        20: invokespecial #1080               // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+        23: athrow
+      Exception table:
+         from    to  target type
+             0    10    11   Class net/minecraft/network/encryption/NetworkEncryptionException
+
+  public net.minecraft.network.PacketByteBuf writePublicKey(java.security.PublicKey);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokeinterface #1090,  1         // InterfaceMethod java/security/PublicKey.getEncoded:()[B
+         7: invokevirtual #1092               // Method writeByteArray:([B)Lnet/minecraft/network/PacketByteBuf;
+        10: pop
+        11: aload_0
+        12: areturn
+
+  public net.minecraft.util.hit.BlockHitResult readBlockHitResult();
+    Code:
+         0: aload_0
+         1: invokevirtual #717                // Method readBlockPos:()Lnet/minecraft/util/math/BlockPos;
+         4: astore_1
+         5: aload_0
+         6: ldc_w         #1097               // class net/minecraft/util/math/Direction
+         9: invokevirtual #1099               // Method readEnumConstant:(Ljava/lang/Class;)Ljava/lang/Enum;
+        12: checkcast     #1097               // class net/minecraft/util/math/Direction
+        15: astore_2
+        16: aload_0
+        17: invokevirtual #750                // Method readFloat:()F
+        20: fstore_3
+        21: aload_0
+        22: invokevirtual #750                // Method readFloat:()F
+        25: fstore        4
+        27: aload_0
+        28: invokevirtual #750                // Method readFloat:()F
+        31: fstore        5
+        33: aload_0
+        34: invokevirtual #528                // Method readBoolean:()Z
+        37: istore        6
+        39: new           #1101               // class net/minecraft/util/hit/BlockHitResult
+        42: dup
+        43: new           #1103               // class net/minecraft/util/math/Vec3d
+        46: dup
+        47: aload_1
+        48: invokevirtual #1106               // Method net/minecraft/util/math/BlockPos.getX:()I
+        51: i2d
+        52: fload_3
+        53: f2d
+        54: dadd
+        55: aload_1
+        56: invokevirtual #1109               // Method net/minecraft/util/math/BlockPos.getY:()I
+        59: i2d
+        60: fload         4
+        62: f2d
+        63: dadd
+        64: aload_1
+        65: invokevirtual #1112               // Method net/minecraft/util/math/BlockPos.getZ:()I
+        68: i2d
+        69: fload         5
+        71: f2d
+        72: dadd
+        73: invokespecial #1115               // Method net/minecraft/util/math/Vec3d."<init>":(DDD)V
+        76: aload_2
+        77: aload_1
+        78: iload         6
+        80: invokespecial #1118               // Method net/minecraft/util/hit/BlockHitResult."<init>":(Lnet/minecraft/util/math/Vec3d;Lnet/minecraft/util/math/Direction;Lnet/minecraft/util/math/BlockPos;Z)V
+        83: areturn
+
+  public void writeBlockHitResult(net.minecraft.util.hit.BlockHitResult);
+    Code:
+         0: aload_1
+         1: invokevirtual #1131               // Method net/minecraft/util/hit/BlockHitResult.getBlockPos:()Lnet/minecraft/util/math/BlockPos;
+         4: astore_2
+         5: aload_0
+         6: aload_2
+         7: invokevirtual #741                // Method writeBlockPos:(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/network/PacketByteBuf;
+        10: pop
+        11: aload_0
+        12: aload_1
+        13: invokevirtual #1135               // Method net/minecraft/util/hit/BlockHitResult.getSide:()Lnet/minecraft/util/math/Direction;
+        16: invokevirtual #1137               // Method writeEnumConstant:(Ljava/lang/Enum;)Lnet/minecraft/network/PacketByteBuf;
+        19: pop
+        20: aload_1
+        21: invokevirtual #1140               // Method net/minecraft/util/hit/BlockHitResult.getPos:()Lnet/minecraft/util/math/Vec3d;
+        24: astore_3
+        25: aload_0
+        26: aload_3
+        27: getfield      #1143               // Field net/minecraft/util/math/Vec3d.x:D
+        30: aload_2
+        31: invokevirtual #1106               // Method net/minecraft/util/math/BlockPos.getX:()I
+        34: i2d
+        35: dsub
+        36: d2f
+        37: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        40: pop
+        41: aload_0
+        42: aload_3
+        43: getfield      #1145               // Field net/minecraft/util/math/Vec3d.y:D
+        46: aload_2
+        47: invokevirtual #1109               // Method net/minecraft/util/math/BlockPos.getY:()I
+        50: i2d
+        51: dsub
+        52: d2f
+        53: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        56: pop
+        57: aload_0
+        58: aload_3
+        59: getfield      #1147               // Field net/minecraft/util/math/Vec3d.z:D
+        62: aload_2
+        63: invokevirtual #1112               // Method net/minecraft/util/math/BlockPos.getZ:()I
+        66: i2d
+        67: dsub
+        68: d2f
+        69: invokevirtual #763                // Method writeFloat:(F)Lio/netty/buffer/ByteBuf;
+        72: pop
+        73: aload_0
+        74: aload_1
+        75: invokevirtual #1150               // Method net/minecraft/util/hit/BlockHitResult.isInsideBlock:()Z
+        78: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        81: pop
+        82: return
+
+  public java.util.BitSet readBitSet();
+    Code:
+         0: aload_0
+         1: invokevirtual #1156               // Method readLongArray:()[J
+         4: invokestatic  #1160               // Method java/util/BitSet.valueOf:([J)Ljava/util/BitSet;
+         7: areturn
+
+  public void writeBitSet(java.util.BitSet);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1164               // Method java/util/BitSet.toLongArray:()[J
+         5: invokevirtual #1166               // Method writeLongArray:([J)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: return
+
+  public java.util.BitSet readBitSet(int);
+    Code:
+         0: iload_1
+         1: bipush        8
+         3: invokestatic  #1172               // Method net/minecraft/util/math/MathHelper.ceilDiv:(II)I
+         6: newarray       byte
+         8: astore_2
+         9: aload_0
+        10: aload_2
+        11: invokevirtual #616                // Method readBytes:([B)Lio/netty/buffer/ByteBuf;
+        14: pop
+        15: aload_2
+        16: invokestatic  #1175               // Method java/util/BitSet.valueOf:([B)Ljava/util/BitSet;
+        19: areturn
+
+  public void writeBitSet(java.util.BitSet, int);
+    Code:
+         0: aload_1
+         1: invokevirtual #1176               // Method java/util/BitSet.length:()I
+         4: iload_2
+         5: if_icmple     26
+         8: new           #883                // class io/netty/handler/codec/EncoderException
+        11: dup
+        12: aload_1
+        13: invokevirtual #1176               // Method java/util/BitSet.length:()I
+        16: iload_2
+        17: invokedynamic #1179,  0           // InvokeDynamic #20:makeConcatWithConstants:(II)Ljava/lang/String;
+        22: invokespecial #1000               // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/String;)V
+        25: athrow
+        26: aload_1
+        27: invokevirtual #1182               // Method java/util/BitSet.toByteArray:()[B
+        30: astore_3
+        31: aload_0
+        32: aload_3
+        33: iload_2
+        34: bipush        8
+        36: invokestatic  #1172               // Method net/minecraft/util/math/MathHelper.ceilDiv:(II)I
+        39: invokestatic  #1188               // Method java/util/Arrays.copyOf:([BI)[B
+        42: invokevirtual #603                // Method writeBytes:([B)Lio/netty/buffer/ByteBuf;
+        45: pop
+        46: return
+
+  public com.mojang.authlib.GameProfile readGameProfile();
+    Code:
+         0: aload_0
+         1: invokevirtual #1192               // Method readUuid:()Ljava/util/UUID;
+         4: astore_1
+         5: aload_0
+         6: bipush        16
+         8: invokevirtual #795                // Method readString:(I)Ljava/lang/String;
+        11: astore_2
+        12: new           #1194               // class com/mojang/authlib/GameProfile
+        15: dup
+        16: aload_1
+        17: aload_2
+        18: invokespecial #1197               // Method com/mojang/authlib/GameProfile."<init>":(Ljava/util/UUID;Ljava/lang/String;)V
+        21: astore_3
+        22: aload_3
+        23: invokevirtual #1201               // Method com/mojang/authlib/GameProfile.getProperties:()Lcom/mojang/authlib/properties/PropertyMap;
+        26: aload_0
+        27: invokevirtual #1204               // Method readPropertyMap:()Lcom/mojang/authlib/properties/PropertyMap;
+        30: invokevirtual #1210               // Method com/mojang/authlib/properties/PropertyMap.putAll:(Lcom/google/common/collect/Multimap;)Z
+        33: pop
+        34: aload_3
+        35: areturn
+
+  public void writeGameProfile(com.mojang.authlib.GameProfile);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1218               // Method com/mojang/authlib/GameProfile.getId:()Ljava/util/UUID;
+         5: invokevirtual #1220               // Method writeUuid:(Ljava/util/UUID;)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: aload_0
+        10: aload_1
+        11: invokevirtual #1223               // Method com/mojang/authlib/GameProfile.getName:()Ljava/lang/String;
+        14: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+        17: pop
+        18: aload_0
+        19: aload_1
+        20: invokevirtual #1201               // Method com/mojang/authlib/GameProfile.getProperties:()Lcom/mojang/authlib/properties/PropertyMap;
+        23: invokevirtual #1227               // Method writePropertyMap:(Lcom/mojang/authlib/properties/PropertyMap;)V
+        26: return
+
+  public com.mojang.authlib.properties.PropertyMap readPropertyMap();
+    Code:
+         0: new           #1206               // class com/mojang/authlib/properties/PropertyMap
+         3: dup
+         4: invokespecial #1228               // Method com/mojang/authlib/properties/PropertyMap."<init>":()V
+         7: astore_1
+         8: aload_0
+         9: aload_0
+        10: aload_1
+        11: invokedynamic #1238,  0           // InvokeDynamic #21:accept:(Lnet/minecraft/network/PacketByteBuf;Lcom/mojang/authlib/properties/PropertyMap;)Ljava/util/function/Consumer;
+        16: invokevirtual #1240               // Method forEachInCollection:(Ljava/util/function/Consumer;)V
+        19: aload_1
+        20: areturn
+
+  public void writePropertyMap(com.mojang.authlib.properties.PropertyMap);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1246               // Method com/mojang/authlib/properties/PropertyMap.values:()Ljava/util/Collection;
+         5: invokedynamic #1256,  0           // InvokeDynamic #22:accept:()Lnet/minecraft/network/PacketByteBuf$PacketWriter;
+        10: invokevirtual #1258               // Method writeCollection:(Ljava/util/Collection;Lnet/minecraft/network/PacketByteBuf$PacketWriter;)V
+        13: return
+
+  public com.mojang.authlib.properties.Property readProperty();
+    Code:
+         0: aload_0
+         1: invokevirtual #152                // Method readString:()Ljava/lang/String;
+         4: astore_1
+         5: aload_0
+         6: invokevirtual #152                // Method readString:()Ljava/lang/String;
+         9: astore_2
+        10: aload_0
+        11: invokevirtual #528                // Method readBoolean:()Z
+        14: ifeq          33
+        17: aload_0
+        18: invokevirtual #152                // Method readString:()Ljava/lang/String;
+        21: astore_3
+        22: new           #1262               // class com/mojang/authlib/properties/Property
+        25: dup
+        26: aload_1
+        27: aload_2
+        28: aload_3
+        29: invokespecial #1265               // Method com/mojang/authlib/properties/Property."<init>":(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+        32: areturn
+        33: new           #1262               // class com/mojang/authlib/properties/Property
+        36: dup
+        37: aload_1
+        38: aload_2
+        39: invokespecial #1268               // Method com/mojang/authlib/properties/Property."<init>":(Ljava/lang/String;Ljava/lang/String;)V
+        42: areturn
+
+  public void writeProperty(com.mojang.authlib.properties.Property);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1272               // Method com/mojang/authlib/properties/Property.getName:()Ljava/lang/String;
+         5: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: aload_0
+        10: aload_1
+        11: invokevirtual #1274               // Method com/mojang/authlib/properties/Property.getValue:()Ljava/lang/String;
+        14: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+        17: pop
+        18: aload_1
+        19: invokevirtual #1277               // Method com/mojang/authlib/properties/Property.hasSignature:()Z
+        22: ifeq          43
+        25: aload_0
+        26: iconst_1
+        27: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        30: pop
+        31: aload_0
+        32: aload_1
+        33: invokevirtual #1280               // Method com/mojang/authlib/properties/Property.getSignature:()Ljava/lang/String;
+        36: invokevirtual #196                // Method writeString:(Ljava/lang/String;)Lnet/minecraft/network/PacketByteBuf;
+        39: pop
+        40: goto          49
+        43: aload_0
+        44: iconst_0
+        45: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+        48: pop
+        49: return
+
+  public int capacity();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1284               // Method io/netty/buffer/ByteBuf.capacity:()I
+         7: ireturn
+
+  public io.netty.buffer.ByteBuf capacity(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1286               // Method io/netty/buffer/ByteBuf.capacity:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int maxCapacity();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1289               // Method io/netty/buffer/ByteBuf.maxCapacity:()I
+         7: ireturn
+
+  public io.netty.buffer.ByteBufAllocator alloc();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1293               // Method io/netty/buffer/ByteBuf.alloc:()Lio/netty/buffer/ByteBufAllocator;
+         7: areturn
+
+  public java.nio.ByteOrder order();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1297               // Method io/netty/buffer/ByteBuf.order:()Ljava/nio/ByteOrder;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf order(java.nio.ByteOrder);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1301               // Method io/netty/buffer/ByteBuf.order:(Ljava/nio/ByteOrder;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf unwrap();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1306               // Method io/netty/buffer/ByteBuf.unwrap:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public boolean isDirect();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1309               // Method io/netty/buffer/ByteBuf.isDirect:()Z
+         7: ireturn
+
+  public boolean isReadOnly();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1312               // Method io/netty/buffer/ByteBuf.isReadOnly:()Z
+         7: ireturn
+
+  public io.netty.buffer.ByteBuf asReadOnly();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1315               // Method io/netty/buffer/ByteBuf.asReadOnly:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public int readerIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1316               // Method io/netty/buffer/ByteBuf.readerIndex:()I
+         7: ireturn
+
+  public io.netty.buffer.ByteBuf readerIndex(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1318               // Method io/netty/buffer/ByteBuf.readerIndex:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int writerIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1319               // Method io/netty/buffer/ByteBuf.writerIndex:()I
+         7: ireturn
+
+  public io.netty.buffer.ByteBuf writerIndex(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1321               // Method io/netty/buffer/ByteBuf.writerIndex:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf setIndex(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1325               // Method io/netty/buffer/ByteBuf.setIndex:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public int readableBytes();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1326               // Method io/netty/buffer/ByteBuf.readableBytes:()I
+         7: ireturn
+
+  public int writableBytes();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1329               // Method io/netty/buffer/ByteBuf.writableBytes:()I
+         7: ireturn
+
+  public int maxWritableBytes();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1332               // Method io/netty/buffer/ByteBuf.maxWritableBytes:()I
+         7: ireturn
+
+  public boolean isReadable();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1335               // Method io/netty/buffer/ByteBuf.isReadable:()Z
+         7: ireturn
+
+  public boolean isReadable(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1337               // Method io/netty/buffer/ByteBuf.isReadable:(I)Z
+         8: ireturn
+
+  public boolean isWritable();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1340               // Method io/netty/buffer/ByteBuf.isWritable:()Z
+         7: ireturn
+
+  public boolean isWritable(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1342               // Method io/netty/buffer/ByteBuf.isWritable:(I)Z
+         8: ireturn
+
+  public io.netty.buffer.ByteBuf clear();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1345               // Method io/netty/buffer/ByteBuf.clear:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf markReaderIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1348               // Method io/netty/buffer/ByteBuf.markReaderIndex:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf resetReaderIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1351               // Method io/netty/buffer/ByteBuf.resetReaderIndex:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf markWriterIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1354               // Method io/netty/buffer/ByteBuf.markWriterIndex:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf resetWriterIndex();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1357               // Method io/netty/buffer/ByteBuf.resetWriterIndex:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf discardReadBytes();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1360               // Method io/netty/buffer/ByteBuf.discardReadBytes:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf discardSomeReadBytes();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1363               // Method io/netty/buffer/ByteBuf.discardSomeReadBytes:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf ensureWritable(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1367               // Method io/netty/buffer/ByteBuf.ensureWritable:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int ensureWritable(int, boolean);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1371               // Method io/netty/buffer/ByteBuf.ensureWritable:(IZ)I
+         9: ireturn
+
+  public boolean getBoolean(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1374               // Method io/netty/buffer/ByteBuf.getBoolean:(I)Z
+         8: ireturn
+
+  public byte getByte(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1378               // Method io/netty/buffer/ByteBuf.getByte:(I)B
+         8: ireturn
+
+  public short getUnsignedByte(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1382               // Method io/netty/buffer/ByteBuf.getUnsignedByte:(I)S
+         8: ireturn
+
+  public short getShort(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1385               // Method io/netty/buffer/ByteBuf.getShort:(I)S
+         8: ireturn
+
+  public short getShortLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1388               // Method io/netty/buffer/ByteBuf.getShortLE:(I)S
+         8: ireturn
+
+  public int getUnsignedShort(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1391               // Method io/netty/buffer/ByteBuf.getUnsignedShort:(I)I
+         8: ireturn
+
+  public int getUnsignedShortLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1394               // Method io/netty/buffer/ByteBuf.getUnsignedShortLE:(I)I
+         8: ireturn
+
+  public int getMedium(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1397               // Method io/netty/buffer/ByteBuf.getMedium:(I)I
+         8: ireturn
+
+  public int getMediumLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1400               // Method io/netty/buffer/ByteBuf.getMediumLE:(I)I
+         8: ireturn
+
+  public int getUnsignedMedium(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1403               // Method io/netty/buffer/ByteBuf.getUnsignedMedium:(I)I
+         8: ireturn
+
+  public int getUnsignedMediumLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1406               // Method io/netty/buffer/ByteBuf.getUnsignedMediumLE:(I)I
+         8: ireturn
+
+  public int getInt(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1409               // Method io/netty/buffer/ByteBuf.getInt:(I)I
+         8: ireturn
+
+  public int getIntLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1412               // Method io/netty/buffer/ByteBuf.getIntLE:(I)I
+         8: ireturn
+
+  public long getUnsignedInt(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1416               // Method io/netty/buffer/ByteBuf.getUnsignedInt:(I)J
+         8: lreturn
+
+  public long getUnsignedIntLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1419               // Method io/netty/buffer/ByteBuf.getUnsignedIntLE:(I)J
+         8: lreturn
+
+  public long getLong(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1422               // Method io/netty/buffer/ByteBuf.getLong:(I)J
+         8: lreturn
+
+  public long getLongLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1425               // Method io/netty/buffer/ByteBuf.getLongLE:(I)J
+         8: lreturn
+
+  public char getChar(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1429               // Method io/netty/buffer/ByteBuf.getChar:(I)C
+         8: ireturn
+
+  public float getFloat(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1433               // Method io/netty/buffer/ByteBuf.getFloat:(I)F
+         8: freturn
+
+  public double getDouble(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1437               // Method io/netty/buffer/ByteBuf.getDouble:(I)D
+         8: dreturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1441               // Method io/netty/buffer/ByteBuf.getBytes:(ILio/netty/buffer/ByteBuf;)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, io.netty.buffer.ByteBuf, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1444               // Method io/netty/buffer/ByteBuf.getBytes:(ILio/netty/buffer/ByteBuf;I)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, io.netty.buffer.ByteBuf, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: iload         4
+         9: invokevirtual #1448               // Method io/netty/buffer/ByteBuf.getBytes:(ILio/netty/buffer/ByteBuf;II)Lio/netty/buffer/ByteBuf;
+        12: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, byte[]);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1450               // Method io/netty/buffer/ByteBuf.getBytes:(I[B)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, byte[], int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: iload         4
+         9: invokevirtual #1453               // Method io/netty/buffer/ByteBuf.getBytes:(I[BII)Lio/netty/buffer/ByteBuf;
+        12: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, java.nio.ByteBuffer);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1456               // Method io/netty/buffer/ByteBuf.getBytes:(ILjava/nio/ByteBuffer;)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf getBytes(int, java.io.OutputStream, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1461               // Method io/netty/buffer/ByteBuf.getBytes:(ILjava/io/OutputStream;I)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public int getBytes(int, java.nio.channels.GatheringByteChannel, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1466               // Method io/netty/buffer/ByteBuf.getBytes:(ILjava/nio/channels/GatheringByteChannel;I)I
+        10: ireturn
+
+  public int getBytes(int, java.nio.channels.FileChannel, long, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: lload_3
+         7: iload         5
+         9: invokevirtual #1470               // Method io/netty/buffer/ByteBuf.getBytes:(ILjava/nio/channels/FileChannel;JI)I
+        12: ireturn
+
+  public java.lang.CharSequence getCharSequence(int, int, java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: aload_3
+         7: invokevirtual #1476               // Method io/netty/buffer/ByteBuf.getCharSequence:(IILjava/nio/charset/Charset;)Ljava/lang/CharSequence;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf setBoolean(int, boolean);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1480               // Method io/netty/buffer/ByteBuf.setBoolean:(IZ)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setByte(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1483               // Method io/netty/buffer/ByteBuf.setByte:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setShort(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1486               // Method io/netty/buffer/ByteBuf.setShort:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setShortLE(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1489               // Method io/netty/buffer/ByteBuf.setShortLE:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setMedium(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1492               // Method io/netty/buffer/ByteBuf.setMedium:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setMediumLE(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1495               // Method io/netty/buffer/ByteBuf.setMediumLE:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setInt(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1498               // Method io/netty/buffer/ByteBuf.setInt:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setIntLE(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1501               // Method io/netty/buffer/ByteBuf.setIntLE:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setLong(int, long);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: lload_2
+         6: invokevirtual #1505               // Method io/netty/buffer/ByteBuf.setLong:(IJ)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setLongLE(int, long);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: lload_2
+         6: invokevirtual #1508               // Method io/netty/buffer/ByteBuf.setLongLE:(IJ)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setChar(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1511               // Method io/netty/buffer/ByteBuf.setChar:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setFloat(int, float);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: fload_2
+         6: invokevirtual #1515               // Method io/netty/buffer/ByteBuf.setFloat:(IF)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setDouble(int, double);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: dload_2
+         6: invokevirtual #1519               // Method io/netty/buffer/ByteBuf.setDouble:(ID)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1522               // Method io/netty/buffer/ByteBuf.setBytes:(ILio/netty/buffer/ByteBuf;)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, io.netty.buffer.ByteBuf, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1524               // Method io/netty/buffer/ByteBuf.setBytes:(ILio/netty/buffer/ByteBuf;I)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, io.netty.buffer.ByteBuf, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: iload         4
+         9: invokevirtual #1527               // Method io/netty/buffer/ByteBuf.setBytes:(ILio/netty/buffer/ByteBuf;II)Lio/netty/buffer/ByteBuf;
+        12: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, byte[]);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1529               // Method io/netty/buffer/ByteBuf.setBytes:(I[B)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, byte[], int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: iload         4
+         9: invokevirtual #1531               // Method io/netty/buffer/ByteBuf.setBytes:(I[BII)Lio/netty/buffer/ByteBuf;
+        12: areturn
+
+  public io.netty.buffer.ByteBuf setBytes(int, java.nio.ByteBuffer);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1533               // Method io/netty/buffer/ByteBuf.setBytes:(ILjava/nio/ByteBuffer;)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public int setBytes(int, java.io.InputStream, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1536               // Method io/netty/buffer/ByteBuf.setBytes:(ILjava/io/InputStream;I)I
+        10: ireturn
+
+  public int setBytes(int, java.nio.channels.ScatteringByteChannel, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: iload_3
+         7: invokevirtual #1540               // Method io/netty/buffer/ByteBuf.setBytes:(ILjava/nio/channels/ScatteringByteChannel;I)I
+        10: ireturn
+
+  public int setBytes(int, java.nio.channels.FileChannel, long, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: lload_3
+         7: iload         5
+         9: invokevirtual #1543               // Method io/netty/buffer/ByteBuf.setBytes:(ILjava/nio/channels/FileChannel;JI)I
+        12: ireturn
+
+  public io.netty.buffer.ByteBuf setZero(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1546               // Method io/netty/buffer/ByteBuf.setZero:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public int setCharSequence(int, java.lang.CharSequence, java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: aload_3
+         7: invokevirtual #1551               // Method io/netty/buffer/ByteBuf.setCharSequence:(ILjava/lang/CharSequence;Ljava/nio/charset/Charset;)I
+        10: ireturn
+
+  public boolean readBoolean();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1553               // Method io/netty/buffer/ByteBuf.readBoolean:()Z
+         7: ireturn
+
+  public byte readByte();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1554               // Method io/netty/buffer/ByteBuf.readByte:()B
+         7: ireturn
+
+  public short readUnsignedByte();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1558               // Method io/netty/buffer/ByteBuf.readUnsignedByte:()S
+         7: ireturn
+
+  public short readShort();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1561               // Method io/netty/buffer/ByteBuf.readShort:()S
+         7: ireturn
+
+  public short readShortLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1564               // Method io/netty/buffer/ByteBuf.readShortLE:()S
+         7: ireturn
+
+  public int readUnsignedShort();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1567               // Method io/netty/buffer/ByteBuf.readUnsignedShort:()I
+         7: ireturn
+
+  public int readUnsignedShortLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1570               // Method io/netty/buffer/ByteBuf.readUnsignedShortLE:()I
+         7: ireturn
+
+  public int readMedium();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1573               // Method io/netty/buffer/ByteBuf.readMedium:()I
+         7: ireturn
+
+  public int readMediumLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1576               // Method io/netty/buffer/ByteBuf.readMediumLE:()I
+         7: ireturn
+
+  public int readUnsignedMedium();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1579               // Method io/netty/buffer/ByteBuf.readUnsignedMedium:()I
+         7: ireturn
+
+  public int readUnsignedMediumLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1582               // Method io/netty/buffer/ByteBuf.readUnsignedMediumLE:()I
+         7: ireturn
+
+  public int readInt();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1585               // Method io/netty/buffer/ByteBuf.readInt:()I
+         7: ireturn
+
+  public int readIntLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1588               // Method io/netty/buffer/ByteBuf.readIntLE:()I
+         7: ireturn
+
+  public long readUnsignedInt();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1591               // Method io/netty/buffer/ByteBuf.readUnsignedInt:()J
+         7: lreturn
+
+  public long readUnsignedIntLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1594               // Method io/netty/buffer/ByteBuf.readUnsignedIntLE:()J
+         7: lreturn
+
+  public long readLong();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1595               // Method io/netty/buffer/ByteBuf.readLong:()J
+         7: lreturn
+
+  public long readLongLE();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1598               // Method io/netty/buffer/ByteBuf.readLongLE:()J
+         7: lreturn
+
+  public char readChar();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1602               // Method io/netty/buffer/ByteBuf.readChar:()C
+         7: ireturn
+
+  public float readFloat();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1603               // Method io/netty/buffer/ByteBuf.readFloat:()F
+         7: freturn
+
+  public double readDouble();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1607               // Method io/netty/buffer/ByteBuf.readDouble:()D
+         7: dreturn
+
+  public io.netty.buffer.ByteBuf readBytes(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1609               // Method io/netty/buffer/ByteBuf.readBytes:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readSlice(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1612               // Method io/netty/buffer/ByteBuf.readSlice:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readRetainedSlice(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1615               // Method io/netty/buffer/ByteBuf.readRetainedSlice:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1618               // Method io/netty/buffer/ByteBuf.readBytes:(Lio/netty/buffer/ByteBuf;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(io.netty.buffer.ByteBuf, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1621               // Method io/netty/buffer/ByteBuf.readBytes:(Lio/netty/buffer/ByteBuf;I)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(io.netty.buffer.ByteBuf, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1624               // Method io/netty/buffer/ByteBuf.readBytes:(Lio/netty/buffer/ByteBuf;II)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(byte[]);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1625               // Method io/netty/buffer/ByteBuf.readBytes:([B)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(byte[], int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1628               // Method io/netty/buffer/ByteBuf.readBytes:([BII)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(java.nio.ByteBuffer);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1631               // Method io/netty/buffer/ByteBuf.readBytes:(Ljava/nio/ByteBuffer;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf readBytes(java.io.OutputStream, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1634               // Method io/netty/buffer/ByteBuf.readBytes:(Ljava/io/OutputStream;I)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public int readBytes(java.nio.channels.GatheringByteChannel, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1637               // Method io/netty/buffer/ByteBuf.readBytes:(Ljava/nio/channels/GatheringByteChannel;I)I
+         9: ireturn
+
+  public java.lang.CharSequence readCharSequence(int, java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: aload_2
+         6: invokevirtual #1641               // Method io/netty/buffer/ByteBuf.readCharSequence:(ILjava/nio/charset/Charset;)Ljava/lang/CharSequence;
+         9: areturn
+
+  public int readBytes(java.nio.channels.FileChannel, long, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: lload_2
+         6: iload         4
+         8: invokevirtual #1644               // Method io/netty/buffer/ByteBuf.readBytes:(Ljava/nio/channels/FileChannel;JI)I
+        11: ireturn
+
+  public io.netty.buffer.ByteBuf skipBytes(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1647               // Method io/netty/buffer/ByteBuf.skipBytes:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeBoolean(boolean);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1648               // Method io/netty/buffer/ByteBuf.writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeByte(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1649               // Method io/netty/buffer/ByteBuf.writeByte:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeShort(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1652               // Method io/netty/buffer/ByteBuf.writeShort:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeShortLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1655               // Method io/netty/buffer/ByteBuf.writeShortLE:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeMedium(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1658               // Method io/netty/buffer/ByteBuf.writeMedium:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeMediumLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1661               // Method io/netty/buffer/ByteBuf.writeMediumLE:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeInt(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1664               // Method io/netty/buffer/ByteBuf.writeInt:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeIntLE(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1667               // Method io/netty/buffer/ByteBuf.writeIntLE:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeLong(long);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: lload_1
+         5: invokevirtual #1668               // Method io/netty/buffer/ByteBuf.writeLong:(J)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeLongLE(long);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: lload_1
+         5: invokevirtual #1671               // Method io/netty/buffer/ByteBuf.writeLongLE:(J)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeChar(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1674               // Method io/netty/buffer/ByteBuf.writeChar:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeFloat(float);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: fload_1
+         5: invokevirtual #1675               // Method io/netty/buffer/ByteBuf.writeFloat:(F)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeDouble(double);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: dload_1
+         5: invokevirtual #1679               // Method io/netty/buffer/ByteBuf.writeDouble:(D)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1681               // Method io/netty/buffer/ByteBuf.writeBytes:(Lio/netty/buffer/ByteBuf;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(io.netty.buffer.ByteBuf, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1683               // Method io/netty/buffer/ByteBuf.writeBytes:(Lio/netty/buffer/ByteBuf;I)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(io.netty.buffer.ByteBuf, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1685               // Method io/netty/buffer/ByteBuf.writeBytes:(Lio/netty/buffer/ByteBuf;II)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(byte[]);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1686               // Method io/netty/buffer/ByteBuf.writeBytes:([B)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(byte[], int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1688               // Method io/netty/buffer/ByteBuf.writeBytes:([BII)Lio/netty/buffer/ByteBuf;
+        10: areturn
+
+  public io.netty.buffer.ByteBuf writeBytes(java.nio.ByteBuffer);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1690               // Method io/netty/buffer/ByteBuf.writeBytes:(Ljava/nio/ByteBuffer;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int writeBytes(java.io.InputStream, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1693               // Method io/netty/buffer/ByteBuf.writeBytes:(Ljava/io/InputStream;I)I
+         9: ireturn
+
+  public int writeBytes(java.nio.channels.ScatteringByteChannel, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: iload_2
+         6: invokevirtual #1696               // Method io/netty/buffer/ByteBuf.writeBytes:(Ljava/nio/channels/ScatteringByteChannel;I)I
+         9: ireturn
+
+  public int writeBytes(java.nio.channels.FileChannel, long, int) throws java.io.IOException;
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: lload_2
+         6: iload         4
+         8: invokevirtual #1698               // Method io/netty/buffer/ByteBuf.writeBytes:(Ljava/nio/channels/FileChannel;JI)I
+        11: ireturn
+
+  public io.netty.buffer.ByteBuf writeZero(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1701               // Method io/netty/buffer/ByteBuf.writeZero:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int writeCharSequence(java.lang.CharSequence, java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: aload_2
+         6: invokevirtual #1705               // Method io/netty/buffer/ByteBuf.writeCharSequence:(Ljava/lang/CharSequence;Ljava/nio/charset/Charset;)I
+         9: ireturn
+
+  public int indexOf(int, int, byte);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1710               // Method io/netty/buffer/ByteBuf.indexOf:(IIB)I
+        10: ireturn
+
+  public int bytesBefore(byte);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1714               // Method io/netty/buffer/ByteBuf.bytesBefore:(B)I
+         8: ireturn
+
+  public int bytesBefore(int, byte);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1717               // Method io/netty/buffer/ByteBuf.bytesBefore:(IB)I
+         9: ireturn
+
+  public int bytesBefore(int, int, byte);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #1719               // Method io/netty/buffer/ByteBuf.bytesBefore:(IIB)I
+        10: ireturn
+
+  public int forEachByte(io.netty.util.ByteProcessor);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1724               // Method io/netty/buffer/ByteBuf.forEachByte:(Lio/netty/util/ByteProcessor;)I
+         8: ireturn
+
+  public int forEachByte(int, int, io.netty.util.ByteProcessor);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: aload_3
+         7: invokevirtual #1728               // Method io/netty/buffer/ByteBuf.forEachByte:(IILio/netty/util/ByteProcessor;)I
+        10: ireturn
+
+  public int forEachByteDesc(io.netty.util.ByteProcessor);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1731               // Method io/netty/buffer/ByteBuf.forEachByteDesc:(Lio/netty/util/ByteProcessor;)I
+         8: ireturn
+
+  public int forEachByteDesc(int, int, io.netty.util.ByteProcessor);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: aload_3
+         7: invokevirtual #1733               // Method io/netty/buffer/ByteBuf.forEachByteDesc:(IILio/netty/util/ByteProcessor;)I
+        10: ireturn
+
+  public io.netty.buffer.ByteBuf copy();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1736               // Method io/netty/buffer/ByteBuf.copy:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf copy(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1738               // Method io/netty/buffer/ByteBuf.copy:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf slice();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1741               // Method io/netty/buffer/ByteBuf.slice:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf retainedSlice();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1744               // Method io/netty/buffer/ByteBuf.retainedSlice:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf slice(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1746               // Method io/netty/buffer/ByteBuf.slice:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf retainedSlice(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1748               // Method io/netty/buffer/ByteBuf.retainedSlice:(II)Lio/netty/buffer/ByteBuf;
+         9: areturn
+
+  public io.netty.buffer.ByteBuf duplicate();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1751               // Method io/netty/buffer/ByteBuf.duplicate:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf retainedDuplicate();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1754               // Method io/netty/buffer/ByteBuf.retainedDuplicate:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public int nioBufferCount();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1757               // Method io/netty/buffer/ByteBuf.nioBufferCount:()I
+         7: ireturn
+
+  public java.nio.ByteBuffer nioBuffer();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1761               // Method io/netty/buffer/ByteBuf.nioBuffer:()Ljava/nio/ByteBuffer;
+         7: areturn
+
+  public java.nio.ByteBuffer nioBuffer(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1764               // Method io/netty/buffer/ByteBuf.nioBuffer:(II)Ljava/nio/ByteBuffer;
+         9: areturn
+
+  public java.nio.ByteBuffer internalNioBuffer(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1767               // Method io/netty/buffer/ByteBuf.internalNioBuffer:(II)Ljava/nio/ByteBuffer;
+         9: areturn
+
+  public java.nio.ByteBuffer[] nioBuffers();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1771               // Method io/netty/buffer/ByteBuf.nioBuffers:()[Ljava/nio/ByteBuffer;
+         7: areturn
+
+  public java.nio.ByteBuffer[] nioBuffers(int, int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: invokevirtual #1774               // Method io/netty/buffer/ByteBuf.nioBuffers:(II)[Ljava/nio/ByteBuffer;
+         9: areturn
+
+  public boolean hasArray();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1777               // Method io/netty/buffer/ByteBuf.hasArray:()Z
+         7: ireturn
+
+  public byte[] array();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1779               // Method io/netty/buffer/ByteBuf.array:()[B
+         7: areturn
+
+  public int arrayOffset();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1782               // Method io/netty/buffer/ByteBuf.arrayOffset:()I
+         7: ireturn
+
+  public boolean hasMemoryAddress();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1785               // Method io/netty/buffer/ByteBuf.hasMemoryAddress:()Z
+         7: ireturn
+
+  public long memoryAddress();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1788               // Method io/netty/buffer/ByteBuf.memoryAddress:()J
+         7: lreturn
+
+  public java.lang.String toString(java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1791               // Method io/netty/buffer/ByteBuf.toString:(Ljava/nio/charset/Charset;)Ljava/lang/String;
+         8: areturn
+
+  public java.lang.String toString(int, int, java.nio.charset.Charset);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: iload_2
+         6: aload_3
+         7: invokevirtual #1792               // Method io/netty/buffer/ByteBuf.toString:(IILjava/nio/charset/Charset;)Ljava/lang/String;
+        10: areturn
+
+  public int hashCode();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1795               // Method io/netty/buffer/ByteBuf.hashCode:()I
+         7: ireturn
+
+  public boolean equals(java.lang.Object);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1799               // Method io/netty/buffer/ByteBuf.equals:(Ljava/lang/Object;)Z
+         8: ireturn
+
+  public int compareTo(io.netty.buffer.ByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1804               // Method io/netty/buffer/ByteBuf.compareTo:(Lio/netty/buffer/ByteBuf;)I
+         8: ireturn
+
+  public java.lang.String toString();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1805               // Method io/netty/buffer/ByteBuf.toString:()Ljava/lang/String;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf retain(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1808               // Method io/netty/buffer/ByteBuf.retain:(I)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public io.netty.buffer.ByteBuf retain();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1810               // Method io/netty/buffer/ByteBuf.retain:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf touch();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1813               // Method io/netty/buffer/ByteBuf.touch:()Lio/netty/buffer/ByteBuf;
+         7: areturn
+
+  public io.netty.buffer.ByteBuf touch(java.lang.Object);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: aload_1
+         5: invokevirtual #1816               // Method io/netty/buffer/ByteBuf.touch:(Ljava/lang/Object;)Lio/netty/buffer/ByteBuf;
+         8: areturn
+
+  public int refCnt();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1819               // Method io/netty/buffer/ByteBuf.refCnt:()I
+         7: ireturn
+
+  public boolean release();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: invokevirtual #1822               // Method io/netty/buffer/ByteBuf.release:()Z
+         7: ireturn
+
+  public boolean release(int);
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field parent:Lio/netty/buffer/ByteBuf;
+         4: iload_1
+         5: invokevirtual #1825               // Method io/netty/buffer/ByteBuf.release:(I)Z
+         8: ireturn
+
+  public io.netty.util.ReferenceCounted touch(java.lang.Object);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #1827               // Method touch:(Ljava/lang/Object;)Lio/netty/buffer/ByteBuf;
+         5: areturn
+
+  public io.netty.util.ReferenceCounted touch();
+    Code:
+         0: aload_0
+         1: invokevirtual #1829               // Method touch:()Lio/netty/buffer/ByteBuf;
+         4: areturn
+
+  public io.netty.util.ReferenceCounted retain(int);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: invokevirtual #1832               // Method retain:(I)Lio/netty/buffer/ByteBuf;
+         5: areturn
+
+  public io.netty.util.ReferenceCounted retain();
+    Code:
+         0: aload_0
+         1: invokevirtual #1833               // Method retain:()Lio/netty/buffer/ByteBuf;
+         4: areturn
+
+  public int compareTo(java.lang.Object);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: checkcast     #4                  // class io/netty/buffer/ByteBuf
+         5: invokevirtual #1834               // Method compareTo:(Lio/netty/buffer/ByteBuf;)I
+         8: ireturn
+
+  private void method_46250(com.mojang.authlib.properties.PropertyMap, net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_0
+         1: invokevirtual #1836               // Method readProperty:()Lcom/mojang/authlib/properties/Property;
+         4: astore_3
+         5: aload_1
+         6: aload_3
+         7: invokevirtual #1272               // Method com/mojang/authlib/properties/Property.getName:()Ljava/lang/String;
+        10: aload_3
+        11: invokevirtual #1839               // Method com/mojang/authlib/properties/PropertyMap.put:(Ljava/lang/Object;Ljava/lang/Object;)Z
+        14: pop
+        15: return
+
+  private void method_43620(net.minecraft.network.PacketByteBuf$PacketWriter, java.lang.Object);
+    Code:
+         0: aload_0
+         1: iconst_0
+         2: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+         5: pop
+         6: aload_1
+         7: aload_0
+         8: aload_2
+         9: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        14: return
+
+  private void method_43621(net.minecraft.network.PacketByteBuf$PacketWriter, java.lang.Object);
+    Code:
+         0: aload_0
+         1: iconst_1
+         2: invokevirtual #518                // Method writeBoolean:(Z)Lio/netty/buffer/ByteBuf;
+         5: pop
+         6: aload_1
+         7: aload_0
+         8: aload_2
+         9: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        14: return
+
+  private void method_34064(net.minecraft.network.PacketByteBuf$PacketWriter, net.minecraft.network.PacketByteBuf$PacketWriter, java.lang.Object, java.lang.Object);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: aload_3
+         3: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+         8: aload_2
+         9: aload_0
+        10: aload         4
+        12: invokeinterface #255,  3          // InterfaceMethod net/minecraft/network/PacketByteBuf$PacketWriter.accept:(Ljava/lang/Object;Ljava/lang/Object;)V
+        17: return
+
+  private static java.lang.Object method_37452(int, java.util.function.IntFunction, int);
+    Code:
+         0: iload_2
+         1: iload_0
+         2: if_icmple     20
+         5: new           #607                // class io/netty/handler/codec/DecoderException
+         8: dup
+         9: iload_2
+        10: iload_0
+        11: invokedynamic #1845,  0           // InvokeDynamic #23:makeConcatWithConstants:(II)Ljava/lang/String;
+        16: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        19: athrow
+        20: aload_1
+        21: iload_2
+        22: invokeinterface #313,  2          // InterfaceMethod java/util/function/IntFunction.apply:(I)Ljava/lang/Object;
+        27: areturn
+
+  private static io.netty.handler.codec.EncoderException method_49396(java.lang.Object, java.lang.String);
+    Code:
+         0: new           #883                // class io/netty/handler/codec/EncoderException
+         3: dup
+         4: aload_1
+         5: aload_0
+         6: invokedynamic #1851,  0           // InvokeDynamic #24:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+        11: invokespecial #1000               // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/String;)V
+        14: areturn
+
+  private static io.netty.handler.codec.DecoderException method_49397(java.lang.String);
+    Code:
+         0: new           #607                // class io/netty/handler/codec/DecoderException
+         3: dup
+         4: aload_0
+         5: invokedynamic #1856,  0           // InvokeDynamic #25:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+        10: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        13: areturn
+
+  private static io.netty.handler.codec.EncoderException method_34061(java.lang.Object, java.lang.String);
+    Code:
+         0: new           #883                // class io/netty/handler/codec/EncoderException
+         3: dup
+         4: aload_1
+         5: aload_0
+         6: invokedynamic #1851,  0           // InvokeDynamic #24:makeConcatWithConstants:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+        11: invokespecial #1000               // Method io/netty/handler/codec/EncoderException."<init>":(Ljava/lang/String;)V
+        14: areturn
+
+  private static io.netty.handler.codec.DecoderException method_34070(net.minecraft.nbt.NbtCompound, java.lang.String);
+    Code:
+         0: new           #607                // class io/netty/handler/codec/DecoderException
+         3: dup
+         4: aload_1
+         5: aload_0
+         6: invokedynamic #1861,  0           // InvokeDynamic #26:makeConcatWithConstants:(Ljava/lang/String;Lnet/minecraft/nbt/NbtCompound;)Ljava/lang/String;
+        11: invokespecial #613                // Method io/netty/handler/codec/DecoderException."<init>":(Ljava/lang/String;)V
+        14: areturn
+
+  static {};
+    Code:
+         0: new           #188                // class com/google/gson/Gson
+         3: dup
+         4: invokespecial #1863               // Method com/google/gson/Gson."<init>":()V
+         7: putstatic     #148                // Field GSON:Lcom/google/gson/Gson;
+        10: return
+}

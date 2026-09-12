@@ -1,0 +1,69 @@
+����: ѡ����ϴ���: -l without -c, line number and local variable tables will not be printed
+Compiled from "ChunkSection.java"
+public class net.minecraft.world.chunk.ChunkSection {
+  public static final int field_31406;
+
+  public static final int field_31407;
+
+  public static final int field_31408;
+
+  public static final int field_34555;
+
+  private short nonEmptyBlockCount;
+
+  private short randomTickableBlockCount;
+
+  private short nonEmptyFluidCount;
+
+  private final net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState> blockStateContainer;
+
+  private net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>> biomeContainer;
+
+  private net.minecraft.world.chunk.ChunkSection(net.minecraft.world.chunk.ChunkSection);
+
+  public net.minecraft.world.chunk.ChunkSection(net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState>, net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>>);
+
+  public net.minecraft.world.chunk.ChunkSection(net.minecraft.registry.Registry<net.minecraft.world.biome.Biome>);
+
+  public net.minecraft.block.BlockState getBlockState(int, int, int);
+
+  public net.minecraft.fluid.FluidState getFluidState(int, int, int);
+
+  public void lock();
+
+  public void unlock();
+
+  public net.minecraft.block.BlockState setBlockState(int, int, int, net.minecraft.block.BlockState);
+
+  public net.minecraft.block.BlockState setBlockState(int, int, int, net.minecraft.block.BlockState, boolean);
+
+  public boolean isEmpty();
+
+  public boolean hasRandomTicks();
+
+  public boolean hasRandomBlockTicks();
+
+  public boolean hasRandomFluidTicks();
+
+  public void calculateCounts();
+
+  public net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState> getBlockStateContainer();
+
+  public net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>> getBiomeContainer();
+
+  public void readDataPacket(net.minecraft.network.PacketByteBuf);
+
+  public void readBiomePacket(net.minecraft.network.PacketByteBuf);
+
+  public void toPacket(net.minecraft.network.PacketByteBuf);
+
+  public int getPacketSize();
+
+  public boolean hasAny(java.util.function.Predicate<net.minecraft.block.BlockState>);
+
+  public net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome> getBiome(int, int, int);
+
+  public void populateBiomes(net.minecraft.world.biome.source.BiomeSupplier, net.minecraft.world.biome.source.util.MultiNoiseUtil$MultiNoiseSampler, int, int, int);
+
+  public net.minecraft.world.chunk.ChunkSection copy();
+}

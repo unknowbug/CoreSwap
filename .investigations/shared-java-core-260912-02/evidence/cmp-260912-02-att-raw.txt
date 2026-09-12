@@ -1,0 +1,109 @@
+# 260912-02 生效自证臂对比（tool-fp_compare.py 原始输出，**不含结论**）
+生成 2026-09-12 17:03:16
+
+===== 1.21.6 att-bulk(自证) vs fix-default [WB层] =====
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.21.6 att-bulk(自证) vs fix-default [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-bulk(自证) vs 冻结 post [WB层] =====
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-bulk(自证) vs 冻结 post [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-perblock(自证) vs 冻结 perblock [WB层] =====
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-perblock(自证) vs 冻结 perblock [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-bulk vs att-perblock [WB层] =====
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 att-bulk vs att-perblock [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+## 生效自证行（原文，来自各臂日志）
+--- log-1.21.6-att-bulk.log
+[WG-BULKWB] state_ids_size=27946 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[WG-BULKWB] calls=625 sections_replaced=5000 air_sections_skipped=10000 idlist_hits=0 max_distinct=7 ns/section: build=266636 (incl. readPacket=5804) counts_set=387 ns/call(total)=2160977 (per-section ns; compare against per-block setBlockState path)
+[WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+--- log-1.20.1-att-bulk.log
+[WG-BULKWB] state_ids_size=24137 idlist_bits=15 (bulk section writeback active; ARRAY<=4bit, BI_MAP 5-8bit, ID_LIST=above)
+[WG-BULKWB] calls=607 sections_replaced=4856 air_sections_skipped=9712 idlist_hits=0 max_distinct=7 ns/section: build=18956 (incl. readPacket=2418) counts_set=115 ns/call(total)=167250 (per-section ns; compare against per-block setBlockState path)
+[WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+--- log-1.20.1-att-perblock.log
+[WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+[WG-PERBLOCK] calls=607 ns/call(total)=1356958 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+
+## att 臂 fp sha（前 16 位）
+382c497b228883ce  fp-1.20.1-att-bulk.content.txt  607 行
+4b10f2be7f9d5d94  fp-1.20.1-att-bulk.txt  1214 行
+356842cf6ce0d006  fp-1.20.1-att-bulk.wb.txt  607 行
+382c497b228883ce  fp-1.20.1-att-perblock.content.txt  607 行
+4b10f2be7f9d5d94  fp-1.20.1-att-perblock.txt  1214 行
+356842cf6ce0d006  fp-1.20.1-att-perblock.wb.txt  607 行
+ae643ed8c6054ab0  fp-1.21.6-att-bulk.content.txt  625 行
+8184d609847c704e  fp-1.21.6-att-bulk.txt  1250 行
+ae5ddee139d9cd10  fp-1.21.6-att-bulk.wb.txt  625 行
+
+
+## 补：worker 指出的「字面缺失两条 Rustbuf 比对」（主会话 260912-02 补跑）
+
+===== 1.20.1 fix-perblock(本体) vs 冻结 perblock [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 fix-bulk(本体) vs fix-perblock(本体) [Rustbuf层] =====
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES

@@ -1,0 +1,677 @@
+Compiled from "ChunkSection.java"
+public class net.minecraft.world.chunk.ChunkSection {
+  public static final int field_31406;
+
+  public static final int field_31407;
+
+  public static final int field_31408;
+
+  public static final int field_34555;
+
+  private short nonEmptyBlockCount;
+
+  private short randomTickableBlockCount;
+
+  private short nonEmptyFluidCount;
+
+  private final net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState> blockStateContainer;
+
+  private net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>> biomeContainer;
+
+  private net.minecraft.world.chunk.ChunkSection(net.minecraft.world.chunk.ChunkSection);
+    Code:
+         0: aload_0
+         1: invokespecial #50                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: aload_1
+         6: getfield      #52                 // Field nonEmptyBlockCount:S
+         9: putfield      #52                 // Field nonEmptyBlockCount:S
+        12: aload_0
+        13: aload_1
+        14: getfield      #54                 // Field randomTickableBlockCount:S
+        17: putfield      #54                 // Field randomTickableBlockCount:S
+        20: aload_0
+        21: aload_1
+        22: getfield      #56                 // Field nonEmptyFluidCount:S
+        25: putfield      #56                 // Field nonEmptyFluidCount:S
+        28: aload_0
+        29: aload_1
+        30: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        33: invokevirtual #62                 // Method net/minecraft/world/chunk/PalettedContainer.copy:()Lnet/minecraft/world/chunk/PalettedContainer;
+        36: putfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        39: aload_0
+        40: aload_1
+        41: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        44: invokeinterface #67,  1           // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.copy:()Lnet/minecraft/world/chunk/PalettedContainer;
+        49: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        52: return
+      LineNumberTable:
+        line 31: 0
+        line 32: 4
+        line 33: 12
+        line 34: 20
+        line 35: 28
+        line 36: 39
+        line 37: 52
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      53     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      53     1 section   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public net.minecraft.world.chunk.ChunkSection(net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState>, net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>>);
+    Code:
+         0: aload_0
+         1: invokespecial #50                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: aload_1
+         6: putfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         9: aload_0
+        10: aload_2
+        11: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        14: aload_0
+        15: invokevirtual #74                 // Method calculateCounts:()V
+        18: return
+      LineNumberTable:
+        line 39: 0
+        line 40: 4
+        line 41: 9
+        line 42: 14
+        line 43: 18
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      19     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      19     1 blockStateContainer   Lnet/minecraft/world/chunk/PalettedContainer;
+            0      19     2 biomeContainer   Lnet/minecraft/world/chunk/ReadableContainer;
+
+  public net.minecraft.world.chunk.ChunkSection(net.minecraft.registry.Registry<net.minecraft.world.biome.Biome>);
+    Code:
+         0: aload_0
+         1: invokespecial #50                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #11                 // class net/minecraft/world/chunk/PalettedContainer
+         8: dup
+         9: getstatic     #83                 // Field net/minecraft/block/Block.STATE_IDS:Lnet/minecraft/util/collection/IdList;
+        12: getstatic     #89                 // Field net/minecraft/block/Blocks.AIR:Lnet/minecraft/block/Block;
+        15: invokevirtual #93                 // Method net/minecraft/block/Block.getDefaultState:()Lnet/minecraft/block/BlockState;
+        18: getstatic     #97                 // Field net/minecraft/world/chunk/PalettedContainer$PaletteProvider.BLOCK_STATE:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        21: invokespecial #100                // Method net/minecraft/world/chunk/PalettedContainer."<init>":(Lnet/minecraft/util/collection/IndexedIterable;Ljava/lang/Object;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)V
+        24: putfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        27: aload_0
+        28: new           #11                 // class net/minecraft/world/chunk/PalettedContainer
+        31: dup
+        32: aload_1
+        33: invokeinterface #106,  1          // InterfaceMethod net/minecraft/registry/Registry.getIndexedEntries:()Lnet/minecraft/util/collection/IndexedIterable;
+        38: aload_1
+        39: getstatic     #112                // Field net/minecraft/world/biome/BiomeKeys.PLAINS:Lnet/minecraft/registry/RegistryKey;
+        42: invokeinterface #116,  2          // InterfaceMethod net/minecraft/registry/Registry.getOrThrow:(Lnet/minecraft/registry/RegistryKey;)Lnet/minecraft/registry/entry/RegistryEntry$Reference;
+        47: getstatic     #119                // Field net/minecraft/world/chunk/PalettedContainer$PaletteProvider.BIOME:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        50: invokespecial #100                // Method net/minecraft/world/chunk/PalettedContainer."<init>":(Lnet/minecraft/util/collection/IndexedIterable;Ljava/lang/Object;Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;)V
+        53: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        56: return
+      LineNumberTable:
+        line 45: 0
+        line 46: 4
+        line 47: 27
+        line 48: 56
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      57     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      57     1 biomeRegistry   Lnet/minecraft/registry/Registry;
+
+  public net.minecraft.block.BlockState getBlockState(int, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: iload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #130                // Method net/minecraft/world/chunk/PalettedContainer.get:(III)Ljava/lang/Object;
+        10: checkcast     #132                // class net/minecraft/block/BlockState
+        13: areturn
+      LineNumberTable:
+        line 51: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      14     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      14     1     x   I
+            0      14     2     y   I
+            0      14     3     z   I
+
+  public net.minecraft.fluid.FluidState getFluidState(int, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: iload_1
+         5: iload_2
+         6: iload_3
+         7: invokevirtual #130                // Method net/minecraft/world/chunk/PalettedContainer.get:(III)Ljava/lang/Object;
+        10: checkcast     #132                // class net/minecraft/block/BlockState
+        13: invokevirtual #137                // Method net/minecraft/block/BlockState.getFluidState:()Lnet/minecraft/fluid/FluidState;
+        16: areturn
+      LineNumberTable:
+        line 55: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      17     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      17     1     x   I
+            0      17     2     y   I
+            0      17     3     z   I
+
+  public void lock();
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: invokevirtual #140                // Method net/minecraft/world/chunk/PalettedContainer.lock:()V
+         7: return
+      LineNumberTable:
+        line 59: 0
+        line 60: 7
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       8     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public void unlock();
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: invokevirtual #143                // Method net/minecraft/world/chunk/PalettedContainer.unlock:()V
+         7: return
+      LineNumberTable:
+        line 63: 0
+        line 64: 7
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       8     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public net.minecraft.block.BlockState setBlockState(int, int, int, net.minecraft.block.BlockState);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: iload_2
+         3: iload_3
+         4: aload         4
+         6: iconst_1
+         7: invokevirtual #149                // Method setBlockState:(IIILnet/minecraft/block/BlockState;Z)Lnet/minecraft/block/BlockState;
+        10: areturn
+      LineNumberTable:
+        line 67: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      11     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      11     1     x   I
+            0      11     2     y   I
+            0      11     3     z   I
+            0      11     4 state   Lnet/minecraft/block/BlockState;
+
+  public net.minecraft.block.BlockState setBlockState(int, int, int, net.minecraft.block.BlockState, boolean);
+    Code:
+         0: iload         5
+         2: ifeq          25
+         5: aload_0
+         6: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         9: iload_1
+        10: iload_2
+        11: iload_3
+        12: aload         4
+        14: invokevirtual #154                // Method net/minecraft/world/chunk/PalettedContainer.swap:(IIILjava/lang/Object;)Ljava/lang/Object;
+        17: checkcast     #132                // class net/minecraft/block/BlockState
+        20: astore        6
+        22: goto          42
+        25: aload_0
+        26: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        29: iload_1
+        30: iload_2
+        31: iload_3
+        32: aload         4
+        34: invokevirtual #157                // Method net/minecraft/world/chunk/PalettedContainer.swapUnsafe:(IIILjava/lang/Object;)Ljava/lang/Object;
+        37: checkcast     #132                // class net/minecraft/block/BlockState
+        40: astore        6
+        42: aload         6
+        44: invokevirtual #137                // Method net/minecraft/block/BlockState.getFluidState:()Lnet/minecraft/fluid/FluidState;
+        47: astore        7
+        49: aload         4
+        51: invokevirtual #137                // Method net/minecraft/block/BlockState.getFluidState:()Lnet/minecraft/fluid/FluidState;
+        54: astore        8
+        56: aload         6
+        58: invokevirtual #161                // Method net/minecraft/block/BlockState.isAir:()Z
+        61: ifne          94
+        64: aload_0
+        65: dup
+        66: getfield      #52                 // Field nonEmptyBlockCount:S
+        69: iconst_1
+        70: isub
+        71: i2s
+        72: putfield      #52                 // Field nonEmptyBlockCount:S
+        75: aload         6
+        77: invokevirtual #164                // Method net/minecraft/block/BlockState.hasRandomTicks:()Z
+        80: ifeq          94
+        83: aload_0
+        84: dup
+        85: getfield      #54                 // Field randomTickableBlockCount:S
+        88: iconst_1
+        89: isub
+        90: i2s
+        91: putfield      #54                 // Field randomTickableBlockCount:S
+        94: aload         7
+        96: invokevirtual #169                // Method net/minecraft/fluid/FluidState.isEmpty:()Z
+        99: ifne          113
+       102: aload_0
+       103: dup
+       104: getfield      #56                 // Field nonEmptyFluidCount:S
+       107: iconst_1
+       108: isub
+       109: i2s
+       110: putfield      #56                 // Field nonEmptyFluidCount:S
+       113: aload         4
+       115: invokevirtual #161                // Method net/minecraft/block/BlockState.isAir:()Z
+       118: ifne          151
+       121: aload_0
+       122: dup
+       123: getfield      #52                 // Field nonEmptyBlockCount:S
+       126: iconst_1
+       127: iadd
+       128: i2s
+       129: putfield      #52                 // Field nonEmptyBlockCount:S
+       132: aload         4
+       134: invokevirtual #164                // Method net/minecraft/block/BlockState.hasRandomTicks:()Z
+       137: ifeq          151
+       140: aload_0
+       141: dup
+       142: getfield      #54                 // Field randomTickableBlockCount:S
+       145: iconst_1
+       146: iadd
+       147: i2s
+       148: putfield      #54                 // Field randomTickableBlockCount:S
+       151: aload         8
+       153: invokevirtual #169                // Method net/minecraft/fluid/FluidState.isEmpty:()Z
+       156: ifne          170
+       159: aload_0
+       160: dup
+       161: getfield      #56                 // Field nonEmptyFluidCount:S
+       164: iconst_1
+       165: iadd
+       166: i2s
+       167: putfield      #56                 // Field nonEmptyFluidCount:S
+       170: aload         6
+       172: areturn
+      LineNumberTable:
+        line 72: 0
+        line 73: 5
+        line 75: 25
+        line 77: 42
+        line 78: 49
+        line 80: 56
+        line 81: 64
+        line 82: 75
+        line 83: 83
+        line 87: 94
+        line 88: 102
+        line 91: 113
+        line 92: 121
+        line 93: 132
+        line 94: 140
+        line 98: 151
+        line 99: 159
+        line 102: 170
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0     173     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0     173     1     x   I
+            0     173     2     y   I
+            0     173     3     z   I
+            0     173     4 state   Lnet/minecraft/block/BlockState;
+            0     173     5  lock   Z
+           22       3     6 blockState   Lnet/minecraft/block/BlockState;
+           42     131     6 blockState   Lnet/minecraft/block/BlockState;
+           49     124     7 fluidState   Lnet/minecraft/fluid/FluidState;
+           56     117     8 fluidState2   Lnet/minecraft/fluid/FluidState;
+
+  public boolean isEmpty();
+    Code:
+         0: aload_0
+         1: getfield      #52                 // Field nonEmptyBlockCount:S
+         4: ifne          11
+         7: iconst_1
+         8: goto          12
+        11: iconst_0
+        12: ireturn
+      LineNumberTable:
+        line 106: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      13     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public boolean hasRandomTicks();
+    Code:
+         0: aload_0
+         1: invokevirtual #177                // Method hasRandomBlockTicks:()Z
+         4: ifne          14
+         7: aload_0
+         8: invokevirtual #180                // Method hasRandomFluidTicks:()Z
+        11: ifeq          18
+        14: iconst_1
+        15: goto          19
+        18: iconst_0
+        19: ireturn
+      LineNumberTable:
+        line 110: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      20     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public boolean hasRandomBlockTicks();
+    Code:
+         0: aload_0
+         1: getfield      #54                 // Field randomTickableBlockCount:S
+         4: ifle          11
+         7: iconst_1
+         8: goto          12
+        11: iconst_0
+        12: ireturn
+      LineNumberTable:
+        line 114: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      13     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public boolean hasRandomFluidTicks();
+    Code:
+         0: aload_0
+         1: getfield      #56                 // Field nonEmptyFluidCount:S
+         4: ifle          11
+         7: iconst_1
+         8: goto          12
+        11: iconst_0
+        12: ireturn
+      LineNumberTable:
+        line 118: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      13     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public void calculateCounts();
+    Code:
+         0: new           #7                  // class net/minecraft/world/chunk/ChunkSection$BlockStateCounter
+         3: dup
+         4: aload_0
+         5: invokespecial #182                // Method net/minecraft/world/chunk/ChunkSection$BlockStateCounter."<init>":(Lnet/minecraft/world/chunk/ChunkSection;)V
+         8: astore_1
+         9: aload_0
+        10: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        13: aload_1
+        14: invokevirtual #186                // Method net/minecraft/world/chunk/PalettedContainer.count:(Lnet/minecraft/world/chunk/PalettedContainer$Counter;)V
+        17: aload_0
+        18: aload_1
+        19: getfield      #188                // Field net/minecraft/world/chunk/ChunkSection$BlockStateCounter.nonEmptyBlockCount:I
+        22: i2s
+        23: putfield      #52                 // Field nonEmptyBlockCount:S
+        26: aload_0
+        27: aload_1
+        28: getfield      #190                // Field net/minecraft/world/chunk/ChunkSection$BlockStateCounter.randomTickableBlockCount:I
+        31: i2s
+        32: putfield      #54                 // Field randomTickableBlockCount:S
+        35: aload_0
+        36: aload_1
+        37: getfield      #192                // Field net/minecraft/world/chunk/ChunkSection$BlockStateCounter.nonEmptyFluidCount:I
+        40: i2s
+        41: putfield      #56                 // Field nonEmptyFluidCount:S
+        44: return
+      LineNumberTable:
+        line 146: 0
+        line 147: 9
+        line 150: 17
+        line 151: 26
+        line 152: 35
+        line 153: 44
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      45     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            9      36     1 blockStateCounter   Lnet/minecraft/world/chunk/ChunkSection$BlockStateCounter;
+
+  public net.minecraft.world.chunk.PalettedContainer<net.minecraft.block.BlockState> getBlockStateContainer();
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: areturn
+      LineNumberTable:
+        line 156: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public net.minecraft.world.chunk.ReadableContainer<net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome>> getBiomeContainer();
+    Code:
+         0: aload_0
+         1: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+         4: areturn
+      LineNumberTable:
+        line 160: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       5     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public void readDataPacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #208                // Method net/minecraft/network/PacketByteBuf.readShort:()S
+         5: putfield      #52                 // Field nonEmptyBlockCount:S
+         8: aload_0
+         9: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        12: aload_1
+        13: invokevirtual #211                // Method net/minecraft/world/chunk/PalettedContainer.readPacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        16: aload_0
+        17: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        20: invokeinterface #214,  1          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.slice:()Lnet/minecraft/world/chunk/PalettedContainer;
+        25: astore_2
+        26: aload_2
+        27: aload_1
+        28: invokevirtual #211                // Method net/minecraft/world/chunk/PalettedContainer.readPacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        31: aload_0
+        32: aload_2
+        33: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        36: return
+      LineNumberTable:
+        line 164: 0
+        line 165: 8
+        line 166: 16
+        line 167: 26
+        line 168: 31
+        line 169: 36
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      37     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      37     1   buf   Lnet/minecraft/network/PacketByteBuf;
+           26      11     2 palettedContainer   Lnet/minecraft/world/chunk/PalettedContainer;
+
+  public void readBiomePacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_0
+         1: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+         4: invokeinterface #214,  1          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.slice:()Lnet/minecraft/world/chunk/PalettedContainer;
+         9: astore_2
+        10: aload_2
+        11: aload_1
+        12: invokevirtual #211                // Method net/minecraft/world/chunk/PalettedContainer.readPacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        15: aload_0
+        16: aload_2
+        17: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        20: return
+      LineNumberTable:
+        line 172: 0
+        line 173: 10
+        line 174: 15
+        line 175: 20
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      21     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      21     1   buf   Lnet/minecraft/network/PacketByteBuf;
+           10      11     2 palettedContainer   Lnet/minecraft/world/chunk/PalettedContainer;
+
+  public void toPacket(net.minecraft.network.PacketByteBuf);
+    Code:
+         0: aload_1
+         1: aload_0
+         2: getfield      #52                 // Field nonEmptyBlockCount:S
+         5: invokevirtual #223                // Method net/minecraft/network/PacketByteBuf.writeShort:(I)Lnet/minecraft/network/PacketByteBuf;
+         8: pop
+         9: aload_0
+        10: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+        13: aload_1
+        14: invokevirtual #226                // Method net/minecraft/world/chunk/PalettedContainer.writePacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        17: aload_0
+        18: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        21: aload_1
+        22: invokeinterface #227,  2          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.writePacket:(Lnet/minecraft/network/PacketByteBuf;)V
+        27: return
+      LineNumberTable:
+        line 178: 0
+        line 179: 9
+        line 180: 17
+        line 181: 27
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      28     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      28     1   buf   Lnet/minecraft/network/PacketByteBuf;
+
+  public int getPacketSize();
+    Code:
+         0: iconst_2
+         1: aload_0
+         2: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         5: invokevirtual #231                // Method net/minecraft/world/chunk/PalettedContainer.getPacketSize:()I
+         8: iadd
+         9: aload_0
+        10: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        13: invokeinterface #232,  1          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.getPacketSize:()I
+        18: iadd
+        19: ireturn
+      LineNumberTable:
+        line 184: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      20     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+
+  public boolean hasAny(java.util.function.Predicate<net.minecraft.block.BlockState>);
+    Code:
+         0: aload_0
+         1: getfield      #58                 // Field blockStateContainer:Lnet/minecraft/world/chunk/PalettedContainer;
+         4: aload_1
+         5: invokevirtual #238                // Method net/minecraft/world/chunk/PalettedContainer.hasAny:(Ljava/util/function/Predicate;)Z
+         8: ireturn
+      LineNumberTable:
+        line 188: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       9     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0       9     1 predicate   Ljava/util/function/Predicate;
+
+  public net.minecraft.registry.entry.RegistryEntry<net.minecraft.world.biome.Biome> getBiome(int, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+         4: iload_1
+         5: iload_2
+         6: iload_3
+         7: invokeinterface #244,  4          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.get:(III)Ljava/lang/Object;
+        12: checkcast     #16                 // class net/minecraft/registry/entry/RegistryEntry
+        15: areturn
+      LineNumberTable:
+        line 192: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      16     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      16     1     x   I
+            0      16     2     y   I
+            0      16     3     z   I
+
+  public void populateBiomes(net.minecraft.world.biome.source.BiomeSupplier, net.minecraft.world.biome.source.util.MultiNoiseUtil$MultiNoiseSampler, int, int, int);
+    Code:
+         0: aload_0
+         1: getfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+         4: invokeinterface #214,  1          // InterfaceMethod net/minecraft/world/chunk/ReadableContainer.slice:()Lnet/minecraft/world/chunk/PalettedContainer;
+         9: astore        6
+        11: iconst_4
+        12: istore        7
+        14: iconst_0
+        15: istore        8
+        17: iload         8
+        19: iconst_4
+        20: if_icmpge     92
+        23: iconst_0
+        24: istore        9
+        26: iload         9
+        28: iconst_4
+        29: if_icmpge     86
+        32: iconst_0
+        33: istore        10
+        35: iload         10
+        37: iconst_4
+        38: if_icmpge     80
+        41: aload         6
+        43: iload         8
+        45: iload         9
+        47: iload         10
+        49: aload_1
+        50: iload_3
+        51: iload         8
+        53: iadd
+        54: iload         4
+        56: iload         9
+        58: iadd
+        59: iload         5
+        61: iload         10
+        63: iadd
+        64: aload_2
+        65: invokeinterface #253,  5          // InterfaceMethod net/minecraft/world/biome/source/BiomeSupplier.getBiome:(IIILnet/minecraft/world/biome/source/util/MultiNoiseUtil$MultiNoiseSampler;)Lnet/minecraft/registry/entry/RegistryEntry;
+        70: invokevirtual #157                // Method net/minecraft/world/chunk/PalettedContainer.swapUnsafe:(IIILjava/lang/Object;)Ljava/lang/Object;
+        73: pop
+        74: iinc          10, 1
+        77: goto          35
+        80: iinc          9, 1
+        83: goto          26
+        86: iinc          8, 1
+        89: goto          17
+        92: aload_0
+        93: aload         6
+        95: putfield      #64                 // Field biomeContainer:Lnet/minecraft/world/chunk/ReadableContainer;
+        98: return
+      LineNumberTable:
+        line 196: 0
+        line 198: 11
+        line 199: 14
+        line 200: 23
+        line 201: 32
+        line 202: 41
+        line 201: 74
+        line 200: 80
+        line 199: 86
+        line 206: 92
+        line 207: 98
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0      99     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+            0      99     1 biomeSupplier   Lnet/minecraft/world/biome/source/BiomeSupplier;
+            0      99     2 sampler   Lnet/minecraft/world/biome/source/util/MultiNoiseUtil$MultiNoiseSampler;
+            0      99     3     x   I
+            0      99     4     y   I
+            0      99     5     z   I
+           11      88     6 palettedContainer   Lnet/minecraft/world/chunk/PalettedContainer;
+           14      85     7     i   I
+           17      75     8     j   I
+           26      60     9     k   I
+           35      45    10     l   I
+
+  public net.minecraft.world.chunk.ChunkSection copy();
+    Code:
+         0: new           #2                  // class net/minecraft/world/chunk/ChunkSection
+         3: dup
+         4: aload_0
+         5: invokespecial #261                // Method "<init>":(Lnet/minecraft/world/chunk/ChunkSection;)V
+         8: areturn
+      LineNumberTable:
+        line 210: 0
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            0       9     0  this   Lnet/minecraft/world/chunk/ChunkSection;
+}

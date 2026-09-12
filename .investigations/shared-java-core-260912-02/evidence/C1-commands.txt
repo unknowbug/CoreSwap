@@ -1,0 +1,15 @@
+# 260912-02 C1 采集记录（**仅原始输出 + 命令，不含结论**）
+# 采集时间：2026-09-12 16:35:07  执行者：主会话（命令委托契约）
+
+## 臂
+pwsh -NoProfile -File .tmp\shared-java-core-260912-02\run_1216_arm.ps1 -Tag probe-b2a-WBTEST -Props '-Dcoreswap.bulkwb=1 -Dcoreswap.wbcontent=1 -Dcoreswap.bulkwblog=1 -Dcoreswap.bulkwbtest=1' -Radius 16 -WaitFinishSec 240
+
+## 前置硬门（磁盘 dll）
+[CppBridge] 自证行（运行期实际加载，原文）: [16:28:20] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+
+## 原始输出文件 sha256（前 16 位）
+C1-log-1216-probe-b2a-WBTEST.log  5c75de09c82af46a
+fp-1.21.6-probe-b2a-WBTEST.txt  3b30cf09463ce6d4
+
+## 对照臂（1.20.1，既有 tracked 证据，未重跑）
+.investigations\bulk-writeback-260911-05\evidence\raw-c-bulk.log:131-136 = [WG-BULKWB-TEST] PASS distinct=1/3/20/300 + all branches PASS；:115-116 含 init seed=417950215108767439 与 dll 自证行。

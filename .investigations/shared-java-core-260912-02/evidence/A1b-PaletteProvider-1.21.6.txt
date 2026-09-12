@@ -1,0 +1,94 @@
+Compiled from "PalettedContainer.java"
+public abstract class net.minecraft.world.chunk.PalettedContainer$PaletteProvider {
+  public static final net.minecraft.world.chunk.Palette$Factory SINGULAR;
+
+  public static final net.minecraft.world.chunk.Palette$Factory ARRAY;
+
+  public static final net.minecraft.world.chunk.Palette$Factory BI_MAP;
+
+  static final net.minecraft.world.chunk.Palette$Factory ID_LIST;
+
+  public static final net.minecraft.world.chunk.PalettedContainer$PaletteProvider BLOCK_STATE;
+
+  public static final net.minecraft.world.chunk.PalettedContainer$PaletteProvider BIOME;
+
+  private final int edgeBits;
+
+  net.minecraft.world.chunk.PalettedContainer$PaletteProvider(int);
+    Code:
+         0: aload_0
+         1: invokespecial #40                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: iload_1
+         6: putfield      #42                 // Field edgeBits:I
+         9: return
+
+  public int getContainerSize();
+    Code:
+         0: iconst_1
+         1: aload_0
+         2: getfield      #42                 // Field edgeBits:I
+         5: iconst_3
+         6: imul
+         7: ishl
+         8: ireturn
+
+  public int computeIndex(int, int, int);
+    Code:
+         0: iload_2
+         1: aload_0
+         2: getfield      #42                 // Field edgeBits:I
+         5: ishl
+         6: iload_3
+         7: ior
+         8: aload_0
+         9: getfield      #42                 // Field edgeBits:I
+        12: ishl
+        13: iload_1
+        14: ior
+        15: ireturn
+
+  public abstract <A> net.minecraft.world.chunk.PalettedContainer$DataProvider<A> createDataProvider(net.minecraft.util.collection.IndexedIterable<A>, int);
+
+  <A> int getBits(net.minecraft.util.collection.IndexedIterable<A>, int);
+    Code:
+         0: iload_2
+         1: invokestatic  #65                 // Method net/minecraft/util/math/MathHelper.ceilLog2:(I)I
+         4: istore_3
+         5: aload_0
+         6: aload_1
+         7: iload_3
+         8: invokevirtual #67                 // Method createDataProvider:(Lnet/minecraft/util/collection/IndexedIterable;I)Lnet/minecraft/world/chunk/PalettedContainer$DataProvider;
+        11: astore        4
+        13: aload         4
+        15: invokevirtual #71                 // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.factory:()Lnet/minecraft/world/chunk/Palette$Factory;
+        18: getstatic     #73                 // Field ID_LIST:Lnet/minecraft/world/chunk/Palette$Factory;
+        21: if_acmpne     28
+        24: iload_3
+        25: goto          33
+        28: aload         4
+        30: invokevirtual #75                 // Method net/minecraft/world/chunk/PalettedContainer$DataProvider.bits:()I
+        33: ireturn
+
+  static {};
+    Code:
+         0: invokedynamic #99,  0             // InvokeDynamic #0:create:()Lnet/minecraft/world/chunk/Palette$Factory;
+         5: putstatic     #101                // Field SINGULAR:Lnet/minecraft/world/chunk/Palette$Factory;
+         8: invokedynamic #106,  0            // InvokeDynamic #1:create:()Lnet/minecraft/world/chunk/Palette$Factory;
+        13: putstatic     #108                // Field ARRAY:Lnet/minecraft/world/chunk/Palette$Factory;
+        16: invokedynamic #113,  0            // InvokeDynamic #2:create:()Lnet/minecraft/world/chunk/Palette$Factory;
+        21: putstatic     #115                // Field BI_MAP:Lnet/minecraft/world/chunk/Palette$Factory;
+        24: invokedynamic #120,  0            // InvokeDynamic #3:create:()Lnet/minecraft/world/chunk/Palette$Factory;
+        29: putstatic     #73                 // Field ID_LIST:Lnet/minecraft/world/chunk/Palette$Factory;
+        32: new           #18                 // class net/minecraft/world/chunk/PalettedContainer$PaletteProvider$1
+        35: dup
+        36: iconst_4
+        37: invokespecial #122                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider$1."<init>":(I)V
+        40: putstatic     #124                // Field BLOCK_STATE:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        43: new           #20                 // class net/minecraft/world/chunk/PalettedContainer$PaletteProvider$2
+        46: dup
+        47: iconst_2
+        48: invokespecial #125                // Method net/minecraft/world/chunk/PalettedContainer$PaletteProvider$2."<init>":(I)V
+        51: putstatic     #127                // Field BIOME:Lnet/minecraft/world/chunk/PalettedContainer$PaletteProvider;
+        54: return
+}

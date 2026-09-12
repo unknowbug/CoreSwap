@@ -1,0 +1,336 @@
+Starting a Gradle Daemon, 4 stopped Daemons could not be reused, use --status for details
+
+> Configure project :
+Fabric Loom: 1.10.5
+
+> Task :compileJava UP-TO-DATE
+> Task :processResources UP-TO-DATE
+> Task :classes UP-TO-DATE
+> Task :generateLog4jConfig UP-TO-DATE
+> Task :generateRemapClasspath UP-TO-DATE
+> Task :generateDLIConfig UP-TO-DATE
+> Task :configureLaunch UP-TO-DATE
+
+> Task :runServer
+[16:41:41] [main/INFO] (FabricLoader/GameProvider) Loading Minecraft 1.21.6 with Fabric Loader 0.16.14
+[16:41:41] [main/INFO] (FabricLoader) Loading 42 mods:
+	- chunky 1.4.40
+	- coreswap1216 1.21.6-0.1.0
+	- fabric-api 0.127.0+1.21.6
+	- fabric-api-base 0.4.63+9ec45cd89c
+	- fabric-api-lookup-api-v1 1.6.99+9ec45cd89c
+	- fabric-biome-api-v1 16.0.10+fa6cb72b9c
+	- fabric-block-api-v1 1.1.2+78dbe4fb9c
+	- fabric-block-view-api-v2 1.0.30+d32f812d9c
+	- fabric-command-api-v2 2.2.52+b39a696a9c
+	- fabric-content-registries-v0 10.0.17+fa6cb72b9c
+	- fabric-convention-tags-v1 2.1.37+7f945d5b9c
+	- fabric-convention-tags-v2 2.15.2+d9a896309c
+	- fabric-crash-report-info-v1 0.3.14+fa6cb72b9c
+	- fabric-data-attachment-api-v1 1.8.8+d9a896309c
+	- fabric-data-generation-api-v1 23.2.0+a12c79229c
+	- fabric-dimensions-v1 4.0.18+75fa737a9c
+	- fabric-entity-events-v1 2.1.0+c9e472739c
+	- fabric-events-interaction-v0 4.0.22+0d4d74479c
+	- fabric-game-rule-api-v1 1.0.71+9ec45cd89c
+	- fabric-gametest-api-v1 3.1.8+39ce47f59c
+	- fabric-item-api-v1 11.4.2+5e29f1899c
+	- fabric-item-group-api-v1 4.2.12+9ec45cd89c
+	- fabric-lifecycle-events-v1 2.6.2+db4dfd859c
+	- fabric-loot-api-v2 3.0.54+3f89f5a59c
+	- fabric-loot-api-v3 2.0.1+f40817309c
+	- fabric-message-api-v1 6.1.0+8efa0e499c
+	- fabric-networking-api-v1 5.0.0+d32f812d9c
+	- fabric-object-builder-api-v1 21.1.5+946cf7899c
+	- fabric-particles-v1 4.1.6+c1dce2189c
+	- fabric-recipe-api-v1 8.1.13+39ce47f59c
+	- fabric-registry-sync-v0 6.1.25+9ec45cd89c
+	- fabric-rendering-fluids-v1 3.1.29+fa6cb72b9c
+	- fabric-resource-conditions-api-v1 5.0.23+908cbc919c
+	- fabric-resource-loader-v0 3.1.10+fa6cb72b9c
+	- fabric-screen-handler-api-v1 1.3.134+d32f812d9c
+	- fabric-tag-api-v1 1.2.0+75110b049c
+	- fabric-transfer-api-v1 6.0.4+074c84ee9c
+	- fabric-transitive-access-wideners-v1 6.4.0+ac3e15d19c
+	- fabricloader 0.16.14
+	- java 21
+	- minecraft 1.21.6
+	- mixinextras 0.4.1
+[16:41:44] [main/INFO] (FabricLoader/Mixin) SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/E:/PYTHON/CoreSwap/.gradle-home/caches/modules-2/files-2.1/net.fabricmc/sponge-mixin/0.15.5+mixin.0.8.7/22f9eb729e216a091673a574a5906dc1b9027fb3/sponge-mixin-0.15.5+mixin.0.8.7.jar Service=Knot/Fabric Env=SERVER
+[16:41:44] [main/INFO] (FabricLoader/Mixin) Loaded Fabric development mappings for mixin remapper!
+[16:41:44] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_17
+[16:41:44] [main/INFO] (FabricLoader/Mixin) Compatibility level set to JAVA_21
+[16:41:45] [main/INFO] (FabricLoader/MixinExtras|Service) Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.4.1).
+[16:41:46] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:41:46] [main/WARN] (WmiQueryHandler) COM exception querying Win32_Processor, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:41:46] [main/WARN] (WmiQueryHandler) COM exception querying Win32_PhysicalMemory, which might not be on your system. Will not attempt to query it again. Error was -2147217405: (HRESULT: 80041003)
+[16:41:52] [main/INFO] (Minecraft) Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[16:41:53] [main/INFO] (Minecraft) No existing world data, creating new world
+[16:41:54] [main/INFO] (Minecraft) Loaded 1407 recipes
+[16:41:54] [main/INFO] (Minecraft) Loaded 1520 advancements
+[16:41:54] [main/INFO] (BiomeModificationImpl) Applied 0 biome modifications to 0 of 65 new biomes in 1.200 ms
+[16:41:54] [Server thread/INFO] (Minecraft) Starting minecraft server version 1.21.6
+[16:41:54] [Server thread/INFO] (Minecraft) Loading properties
+[16:41:54] [Server thread/INFO] (Minecraft) Default game type: SURVIVAL
+[16:41:54] [Server thread/INFO] (Minecraft) Generating keypair
+[16:41:54] [Server thread/INFO] (Minecraft) Starting Minecraft server on *:25565
+[16:41:54] [Server thread/INFO] (Minecraft) Using default channel type
+[16:41:54] [Server thread/WARN] (Minecraft) **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[16:41:54] [Server thread/WARN] (Minecraft) The server will make no attempt to authenticate usernames. Beware.
+[16:41:54] [Server thread/WARN] (Minecraft) While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[16:41:54] [Server thread/WARN] (Minecraft) To change this, set "online-mode" to "true" in the server.properties file.
+[16:41:54] [Server thread/INFO] (Minecraft) Preparing level "world"
+[16:41:57] [Server thread/INFO] (Minecraft) Preparing start region for dimension minecraft:overworld
+[16:41:57] [Worker-Main-15/INFO] (Minecraft) Preparing spawn area: 2%
+[16:41:57] [Worker-Main-9/INFO] (Minecraft) Preparing spawn area: 2%
+[16:41:58] [Worker-Main-7/INFO] (Minecraft) Preparing spawn area: 18%
+[16:41:58] [Worker-Main-22/INFO] (Minecraft) Preparing spawn area: 51%
+[16:41:58] [Server thread/INFO] (Minecraft) Time elapsed: 1817 ms
+[16:41:58] [Server thread/INFO] (Minecraft) Done (4.033s)! For help, type "help"
+[16:41:58] [Server thread/INFO] (Minecraft) Starting remote control listener
+[16:41:58] [Server thread/INFO] (Minecraft) Thread RCON Listener started
+[16:41:58] [Server thread/INFO] (Minecraft) RCON running on 0.0.0.0:25575
+[16:41:59] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[16:41:59] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+[16:41:59] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initNether seed=417950215108767439 enabled=true stageMask=3
+[16:41:59] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] initEnd seed=417950215108767439 enabled=true stageMask=3
+[16:41:59] [Server thread/INFO] (Minecraft) [STDOUT]: [BenchMod] CoreSwap replace mode: C++ worldgen active
+[16:42:03] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:03] [RCON Client /127.0.0.1 #2/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:03] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:03] [RCON Client /127.0.0.1 #3/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:03] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:03] [RCON Client /127.0.0.1 #4/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:03] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:03] [RCON Client /127.0.0.1 #5/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:03] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:03] [RCON Client /127.0.0.1 #6/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-4)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-3)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-2)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,-1)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,0)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-4)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-3)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-2)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,-1)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,0)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-4)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-3)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-2)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,-1)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,0)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-4)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-3)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-2)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,-1)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,0)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-4)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-3)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-2)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,-1)
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,0)
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-3) hash=735109f10711f375 nz=32512
+[16:42:03] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-3) hash=32ee3c79c5a8da8c nz=32512
+[16:42:03] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-4) hash=e93802381de8c3ae nz=32512
+[16:42:03] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-4) hash=1f46af131abefb44 nz=32512
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-2) hash=b2ce38e4e8d5400f nz=31179
+[16:42:03] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-4) hash=bcc5405866f8dbc nz=32512
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] PASS distinct=1 (readback 4096 positions; SINGULAR branch)
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] PASS distinct=3 (readback 4096 positions; ARRAY branch)
+[16:42:03] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-4) hash=c5d7ebd85d6ca23e nz=32512
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] PASS distinct=20 (readback 4096 positions; BI_MAP branch)
+[16:42:03] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-3) hash=bcd8ae48f1341da4 nz=32453
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] PASS distinct=300 (readback 4096 positions; ID_LIST branch)
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-BULKWB-TEST] all branches PASS (SINGULAR/ARRAY/BI_MAP/ID_LIST)
+[16:42:03] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-2) hash=8d00db3f7dc0ff6e nz=32512
+[16:42:03] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,0) hash=8ffcde8af0217d87 nz=32428
+[16:42:03] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,-1) hash=4c650b550602db1d nz=30223
+[16:42:03] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,0) hash=6c4c2dff4d8a5195 nz=28931
+[16:42:03] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-3) hash=38d9b29a38125f96 nz=32399
+[16:42:03] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-3) hash=8e8af5ceadb7abfe nz=32136
+[16:42:03] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,0) hash=22fc428d477abc84 nz=32512
+[16:42:03] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-2) hash=7bb4166e49f00b87 nz=30510
+[16:42:03] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-2) hash=7d649ae47f9b55e5 nz=32512
+[16:42:03] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,-1) hash=b8fa1499a90ec58c nz=32512
+[16:42:03] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-4) hash=5aa7650d81f5ce1e nz=32512
+[16:42:03] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,-1) hash=9cae1ed8a9759d8e nz=30455
+[16:42:03] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,0) hash=38a4f6ae8349889c nz=30223
+[16:42:03] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-2) hash=147f4c400929b26c nz=32122
+[16:42:03] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,-1) hash=e710d2bb92f1fa84 nz=32512
+[16:42:03] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,-4) hash=bc3805d45f917de6 dh=6ac328e050bd35e1 nz=32512
+[16:42:03] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,-4) hash=54f6a9a44f27353a dh=281571a61d1994eb nz=32512
+[16:42:03] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,-4) hash=9ddcd0964fc49e3d dh=23c517099a7e571f nz=32512
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,-2) hash=2e7807efb58c6930 dh=4dc592249fc5d771 nz=31179
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,1)
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,1)
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,1)
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,1)
+[16:42:03] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,1)
+[16:42:03] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,-3) hash=e0dfb9e0da883cdc dh=f236f6a40bcef635 nz=32453
+[16:42:03] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,0) hash=c0d07bfbe5f3b2ce dh=b89486b960a70ece nz=32512
+[16:42:03] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,0) hash=97be956b69119e7a dh=af2ddb6b53392b8e nz=32428
+[16:42:03] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,0) hash=6335ef5ad99b128 dh=a0c156536bb91ecd nz=30223
+[16:42:03] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,-3) hash=7d6464596ac9366b dh=a6c8f9f180f51fdf nz=32512
+[16:42:03] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,-2) hash=a5eb9b7dae00e825 dh=70fd57051c577014 nz=32512
+[16:42:03] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-3)
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-2)
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-1)
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,0)
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,1)
+[16:42:04] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,-1) hash=a05891b4306fcf4f dh=3698a109df9fa910 nz=30455
+[16:42:04] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,-4) hash=8a5956ab1cd82d9 dh=7777f632e9647393 nz=32512
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,-2) hash=98bc798c36d72516 dh=490ca5fbe238d1e5 nz=32122
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-5,2)
+[16:42:04] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,-3) hash=2d269141a2ef100b dh=867ded4e9f86ac5c nz=32399
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,0) hash=3bfa3b0b536e0ebf dh=cb27fb9d133bb147 nz=28931
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-4,2)
+[16:42:04] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,-1) hash=70f2b8d43eaa22dd nz=32388
+[16:42:04] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,-1) hash=22fe9ece7ee3f882 dh=d28a911991a72a80 nz=32512
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-3,2)
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-2,2)
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,2)
+[16:42:04] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,-1) hash=b01c9fbbdf660933 dh=e46ca4fe5c23c7af nz=30223
+[16:42:04] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,-2) hash=2f86cb2941373875 dh=d07e28b88aa79974 nz=32512
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,-4) hash=50f9f571e85fa089 dh=cfe04d9893633d14 nz=32512
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,-3) hash=68feeaa64835050c dh=164e91f2e5ad335f nz=32512
+[16:42:04] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-6,2)
+[16:42:04] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(-1,-4)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-3)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-2)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-1)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,0)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,1)
+[16:42:04] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,-1) hash=c567709912b5d1be dh=d07e28b88aa79974 nz=32512
+[16:42:04] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,-1) hash=c1c2aef9c8146759 dh=f69b7e05b602c6c0 nz=32388
+[16:42:04] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,-2) hash=4627df97f84d752e dh=a7115c1ce5cf2098 nz=30510
+[16:42:04] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,0) hash=bdfcc53c3c10bc2e nz=32512
+[16:42:04] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,-3) hash=687351613fd211ed dh=8d67d7ac9a0279d9 nz=32136
+[16:42:04] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,0) hash=56dce3fede756f11 dh=8c8fa53c5f613916 nz=32512
+[16:42:04] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,-4)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,1) hash=bb3bf2c2dd1f9fbd nz=31458
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,1) hash=353e48b5dd23d9b9 dh=cb6204b4bb0e1f93 nz=31458
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] populateNoise intercepted chunk(0,2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,1) hash=67f1142a1d1269d5 nz=32362
+[16:42:04] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,1) hash=4dfa95a9ea89b12d nz=32512
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,1) hash=1017a60b12e8186d dh=1d328cbea548fdd7 nz=32362
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-4)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-3)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,-1)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,0)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-4)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-3)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,-1)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,0)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-4)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-3)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,-1)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,0)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-4)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-3)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,-1)
+[16:42:04] [Worker-Main-8/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,1) hash=7710d927d89b75d dh=aac65c7174223292 nz=32512
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,0)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-4)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-3)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,-1)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,0)
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-3) hash=9a5e77515c4b3325 nz=32512
+[16:42:04] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,1) hash=4762234f01043404 nz=31848
+[16:42:04] [Worker-Main-14/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,1) hash=8569fd9054e8b5ea dh=fa96468f1d6ce4f8 nz=31848
+[16:42:04] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-3) hash=7748cc3475bbb70c nz=32189
+[16:42:04] [Worker-Main-21/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,-3) hash=b66c731326432309 dh=757baec54dbaa91d nz=32512
+[16:42:04] [Worker-Main-15/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,-3) hash=21761eb76f6307c dh=4309d574bbff972b nz=32189
+[16:42:04] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,0) hash=98fa676aefc32e94 nz=32512
+[16:42:04] [Worker-Main-5/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,0) hash=dbcfa65d09ab12a2 dh=6a358f8f9a2e512a nz=32512
+[16:42:04] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-2) hash=7f220f360add2a37 nz=31295
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-1) hash=3b8d508aa7593525 nz=31894
+[16:42:04] [Worker-Main-9/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,-1) hash=cc8c9d17eda16e39 dh=a46ef76a822213e4 nz=31894
+[16:42:04] [Worker-Main-23/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,-2) hash=ac93e0e54dc8cf8 dh=47b04ead2a0761ac nz=31295
+[16:42:04] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,-4) hash=4b78057d5c4952e7 nz=32512
+[16:42:04] [Worker-Main-17/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,-4) hash=5b9002a0e5d5a4b2 dh=f65d67f69dc0e276 nz=32512
+[16:42:04] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,1) hash=7599091647654b6e nz=32512
+[16:42:04] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-2) hash=c39089148dd9bf9c nz=32512
+[16:42:04] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,1) hash=d0f1430c924c1e6c nz=32038
+[16:42:04] [Worker-Main-19/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,1) hash=de8337f627fa07e1 dh=21bdd1a22736f041 nz=32512
+[16:42:04] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-4,2) hash=e754aa3366b08957 nz=32512
+[16:42:04] [Worker-Main-3/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,-2) hash=fe3e1e24faf5ffae dh=3aa8c8d52a9a30e2 nz=32512
+[16:42:04] [Worker-Main-13/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,1) hash=13031f2804843d52 dh=e190bedc873f19e7 nz=32038
+[16:42:04] [Worker-Main-10/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-4,2) hash=149486f4570f3a32 dh=2f8ebbad3b198fd6 nz=32512
+[16:42:04] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-1) hash=1015560d430cd0c nz=30494
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-5,2) hash=f88dd2f60945acce nz=32512
+[16:42:04] [Worker-Main-12/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,-1) hash=dea0558a747a45da dh=a92acacc9609f07d nz=30494
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-5,2) hash=d92c91b3c7a999d dh=af1c214f0d19fb1e nz=32512
+[16:42:04] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,0) hash=e2ea5b2e5a024414 nz=32505
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-2,2) hash=32eccec8a0747476 nz=32199
+[16:42:04] [Worker-Main-2/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,0) hash=494dc10ba8d0be54 dh=adc1948a67b6624 nz=32505
+[16:42:04] [Worker-Main-7/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-2,2) hash=8a078dfa358a270b dh=6ba1b67cd73df15c nz=32199
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-6,2) hash=117f23933a13ef77 nz=32512
+[16:42:04] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,-4) hash=8c46ba0c9fabd1e nz=31908
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-6,2) hash=bcd102b7015483f6 dh=3b7c461129a2bb19 nz=32512
+[16:42:04] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,1) hash=d007f1339d6d94b5 nz=32512
+[16:42:04] [Worker-Main-22/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,-4) hash=858a38113f6abe85 dh=209b01fefcd414d8 nz=31908
+[16:42:04] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,1) hash=eae2e4ceea6429c9 dh=e5e1cead43f91f39 nz=32512
+[16:42:04] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-3,2) hash=91e62e7e5c2de75d nz=32390
+[16:42:04] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(-1,2) hash=7108d9d245f69d55 nz=32512
+[16:42:04] [Worker-Main-1/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-3,2) hash=95cd58e033436c15 dh=461d65ea2ff697a4 nz=32390
+[16:42:04] [Worker-Main-6/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(-1,2) hash=fbf66a698b210bdf dh=411635a26ccfe01a nz=32512
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT] chunk(0,2) hash=f261d8c4e64fa783 nz=32422
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [WG-CONTENT-WB] chunk(0,2) hash=5a88ef658960508e dh=920aa18c52d887fb nz=32422
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,-4)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,-3)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,-2)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,-1)
+[16:42:04] [Worker-Main-16/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,0)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,1)
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,-4)
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,-3)
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,-2)
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,-1)
+[16:42:04] [Worker-Main-18/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,0)
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-6,2)
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-5,2)
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-4,2)
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-3,2)
+[16:42:04] [Worker-Main-11/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-2,2)
+[16:42:04] [Worker-Main-20/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,1)
+[16:42:04] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(-1,2)
+[16:42:04] [Worker-Main-4/INFO] (Minecraft) [STDOUT]: [Mixin] buildSurface skipped chunk(0,2)
+[16:42:04] [Server thread/INFO] (Minecraft) [Chunky] Task finished for minecraft:overworld. Processed: 9 chunks (100.00%), Total time: 0:00:00
+[16:42:13] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:13] [RCON Client /127.0.0.1 #7/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:13] [RCON Listener #1/INFO] (Minecraft) Thread RCON Client /127.0.0.1 started
+[16:42:13] [Server thread/INFO] (Minecraft) [Rcon: Stopping the server]
+[16:42:13] [RCON Client /127.0.0.1 #8/INFO] (Minecraft) Thread RCON Client /127.0.0.1 shutting down
+[16:42:13] [Server thread/INFO] (Minecraft) Stopping server
+[16:42:13] [Server thread/INFO] (Minecraft) Saving players
+[16:42:13] [Server thread/INFO] (Minecraft) Saving worlds
+[16:42:13] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[16:42:14] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[16:42:14] [Server thread/INFO] (Minecraft) Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[16:42:14] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (world): All chunks are saved
+[16:42:14] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[16:42:14] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[16:42:14] [Server thread/INFO] (Minecraft) ThreadedAnvilChunkStorage: All dimensions are saved
+[16:42:14] [Server thread/INFO] (Minecraft) Thread RCON Listener stopped
+
+[Incubating] Problems report is available at: file:///E:/PYTHON/CoreSwap/versions/1.21.6/java/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.13/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 50s
+6 actionable tasks: 1 executed, 5 up-to-date

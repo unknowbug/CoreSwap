@@ -1,0 +1,105 @@
+# 260912-02 多重集/序列对比（tool-fp_compare.py 原始输出，**不含结论**）
+
+===== 1.21.6 fix-bulk vs fix-default [WB层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT-WB\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-bulk.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-default.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.21.6 fix-bulk vs fix-default [Rustbuf层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-bulk.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-default.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.21.6 默认臂 vs 260912-01 冻结默认臂 [Rustbuf层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\fp-1.21.6-default.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-default.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.21.6 默认臂 vs 260912-01 冻结默认臂 [WB层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT-WB\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\fp-1.21.6-default.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.21.6-fix-default.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 625   post lines = 625
+common     = 625
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 fix-bulk vs 冻结 post [Rustbuf层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\fp-1.20.1-post.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.20.1-fix-bulk.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 fix-bulk vs 冻结 post [WB层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT-WB\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\fp-1.20.1-post.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.20.1-fix-bulk.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 fix-perblock vs 冻结 perblock [WB层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT-WB\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\fp-1.20.1-perblock.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.20.1-fix-perblock.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES
+
+===== 1.20.1 fix-bulk vs fix-perblock [WB层] =====
+cmd: python tool-fp_compare.py <a> <b> '\[WG-CONTENT-WB\] chunk'
+a = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.20.1-fix-bulk.txt
+b = E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-02\evidence\fp-1.20.1-fix-perblock.txt
+E:\PYTHON\CoreSwap\.investigations\shared-java-core-260912-01\evidence\tool-fp_compare.py:3: SyntaxWarning: invalid escape sequence '\['
+  """Multiset comparison of gate lines (260912-01 V3 helper).
+tag        = \[WG-CONTENT-WB\] chunk
+pre lines  = 607   post lines = 607
+common     = 607
+only-pre   = 0   only-post  = 0
+multiset identical = YES
+sorted-sequence identical = YES

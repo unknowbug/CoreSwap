@@ -15,4 +15,14 @@ public final class WgCompat {
         String v = System.getProperty(property);
         return v == null ? fallback : !"0".equals(v);
     }
+
+    /**
+     * storage 长数组帧写出（1.20.1 契约，260912-02 F1 分版缝）。
+     * <p>1.20.1：{@code writeLongArray} = **VarInt 长度前缀 + longs**，与同版
+     * {@code PalettedContainer.readPacket} 的 {@code readLongArray(long[])} 配对。
+     * 共享 {@code BulkWb} 只调本缝，自身不含版本分支。
+     */
+    public static void writeStorageLongs(net.minecraft.network.PacketByteBuf pb, long[] data) {
+        pb.writeLongArray(data);
+    }
 }

@@ -1,0 +1,32 @@
+# 260912-02 逐臂命令行与基座记录（**事实记录，不含结论**）
+# 生成 $(date) — 由主会话在 260912-02 工作块落盘；用途：闭合「臂变量生效自证不得跨臂迁移」类质疑（KB #36/#98/#81 家族）
+# 说明：两版运行台均在 `-Props` 之外**固定注入**基座 JVM 参数，逐臂完整参数 = 基座 + Props。
+
+## 运行台与基座
+- 1.21.6 台：`.tmp\shared-java-core-260912-02\run_1216_arm.ps1`（副本见 `evidence\tool-run_1216_arm.ps1`）
+  - 基座：`-Djava.io.tmpdir=E:\PYTHON\CoreSwap\.tmp\java-tmp -Dcoreswap.mixlog=1 -Dcoreswap.wbcontent=1`
+  - gradle 参数：`runServer -PcppReplace=true -PcppLib=<target\release\worldgen1216.dll> -PcppWorldgenDir=versions\1.21.6\data\worldgen`
+  - dll 硬门（前置 + in-log 自证）：`abd7d8893d22e030`
+- 1.20.1 台：`.tmp\shared-java-core-260912-02\run_1201_arm.ps1`（副本见 `evidence\tool-run_1201_arm.ps1`）
+  - 基座：`-Djava.io.tmpdir=E:\PYTHON\CoreSwap\.tmp\java-tmp -Dcoreswap.mixlog=1 -Dcoreswap.wbcontent=1`
+  - gradle 参数：`runServer -PcppReplace=true -Psyncfill=1 -PcppWorldgenDir=versions\1.20.1\data\worldgen`（**不传 -PcppLib、不写 dll**，避免 run_ab.ps1 的历史 bak 覆盖陷阱）
+  - dll 硬门：`dd3b645f2c79d2cb`
+- 共同：seed `417950215108767439`；每臂删 world + chunky 任务 + native 解压缓存；chunky `quiet 10 / world minecraft:overworld / center -48 -11 / radius <R> / start`。
+
+## 臂清单（按执行时间序）
+| # | 命令 | 阶段 | 期望 dll |
+|---|---|---|---|
+| 1 | `run_1216_arm.ps1 -Tag probe-b2a-WBTEST -Props '-Dcoreswap.bulkwb=1 -Dcoreswap.wbcontent=1 -Dcoreswap.bulkwblog=1 -Dcoreswap.bulkwbtest=1' -Radius 16` | 修复前判别 | abd7d889… |
+| 2 | `run_1216_arm.ps1 -Tag fix-WBTEST -Props '-Dcoreswap.bulkwb=1 -Dcoreswap.bulkwbtest=1' -Radius 16` | 修复后单位级 | abd7d889… |
+| 3 | `run_1216_arm.ps1 -Tag fix-bulk -Props '-Dcoreswap.bulkwb=1' -Radius 160` | 修复后主判据 | abd7d889… |
+| 4 | `run_1216_arm.ps1 -Tag fix-default -Radius 160` | 修复后对照 | abd7d889… |
+| 5 | `run_1201_arm.ps1 -Tag fix-bulk -Radius 160` | 出货线回归 | dd3b645f… |
+| 6 | `run_1201_arm.ps1 -Tag fix-perblock -Props '-Dcoreswap.bulkwb=0' -Radius 160` | 出货线逐块对照 | dd3b645f… |
+| 7 | `run_1216_arm.ps1 -Tag att-bulk -Props '-Dcoreswap.bulkwb=1 -Dcoreswap.bulkwblog=1' -Radius 160` | 生效自证（正） | abd7d889… |
+| 8 | `run_1201_arm.ps1 -Tag att-bulk -Props '-Dcoreswap.bulkwblog=1' -Radius 160` | 生效自证（正） | dd3b645f… |
+| 9 | `run_1201_arm.ps1 -Tag att-perblock -Props '-Dcoreswap.bulkwb=0 -Dcoreswap.bulkwblog=1' -Radius 160` | 生效自证（负） | dd3b645f… |
+
+## 生效自证判据（in-log，逐臂独立、不跨臂迁移）
+- **bulk 路径活性**：`-Dcoreswap.bulkwblog=1` 门控的 `BulkWb.reportOnce()`（源码 `java-core/.../BulkWb.java:329-332`）输出 `[WG-BULKWB] state_ids_size=… idlist_bits=…`；该行为**只在 `writeSections`（bulk 路径）执行时**产生。
+  - 预登记：臂 7、8 **应出现**该行；臂 9（`bulkwb=0` 走 `CppBridge.writeChunkPerBlock`）**应不出现**该行。
+- **WBTEST 自检活性**：臂 1、2 的 `[WG-BULKWB-TEST]` 行同样只在 bulk 路径产生（臂 2 是「`-Dcoreswap.bulkwb=1` 于 1.21.6 生效」的独立直证）。

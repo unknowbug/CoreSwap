@@ -1,0 +1,59 @@
+# 260912-02 臂摘要（原始计数，**不含结论**）
+# 生成 2026-09-12 16:49:23
+
+[tools] fp_compare = True
+[fix-bulk(1.21.6)]
+  dll_attest : [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+  counts     : content=625 wb=625 throws=0 entryMissing=0 exception-lines=3 nonWMI-exception-lines=0
+  finish     : [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:05
+
+[fix-default(1.21.6)]
+  dll_attest : [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+  counts     : content=625 wb=625 throws=0 entryMissing=0 exception-lines=3 nonWMI-exception-lines=0
+  finish     : [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:05
+
+[fix-bulk(1.20.1)]
+  dll_attest : [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=dd3b645f2c79d2cb...
+  counts     : content=607 wb=607 throws=0 entryMissing=0 exception-lines=12 nonWMI-exception-lines=4
+  finish     : [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:29
+
+[fix-perblock(1.20.1)]
+  dll_attest : [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=dd3b645f2c79d2cb...
+  counts     : content=607 wb=607 throws=0 entryMissing=0 exception-lines=12 nonWMI-exception-lines=4
+  finish     : [Chunky] Task finished for minecraft:overworld. Processed: 441 chunks (100.00%), Total time: 0:00:29
+
+[fix-WBTEST(1.21.6)]
+  dll_attest : [CppBridge] dll=E:\PYTHON\CoreSwap\.tmp\java-tmp\coreswap-native\worldgen.dll size=2457088 sha256=abd7d8893d22e030...
+  counts     : content=49 wb=49 throws=0 entryMissing=0 exception-lines=3 nonWMI-exception-lines=0
+  finish     : [Chunky] Task finished for minecraft:overworld. Processed: 9 chunks (100.00%), Total time: 0:00:00
+  wbtest     : [WG-BULKWB-TEST] PASS distinct=1 (readback 4096 positions; SINGULAR branch)
+  wbtest     : [WG-BULKWB-TEST] PASS distinct=3 (readback 4096 positions; ARRAY branch)
+  wbtest     : [WG-BULKWB-TEST] PASS distinct=20 (readback 4096 positions; BI_MAP branch)
+  wbtest     : [WG-BULKWB-TEST] PASS distinct=300 (readback 4096 positions; ID_LIST branch)
+  wbtest     : [WG-BULKWB-TEST] all branches PASS (SINGULAR/ARRAY/BI_MAP/ID_LIST)
+
+## 指纹文件 sha256（前 16 位）
+382c497b228883ce  fp-1.20.1-fix-bulk.content.txt  607 行
+4b10f2be7f9d5d94  fp-1.20.1-fix-bulk.txt  1214 行
+356842cf6ce0d006  fp-1.20.1-fix-bulk.wb.txt  607 行
+382c497b228883ce  fp-1.20.1-fix-perblock.content.txt  607 行
+4b10f2be7f9d5d94  fp-1.20.1-fix-perblock.txt  1214 行
+356842cf6ce0d006  fp-1.20.1-fix-perblock.wb.txt  607 行
+ae643ed8c6054ab0  fp-1.21.6-fix-bulk.content.txt  625 行
+8184d609847c704e  fp-1.21.6-fix-bulk.txt  1250 行
+ae5ddee139d9cd10  fp-1.21.6-fix-bulk.wb.txt  625 行
+ae643ed8c6054ab0  fp-1.21.6-fix-default.content.txt  625 行
+8184d609847c704e  fp-1.21.6-fix-default.txt  1250 行
+ae5ddee139d9cd10  fp-1.21.6-fix-default.wb.txt  625 行
+5add6dc619b679cd  fp-1.21.6-fix-WBTEST.content.txt  49 行
+23d987f771bcdd7c  fp-1.21.6-fix-WBTEST.txt  98 行
+7b83f90edc1c48f6  fp-1.21.6-fix-WBTEST.wb.txt  49 行
+3b30cf09463ce6d4  fp-1.21.6-probe-b2a-WBTEST.txt  49 行
+
+## 构建日志
+  log-build-1.20.1.log  67 行
+  log-build-1.21.6.log  48 行
+
+## 运行台副本
+  tool-run_1216_arm.ps1  sha=f496aa3675d98e9a
+  tool-run_1201_arm.ps1  sha=24fe57ae35a4d340

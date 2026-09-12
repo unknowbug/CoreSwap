@@ -17,4 +17,18 @@ public final class WgCompat {
         String v = System.getProperty(property);
         return v == null ? fallback : !"0".equals(v);
     }
+
+    /**
+     * storage 长数组帧写出（1.21.6 契约，260912-02 F1 分版缝）。
+     * <p>1.21.6 把 storage 段从「VarInt 长度前缀 + longs」改为「**定长、无前缀**」：
+     * {@code PalettedContainer.readPacket} 调 {@code readFixedLengthLongArray(long[])}
+     * （1.20.1 同位置为 {@code readLongArray(long[])}），故写端必须随之走本缝。
+     * <p>证据：{@code .investigations/shared-java-core-260912-02/evidence/A1-*.txt}
+     * （两版 {@code readPacket} 指令偏移逐条相同，唯一差异 = 第 39 条调用目标）；
+     * 运行级判别 {@code evidence/C1-log-1216-probe-b2a-WBTEST.log}（前缀帧 × 定长读端 ⇒
+     * {@code [WG-BULKWB-TEST] FAIL branch distinct=3} + {@code EntryMissingException} 级联）。
+     */
+    public static void writeStorageLongs(net.minecraft.network.PacketByteBuf pb, long[] data) {
+        pb.writeFixedLengthLongArray(data);
+    }
 }

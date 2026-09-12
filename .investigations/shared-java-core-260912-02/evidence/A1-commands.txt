@@ -1,0 +1,21 @@
+# 260912-02 A1 采集记录（**仅原始输出 + 命令，不含结论**）
+# 采集时间：2026-09-12 16:22:08  执行者：主会话（命令委托契约：subagent 出模板 → 主会话执行不解读 → 原始输出回传 subagent）
+
+## 输入 jar（named mapped，运行期即此 jar）
+1.21.6: E:\PYTHON\CoreSwap\.gradle-home\caches\fabric-loom\minecraftMaven\net\minecraft\minecraft-merged\1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2\minecraft-merged-1.21.6-net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2.jar
+        sha256=e6f80ac9604aadd3534d4ea46d7267eb28c8c274981684b2d08efe99039b51e4
+1.20.1: E:\PYTHON\CoreSwap\.gradle-home\caches\fabric-loom\minecraftMaven\net\minecraft\minecraft-merged\1.20.1-net.fabricmc.yarn.1_20_1.1.20.1+build.10-v2\minecraft-merged-1.20.1-net.fabricmc.yarn.1_20_1.1.20.1+build.10-v2.jar
+        sha256=1d645c50380751f307572b7bf55484600c96d6ebe93963b0e3ec00e1f2d3fda9
+
+## 命令（逐条）
+& javap -p -c -classpath <j21> net.minecraft.world.chunk.PalettedContainer   > A1-javap-PalettedContainer-1.21.6.txt
+& javap -p -c -classpath <j20> net.minecraft.world.chunk.PalettedContainer   > A1-javap-PalettedContainer-1.20.1.txt
+& javap -p -c -classpath <j21> net.minecraft.network.PacketByteBuf           > A1-javap-PacketByteBuf-1.21.6.txt
+& javap -p -c -classpath <j20> net.minecraft.network.PacketByteBuf           > A1-javap-PacketByteBuf-1.20.1.txt
+javap 路径: D:\Program Files\Java\jdk-24.0.1\bin\javap.exe
+
+## 输出文件 sha256
+8e151772a1624bce  A1-javap-PacketByteBuf-1.20.1.txt  3475 行
+dc086e833a2ca295  A1-javap-PacketByteBuf-1.21.6.txt  3837 行
+310b8c14d3a4a7d3  A1-javap-PalettedContainer-1.20.1.txt  862 行
+298f58ec53e38fc2  A1-javap-PalettedContainer-1.21.6.txt  885 行
