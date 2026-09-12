@@ -15,7 +15,7 @@
 #      （`aquifer-wateredge` / `biome-fix` / `biome-terracotta` / `followup` / `surface-plus1`），`collect_fragments` 递归收集且**无 per-file 容错**
 #      ⇒ 一个不合规片段即让**全项目**合并失败。项目内副本与 RE-Framework 版 sha256 前 16 位同为 `299598f46ebe1269`。
 #      ⇒ 工具修好前，本片段**不依赖工具可用性**：根 index 为权威（① 已落盘）；修好后重跑应因 id/path/status 相同判「已存在，跳过（幂等）」。
-#   ④ 状态纪律：status 只写 draft / candidate；**confirmed 只能由人类授予**（本块尚未授予；judge 续审 v2 建议 = MUST-1/2 + MUST-3/4/5 + 9.1/9.3 落地后由人类议 candidate）。
+#   ④ 状态纪律：status 只写 draft / candidate；**confirmed 只能由人类授予**（**本块已于 2026-09-12 18:13 由用户授予 confirmed**，范围 = ①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化；judge PASS-with-conditions 9 项硬门全闭合 + C-17 判据重述同批批准；不含 nether/end、性能、`BULKWB_ON` 翻转。故 record = confirmed、plan/errors/judge-review 维持 candidate）。
 # 路径基准：与 .artifacts/index.yaml 既有条目一致，均为**相对 `.artifacts/`**
 
 schema_version: 1
@@ -43,9 +43,9 @@ entries:
   - id: 'swe:shared-java-core-260912-02:record'
     path: '../.investigations/shared-java-core-260912-02/verify-260912-02.md'
     kind: record
-    status: draft
-    # **status 维持 draft**（verify 自述亦然，judge 亦建议保留）：judge verdict = **PASS-with-conditions**
-    #   ——「被验收命题已被运行级证据充分支撑、逐条回原始证据复算后无一被推翻」，但存在字面未满足判据 / 数字归因缺陷 / 流程 MUST 未完成。
+    status: confirmed   # 用户授予 2026-09-12 18:13（范围 = ①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化；judge PASS-with-conditions 9 项硬门已全闭合；C-17 判据重述经用户批准、原字面 FAIL 留档；不含 nether/end 覆盖、性能结论、BULKWB_ON 翻转）
+    # judge verdict = **PASS-with-conditions**（「被验收命题已被运行级证据充分支撑、逐条回原始证据复算后无一被推翻」）；
+    #   其 condition = 9 项硬门（MUST-1..5 + 9.1/9.2/9.3 + MUST-6），judge 交付前确认已逐项回一手文件独立复核并宣布**全部闭合**。
     # 判据表 C-1…C-20：**18 PASS**（C-1…C-16、C-19、C-20；其中 C-4/C-5/C-13/C-20 由 16 位前缀升为**整文件全 64 位同一**）
     #   + **C-17 字面 FAIL** + **C-18 未测**。
     # C-17 字面 FAIL 与载体缺陷说明：1.20.1 臂 `exception-lines=12` vs 冻结 `post` 4 ⇒ 未同档；真实机制 = 计数**跨两次 JVM 运行聚合**

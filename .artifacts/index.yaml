@@ -1480,9 +1480,9 @@ entries:
   - id: 'swe:shared-java-core-260912-02:record'
     path: '../.investigations/shared-java-core-260912-02/verify-260912-02.md'
     kind: record
-    status: draft
-    # **status 维持 draft**：judge verdict = **PASS-with-conditions**（「被验收命题已被运行级证据充分支撑、逐条回原始证据复算后无一被推翻」，
-    #   但存在字面未满足判据 / 数字归因缺陷 / 流程 MUST 未完成）。
+    status: confirmed   # 用户授予 2026-09-12 18:13（范围 = ①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化；judge PASS-with-conditions 9 项硬门已全闭合；C-17 判据重述经用户批准、原字面 FAIL 留档；**不含** nether/end 覆盖、性能结论、BULKWB_ON 翻转）
+    # judge verdict = **PASS-with-conditions**（「被验收命题已被运行级证据充分支撑、逐条回原始证据复算后无一被推翻」）；
+    #   其 condition = 9 项硬门（MUST-1..5 + 9.1/9.2/9.3 + MUST-6），judge 交付前确认已逐项回一手文件独立复核并宣布**全部闭合**。
     # 判据表 C-1…C-20：**除 C-17 外全部满足或按分层判定闭合** —— C-4/C-5/C-13/C-20 由 16 位前缀升为**整文件全 64 位 sha 同一**；
     #   **C-18 1.20.1 腿 = PASS**（jar 级**纯转发**直证 `evidence/javap-seam-260912-02.txt:4-13`：`invokevirtual #45` 同一被调方法+同一实参 ⇒ 写出帧同构），
     #   其 1.21.6 腿未直采、由读端运行级等价取代（judge 判「非前置」）；**C-17 字面 FAIL**（机制已归因为计数载体缺陷，判据重述待人类批准）。
