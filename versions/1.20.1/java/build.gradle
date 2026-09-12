@@ -22,6 +22,17 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.92.0+1.20.1"
 }
 
+// 260912-01（D3 共享 Java 适配核，用户已批准）：跨版本共享源目录。
+// 铁律「一个类只有一个家」——共享类放 java-core/，分版类放本工程 src/main/java，不得两处并存。
+// 相对工程目录解析（同 runDir 约定，KB #55）：versions/1.20.1/java → 仓库根。
+sourceSets {
+    main {
+        java {
+            srcDir '../../../java-core/src/main/java'
+        }
+    }
+}
+
 processResources {
     inputs.property "version", project.version
     // ⚠️ dll 是任务输入：Rust dll 重编后强制 processResources 重跑（否则 UP-TO-DATE 跳过 doFirst 同步，

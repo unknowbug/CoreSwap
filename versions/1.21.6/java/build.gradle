@@ -24,6 +24,17 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:0.127.0+1.21.6"
 }
 
+// 260912-01（D3 共享 Java 适配核，用户已批准）：跨版本共享源目录。
+// 铁律「一个类只有一个家」——共享类放 java-core/，分版类放本工程 src/main/java，不得两处并存。
+// 相对工程目录解析（同 runDir 约定，KB #55）：versions/1.21.6/java → 仓库根。
+sourceSets {
+    main {
+        java {
+            srcDir '../../../java-core/src/main/java'
+        }
+    }
+}
+
 // 多版本 dll 冲突裁决（Phase 2 设计初版）：1.21.6 薄壳 cdylib 包名用 worldgen1216
 // → 产物 target/release/worldgen1216.dll，processResources 仍 rename 成 worldgen.dll 打包，
 //   与 1.20.1 薄壳的 target/release/worldgen.dll 输入互不覆盖。
