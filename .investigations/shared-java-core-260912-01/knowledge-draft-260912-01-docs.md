@@ -1,5 +1,7 @@
 # 260912-01 知识库成稿草稿（docs 载体：10 时间线追加块 + 07 主题篇小节）
 
+> ⚠️ **§15.4 注记（应用后校正，2026-09-12）**：本稿 `multiset + sorted-sequence 双判全等` 的表述**已被 judge 增量复审 D2 证伪**（六臂两两原始序列无一对相同，同 jar 重复跑亦然）⇒ **落盘正文已就地校正为「只用 multiset；序列不承载判据」**（见 record §4.7.9、errors E6）。**本稿正文不再代表落盘内容**，以落盘文件与上述锚点为准（原稿按 §15.4 不删不改）。
+
 > **产出角色**：`core.worker` 知识库落盘 subagent。**本文件是草稿**——只给「可直接粘贴的成稿正文 + 插入锚点 + 取代指针建议」；主会话负责应用 + 一致性验证。**本 worker 未修改** `versions/1.20.1/docs/` 任何既有文件。
 > **本版定位**：**覆盖** A 线旧稿 `.investigations/a1-opt-pool-260911-05/knowledge-draft-260911-05-docs.md`（其正文已按 record §4.5 的提交号纠正重录，见 §1.4/§2.4）**并合入**本轮 Wave 2（workspace 块 260912-01）新增。旧稿应用后即可废弃；**勿两份都应用**（同一 10 块 / 07 小节会重复）。
 > **源材料**：`record-260912-01.md` **§4.6 / §4.7（含 §4.7.2-§4.7.8：三态表 / judge 复算后的门数字 / 1.21.6 回填 + 确认缺陷 / 证据落盘 / 一手锚补正 / judge 条件响应 / 未闭合项）**（Wave 2 唯一素材主源，本稿只读这两节 + §4.1/§4.2/§2.1-§2.6 作背景）+ 本波 judge `review-wave2-260912-01.md`（PASS-with-conditions / C1–C9）+ 错误台账 `errors-260912-01.md`（E1–E5 + 速查表）+ 证据目录 `evidence/`（42 文件 + `MANIFEST.txt`）+ 计划 `.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md`（§14 补登）+ A 线三件（`record-260911-05.md` / `a2-dim-gate-260911-05.md` / `review-260911-05.md`，经旧稿转录）。两项过程实测的一手锚（worktree 换行伪差异 / javap zip 对拍级联误报）**已由 record §4.7.6 补齐**（`evidence/prewt-pseudodiff.txt`；`evidence/src-pre-1.20.1-CppBridge.java` 与现行源码逐字对照），另见 `errors-260912-01.md` E2/E3。

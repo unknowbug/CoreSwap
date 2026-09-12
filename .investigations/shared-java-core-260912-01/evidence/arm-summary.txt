@@ -41,3 +41,19 @@ BUILD SUCCESSFUL in 56s
 [CppBridge] DIAG write threw chunk(-11,-13): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.
 [counts] WG-CONTENT=130 WG-CONTENT-WB=0 EntryMissing=132 WMI=6 testcontent=0
 
+===== 1.20.1-bulklog  (E:\PYTHON\CoreSwap\.tmp\vivo-stutter-260911-02\ab-threads\logs\w2f-bulklog-1.20.1.log) =====
+[WG-BULKWB] state_ids_size=24137 idlist_bits=15
+[WG-BULKWB] calls=607 sections_replaced=4856 air_sections_skipped=9712 idlist_hits=0 max_distinct=7 ns/section: build=92050 (incl. readPacket=4502) counts_set=131 ns/call(total)=958166
+[WG-PERBLOCK] calls=0 ns/call(total)=-1
+[result] chunks=441 totalSec=4 cps=110.2 cpuSec=59 jvmCpu=5.9 maxWsMB=2187 maxPrivMB=2237
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=8 testcontent=2
+
+===== 1.20.1-perblocklog  (E:\PYTHON\CoreSwap\.tmp\vivo-stutter-260911-02\ab-threads\logs\w2f-perblocklog-1.20.1.log) =====
+[WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0
+[WG-PERBLOCK] calls=607 ns/call(total)=1815291
+[result] chunks=441 totalSec=4 cps=110.2 cpuSec=62 jvmCpu=6.2 maxWsMB=2396 maxPrivMB=2450
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=8 testcontent=2
+
+===== 1.20.1-perblock  (E:\PYTHON\CoreSwap\.tmp\vivo-stutter-260911-02\ab-threads\logs\w2e-perblock-1.20.1.log) =====
+[result] chunks=441 totalSec=4 cps=110.2 cpuSec=64 jvmCpu=6.4 maxWsMB=2203 maxPrivMB=2258
+[counts] WG-CONTENT=607 WG-CONTENT-WB=607 EntryMissing=0 WMI=8 testcontent=2

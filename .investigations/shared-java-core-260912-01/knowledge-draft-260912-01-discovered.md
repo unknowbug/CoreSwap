@@ -1,5 +1,7 @@
 # 260912-01 knowledge/discovered 落盘草稿（A 线 260911-05 全部条目 + Wave 2 260912-01 新增）
 
+> ⚠️ **§15.4 注记（应用后校正，2026-09-12）**：本稿（尤其 #14 补充案例 260912-01 的判据 3「multiset + sorted-sequence 双判」）**已被 judge 增量复审 D2 证伪**（六臂两两原始序列无一对相同，同 jar 重复跑 pre-r1 vs pre-r2 位置差 495/503）⇒ **落盘正文已就地校正为「只用 multiset；序列不承载判据」**（见 record §4.7.9、errors E6、`recompute-output.txt`）。**本稿正文不再代表落盘内容**（原稿按 §15.4 不删不改）。
+
 > **角色**：`core.worker`（知识库落盘 subagent，隔离子进程）。**本稿只产出草稿，不修改 docs/knowledge 既有文件**；应用与验证由主会话执行。
 > **本版定位**：**覆盖** A 线旧稿 `.investigations/a1-opt-pool-260911-05/knowledge-draft-260911-05-discovered.md`（其 #130–#137 / algorithm #25 / build-tooling #59 全部重录，并按 record §4.5 纠正与 Wave 2 事实**升级 #59**）**并合入**本轮 Wave 2 新增条目。旧稿应用后即可废弃；**勿两份都应用**。
 > **状态纪律**：A 线条目 = **candidate**（judge PASS-with-conditions，confirmed 留人类）；**Wave 2 条目 = draft**（judge 已做 = `review-wave2-260912-01.md` **PASS-with-conditions**、C1–C9 已全部响应/修正（record §4.7.7），但 **`record-260912-01.md` §6 尚未回填 / 用户未 confirmed**）；**AI 永不写 confirmed**——人类后续授予时由主会话按实际授予改写。

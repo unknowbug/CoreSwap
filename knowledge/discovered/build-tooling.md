@@ -1075,7 +1075,7 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 
 ### 发现 #59（最高价值·错误优先）: A/B 驱动的收尾 `restore` + `target/` 里残留的实验暂存 dll ⇒ 跨臂对照可能**执行了不同引擎**——执行体血统 MUST 逐臂读「执行体自证行」核对，不得只看 target 文件 sha（首例 260911-05 / 第二实例 260912-01）
 
-- **发现时间 / 发现者 / 置信度 / module**：① 首例（**预防性、未发生**）= 260911-05，judge I3 指出（`review-260911-05.md`；当时收尾实测 dll 值正确、无遗留）；② 第二实例（**实际发生、判定作废一次**）= 260912-01（共享 Java 适配核 Wave 2 的 V2/V3 对照）；**首例 = candidate**（A 线 judge 已审）；**第二实例部分 = draft**（本波 judge 已做 = PASS-with-conditions、C1–C9 已响应（record §4.7.7、`review-wave2-260912-01.md` §5.1 复算自证行一致），但 **record §6 已回填 / 用户未 confirmed**）；build-tooling / 构建链一致性与执行体血统（**#23 家族第三/第四形态**：驱动脚本自带回滚动作 → 污染对象从「交付产物」升级为「**对照实验本身**」）。
+- **发现时间 / 发现者 / 置信度 / module**：① 首例（**预防性、未发生**）= 260911-05，judge I3 指出（`review-260911-05.md`；当时收尾实测 dll 值正确、无遗留）；② 第二实例（**实际发生、判定作废一次**）= 260912-01（共享 Java 适配核 Wave 2 的 V2/V3 对照）；**首例 = candidate**（A 线 judge 已审）；**第二实例部分 = confirmed**（用户授予 2026-09-12 15:52；本波 judge 已做 = PASS-with-conditions、C1–C9 已响应（record §4.7.7、`review-wave2-260912-01.md` §5.1 复算自证行一致），record §6 已回填）；build-tooling / 构建链一致性与执行体血统（**#23 家族第三/第四形态**：驱动脚本自带回滚动作 → 污染对象从「交付产物」升级为「**对照实验本身**」）。
 - **来源定位**：首例 = `record-260911-05.md` §1/§5（`:11-12`/`:89`）+ judge `review-260911-05.md` I2（`:55`，门禁强度）/ I3（`:56`）；第二实例 = `.investigations/shared-java-core-260912-01/record-260912-01.md` §4.7.0（配方 `:213-217`）/ **§4.7.1（事故根因链与处置 `:218-225`）**/ §4.7.2（三臂自证行 `:231`）/ §4.7.4（dll 归一化隔离 `:268-271`）+ §2.6（产物目录不是存档目录 `:83-87`）；五段式台账 = `errors-260912-01.md` **E1**；判据可从仓库复现（`evidence/MANIFEST.txt`、`evidence/arm-summary.txt`、`evidence/fp-*.txt` 的逐臂自证行）。
 - **现象①（首例，交付侧）**：a1 A/B 驱动的 `results.txt` 记 `restore=dd3b645f`（= **A1d 前**构建，size 2457088）⇒ 驱动结束会把 `target/release/worldgen.dll` **还原为其 bak**（= pre 构建）。当时收尾实测当前值 = `838e8979`（正确、无遗留），但**交付/发版前仍值得复核构建链**。另：dll 硬门禁（`run_ab.ps1:71-78`）只比较日志里的 **16 hex 前缀**（`sha256=838e8979…`），**非全 sha256**。
 - **现象②（第二实例，对照实验侧）**：260912-01 Wave 2 的 V2/V3 首轮，两臂**实际执行的 dll 不同**——post 臂 `838e8979…` vs pre 臂 `dd3b645f…` ⇒ **对照被引擎差异污染、V3 判定作废**（判 VOID、两臂重跑）。**发现方式 = 逐臂读取 `<CppBridge> dll= sha256=`「执行体自证行」**，非事后猜测。
@@ -1094,7 +1094,7 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 
 ### 发现 #60 简记: fresh `git worktree` 不能当「条目级」基线——检出文本被 `core.autocrlf` 物化为 CRLF，与主工作树的 LF 不同 ⇒ 逐条目比对出现全量伪差异（260912-01）
 
-- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 等价性基线与换行策略（**#116 条目级 sha 门的前提面**）。
+- **发现时间 / 置信度 / module**：260912-01；**confirmed**（用户授予 2026-09-12 15:52；judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填；一手锚 = record §4.7.6）；build-tooling / 等价性基线与换行策略（**#116 条目级 sha 门的前提面**）。
 - **来源定位**：`.investigations/shared-java-core-260912-01/record-260912-01.md` **§4.7.6**（一手锚 / 补记）+ §4.7.0（`git worktree` 臂设置 `:213-217`）；证据 = `evidence/manifest-prewt-1.20.1.tsv`、`evidence/manifest-post3-1.20.1.tsv`、`evidence/prewt-pseudodiff.txt`；台账 = `errors-260912-01.md` **E2**。
 - **现象**：`git worktree add` 检出的**文本资源**被 `core.autocrlf` 物化为 **CRLF**，与主工作树的 **LF** 不同 ⇒ 用 worktree 构建出的 jar 与主树 jar 逐条目比对时，**所有 JSON/文本条目全部显示差异**（实测：prewt vs post3 = **相同 57 / 差异 1024 / 新增 1 / 删除 0**，差异**全落在 `worldgen-data/**` 文本资源**、**class 条目零差异**）。
 - **根因（机制）**：worktree 检出走同一 `.gitattributes` / `core.autocrlf` 机制，**工作区文本换行**随策略变化；而 class 条目由 javac 产物决定、**与工作区换行无关** ⇒ 伪差异**只在文本资源路径前缀上成片出现**，class 差集为空。若基线取在别的树，则「差异集」里混入**换行噪声**，真差异被淹没。
@@ -1105,7 +1105,7 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 
 ### 发现 #61 简记: javap 方法级对拍的三个陷阱——lambda 名按序号命名不可按名对拍 / 按行 zip 对拍在指令数变化处级联误报 / 常量池序号与 `ldc`↔`ldc_w` 宽度必须归一化（260912-01）
 
-- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 字节码对拍方法（**f5-bugs「javap 不可信点」的姊妹条**）。
+- **发现时间 / 置信度 / module**：260912-01；**confirmed**（用户授予 2026-09-12 15:52；judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填；一手锚 = record §4.7.6）；build-tooling / 字节码对拍方法（**f5-bugs「javap 不可信点」的姊妹条**）。
 - **来源定位**：`record-260912-01.md` **§4.7.6**（一手锚：初版伪差异计数 + 源码逐字对照 + judge 三重判定）+ §4.6（`:171-193` 各条 `javap -c -p`「输出完全相同」判定、`:186-192` 方法级对拍与 `lambda$static$0` 诚实声明）；台账 = `errors-260912-01.md` **E3**；证据 = `evidence/src-pre-1.20.1-CppBridge.java`、`evidence/tool-javap_method_diff.py`。
 - **现象（三陷阱）**：① **`lambda$static$N` 按序号命名** ⇒ pre/post 的同名 lambda **可能不是同一个物**；本轮 `lambda$static$0` 因此被明确判为「**不构成证据**」（改名比对无意义）。
   ② **按行 zip 对拍**：两版 javap 输出按行号 zip 比对时，**任一处指令数变化**会把其后所有行的对齐整体错位 ⇒ 「differing lines」**级联放大**、把一处真差异报成成百上千行（record §4.7.6 已补一手锚：初版 `stateById` 6 行 / `lambda$static$0` 46 行均为伪差异）。

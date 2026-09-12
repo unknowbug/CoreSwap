@@ -404,7 +404,7 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 
 ## 发现 #25 简记: 给「逐字复制」的类加头注释也会改变该 `.class` 条目 sha——`LineNumberTable` 随源码行号位移（指令完全相同）（260912-01）
 
-- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 共享化实施中实测）+ scout-judge（C2 要求逐条声明调试属性类差异）+ 本波 judge（**C4 即本条的正向实例**）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 已回填 / 用户未 confirmed）；compiler-idioms / 类文件调试属性与字节锚（**#24 的「类文件结构」邻接面**）。
+- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 共享化实施中实测）+ scout-judge（C2 要求逐条声明调试属性类差异）+ 本波 judge（**C4 即本条的正向实例**）；**confirmed**（用户授予 2026-09-12 15:52；judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 已回填）；compiler-idioms / 类文件调试属性与字节锚（**#24 的「类文件结构」邻接面**）。
 - **来源定位**：`record-260912-01.md` §4.6（`:161-168` 构建三态表——`post1`（含头注释）→ **`post2` = V1b 判定基线**，隔离差异恰 2 条 = `CoreSwapFixHelper` + `StallWatch`；1.20.1 侧 `:184`「`StallWatch` 逐字复制后条目 sha 全等；**曾因加 1 行头注释导致行号位移 ⇒ 删注释恢复字节锚**」；`:178/180/182/200/201` 各「仅调试属性（`LineNumberTable`）」条目 + `javap -c -p` 输出完全相同的判定）+ **§4.7.7（C4 条 `:305`：注释修补保行数 ⇒ 类字节不变）**；证据 = `evidence/post1-vs-post2-1.20.1.txt`、`evidence/post3-vs-post4-{1.20.1,1.21.6}.txt`。
 - **现象（语义/机制）**：把一个类**逐字复制**进共享源后条目 sha 全等；**加 1 行头注释**（如「本文件自 1.20.1 共享化而来」）后该条目 sha **改变**，而 `javap -c -p` 输出**完全相同**（指令集未变）——差异全在调试属性。
 - **根因（机制）**：javac 为指令生成 `LineNumberTable`（源码行号 → 字节码偏移），**行插入使其后所有源码行号 +1** ⇒ 每条指令的 start line 整体位移，类文件的属性表字节随之变化（常量池/指令不变）。⇒ 「注释不影响产物」对**需要字节锚**的场景**不成立**。

@@ -1,5 +1,5 @@
-# 260912-01 Wave 2 证据清单（sha256 + size + name）；追加见 record §4.7.9（逐块路径 + 逐臂路径自证）
-e9ab0d9dd3a0acc2ddadf8b3f81e3c27ab3e34b3a1ab3fd3c84772800ab66727       4328  arm-summary.txt
+# 260912-01 Wave 2 证据清单（sha256 + size + name）；见 record §4.7.5 / §4.7.9 / §4.7.10（judge 增量复审 D4 后刷新）
+c4cdcd9f0e4624411ae5d5beb6cdd687e19fc6210e96f30f5ded09ef6fa459a9       5558  arm-summary.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-bulklog.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-perblock.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-perblocklog.txt
