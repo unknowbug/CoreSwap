@@ -27,7 +27,8 @@
     "NoiseDumpProbeMixin",
     "ServerLightingProviderMixin",
     "LightingProviderAccessor",
-    "ChunkLightProviderAccessor"
+    "ChunkLightProviderAccessor",
+    "ChunkSectionAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

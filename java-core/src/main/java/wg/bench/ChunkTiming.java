@@ -1,10 +1,26 @@
+// 260912-01 D3：两版超集；各版只调用自己接线的分项，未接线列在 [CHUNKTIME] 里恒 0（已批准的诊断面差异）
 package wg.bench;
 
 /**
- * 260910-04 chunk 级分段计时（口径净化门控：-Dcoreswap.chunktime=1，默认完全关闭）。
+ * 260910-04 / 260910-06 chunk 级分段计时（260912-01 D3 两版超集合并；口径净化门控：
+ * {@code -Dcoreswap.chunktime=1}，默认完全关闭）。
  *
- * <p>目的：把「每 chunk 墙钟 ≈1.4s 而 CPU 仅 ~0.4-1.7 核」拆开——判断时间花在
- * mixin 接管段内部（JNI/Rust/写回）还是段外（MC chunk 管线等待）。
+ * <p>目的：把「每 chunk 墙钟」拆开——判断时间花在 mixin 接管段内部（JNI/Rust/写回）还是段外
+ * （MC chunk 管线等待）；并给出**同时刻在飞接管段数**峰值——后者是「重活是否被 worldgen
+ * 单车道串行化」的**直接证据**（1.21.6 R3 判据，见 knowledge workflow-patterns #107）。
+ *
+ * <p><b>合并说明（260912-01 D3）</b>：本类 = 两版并集（1.20.1 精简版的全部成员是 1.21.6 版的
+ * 真子集 ⇒ 并集 = 1.21.6 成员集，无 1.20.1 独有成员）。各版只调用自己接线的分项：
+ * <ul>
+ *   <li><b>1.20.1</b>：仅 {@code mixin/NoiseChunkGeneratorMixin} 调 {@link #enter}/{@link #exit}/
+ *       {@link #inflightEnter}/{@link #inflightExit}；其 {@code CppBridge} 无分项钩子、且无
+ *       {@code NoiseChunkGeneratorTimingMixin}/{@code ChunkGeneratorFeaturesMixin}
+ *       ⇒ {@code jni/write/hmap/scan/beard/carve/feat} 与 {@code featInterval} 在该版**恒 0**
+ *       （1.20.1 旧版自声明「不打印恒 0 的假分项」由此**显式撤销**，属已批准的诊断面差异）。</li>
+ *   <li><b>1.21.6</b>：全分项接线（{@code CppBridge} 的 addJni/addScan/addWrite/addHmap、
+ *       {@code NoiseChunkGeneratorMixin} 的 addBeard、{@code NoiseChunkGeneratorTimingMixin} 的
+ *       addCarve、{@code ChunkGeneratorFeaturesMixin} 的 featTick/addFeat）。</li>
+ * </ul>
  *
  * <p>纪律：每 chunk 数次 {@code System.nanoTime()}（~20ns 级），**非逐点**、门控默认关
  * （对齐「测量/探针污染铁律」与 workflow-patterns #11「诊断门控鸡生蛋」——门控读取

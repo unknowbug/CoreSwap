@@ -1,3 +1,4 @@
+// 260912-01 D3：共享核；bulk 开关走 WgCompat（1.21.6 缺省关，可 -Dcoreswap.bulkwb=1 强制开启做自身 A/B）
 package wg.bench;
 
 import io.netty.buffer.ByteBuf;
@@ -69,7 +70,7 @@ import wg.bench.mixin.ChunkSectionAccessor;
 public final class BulkWb {
 
     /** 默认开；{@code -Dcoreswap.bulkwb=0} 回退旧逐块路径（A/B 单变量开关）。 */
-    static final boolean ON = !"0".equals(System.getProperty("coreswap.bulkwb"));
+    static final boolean ON = WgCompat.flag("coreswap.bulkwb", WgCompat.BULKWB_ON);
     private static final boolean LOG = System.getProperty("coreswap.bulkwblog") != null;
     /** Tier 1/2 写回后指纹门（重载，仅验证运行开启）。 */
     private static final boolean WBCONTENT = System.getProperty("coreswap.wbcontent") != null;
