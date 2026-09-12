@@ -73,6 +73,7 @@ diff 技巧：**逐类 diff 后，先对照「版本敏感点」清单打勾**�
 - 矿脉：vanilla 参照污染假象、分量动态构造、interpolator 识别特征（05）
 - 表面：STONE_DEPTH `<=1+offset`、mr7/mr8 分支归属、s 判定集合（06）
 - 流水线：块级插值顺序、线程默认自适应、多线程一致性验证（07）
+- 分块容器「写帧」契约会随版本变（跨版本坑，260912-02）：1.20.1 的 `writeLongArray` 是 VarInt 长度前缀 + 定长 longs，1.21.6 的 `writeFixedLengthLongArray` 是定长无前缀 —— `PalettedContainer.readPacket` 的 storage 段读法同步换成了定长版。症状：帧不匹配时不是崩溃而是整段移位解出越界 palette 索引（本块实测越界值只出现 {2, 8}），且 `[WG-CONTENT-WB]` = 0（写回读回层全空）是首要信号。检查动作：升级版本时 MUST 对「写 storage 的每一处」核对读端 `readPacket` 用的是哪种读法（`javap` 比第 39 条 `invokevirtual` 的目标 + `.gradle-home/.../mappings.tiny` 的 yarn 方法名，两者互证），并把写端收敛到单一分版缝函数（禁用散落的直接 writeLongArray 调用）。证据：`.investigations/shared-java-core-260912-02/`（`verify-260912-02.md` / `judge-260912-02.md` / `errors-260912-02.md` / `evidence/javap-seam-260912-02.txt`）。
 
 ## 数据/工具链（CoreSwap 主工作区）
 

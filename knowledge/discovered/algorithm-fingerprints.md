@@ -555,3 +555,21 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - **观察（语义）**：对**恰为 `Blocks.AIR`** 的格子再写 `minecraft:air` = 语义 **no-op**（计数不变、palette index 不变、状态不变）⇒ 「跳过写空气」这类优化在「被跳过的格当前即 air 默认态」时严格等价。⚠️ **严格成立范围**：只有 raw id 0（`minecraft:air`）；持 `cave_air`(730) / `void_air`(729) 的格子会被「写 air」改写成 air——判据谓词必须用 `isOf(Blocks.AIR)` 而不是 `isAir()`（等价性判据纪律见 workflow-patterns #131）。
 - **如何利用（判据）**：① 设计「跳过冗余写」优化时，等价性前提按**精确状态**表述（同域比较），语义类谓词会把 cave_air/void_air 的违例**漏计成通过**；② `PalettedContainer.swap` 的「同值写回同一 palette index」是**状态层**的通用机制，但**计数语义**按 `isAir` 判（同 section 的两套计数定义见 #23），二者不可混用。
 - **家族索引**：algorithm-fingerprints #23（同 section 三计数**两套语义**）、workflow-patterns #131（跳过型优化等价性判据）、compiler-idioms #6（raw id vs 全局 state id 双域）、workflow-patterns #14 补充案例（门层）。
+
+---
+
+## 发现 #26: 跨版本「分块容器 storage 写帧」契约差 —— VarInt 长度前缀 vs 定长无前缀（260912-02，最高价值）
+
+- 发现时间 / 发现者 / 置信度 / module：260912-02；主会话（静态字节码 + 运行级判别 + F1 修复）+ scout subagent（`scout-interpretation-A1.md` 静态解读）+ judge subagent（三轮 PASS-with-conditions，9 项硬门闭合）；confirmed（用户授予 2026-09-12 18:13；范围 = ①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化）；algorithm-fingerprints / MC 序列化编码契约（**#22 的写端邻接面**：本条 = 写帧契约的版本差）。
+- 来源定位：1.20.1 `PalettedContainer.readPacket` 的 storage 段走 `PacketByteBuf.readLongArray([J)`（VarInt 长度前缀，指令 #39；`evidence/A1-javap-PalettedContainer-1.20.1.txt:394`）；1.21.6 走 `readFixedLengthLongArray([J)`（定长无前缀，指令 #39；`…-1.21.6.txt:423`）；两版指令偏移 5/15/24/39/45 逐条相同（`scout-interpretation-A1.md:21-23`）。yarn 映射名逐行核对：`.gradle-home/caches/fabric-loom/1.20.1/…/mappings.tiny:17600 method_10789 = writeLongArray`、`…/1.21.6/…/mappings.tiny:19802 method_68087 = writeFixedLengthLongArray`（另 `:19781 method_68086` 为 `(ByteBuf, long[])` 重载同名）。失配症状实测：`.investigations/shared-java-core-260912-01/evidence/arm-summary.txt:42`（`[WG-CONTENT]=130` / `[WG-CONTENT-WB]=0` / `EntryMissing=132`）+ `scout-interpretation-A1.md:228`（`index 2` ×41 + `index 8` ×9）。
+- 指纹（契约差）：
+
+  | 版本 | readPacket 的 storage 段读法 | 写端对应方法 | 帧形态 |
+  |---|---|---|---|
+  | 1.20.1 | `PacketByteBuf.readLongArray([J)` | `writeLongArray`（`method_10789`） | VarInt 长度前缀 + 定长 longs |
+  | 1.21.6 | `PacketByteBuf.readFixedLengthLongArray([J)` | `writeFixedLengthLongArray`（`method_68087`） | 仅定长 longs（无前缀） |
+
+  - 1.21.6 仍保留前缀版 `readLongArray`（只是 `readPacket` 不再用它）⇒ 该变更是「读到点的换用」，不是「能力移除」。
+- 失配症状（识别签名）：① 抛出类型 = `EntryMissingException: Missing Palette entry for index <小整数>`，不是帧格式错 / 长度错；② 读回层指纹 `[WG-CONTENT-WB]` 归零为首要信号；③ 整段移位 —— reader 位置 k 解出 writer 位置 k+4 的值（4-bit 打包；`PASS distinct=1` 之后 `FAIL branch distinct=3`，`i=0 got=granite want=stone`），越界取值集合由前缀 nibble 决定（`VarInt(256)` = `0x80 0x02` ⇒ 只能是 {2, 8}），且 {2, 8} 是越界值集合、不是受影响位置集合（`scout-interpretation-A1.md:255-273`）；④ 两版 `readPacket` 指令布局相同、仅 1 条 `invokevirtual` 目标不同。
+- 判据（通用动作）：① 写端 MUST 收敛到单一分版缝函数（本项目形态 = 分版件 `WgCompat.writeStorageLongs` + 共享核调用点改调；`evidence/javap-seam-260912-02.txt:4-34` 证明缝体纯转发、`pop` 丢返回值、无写字节指令 ⇒ 未变更版本写出帧同构）；② 升级版本时对每个写 storage 的点核对读端读法（`javap` 比第 39 条 `invokevirtual` 目标 + tiny 映射名，两者互证）；③ 越界索引只有 {2, 8} 这类离散小集合时，优先怀疑整段字节移位，而不是位宽协商语义差（后者预测索引散布）。
+- 家族索引：algorithm-fingerprints #22（同代码点的读端逐字节契约）、#24（「规范编码字节」= storage elementBits）、#23（同 section 派生计数两套语义）、workflow-patterns #139（等价性 × 生效自证）、#14 补充案例（门必须与被测变更同层）。

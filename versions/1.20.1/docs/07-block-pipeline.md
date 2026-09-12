@@ -1333,7 +1333,8 @@ unctional-errors.md F1-F3）：
 - A1d 改前 `nthreads=10` 为公式推导非实测；`dd3b645f` 是否确为 A1d 前构建按时间线推断（未反汇编）。
 - 1.0.29 **不含 A1 改动**（尚未随任何 release 出货）；1.21.6 侧同构问题属 Phase B 范围。
 
-## 2026-09-12 D3 共享 Java 适配核（Wave 2 语义统一，commit `997d40f`）— ✅ confirmed（用户授予 2026-09-12 15:52；范围 = 出货线 1.20.1 生产行为不变 + 共享核抽取 + 1.21.6 默认路径冒烟；不含 1.21.6 强制 bulk 缺陷/等价性（仍开放）；V1b PASS-with-declarations；1.20.1 V2+V3 双 PASS；**1.21.6 默认臂 PASS + 强制 bulk 臂发现确认缺陷（阻断 D-4(i)）**；judge = PASS-with-conditions（C1–C9 已响应）/ confirmed 留用户）
+## 2026-09-12 D3 共享 Java 适配核（Wave 2 语义统一，commit `997d40f`）
+> ⚠️ 260912-02 取代指针（2026-09-12）：本节的「1.21.6 强制 bulk 缺陷＝仍开放/根因未定位」已被取代 —— 见本文件末尾「D3 后续（260912-02）」节：根因 = storage 段帧契约变更、修复 F1 = commit 2c3be2a、运行级验证已过。原文保留不改。— ✅ confirmed（用户授予 2026-09-12 15:52；范围 = 出货线 1.20.1 生产行为不变 + 共享核抽取 + 1.21.6 默认路径冒烟；不含 1.21.6 强制 bulk 缺陷/等价性（仍开放）；V1b PASS-with-declarations；1.20.1 V2+V3 双 PASS；**1.21.6 默认臂 PASS + 强制 bulk 臂发现确认缺陷（阻断 D-4(i)）**；judge = PASS-with-conditions（C1–C9 已响应）/ confirmed 留用户）
 
 > 载体与依据：`.investigations/shared-java-core-260912-01/record-260912-01.md`（§2 pre 冻结 + 构建确定性 / §2.4 V0 接线预检 / §4.1 Wave 1 / §4.2 HOOK-2 / §4.6 V1b 判定 + **构建三态表** / §4.7.0-§4.7.8（V2+V3 / dll 血统事故 / 1.20.1 双 PASS / **1.21.6 回填 + 确认缺陷** / dll 归一化 / 证据落盘 / 一手锚补正 / judge 条件响应 / 未闭合项））+ `review-wave2-260912-01.md`（judge，verdict = PASS-with-conditions）+ `errors-260912-01.md`（E1–E5 + 速查表）+ `evidence/`（42 文件 + `MANIFEST.txt`，tracked）+ 已批准计划 `.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md`（§14 追加式补登）；提交 `ce5286b`（Wave 1 纯移动）+ `997d40f`（Wave 2 语义统一）。通用模式 → knowledge/discovered：workflow-patterns #138 / #14 补充案例（260912-01）、build-tooling #59（合并）/ #60 / #61、compiler-idioms #25。
 
@@ -1361,3 +1362,75 @@ unctional-errors.md F1-F3）：
 - 1.20.1 生产路径新增 **4 次 `System.nanoTime()`/chunk**（≈80ns/chunk 为算术估计、未实测；保留 1.21.6 逐字形态、不做微优化）；1.21.6 S-6/S-7 诊断面差异已按批准生效。
 - **证据落盘（judge C5）**：判据已从 `.tmp/` 复制到 tracked **`evidence/`**（42 文件 + `MANIFEST.txt`：清单 / 差异输出 / 门控原样行 / 完整日志 / 复现工具；jar 本体与中间 dump 不入库、只入 sha）⇒ 判据可从仓库复现（此前「只在 `.tmp`」的状态已终结）。
 - **再发布提醒**：`build/libs` 现产物与已发布 1.0.29 的 jar sha `b057fda2…` **不同**（发布 jar 已被本地构建就地覆盖，§2.6「构建产物目录不是存档目录」）⇒ 再发布 MUST 重跑全量回归 + 三元组重算。
+
+## 2026-09-12 D3 后续（260912-02）：1.21.6 强制 bulk 写回的 storage 段帧契约缺陷定位与 F1 修复 — ✅ confirmed（用户授予 2026-09-12 18:13；范围 = ①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化）
+
+> 范围与排除（照抄状态机口径，不得外推）：本节 confirmed **只覆盖上列 4 项**；**不含** nether/end 覆盖、性能结论、`BULKWB_ON` 翻转决策（三者均未获 confirmed）。
+> 证据载体：`.investigations/shared-java-core-260912-02/`（`verify-260912-02.md` v1→v6 = 验证记录，**confirmed（范围受限** = 本节 4 项结论；范围外条目按原证据等级）；`judge-260912-02.md` = judge 三轮 + 交付前确认，PASS-with-conditions；`errors-260912-02.md` = W1–W13 五段式 + 速查表（台账，candidate）；`scout-map.md` + `scout-interpretation-A1.md` = 静态字节码与运行级解读；`evidence/` = 原始件）+ 冻结基线 `.investigations/shared-java-core-260912-01/evidence/`。提交 = `2c3be2a`（F1 本体，2026-09-12 17:13:50+0800，`evidence/javap-seam-260912-02.txt:37`）；`8974063 docs(260912-02): close review conditions, register artifacts, supersede E5`（2026-09-12 17:56:53+0800；两个提交号均已由本稿用 `git cat-file -t` 属主工具自核，符合 workflow-patterns #137）。
+> 承接：本节取代上节（`## 2026-09-12 D3 共享 Java 适配核…`）中「1.21.6 强制 bulk 缺陷 = 仍开放 / 根因未定位」的表述；原节正文**不改**，取代指针以追加式插在该节标题行之下（见本节末「就地取代指针」）。
+
+### 现象（260912-01 遗留缺陷的实测面）
+
+| 量 | 值（修复前） | 来源 |
+|---|---|---|
+| 1.21.6 强制 bulk 臂 `[WG-CONTENT]` | 130 | `shared-java-core-260912-01/evidence/arm-summary.txt:42` |
+| 1.21.6 强制 bulk 臂 `[WG-CONTENT-WB]` | 0 —— **首要信号**（写回读回层一条都没有） | 同上 |
+| `EntryMissingException` | 132 | 同上 |
+| 异常类型 / 索引取值 | `DIAG write threw chunk(x,z): net.minecraft.world.chunk.EntryMissingException: Missing Palette entry for index 2.` 逐 chunk 抛；索引取值集合只有 {2, 8}（C1 判别臂实测 `index 2` ×41 + `index 8` ×9，无第三取值） | 同上 `:32-41`（抽录 10 条）；`scout-interpretation-A1.md:228` |
+
+- 不是崩溃而是「整段移位」（关键性质）：异常只在越界位置抛出；位移本身静默（C1 臂 `PASS distinct=1` 之后 `FAIL branch distinct=3`，`i=0` 解出的正是 writer 位置 4 的值 = +4 个 4-bit 位置的逐位实证，`scout-interpretation-A1.md:255-265`）。
+- 默认关不豁免：该路径在 1.21.6 上原本**不存在**（该版 pre 无 `BulkWb`、property 被忽略），共享核把它变成**可达**；强制臂一开即崩（`errors-260912-01.md` E5，`:110-132`）。
+
+### 根因 b2a：storage 段帧契约随版本变更，共享核仍按 1.20.1 前缀帧写出
+
+| 项 | 1.20.1 | 1.21.6 |
+|---|---|---|
+| `PalettedContainer.readPacket` storage 段读法 | `PacketByteBuf.readLongArray([J)` = VarInt 长度前缀 + 定长 | `PacketByteBuf.readFixedLengthLongArray([J)` = 定长、无前缀 |
+| tiny 映射名（逐行核对） | `.gradle-home/caches/fabric-loom/1.20.1/…/mappings.tiny:17600` → `method_10789 = writeLongArray` | `…/1.21.6/…/mappings.tiny:19802` → `method_68087 = writeFixedLengthLongArray`（另 `:19781 method_68086` = `(ByteBuf, long[])` 重载同名） |
+| 字节码判据（单变量差异） | 两版 readPacket 指令偏移 5/15/24/39/45 逐条相同，唯一差异 = 第 39 条 invokevirtual 的目标不同 | 同左（`scout-interpretation-A1.md:21-23`；`evidence/A1-javap-PalettedContainer-{1.20.1,1.21.6}.txt`） |
+
+- 机制链：共享核写端 `BulkWb` 按 1.20.1 契约写「VarInt 长度 + longs」；1.21.6 读端只取 `values.length` 个 long ⇒ 那 2 字节前缀**不被消费**（ARRAY 支 `VarInt(256)` = `0x80 0x02`）⇒ 整段移位 2 字节 ⇒ 解码越界的 palette 索引只能是 {2, 8}（前缀 nibble `e15=8, e14=0, e13=0, e12=2`；`scout-interpretation-A1.md:261-271`）。
+- 竞争候选 b2b（位宽协商语义差）已排除：读端 byte 消费路径、`getCompatibleData` 决策骨架、`createDataProvider` 实现三处逐条同形 + 运行级 {2, 8} 单变量分布（`scout-interpretation-A1.md:239-251`）。
+
+### 修复 F1（commit `2c3be2a`）：分版缝收口写端帧
+
+- 改法：分版缝（`versions/<ver>/java/src/main/java/wg/bench/WgCompat.java`，每版一个同名文件；共享源不得出现版本分支）新增 `writeStorageLongs(PacketByteBuf, long[])`；共享核 `BulkWb.buildContainer` 的 **2 个调用点**（原 `:247` `EMPTY_LONGS` 支 + `:262` 数据支）改为调用缝方法，两版各自调用本版正确的写出方法。
+- jar 级证据（`evidence/javap-seam-260912-02.txt:4-34`）：两版缝体都是**纯转发** —— `invokevirtual #45` 调**同一个被调方法**（1.20.1 = `class_2540.method_10789`、1.21.6 = `class_2540.method_68087`）+ 同一实参（`aload_0` / `aload_1`），`pop` 丢弃返回值，**体内无任何写字节指令**；`BulkWb` 内该调用出现 2 次（`L386` / `L479`，同属 `buildContainer`）。
+- 1.20.1 腿的性质：缝体是对原直接调用的静态转发，因此 1.20.1 写出帧逐字节同构（这是「1.20.1 未观测到 F1 相关回归」的机制依据，不是仅靠测试）。
+
+### 验证（修复后实测）
+
+| 判据 | 实测 | 来源 |
+|---|---|---|
+| 1.21.6 bulk 臂计数 | `[WG-CONTENT]` = `[WG-CONTENT-WB]` = 625（修复前 130 / 0 / 132） | `evidence/arm-summary-260912-02.txt:7` |
+| 全目录 `EntryMissingException` | 0（8 臂全扫；仅修复前 C1 臂与常量池字节码文本命中） | `judge-260912-02.md:53`（A2） |
+| WBTEST 合成自检 | 4/4 PASS（distinct = 1 / 3 / 20 / 300） | `evidence/arm-summary-260912-02.txt:29-33` |
+| 按层多重集对比 | 全等（`only-pre=0` / `only-post=0`）——本稿逐组枚举：主对比 8 组（`cmp-260912-02-raw.txt`，8 个 `=====` 段）+ 自证臂对比 8 组（`cmp-260912-02-att-raw.txt:4-66`）+ 补跑 2 组（同文件 `:95-109`）= **18 组** | 三份 `cmp-*.txt` 原始输出 |
+| 条目级对拍（jar manifest） | 相同 1079 / 1800、差异 3、增 0 删 0，`V1 verdict = PASS（无非预期差异）` | `evidence/manifest-diff-postF1-1.20.1.txt:6-9` 与 `:23`（1.21.6 同型） |
+| 1.20.1 与冻结基线 | 整文件全 64 位 sha 同一 = `4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21`（83804 B）；同 sha 家族 1.20.1 = 10 份 / 1.21.6 = 4 份 | `verify-260912-02.md:92`（C-13）+ `:175`（F28） |
+| 1.21.6 默认臂未退化 | fix-default 与冻结默认臂逐层多重集全等（625 / 625） | `cmp-260912-02-raw.txt:29-53` |
+| 臂变量生效自证（正 / 负成对） | `-Dcoreswap.bulkwblog=1`：bulk 臂 `[WG-BULKWB] calls=625`；perblock 臂 `[WG-BULKWB] calls=0` + `[WG-PERBLOCK] calls=607` | `cmp-260912-02-att-raw.txt:68-79` |
+
+> ⚠️ 数字复核（本稿，两处汇总数字按实际枚举更正）：① 指令 / 计划口径的「16 组多重集对比」在落盘证据中**无法复现** —— 按 `cmp-*.txt` 逐组枚举为 **18 组**（8 + 8 + 2），本节按 18 记；② 「1.21.6 五份 fp 同一」为汇总层笔误，穷举定案为 **1.21.6 = 4 份 / 1.20.1 = 10 份**（`verify-260912-02.md:10` v4 修订、`judge-260912-02.md:451-453`）。
+
+### 残留 / 边界（如实写，不得当已闭合）
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| nether / end 覆盖 | 0（零覆盖） | 属 `BULKWB_ON` 翻转的**前置**（**非本结论前置**）；被改的 `writeChunk` 共享三维度 |
+| 1.21.6 写出帧字节直采 | 未做 | 由读端 4096 点读回（WBTEST 4/4）+ 625 chunk 等价性代替 |
+| 1.20.1「未观测到 F1 相关回归」口径 | 受限 | 仅限 **overworld / 写回内容层 / 单次 JVM 运行** 口径 |
+| 性能结论 | 不做 | 本块不出性能主张（bulk 与逐块计时同 run 含诊断成本，不作收益读数） |
+| `BULKWB_ON` 翻转 | 未做 | nether / end 覆盖为 0 即前置未达 |
+| 出货 | 不出货 | F1 对 1.20.1 为静态转发、无紧急重发需求；若出货须升版 1.0.30 + 新工单 |
+| `verify` / `errors` 状态 | verify = **confirmed（范围受限**，仅标题所列 4 项；范围外条目按原证据等级）；errors = candidate（台账） | confirmed 只覆盖 4 项范围，不外推 |
+
+### 可复用判据
+
+- 跨版本帧契约变更 ⇒ 写端必须走分版缝：凡「共享核 + 分版缝」结构，任何写 wire 格式的调用点都 MUST 收敛到单一分版缝函数，禁止散落的直接调用（本块修复即此形态）。
+- 指纹对写回内容面敏感，但观察面有限：`[WG-CONTENT]`（Rust buf 层）对 Java 侧写回改动结构性不敏感；`[WG-CONTENT-WB]`（写回后读回层）能捕获写帧错误。两层指纹只可排除「写回内容发生变化」，不可单独支撑「无回归」——必须与单运行口径异常面同档、条目级 diff、构建绿并列（`verify-260912-02.md:176`，F29）。
+- 等价性结论 MUST 与臂变量生效自证配对（→ `knowledge/discovered/workflow-patterns.md` 发现 #139）；跨版本帧契约指纹 → `knowledge/discovered/algorithm-fingerprints.md` 发现 #26。
+
+### 就地取代指针（供主会话插入到上节 D3 节内，见段 1b）
+
+> ⚠️ 260912-02 取代指针（2026-09-12）：本节的「1.21.6 强制 bulk 缺陷＝仍开放/根因未定位」已被取代 —— 见本文件末尾「D3 后续（260912-02）」节：根因 = storage 段帧契约变更、修复 F1 = commit 2c3be2a、运行级验证已过。原文保留不改。
