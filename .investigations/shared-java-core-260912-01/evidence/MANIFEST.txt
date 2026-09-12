@@ -1,18 +1,16 @@
-# 260912-01 Wave 2 证据清单（sha256  +  size  +  name  +  source）
-# jar sha（权威 dll 态，post3 ≡ post4）：1.20.1 461baedcb729dc9b… 1.21.6 772d7a6ed0bbdbfc…
-# 冻结 pre jar：1.20.1 1027f4f6403aca26…  1.21.6 16d5e5e7adf0780c…
-# post2（V1b 判定基线）：1.20.1 0681ec03…  1.21.6 772d7a6e…
-# dll：1.20.1 dd3b645f2c79d2cb…  1.21.6 abd7d8893d22e030…（票/target/jar 三处一致）
-# 复现：python tool-jar_manifest_diff.py manifest-pre-1.20.1.tsv manifest-post2-1.20.1.tsv
-#       python tool-fp_compare.py log-1.20.1-pre-r2.txt log-1.20.1-post.txt '\[WG-CONTENT-WB\] chunk'
-#       pwsh tool-run_pre_1201.ps1 -Tag <tag> -Radius 160   （pre 臂，需 .tmp/w2/pre-wt worktree @ ce5286b）
-
+# 260912-01 Wave 2 证据清单（sha256 + size + name）；追加见 record §4.7.9（逐块路径 + 逐臂路径自证）
 e9ab0d9dd3a0acc2ddadf8b3f81e3c27ab3e34b3a1ab3fd3c84772800ab66727       4328  arm-summary.txt
+4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-bulklog.txt
+4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-perblock.txt
+4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-perblocklog.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-post.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-pre-r1.txt
 4b10f2be7f9d5d949dd0acd048b8c0b40ac0653bc09083b45d7968bf13ed9e21      83804  fp-1.20.1-pre-r2.txt
 b22dfa19e366f1e12a1d967af337870af01387172768b79ff4efbbf00f5cb459       7642  fp-1.21.6-bulk.txt
 8184d609847c704e461d1a52e2c6fa8434db7de622dbec3ba98f662094f9878a      86248  fp-1.21.6-default.txt
+e0c691c150303acfbb2c5fe6449677cd73e87f47dbc35cc7b59cec474ad33d7a     284530  log-1.20.1-bulklog.txt
+f93871da0b626b2ce6323d46276db3780ddcc50dd9a233b6f5c725e1adc3ada1     283656  log-1.20.1-perblock.txt
+7216f124703dfe3dc6e968d564b1c61282d5c0f9fa5ec221b64b3dfcf089e146     284273  log-1.20.1-perblocklog.txt
 fde4b3d0b3ad5317425155da0536d619d3c44acdc75275149bdbc6d163afa1af     283987  log-1.20.1-post.txt
 96eee58162991be8819620edae320518b57265bc0aceddd2cc25a03525c63a91     288820  log-1.20.1-pre-r1.txt
 8416968a625a2b8420f454c2e4c697a7e77ac59d16456836ceffc7b0e2eb41a2     288783  log-1.20.1-pre-r2.txt
