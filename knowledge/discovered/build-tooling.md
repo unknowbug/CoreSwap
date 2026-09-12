@@ -1070,3 +1070,46 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **根因（机制）**：手写二进制 reader **无校验**，`tag → 载荷长度类型` 映射写错即**指针失步**（desync），后续被 `try/except: continue` **静默**丢弃（不报错）。失步签名 = tag 类型普查出现**非 NBT 合法 tag 号**（15/16/18/32/64/…/255）。
 - **判据（MUST）**：① 手写 NBT reader 的 `payload()` **MUST 按类型对表**逐条核规范——`tag1/2/3/4/5/6` 定长、`tag7/11 = TAG_Int(4B)`、`tag8 = TAG_String(u2 长度)`、`tag9/10 = 列表/复合`、`tag12 = TAG_Long(8B)`——**不得用「与已验证版逐行对齐」代替**（共有缺陷会随对齐一起继承，#53 判据③已证）；② **单点长度笔误的判别签名 = 结构级失真**（`sections/chunk` 偏离维度高度/16、分母倍远离 1），**不是**小幅百分比偏差——见到「分母/结构值系统性偏低」先查长度字段，别在精度上纠结。
 - **家族索引**：#53（region 对拍工具——本条为其**规范表**升级）、#20（NBT 解析坑——本条与「指针不推进」并列）、workflow-patterns #12/#13（工具 bug 伪装成结论）、#115（判据面能上移就上移）。
+
+---
+
+### 发现 #59（最高价值·错误优先）: A/B 驱动的收尾 `restore` + `target/` 里残留的实验暂存 dll ⇒ 跨臂对照可能**执行了不同引擎**——执行体血统 MUST 逐臂读「执行体自证行」核对，不得只看 target 文件 sha（首例 260911-05 / 第二实例 260912-01）
+
+- **发现时间 / 发现者 / 置信度 / module**：① 首例（**预防性、未发生**）= 260911-05，judge I3 指出（`review-260911-05.md`；当时收尾实测 dll 值正确、无遗留）；② 第二实例（**实际发生、判定作废一次**）= 260912-01（共享 Java 适配核 Wave 2 的 V2/V3 对照）；**首例 = candidate**（A 线 judge 已审）；**第二实例部分 = draft**（本波 judge 已做 = PASS-with-conditions、C1–C9 已响应（record §4.7.7、`review-wave2-260912-01.md` §5.1 复算自证行一致），但 **record §6 已回填 / 用户未 confirmed**）；build-tooling / 构建链一致性与执行体血统（**#23 家族第三/第四形态**：驱动脚本自带回滚动作 → 污染对象从「交付产物」升级为「**对照实验本身**」）。
+- **来源定位**：首例 = `record-260911-05.md` §1/§5（`:11-12`/`:89`）+ judge `review-260911-05.md` I2（`:55`，门禁强度）/ I3（`:56`）；第二实例 = `.investigations/shared-java-core-260912-01/record-260912-01.md` §4.7.0（配方 `:213-217`）/ **§4.7.1（事故根因链与处置 `:218-225`）**/ §4.7.2（三臂自证行 `:231`）/ §4.7.4（dll 归一化隔离 `:268-271`）+ §2.6（产物目录不是存档目录 `:83-87`）；五段式台账 = `errors-260912-01.md` **E1**；判据可从仓库复现（`evidence/MANIFEST.txt`、`evidence/arm-summary.txt`、`evidence/fp-*.txt` 的逐臂自证行）。
+- **现象①（首例，交付侧）**：a1 A/B 驱动的 `results.txt` 记 `restore=dd3b645f`（= **A1d 前**构建，size 2457088）⇒ 驱动结束会把 `target/release/worldgen.dll` **还原为其 bak**（= pre 构建）。当时收尾实测当前值 = `838e8979`（正确、无遗留），但**交付/发版前仍值得复核构建链**。另：dll 硬门禁（`run_ab.ps1:71-78`）只比较日志里的 **16 hex 前缀**（`sha256=838e8979…`），**非全 sha256**。
+- **现象②（第二实例，对照实验侧）**：260912-01 Wave 2 的 V2/V3 首轮，两臂**实际执行的 dll 不同**——post 臂 `838e8979…` vs pre 臂 `dd3b645f…` ⇒ **对照被引擎差异污染、V3 判定作废**（判 VOID、两臂重跑）。**发现方式 = 逐臂读取 `<CppBridge> dll= sha256=`「执行体自证行」**，非事后猜测。
+- **根因（机制，第二实例的完整链）**：① `target/release/worldgen.dll` 当时是**早前 A/B 实验留在 target 的非权威产物**（`838e8979…`，A1d 后构建）；② A/B 驱动 `run_ab.ps1` 收尾**无条件** `Copy-Item $bak $targetDll`，把 `.tmp/.../worldgen-target.bak-597e12ed`（= **1.0.28 引擎 `597e12ed`**）写回 target；③ 在 `git worktree` 内 `gradle :build` 触发 dll 同步链，target 又被恢复为**权威 `dd3b645f`**（= 1.0.29 票记录值）⇒ **两臂各读一个 dll**。机制本质：`target/` **既是构建产物目录、又被实验脚本当暂存/回滚区**，而「执行体身份」没有任何硬门禁约束，只有一份可被覆盖的可变文件。
+- **定位（可复用诊断方法）**：① **逐臂读执行体自证行**（`[CppBridge] dll= sha256=`）→ 立刻暴露两臂不同源；② **三元组核验**（事后）= 1.0.29 票 dll `dd3b645f…` ≡ 当前 `target/release/worldgen.dll` ≡ 重编 jar 内 `native/worldgen.dll`；1.21.6 = `abd7d889…` 三处一致；③ **归一化隔离验证**：`post3`（权威 dll）vs `post2`（旧 dll）= 1.20.1 仅 1 条目差异（`native/worldgen.dll`）、1.21.6 **0 条目差异** ⇒ 证明 dll 归一化对 class 条目零影响（避免「Java 面结论被 dll 污染」的二次误判）。
+- **修复（处置）**：权威 dll 另存 `.tmp/.../w2/dll-canonical-1.20.1.dll`；**覆盖 harness 备份**（原备份另存 `…bak-597e12ed.historical-597e12ed`）使收尾 restore **退化为 no-op**；两臂重跑（重跑后 V2+V3 双 PASS、两层指纹各 607/607 全等）。**证据** = `evidence/log-1.20.1-{post,pre-r1,pre-r2}.txt` 的逐臂自证行 + `evidence/arm-summary.txt`；judge 独立复算一致（`review-wave2-260912-01.md` §5.1）。
+- **判据（MUST）**：
+  1. **跨臂 / 跨 run 对照前 MUST 逐臂读「执行体自证行」核对**；**不得只看 `target/` 的文件 sha**——target 会被「A/B 收尾 restore」与「实验暂存」改写。自证行 mismatch ⇒ 该臂判 **VOID**（不许人工挑臂，与 workflow-patterns #118 同族）。
+  2. 凡驱动/编排脚本带 `restore=` / 回滚 / 备份还原动作，收尾**与发版前** MUST 重核 target dll 的**实际 sha**；restore 目标 MUST 钉为权威产物或**退化为 no-op**。
+  3. **门禁强度粒度 MUST 声明**（16 hex 前缀 vs 全 sha256）——前置声明可防下游把「前缀命中」读成「全量一致」。
+  4. **构建链对 dll 有自愈但不许依赖**：`gradle :build` 的 dll 同步 `doFirst` 会把 target 拉回权威产物（本次把非权威 `838e8979` 纠正为 `dd3b645f`），但若权威 dll 不存在或同步被 `UP-TO-DATE` 跳过则**不自愈**（#56 / #96 家族）。
+  5. **「构建产物目录不是存档目录」**：`gradle :build` 会按 `version`/`archivesName` **就地重写** `build/libs/*.jar`（260912-01 覆盖了已发布 1.0.29 的出货 jar）⇒ 出货工单的权威完整性判据 = **工单内 sha256**（+ 发布侧 status 镜像），不是本地 `build/libs` 文件；冻结基线前 MUST 先 `Copy-Item` 另存。
+- **家族索引**：#23（`cargo -p` 依赖 rlib 陈旧假绿——同属「绿/Finished ≠ 产物已更新」）、#16（探针用前核产物时间戳）、#18/#27（产物在盘 ≠ 本次执行体生成 / 缓存新鲜度）、#30（rlib 根产物陈旧）、#56（UP-TO-DATE 假绿——自愈不可依赖的机制面）、#96（dev-run 形态的执行体三元组核验）、workflow-patterns #118（自证行必须做成硬门禁）、#66/#36（执行体三元组与执行语义）、#105（载体偏差）。
+
+---
+
+### 发现 #60 简记: fresh `git worktree` 不能当「条目级」基线——检出文本被 `core.autocrlf` 物化为 CRLF，与主工作树的 LF 不同 ⇒ 逐条目比对出现全量伪差异（260912-01）
+
+- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 等价性基线与换行策略（**#116 条目级 sha 门的前提面**）。
+- **来源定位**：`.investigations/shared-java-core-260912-01/record-260912-01.md` **§4.7.6**（一手锚 / 补记）+ §4.7.0（`git worktree` 臂设置 `:213-217`）；证据 = `evidence/manifest-prewt-1.20.1.tsv`、`evidence/manifest-post3-1.20.1.tsv`、`evidence/prewt-pseudodiff.txt`；台账 = `errors-260912-01.md` **E2**。
+- **现象**：`git worktree add` 检出的**文本资源**被 `core.autocrlf` 物化为 **CRLF**，与主工作树的 **LF** 不同 ⇒ 用 worktree 构建出的 jar 与主树 jar 逐条目比对时，**所有 JSON/文本条目全部显示差异**（实测：prewt vs post3 = **相同 57 / 差异 1024 / 新增 1 / 删除 0**，差异**全落在 `worldgen-data/**` 文本资源**、**class 条目零差异**）。
+- **根因（机制）**：worktree 检出走同一 `.gitattributes` / `core.autocrlf` 机制，**工作区文本换行**随策略变化；而 class 条目由 javac 产物决定、**与工作区换行无关** ⇒ 伪差异**只在文本资源路径前缀上成片出现**，class 差集为空。若基线取在别的树，则「差异集」里混入**换行噪声**，真差异被淹没。
+- **定位 / 判据**：① 看差异集的**分布形态**——差异全部集中在文本资源（`data/**`、`*.json`）且 class 条目差集为空 ⇒ 先疑换行/编码策略，而非代码；② **条目级 sha 基线 MUST 用「同一工作树」构建的产物**（本案 V1b 基线最终取主树 `post2`/`post3`，`record §2.1`）；③ **跨树比对只可用于类文件 / 运行期判据**（class 字节与 CRLF 无关；本轮的 `git worktree @ ce5286b` 正是只作 **pre 臂** 的运行期对照）；④ 若必须用 worktree 作条目级基线，开工前 MUST 核 `core.autocrlf` 与 `.gitattributes` 并显式声明或统一化；⑤ **流程实况（`errors` E2）**：worktree 产物**曾**被拿作条目级基线 → 全量伪差异 → **放弃**；条目级基线改用**同一主工作树**的 `post2/post3`（V1b 判定基线 = `post2`），worktree 只保留**运行期 pre 臂**用途。
+- **家族索引**：#116（条目级 sha 等价门——本条为其**基线来源前提**）、#53（region 对拍工具的结构断言）、#6/#10（内容指纹判新旧——同一「别信表象、要信内容」族）、workflow-patterns #138（等价门分档：纯移动 vs 语义统一）。
+
+---
+
+### 发现 #61 简记: javap 方法级对拍的三个陷阱——lambda 名按序号命名不可按名对拍 / 按行 zip 对拍在指令数变化处级联误报 / 常量池序号与 `ldc`↔`ldc_w` 宽度必须归一化（260912-01）
+
+- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 字节码对拍方法（**f5-bugs「javap 不可信点」的姊妹条**）。
+- **来源定位**：`record-260912-01.md` **§4.7.6**（一手锚：初版伪差异计数 + 源码逐字对照 + judge 三重判定）+ §4.6（`:171-193` 各条 `javap -c -p`「输出完全相同」判定、`:186-192` 方法级对拍与 `lambda$static$0` 诚实声明）；台账 = `errors-260912-01.md` **E3**；证据 = `evidence/src-pre-1.20.1-CppBridge.java`、`evidence/tool-javap_method_diff.py`。
+- **现象（三陷阱）**：① **`lambda$static$N` 按序号命名** ⇒ pre/post 的同名 lambda **可能不是同一个物**；本轮 `lambda$static$0` 因此被明确判为「**不构成证据**」（改名比对无意义）。
+  ② **按行 zip 对拍**：两版 javap 输出按行号 zip 比对时，**任一处指令数变化**会把其后所有行的对齐整体错位 ⇒ 「differing lines」**级联放大**、把一处真差异报成成百上千行（record §4.7.6 已补一手锚：初版 `stateById` 6 行 / `lambda$static$0` 46 行均为伪差异）。
+  ③ **常量池序号 / `ldc`↔`ldc_w` 宽度 / 字节偏移**在两侧天然不同 ⇒ 不归一化时**序号伪差淹没真差异**；归一化后 `stateById` 仍报 6 行残差，用**源码逐字对照**（pre `:629-638` ≡ post `:725-734`）确认为**序号伪差**。
+- **根因（机制）**：javap 输出是**编译期产物的文本投影**，其中含三类**非语义自由度**——名称分配（lambda 序号）、常量池布局（序号、`ldc` 宽度）、偏移（指令地址）；对拍工具若把这些当成内容，就测的是「编译细节」不是「语义」。
+- **判据（可复用）**：① **按方法名集合先对齐**（`same/changed/added` 三分类），再在单方法内比对——**不要按行 zip 全体输出**；② 单方法内比对 MUST 先**归一化偏移 / 常量池序号 / `ldc` 宽度**，归一后残差 MUST 用**源码逐字对照**定性（是序号伪差还是真差异）；③ **同名 lambda 不可按名对拍**——要定位身份须查源码或调用点；④ 报告 MUST 区分「指令级差异」与「调试属性差异」：`javap -c -p`（不含 `LineNumberTable`）输出**完全相同** ⇒ 仅调试属性（本案 4 条即据此定性）；⑤ 报告差异行数时 MUST 声明是否归一化、是否为 zip 对拍——否则「697 行差异」类数字不可比；⑥ **关键结论 MUST 走多重交叉判定**（`javap -c -p -constants` 文本逐字 + `javap -v -p` 属性分类 + **回源码逐字对照**）——比任何单一计数都可靠（judge 复算即此法，确认 4/4 条「仅调试属性」）。
+- **家族索引**：f5-bugs（javap/反编译不可信点——本条为**对拍方法**形态）、workflow-patterns #138（V1b「仅调试属性」声明粒度）、#137（引用外部锚须自核）、compiler-idioms #25（`LineNumberTable` 使注释也改字节）、build-tooling #58（手写 reader 单点笔误造成结构级失真——同属「工具读法决定结论」）。

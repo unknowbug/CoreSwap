@@ -1287,3 +1287,77 @@ unctional-errors.md F1-F3）：
 
 ### 遗留 / 未覆盖
 - **遗留 / 未覆盖**：R9-b 并发可见性专项未做；`plan §10.3`（消费者缓存前置）已收口——**原地换容器** ⇒ 缓存 **section 实例**的消费者安全，缓存**容器**的消费者会读到**孤儿容器**（残留风险：modpack/未来版本若新增此类消费者，本实现会静默失效）；**编码非规范位宽（judge S5，登记不修）**：`BulkWb.java:243` 写**请求位宽**，vanilla `Data.writePacket:384` 写的是 `storage.getElementBits()` ⇒ ARRAY 支写 1..4（规范恒 4）、ID_LIST 支写 9/10（规范恒 15）；**解码等价、今天无缺陷**，留待 1.21.6 移植随适配核修正；ID_LIST 仅合成覆盖（生产不可达）；`MAX_ID=4096` 沿用老路径同款约束；**sync 形态未跑**；端到端 wall 不主张；**Tier 3 弱信号未闭合**（bulk 臂自身离散度略高，n=3 未达显著）；共享 Java 适配核抽取在 C 完成后另立（本块只落 1.20.1 一份）。
+
+## 2026-09-11 A 线：Java 侧写回优化池（A1a 跳空气 / A1b 诊断门控）+ Rust 共享层线程 clamp（A1d）+ nether/end 全维行为门（A2）— candidate（judge PASS-with-conditions；C1-C12 + I1-I4 已应用 / confirmed 留用户）
+
+> 载体与依据：`.investigations/a1-opt-pool-260911-05/record-260911-05.md`（A1a/A1b/A1c/A1d + 行为门 4140/4140 + §9.7 降级声明）+ `a2-dim-gate-260911-05.md`（nether/end 各 4761/4761）+ `review-260911-05.md`（judge 原文 + §7 处置表）；`.artifacts/index.yaml` 四条（`swe:a1-opt-pool-260911-05:{plan,record,a2-dim-gate,judge-review}`）。提交 A1a+A1b `b2b2f26`（**同提交**）/ A1d `b53b23f` / A2 `8d8075a` / judge 修正 `e8decef` / docs `6b90998`。
+> ⚠️ **与 C 线小节的路径关系**：C 线（本篇「2026-09-11 C 线」小节）把默认写回改走 bulk section 路径；**A1a/A1b 所在的旧逐块路径保留不删**（回退 `-Dcoreswap.bulkwb=0`）⇒ 本节结论对该回退路径**仍然有效**，不得读作「已消失 / 已被 C 线取代」。
+
+### A1a 写回跳空气（`CppBridge.writeChunk`，回退 `-Dcoreswap.skipair=0`）
+- **形态**：`writeChunk` 遇 raw id 0（= `minecraft:air`，`data/blocks.json` 0）不再逐格 `setBlockState`；开关静态 final ⇒ 常量折叠，生产路径实际新增每格一次 `id==0` 判断（judge I4）。
+- **判据（预登记）**：跳过空气写 ≡ 逐格写 ⟺ 被跳格当前恰为 `Blocks.AIR`；谓词取 **`!isOf(Blocks.AIR)`**（`isAir()` 会漏计 `cave_air` 730 / `void_air` 729，而跳过的写是「写 air 默认态」）。
+- **vanilla 依据**：`ChunkSection.setBlockState` 只随 `isAir` 变化增减 `nonEmptyBlockCount`；`PalettedContainer.swap` 同值写回同一 palette index ⇒ 对空气格写 air 为语义 no-op（judge 补引；机制指纹 → algorithm-fingerprints #25）。
+- **等价性（Full，噪声无关；§9.7 三要素）**：
+  - **载体**：1.20.1 + Chunky radius 500（Processed 4225 chunks/臂，中心 `-48,-11`，seed `417950215108767439`），`[WB-CHECK]` 全格计数。
+  - **覆盖面**：三维全格计数，非抽样——overworld 276,171,456 / nether 194,630,604 / end 154,752,709 空气格被跳过，`stale_nonair` **三维均 0**；覆盖面分母（经接管 chunk 数）见 A2 段（overworld 4140 / nether·end 4761）。⚠️ 该项为**单 run 单维、无负对照、与计时同 run**（judge 核对表）。
+  - **可比性**：a1 双臂同 dll `838e89794a54e19d`、同 seed/区域中心/工具修订、背靠背串行；三归档臂（exec-def/cap0-fresh/exec-16）为 **A1d 前构建** `dd3b645f2c79d2cb`，跨 dll 逐 chunk 指纹全等（4140/4140）⇒ 兼作 **A1d 输出中立性独立证据**。
+  - **结果**：等价性成立（三维实证）；行为门跨臂 + 跨 dll + 跨 session 归档臂指纹 `hash_diff=0`。
+- **收益：Degraded（不主张定量）**——cpuSec 493→476（**−3.4%**），单对跨 run 且**落在 ±10% 机器噪声带内 ⇒ 只作趋势**；两臂均开 `WBCHECK`（2.76 亿次 `getBlockState`）⇒ **含诊断成本的收益下界**，引用定量数字须关 WBCHECK 重跑。结论性质 = 「等价性成立 + 无回归」。
+
+### A1b 诊断扫描门控（`CppBridge.fillChunk`）
+- **形态**：`nzBuf` 全 buffer 扫描（98,304 读/chunk）+ nether/end 16 点读回**整块移入 `MIXLOG`**；生产侧「Rust 输出全 0」异常信号改以 **O(1) 短路探测**保留（`buf[0]==0` 才扫、遇首个非零即停）。
+- **判据**：纯诊断路径 ⇒ 无行为变化（证据 = 代码 diff + 各臂指纹全等）。
+- **取舍声明**：改前 `buf-all-air`/`buf-sparse` 为**无条件 println**（原「只门控 println」理由句错误、类 javadoc 旧措辞作废）；`buf-sparse` 分级诊断随全量扫描移除，需要时用 `-Pmixlog=1` 的 `nz` 字段。
+
+### A1d `adaptive_threads` count=1 clamp（Rust 共享层，清理项）
+- **形态**：`worldgen-core/src/api.rs` 的 `if count > 1 { min } else { max }` → 一律 `threads.min(count).max(1)`；批量路径（count>1）语义逐字未变。
+- **机制自证（运行期）**：`[WG-THREADS] count=1 threads_param=-1 nthreads=1`（新 dll 两条日志行）。
+- **与上文 2026-08-16 clamp 小节的关系（本条为该待办在 Rust 共享层的收口）**：8-16 发现的历史前提是**常驻池**（clamp 把池 worker 永久压到 1 = 结构性串行），现实现是 **per-call `std::thread::scope`**（唯一调用点 `api.rs:143`、无池，调用结束即回收）⇒ 前提消失、clamp 安全（judge 独立核对）。
+- **归口理由**：本篇已承载 clamp 课题的发现与待办（上文「[B]/实机 M=1 结构性串行（threads clamp 发现，candidate）」），且 `03-density-functions.md` 无 threading/池宽章节（`线程池|adaptive_threads|池宽` 零命中）⇒ **不归 03 篇**。
+- **无性能归因**（双臂都含 clamp，未做隔离 A/B）；**改前 nthreads=10 为公式推导非实测**（旧 dll 无自证行）。
+
+### A2 nether/end 全维行为门（`CppBridge.fillChunkEnd` 补指纹载体）
+- **开工缺口（judge 核实属实）**：end 路径原本**没有 `[WG-CONTENT]` 指纹行**——首轮 end 臂 `intercepted=4761` 而 `contentLines=0`；判据意义 = **「接管生效」与「行为门可判」是两件事**，门禁类课题 MUST 先核「该维是否有载体行」再谈门值。修复 = MIXLOG 块内补指纹行。
+- **判据（三条可复用）**：① 该维有载体行（否则先补载体）② 跨形态 diff=0（证 exec/异步化不改内容）③ 跨 run diff=0（证该维 Rust 输出确定性）。
+- **结果（Full，噪声无关；§9.7 三要素）**：
+  - **载体 / 覆盖面**：1.20.1 + Chunky radius 500（Processed 4225 chunks/臂，中心 `-48,-11`，seed `417950215108767439`），**经接管的全部 chunk 均进门、非抽样**——overworld 4140、nether 4761、end 4761；**分母 = 接管调用数 ≠ Chunky Processed**（门判据不依赖分母）。
+  - **可比性**：9 条维度臂 dll 全为 `838e89794a54e19d`、同 seed/区域中心/工具修订；nether 臂与 end 臂**不同 Java 构建态**（end 在补指纹行后重跑）已声明——`git show 8d8075a --stat` = 2 files/57 insertions，Java 仅 +4 行且全在 `fillChunkEnd`，不影响 nether/overworld 路径。
+  - **结果**：三维跨形态 + 跨 run 逐 chunk 指纹差 **0**（`nz_sum` = 130,807,104 / 117,386,292 / 1,255,739）；正对照 overworld vs nether `hash_diff=4140/4140`（门有检测力）；比对脚本已加**最小载体阈值断言**（空载体拒绝出结论——曾复现「两边都空 ⇒ 报 diff=0」假通过）。
+  - **打印位置**：overworld 的 `[WG-CONTENT]` 在 `writeChunk` **之前**、nether/end 在其**之后**；三者都对**只读 `buf`** 计算 ⇒ hash 语义一致。
+- **附带读数（非门判据，Degraded）**：nether async 25s/24s vs sync 69s（~2.8×，cpuSec 212/202 vs 149）；end async 11s/8s vs sync 20s（~2.0-2.5×，cpuSec 105/84 vs 69）⇒ 与 260910-06（1.21.6 同款异步化）方向一致；跨 run 摆动 **±27%** ⇒ 不宣布定量收益。
+- **❌ 排除清单（一行，防重走弯路）**：① 「nether run 级非确定来自 Rust 填充层」以外的下游归因（Java carver/feature/装饰层、写回路径、存档序列化）= **未测外推**，不得当结论引用（judge C8）；② 早前「85 个 Chunky 已处理但无接管行」算式**不成立**——期望集不是 Processed 集（judge C12）；③ A1c「6 张高度图全量重扫」= 前提被 vanilla 一手源证伪（`Heightmap.java:37-71` 本就单遍）⇒ 已评估·不实施（用户裁决）。
+
+### 遗留 / 未覆盖（A 线）
+- **写回路径未覆盖（降级）**：指纹取在 `writeChunk` 前/后但**只哈希只读 `buf`**，不覆盖写回结果；**写回后内容指纹（post-write hash）三维均未做**（260910-06 open ⑤ 延续；→ 260912-01 的 `[WG-CONTENT-WB]` 层部分回补该缺口）。
+- overworld 相对 nether/end **少 621 条载体**成因未查（原「85 缺口」已废，降为 open 假设）；nether run 级非确定**成因域未测**（只排除 Rust 填充层）。
+- A1d 改前 `nthreads=10` 为公式推导非实测；`dd3b645f` 是否确为 A1d 前构建按时间线推断（未反汇编）。
+- 1.0.29 **不含 A1 改动**（尚未随任何 release 出货）；1.21.6 侧同构问题属 Phase B 范围。
+
+## 2026-09-12 D3 共享 Java 适配核（Wave 2 语义统一，commit `997d40f`）— draft（V1b PASS-with-declarations；1.20.1 V2+V3 双 PASS；**1.21.6 默认臂 PASS + 强制 bulk 臂发现确认缺陷（阻断 D-4(i)）**；judge = PASS-with-conditions（C1–C9 已响应）/ confirmed 留用户）
+
+> 载体与依据：`.investigations/shared-java-core-260912-01/record-260912-01.md`（§2 pre 冻结 + 构建确定性 / §2.4 V0 接线预检 / §4.1 Wave 1 / §4.2 HOOK-2 / §4.6 V1b 判定 + **构建三态表** / §4.7.0-§4.7.8（V2+V3 / dll 血统事故 / 1.20.1 双 PASS / **1.21.6 回填 + 确认缺陷** / dll 归一化 / 证据落盘 / 一手锚补正 / judge 条件响应 / 未闭合项））+ `review-wave2-260912-01.md`（judge，verdict = PASS-with-conditions）+ `errors-260912-01.md`（E1–E5 + 速查表）+ `evidence/`（42 文件 + `MANIFEST.txt`，tracked）+ 已批准计划 `.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md`（§14 追加式补登）；提交 `ce5286b`（Wave 1 纯移动）+ `997d40f`（Wave 2 语义统一）。通用模式 → knowledge/discovered：workflow-patterns #138 / #14 补充案例（260912-01）、build-tooling #59（合并）/ #60 / #61、compiler-idioms #25。
+
+### 形态（共享核抽取）
+- `java-core/src/main/java` = **单一源**；两版 `build.gradle` 各加 `sourceSets { main { java { srcDir '../../../java-core/src/main/java' } } }`（各 +11 行），`git mv` 1.20.1 版入共享、`git rm` 1.21.6 副本（**一个类只有一个家**）。
+- **分版差异收进分版缝类 `WgCompat` ×2**：`BULKWB_ON`/`SKIPAIR_ON` 默认常量（1.20.1 = true / 1.21.6 = **false**）；`WgCompat.flag(prop, def)` 语义 = 设了 property 则「非 0 即真」（`0` → false，其它非空 → true，未设 → 默认）⇒ 1.21.6 可用 `-Dcoreswap.bulkwb=1` 强制开启而**不改码**，翻转 = 改一个常量。
+- 共享超集：`CppBridge`（并入 1.21.6 独有项 + `WgCompat` 引用）、`BulkWb`/`StallWatch`/`ChunkTiming`（超集）/`CoreSwapFixHelper`；1.21.6 补 `mixin/ChunkSectionAccessor` + `coreswap.mixins.json` 25 条 + refmap 重建（S-1）。
+- 回退/门控形态不变：`-Dcoreswap.bulkwb=0`（旧逐块路径保留不删）、`-Dcoreswap.skipair=0`、`-Dcoreswap.chunktime`（默认关）、`-Dcoreswap.bulkwbtest` 等仍有效；1.21.6 `BULKWB_ON=false` ⇒ 该版**默认不调用** bulk 写回。
+
+### 判据（分档，可复用；→ workflow-patterns #138）
+- **V1-strict**（**纯移动子集**）：条目级 sha 全等（最好整文件 sha 不变）——Wave 1 实测两版 jar sha **逐字节不变**（1081/1081、1798/1798）。**反向蕴含**：字节全等 ⇒ 同一执行体 ⇒ 行为必然相同，**V2/V3 免跑**（防后波次偷懒/重复劳动）。
+- **V1b**（**语义统一波**）：① **未变更侧**条目 MUST 逐字节不变（两侧都变者无字节锚，MUST 显式声明理由）；② 变更条目 MUST **逐条声明**（文件 + 变更性质 + 依据；`jar_manifest_diff.py --expect` 只做归类，**归类 ≠ 声明**）；③ **任何 class 字节发生变化的版本 MUST 补跑 V2 + V3**（「jar 不同」不再蕴含「行为相同」）；④ **判定基线 MUST 钉死构建态**（本波三态：post1 含头注释 → **post2 = V1b 判定基线** → post3 权威 dll；用错态会把「头注释行号位移」或「dll 归一」混进 Java 面差异 —— judge C6）；⑤ **运行期门 MUST 覆盖被测路径与维度**（本波 V3 只覆盖 bulk 写回路径 = 1.20.1 生产路径 + 仅 overworld ⇒ `writeChunkPerBlock` 与 nether/end **无运行期证据** —— judge C3/C7）；⑥ **「默认关」的共享路径 MUST 至少跑一次冒烟**——1.21.6 原本不存在 bulk 路径、共享化后变成可达，强制臂一开即崩（130 chunk `EntryMissingException`、根因未定位、阻断 D-4(i)）⇒ 「默认关」不等于「该路径不存在」（`errors-260912-01.md` E5）。
+- **V2/V3 运行期门（两层指纹齐跑）**：`[WG-CONTENT]` = **Rust buf 层**（引擎输出，对 Java 侧改动不敏感）、`[WG-CONTENT-WB]` = **Java 写回读回层**（覆盖写回代码变更）；判据 = 两族指纹 **multiset + sorted-sequence 双判全等**（多重集证集合、序列另证顺序）。**只跑 buf 层 = 假安全感**（→ workflow-patterns #14 补充案例 260912-01）。
+
+### 结论（1.20.1 出货线：行为不变）
+- **V2 + V3 双 PASS**（**三臂**同配方、唯一变量 = Java 源码状态、同一 dll `dd3b645f`；pre 臂跑 **2 次**）：441 chunks；异常行实测 **post 4（全 WMI 良性）/ pre 12（8 WMI 良性 + 4 条 `testcontent` 无关噪声）**（原「0 / 0」写法已作废 —— 未测量即断言，E4）；两层指纹各 **607/607**（三臂两两比对）且 multiset + sorted-sequence 全等（`only-pre=0 / only-post=0`）⇒ ① 引擎层输出未变 ② **Java 写回结果逐 chunk 全等**。⚠️ **覆盖面**：三臂均未设 `-Dcoreswap.bulkwb` ⇒ 走 bulk（= **1.20.1 生产路径**）；**`writeChunkPerBlock`（逐格/回退路径）从未执行** ⇒ 其「未变」仅有指令级证据、无运行期证据；**nether/end 零覆盖**（被改的 `writeChunk` 共享于三维度）。**§9.7 口径**：仅 overworld / 仅 bulk 路径；与 C 线 region 层噪声（0.024%）**不同层、不可混用**，本判据为逐 chunk 精确等，且同实现跨 run 在**本层无噪声**（pre-r1 vs pre-r2 全等）。
+- **class 条目变化 100% 逐条声明**：1.20.1 = 6 差异 + 1 新增（4 条经 `javap -c -p` 证明「指令完全相同、仅调试属性」`LineNumberTable`；`BulkWb.class` = 仅 `<clinit>` 常量求值序列改走 `WgCompat`，逐值等价；`ChunkTiming` = 已批准超集；`CppBridge` = 超集 + 分派/计时钩子；`StallWatch` = **字节全等**）；1.21.6 = 5 差异 + 5 新增（mixin json/refmap 各 +1 条、2 条仅调试属性、`CppBridge` 超集合并、5 条新增）。
+- **1.21.6 侧**（默认 `BULKWB_ON=false`）：**默认臂 PASS** —— boot 42.1s；bridge init（seed / worldgenDir / `stageMask=3`）全对；`[WG-CONTENT]` **625** + `[WG-CONTENT-WB]` **625**（**该版首次带上读回门**）、`[WG-BULKWB]` 0（符合预期）；非 WMI 真实异常 **0**；jar 内 `coreswap.mixins.json` 25 条含 `ChunkSectionAccessor`、启动无 `Mixin apply failed` / `Cannot find target method`。**但**：① **写回替换的内容等价性仍无证据**（该版 pre 无 `BulkWb` / 无读回门 ⇒ 无同层 pre 对照）；② **强制 `-Dcoreswap.bulkwb=1` 臂崩解 = 确认缺陷**（130 chunk 全抛 `EntryMissingException: Missing Palette entry for index 2…8`，栈 `ArrayPalette.get` ← `PalettedContainer.get` ← `ChunkSection.getBlockState`；`[WG-CONTENT-WB]` **0**、流水线未完成；**根因未定位**）⇒ 不阻断 Wave 2（默认关）、**阻断 D-4(i) 翻转**（须先定位 palette 未填充注入点，再跑「默认 / `bulkwb=0` / `bulkwb=1`」三臂逐 chunk diff=0，且覆盖 nether/end）。
+- **可复用过程判据（→ KB）**：① 跨臂/跨 run 对照前 **MUST 逐臂读「执行体自证行」**（`[CppBridge] dll= sha256=`）核对，**不得只看 target 文件 sha**（本轮 target 被「A/B 收尾 restore」与「实验暂存」两次改写 ⇒ 首轮对照执行了不同引擎、判定作废；build-tooling #59 + `errors-260912-01.md` E1）；② **fresh `git worktree` 不能当「条目级」基线**（检出文本被 `core.autocrlf` 物化为 CRLF ⇒ `worldgen-data/**` **1024 条**伪差异、**class 条目 0**；条目级基线 MUST 同工作树，跨树比对只可用于类文件/运行期判据；build-tooling #60 + `errors` E2 + 一手锚 record **§4.7.6**）；③ **需要字节锚的逐字复制文件不得加头注释**（`LineNumberTable` 随源码行号位移 ⇒ 条目 sha 变、指令不变；compiler-idioms #25）；④ **注释修补保行数即保字节**（`ChunkTiming.java` javadoc 逐行替换 ⇒ `post4` ≡ `post3`、差异 0；compiler-idioms #25 的正向对偶）；⑤ **门数字 MUST 复算 + 附可复现命令 + 原始输出落盘 + 定义口径**（本波异常行曾写 0/0、实测 4/12；`errors` E4）；⑥ **javap 差异计数 ≠ 语义差异**（三陷阱：lambda 序号 / zip 级联 / 常量池未归一；`errors` E3 + build-tooling #61）。
+
+### 遗留 / 未覆盖（Wave 2）
+- **1.21.6 强制 bulk 缺陷（确认缺陷）**：`EntryMissingException: Missing Palette entry for index 2…8` 根因未定位 ⇒ **阻断 D-4(i)**；默认臂干净 ⇒ **不阻断 Wave 2**（`errors-260912-01.md` E5 + record §4.7.8）。
+- **内容等价性缺口**：① 1.21.6 写回替换无证据（该版 pre 无对照载体）；② `writeChunkPerBlock` 无运行期证据（1.20.1 回退路径；低成本闭合 = 跑 `-Dcoreswap.bulkwb=0` 臂与生产臂对比 `[WG-CONTENT-WB]`，未做）；③ **nether/end 零覆盖**（本波门仅 overworld，而被改的 `writeChunk` 共享三维度）。
+- **judge 已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 已回填/ 用户未 confirmed**；1.20.1 class 条目**未做全量 javap 逐条对拍**（4 条 `javap -c -p` 全等证明 + 一次方法级对拍；judge 抽样复核 5/5 成立）；`stateById` 归一后 6 行残差已用**源码逐字对照**排除（序号伪差）。
+- 1.20.1 生产路径新增 **4 次 `System.nanoTime()`/chunk**（≈80ns/chunk 为算术估计、未实测；保留 1.21.6 逐字形态、不做微优化）；1.21.6 S-6/S-7 诊断面差异已按批准生效。
+- **证据落盘（judge C5）**：判据已从 `.tmp/` 复制到 tracked **`evidence/`**（42 文件 + `MANIFEST.txt`：清单 / 差异输出 / 门控原样行 / 完整日志 / 复现工具；jar 本体与中间 dump 不入库、只入 sha）⇒ 判据可从仓库复现（此前「只在 `.tmp`」的状态已终结）。
+- **再发布提醒**：`build/libs` 现产物与已发布 1.0.29 的 jar sha `b057fda2…` **不同**（发布 jar 已被本地构建就地覆盖，§2.6「构建产物目录不是存档目录」）⇒ 再发布 MUST 重跑全量回归 + 三元组重算。

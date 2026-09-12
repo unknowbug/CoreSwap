@@ -4,7 +4,7 @@
 > **本版定位**：**覆盖** A 线旧稿 `.investigations/a1-opt-pool-260911-05/knowledge-draft-260911-05-docs.md`（其正文已按 record §4.5 的提交号纠正重录，见 §1.4/§2.4）**并合入**本轮 Wave 2（workspace 块 260912-01）新增。旧稿应用后即可废弃；**勿两份都应用**（同一 10 块 / 07 小节会重复）。
 > **源材料**：`record-260912-01.md` **§4.6 / §4.7（含 §4.7.2-§4.7.8：三态表 / judge 复算后的门数字 / 1.21.6 回填 + 确认缺陷 / 证据落盘 / 一手锚补正 / judge 条件响应 / 未闭合项）**（Wave 2 唯一素材主源，本稿只读这两节 + §4.1/§4.2/§2.1-§2.6 作背景）+ 本波 judge `review-wave2-260912-01.md`（PASS-with-conditions / C1–C9）+ 错误台账 `errors-260912-01.md`（E1–E5 + 速查表）+ 证据目录 `evidence/`（42 文件 + `MANIFEST.txt`）+ 计划 `.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md`（§14 补登）+ A 线三件（`record-260911-05.md` / `a2-dim-gate-260911-05.md` / `review-260911-05.md`，经旧稿转录）。两项过程实测的一手锚（worktree 换行伪差异 / javap zip 对拍级联误报）**已由 record §4.7.6 补齐**（`evidence/prewt-pseudodiff.txt`；`evidence/src-pre-1.20.1-CppBridge.java` 与现行源码逐字对照），另见 `errors-260912-01.md` E2/E3。
 > **本版修订记录**：2026-09-12 依 judge `review-wave2-260912-01.md` 的 **C1–C9** 与回填后的 record 正文**原地修订**（三态 jar sha / 异常行 4-12 / V3 覆盖面边界 / 1.21.6 回填与确认缺陷 / 证据落盘 / 一手锚改引 / judge 状态）；结构与编号未变，无任何条目升格。
-> **状态纪律**：A 线部分 = **candidate**（judge PASS-with-conditions，条件已应用；confirmed 留人类）；**Wave 2 部分 = draft**（judge 已做 = PASS-with-conditions C1–C9 已响应、record §6 仍「待回填」、用户未 confirmed、1.21.6 强制 bulk 缺陷根因未定位 ⇒ 不得写成 candidate/confirmed）。
+> **状态纪律**：A 线部分 = **candidate**（judge PASS-with-conditions，条件已应用；confirmed 留人类）；**Wave 2 部分 = draft**（judge 已做 = PASS-with-conditions C1–C9 已响应、record §6 已回填、用户未 confirmed、1.21.6 强制 bulk 缺陷根因未定位 ⇒ 不得写成 candidate/confirmed）。
 > **锚点实测（本稿实读，2026-09-12）**：`versions/1.20.1/docs/10-timewise-archive.md` **total = 3154 行**（末行 3154 = 260911-06 块的 open 行）；`versions/1.20.1/docs/07-block-pipeline.md` **total = 1289 行**（末行 1289 = C 线小节「遗留 / 未覆盖」长行）⇒ **旧稿锚点仍有效（未被后续改动推走）**。⚠️ **行号会漂移，应用时一律以「锚点文本」grep 定位为准**。
 
 ---
@@ -56,7 +56,7 @@
 
 ### 1.3 可直接粘贴正文 A-2（Wave 2 260912-01；整段复制，接在 A-1 之后）
 
-## 260912-01（D3 共享 Java 适配核抽取：Wave 1 纯移动 + Wave 2 语义统一；实际 2026-09-12 14:0x–，日期锚 Get-Date）🔍 draft（Wave 1 V1-strict PASS；Wave 2 V1b = PASS-with-declarations（判定基线 = `post2`，三态表见 §4.6）；**V2/V3：1.20.1 双 PASS + 1.21.6 默认臂 PASS（§4.7.3 已回填）**；judge = **PASS-with-conditions**（`review-wave2-260912-01.md`；C1–C9 已全部响应/修正，见 record §4.7.7）/ record §6 未回填 / 用户未 confirmed；**新发现确认缺陷：1.21.6 强制 `-Dcoreswap.bulkwb=1` 臂崩解（130 chunk `EntryMissingException: Missing Palette entry for index 2…8`，根因未定位）⇒ 不阻断 Wave 2（默认关）、但阻断 D-4(i)**）
+## 260912-01（D3 共享 Java 适配核抽取：Wave 1 纯移动 + Wave 2 语义统一；实际 2026-09-12 14:0x–，日期锚 Get-Date）🔍 draft（Wave 1 V1-strict PASS；Wave 2 V1b = PASS-with-declarations（判定基线 = `post2`，三态表见 §4.6）；**V2/V3：1.20.1 双 PASS + 1.21.6 默认臂 PASS（§4.7.3 已回填）**；judge = **PASS-with-conditions**（`review-wave2-260912-01.md`；C1–C9 已全部响应/修正，见 record §4.7.7）/ record §6 已回填 / 用户未 confirmed；**新发现确认缺陷：1.21.6 强制 `-Dcoreswap.bulkwb=1` 臂崩解（130 chunk `EntryMissingException: Missing Palette entry for index 2…8`，根因未定位）⇒ 不阻断 Wave 2（默认关）、但阻断 D-4(i)**）
 
 > 过程产物 `.investigations/shared-java-core-260912-01/`（`record-260912-01.md`：§1 开工前交接核验 / §2 pre 冻结 + 构建确定性控制 + V0 接线预检 / §4.1 Wave 1 / §4.2 HOOK-2 用户裁决 / §4.3 scout-judge 条件响应 / §4.6 V1b 判定 + **构建三态表** / §4.7.0-§4.7.8（V2+V3 / **dll 血统事故** / 1.20.1 双 PASS / **1.21.6 回填 + 确认缺陷** / dll 归一化 / **证据落盘** / **两个过程发现的一手锚** / judge 条件响应 / 未闭合项）/ `scout-map.md` / `review-scout-260912-01.md`（scout-judge PASS-with-conditions：抽核 21 锚点 / 14 文件，✘0 / ⚠1，闭包 4 路证伪未遂）/ **`review-wave2-260912-01.md`**（本波 judge，verdict = PASS-with-conditions，条件 C1–C9 见 record §4.7.7）/ **`errors-260912-01.md`**（错误台账，五段式 E1 dll 血统 / E2 worktree CRLF / E3 javap 三陷阱 / E4 门数字未复算 / E5 1.21.6 强制 bulk 崩解 + 速查表）/ **`evidence/`**（**42 文件 + `MANIFEST.txt`**，含清单 / 差异输出 / 门控原样行 / 完整日志 / 复现工具；tracked、未被 gitignore））+ 已批准计划 `.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md`（§14 追加式补登，原正文不改）；工具 `.investigations/shared-java-core-260912-01/evidence/{tool-jar_manifest.py,tool-jar_manifest_diff.py,tool-fp_compare.py,tool-javap_method_diff.py}`；提交 `ce5286b`（Wave 1 纯移动）/ `997d40f`（Wave 2 语义统一）/ 后续 record+evidence+drafts 落盘 commit（judge C9）。通用模式 → knowledge/discovered：workflow-patterns **#138** + **#14 补充案例（260912-01）**、build-tooling **#59（与 A 线首例合并）/ #60 / #61**、compiler-idioms **#25**（subagent 草稿 → 主会话应用）。
 
@@ -90,7 +90,7 @@
 
 1. **提交号已纠正**（A-1/A-2 均已按 `record-260912-01.md` §4.5 写入）：A1a+A1b 同在 `b2b2f26`；`6b90998` = docs 提交（plan + record）；`e8decef` = judge C1-C12。旧稿 §5-1 的「两号零命中 ⇒ 存疑」**作废**，粘贴时勿保留该存疑句。
 2. **插入顺序**：A-1 → A-2（同一 EOF，两次追加；若先插 A-2 再插 A-1，A-2 的「上文 A 线」引用会错序）。
-3. **状态不得升格**：A-1 = candidate、A-2 = **draft**（judge 已做 = PASS-with-conditions / record §6 仍待回填 / 用户未 confirmed / 1.21.6 强制 bulk 缺陷根因未定位）。A-2 的标题与正文均须保留 `🔍 draft` 字样。
+3. **状态不得升格**：A-1 = candidate、A-2 = **draft**（judge 已做 = PASS-with-conditions / record §6 已回填 / 用户未 confirmed / 1.21.6 强制 bulk 缺陷根因未定位）。A-2 的标题与正文均须保留 `🔍 draft` 字样。
 4. **A-1 的「实际 2026-09-11 19:2x–20:5x」** 为主会话给定（材料内仅见「18:02 运行 / 19:36 提交」）——如需精确区间，标「（材料未声明，应用时需补）」。
 5. 粘贴后 `git add` 前扫一遍：主题篇（07）只放结论小节，**不得**把 §4.6 的逐条声明表 / §4.7 的 dll 事故过程搬进 07（过程留 10 + `.investigations/`）；**Wave 2 的 1.21.6 确认缺陷（E5）与门数字纠错（E4）只在 07/10 各留结论 + 指向 `errors-260912-01.md`，不复制五段式全文**。
 
@@ -177,7 +177,7 @@
 ### 遗留 / 未覆盖（Wave 2）
 - **1.21.6 强制 bulk 缺陷（确认缺陷）**：`EntryMissingException: Missing Palette entry for index 2…8` 根因未定位 ⇒ **阻断 D-4(i)**；默认臂干净 ⇒ **不阻断 Wave 2**（`errors-260912-01.md` E5 + record §4.7.8）。
 - **内容等价性缺口**：① 1.21.6 写回替换无证据（该版 pre 无对照载体）；② `writeChunkPerBlock` 无运行期证据（1.20.1 回退路径；低成本闭合 = 跑 `-Dcoreswap.bulkwb=0` 臂与生产臂对比 `[WG-CONTENT-WB]`，未做）；③ **nether/end 零覆盖**（本波门仅 overworld，而被改的 `writeChunk` 共享三维度）。
-- **judge 已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 仍「待回填」/ 用户未 confirmed**；1.20.1 class 条目**未做全量 javap 逐条对拍**（4 条 `javap -c -p` 全等证明 + 一次方法级对拍；judge 抽样复核 5/5 成立）；`stateById` 归一后 6 行残差已用**源码逐字对照**排除（序号伪差）。
+- **judge 已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 已回填/ 用户未 confirmed**；1.20.1 class 条目**未做全量 javap 逐条对拍**（4 条 `javap -c -p` 全等证明 + 一次方法级对拍；judge 抽样复核 5/5 成立）；`stateById` 归一后 6 行残差已用**源码逐字对照**排除（序号伪差）。
 - 1.20.1 生产路径新增 **4 次 `System.nanoTime()`/chunk**（≈80ns/chunk 为算术估计、未实测；保留 1.21.6 逐字形态、不做微优化）；1.21.6 S-6/S-7 诊断面差异已按批准生效。
 - **证据落盘（judge C5）**：判据已从 `.tmp/` 复制到 tracked **`evidence/`**（42 文件 + `MANIFEST.txt`：清单 / 差异输出 / 门控原样行 / 完整日志 / 复现工具；jar 本体与中间 dump 不入库、只入 sha）⇒ 判据可从仓库复现（此前「只在 `.tmp`」的状态已终结）。
 - **再发布提醒**：`build/libs` 现产物与已发布 1.0.29 的 jar sha `b057fda2…` **不同**（发布 jar 已被本地构建就地覆盖，§2.6「构建产物目录不是存档目录」）⇒ 再发布 MUST 重跑全量回归 + 三元组重算。
@@ -238,7 +238,7 @@
 | # | 存疑项 | 性质 | 本稿处置 |
 |---|---|---|---|
 | D1 | **§4.7.3 1.21.6 臂** | **已回填**：默认臂 PASS（`[WG-CONTENT]`/`[WG-CONTENT-WB]` 625/625）+ 强制 bulk 臂**确认缺陷**（130 chunk，根因未定位） | A-2/B-2 已改写（不再写「待回填」）；**缺陷根因不得写任何候选为结论**；「1.21.6 内容等价」仍标**无证据** |
-| D2 | **Wave 2 judge / confirmed** | judge **已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 仍「待回填」、用户未 confirmed** | A-2/B-2 状态一律 **draft**（不升格；judge 意见不改 status） |
+| D2 | **Wave 2 judge / confirmed** | judge **已做**（`review-wave2-260912-01.md` = PASS-with-conditions，C1–C9 已全部响应/修正，record §4.7.7）；**record §6 已回填、用户未 confirmed** | A-2/B-2 状态一律 **draft**（不升格；judge 意见不改 status） |
 | D3 | Wave 2 数字（条目数 / 方法级计数 / 异常计数） | 本稿只读 record §4.6/§4.7 转录，**未复算 jar**；**异常计数已由 judge 复算纠正**（原 0/0 → 实测 4/12，E4） | 条目内均带 `record §4.6/§4.7` 锚；条目数已与 `evidence/v1b-*.txt` 头对齐（1.20.1 1082/58、1.21.6 1803/59） |
 | D4 | 1.20.1 class 条目**未做全量 javap 逐条对拍** | record 只记 4 条 `javap -c -p` 全等 + 一次方法级对拍（judge 抽样复核 **5/5 成立**） | A-2/B-2 已如实登记为 open ⑨；不宣称全量证明 |
 | D5 | 4 次 `nanoTime/chunk` ≈ 80ns | **算术估计、非实测** | 已标「算术估计、未实测」 |
@@ -261,7 +261,7 @@
 
 1. **主题篇未堆时间线**：B-1/B-2 只含「形态 / 判据 / §9.7 三要素 / ❌ 排除清单 / 遗留」；V1b 逐条声明表、dll 事故过程、judge 处置明细**全部留在 A-2 与 `.investigations/`**。✅
 2. **结论与过程分流**：结论（共享核形态、分档判据、1.20.1 行为不变）→ 07；过程（Wave 顺序、事故、CRLF/javap 坑、取代链）→ 10 时间线 + `.investigations/`。✅
-3. **状态未升格**：A-1/B-1 = candidate；**A-2/B-2 = draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，但 record §6 仍「待回填」、用户未 confirmed），标题与正文均带 `draft` 字样；无任何 AI 授予 confirmed 的措辞。✅
+3. **状态未升格**：A-1/B-1 = candidate；**A-2/B-2 = draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，但 record §6 已回填、用户未 confirmed），标题与正文均带 `draft` 字样；无任何 AI 授予 confirmed 的措辞。✅
 4. **数字带锚、无编造**：Wave 2 全部数字出 `record-260912-01.md §4.6/§4.7`（含 judge 复算纠正后的异常计数 **4/12**、三态 jar sha、`post4` ≡ `post3`）；两项曾缺一手锚的实测（CRLF / javap zip）**已由 record §4.7.6 补锚**（`evidence/prewt-pseudodiff.txt` / `evidence/src-pre-1.20.1-CppBridge.java` 逐字对照），本稿已改引、不再标「主会话给定」。✅
 5. **§9.7 三要素**：可直接引用的 = W1/W4/W6/W7/W8/W9；**W4 已带覆盖面边界**（仅 overworld / 仅 bulk 路径、`writeChunkPerBlock` 与 nether/end 零覆盖）；其余缺项已就地标注或标 Degraded。✅
 6. **旧稿一致性**：旧稿的提交号错误、A1b 归属已按 record §4.5 全面纠正（§1.2/§2.2/§2.4）；旧稿锚点（10:3154 / 07:1289 / 07:601）**本轮实读复核仍有效**。✅
@@ -270,4 +270,4 @@
 
 ---
 
-> **本文件自身状态**：draft（草稿，未应用；2026-09-12 按 judge `review-wave2-260912-01.md` 的 C1–C9 修正后原地修订）。应用后建议状态：A-1/B-1 = candidate（judge 建议保持，confirmed 留人类）；A-2/B-2 = **draft**（judge 已做 = PASS-with-conditions；record §6 待回填；1.21.6 强制 bulk 缺陷根因未定位；confirmed 留人类）。
+> **本文件自身状态**：draft（草稿，未应用；2026-09-12 按 judge `review-wave2-260912-01.md` 的 C1–C9 修正后原地修订）。应用后建议状态：A-1/B-1 = candidate（judge 建议保持，confirmed 留人类）；A-2/B-2 = **draft**（judge 已做 = PASS-with-conditions；record §6 已回填；1.21.6 强制 bulk 缺陷根因未定位；confirmed 留人类）。

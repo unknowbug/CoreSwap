@@ -545,3 +545,13 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - **本块处置（登记不修）**：偏差 = ARRAY 支写 1..4、ID_LIST 支写 9/10（`record-260911-05.md` §7 遗留 7）；judge 最小上呈条件不含 S5，且改码会使 6 臂证据全部失效 ⇒ **留待 1.21.6 移植随共享 Java 适配核一并修正**。⚠️ 因该偏差存在，本块「编码四支全绿」的合成自检**不构成规范性证据**（自检 ARRAY 例 distinct=3 恰好覆盖该非规范路径，见 workflow-patterns #110 补充案例 其二）。
 - **交叉引用（不重复展开）**：`bits == 0`（SINGULAR）时 storage = `EmptyPaletteStorage`，**不得构造 `PackedIntegerArray`**（elementBits=0 触发 `Validate 1..32` 抛 IAE，260911-05 首跑 539 次）——见 `发现 #22` 与错误台账 E1，此处不重复。
 - **家族索引**：algorithm-fingerprints #22（**同代码点的解码侧**逐字节契约——本条为**编码侧规范性**）、#23（同 section 的派生计数两套语义）、compiler-idioms #6（raw id vs state id 双域——ID_LIST 支走 state id 域）、compiler-idioms #15（位打包标量域的「部分位判零」——同属「位宽/掩码约定」家族）、workflow-patterns #14 补充案例（门必须与被测变更同层）。
+
+---
+
+## 发现 #25 简记: 对「当前即 `minecraft:air` 默认态」的格子写 air 是语义 no-op——`setBlockState` 计数只在 isAir 变化时增减 + `swap` 同值写回同一 palette index（260911-05）
+
+- **发现时间 / 发现者 / 置信度 / module**：260911-05；主会话（A1a 等价性论证，judge 要求补 vanilla 源引用）；**candidate**（vanilla 机制由 judge 独立核对源码成立；本条为简记，未由本稿复读一手源）；algorithm-fingerprints / MC 状态写入语义（**#23 的邻接面**：同 pair 的「计数语义」vs「写入是否 no-op」）。
+- **来源定位（材料转引 + judge 独立核对）**：`record-260911-05.md` §3 A1a（`:28-30`）转引 `ChunkSection.setBlockState`（1.20.1，`isAir` 变化才增减 `nonEmptyBlockCount`）、`PalettedContainer.swap`（同值写回**同一** palette index）、`Heightmap.java:53`（用 `isOf(Blocks.AIR)`）；judge `review-260911-05.md` §3 A1a①（`:37`）记录其独立核对 `ChunkSection.java:60-93` + `PalettedContainer.java:158-162`；`versions/1.20.1/data/blocks.json` `"minecraft:air": 0`、`cave_air = 730`、`void_air = 729`。
+- **观察（语义）**：对**恰为 `Blocks.AIR`** 的格子再写 `minecraft:air` = 语义 **no-op**（计数不变、palette index 不变、状态不变）⇒ 「跳过写空气」这类优化在「被跳过的格当前即 air 默认态」时严格等价。⚠️ **严格成立范围**：只有 raw id 0（`minecraft:air`）；持 `cave_air`(730) / `void_air`(729) 的格子会被「写 air」改写成 air——判据谓词必须用 `isOf(Blocks.AIR)` 而不是 `isAir()`（等价性判据纪律见 workflow-patterns #131）。
+- **如何利用（判据）**：① 设计「跳过冗余写」优化时，等价性前提按**精确状态**表述（同域比较），语义类谓词会把 cave_air/void_air 的违例**漏计成通过**；② `PalettedContainer.swap` 的「同值写回同一 palette index」是**状态层**的通用机制，但**计数语义**按 `isAir` 判（同 section 的两套计数定义见 #23），二者不可混用。
+- **家族索引**：algorithm-fingerprints #23（同 section 三计数**两套语义**）、workflow-patterns #131（跳过型优化等价性判据）、compiler-idioms #6（raw id vs 全局 state id 双域）、workflow-patterns #14 补充案例（门层）。

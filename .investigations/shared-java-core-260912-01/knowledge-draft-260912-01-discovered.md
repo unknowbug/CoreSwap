@@ -176,7 +176,7 @@
 ```markdown
 ## 发现 #138（最高价值）: 重构波的字节等价判据必须按「是否改变产物字节」分档——纯移动用 V1-strict，语义统一用 V1b（未变更侧字节锚 + 变更条目逐条声明 + 变更侧 MUST 跑运行期门）；字节全等侧反向蕴含 V2/V3 免跑（260912-01）
 
-- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 1/2 实测 + 计划 §14.1/§14.2 追加式补登）+ scout-judge（C3 要求「语义方向项须与等价移动拆波」）+ 本波 judge（`review-wave2-260912-01.md` 复算 V1b 与三态隔离）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，见 record §4.7.7；**record §6 未回填 / 用户未 confirmed**；confirmed 留人类）；workflow-patterns / 等价性门分档（**#116 的「分档」面**、#25 的「计划期断言失真」形态）。
+- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 1/2 实测 + 计划 §14.1/§14.2 追加式补登）+ scout-judge（C3 要求「语义方向项须与等价移动拆波」）+ 本波 judge（`review-wave2-260912-01.md` 复算 V1b 与三态隔离）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，见 record §4.7.7；**record §6 已回填 / 用户未 confirmed**；confirmed 留人类）；workflow-patterns / 等价性门分档（**#116 的「分档」面**、#25 的「计划期断言失真」形态）。
 - **来源定位**：`.investigations/000-架构设计/架构计划-260912-01-共享Java适配核.md` §14.1（`:223-230`，V1b 三条 + 反向蕴含）/ §14.2（`:232-236`，计划自身断言失真）；`record-260912-01.md` §2.2（构建确定性控制 `:34-41`）、§2.4（V0 接线预检 `:61-74`）、§4.1（Wave 1 `:94-115`）、§4.6（**构建三态表 + V1b 判定** `:158-210`）、§4.7.2（V2+V3 三臂 PASS `:226-244`，judge C2/C3/C7/C8 修正后）、§4.7.3（**1.21.6 默认臂 PASS + 强制 bulk 缺陷** `:245-266`）、§4.7.7（C4 条 `:305`：`post4` ≡ `post3`）；`errors-260912-01.md` E4（门数字复算）/E5（默认关不豁免冒烟）；证据 `evidence/v1b-*.txt`、`post1-vs-post2`、`post2-vs-post3`、`post3-vs-post4`、`log-1.21.6-*.txt`。
 - **观察（现象）**：① **纯移动波（Wave 0/1）**：空 srcDir 接线 + 3 个逐字节相同的类 `git mv` 进共享源 ⇒ 两版 jar **整文件 sha 逐字节不变**（1081/1081、1798/1798；`1027f4f6…` / `16d5e5e7…`）。② **语义统一波（Wave 2）**：共享超集 + 分版缝类 `WgCompat` ⇒ 两版 class 字节**必然改变**（1.20.1 6 差异 + 1 新增、1.21.6 5 差异 + 5 新增）⇒ 「V1-strict 全等」判据**不适用**；且**判定基线必须钉死构建态**——本波有 **post1（含头注释）→ post2（= V1b 判定基线 `0681ec03…`/`772d7a6e…`）→ post3（权威 dll `461baedc…`）→ post4（≡ post3）** 四态，用错态会把「头注释行号位移」或「dll 归一」混进 Java 面差异（judge C6）。③ 计划原 §5 把 V1 写成「对全范围统一」，**第一波实施即发现边界**（plan §14.2 自承，KB #25 家族）。④ 语义统一波的运行期门**必须覆盖被测路径与维度**：本波 V3 三臂均走 bulk ⇒ `writeChunkPerBlock`（回退路径）与 nether/end **零覆盖**（judge C3/C7）；且**「默认关」的共享路径仍会变成可达**——1.21.6 强制 `bulkwb=1` 臂一开即崩（130 chunk `EntryMissingException`、根因未定位、阻断 D-4(i)，E5）。
 - **根因（机制）**：**「只搬位置」与「改语义」在产物字节上性质不同**——前者可做到逐字节不变（等价门 = 二值），后者引入间接层/超集/分版常量后字节必变，「jar 不同」不再蕴含「行为不同」。若强行对语义统一波要求字节全等，实践结果为二选一：**不敢改**（放弃抽取）或**假装等价**（把变更条目不声明、靠「看起来一样」蒙过）——两者都比「声明 + 运行期门」更贵。
@@ -200,7 +200,7 @@
 ```markdown
 ### 发现 #14 补充案例（260912-01）：两层指纹门的分工与落地——`[WG-CONTENT]`（Rust buf 层）与 `[WG-CONTENT-WB]`（Java 写回读回层）必须按「被测变量所在层」选用；只跑 buf 层 = 假安全感
 
-- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 V2/V3 设计 + 一度误用单层门）+ 本波 judge（复算指纹与覆盖面，判 C3/C7）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 未回填 / 用户未 confirmed；**1.21.6 写回替换的内容等价性被 judge 列为「未证伪项」= 无证据**；confirmed 留人类）；workflow-patterns / 探针同源性（#14 主条 = **阶段**同源、#14 补充案例 260911-05 = **数据层**同源、本条 = **多层齐跑与判据形态**）。
+- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 V2/V3 设计 + 一度误用单层门）+ 本波 judge（复算指纹与覆盖面，判 C3/C7）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 已回填 / 用户未 confirmed；**1.21.6 写回替换的内容等价性被 judge 列为「未证伪项」= 无证据**；confirmed 留人类）；workflow-patterns / 探针同源性（#14 主条 = **阶段**同源、#14 补充案例 260911-05 = **数据层**同源、本条 = **多层齐跑与判据形态**）。
 - **来源定位**：`record-260912-01.md` §4.7.2（`:226-244`，**三臂**两层指纹各 607/607 + multiset/sorted-sequence 全等 + 覆盖面边界（C3）/维度盲区（C7）+ §9.7 口径声明）/ §4.7.3（`:245-266`，1.21.6 默认臂 625/625 + 强制 bulk 臂 `[WG-CONTENT-WB]`=0 崩解）/ §4.7.5（证据落盘）；实现锚 = `CppBridge` 的 `[WG-CONTENT]`（hash **Rust 输出的 buf**，在 `writeChunk` 之前/之后）与 `[WG-CONTENT-WB]`（hash **写回后读回**）。工具 `evidence/tool-fp_compare.py` + 门控原样行 `evidence/fp-*.txt` + 完整日志 `evidence/log-*.txt`。
 - **观察（现象）**：Wave 2 的**被测变量在 Java 消费侧**（`writeChunk` 分派常量替换；`writeChunkPerBlock` 逐格写回本体经指令级判定未变）。V3 **三臂**（post = HEAD `997d40f` / pre = worktree @`ce5286b` **跑 2 次**，同 dll `dd3b645f`、同 seed/坐标/门控）同时输出两层指纹：`[WG-CONTENT]` **607 / 607 / 607**、`[WG-CONTENT-WB]` **607 / 607 / 607**，三臂两两三族 **multiset 与 sorted-sequence 双判全等**（`only-pre=0 / only-post=0`）⇒ ① 引擎层输出未变 ② **Java 写回结果逐 chunk 全等**（且同实现跨 run 在本层无噪声，pre-r1 vs pre-r2 已证）。1.21.6 默认臂**首次**带上读回门：`[WG-CONTENT]`/`[WG-CONTENT-WB]` 各 **625**（非 WMI 真实异常 0）。本轮一度只用 `[WG-CONTENT]` 读「无差异」——**那是必然的**（buf 层对 Java 侧改动结构性不敏感，见 260911-05 补充案例），构成**假安全感**。⚠️ **覆盖面边界（judge C3/C7）**：三臂均未设 `-Dcoreswap.bulkwb` ⇒ 走 **bulk 写回路径（= 1.20.1 生产路径）**；**`writeChunkPerBlock`（回退路径）在三臂均未执行 ⇒ 无运行期证据**；**nether/end 零覆盖**（被改的 `writeChunk` 共享三维度）⇒ 两层门齐跑**不等于全覆盖**。
 - **根因（机制）**：同一载体里**多层指纹各自观测不同数据层**：`[WG-CONTENT]` 取在 Java 消费**之前**（Rust buf），`[WG-CONTENT-WB]` 取在消费**之后**（写回后读回）。门只对**与其取点同层及更下游**的变更敏感；用上游层的门去证下游层的变更，等价于**未验证**（门恒绿）。
@@ -244,7 +244,7 @@
 ```markdown
 ### 发现 #59（最高价值·错误优先）: A/B 驱动的收尾 `restore` + `target/` 里残留的实验暂存 dll ⇒ 跨臂对照可能**执行了不同引擎**——执行体血统 MUST 逐臂读「执行体自证行」核对，不得只看 target 文件 sha（首例 260911-05 / 第二实例 260912-01）
 
-- **发现时间 / 发现者 / 置信度 / module**：① 首例（**预防性、未发生**）= 260911-05，judge I3 指出（`review-260911-05.md`；当时收尾实测 dll 值正确、无遗留）；② 第二实例（**实际发生、判定作废一次**）= 260912-01（共享 Java 适配核 Wave 2 的 V2/V3 对照）；**首例 = candidate**（A 线 judge 已审）；**第二实例部分 = draft**（本波 judge 已做 = PASS-with-conditions、C1–C9 已响应（record §4.7.7、`review-wave2-260912-01.md` §5.1 复算自证行一致），但 **record §6 未回填 / 用户未 confirmed**）；build-tooling / 构建链一致性与执行体血统（**#23 家族第三/第四形态**：驱动脚本自带回滚动作 → 污染对象从「交付产物」升级为「**对照实验本身**」）。
+- **发现时间 / 发现者 / 置信度 / module**：① 首例（**预防性、未发生**）= 260911-05，judge I3 指出（`review-260911-05.md`；当时收尾实测 dll 值正确、无遗留）；② 第二实例（**实际发生、判定作废一次**）= 260912-01（共享 Java 适配核 Wave 2 的 V2/V3 对照）；**首例 = candidate**（A 线 judge 已审）；**第二实例部分 = draft**（本波 judge 已做 = PASS-with-conditions、C1–C9 已响应（record §4.7.7、`review-wave2-260912-01.md` §5.1 复算自证行一致），但 **record §6 已回填 / 用户未 confirmed**）；build-tooling / 构建链一致性与执行体血统（**#23 家族第三/第四形态**：驱动脚本自带回滚动作 → 污染对象从「交付产物」升级为「**对照实验本身**」）。
 - **来源定位**：首例 = `record-260911-05.md` §1/§5（`:11-12`/`:89`）+ judge `review-260911-05.md` I2（`:55`，门禁强度）/ I3（`:56`）；第二实例 = `.investigations/shared-java-core-260912-01/record-260912-01.md` §4.7.0（配方 `:213-217`）/ **§4.7.1（事故根因链与处置 `:218-225`）**/ §4.7.2（三臂自证行 `:231`）/ §4.7.4（dll 归一化隔离 `:268-271`）+ §2.6（产物目录不是存档目录 `:83-87`）；五段式台账 = `errors-260912-01.md` **E1**；判据可从仓库复现（`evidence/MANIFEST.txt`、`evidence/arm-summary.txt`、`evidence/fp-*.txt` 的逐臂自证行）。
 - **现象①（首例，交付侧）**：a1 A/B 驱动的 `results.txt` 记 `restore=dd3b645f`（= **A1d 前**构建，size 2457088）⇒ 驱动结束会把 `target/release/worldgen.dll` **还原为其 bak**（= pre 构建）。当时收尾实测当前值 = `838e8979`（正确、无遗留），但**交付/发版前仍值得复核构建链**。另：dll 硬门禁（`run_ab.ps1:71-78`）只比较日志里的 **16 hex 前缀**（`sha256=838e8979…`），**非全 sha256**。
 - **现象②（第二实例，对照实验侧）**：260912-01 Wave 2 的 V2/V3 首轮，两臂**实际执行的 dll 不同**——post 臂 `838e8979…` vs pre 臂 `dd3b645f…` ⇒ **对照被引擎差异污染、V3 判定作废**（判 VOID、两臂重跑）。**发现方式 = 逐臂读取 `<CppBridge> dll= sha256=`「执行体自证行」**，非事后猜测。
@@ -269,7 +269,7 @@
 ```markdown
 ### 发现 #60 简记: fresh `git worktree` 不能当「条目级」基线——检出文本被 `core.autocrlf` 物化为 CRLF，与主工作树的 LF 不同 ⇒ 逐条目比对出现全量伪差异（260912-01）
 
-- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 未回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 等价性基线与换行策略（**#116 条目级 sha 门的前提面**）。
+- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 等价性基线与换行策略（**#116 条目级 sha 门的前提面**）。
 - **来源定位**：`.investigations/shared-java-core-260912-01/record-260912-01.md` **§4.7.6**（一手锚 / 补记）+ §4.7.0（`git worktree` 臂设置 `:213-217`）；证据 = `evidence/manifest-prewt-1.20.1.tsv`、`evidence/manifest-post3-1.20.1.tsv`、`evidence/prewt-pseudodiff.txt`；台账 = `errors-260912-01.md` **E2**。
 - **现象**：`git worktree add` 检出的**文本资源**被 `core.autocrlf` 物化为 **CRLF**，与主工作树的 **LF** 不同 ⇒ 用 worktree 构建出的 jar 与主树 jar 逐条目比对时，**所有 JSON/文本条目全部显示差异**（实测：prewt vs post3 = **相同 57 / 差异 1024 / 新增 1 / 删除 0**，差异**全落在 `worldgen-data/**` 文本资源**、**class 条目零差异**）。
 - **根因（机制）**：worktree 检出走同一 `.gitattributes` / `core.autocrlf` 机制，**工作区文本换行**随策略变化；而 class 条目由 javac 产物决定、**与工作区换行无关** ⇒ 伪差异**只在文本资源路径前缀上成片出现**，class 差集为空。若基线取在别的树，则「差异集」里混入**换行噪声**，真差异被淹没。
@@ -286,7 +286,7 @@
 ```markdown
 ### 发现 #61 简记: javap 方法级对拍的三个陷阱——lambda 名按序号命名不可按名对拍 / 按行 zip 对拍在指令数变化处级联误报 / 常量池序号与 `ldc`↔`ldc_w` 宽度必须归一化（260912-01）
 
-- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 未回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 字节码对拍方法（**f5-bugs「javap 不可信点」的姊妹条**）。
+- **发现时间 / 置信度 / module**：260912-01；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填 / 用户未 confirmed；一手锚 = record §4.7.6）；build-tooling / 字节码对拍方法（**f5-bugs「javap 不可信点」的姊妹条**）。
 - **来源定位**：`record-260912-01.md` **§4.7.6**（一手锚：初版伪差异计数 + 源码逐字对照 + judge 三重判定）+ §4.6（`:171-193` 各条 `javap -c -p`「输出完全相同」判定、`:186-192` 方法级对拍与 `lambda$static$0` 诚实声明）；台账 = `errors-260912-01.md` **E3**；证据 = `evidence/src-pre-1.20.1-CppBridge.java`、`evidence/tool-javap_method_diff.py`。
 - **现象（三陷阱）**：① **`lambda$static$N` 按序号命名** ⇒ pre/post 的同名 lambda **可能不是同一个物**；本轮 `lambda$static$0` 因此被明确判为「**不构成证据**」（改名比对无意义）。
   ② **按行 zip 对拍**：两版 javap 输出按行号 zip 比对时，**任一处指令数变化**会把其后所有行的对齐整体错位 ⇒ 「differing lines」**级联放大**、把一处真差异报成成百上千行（record §4.7.6 已补一手锚：初版 `stateById` 6 行 / `lambda$static$0` 46 行均为伪差异）。
@@ -305,7 +305,7 @@
 ```markdown
 ## 发现 #25 简记: 给「逐字复制」的类加头注释也会改变该 `.class` 条目 sha——`LineNumberTable` 随源码行号位移（指令完全相同）（260912-01）
 
-- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 共享化实施中实测）+ scout-judge（C2 要求逐条声明调试属性类差异）+ 本波 judge（**C4 即本条的正向实例**）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 未回填 / 用户未 confirmed）；compiler-idioms / 类文件调试属性与字节锚（**#24 的「类文件结构」邻接面**）。
+- **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 共享化实施中实测）+ scout-judge（C2 要求逐条声明调试属性类差异）+ 本波 judge（**C4 即本条的正向实例**）；**draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 已回填 / 用户未 confirmed）；compiler-idioms / 类文件调试属性与字节锚（**#24 的「类文件结构」邻接面**）。
 - **来源定位**：`record-260912-01.md` §4.6（`:161-168` 构建三态表——`post1`（含头注释）→ **`post2` = V1b 判定基线**，隔离差异恰 2 条 = `CoreSwapFixHelper` + `StallWatch`；1.20.1 侧 `:184`「`StallWatch` 逐字复制后条目 sha 全等；**曾因加 1 行头注释导致行号位移 ⇒ 删注释恢复字节锚**」；`:178/180/182/200/201` 各「仅调试属性（`LineNumberTable`）」条目 + `javap -c -p` 输出完全相同的判定）+ **§4.7.7（C4 条 `:305`：注释修补保行数 ⇒ 类字节不变）**；证据 = `evidence/post1-vs-post2-1.20.1.txt`、`evidence/post3-vs-post4-{1.20.1,1.21.6}.txt`。
 - **现象（语义/机制）**：把一个类**逐字复制**进共享源后条目 sha 全等；**加 1 行头注释**（如「本文件自 1.20.1 共享化而来」）后该条目 sha **改变**，而 `javap -c -p` 输出**完全相同**（指令集未变）——差异全在调试属性。
 - **根因（机制）**：javac 为指令生成 `LineNumberTable`（源码行号 → 字节码偏移），**行插入使其后所有源码行号 +1** ⇒ 每条指令的 start line 整体位移，类文件的属性表字节随之变化（常量池/指令不变）。⇒ 「注释不影响产物」对**需要字节锚**的场景**不成立**。
@@ -420,4 +420,4 @@
 
 ---
 
-> **本文件自身状态**：draft（草稿，未应用；2026-09-12 依 judge `review-wave2-260912-01.md` 的 C1–C9 修正后原地修订）。应用后建议状态：A 线条目 = **candidate**（judge 已审、条件已应用；confirmed 留人类）；Wave 2 条目（#138 / #14 补充案例 260912-01 / #59 第二实例部分 / #60 / #61 / compiler-idioms #25）= **draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 待回填；1.21.6 强制 bulk 缺陷根因未定位；confirmed 留人类）。
+> **本文件自身状态**：draft（草稿，未应用；2026-09-12 依 judge `review-wave2-260912-01.md` 的 C1–C9 修正后原地修订）。应用后建议状态：A 线条目 = **candidate**（judge 已审、条件已应用；confirmed 留人类）；Wave 2 条目（#138 / #14 补充案例 260912-01 / #59 第二实例部分 / #60 / #61 / compiler-idioms #25）= **draft**（judge 已做 = PASS-with-conditions、C1–C9 已响应；record §6 已回填；1.21.6 强制 bulk 缺陷根因未定位；confirmed 留人类）。
