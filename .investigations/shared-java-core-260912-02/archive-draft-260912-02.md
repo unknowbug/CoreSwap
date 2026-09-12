@@ -1,4 +1,4 @@
-# archive-draft-260912-02 —— 归档落盘草稿（6 段；供主会话应用 + 逐字校验）
+# archive-draft-260912-02 —— 归档落盘草稿（7 段；供主会话应用 + 逐字校验）
 
 > 角色：知识落盘 subagent（Phase 4 归档草稿）。**本件是本次唯一产出**；未修改任何现有文档（`docs/`、`knowledge/`、`.artifacts/` 一律未动）。
 > 状态：draft（本件不授予 candidate/confirmed；`confirmed` 只能由人类授予）。
@@ -8,7 +8,7 @@
 
 ---
 
-## §0 六段总览（落点 / 锚点 / 校验样本数）
+## §0 七段总览（落点 / 锚点 / 校验样本数）
 
 | 段 | 目标文件（相对工作区） | 落点 | 锚点（供精确定位） | 锚点唯一性 | 校验样本数 |
 |---|---|---|---|---|---|
@@ -19,8 +19,11 @@
 | 4 | `knowledge\discovered\workflow-patterns.md` | **追加到文件末尾**（现末行 = `:2386`，末块 = `### 发现 #14 补充案例（260912-01）`） | 无需锚点（EOF 追加）；新编号 = **#139**（现最大 = #138，`:2352`） | — | 3 |
 | 5 | `knowledge\discovered\algorithm-fingerprints.md` | **追加到文件末尾**（现末行 = `:557`，末条 = `发现 #25 简记`） | 无需锚点（EOF 追加）；新编号 = **#26**（现最大 = #25，`:551`） | — | 3 |
 | 6 | `framework-proposals\RE-FRAMEWORK-merge-index-list-root-proposal.md` | **新建文件全文**（该路径当前**不存在**；`glob framework-proposals/*` 仅命中两份先例） | — | — | 3 |
+| 7 | `knowledge\INDEX.md` | **追加到文件末尾**（现末行 = `:155`，末条 = `> 260912-01 追加（…`；本行 = 同日不同块 260912-02，需可区分） | 无需锚点（EOF 追加） | — | 5 |
 
-> 应用顺序建议：先段 1b（1 行）→ 段 1 / 2 / 3（docs）→ 段 4 / 5（knowledge）→ 段 6（新文件）；每段应用后立刻用该段 ④ 的样本核对命中。
+> 已应用记录（主会话回报，2026-09-12）：段 1 / 1b → `docs/07`（新节 `## 2026-09-12 D3 后续（260912-02）…` + D3 节标题行下就地取代指针）；段 2 → `docs/08:76`；段 3 → `docs/10:3206`；段 4 → `workflow-patterns.md:2390`（`## 发现 #139（最高价值）…`）；段 5 → `algorithm-fingerprints.md:561`（`## 发现 #26: …`）；段 6 → 新建 67 行。提交 `7a0fcff`（HOOK-D 裁决应用：record→confirmed / C-17′）+ `3cf009f`（归档 6 段）；21+ 样本 0 未命中。
+
+> 应用顺序建议：先段 1b（1 行）→ 段 1 / 2 / 3（docs）→ 段 4 / 5（knowledge）→ 段 6（新文件）→ 段 7（INDEX 登记行，**最后**，因它引用段 4/5 的编号与位置）；每段应用后立刻用该段 ④ 的样本核对命中。
 
 ---
 
@@ -398,3 +401,35 @@ AttributeError: 'list' object has no attribute 'get'
 - [x] 格式与各目标文件末尾现状对齐（先读末尾再写）。
 - [x] 引用锚自核（workflow-patterns #137）：`2c3be2a` 与 `8974063` 均由本稿 `git cat-file -t` / `git log -1` 核实存在（前者 `fix(java-core): route bulk storage frame through per-version seam (F1)` 17:13:50+0800；后者 `docs(260912-02): close review conditions, register artifacts, supersede E5` 17:56:53+0800）。
 - [ ] 段 6 的提案属**跨仓库上报**：应用后需按 RE-Framework 维护惯例（`ref-maintain`）转交，本稿不改框架仓库。
+
+---
+
+# 段 7 —— `knowledge\INDEX.md`
+
+### ① 目标文件
+`E:\PYTHON\CoreSwap\knowledge\INDEX.md`（现 155 行；末行 `:155` = `> 260912-01 追加（**A 线 260911-05 知识补录 + D3 共享 Java 适配核 Wave 2**；…`）
+
+### ② 落点
+**追加到文件末尾**（`:155` 之后另起一个 `>` 引用行块）。与末行同属 2026-09-12 但**不同工作块**：末行 = `260912-01`（共享核 Wave 2 抽取），本行 = `260912-02`（其遗留缺陷的定位与 F1 修复）——本行首句显式声明「同批不同块，本行 = -02」，避免与末行混淆。
+
+### ③ 待插入正文（逐字可用；1 行）
+
+````markdown
+> 260912-02 追加（**D3 后续：1.21.6 强制 bulk storage 段帧契约缺陷定位 + F1 分版缝修复**；与同日 260912-01 的共享核 Wave 2 **同批不同块**，本行 = -02，承接其「1.21.6 强制 bulk 缺陷＝仍开放/根因未定位」）：**workflow-patterns 新增 #139（最高价值）**（① **等价性结论 MUST 与「臂变量生效自证」成对**——两臂指纹全同 ≠ 真等价，也可能是「两臂都走了同一路径」（变量没生效）⇒ MUST 附逐臂 in-log 正/负成对自证（本块 `-Dcoreswap.bulkwblog=1`：bulk 臂 `[WG-BULKWB] calls=625` vs perblock 臂 `[WG-BULKWB] calls=0` + `[WG-PERBLOCK] calls=607`），缺它则等价结论只能标「假阳性风险」（#81 家族）；② **统计前 MUST 声明并切分「计数载体」**（与 §9.7 可比性三要素同源）——无冒号 `runServer` 同时命中 `:runServer` 与 `:content-test:runServer` ⇒ 一次日志含两次 JVM 运行、计数对整份日志做（12 = 4/4 + 4/0），逐 run 切分后两侧同为 **4 WMI / 0 非 WMI**；**同一判据的旧诊断必须继承**（上一块 judge 复审已记录该机制而本块未继承 = 双重教训），低成本直证 = `gradle --dry-run <task>` 任务图；③ **汇总数字入记录前 MUST 回底本复算 + 绑臂标签 + 跨臂数字不得同格引用**（本族复发：260912-01 E4 → 本块 W8；本块实例：计划口径「16 组」按 `cmp-*.txt` 枚举 = **18 组**、「1.21.6 五份 fp 同一」穷举 = 4 份（1.20.1 = 10 份）、「修复前 49/50」属 **r16 探针臂**而 r160 真值 = **130/0/132**））+ **algorithm-fingerprints 新增 #26（最高价值）**（跨版本**分块容器 storage 写帧**契约差——1.20.1 `PalettedContainer.readPacket` 走 `readLongArray`（**VarInt 长度前缀**）vs 1.21.6 走 `readFixedLengthLongArray`（**定长无前缀**，指令 #39；yarn 名 `method_10789` / `method_68087` 已逐行核对）；失配症状 = **不是帧格式错而是整段移位** ⇒ `EntryMissingException: Missing Palette entry for index <小整数>`（本块实测只出现 **{2, 8}**，来源 = 前缀 nibble 而非位宽）、读回层指纹 `[WG-CONTENT-WB]` **归零**为首要信号；判据 = 越界索引只有离散小集合时先怀疑**整段字节移位**（位宽协商语义差预测索引散布），写端 MUST **收敛到单一分版缝函数**；**与 #22 的关系 = 同代码点的邻接面**：#22 是**读端**逐字节编码契约（1.20.1 一手源），本条是**写帧契约的版本差**（#22 的**写端**邻接面））；框架侧工具缺陷上报 → `framework-proposals/RE-FRAMEWORK-merge-index-list-root-proposal.md`（`merge_index.py` 裸列表根崩溃，W13 + judge R4）。来源：`.investigations/shared-java-core-260912-02/`（`verify-260912-02.md` / `judge-260912-02.md` / `errors-260912-02.md` W6–W8 / `evidence/javap-seam-260912-02.txt`）+ 计划件 `.investigations/000-架构设计/架构计划-260912-02-1.21.6强制bulk缺陷定位.md`（**confirmed 2026-09-12 18:13**：①F1 修复有效性 ②根因 b2a ③1.20.1「未观测到 F1 相关回归」④1.21.6 默认臂未退化；**不含** nether/end 覆盖、性能结论、`BULKWB_ON` 翻转）。
+````
+
+### ④ 逐字校验样本（5 条）
+
+| # | 样本（≥20 字符连续片段） |
+|---|---|
+| 1 | 两臂指纹全同 ≠ 真等价，也可能是「两臂都走了同一路径」（变量没生效） |
+| 2 | `无冒号 runServer 同时命中 :runServer 与 :content-test:runServer` |
+| 3 | 上一块 judge 复审已记录该机制而本块未继承 = 双重教训 |
+| 4 | `判据 = 越界索引只有离散小集合时先怀疑` |
+| 5 | `本族复发：260912-01 E4 → 本块 W8` |
+
+### 编号未被占用的核查方式（本稿）
+
+1. `workflow-patterns.md`：`grep '^## 发现 #1[0-9][0-9]'` → 全量枚举后**最大 = #138**（`:2352`），**无任何 #139**；应用后 `:2390` 的 #139 = 本块条目。
+2. `algorithm-fingerprints.md`：`grep '^## 发现 #'` → 最大 = **#25**（`:551`），**无任何 #26**；应用后 `:561` 的 #26 = 本块条目。（注：该文件 **#21** 是 `### ` 级标题、仍占号，故 #25 + 1 = #26 正确。）
+3. `INDEX.md`（应用前）：`grep '#139'` = **0 命中**；`grep '#26'` 只命中 **build-tooling** 的 #26（`:79`）——各 discovered 文件的编号是**各自文件的命名空间**（同号在不同文件并存是本库既有常态，如 workflow-patterns #26 `:337` 与 build-tooling #26 `:569`），故不构成 `algorithm-fingerprints #26` 占用。

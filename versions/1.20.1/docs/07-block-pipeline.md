@@ -1367,7 +1367,7 @@ unctional-errors.md F1-F3）：
 
 > 范围与排除（照抄状态机口径，不得外推）：本节 confirmed **只覆盖上列 4 项**；**不含** nether/end 覆盖、性能结论、`BULKWB_ON` 翻转决策（三者均未获 confirmed）。
 > 证据载体：`.investigations/shared-java-core-260912-02/`（`verify-260912-02.md` v1→v6 = 验证记录，**confirmed（范围受限** = 本节 4 项结论；范围外条目按原证据等级）；`judge-260912-02.md` = judge 三轮 + 交付前确认，PASS-with-conditions；`errors-260912-02.md` = W1–W13 五段式 + 速查表（台账，candidate）；`scout-map.md` + `scout-interpretation-A1.md` = 静态字节码与运行级解读；`evidence/` = 原始件）+ 冻结基线 `.investigations/shared-java-core-260912-01/evidence/`。提交 = `2c3be2a`（F1 本体，2026-09-12 17:13:50+0800，`evidence/javap-seam-260912-02.txt:37`）；`8974063 docs(260912-02): close review conditions, register artifacts, supersede E5`（2026-09-12 17:56:53+0800；两个提交号均已由本稿用 `git cat-file -t` 属主工具自核，符合 workflow-patterns #137）。
-> 承接：本节取代上节（`## 2026-09-12 D3 共享 Java 适配核…`）中「1.21.6 强制 bulk 缺陷 = 仍开放 / 根因未定位」的表述；原节正文**不改**，取代指针以追加式插在该节标题行之下（见本节末「就地取代指针」）。
+> 承接：本节取代上节（`## 2026-09-12 D3 共享 Java 适配核…`）中「1.21.6 强制 bulk 缺陷 = 仍开放 / 根因未定位」的表述；原节正文**不改**，取代指针以追加式插在该节标题行之下（指针全文见下方「就地取代指针」小节）。
 
 ### 现象（260912-01 遗留缺陷的实测面）
 
@@ -1431,6 +1431,6 @@ unctional-errors.md F1-F3）：
 - 指纹对写回内容面敏感，但观察面有限：`[WG-CONTENT]`（Rust buf 层）对 Java 侧写回改动结构性不敏感；`[WG-CONTENT-WB]`（写回后读回层）能捕获写帧错误。两层指纹只可排除「写回内容发生变化」，不可单独支撑「无回归」——必须与单运行口径异常面同档、条目级 diff、构建绿并列（`verify-260912-02.md:176`，F29）。
 - 等价性结论 MUST 与臂变量生效自证配对（→ `knowledge/discovered/workflow-patterns.md` 发现 #139）；跨版本帧契约指纹 → `knowledge/discovered/algorithm-fingerprints.md` 发现 #26。
 
-### 就地取代指针（供主会话插入到上节 D3 节内，见段 1b）
+### 就地取代指针（已同步落于上节 D3 节标题行之下）
 
 > ⚠️ 260912-02 取代指针（2026-09-12）：本节的「1.21.6 强制 bulk 缺陷＝仍开放/根因未定位」已被取代 —— 见本文件末尾「D3 后续（260912-02）」节：根因 = storage 段帧契约变更、修复 F1 = commit 2c3be2a、运行级验证已过。原文保留不改。
