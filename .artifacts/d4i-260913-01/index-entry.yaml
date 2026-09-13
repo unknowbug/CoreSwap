@@ -15,3 +15,7 @@
   path: '../.investigations/d4i-260913-01/errors-260913-01.md'
   kind: errors
   status: candidate
+- id: 'swe:d4i-260913-01:knowledge'
+  path: '../.investigations/d4i-260913-01/knowledge-draft-260913-01.md'
+  kind: knowledge
+  status: candidate

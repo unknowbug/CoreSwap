@@ -4,9 +4,11 @@ package wg.bench;
 public final class WgCompat {
     private WgCompat() {}
 
-    /** bulk section 写回（C 线）默认开关。1.20.1 = true（C 线已验证）；1.21.6 = false（1.21.6 侧尚未验证 ⇒ 缺省关；
-     *  {@code -Dcoreswap.bulkwb=1} 可强制开启做自身 A/B）。 */
-    public static final boolean BULKWB_ON = false;
+    /** bulk section 写回（C 线）默认开关。两版均已验证 ⇒ 均为 true。1.21.6 于 **260913-01** 翻转：
+     *  自身 A/B 三臂（默认 / {@code bulkwb=0} / {@code bulkwb=1}）× 三维（overworld/nether/end）全部等价
+     *  （两层指纹整文件 sha256 同一，逐 chunk 多重集 18/18 全等；nether/end 首次有载体）。
+     *  {@code -Dcoreswap.bulkwb=0} 可即时回退到逐块路径。 */
+    public static final boolean BULKWB_ON = true;
 
     /** A1a 写回跳空气默认开关。1.20.1 = true（A1a 已验证）；1.21.6 = false（1.21.6 侧尚未验证 ⇒ 缺省关；
      *  {@code -Dcoreswap.skipair=1} 可强制开启做自身 A/B）。 */

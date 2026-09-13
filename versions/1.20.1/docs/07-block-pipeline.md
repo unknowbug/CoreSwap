@@ -1417,11 +1417,11 @@ unctional-errors.md F1-F3）：
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| nether / end 覆盖 | 0（零覆盖） | 属 `BULKWB_ON` 翻转的**前置**（**非本结论前置**）；被改的 `writeChunk` 共享三维度 |
+| nether / end 覆盖 | 0（零覆盖）**[已被 260913-01 取代 — 见本节末取代指针]** | 属 `BULKWB_ON` 翻转的**前置**（**非本结论前置**）；被改的 `writeChunk` 共享三维度 |
 | 1.21.6 写出帧字节直采 | 未做 | 由读端 4096 点读回（WBTEST 4/4）+ 625 chunk 等价性代替 |
 | 1.20.1「未观测到 F1 相关回归」口径 | 受限 | 仅限 **overworld / 写回内容层 / 单次 JVM 运行** 口径 |
 | 性能结论 | 不做 | 本块不出性能主张（bulk 与逐块计时同 run 含诊断成本，不作收益读数） |
-| `BULKWB_ON` 翻转 | 未做 | nether / end 覆盖为 0 即前置未达 |
+| `BULKWB_ON` 翻转 | 未做 **[已被 260913-01 取代 — 见本节末取代指针]** | nether / end 覆盖为 0 即前置未达 |
 | 出货 | 不出货 | F1 对 1.20.1 为静态转发、无紧急重发需求；若出货须升版 1.0.30 + 新工单 |
 | `verify` / `errors` 状态 | verify = **confirmed（范围受限**，仅标题所列 4 项；范围外条目按原证据等级）；errors = candidate（台账） | confirmed 只覆盖 4 项范围，不外推 |
 
@@ -1434,3 +1434,57 @@ unctional-errors.md F1-F3）：
 ### 就地取代指针（已同步落于上节 D3 节标题行之下）
 
 > ⚠️ 260912-02 取代指针（2026-09-12）：本节的「1.21.6 强制 bulk 缺陷＝仍开放/根因未定位」已被取代 —— 见本文件末尾「D3 后续（260912-02）」节：根因 = storage 段帧契约变更、修复 F1 = commit 2c3be2a、运行级验证已过。原文保留不改。
+
+> ⚠️ 260913-01 取代指针（2026-09-13）：上表「nether / end 覆盖 = 0」与「`BULKWB_ON` 翻转 = 未做」两项**均已被取代** —— 工作块 260913-01 完成 1.21.6 三臂自身 A/B（默认 / `bulkwb=0` / `bulkwb=1`）× **三维**（overworld / nether / end）共九臂：C-1 等价性 **18/18 组全等**（两层指纹同维三臂**整文件全 64 位 sha256 同一**）、nether/end **首次有载体**（`intercept=content=wb=625`，取代「零覆盖」）、异常面 `EntryMissingException` = 0；据此**用户裁决翻转** `versions/1.21.6/.../WgCompat.java` 的 `BULKWB_ON` `false→true`（翻转后验证臂证明**路径已切换且输出逐位不变**）。**原文保留不改**；详见 `.investigations/d4i-260913-01/verify-260913-01.md`（**confirmed** 用户授予 2026-09-13）与 `架构计划-260913-01-D4i三臂AB与全维行为门.md` §12.3/§12.4。
+>
+> ℹ️ **指向正文**：上述两项的取代**正文**见下方「**2026-09-13 D-4(i)…**」小节（含 C-1..C-6 判据表、翻转落地与验证、边界清单）。
+
+---
+
+## 2026-09-13 D-4(i)：1.21.6 三臂自身 A/B × 三维 + nether/end 全维行为门补齐 + `BULKWB_ON` 翻转 — ✅ confirmed（用户授予 2026-09-13；范围 = judge 建议范围：三维三臂两层等价 + nether/end 首次有载体 + 跨块基线同一；**不含**性能 / 跨 region·seed·长时·并发 / 1.20.1 侧行为结论 / 写出帧字节等价）
+
+> 载体与依据：`.investigations/d4i-260913-01/verify-260913-01.md`（**confirmed**，范围见标题）+ `judge-260913-01.md`（judge 隔离 subagent 三源核对，**PASS-with-conditions**，3 MUST + 2 SHOULD **已全部应用**）+ `errors-260913-01.md`（**W1–W5** 五段式 + 速查表，candidate）+ `evidence/`（11 臂逐臂 `[result]`/`[bridge]`/`[attest]`、18 组判据输出、18 个指纹件、MANIFEST 65 文件、臂命令表）+ 计划件 `.investigations/000-架构设计/架构计划-260913-01-D4i三臂AB与全维行为门.md`（§11 执行记录 / §12 Phase 3 结论 + HOOK-C/HOOK-D 裁决 + §12.4 翻转落地）。承接：本节取代上节（260912-02）残留表中的「nether / end 覆盖 = 0」与「`BULKWB_ON` 翻转 = 未做」两项（取代指针已就地插在上节标题行之下）。通用模式 → `knowledge/discovered/workflow-patterns.md` #140 / #141 / #142 + #139②/#132/#118 补充案例、`build-tooling.md` #62。
+
+### 结论（C-1..C-6 全 PASS）
+
+| 判据 | 形式（**执行前预登记**） | 实测 |
+|---|---|---|
+| **C-1 等价性** | 三臂两两 × 三维，**两层各自**逐 chunk 多重集 diff = 0 | **18/18 组全 EQUAL**（3 对 × 3 维 × 2 层；`common=625` / `only_a=0` / `only_b=0`） |
+| **C-1 补强**（judge 新发现，超出预登记） | — | 625 = **完整 25×25 无缺格网格**（`x=[-15,9]`、`z=[-13,11]`），625 unique key / 0 重复 ⇒ **非「以缺失换相等」** |
+| **C-2 生效自证** | bulk 臂 `calls>0` ↔ perblock 臂 `calls=0` + `[WG-PERBLOCK] calls>0` | bulk：`[WG-BULKWB] calls=625` / `[WG-PERBLOCK] calls=0`；perblock：反向 —— **正/负成对成立**（排除「两臂同走一路径」假阳性） |
+| **C-3 载体存在性** | 三维各自 `content>0` **且** `wb>0` | 九臂全部 `carrier=OK`；`intercept = content = wb = 625`（三维一律）—— **nether/end 首次有载体** |
+| **C-4 正对照** | 跨维指纹互异（证门有检测力） | 跨维 sha distinct = **3/3**（merged / content / wb 三层各自）；judge 加证跨维多集 `common=0 / only=625` |
+| **C-5 异常面** | `EntryMissingException` = 0；非 WMI 真实异常按**单次 JVM 运行**计数 = 0 | 11 臂 `entryMissing=0`、**`nonWmi=0`**（3 行 WMI/COM 为环境良性噪声）；修复前该版为 132 次 / 130 chunk 崩解 |
+| **C-6 执行体** | 逐臂 `[CppBridge] dll=` 自证 = `abd7d8893d22e030` | **11/11 臂 `attested`**，无 ARM-VOID |
+
+**最强形态**：同维度内三臂的两层指纹文件是**整文件全 64 位 sha256 同一**（distinct = 1/3 × 6）。⚠️ **口径**：fp 文件由运行台 `Sort-Object` 生成 ⇒ 判据域 = **排序域**，**原生日志顺序不在判据域内**（排序是确定性变换 ⇒ 排序件同一 ⇔ 多重集同一）。
+
+**跨块一致性**：本块 `ow-default` 合并指纹 = `8184d609847c704e461d1a52e2c6fa8434db7de622dbec3ba98f662094f9878a`（86248 B），与 260912-02 冻结的 1.21.6 默认基线**逐字节同一**（同 dll / seed / 坐标 / 半径）⇒ §9.7 的「可直接比」被**实证**。
+
+### `BULKWB_ON` 翻转（HOOK-C，用户裁决 2026-09-13）
+
+- **改动**：`versions/1.21.6/java/src/main/java/wg/bench/WgCompat.java:11` `BULKWB_ON`：`false` → **`true`**（javadoc 同步注明翻转依据 = 本块三臂三维等价 + 回退开关）；构建 `gradle --offline --rerun-tasks build` ⇒ **BUILD SUCCESSFUL**。
+- **翻转后验证臂**（`postflip-ow-default`，**不带任何 `bulkwb` property** ⇒ 走**新默认**）：① **路径已切换** —— `[WG-BULKWB] calls=625` / `[WG-PERBLOCK] calls=0`（翻转前默认臂为 `calls=0`）；② **输出逐位不变** —— `contentSha` = `ae643ed8c6054ab0…c00934`、`wbSha` = `ae5ddee139d9cd10…f1357`，与翻转前默认/perblock/bulk 三臂**全 64 位 sha 完全一致**；异常面 `entryMissing=0` / `nonWmi=0`；dll 自证 `attested`。
+- **判定**：翻转 = **执行路径改变、产物零变化**（二值强判据）；回退开关 `-Dcoreswap.bulkwb=0`（旧逐块路径**保留不删**）在位。
+- ⚠️ **覆盖面边界**：验证臂**只跑 overworld**；三维安全性由翻转前**三维九臂等价性蕴含**（已在两种形态下证明同构）；翻转后三维复跑属**可选加固、非前置**。
+
+### 可复用判据（本节新增）
+
+- **翻转验证范式**：默认值翻转的验证臂 MUST 是「**不带任何相关 property** 的默认臂」，且「路径已切换」与「产物不变」**分开取证**（前者靠正/负成对自证并与翻转前同形态臂对比，后者靠全 64 位 sha 逐一）→ workflow-patterns **#141**。
+- **等价性证据形态阶梯**：多重集判等 → **完整无缺格网格**（堵「以缺失掩盖相等」）→ 整文件全位数 sha 同一（最强，二值；**排序域口径 MUST 随携带**）→ workflow-patterns **#142**。
+- **构建图类问题 MUST 用任务图判别**（`gradle --dry-run`），**不得**用目录存在性/内容推断；跨块继承机制 MUST **重核其前提**在本载体是否成立 → workflow-patterns **#140** + build-tooling **#62**。
+- **计数载体**：异常面宽口径计数 MUST 附**良性噪声排除清单**（WMI/COM）；跨臂门的分母 MUST 声明语义（Chunky 任务 441 ≠ 门事件 625，后者含 spawn 预生成）→ workflow-patterns #139 ② / #132 补充案例。
+- **判据的输入集合本身属于判据**：冒烟臂 MUST 带口径隔离声明；比对器**按显式清单取名、禁 glob 通配**→ workflow-patterns #118 补充案例。
+
+### 边界（如实写，不得当已闭合）
+
+| 项 | 状态 |
+|---|---|
+| 跨 region / 跨 seed 泛化 | **零覆盖**（三维各一 `radius 160` region） |
+| 单次 JVM 运行口径 | 异常面与计数均按单 run 统计（本版**无** 1.20.1 的双命中问题，见 build-tooling #62） |
+| 写出帧字节直采 | **未做**（承 260912-02 用户裁决）；1.21.6 侧等价性由**读端 625 chunk × 4096 点读回**承载 |
+| 性能结论 | **不主张**（`[WG-BULKWB] ns/section` 有读数，但**未做 A/B 配对与噪声带控制**） |
+| 并发可见性（R9-b） | **未做**（承 260912-02 遗留） |
+| 长时运行 / 内存 | **未测**（承 260911-01 #119：峰值 ≠ 存活集，须固定 `-Xmx` 才可测） |
+| 1.20.1 侧行为 | 本块**未跑** 1.20.1 臂；`--dry-run` 任务图结论是**载体事实而非行为结论**，不得外推 |
+| 两层指纹的观察面 | 对写回内容面敏感但**观察面有限** ⇒ 不可单独支撑「无回归」，须与异常面 + 执行体 + 构建绿并列（承 260912-02 F29） |
