@@ -48,7 +48,7 @@
 - suspExc=3 两臂同值，实读 = OSHI WmiQueryHandler COM 警告（Win32_Processor/PhysicalMemory），与 260913-03 #139② 良性噪声同签名。
 - 判读：门开 armed 行为化自证 ✓；576 chunk 零误报零 crash；门关 armed=0。**sentinel 在 1.21.6 行为符合预期（Full 运行时证据）**。
 
-## 5. 本块结论（candidate，待 judge）
+## 5. 本块结论（**confirmed**，用户授予 2026-09-13；judge PASS-with-conditions 条件已应用；原 candidate 记录随 confirmed 回执升级）
 
 1. A1-A6 单写者结构性论证在 1.21.6 管线全部成立（见 §2），且 `progressStatus` CAS 使 A1 更强 → 260913-02 confirmed 结论覆盖面扩展到 1.21.6（管线侧）。
 2. sentinel（默认关）在 1.21.6 共享核行为正常（两臂证据，§4）；1.21.6 行为零变化（门关臂与既有冒烟形态一致）。

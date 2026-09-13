@@ -127,3 +127,4 @@
 - ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions**：唯一偏移 = `ServerChunkLoadingManager.generate` 实际 :635-664 / "Parent chunk missing" :644（audit 原写 :632-661/:639-641，偏移 ~3 行、机制措辞逐字一致）；INFO-2 立规 = 后续记录写实际行号。SHOULD/INFO 均已应用。
 - ⚠️ **§9.7**：载体 = 1.21.6 yarn merged jar 静态论证（Degraded）+ 冒烟（Full 行为级）；覆盖面 = chunk 生成管线状态机 + sentinel 冒烟单 region（seed 417950215108767439，post-Done forceload -128..127）；与 260913-02 record §2 同构对拍表直接可比。
 - 状态：**candidate**，confirmed 待用户授予（记录时间线时点，未授予）。
+- （回执：**用户已 confirmed 2026-09-13**，范围 = 本块 record 全部结论。）

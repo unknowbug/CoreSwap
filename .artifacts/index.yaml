@@ -1658,7 +1658,8 @@ entries:
   - id: 'swe:sentinel-260913-04:record'
     path: '../.investigations/sentinel-260913-04/pipeline-audit-1216.md'
     kind: record
-    status: candidate   # 260913-04：1.21.6 管线独立核对 + sentinel 冒烟；judge PASS-with-conditions 条件已应用；confirmed 待用户
+    status: confirmed   # 用户授予 2026-09-13（范围 = 本 record 全部结论：A1-A6 1.21.6 覆盖 / 两臂冒烟 / 1.21.6 零变化；judge PASS-with-conditions 条件已应用）
+    # 260913-04：1.21.6 管线独立核对 + sentinel 冒烟。
     # 覆盖面扩展：260913-02 A1-A6 于 1.21.6 全部成立（A1 更强：progressStatus CAS，AbstractChunkHolder:220-230）。
     # 结构变化：futuresByStatus 上移改名 chunkFuturesByStatus（AbstractChunkHolder）、TAS→ServerChunkLoadingManager、
     #   ChunkGenerationStep/Steps 分离、INITIALIZE_LIGHT 新状态。两臂冒烟（1.21.6）：off armed=0/wb=576/crash=0，

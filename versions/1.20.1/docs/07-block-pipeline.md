@@ -1526,3 +1526,4 @@ unctional-errors.md F1-F3）：
 - **judge**：隔离 subagent 三源核对 = **PASS-with-conditions**（唯一偏移 = `ServerChunkLoadingManager.generate` 实际 :635-664 / "Parent chunk missing" :644，audit 原写 :632-661/:639-641 偏移 ~3 行、机制措辞一致；后续记录以实际行号为准）；SHOULD（两臂日志补落盘 `cmd-output/sentinel1216-{off,on}.log(.err)`）与 INFO 均已应用。
 - **状态：candidate，confirmed 待用户授予。** §9.7：静态论证为 Degraded（同残留边界随转：未来新增跨 future 边缓存 section 的消费者仍须重开 A5）；冒烟为 Full 行为级。
 
+- （回执：**用户已 confirmed 2026-09-13**，范围 = 本节全部结论——A1-A6 1.21.6 覆盖 / 两臂冒烟 / 1.21.6 零变化。）
