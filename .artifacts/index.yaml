@@ -1529,3 +1529,63 @@ entries:
     # 关键证据：evidence/arm-commands-260912-02.txt、arm-summary-260912-02.txt、cmp-260912-02-att-raw.txt、
     #   cmd-260912-02-judge-requested.txt（§0/§5b/§5c）、tool-run_1201_arm.ps1、tool-run_1216_arm.ps1、manifest-diff-postF1-*.txt、
     #   TL-javapv-*.txt、U9-runtime-*.txt、git-diff-260912-02.txt、scout-interpretation-A1.md（§10.5）.
+
+  # ===== 260913-01：D-4(i) 1.21.6 三臂自身 A/B（默认/perblock/bulk × 三维）+ nether/end 全维行为门补齐 =====
+  # 手工追加（**勿跑 scripts/merge_index.py**：其写回只保留四字段，会丢弃本文件全部注释）
+  - id: 'swe:d4i-260913-01:plan'
+    path: '../.investigations/000-架构设计/架构计划-260913-01-D4i三臂AB与全维行为门.md'
+    kind: plan
+    status: candidate
+    # 重量档计划（任务 = D-4(i) 三臂 A/B + nether/end 门）；**用户 HOOK-A 批准**（2026-09-13），范围选项 =
+    #   「D-4(i) 三臂 A/B + nether/end 门 一起做」。§11 执行记录（P1 运行台整备 / P2 九臂 / P2.5 判据全 PASS /
+    #   §11.4 测量侧修正 M1-M3）；§12 = Phase 3 结论。
+  - id: 'swe:d4i-260913-01:record'
+    path: '../.investigations/d4i-260913-01/verify-260913-01.md'
+    kind: record
+    status: candidate   # judge PASS-with-conditions（3 MUST 已应用）；confirmed 留人类
+    # 判据全 PASS：C-1 三臂两两 × 三维 × 两层 = **18/18 组 EQUAL**（common=625/only_*=0）；
+    #   C-2 生效自证正/负成对（bulk calls=625↔perblock 0；perblock calls=625↔bulk 0）；
+    #   C-3 载体存在性 9 臂全 carrier=OK，intercept=content=wb=625（**nether/end 首次有载体**）；
+    #   C-4 跨维 sha distinct=3/3（门有检测力）；C-5 entryMissing=0/nonWmi=0；C-6 11/11 臂 dll 自证 attested。
+    # **最强形态**：同维度内三臂两层指纹 **整文件全 64 位 sha256 同一**（distinct=1/3 ×6；口径 = 排序域，
+    #   原生日志顺序不在判据域 —— judge MUST-3）。
+    # **跨块旁证**：ow-default 合并 sha 与 260912-02 冻结基线**全 64 位逐字节同一**（8184d609…）。
+    # **D-4(i) 已解除**：260912-02 遗留的翻转唯一前置（nether/end 覆盖 = 0）**已达成**（三维 625/625/625）；
+    #   但 **BULKWB_ON 翻转本身 = HOOK-C 用户决策，本块不授予不执行**。
+    # 本块新定位：**计数载体双命中缺陷是 1.20.1 独有**（1.21.6 `content-test` 目录不存在 + `settings.gradle include`
+    #   自动建空子工程 ⇒ 无 runServer 任务）；判据 = 任务图直证（`gradle --dry-run`），**不得看目录**。
+    # 分层：等价性 = Full（逐 chunk 全量 + 完整 25×25 无缺格网格）；性能 = **不主张**（未设计口径，§7.4）；
+    #   覆盖面 = 仅 1.21.6 / 三维各一 region / 单次 JVM 运行（跨 region·seed·长时·并发 R9-b 未覆盖）。
+    # §9.7 三要素齐备；与 1.20.1 侧（dd3b645f…）跨版本不可互引。
+    # 证据：evidence/（arm-commands 预登记表 + tool-run_1216_arm_v2.ps1 + tool-cmp + arm-summary 11 臂 +
+    #   cmp-260913-01-raw 18 组 + 18 个 fp 分层件 + MANIFEST-sha256 65 文件）+ .tmp/d4i-260913-01/（原始日志）。
+  - id: 'swe:d4i-260913-01:judge-review'
+    path: '../.investigations/d4i-260913-01/judge-260913-01.md'
+    kind: review
+    status: candidate
+    # judge（隔离 subagent；**只出意见不改 status**）verdict = **PASS-with-conditions**：六项判据经其**自写独立比对器**
+    #   全部复算成立（未复用 tool-cmp —— 防「复用同一变换 = 复现同一 bug」），18 个 fp 全 64 位 sha 逐字符复核一致，
+    #   MANIFEST 65/65 全绿，`git diff --stat HEAD` 空 ⇒「本块无 src 改动」成立。
+    # MUST 3 项（均叙述/落盘层，**不触及判据成立性**）：MUST-1「content-test 目录为空」**事实错误**（真实 = 目录不存在
+    #   + Gradle 自动空子工程；三处重复）；MUST-2 根 index 未登记本块 + 子片段缺 verify/errors 条目；MUST-3 fp 为排序件
+    #   需补口径行。**三项已应用**（verify §1/§4.1/§6 + 命令表 §1 + errors W5 取代链）。
+    # judge 独立新发现（价值最高）：**`include` 与目录存在性解耦 —— 判别构建图类问题 MUST 看任务图，不得看目录**；
+    #   625 = 完整 25×25 无缺格网格（比多重集判据更强，verify 未主张，已补）；5000+10000=625×24 第三条交叉校验；
+    #   跨块基线同一达**逐字节级**（§9.7「可直接比」被实证而非仅声明）。
+    # confirmed 建议范围：三维三臂两层等价 + nether/end 首次有载体（⇒ 260912-02 遗留前置达成）+ 跨块基线同一；
+    #   **不含** BULKWB_ON 翻转本身、性能、跨 region/seed/长时/并发、1.20.1 侧行为结论、写出帧字节等价。
+  - id: 'swe:d4i-260913-01:errors'
+    path: '../.investigations/d4i-260913-01/errors-260913-01.md'
+    kind: errors
+    status: candidate
+    # 错误台账 W1-W5 五段式 + 现象→根因速查表：
+    #   W1（最有价值）**单形正则测两种实形日志 = 假零**——接管日志 overworld 形 `populateNoise intercepted`（无维度名）
+    #     vs nether/end 形 `populateNoise(nether|end) intercepted`（带维度名）；单形正则造成 `intercept=0` 而
+    #     `content=625` 的**自相矛盾**；统一正则后**从既有日志复算**（零重跑）⇒ 625 一律（#13 假零家族）。
+    #   W2 异常面未排除 WMI/COM 环境良性噪声 ⇒ `exceptions=3` 伪信号；新增 nonWmi 计数（#139② 噪声面）。
+    #   W3 旧机制当普遍规律（未核前提在本块载体是否成立）（#90/#94）。
+    #   W4 冒烟臂口径未声明即可能入账；比对器按显式清单取名、禁 glob（#118 家族）。
+    #   **W5（judge 抓出，最高价值）「结论对而解释错」**——靠任务图得正确结论，却用**未核实的目录措辞**解释；
+    #     判据 = 结论正确不豁免叙述正确，判别构建图 MUST 用任务图非文件系统；同一措辞三处重复须全量修正（#95/#112）。
+    # §15.4：W3 根因表述被 W5 取代（W3 原文保留不改 + 取代指针）。
+

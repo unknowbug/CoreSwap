@@ -1,0 +1,55 @@
+====================================================================================================
+260913-01 判据 C-1：三臂两两 × 三维 × 两层 多重集对比
+====================================================================================================
+
+--- dim=overworld    layer=content  ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+--- dim=overworld    layer=wb       ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+--- dim=the_nether   layer=content  ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+--- dim=the_nether   layer=wb       ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+--- dim=the_end      layer=content  ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+--- dim=the_end      layer=wb       ---
+    default    lines=625
+    perblock   lines=625
+    bulk       lines=625
+    OK default    vs perblock  : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK default    vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+    OK perblock   vs bulk      : common=  625 only_a=    0 only_b=    0  => EQUAL
+
+====================================================================================================
+总判定 C-1 = 满足 (全部 EQUAL)
+====================================================================================================

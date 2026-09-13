@@ -1,0 +1,210 @@
+
+########## 1216 ow-default dim=overworld start 14:14:23 radius=160 props='' diskDll=abd7d8893d22e030 ##########
+[ow-default][bridge] [14:15:09] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[ow-default][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[ow-default][rcon] > chunky quiet 10
+[ow-default][rcon] [Chunky] Quiet interval set to 10 seconds.
+[ow-default][rcon] > chunky world minecraft:overworld
+[ow-default][rcon] [Chunky] World changed to minecraft:overworld.
+[ow-default][rcon] > chunky center -48 -11
+[ow-default][rcon] [Chunky] Center changed to -48, -11.
+[ow-default][rcon] > chunky radius 160
+[ow-default][rcon] [Chunky] Radius changed to 160.
+[ow-default][rcon] > chunky start
+[ow-default][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[ow-default][result] dim=overworld boot=45.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=8184d609847c704e contentSha=ae643ed8c6054ab0 wbSha=ae5ddee139d9cd10
+[ow-default][bulk] 
+[ow-default][perblock] 
+[ow-default][verdict] dllAttest=True attested
+########## 1216 ow-default dim=overworld DONE 14:15:32 ##########
+-----
+########## 1216 ow-perblock dim=overworld start 14:15:33 radius=160 props='-Dcoreswap.bulkwb=0' diskDll=abd7d8893d22e030 ##########
+[ow-perblock][bridge] [14:16:19] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[ow-perblock][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[ow-perblock][rcon] > chunky quiet 10
+[ow-perblock][rcon] [Chunky] Quiet interval set to 10 seconds.
+[ow-perblock][rcon] > chunky world minecraft:overworld
+[ow-perblock][rcon] [Chunky] World changed to minecraft:overworld.
+[ow-perblock][rcon] > chunky center -48 -11
+[ow-perblock][rcon] [Chunky] Center changed to -48, -11.
+[ow-perblock][rcon] > chunky radius 160
+[ow-perblock][rcon] [Chunky] Radius changed to 160.
+[ow-perblock][rcon] > chunky start
+[ow-perblock][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[ow-perblock][result] dim=overworld boot=45.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=8184d609847c704e contentSha=ae643ed8c6054ab0 wbSha=ae5ddee139d9cd10
+[ow-perblock][bulk] 
+[ow-perblock][perblock] 
+[ow-perblock][verdict] dllAttest=True attested
+########## 1216 ow-perblock dim=overworld DONE 14:16:42 ##########
+-----
+########## 1216 ow-bulk dim=overworld start 14:16:42 radius=160 props='-Dcoreswap.bulkwb=1' diskDll=abd7d8893d22e030 ##########
+[ow-bulk][bridge] [14:17:25] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[ow-bulk][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[ow-bulk][rcon] > chunky quiet 10
+[ow-bulk][rcon] [Chunky] Quiet interval set to 10 seconds.
+[ow-bulk][rcon] > chunky world minecraft:overworld
+[ow-bulk][rcon] [Chunky] World changed to minecraft:overworld.
+[ow-bulk][rcon] > chunky center -48 -11
+[ow-bulk][rcon] [Chunky] Center changed to -48, -11.
+[ow-bulk][rcon] > chunky radius 160
+[ow-bulk][rcon] [Chunky] Radius changed to 160.
+[ow-bulk][rcon] > chunky start
+[ow-bulk][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[ow-bulk][result] dim=overworld boot=42.1s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=8184d609847c704e contentSha=ae643ed8c6054ab0 wbSha=ae5ddee139d9cd10
+[ow-bulk][bulk] 
+[ow-bulk][perblock] 
+[ow-bulk][verdict] dllAttest=True attested
+########## 1216 ow-bulk dim=overworld DONE 14:17:48 ##########
+-----
+########## 1216 nt-default dim=the_nether start 14:17:49 radius=160 props='' diskDll=abd7d8893d22e030 ##########
+[nt-default][bridge] [14:18:33] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[nt-default][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[nt-default][rcon] > chunky quiet 10
+[nt-default][rcon] [Chunky] Quiet interval set to 10 seconds.
+[nt-default][rcon] > chunky world minecraft:the_nether
+[nt-default][rcon] [Chunky] World changed to minecraft:the_nether.
+[nt-default][rcon] > chunky center -48 -11
+[nt-default][rcon] [Chunky] Center changed to -48, -11.
+[nt-default][rcon] > chunky radius 160
+[nt-default][rcon] [Chunky] Radius changed to 160.
+[nt-default][rcon] > chunky start
+[nt-default][rcon] [Chunky] Task started in minecraft:the_nether for the square region centered at -48, -11 with radius 160.
+[nt-default][result] dim=the_nether boot=42.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=df9f56a9bd1acd01 contentSha=4acf453eebc213d6 wbSha=4f02091a1b4c883e
+[nt-default][bulk] 
+[nt-default][perblock] 
+[nt-default][verdict] dllAttest=True attested
+########## 1216 nt-default dim=the_nether DONE 14:18:55 ##########
+-----
+########## 1216 nt-perblock dim=the_nether start 14:18:56 radius=160 props='-Dcoreswap.bulkwb=0' diskDll=abd7d8893d22e030 ##########
+[nt-perblock][bridge] [14:19:39] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[nt-perblock][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[nt-perblock][rcon] > chunky quiet 10
+[nt-perblock][rcon] [Chunky] Quiet interval set to 10 seconds.
+[nt-perblock][rcon] > chunky world minecraft:the_nether
+[nt-perblock][rcon] [Chunky] World changed to minecraft:the_nether.
+[nt-perblock][rcon] > chunky center -48 -11
+[nt-perblock][rcon] [Chunky] Center changed to -48, -11.
+[nt-perblock][rcon] > chunky radius 160
+[nt-perblock][rcon] [Chunky] Radius changed to 160.
+[nt-perblock][rcon] > chunky start
+[nt-perblock][rcon] [Chunky] Task started in minecraft:the_nether for the square region centered at -48, -11 with radius 160.
+[nt-perblock][result] dim=the_nether boot=42.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=df9f56a9bd1acd01 contentSha=4acf453eebc213d6 wbSha=4f02091a1b4c883e
+[nt-perblock][bulk] 
+[nt-perblock][perblock] 
+[nt-perblock][verdict] dllAttest=True attested
+########## 1216 nt-perblock dim=the_nether DONE 14:20:02 ##########
+-----
+########## 1216 nt-bulk dim=the_nether start 14:20:02 radius=160 props='-Dcoreswap.bulkwb=1' diskDll=abd7d8893d22e030 ##########
+[nt-bulk][bridge] [14:20:44] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[nt-bulk][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[nt-bulk][rcon] > chunky quiet 10
+[nt-bulk][rcon] [Chunky] Quiet interval set to 10 seconds.
+[nt-bulk][rcon] > chunky world minecraft:the_nether
+[nt-bulk][rcon] [Chunky] World changed to minecraft:the_nether.
+[nt-bulk][rcon] > chunky center -48 -11
+[nt-bulk][rcon] [Chunky] Center changed to -48, -11.
+[nt-bulk][rcon] > chunky radius 160
+[nt-bulk][rcon] [Chunky] Radius changed to 160.
+[nt-bulk][rcon] > chunky start
+[nt-bulk][rcon] [Chunky] Task started in minecraft:the_nether for the square region centered at -48, -11 with radius 160.
+[nt-bulk][result] dim=the_nether boot=39.1s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=df9f56a9bd1acd01 contentSha=4acf453eebc213d6 wbSha=4f02091a1b4c883e
+[nt-bulk][bulk] 
+[nt-bulk][perblock] 
+[nt-bulk][verdict] dllAttest=True attested
+########## 1216 nt-bulk dim=the_nether DONE 14:21:07 ##########
+-----
+########## 1216 en-default dim=the_end start 14:21:08 radius=160 props='' diskDll=abd7d8893d22e030 ##########
+[en-default][bridge] [14:21:50] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[en-default][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[en-default][rcon] > chunky quiet 10
+[en-default][rcon] [Chunky] Quiet interval set to 10 seconds.
+[en-default][rcon] > chunky world minecraft:the_end
+[en-default][rcon] [Chunky] World changed to minecraft:the_end.
+[en-default][rcon] > chunky center -48 -11
+[en-default][rcon] [Chunky] Center changed to -48, -11.
+[en-default][rcon] > chunky radius 160
+[en-default][rcon] [Chunky] Radius changed to 160.
+[en-default][rcon] > chunky start
+[en-default][rcon] [Chunky] Task started in minecraft:the_end for the square region centered at -48, -11 with radius 160.
+[en-default][result] dim=the_end boot=42.1s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=a81eeefc79d55983 contentSha=3344fd3fea16fb4e wbSha=c8081244587199ff
+[en-default][bulk] 
+[en-default][perblock] 
+[en-default][verdict] dllAttest=True attested
+########## 1216 en-default dim=the_end DONE 14:22:14 ##########
+-----
+########## 1216 en-perblock dim=the_end start 14:22:14 radius=160 props='-Dcoreswap.bulkwb=0' diskDll=abd7d8893d22e030 ##########
+[en-perblock][bridge] [14:22:57] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[en-perblock][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[en-perblock][rcon] > chunky quiet 10
+[en-perblock][rcon] [Chunky] Quiet interval set to 10 seconds.
+[en-perblock][rcon] > chunky world minecraft:the_end
+[en-perblock][rcon] [Chunky] World changed to minecraft:the_end.
+[en-perblock][rcon] > chunky center -48 -11
+[en-perblock][rcon] [Chunky] Center changed to -48, -11.
+[en-perblock][rcon] > chunky radius 160
+[en-perblock][rcon] [Chunky] Radius changed to 160.
+[en-perblock][rcon] > chunky start
+[en-perblock][rcon] [Chunky] Task started in minecraft:the_end for the square region centered at -48, -11 with radius 160.
+[en-perblock][result] dim=the_end boot=42.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=a81eeefc79d55983 contentSha=3344fd3fea16fb4e wbSha=c8081244587199ff
+[en-perblock][bulk] 
+[en-perblock][perblock] 
+[en-perblock][verdict] dllAttest=True attested
+########## 1216 en-perblock dim=the_end DONE 14:23:20 ##########
+-----
+########## 1216 en-bulk dim=the_end start 14:23:21 radius=160 props='-Dcoreswap.bulkwb=1' diskDll=abd7d8893d22e030 ##########
+[en-bulk][bridge] [14:24:03] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[en-bulk][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[en-bulk][rcon] > chunky quiet 10
+[en-bulk][rcon] [Chunky] Quiet interval set to 10 seconds.
+[en-bulk][rcon] > chunky world minecraft:the_end
+[en-bulk][rcon] [Chunky] World changed to minecraft:the_end.
+[en-bulk][rcon] > chunky center -48 -11
+[en-bulk][rcon] [Chunky] Center changed to -48, -11.
+[en-bulk][rcon] > chunky radius 160
+[en-bulk][rcon] [Chunky] Radius changed to 160.
+[en-bulk][rcon] > chunky start
+[en-bulk][rcon] [Chunky] Task started in minecraft:the_end for the square region centered at -48, -11 with radius 160.
+[en-bulk][result] dim=the_end boot=42.1s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=0 content=625 wb=625 carrier=OK fpSha=a81eeefc79d55983 contentSha=3344fd3fea16fb4e wbSha=c8081244587199ff
+[en-bulk][bulk] 
+[en-bulk][perblock] 
+[en-bulk][verdict] dllAttest=True attested
+########## 1216 en-bulk dim=the_end DONE 14:24:27 ##########
+-----
+########## 1216 ow-bulk-log dim=overworld start 14:24:27 radius=160 props='-Dcoreswap.bulkwb=1 -Dcoreswap.bulkwblog=1' diskDll=abd7d8893d22e030 ##########
+[ow-bulk-log][bridge] [14:25:09] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[ow-bulk-log][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[ow-bulk-log][rcon] > chunky quiet 10
+[ow-bulk-log][rcon] [Chunky] Quiet interval set to 10 seconds.
+[ow-bulk-log][rcon] > chunky world minecraft:overworld
+[ow-bulk-log][rcon] [Chunky] World changed to minecraft:overworld.
+[ow-bulk-log][rcon] > chunky center -48 -11
+[ow-bulk-log][rcon] [Chunky] Center changed to -48, -11.
+[ow-bulk-log][rcon] > chunky radius 160
+[ow-bulk-log][rcon] [Chunky] Radius changed to 160.
+[ow-bulk-log][rcon] > chunky start
+[ow-bulk-log][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[ow-bulk-log][result] dim=overworld boot=39.1s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=8184d609847c704e contentSha=ae643ed8c6054ab0 wbSha=ae5ddee139d9cd10
+[ow-bulk-log][bulk] [14:25:27] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] calls=625 sections_replaced=5000 air_sections_skipped=10000 idlist_hits=0 max_distinct=7 ns/section: build=285175 (incl. readPacket=6639) counts_set=136 ns/call(total)=2772698 (per-section ns; compare against per-block setBlockState path)
+[ow-bulk-log][perblock] [14:25:27] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-PERBLOCK] calls=0 ns/call(total)=-1 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[ow-bulk-log][verdict] dllAttest=True attested
+########## 1216 ow-bulk-log dim=overworld DONE 14:25:31 ##########
+-----
+########## 1216 ow-perblock-log dim=overworld start 14:25:32 radius=160 props='-Dcoreswap.bulkwb=0 -Dcoreswap.bulkwblog=1' diskDll=abd7d8893d22e030 ##########
+[ow-perblock-log][bridge] [14:26:14] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[ow-perblock-log][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[ow-perblock-log][rcon] > chunky quiet 10
+[ow-perblock-log][rcon] [Chunky] Quiet interval set to 10 seconds.
+[ow-perblock-log][rcon] > chunky world minecraft:overworld
+[ow-perblock-log][rcon] [Chunky] World changed to minecraft:overworld.
+[ow-perblock-log][rcon] > chunky center -48 -11
+[ow-perblock-log][rcon] [Chunky] Center changed to -48, -11.
+[ow-perblock-log][rcon] > chunky radius 160
+[ow-perblock-log][rcon] [Chunky] Radius changed to 160.
+[ow-perblock-log][rcon] > chunky start
+[ow-perblock-log][rcon] [Chunky] Task started in minecraft:overworld for the square region centered at -48, -11 with radius 160.
+[ow-perblock-log][result] dim=overworld boot=39.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=8184d609847c704e contentSha=ae643ed8c6054ab0 wbSha=ae5ddee139d9cd10
+[ow-perblock-log][bulk] [14:26:32] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-BULKWB] calls=0 sections_replaced=0 air_sections_skipped=0 idlist_hits=0 max_distinct=0 (per-section ns; compare against per-block setBlockState path)
+[ow-perblock-log][perblock] [14:26:32] [Server thread/INFO] (Minecraft) [STDOUT]: [WG-PERBLOCK] calls=625 ns/call(total)=7329741 (旧逐块路径写回分项，与 [WG-BULKWB] ns/call(total) 同仪器)
+[ow-perblock-log][verdict] dllAttest=True attested
+########## 1216 ow-perblock-log dim=overworld DONE 14:26:35 ##########
+-----

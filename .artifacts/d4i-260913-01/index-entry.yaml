@@ -1,0 +1,17 @@
+# 260913-01 fragment entries（手动合并进根 index.yaml；**勿跑 merge_index.py** —— 它会剥离根索引全部注释，见 W13/#48/#50）
+- id: 'swe:d4i-260913-01:plan'
+  path: '../.investigations/000-架构设计/架构计划-260913-01-D4i三臂AB与全维行为门.md'
+  kind: plan
+  status: candidate
+- id: 'swe:d4i-260913-01:record'
+  path: '../.investigations/d4i-260913-01/verify-260913-01.md'
+  kind: record
+  status: candidate   # judge PASS-with-conditions（3 MUST 已应用）；confirmed 留人类
+- id: 'swe:d4i-260913-01:judge-review'
+  path: '../.investigations/d4i-260913-01/judge-260913-01.md'
+  kind: review
+  status: candidate
+- id: 'swe:d4i-260913-01:errors'
+  path: '../.investigations/d4i-260913-01/errors-260913-01.md'
+  kind: errors
+  status: candidate

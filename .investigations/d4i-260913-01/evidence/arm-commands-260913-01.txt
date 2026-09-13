@@ -1,0 +1,85 @@
+# 260913-01 臂命令表（预登记，执行前写死 —— workflow-patterns #112）
+
+> 生成时刻：2026-09-13（Get-Date 锚定）
+> 运行台：`.tmp/d4i-260913-01/run_1216_arm_v2.ps1`（v2，相对 260912-02 v1 的 5 项变更见文件头）
+> 执行体：`target\release\worldgen1216.dll` = `abd7d8893d22e030…`（磁盘硬门 + 逐臂 in-log `[CppBridge] dll=` 自证行双核）
+
+## 0. 基座（所有臂共有）
+
+```
+GRADLE_USER_HOME = E:\PYTHON\CoreSwap\.gradle-home
+JAVA_TOOL_OPTIONS = -Djava.io.tmpdir=<repo>\.tmp\java-tmp
+                    -Dcoreswap.mixlog=1          # 行为面日志
+                    -Dcoreswap.wbcontent=1       # [WG-CONTENT-WB] 读回层指纹
+gradle :runServer -PcppReplace=true -PcppLib=<abs>target\release\worldgen1216.dll
+       -PcppWorldgenDir=<repo>\versions\1.21.6\data\worldgen --console=plain
+seed = 417950215108767439（每臂先写回 server.properties 的 level-seed）
+chunky: quiet 10 / world minecraft:<dim> / center -48 -11 / radius 160 / start
+world 每臂删除（保证同起点）+ chunky 任务状态目录删除
+```
+
+## 1. 计数载体直证（#139 ②，本块新证 —— **修正 260912-02 的表述范围**）
+
+| 项目 | 命令 | 实测任务图 | 结论 |
+|---|---|---|---|
+| 1.20.1 裸 `runServer` | `gradle --dry-run runServer` | `:runServer` **+** `:content-test:runServer`（两个 loom 子工程） | ⚠️ **双命中** ⇒ 两次 JVM 一次日志（260912-02 C-17 的真实机制，**1.20.1 独有**） |
+| 1.20.1 `:runServer` | `gradle --dry-run :runServer` | 仅 `:runServer` | ✅ 单 run（修正写法） |
+| **1.21.6 裸 `runServer`** | `gradle --dry-run runServer` | **仅 `:runServer`** | ✅ 单 run —— **本版无该缺陷** |
+| **1.21.6 `:runServer`** | `gradle --dry-run :runServer` | 仅 `:runServer` | ✅ 单 run |
+
+**机制（本块新定位；judge MUST-1 更正后定稿）**：`settings.gradle:13 include 'content-test'` 使 Gradle **自动创建一个空子工程**（`gradle :content-test:tasks` → BUILD SUCCESSFUL），但 `versions\1.21.6\java\content-test\` **目录根本不存在**（`Test-Path` = False、`git ls-files` = 0）⇒ 该空子工程**无 loom 插件** ⇒ **无 `runServer` 任务**（`gradle :content-test:tasks --all | grep runServer` = 零命中）。故「无冒号 runServer 双命中」**只发生在 1.20.1**，不发生在 1.21.6。
+> ⚠️ **判据 = `include` 与目录存在性解耦** ⇒ 判别此类问题 **MUST 看任务图，不得看目录**（本文件初版曾误写「目录为空」，judge MUST-1 已更正；结论正确而解释错，教训见 §5 与 `errors-260913-01.md` W3）。
+**处置**：本块运行台仍显式用 `:runServer`（防御性：将来若补 1.21.6 content-test，写法不退化）；同时**登记该不对称性**，避免下游再把 1.20.1 的载体缺陷误记到 1.21.6 头上。
+
+## 2. 九臂命令表（3 臂形态 × 3 维度，**串行**）
+
+| # | Tag | Dim | `-Props` | 目的 |
+|---|---|---|---|---|
+| 1 | `ow-default` | overworld | （无） | 默认臂（`BULKWB_ON=false` ⇒ 逐块路径） |
+| 2 | `ow-perblock` | overworld | `-Dcoreswap.bulkwb=0` | 显式逐块臂 |
+| 3 | `ow-bulk` | overworld | `-Dcoreswap.bulkwb=1` | 强制 bulk 臂（= 1.20.1 生产形态） |
+| 4 | `nt-default` | the_nether | （无） | 默认臂 |
+| 5 | `nt-perblock` | the_nether | `-Dcoreswap.bulkwb=0` | 显式逐块臂 |
+| 6 | `nt-bulk` | the_nether | `-Dcoreswap.bulkwb=1` | 强制 bulk 臂 |
+| 7 | `en-default` | the_end | （无） | 默认臂 |
+| 8 | `en-perblock` | the_end | `-Dcoreswap.bulkwb=0` | 显式逐块臂 |
+| 9 | `en-bulk` | the_end | `-Dcoreswap.bulkwb=1` | 强制 bulk 臂 |
+
+**补充自证臂（#139 ①，正/负成对，overworld 即可承载）**：
+
+| # | Tag | Dim | `-Props` | 期望 |
+|---|---|---|---|---|
+| 10 | `ow-bulk-log` | overworld | `-Dcoreswap.bulkwb=1 -Dcoreswap.bulkwblog=1` | `[WG-BULKWB] calls=625`（正） |
+| 11 | `ow-perblock-log` | overworld | `-Dcoreswap.bulkwb=0 -Dcoreswap.bulkwblog=1` | `[WG-BULKWB] calls=0` + `[WG-PERBLOCK] calls=607`（负） |
+
+> 注：若臂 1/4/7 的默认臂本身即逐块，自证臂 11 可与臂 2 合并（仅在 `bulkwblog=1` 时输出计数行时才需单独跑）。
+
+## 3. 判据（**执行前写死**，见架构计划 §3）
+
+| 判据 | 形式 |
+|---|---|
+| C-1 等价性 | 三臂两两 × 三维，**两层各自**逐 chunk **多重集** diff = 0（序列不承载判据） |
+| C-2 生效自证 | bulk 臂 `[WG-BULKWB] calls>0`；perblock 臂 `calls=0` 且 `[WG-PERBLOCK] calls>0` |
+| C-3 载体存在性 | 三维各自 `content>0` **且** `wb>0`（`carrier=OK`）；否则先补载体，**不报 diff=0 通过** |
+| C-4 正对照 | overworld vs nether 指纹 `hash_diff > 0` |
+| C-5 异常面 | `EntryMissingException` = 0；非 WMI 真实异常按**单次 JVM 运行**计数 |
+| C-6 执行体 | 逐臂 `dllAttest=attested`，否则该臂 VOID |
+
+## 4. 覆盖面 / §9.7 可比性声明（预登记）
+
+- **载体**：1.21.6 Java mod（`versions\1.21.6\java`）+ 同版 Rust dll `worldgen1216.dll` = `abd7d8893d22e030…`
+- **覆盖面**：三维度 **各一 region**（`chunky center -48 -11` **方块坐标** + `radius 160` ⇒ 441 chunk）；**逐 chunk 全量、非抽样**；**单次 JVM 运行**口径
+- **可比性**：与 260912-02 的 1.21.6 臂**同种子/同坐标/同半径/同 dll**，口径可直接比；与 1.20.1 侧（`dd3b645f…`）**跨版本不可互引**；与历史代理基线**不可互引**（#127/#128）
+- **指纹层**：`[WG-CONTENT]` = Rust buf 层（对 Java 侧改动结构性不敏感）；`[WG-CONTENT-WB]` = Java 写回读回层 —— **只在同层比较**
+
+## 5. 冒烟轮修正（执行中发现，预登记后补记 —— 不改判据，只修测量侧）
+
+冒烟臂 `smoke-ow`（overworld，默认形态）实测：`boot=45.2s gen=10s status=FINISHED throws=0 entryMissing=0 content=625 wb=625 carrier=OK dllAttest=True fpSha=8184d609847c704e`。
+
+| # | 现象 | 根因 | 处置 |
+|---|---|---|---|
+| M1 | `intercept=0` 而 `content=625`（接管显然发生） | 正则写的是 `populateNoise(<dim>) intercepted`（承自 260902-05 的旧形），**本载体日志实形 = `[Mixin] populateNoise intercepted chunk(x,z)`（不含维度名）** | 正则改为 `populateNoise intercepted`；**旧形在本载体恒 0 = 假零**（#13 家族「grep 假零输出」） |
+| M2 | `exceptions=3` | 3 行全是 `WmiQueryHandler` COM 良性噪声（环境） | 新增 `nonWmi` 计数（排除 WMI/COM 行），异常面判据以 `nonWmi` 为准 |
+| M3 | 冒烟臂 `fpSha=8184d609847c704e` | — | **与 260912-02 冻结的 1.21.6 默认基线同 sha 家族**（`8184d609…f9878a`）⇒ 跨块一致性信号（非判据） |
+
+> M1/M2 属**测量侧修正**（不改 C-1..C-6 判据本身），按 #112「读法预登记」纪律登记于此；冒烟臂不进入正式九臂台账（其日志保留在 `.tmp/d4i-260913-01/1216-smoke-ow.log`）。
