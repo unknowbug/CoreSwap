@@ -115,3 +115,15 @@
 - 🔍 **open（下一轮最小闭环）**：① R9-b 并发写路径专项（承 260912-02 遗留，本块零覆盖）；② 跨 region / 跨 seed 泛化（本块三维**各一** region）；③ 长时运行 / 内存（需固定 `-Xmx`，承 #119）；④ 翻转后三维复跑（**可选加固非前置**）；⑤ 性能口径另立（本块 `ns/section` 行有读数但未做 A/B 配对与噪声带控制 ⇒ **不作结论**）。
 - ⚠️ **降级/口径声明（§9.7 三要素）**：**载体** = 1.21.6 Java mod（`versions\1.21.6\java`）+ Rust dll `worldgen1216.dll` = `abd7d8893d22e030…`；Chunky 1.4.40 经 `:runServer` RCON 驱动。**覆盖面** = 三维度**各一 region**（`chunky center -48 -11` **方块坐标** + `radius 160` ⇒ **441 个 Chunky 任务 chunk**；内容行 **625** = 经接管的 chunk 数，含 **spawn 预生成**的邻近 chunk ⇒ **441 与 625 是两个不同机制的集合，不可互相代入**）；**逐 chunk 全量、非抽样**；**单次 JVM 运行**口径；指纹取点在写回**前后各一层**（`[WG-CONTENT]` = Rust buf 层 / `[WG-CONTENT-WB]` = Java 写回读回层，**两层 hash 域不同、禁跨层比对**）。**可比性** = 与 260912-02 的 1.21.6 臂**同种子/同坐标/同半径/同 dll** ⇒ 可直接比（实测同一 `8184d609…`）；与 **1.20.1 侧（`dd3b645f…`）跨版本不可互引**；与历史代理基线**不可互引**（#127/#128）。
 - ⛔ **明确不得随 confirmed 继承**：`BULKWB_ON` 翻转决策之外的一切（翻转本身 = HOOK-C）；性能结论；跨 region/seed/长时/并发（R9-b）；**1.20.1 侧行为结论**（本块未跑该臂）；「`content-test` 目录为空」叙述（MUST-1 已更正）；写出帧字节等价（未直采）。
+
+## 260913-04（实际 2026-09-13，冒烟执行窗口 17:40–17:43；日期锚 = 工作块 260913-04）：1.21.6 chunk 管线独立核对（A1-A6 对拍）+ sentinel armed 冒烟 — **candidate**（judge PASS-with-conditions 已通过；confirmed 待用户授予）
+
+> 过程产物 `.investigations/sentinel-260913-04/pipeline-audit-1216.md`（A1-A6 对拍全文 + 两臂冒烟 + judge 应用记录）+ `cmd-output/sentinel1216-{off,on}.log(.err)`（judge SHOULD 补落盘；on 臂 sha256 501E8579…6D17）+ `.tmp/sentinel-260913-04/`（反编译源与运行台，不入库在盘可核）。反编译源 `.tmp/sentinel-260913-04/mcsrc1216/`。上游：260913-02 R9-b A1-A6（1.20.1 confirmed）+ 260913-03 sentinel 落地；本块 = §16.3 交接验证 + 覆盖面扩展至 1.21.6。
+> 主题篇归口：结论性扩展声明记 `versions/1.20.1/docs/07-block-pipeline.md` 260913-04 追加小节（原 R9-b 小节所在篇）。
+
+- ✅ **反编译载体**：1.21.6 yarn merged jar（`net.fabricmc.yarn.1_21_6.1.21.6+build.1-v2`，loom-cache）+ vineflower 1.11.1（loom genSources 同款）定向反编译所需类；Degraded（纯静态源码论证）。
+- ✅ **A1-A6 逐点对拍 1.21.6**：全部成立；A1 更强（新增 `progressStatus` CAS 门，`AbstractChunkHolder.java:220-230`）。结构变化 = `futuresByStatus` 上移改名 `chunkFuturesByStatus`（AbstractChunkHolder）、`ThreadedAnvilChunkStorage`→`ServerChunkLoadingManager`、任务表分离为 `ChunkGenerationStep`/`ChunkGenerationSteps`、`INITIALIZE_LIGHT` 为 1.21.6 新状态（ChunkStatus.java:29-30 实证）。
+- ✅ **两臂冒烟（Full 行为级）**：off 臂 armed=0 / wb=576 / crash=0；on 臂 armed=1 / wb=576 / crash=0；576 chunk 零误报零 crash；suspExc=3 两臂同值 = WMI COM 良性噪声（#139② 排除集，`.log.err` 另有 2 条 gradle launcher error=5 不在计数内）。
+- ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions**：唯一偏移 = `ServerChunkLoadingManager.generate` 实际 :635-664 / "Parent chunk missing" :644（audit 原写 :632-661/:639-641，偏移 ~3 行、机制措辞逐字一致）；INFO-2 立规 = 后续记录写实际行号。SHOULD/INFO 均已应用。
+- ⚠️ **§9.7**：载体 = 1.21.6 yarn merged jar 静态论证（Degraded）+ 冒烟（Full 行为级）；覆盖面 = chunk 生成管线状态机 + sentinel 冒烟单 region（seed 417950215108767439，post-Done forceload -128..127）；与 260913-02 record §2 同构对拍表直接可比。
+- 状态：**candidate**，confirmed 待用户授予（记录时间线时点，未授予）。

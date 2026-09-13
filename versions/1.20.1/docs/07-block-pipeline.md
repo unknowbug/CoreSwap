@@ -1515,3 +1515,14 @@ unctional-errors.md F1-F3）：
 - **Degraded 边界（诚实声明）**：双写者违例路径未做运行时注入（无现成注入面）——违例 crash 路径以静态论证承载（`sentinelEnter` → `sentinelCrash` 与 `LockHelper.crash` 同构 + 编译绿 + 消费面审查）；分类 = **Degraded（局部）**：门控行为 Full 运行时证据、违例路径静态。门关零开销 = 每 chunk 一次 `<clinit>` 已求值的 static final 读取 + 分支（judge SHOULD-1 措辞修正：**非**编译期常量消除，见 compiler-idioms #26）。
 - **judge / 状态**：judge（隔离 subagent）= **PASS-with-conditions**（0 MUST / 2 SHOULD / 4 INFO），推荐 candidate；SHOULD-1（门关零开销措辞）/ SHOULD-2（共享核跨版声明：sentinel 两版默认关、仅随 bulk 路径在场、1.21.6 行为零变化）/ INFO-2（sentinelKey 注释）已应用；INFO-1（chunk 级粒度 = per-chunk 单写者不变量的有意升级）已写入类注释。**置信度 candidate，confirmed 待用户授予**。跨 seed 动态压测（另一加固形态）仍为未立项的后续选项。（回执：**用户已 confirmed 2026-09-13**，范围 = 本节全部结论。）
 - 通用模式 → `knowledge/discovered/compiler-idioms.md` #24 补充案例（260913-03 收口）+ #26。
+
+### 2026-09-13 R9-b 追加（260913-04）：覆盖面扩展——A1-A6 于 1.21.6 管线独立核对成立 + sentinel 1.21.6 冒烟（candidate，待用户 confirmed）
+
+> 承接上文「覆盖面：……1.21.6 侧共享核同源但**管线源码未逐行核对**（未独立验证，已声明）」：该边界已由工作块 260913-04 收口（§16.3 交接验证 + 覆盖面扩展），上文原结论（单写者不变量成立 / 回归登记 / 残留边界）不变。载体与依据：`.investigations/sentinel-260913-04/pipeline-audit-1216.md`（A1-A6 对拍全文 + 两臂冒烟 + judge 应用记录）；反编译载体 = 1.21.6 yarn merged jar（loom genSources 同款 vineflower 1.11.1）定向反编译（Degraded 静态）+ 冒烟 Full 运行时证据。
+
+- **A1-A6 于 1.21.6 全部成立**（与 260913-02 record §2 同构对拍表，直接可比）；且 **A1 更强**：1.21.6 新增 `progressStatus`（`AbstractChunkHolder.java:220-230`，`currentStatus` CAS）= 每状态任务启动一次性 CAS 门，叠加 `chunkFuturesByStatus` CAS 去重（:137-148），单写者保证比 1.20.1 更强。
+- **1.21.6 结构变化对照要点**（不影响机制结论）：`ChunkHolder.futuresByStatus` 上移改名 `AbstractChunkHolder.chunkFuturesByStatus`；`ThreadedAnvilChunkStorage` → `ServerChunkLoadingManager`；ChunkStatus 任务从内联 lambda 分离为 `ChunkGenerationStep`/`ChunkGenerationSteps` 注册链（`Builder(previousStep)` 乱序抛异常，有序性由结构保障）；光照拆出 `INITIALIZE_LIGHT` 新状态（1.21.6 新增）；邻居前置由 `ChunkLoader.loadAll/load`（`accumulatedDependencies`）结构化承担——J1 措辞（等待的是生成用前置状态）依然成立。
+- **sentinel 1.21.6 两臂冒烟**（承 260913-03 落地的 debug 门控检测器，`run_sentinel_1216.ps1` 改造自 1201 版）：off 臂 `armed=0 / wb=576 / crash=0`，on 臂 `armed=1 / wb=576 / crash=0`——门开行为化自证命中、576 chunk 零误报零 crash、门关零介入（suspExc=3 两臂同值 = WMI COM 良性噪声，#139② 排除集）。**1.21.6 行为零变化（门关臂）+ sentinel 在 1.21.6 行为符合预期（Full 行为级证据）**。
+- **judge**：隔离 subagent 三源核对 = **PASS-with-conditions**（唯一偏移 = `ServerChunkLoadingManager.generate` 实际 :635-664 / "Parent chunk missing" :644，audit 原写 :632-661/:639-641 偏移 ~3 行、机制措辞一致；后续记录以实际行号为准）；SHOULD（两臂日志补落盘 `cmd-output/sentinel1216-{off,on}.log(.err)`）与 INFO 均已应用。
+- **状态：candidate，confirmed 待用户授予。** §9.7：静态论证为 Degraded（同残留边界随转：未来新增跨 future 边缓存 section 的消费者仍须重开 A5）；冒烟为 Full 行为级。
+
