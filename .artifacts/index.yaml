@@ -1675,3 +1675,22 @@ entries:
     path: '../.investigations/sentinel-260913-04/'
     kind: knowledge
     status: candidate   # subagent 草稿 + 主会话应用：docs/07 260913-04 追加小节 + 1.21.6 版 10 时间线 260913-04 块；价值门：不新开 discovered 条目（#36 家族重复实例，无新判据）
+  - id: 'swe:sentinel-260913-05:record'
+    path: '../.investigations/sentinel-260913-05/record-260913-05.md'
+    kind: record
+    status: confirmed   # 用户授予 2026-09-13（范围 = 四臂判读 + A2 归因消解；judge PASS-with-conditions 条件已应用）
+    # 260913-05：sentinel 跨 seed 动态压测（260913-04 开工点 1）。2 版本 × 各 2 新 seed（正/负域），判据
+    #   armed>0/wb>0/crash=0 全 PASS：A1 1.20.1/s123456789012345678 默认区 1/342/0；A2 1.20.1/s-987654321098765432
+    #   复跑远区 1/576/0；B1 1.21.6/s777000111222333444 1/576/0；B2 1.21.6/s-424242424242424242 1/576/0。
+    #   A2 首轮零输出 decisive probe 消解 = 默认 forceload 区 ⊆ spawn 预生成覆盖（seed 相关，预期行为非缺陷）。
+    #   §9.7：实机 runServer 冒烟 × 256 chunk/臂单区域；不覆盖多 region/长时/内存/性能口径。载体 .tmp 不入库。
+  - id: 'swe:sentinel-260913-05:judge'
+    path: '../.investigations/sentinel-260913-05/record-260913-05.md'
+    kind: review
+    status: candidate
+    # 隔离 subagent 三源核对：四臂三指标独立 grep 复核全过 / 执行体三元组自洽 / §9.7 诚实。PASS-with-conditions：
+    #   MUST-1 = A2 首轮日志被复跑覆盖 → record 补证据链声明（选项②）；MUST-2 = suspExc 双来源拆分；均已应用。
+  - id: 'swe:sentinel-260913-05:knowledge'
+    path: '../.investigations/sentinel-260913-05/'
+    kind: knowledge
+    status: candidate   # subagent 草稿 + 主会话应用：workflow-patterns #144（错误优先：复跑先归档首轮日志 + 跨 seed 远区判据）+ 1.21.6 版 10 时间线 260913-05 块 + INDEX 追加行

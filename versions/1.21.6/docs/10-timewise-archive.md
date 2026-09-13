@@ -128,3 +128,16 @@
 - ⚠️ **§9.7**：载体 = 1.21.6 yarn merged jar 静态论证（Degraded）+ 冒烟（Full 行为级）；覆盖面 = chunk 生成管线状态机 + sentinel 冒烟单 region（seed 417950215108767439，post-Done forceload -128..127）；与 260913-02 record §2 同构对拍表直接可比。
 - 状态：**candidate**，confirmed 待用户授予（记录时间线时点，未授予）。
 - （回执：**用户已 confirmed 2026-09-13**，范围 = 本块 record 全部结论。）
+
+## 260913-05（实际 2026-09-13，执行窗口约 19:06–21:4x；日期锚 Get-Date 19:06）：sentinel 跨 seed 动态压测（2 版本 × 各 2 新 seed，门开大 region）——四臂全 PASS + A2 首轮零输出 decisive probe 消解（预期行为非缺陷）—— ✅ confirmed（用户授予 2026-09-13）
+
+> 过程产物 `.investigations/sentinel-260913-05/record-260913-05.md`（主记录，confirmed）+ `cmd-output/sentinel{1201,1216}-on-s<seed>.log(.err)`（入库日志副本）+ 已批准计划 `.investigations/000-架构设计/架构计划-260913-05-跨seed动态压测.md`（轻量，HOOK-A）。载体 `.tmp/sentinel-260913-05/run_sentinel_{1201,1216}.ps1`（承 260913-03/04 版最小改造：+`-Seed`/`-FRegion`；.tmp 不入库，record 为权威记录）。
+> 归口注明：本块 A1/A2 为 **1.20.1 侧臂**（dll `dd3b645f…`），其结论随本块记于本文件（运行台为 1216 脚本同族改造，且归档单一来源原则），不在 1.20.1 时间线另立块。上游：260913-03/04 sentinel 同 seed 冒烟（confirmed）；本块 = 跨 seed 泛化（260913-04 开工点 1）。
+
+- ✅ **执行体三元组（§9.7 前置）**：1.20.1 臂 `target\release\worldgen.dll` sha256 `DD3B645F…8765D`（2026-09-11 构建，与 260913-03 同源）；1.21.6 臂 `worldgen1216.dll` sha256 `ABD7D889…2131`（2026-09-10 构建，与 260913-04 同源）；前提实核 `WgCompat.BULKWB_ON=true` + rcon 在位 + git HEAD `4eaf1b6` 干净。
+- ✅ **四臂判读（判据 = armed>0 / wb>0 / crash=0，全 PASS）**：A1 1.20.1/s123456789012345678/默认区 → 1/342/0；A2 1.20.1/s-987654321098765432/首轮默认零输出→复跑远区 → 1/576/0；B1 1.21.6/s777000111222333444/远区 → 1/576/0；B2 1.21.6/s-424242424242424242/远区 → 1/576/0。逐臂 seed 行为化自证 `[CppBridge] init seed=` 一致（B 臂含 initNether/initEnd）。
+- ❌→✅ **A2 首轮零输出 → decisive probe 消解（非缺陷，预期行为）**：首轮（默认区）`armed=0/wb=0` 但 Done 达成、bridge init 正确、region 有产物。候选三分（gate/env 未送达 #32 族 / 接管未跑 / forceload 区 ⊆ spawn 预生成覆盖）→ decisive probe（#13 one-step）：同 seed 改远区 `forceload add 2048 2048 2303 2303` 复跑 → `1/576/0`，候选③唯一成立——默认区 [-8..7]² ⊆ spawn 预生成范围（约 [-10..10]²），预生成完成早的 seed 在 Done 后无新区块 → **「零写回零 armed」= 预期行为签名**。A1 的 wb=342 = 预生成残留 chunk 在 Done 后经接管生成（#80 正面实例）。判据沉淀 → workflow-patterns #144。
+- ⚠️ **suspExc 双来源表述（judge MUST-2 修正）**：`.log` ×N = OSHI `WmiQueryHandler` COM WARN（#139② 同族良性；1.20.1 臂 4 / 1.21.6 臂 3）＋ `.log.err` ×1/臂 = rubygrapefruit `error=5`（#56 沙箱 JVM attach 拒访良性）。均非 sentinel 面；record 初稿误混为单一来源已修正。
+- ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：MUST-1 = A2 首轮日志被复跑同路径覆盖 → record 补证据链声明（选项②诚实声明：首轮现象不可独立复核，归因依赖复跑对照差分结构）；MUST-2 = suspExc 双来源拆分；SHOULD-2 = 立条「复跑 MUST 先归档首轮日志」（→ #144，错误优先）。
+- ⚠️ **§9.7**：载体 = 实机 runServer 冒烟 × 2 版本 × 各 2 新 seed（正/负域）× 256 chunk/臂单区域；不覆盖多 region 并行、长时运行、内存/性能口径。B 臂换远区域为刻意变更，与 04 的 wb=576 巧合一致（256 chunk × 全等行数），已声明。
+- 状态：✅ judge PASS-with-conditions（条件已应用）→ ✅ 用户 confirmed（2026-09-13）。
