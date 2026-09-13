@@ -411,6 +411,21 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 
 ---
 
+### 发现 #24 补充案例（260913-03，回归面收口）：已登记的检测器回归面补回的落地形态——门控 sentinel 模式四要件
+
+- **发现时间 / 发现者 / 置信度 / module**：260913-03；主会话（swe 收敛实现）+ judge（隔离 subagent，PASS-with-conditions：0 MUST / 2 SHOULD / 4 INFO，条件已应用）；**candidate**（confirmed 留用户）；compiler-idioms / 并发检测面（**260913-02 补充案例登记的「补回可观测性」未来动作的收口**）。
+- **来源定位**：实现 = `java-core\src\main\java\wg\bench\BulkWb.java`（`-Dcoreswap.bulkwbsentinel` 门 + `SENTINEL_ACTIVE` + `sentinelEnter/Exit/Crash` + `writeSections` 包裹层）；执行记录 = `.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md`；一手源对照 = `.tmp\scout-260905-08\mcsrc\net\minecraft\util\thread\LockHelper.java`（`tryAcquire` 失败即 crash，含同线程重入 + 双方线程 dump）。承接 #24 更正（260911-05）+ #24 补充案例（260913-02）。
+- **落地形态（检测器补回的四个要件，可复用）**：
+  1. **默认关门控 + 单点求值**：`static final boolean SENTINEL = System.getProperty(...) != null`（`<clinit>` 单次赋值），门判断 chunk 级一次（`sentinelEnter` 首行 return），不落每 section 每点（#98 诊断门控纪律）。⚠️ 这不是编译期常量消除——见发现 #26（260913-03）。
+  2. **行为化自证行**：`[WG-BULKWB-SENTINEL] armed` 一次性打印（`AtomicBoolean` CAS 保证恰一行）——门开/门关两臂各出「armed 出现 / 不出现」正负成对自证（#81 判据），防「门没生效的空验证」（#139① 同族）。
+  3. **违例路径同构复刻 + 检测域语义显式声明**：`sentinelCrash` 与 `LockHelper.crash` 同形态（`CrashException` + 双方线程 dump 写 crash report + 不吞异常，崩溃捕获铁律）；检测域 = **在飞重叠 + 非可重入**（`putIfAbsent` 命中即 crash，含同线程重入），忠实复刻不扩大不缩小——不抓顺序双写。语义边界 MUST 显式写进类注释，防后人误当广义互斥锁。
+  4. **粒度差异显式声明**：原检测器 per-write（每块一次），sentinel 为 chunk 级（每 chunk 一次 map 操作）——per-chunk 单写者不变量（R9-b confirmed）下的**有意升级**，非遗漏；写入类注释。
+- **验证形态（可复用样板）**：正对照（门开 + 正常单写者生成 522 chunk 零误报）+ 门关臂零介入自证 + 违例路径无法注入时**降级声明**（Degraded 局部：门控行为 Full 运行时证据、违例路径静态论证承载），不假装验证过。
+- **判据（可复用）**：评估「检测器随优化移除」的回归面补回时，四要件齐备才算收口——①默认关且门判断不在热路径 ②armed/未-armed 正负自证行 ③违例路径与原检测器同构（含检测域语义声明）④粒度/语义差异显式登记。缺任一件 = 未收口（缺②则门生效性只是假设，缺③则失败模式仍退化）。
+- **家族索引**：#24 主条、#24 更正（260911-05）、#24 补充案例（260913-02）、#26（门控编译期常量误称）、workflow-patterns #81/#143。
+
+---
+
 ## 发现 #25 简记: 给「逐字复制」的类加头注释也会改变该 `.class` 条目 sha——`LineNumberTable` 随源码行号位移（指令完全相同）（260912-01）
 
 - **发现时间 / 发现者 / 置信度 / module**：260912-01；主会话（Wave 2 共享化实施中实测）+ scout-judge（C2 要求逐条声明调试属性类差异）+ 本波 judge（**C4 即本条的正向实例**）；**confirmed**（用户授予 2026-09-12 15:52；judge 已做 = PASS-with-conditions、C1–C9 已响应，record §4.7.7；record §6 已回填）；compiler-idioms / 类文件调试属性与字节锚（**#24 的「类文件结构」邻接面**）。
@@ -420,3 +435,13 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 - **定位（怎么发现的）**：对拍同一类的**条目级 sha** 与 `javap -c -p`（不带 `-l`）输出——sha 变而 javap 输出完全相同 ⇒ 差异只在调试属性（`LineNumberTable`）；`javap -v`/`-l` 可见行号变化。
 - **判据（可复用）**：① 需要**字节锚**（V1-strict 等价门 / 跨树条目级 sha 比对）的「逐字复制」文件 **MUST NOT 加头注释、MUST NOT 做纯格式调整**——出处/血统写在 **README + commit message**；② 判「仅调试属性差异」MUST 用 `javap -c -p`（该输出不含 `LineNumberTable`），并在声明里写「仅调试属性」而非「等价」；③ 反向利用：**想故意零字节差异**时，行号是必须冻结的变量之一（与空白、导入顺序并列）；④ 与「注释级改动 jar 逐字节相同」（build-tooling #56 / #116 等价性门的一环）**不矛盾**——那是**不加/删行**的注释改动，本条是**增删行**的注释改动，两者结论不同、MUST 分开表述；⑤ **正向对偶（本波 judge C4 实例）**：若必须改注释，则**保持总行数不变**（逐行替换）⇒ 其后代码行号不变 ⇒ `LineNumberTable` 不变 ⇒ 类字节不变（`ChunkTiming.java` javadoc 修补实测 `post4` ≡ `post3`、差异 0，两版 jar sha 相同 —— `evidence/post3-vs-post4-*.txt`）；⑥ **V1b 判定基线 MUST 声明是否含头注释态**（本波 `post1` 含注释、`post2` 删注释后才是判定基线；判定基线选错会把「行号位移」当成 Java 面差异 —— judge C6）。
 - **家族索引**：workflow-patterns #116（全量条目级 sha256 等价门）、workflow-patterns #138（V1b 声明粒度：仅调试属性 vs 指令级）、build-tooling #56（UP-TO-DATE 假绿——注释级改动的另一半）、f5-bugs（javap 不可信点）、build-tooling #61（javap 对拍陷阱）。
+
+---
+
+## 发现 #26 简记: 读 sysprop 的 `static final boolean` 不是编译期常量——javac 不内联不死码消除，「门关零开销」的正确措辞 = `<clinit>` 单次求值 + C2 运行期折叠（260913-03）
+
+- **发现时间 / 发现者 / 置信度 / module**：260913-03；judge（隔离 subagent SHOULD-1）+ 主会话复核；**candidate**（confirmed 留用户）；compiler-idioms / Java 门控与常量语义（诊断门控家族 #11/#98 的措辞纪律面）。
+- **来源定位**：`java-core\src\main\java\wg\bench\BulkWb.java`（`SENTINEL = System.getProperty("coreswap.bulkwbsentinel") != null`）；`.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md` judge SHOULD-1 段。
+- **机制（为什么）**：`System.getProperty(...)` 是方法调用，**非常量表达式** ⇒ javac 不内联、该字段不是 JLS 编译期常量 ⇒ `if (!SENTINEL) return;` 之后的代码**不会**被编译期剔除（Java「条件编译」只对 `static final` = 常量表达式字面量成立）。实际保证链 = `<clinit>` 恰一次求值 + C2 JIT 运行期折叠 ⇒ 门关成本 = 每 chunk 一次方法调用 + 一次分支，可忽略但**不是零指令**。
+- **判错经验（可复用）**：① 「门关零开销」类性能声明，机制名 MUST 与实际保证链一致——「compile-time 消除」vs「clinit 单赋值 + 运行期折叠」是不同声明，后者才成立；② 确需编译期消除须用 `static final boolean = <常量表达式字面量>`（构建期生成常量类/常量注入），接受其代价；③ 自查：对声称「编译期消除」的门，javap 看 `<clinit>` 与分支是否还在字节码里。
+- **家族索引**：#11（诊断门控初始化器唯一置位）、#25（类文件常量面——同属「编译期常量直觉不可靠」）、workflow-patterns #98 家族（诊断门控 chunk 级一次）、#120（公众声明与门控同源核对——同一「措辞与机制对齐」纪律）。**验证分层 = Degraded**（静态 JLS 语义论证 + javap 自查法，未做专门字节码实验）。

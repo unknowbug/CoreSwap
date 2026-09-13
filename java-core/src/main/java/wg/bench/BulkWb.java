@@ -12,6 +12,9 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkSection;
 import net.minecraft.world.chunk.PalettedContainer;
+import net.minecraft.util.crash.CrashException;
+import net.minecraft.util.crash.CrashReport;
+import net.minecraft.util.crash.CrashReportSection;
 import wg.bench.mixin.ChunkSectionAccessor;
 
 /**
@@ -69,6 +72,16 @@ import wg.bench.mixin.ChunkSectionAccessor;
  *       **不是同一层**：后者对「Java 侧消费」的变更不敏感（buf 不变则 hash 必相同）。</li>
  *   <li>{@code -Dcoreswap.bulkwbtest=1}：首跑**自检**——用合成 buf 覆盖 SINGULAR/ARRAY/BI_MAP/**ID_LIST** 四支
  *       （自然生成 max_distinct=7 ⇒ ID_LIST 支实测不可达，必须刻意压测，否则「全绿但未覆盖」）。</li>
+ *   <li>{@code -Dcoreswap.bulkwbsentinel=1}：**并发冲突检测器**（260913-03，R9-b 加固）——恢复老 per-write
+ *       {@code LockHelper} 随 bulk 化移除的「同 chunk section 被第二写者在飞并发访问 → 立即 crash」检测能力
+ *       （compiler-idioms #24 永久回归面收口）。语义忠实复刻老检测器：只抓**在飞重叠**（writeSections 进入到
+ *       退出之间），**非可重入**（同线程重入同样 crash），不抓先后两次写入（老语义亦不抓）。
+ *       违例抛 {@code CrashException}（双方线程 dump 写入 crash report，不吞异常）。
+ *       门默认关；门开时 chunk 级一次 map 操作（非每 section 每点，#98 诊断门控纪律）。
+ *       共享核注：本门**两版（1.20.1/1.21.6）均默认关**、仅随 bulk 路径在场（1.21.6 缺省 bulk 关 ⇒ 惰性），
+ *       1.21.6 行为零变化（judge SHOULD-2，260913-03）。检测粒度 = chunk 级整段 writeSections（INFO-1：
+ *       比老 per-container LockHelper 窗口更宽——同 chunk 异 section 在飞重叠也触发，系 per-chunk 单写者
+ *       不变量的有意升级）。</li>
  * </ul>
  */
 public final class BulkWb {
@@ -80,6 +93,13 @@ public final class BulkWb {
     private static final boolean WBCONTENT = System.getProperty("coreswap.wbcontent") != null;
     /** 首跑合成自检（覆盖 ID_LIST 支）。 */
     private static final boolean WBTEST = System.getProperty("coreswap.bulkwbtest") != null;
+    /** 并发冲突检测器（260913-03，R9-b 加固；门默认关——出货语义零改动）。 */
+    private static final boolean SENTINEL = System.getProperty("coreswap.bulkwbsentinel") != null;
+    /** 在飞写者登记：chunkKey -> 持有线程。语义 = 老 LockHelper 的非可重入 Semaphore 在飞重叠检测。 */
+    private static final java.util.concurrent.ConcurrentHashMap<Long, Thread> SENTINEL_ACTIVE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.concurrent.atomic.AtomicBoolean SENTINEL_ARMED =
+            new java.util.concurrent.atomic.AtomicBoolean();
 
     /** 与 CppBridge 同域：Rust buf 携带的是 block 注册表 raw id，域上界 4096。 */
     private static final int MAX_ID = 4096;
@@ -143,6 +163,16 @@ public final class BulkWb {
     static void writeSections(Chunk chunk, int cx, int cz, int[] buf, int height) {
         if (height % 16 != 0) throw new IllegalArgumentException("height not multiple of 16: " + height);
         if (WBTEST) selfTest();
+        sentinelEnter(cx, cz);
+        try {
+            writeSectionsInner(chunk, cx, cz, buf, height);
+        } finally {
+            sentinelExit(cx, cz);
+        }
+    }
+
+    /** 原 writeSections 主体（sentinel 包裹层剥离后原样保留）。 */
+    private static void writeSectionsInner(Chunk chunk, int cx, int cz, int[] buf, int height) {
         int secCount = height / 16;
         ChunkSection[] sections = chunk.getSectionArray();
         TL tl = TLS.get();
@@ -278,6 +308,51 @@ public final class BulkWb {
             T_PACK_NS.addAndGet(System.nanoTime() - tBuild0);   // 含 readPacket（见汇总标注）
         }
         return pc;
+    }
+
+    // ---- 并发冲突检测器（-Dcoreswap.bulkwbsentinel=1；语义复刻 vanilla LockHelper，见类注释） ----
+
+    /** 与 ChunkPos.toLong 字段位置互换的私有 key（enter/exit 同式自洽，无碰撞风险；勿与 vanilla 式混写）。 */
+    private static long sentinelKey(int cx, int cz) {
+        return ((long) cx << 32) | (cz & 0xFFFFFFFFL);
+    }
+
+    /**
+     * 进入在飞写者登记。已有持者（无论哪个线程，含当前线程 = 非可重入）即 crash——
+     * 双方线程 dump 进 crash report（LockHelper.crash 同形态，不吞异常）。
+     */
+    private static void sentinelEnter(int cx, int cz) {
+        if (!SENTINEL) return;
+        if (SENTINEL_ARMED.compareAndSet(false, true)) {
+            System.out.println("[WG-BULKWB-SENTINEL] armed: concurrent same-chunk write detector active"
+                    + " (non-reentrant, in-flight overlap only; mirrors vanilla LockHelper semantics)");
+        }
+        Thread prev = SENTINEL_ACTIVE.putIfAbsent(sentinelKey(cx, cz), Thread.currentThread());
+        if (prev != null) {
+            throw sentinelCrash(prev);
+        }
+    }
+
+    /** 退出在飞登记（仅清除自己的登记；持者不符说明已 crash 过，不静默覆盖）。 */
+    private static void sentinelExit(int cx, int cz) {
+        if (!SENTINEL) return;
+        SENTINEL_ACTIVE.remove(sentinelKey(cx, cz), Thread.currentThread());
+    }
+
+    /** LockHelper.crash 同形态：CrashException + "Thread dumps" 段（双方栈）。 */
+    private static CrashException sentinelCrash(Thread other) {
+        String dumps = java.util.stream.Stream.of(Thread.currentThread(), other)
+                .filter(java.util.Objects::nonNull)
+                .map(t -> t.getName() + ": \n\tat " + java.util.Arrays
+                        .stream(t.getStackTrace()).map(Object::toString)
+                        .collect(java.util.stream.Collectors.joining("\n\tat ")))
+                .collect(java.util.stream.Collectors.joining("\n"));
+        String msg = "Accessing chunk sections from multiple threads (bulk writeback sentinel)";
+        CrashReport report = new CrashReport(msg, new IllegalStateException(msg));
+        CrashReportSection section = report.addElement("Thread dumps");
+        section.add("Thread dumps", dumps);
+        System.err.println("[WG-BULKWB-SENTINEL] Thread dumps: \n" + dumps);
+        return new CrashException(report);
     }
 
     private static int nextEpoch(TL tl) {

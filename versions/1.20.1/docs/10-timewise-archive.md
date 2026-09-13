@@ -3214,3 +3214,13 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ 裁决：C-17 判据重述获批（载体 = 单次 JVM 运行；原字面 FAIL 留档不改）；`BULKWB_ON` 不翻转（nether / end 覆盖 = 0 为前置）；不出货（F1 对 1.20.1 为静态转发，无紧急重发需求；若出货须升版 1.0.30 + 新工单）。
 - 🔍 残留 / 边界（如实）：nether / end 覆盖 = 0；1.21.6 写出帧字节未直采（由读端 4096 点 + 625 chunk 等价性代替）；1.20.1「未观测到 F1 相关回归」仅限 overworld / 写回内容层 / 单次 JVM 运行口径；性能结论不做；`verify` = confirmed（范围受限，仅上列 4 项）；`errors` = candidate。
 - 📌 open（下一轮最小闭环）：`errors-260912-01.md` E5 的**就地** `superseded_by` 注记已补（`errors-260912-01.md:134` + 速查表 `:154`，judge §16 复核通过）；`ref_merge_index` 裸列表根缺陷经 `framework-proposals/` 上报（见段 6 提案，W13 + judge R4）；登记侧计数滞后（`index.yaml:1511` 与片段 `:69` 仍写「12 条（W1–W12）」，实为 13 条，judge §16.2 R5，1 分钟可闭合）。
+
+## 260913-03（实际 2026-09-13 16:02 起，Get-Date 锚定：R9-b 可选加固——debug 门控并发冲突检测器 sentinel）🔍 candidate（judge PASS-with-conditions：0 MUST / 2 SHOULD / 4 INFO，条件已应用；confirmed 待用户）
+
+> 过程产物：已批准计划 `.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md`（轻量档，含执行记录与 judge 条件响应）；编译日志 `.tmp\sentinel-compile-260913-03.log`；运行台 `.tmp\sentinel-260913-03\run_sentinel_1201.ps1`。
+
+- ✅ 做了：`BulkWb.java` 新增 `-Dcoreswap.bulkwbsentinel` 门（默认关）的并发冲突检测器——恢复老路径 `LockHelper` 的「并发访问同一 chunk 即 crash」可观测性（260913-02 登记的永久回归面收口）：`SENTINEL_ACTIVE` map + `sentinelEnter/Exit/Crash`（CrashException + 双方线程 dump，与 LockHelper.crash 同构；检测域 = 在飞重叠 + 非可重入，不抓顺序双写）+ armed 一次性自证行；`writeSections` 拆包裹层，主体不动。编译绿（`gradle compileJava --offline --rerun-tasks`，29s，#56 watcher 噪声已知）。
+- ✅ 两臂证据（隔离运行台：不杀 java 进程 / `:runServer` 修双命中 / forceload -128..127 触发接管管线）：门关臂 `armed=0 + wb=522 + crash=0`（bulk 真跑、sentinel 零介入）；门开臂 `armed=1 + wb=522 + crash=0`（自证命中、522 chunk 零误报）。首轮门关冒烟（wbLines=0）作废——bridge init 晚于 Done（#80），非本改动问题，加 forceload 后重跑。
+- ✅ judge：隔离 subagent PASS-with-conditions，推荐 candidate——SHOULD-1 已应用（「门关零开销 = 编译期常量消除」是误称：`System.getProperty` 非常量表达式、javac 不内联，实际 = `<clinit>` 单赋值 + C2 运行期折叠 → compiler-idioms #26）；SHOULD-2（共享核跨版声明）/ INFO-2（sentinelKey 注释）已应用；INFO-1（chunk 级粒度系有意升级）已入注释。
+- ⚠️ 降级声明：双写者违例路径未做运行时注入（无现成注入面）——以静态论证承载（同构 + 编译绿 + 消费面审查）；分类 = Degraded（局部）：门控行为 Full / 违例路径静态。
+- 通用模式 → compiler-idioms #24 补充案例（260913-03 收口）+ #26；07 篇 R9-b 小节追加状态更新（另处落盘）。

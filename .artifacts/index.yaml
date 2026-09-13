@@ -1633,3 +1633,24 @@ entries:
     # 价值门：3 记（#143 模板高价值；#24 补充 = 一般化增量从简；#36 第四例 = 通过形态首例从简）/ 7 明确不记
     #   （A1-A6 判定结果、行号明细、加固提案等——理由逐条落草稿 §6）。1.21.6 时间线不需要（本块未跑 1.21.6）。
     # 错误台账：本块无错误条目（静态论证专项，judge PASS 无新错误）。
+
+  - id: 'swe:sentinel-260913-03:record'
+    path: '../.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md'
+    kind: record
+    status: candidate   # judge PASS-with-conditions（0 MUST / 2 SHOULD / 4 INFO，条件已应用）；confirmed 待用户
+    # R9-b 可选加固（260913-03）：`-Dcoreswap.bulkwbsentinel` 门（默认关）并发冲突检测器——收口 260913-02
+    #   登记的「检测器随 bulk 化移除」永久回归面。语义忠实复刻 LockHelper：chunk 级在飞重叠 + 非可重入
+    #   （含同线程重入），不抓顺序双写；违例 CrashException + 双方线程 dump。两臂验证（forceload 口径，
+    #   #80 时序）：门关 armed=0/wb=522/crash=0，门开 armed=1/wb=522/crash=0（零误报）；前提 WgCompat
+    #   BULKWB_ON=true 已核。边界（Degraded 局部）：违例路径未运行时注入（静态同构承载）；门关零开销 =
+    #   clinit 单赋值 + C2 折叠（judge SHOULD-1 措辞修正，非编译期常量消除）。1.21.6 共享核同文件、
+    #   sentinel 两版默认关、行为零变化（SHOULD-2 声明）。
+  - id: 'swe:sentinel-260913-03:judge'
+    path: '../.investigations/sentinel-260913-03/judge-260913-03.md'
+    kind: review
+    status: candidate
+    # 隔离 subagent 三源核对：快照 / git diff（Inner 主体与 HEAD 逐字节等价 = True）/ 两臂日志实跑计数一致。
+  - id: 'swe:sentinel-260913-03:knowledge'
+    path: '../.investigations/sentinel-260913-03/'
+    kind: knowledge
+    status: candidate   # subagent 草稿 + 主会话应用：compiler-idioms #24 补充案例（260913-03 收口，sentinel 四要件）+ #26（sysprop static final 非编译期常量）+ INDEX 行 + docs/07 R9-b 追加小节 + 10 时间线 260913-03 块
