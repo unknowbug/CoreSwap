@@ -1697,7 +1697,7 @@ entries:
   - id: 'swe:sentinel-260913-06:record'
     path: '../.investigations/sentinel-260913-06/record-260913-06.md'
     kind: record
-    status: candidate   # judge PASS-with-conditions 条件已应用；confirmed 待用户授予
+    status: confirmed   # 用户授予 2026-09-13（judge PASS-with-conditions 条件已应用）
     # 260913-06：BULKWB_ON 翻转后 nether/end 默认路径行为门（#141 两断言：bulk=625/perblock=0 成对 + fp 全 sha 与
     #   d4i-260913-01 基线逐字节同一）+ sentinel 跨 region 泛化四臂 PASS（armed=1/wb 576|529/crash=0）。
     #   过程错误：forceload 289>256 驱动失败重跑（#145）；失败臂日志同标签覆盖灭失（#146）；.ps1 程序化改动
