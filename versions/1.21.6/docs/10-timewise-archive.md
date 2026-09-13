@@ -152,4 +152,4 @@
 - ❌→修正 **过程错误 2：脚本副本生成两次语法翻车**（杂散反引号 + 插参漏逗号；`[scriptblock]::Create` 自查吞错假 OK）——修复后 `Language.Parser::ParseFile` 实核 PARSE-OK（#147）。
 - ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：C1（MUST）= 六臂 [result] 汇总转录补归档 arm-summary（已做）；C2（MUST）= suspExc 运行时计数 3/4 无法从归档 log 复现 → record 修正为「可复现异常面 = 各 .log.err 各 1 行 rubygrapefruit error=5（gradle watcher 良性）」，运行时计数不作判据引用；C3（SHOULD）= 失败首跑留档 + MANIFEST 补脚本 sha（后者已做，前者以声明替代，机制面立 #146）。J1-J6 全 PASS；git diff / 盘上 hash 重算列入 judge 无法核查面显式声明。
 - ⚠️ **§9.7**：P2 仅 1.21.6 执行体（翻转只在其臂）；ow 未复跑（260913-01 承载）；P3 每 (执行体, seed) 组合 2 region，不声称全 region 泛化；fp 口径 = 排序域多重集判据（#142 窄化声明）。
-- 状态：**candidate**（judge 推荐），confirmed 待用户授予。提交号：（占位——待提交后回填）。
+- 状态：**candidate**（judge 推荐），confirmed 待用户授予。提交号：`ff911b5`。
