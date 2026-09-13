@@ -1478,6 +1478,8 @@ unctional-errors.md F1-F3）：
 
 ### 边界（如实写，不得当已闭合）
 
+> ℹ️ 260913-02 指针：下表「并发可见性（R9-b）未做」已由 R9-b 专项收口（candidate）——见下方「2026-09-13 R9-b」小节；原文保留不改。
+
 | 项 | 状态 |
 |---|---|
 | 跨 region / 跨 seed 泛化 | **零覆盖**（三维各一 `radius 160` region） |
@@ -1488,3 +1490,15 @@ unctional-errors.md F1-F3）：
 | 长时运行 / 内存 | **未测**（承 260911-01 #119：峰值 ≠ 存活集，须固定 `-Xmx` 才可测） |
 | 1.20.1 侧行为 | 本块**未跑** 1.20.1 臂；`--dry-run` 任务图结论是**载体事实而非行为结论**，不得外推 |
 | 两层指纹的观察面 | 对写回内容面敏感但**观察面有限** ⇒ 不可单独支撑「无回归」，须与异常面 + 执行体 + 构建绿并列（承 260912-02 F29） |
+
+---
+
+## 2026-09-13 R9-b：bulk 写回并发写路径专项（单写者不变量成立）— candidate（judge PASS-with-conditions；confirmed 留用户）
+
+> 载体与依据：`.investigations/r9b-260913-02/record-260913-02.md`（A1-A6 结构性论证 + §9.7 边界声明）+ `judge-260913-02.md`（三源核对，J1/J2 修订 + J5 index 登记条件）。**验证分层 = Degraded（纯静态源码论证），未做并发压测/动态探针**。通用模式 → `knowledge/discovered/workflow-patterns.md` #143 + #36 家族补充案例（第四例）、`compiler-idioms.md` #24 补充案例（260913-02）。
+
+### 结论
+- **「每 chunk 单写者」不变量成立**（结构性论证，非压测实证）：唯一写者 = 该 chunk 的 fill work 闭包（`ChunkHolder.futuresByStatus` per-status future 缓存去重）；全部合法消费者（同 chunk 后续状态任务 / 邻居任务 / 主线程 / 存盘链）经同一 future 链取得 happens-before ⇒ **bulk 写回（原地换容器 + 三计数 plain 直写）在现管线形态下无数据竞争**。
+- **永久回归登记（非正确性缺陷）**：老路径 per-write `LockHelper` 的「并发访问同一 section 即 crash」检测能力已随 bulk 化消失——未来若引入同 chunk 双任务，失败模式从「立即 crash」退化为「静默 data race」（→ compiler-idioms #24 补充案例 260913-02）。
+- **残留边界（承 K2-D，judge J2 随转）**：A5 为对**现役代码**的静态全称否定——未来新增「缓存容器/section 引用跨 future 边消费」的消费者将静默破坏断言，届时本结论须重开；可选加固（另立项）= debug 门控 sentinel / 跨 seed 动态压测。
+- **覆盖面**：1.20.1 管线 + 三维共用同链路；1.21.6 侧共享核同源但**管线源码未逐行核对**（未独立验证，已声明）。

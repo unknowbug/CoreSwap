@@ -1603,3 +1603,33 @@ entries:
     # 错误台账判定：载体正确（.investigations/d4i-260913-01/errors-260913-01.md）⇒ **不开** discovered/errors/（CoreSwap 死目录）；
     #   判错经验只提升 3 项（W5→#140+#62；W1/W2→#139② 补充案例），W3 不另立条（被 W5 取代，立则重复且带错误前提）、W4 并入 #118 补充案例。
 
+
+  - id: 'swe:r9b-260913-02:record'
+    path: '../.investigations/r9b-260913-02/record-260913-02.md'
+    kind: record
+    status: candidate
+    # R9-b 并发写路径专项（260913-02；承 bulk-writeback-260911-05 judge S1 遗留）：「每 chunk 单写者」不变量
+    #   **结构成立**（candidate，待用户 confirmed）——唯一写者 = 该 chunk 的 fill work 闭包（mixin HEAD cancel →
+    #   wgDispatch → fillChunk → BulkWb.writeSections，全在单闭包内）；A1 futuresByStatus 缓存 ⇒ 同 (chunk,status)
+    #   单次生成；A2 NOISE 任务 thenApply 链式有序；A3 邻居经 getRegion 等**前置状态**才跑本 chunk 任务（judge J1
+    #   措辞修正：prerequisite ≠ 目标状态，方向不受损）；A4 全部下游消费经同一 future 链 ⇒ 完成语义 gives
+    #   happens-before；A5 静态排查无绕过 future 的 section 消费者（plan §10.3 收口；残留边界 = 未来新增缓存
+    #   消费者须重开，J2 随转）；A6 主线程经 future 等待不直接触 proto chunk。
+    # 永久回归（登记，非正确性）：老路径 per-write LockHelper 的「并发访问同 section 即 crash」检测器已消失——
+    #   破坏 A1 的未来改动将从立即 crash 退化为静默 data race；可选加固（另立项）= debug 门控检测器/动态压测。
+    # 边界（§9.7）：纯静态源码论证；未压测；1.21.6 共享核同源但管线未独立逐行核对。fan-out 未触发（单假设线性）。
+    # judge（隔离 subagent）= PASS-with-conditions：0 MUST / 4 SHOULD（J1/J2/J5 已应用，J3/J4 附注已并入）/ 2 INFO。
+  - id: 'swe:r9b-260913-02:judge'
+    path: '../.investigations/r9b-260913-02/judge-260913-02.md'
+    kind: review
+    status: candidate
+    # judge 三源核对：记录 vs 本工程源码（链路/行号吻合）vs vanilla 一手源（A1-A6 逐条核）vs 交接链 K2/review S1
+    #   （机制转述无失真，#90 未复犯）。SHOULD 4 项 = J1 A3 措辞 / J2 A5 残留边界 / J5 index 登记 / J3-J4 附注。
+
+  - id: 'swe:r9b-260913-02:knowledge'
+    path: '../.investigations/r9b-260913-02/knowledge-draft-260913-02.md'
+    kind: knowledge
+    status: candidate   # subagent 草稿；主会话已应用（workflow #143 + #36 第四例补充案例 / compiler-idioms #24 补充案例 260913-02 / INDEX 日期块 / docs/07 R9-b 小节 + 指针）
+    # 价值门：3 记（#143 模板高价值；#24 补充 = 一般化增量从简；#36 第四例 = 通过形态首例从简）/ 7 明确不记
+    #   （A1-A6 判定结果、行号明细、加固提案等——理由逐条落草稿 §6）。1.21.6 时间线不需要（本块未跑 1.21.6）。
+    # 错误台账：本块无错误条目（静态论证专项，judge PASS 无新错误）。
