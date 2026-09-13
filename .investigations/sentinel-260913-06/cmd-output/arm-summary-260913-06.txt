@@ -1,0 +1,29 @@
+# arm-summary-260913-06.txt — 260913-06 各臂运行时 [result] 行转录（judge C1 条件应用件）
+# 来源 = 主会话后台 job 输出逐字转录（pwsh-12 / pwsh-14 / pwsh-15，2026-09-13 22:32-22:53）。
+# 注：sentinel r2 首跑（forceload 289>256 被拒）日志被复跑同标签覆盖（#144 判据1 违例，运行台标签设计缺陷面），
+#     其运行时 result 行仅存于本转录（C3 SHOULD 声明）。
+
+## P2（run_1216_arm_260913-06.ps1，job pwsh-12）
+[postflip-nt-default][bridge] [22:33:28] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[postflip-nt-default][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[postflip-nt-default][result] dim=the_nether boot=36.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=df9f56a9bd1acd01fcc73835475b8dbee886d2ba5d3b2fe33dd96c544459a565/86237B contentSha=4acf453eebc213d6f2d520d241cb2ed80c6be065d4f6cde95ceaf5a9bca74316/35951B wbSha=4f02091a1b4c883eab6954818419af82ba5d5356093ecc2fcec1415ccf5f3b3a/50286B
+[postflip-nt-default][bulk] [WG-BULKWB] calls=625 sections_replaced=4815 air_sections_skipped=5185 idlist_hits=0 max_distinct=7 ns/section: build=284375 (incl. readPacket=14945) counts_set=129 ns/call(total)=2329277
+[postflip-nt-default][perblock] [WG-PERBLOCK] calls=0 ns/call(total)=-1
+[postflip-nt-default][verdict] dllAttest=True attested
+[postflip-en-default][bridge] [22:34:28] [Server thread/INFO] (Minecraft) [STDOUT]: [CppBridge] init seed=417950215108767439 worldgenDir=E:\PYTHON\CoreSwap\versions\1.21.6\data\worldgen enabled=true stageMask=3 env.CORESWAP_DEFAULT_BLOCK=null
+[postflip-en-default][attest] logDll=abd7d8893d22e030 expect=abd7d8893d22e030 match=True
+[postflip-en-default][result] dim=the_end boot=36.2s gen=10s status=FINISHED throws=0 entryMissing=0 exceptions=3 nonWmi=0 intercept=625 content=625 wb=625 carrier=OK fpSha=a81eeefc79d55983788028b9f7b4de6635bd99eec8f75a306bca4017a00b6935/82456B contentSha=3344fd3fea16fb4eaa4d83671392fee1dde7c3ca9252b38a4a3e494f6b1d9a07/34051B wbSha=c8081244587199ffe8eae2a13e92bd597eb3f98c8a20cb46b7b043a4d33ce64c/48405B
+[postflip-en-default][bulk] [WG-BULKWB] calls=625 sections_replaced=562 air_sections_skipped=4438 idlist_hits=0 max_distinct=2 ns/section: build=212127 (incl. readPacket=63226) counts_set=82 ns/call(total)=1046883
+[postflip-en-default][perblock] [WG-PERBLOCK] calls=0 ns/call(total)=-1
+[postflip-en-default][verdict] dllAttest=True attested
+
+## P3 首跑（job pwsh-14；r2 两臂驱动失败臂）
+[rcon] Too many chunks in the specified area (maximum 256, specified 289)   ← 1201-r2 首跑
+[gate=on seed=123456789012345678][result] boot=48.2s armedLines=1 sentinelCrash=0 wbLines=576 suspExc=4   ← 1201-r1
+[gate=on seed=123456789012345678][result] boot=42.2s armedLines=0 sentinelCrash=0 wbLines=0 suspExc=4     ← 1201-r2 首跑（驱动失败，作废）
+[gate=on seed=777000111222333444][result] boot=36.1s armedLines=1 sentinelCrash=0 wbLines=576 suspExc=3   ← 1216-r1
+[gate=on seed=777000111222333444][result] boot=27.1s armedLines=0 sentinelCrash=0 wbLines=0 suspExc=3     ← 1216-r2 首跑（驱动失败，作废）
+
+## P3 r2 重跑（region 225 chunks，job pwsh-15）
+[gate=on seed=123456789012345678][result] boot=42.2s armedLines=1 sentinelCrash=0 wbLines=529 suspExc=4   ← 1201-r2
+[gate=on seed=777000111222333444][result] boot=30.1s armedLines=1 sentinelCrash=0 wbLines=529 suspExc=3   ← 1216-r2

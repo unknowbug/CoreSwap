@@ -141,3 +141,15 @@
 - ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：MUST-1 = A2 首轮日志被复跑同路径覆盖 → record 补证据链声明（选项②诚实声明：首轮现象不可独立复核，归因依赖复跑对照差分结构）；MUST-2 = suspExc 双来源拆分；SHOULD-2 = 立条「复跑 MUST 先归档首轮日志」（→ #144，错误优先）。
 - ⚠️ **§9.7**：载体 = 实机 runServer 冒烟 × 2 版本 × 各 2 新 seed（正/负域）× 256 chunk/臂单区域；不覆盖多 region 并行、长时运行、内存/性能口径。B 臂换远区域为刻意变更，与 04 的 wb=576 巧合一致（256 chunk × 全等行数），已声明。
 - 状态：✅ judge PASS-with-conditions（条件已应用）→ ✅ 用户 confirmed（2026-09-13）。
+
+## 260913-06（实际 2026-09-13 晚，Get-Date 锚 21:58）：BULKWB 翻转后 nether/end 默认路径行为门（#141 范式）+ sentinel 跨 region 泛化（四臂）—— **candidate**（judge PASS-with-conditions 条件已应用；confirmed 待用户授予）
+
+> 过程产物 `.investigations/sentinel-260913-06/`（`record-260913-06.md` 主记录 + `review-260913-06-judge.md` + `cmd-output/` 归档：6 份日志(.log/.err) + fp 六件 + fp-sha + arm-summary 转录 + 3 运行台脚本副本 + MANIFEST 含脚本 sha）+ `.tmp/sentinel-260913-06/`（运行台与原件，不入库在盘可核）。上游：260913-01 HOOK-C 翻转（验证臂仅 overworld）+ 260913-05 sentinel 跨 seed（单 region）。通用模式 → workflow-patterns **#145/#146** + build-tooling **#147**。
+
+- ✅ **P2 翻转后 nt/en 默认行为门（两臂全 PASS）**：`postflip-{nt,en}-default`（不带 property，仅 `-Dcoreswap.bulkwblog=1`）：路径已切换（`[WG-BULKWB] calls=625` / `[WG-PERBLOCK] calls=0` 正/负成对）+ 产物不变（fp 全 64 位 sha + 尺寸与 d4i-260913-01 基线**逐字节同一**；content/wb 层亦同一）。end 维确定性指纹（#21，end=0）下零差异。**#141 两断言齐备** ⇒ 翻转后三维默认路径 = bulk 且产物不变（ow 由 260913-01 承载）。
+- ✅ **P3 sentinel 跨 region 四臂全 PASS**：判据 armed≥1 / wb>0 / crash=0；r1 [2048,2303]²（256 chunks，wb=576）/ r2 [-3072,-2848]²（225 chunks，wb=529），两执行体 × 两 seed 行为化自证一致。
+- ❌→修正 **过程错误 1：R2 首跑 region 17×17=289 > forceload 256 上限**——`Too many chunks`，零输出零 armed = 驱动未生效签名（#20 家族）；缩 15×15=225 重跑全过。失败首轮日志被同标签复跑覆盖灭失（#146；C3 声明：仅存 arm-summary 转录）。
+- ❌→修正 **过程错误 2：脚本副本生成两次语法翻车**（杂散反引号 + 插参漏逗号；`[scriptblock]::Create` 自查吞错假 OK）——修复后 `Language.Parser::ParseFile` 实核 PARSE-OK（#147）。
+- ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：C1（MUST）= 六臂 [result] 汇总转录补归档 arm-summary（已做）；C2（MUST）= suspExc 运行时计数 3/4 无法从归档 log 复现 → record 修正为「可复现异常面 = 各 .log.err 各 1 行 rubygrapefruit error=5（gradle watcher 良性）」，运行时计数不作判据引用；C3（SHOULD）= 失败首跑留档 + MANIFEST 补脚本 sha（后者已做，前者以声明替代，机制面立 #146）。J1-J6 全 PASS；git diff / 盘上 hash 重算列入 judge 无法核查面显式声明。
+- ⚠️ **§9.7**：P2 仅 1.21.6 执行体（翻转只在其臂）；ow 未复跑（260913-01 承载）；P3 每 (执行体, seed) 组合 2 region，不声称全 region 泛化；fp 口径 = 排序域多重集判据（#142 窄化声明）。
+- 状态：**candidate**（judge 推荐），confirmed 待用户授予。提交号：（占位——待提交后回填）。
