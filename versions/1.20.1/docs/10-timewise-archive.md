@@ -3215,7 +3215,7 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 🔍 残留 / 边界（如实）：nether / end 覆盖 = 0；1.21.6 写出帧字节未直采（由读端 4096 点 + 625 chunk 等价性代替）；1.20.1「未观测到 F1 相关回归」仅限 overworld / 写回内容层 / 单次 JVM 运行口径；性能结论不做；`verify` = confirmed（范围受限，仅上列 4 项）；`errors` = candidate。
 - 📌 open（下一轮最小闭环）：`errors-260912-01.md` E5 的**就地** `superseded_by` 注记已补（`errors-260912-01.md:134` + 速查表 `:154`，judge §16 复核通过）；`ref_merge_index` 裸列表根缺陷经 `framework-proposals/` 上报（见段 6 提案，W13 + judge R4）；登记侧计数滞后（`index.yaml:1511` 与片段 `:69` 仍写「12 条（W1–W12）」，实为 13 条，judge §16.2 R5，1 分钟可闭合）。
 
-## 260913-03（实际 2026-09-13 16:02 起，Get-Date 锚定：R9-b 可选加固——debug 门控并发冲突检测器 sentinel）🔍 candidate（judge PASS-with-conditions：0 MUST / 2 SHOULD / 4 INFO，条件已应用；confirmed 待用户）
+## 260913-03（实际 2026-09-13 16:02 起，Get-Date 锚定：R9-b 可选加固——debug 门控并发冲突检测器 sentinel）✅ 用户已 confirmed（2026-09-13；范围 = record 全部结论；judge PASS-with-conditions：0 MUST / 2 SHOULD / 4 INFO，条件已应用）
 
 > 过程产物：已批准计划 `.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md`（轻量档，含执行记录与 judge 条件响应）；编译日志 `.tmp\sentinel-compile-260913-03.log`；运行台 `.tmp\sentinel-260913-03\run_sentinel_1201.ps1`。
 

@@ -1637,7 +1637,7 @@ entries:
   - id: 'swe:sentinel-260913-03:record'
     path: '../.investigations/000-架构设计/架构计划-260913-03-R9b并发加固.md'
     kind: record
-    status: candidate   # judge PASS-with-conditions（0 MUST / 2 SHOULD / 4 INFO，条件已应用）；confirmed 待用户
+    status: confirmed   # 用户授予 2026-09-13（范围 = record 执行记录全部结论：门语义/两臂证据/Degraded 边界/1.21.6 零变化；judge PASS-with-conditions 条件已应用）
     # R9-b 可选加固（260913-03）：`-Dcoreswap.bulkwbsentinel` 门（默认关）并发冲突检测器——收口 260913-02
     #   登记的「检测器随 bulk 化移除」永久回归面。语义忠实复刻 LockHelper：chunk 级在飞重叠 + 非可重入
     #   （含同线程重入），不抓顺序双写；违例 CrashException + 双方线程 dump。两臂验证（forceload 口径，

@@ -1503,7 +1503,7 @@ unctional-errors.md F1-F3）：
 - **残留边界（承 K2-D，judge J2 随转）**：A5 为对**现役代码**的静态全称否定——未来新增「缓存容器/section 引用跨 future 边消费」的消费者将静默破坏断言，届时本结论须重开；可选加固（另立项）= debug 门控 sentinel / 跨 seed 动态压测。
 - **覆盖面**：1.20.1 管线 + 三维共用同链路；1.21.6 侧共享核同源但**管线源码未逐行核对**（未独立验证，已声明）。
 
-### 2026-09-13 R9-b 追加（260913-03）：可选加固收口——debug 门控并发冲突检测器（sentinel）已落地 — candidate（judge PASS-with-conditions，confirmed 待用户）
+### 2026-09-13 R9-b 追加（260913-03）：可选加固收口——debug 门控并发冲突检测器（sentinel）已落地 — **confirmed**（用户授予 2026-09-13，范围 = 本节全部结论；judge PASS-with-conditions 条件已应用）
 
 > 承接上文「可选加固（另立项）= debug 门控 sentinel」：该项已由工作块 260913-03 实施（实际 2026-09-13 16:02 起），上文原结论（单写者不变量成立 / 回归登记 / 残留边界）不变。
 
@@ -1513,5 +1513,5 @@ unctional-errors.md F1-F3）：
   - 门开臂：`armedLines=1 + wbLines=522 + sentinelCrash=0`——`[WG-BULKWB-SENTINEL] armed` 行为化自证命中；522 chunk 全程过包裹层**零误报**；
   - `suspExc=4` 两臂同值 = WMI COM 良性噪声（#139② 已知排除集）。
 - **Degraded 边界（诚实声明）**：双写者违例路径未做运行时注入（无现成注入面）——违例 crash 路径以静态论证承载（`sentinelEnter` → `sentinelCrash` 与 `LockHelper.crash` 同构 + 编译绿 + 消费面审查）；分类 = **Degraded（局部）**：门控行为 Full 运行时证据、违例路径静态。门关零开销 = 每 chunk 一次 `<clinit>` 已求值的 static final 读取 + 分支（judge SHOULD-1 措辞修正：**非**编译期常量消除，见 compiler-idioms #26）。
-- **judge / 状态**：judge（隔离 subagent）= **PASS-with-conditions**（0 MUST / 2 SHOULD / 4 INFO），推荐 candidate；SHOULD-1（门关零开销措辞）/ SHOULD-2（共享核跨版声明：sentinel 两版默认关、仅随 bulk 路径在场、1.21.6 行为零变化）/ INFO-2（sentinelKey 注释）已应用；INFO-1（chunk 级粒度 = per-chunk 单写者不变量的有意升级）已写入类注释。**置信度 candidate，confirmed 待用户授予**。跨 seed 动态压测（另一加固形态）仍为未立项的后续选项。
+- **judge / 状态**：judge（隔离 subagent）= **PASS-with-conditions**（0 MUST / 2 SHOULD / 4 INFO），推荐 candidate；SHOULD-1（门关零开销措辞）/ SHOULD-2（共享核跨版声明：sentinel 两版默认关、仅随 bulk 路径在场、1.21.6 行为零变化）/ INFO-2（sentinelKey 注释）已应用；INFO-1（chunk 级粒度 = per-chunk 单写者不变量的有意升级）已写入类注释。**置信度 candidate，confirmed 待用户授予**。跨 seed 动态压测（另一加固形态）仍为未立项的后续选项。（回执：**用户已 confirmed 2026-09-13**，范围 = 本节全部结论。）
 - 通用模式 → `knowledge/discovered/compiler-idioms.md` #24 补充案例（260913-03 收口）+ #26。
