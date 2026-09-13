@@ -1478,7 +1478,7 @@ unctional-errors.md F1-F3）：
 
 ### 边界（如实写，不得当已闭合）
 
-> ℹ️ 260913-02 指针：下表「并发可见性（R9-b）未做」已由 R9-b 专项收口（candidate）——见下方「2026-09-13 R9-b」小节；原文保留不改。
+> ℹ️ 260913-02 指针：下表「并发可见性（R9-b）未做」已由 R9-b 专项收口（confirmed，2026-09-13 用户授予）——见下方「2026-09-13 R9-b」小节；原文保留不改。
 
 | 项 | 状态 |
 |---|---|
@@ -1493,7 +1493,7 @@ unctional-errors.md F1-F3）：
 
 ---
 
-## 2026-09-13 R9-b：bulk 写回并发写路径专项（单写者不变量成立）— candidate（judge PASS-with-conditions；confirmed 留用户）
+## 2026-09-13 R9-b：bulk 写回并发写路径专项（单写者不变量成立）— **confirmed**（用户授予 2026-09-13，范围 = 本节全部四点；judge PASS-with-conditions 条件已应用）
 
 > 载体与依据：`.investigations/r9b-260913-02/record-260913-02.md`（A1-A6 结构性论证 + §9.7 边界声明）+ `judge-260913-02.md`（三源核对，J1/J2 修订 + J5 index 登记条件）。**验证分层 = Degraded（纯静态源码论证），未做并发压测/动态探针**。通用模式 → `knowledge/discovered/workflow-patterns.md` #143 + #36 家族补充案例（第四例）、`compiler-idioms.md` #24 补充案例（260913-02）。
 

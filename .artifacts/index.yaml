@@ -1607,7 +1607,7 @@ entries:
   - id: 'swe:r9b-260913-02:record'
     path: '../.investigations/r9b-260913-02/record-260913-02.md'
     kind: record
-    status: candidate
+    status: confirmed   # 用户授予 2026-09-13（范围 = record §3 全部四点；不含性能与 1.21.6 行为结论）
     # R9-b 并发写路径专项（260913-02；承 bulk-writeback-260911-05 judge S1 遗留）：「每 chunk 单写者」不变量
     #   **结构成立**（candidate，待用户 confirmed）——唯一写者 = 该 chunk 的 fill work 闭包（mixin HEAD cancel →
     #   wgDispatch → fillChunk → BulkWb.writeSections，全在单闭包内）；A1 futuresByStatus 缓存 ⇒ 同 (chunk,status)
