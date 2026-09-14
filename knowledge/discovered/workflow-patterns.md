@@ -2546,3 +2546,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 ---
 
 > **#119 补充案例（260914-01，固定 -Xmx2G 后残余摆动带量化 + n≥3 极差带判据）**：固定 `-Xmx2G` 后同配置串行 n=3（同 seed/同 256 chunk region/同 dll），peakPriv 极差 **~110.9MB（~6.7%）**、peakWS ~7.0%、GC 停顿后 used 稳态 ~4.4%（~22MB）——**#119 的 1.7× 摆动收窄到 ~7% 但未归零**（G1 堆高水位机制仍在，峰值进程内存不随 -Xmx 钉死）。判据（内存回归口径，candidate）：① 载体必须固定 `-Xmx`（pickup 行双通道自证可行，→ build-tooling #149）；② **n≥3 同配置串行 run 取 peakPriv 极差带作本底噪声带**（带绑定 §9.7 三要素，换 -Xmx/region/seed 须重测，不得跨口径引用；极差随 n 单调增长，n=3 是小样本估计）；③ **信号判定操作定义**：单次 run 超带只作线索，**连续 n≥2 同向超带才立信号课题**；判据**首次使用后 MUST 用首用 run 再校准带**（升 n=5 或按新极差重算）；④ live-set 代理用 GC 停顿后 used 稳态值，不用峰值进程内存；⑤ ±100MB 内的单 run 峰值变化不构成回归/优化证据。VOID 轮教训（r1-r3 空壳 gc log + 门扫错流）→ build-tooling **#148/#149**。来源：`.investigations/mem-cal-260914-01/record-260914-01.md`（judge review-001 PASS-with-conditions，C1-C3 已应用；confirmed 留用户）。时间线 → `versions/1.21.6/docs/10-timewise-archive.md` 260914-01 块。
+
+---
+
+> **#103/#24 补充案例（260914-02，首跑预热 ≫ 机器噪声带——交错配对必要性实证）**：同构建态单变量 A/B（同一 dll 零重编 + `-Dcoreswap.bulkwb=0` 运行时覆盖，256 chunk overworld、每臂 3 重复、交错序 A,B,B,A,B,A）下：perblock 3 臂 ns/call 极差 **~5.3%**（#103 ±10% 噪声带同量级偏下 → 单臂不可信的判断被本批实证），bulk 全量极差 **~36%** 完全由首臂 r1 预热主导（JIT/类加载候选，剔后极差 **~1.8%**）——**首跑预热效应大于机器噪声带一个量级**，同批配对 + 交错序不是加分项而是必要条件（#24 顺序效应对消）。判读纪律（judge C1 已应用）：全量保守下界（不剔首臂）与剔首臂敏感性读法**分开标注**，量级结论只引由多读法独立支撑者、不得把敏感性读法称作「保守值」。来源：`.investigations/ns-ab-260914-02/record-260914-02.md`（judge review-001 PASS-with-conditions，C1/C2 已应用；confirmed 留用户）；装置面判据 → build-tooling **#150**。时间线 → `versions/1.21.6/docs/10-timewise-archive.md` 260914-02 块。

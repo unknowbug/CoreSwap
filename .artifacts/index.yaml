@@ -1734,3 +1734,23 @@ entries:
     path: '../.investigations/mem-cal-260914-01/'
     kind: knowledge
     status: candidate   # subagent 草稿 + 主会话应用：workflow-patterns #119 补充案例 + build-tooling #148/#149 + INDEX 追加行 + 1.21.6 版 10 时间线 260914-01 块
+
+  # === ns-ab（bulk vs perblock 写回 ns/call A/B 配对，260914-02，judge PASS-with-conditions 条件已应用）===
+  - id: 'swe:ns-ab-260914-02:record'
+    path: '../.investigations/ns-ab-260914-02/record-260914-02.md'
+    kind: record
+    status: candidate   # confirmed 待用户授予（judge review-001 PASS-with-conditions，C1/C2 已应用）
+    # 260914-02：同构建态单变量（同 dll 零重编 + -Dcoreswap.bulkwb=0 运行时覆盖）256 chunk overworld 口径下
+    #   bulk 写回每 chunk 写回分项 ≈ perblock 的 1/2（剔首臂 2.04×/2.11×，全量保守下界 1.32×）；
+    #   首跑预热 ~36% ≫ 噪声带 ~5.3%（→ #103/#24 补充案例）。过程错误：判据未预登记（#112 首犯，保守读法补救）、
+    #   pickHit 双重重置、destroy 时序（→ build-tooling #150）。§9.7：仅同批配对臂可比，绝对值不外推。
+  - id: 'swe:ns-ab-260914-02:judge'
+    path: '../.investigations/ns-ab-260914-02/review-001.md'
+    kind: review
+    status: candidate
+    # 三源核对：数字逐格零偏差 + 算术独立重算吻合 + 自证链成立（成对计数 + stderr pickup 手工补验一致）。
+    #   C1 = 配对比读法措辞必改（全量下界 1.32× 与敏感性 2.04× 分开，已应用）；C2 = 脚本 stale 注记 + 双 stop 线索（已应用）。
+  - id: 'swe:ns-ab-260914-02:knowledge'
+    path: '../.investigations/ns-ab-260914-02/'
+    kind: knowledge
+    status: candidate   # subagent 草稿 + 主会话应用：build-tooling #150 + workflow-patterns #103/#24 补充案例 + INDEX 追加行 + 1.21.6 版 10 时间线 260914-02 块

@@ -163,3 +163,14 @@
 - ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：数字零偏差（judge 独立重算 gc log/csv 逐格吻合）；C1 = 信号判定操作定义补入判据；C2 = 杂散文件清理复核；C3 = GC 计数口径注记（pauses 只计 Pause Young 行，全停顿口径 69/69/70）。
 - ⚠️ **§9.7 / Degraded**：载体 = 固定 -Xmx2G + 256 chunk region forceload + 同 seed 同 dll（`abd7d889…`）串行；覆盖面 = 单 seed 单 region overworld n=3（极差随 n 单调增长，小样本）；与 #119 未固定 -Xmx 口径**不可比**；Degraded = 无 Full GC / 无 jcmd 直读 live-set（只有 GC 停顿后 used 代理）、5s 采样粒度峰值归因未知、peakPriv 构成未分解。
 - 状态：✅ judge PASS-with-conditions（条件已应用）→ ✅ 用户 confirmed（2026-09-14）。提交号：`2c07097`。
+
+## 260914-02（实际 2026-09-14，Get-Date 锚开工时点）：bulk vs perblock 写回分项 ns/section A/B 配对采集（bulk-writeback-260911-05 §9.7 遗留落地）—— **candidate**（judge review-001 PASS-with-conditions，C1/C2 已应用；confirmed 待用户授予）
+
+> 过程产物 `.investigations/ns-ab-260914-02/`（`record-260914-02.md` 主记录 + `review-001.md` judge 三源核对 + `knowledge-draft-260914-02.md`）+ `.tmp/ns-ab-260914-02/`（7 份 log/err + 运行台，不入库在盘可核）。上游：bulk-writeback-260911-05 §9.7（A/B 配对 + 噪声带控制缺失遗留）+ #103/#24（噪声带/顺序效应）。通用模式 → build-tooling **#150** + workflow-patterns **#103/#24 补充案例**（subagent 草稿 → 主会话应用）。
+
+- ✅ **核心结论（candidate）**：同构建态单变量（同一 dll `ABD7D889…2131` 零重编 + `-Dcoreswap.bulkwb=0` 运行时覆盖，消费点 `CppBridge.java:642`/`BulkWb.java:90`）、256 chunk overworld（seed=417950215108767439，region 2048,2048→2303,2303，forceload post-Done，wbLines=576/臂）口径下，bulk 写回每 chunk 写回分项（ns/call(total)，同仪器）**≈ perblock 的 1/2（~2.1× 快）**——剔首臂两读法独立支撑（最差臂对比 2.04× / 均值 2.11×），全量保守下界 1.32×；绝对值不外推。
+- ✅ **自证链**：`[WG-BULKWB]`/`[WG-PERBLOCK]` 正负成对计数（bulk 臂 576/0、perblock 臂 0/576）+ 同 workload 前提（bulk 三臂 sections_replaced/air_skipped 完全一致 5143/8681）；交错序 A,B,B,A,B,A 对消顺序效应。
+- ❌→修正 **过程错误（→ #150 五段式）**：① 判据未预登记（#112 违例首犯）→ 保守读法补救（全数据呈现 + 离群只标注）；② 驱动脚本 pickHit 双重重置恒 0 → 手工补验 pickHit=2/臂；③ destroy 时序（汇总行 stop 后打印）→ 提取点移到进程退出后；冒烟臂一条同时暴露 wbcontent 缺失 + 时序两个假设错误（不入账）。
+- ⚠️ **§9.7**：载体 = 1.21.6 worldgen1216.dll（零重编）+ destroy 汇总行同仪器；覆盖面 = 单 seed × 256 chunk overworld region × 每臂 3 重复交错；可比性 = 仅同批配对臂可比；calls=576 vs 260913-06 的 625 分母语义差（#132）并列不连线，260913-06 旧单样本**弃用**不进任何对比。
+- 🔍 **open**：① rcon stop ConnectionRefused ×3（judge 线索 = 脚本双 stop 结构，未查）；② 首跑预热假设未独立验证（可选 warmup 臂）；③ pickHit 脚本本体未修。
+- 状态：**candidate**（judge PASS-with-conditions，C1 读法措辞 + C2 脚本注记已应用；C3 index 登记随升 candidate 由主会话处理），confirmed 待用户授予。
