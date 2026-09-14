@@ -164,7 +164,7 @@
 - ⚠️ **§9.7 / Degraded**：载体 = 固定 -Xmx2G + 256 chunk region forceload + 同 seed 同 dll（`abd7d889…`）串行；覆盖面 = 单 seed 单 region overworld n=3（极差随 n 单调增长，小样本）；与 #119 未固定 -Xmx 口径**不可比**；Degraded = 无 Full GC / 无 jcmd 直读 live-set（只有 GC 停顿后 used 代理）、5s 采样粒度峰值归因未知、peakPriv 构成未分解。
 - 状态：✅ judge PASS-with-conditions（条件已应用）→ ✅ 用户 confirmed（2026-09-14）。提交号：`2c07097`。
 
-## 260914-02（实际 2026-09-14，Get-Date 锚开工时点）：bulk vs perblock 写回分项 ns/section A/B 配对采集（bulk-writeback-260911-05 §9.7 遗留落地）—— **candidate**（judge review-001 PASS-with-conditions，C1/C2 已应用；confirmed 待用户授予）
+## 260914-02（实际 2026-09-14，Get-Date 锚开工时点）：bulk vs perblock 写回分项 ns/section A/B 配对采集（bulk-writeback-260911-05 §9.7 遗留落地）—— ✅ 用户 confirmed（2026-09-14；judge review-001 PASS-with-conditions，C1/C2 已应用）
 
 > 过程产物 `.investigations/ns-ab-260914-02/`（`record-260914-02.md` 主记录 + `review-001.md` judge 三源核对 + `knowledge-draft-260914-02.md`）+ `.tmp/ns-ab-260914-02/`（7 份 log/err + 运行台，不入库在盘可核）。上游：bulk-writeback-260911-05 §9.7（A/B 配对 + 噪声带控制缺失遗留）+ #103/#24（噪声带/顺序效应）。通用模式 → build-tooling **#150** + workflow-patterns **#103/#24 补充案例**（subagent 草稿 → 主会话应用）。
 
