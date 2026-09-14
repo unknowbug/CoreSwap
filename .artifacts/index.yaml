@@ -1754,3 +1754,36 @@ entries:
     path: '../.investigations/ns-ab-260914-02/'
     kind: knowledge
     status: candidate   # subagent 草稿 + 主会话应用：build-tooling #150 + workflow-patterns #103/#24 补充案例 + INDEX 追加行 + 1.21.6 版 10 时间线 260914-02 块
+  # === light-round3（光照性能 round3：B palette 展开 + C packed 直传，260914-04，judge 收尾 PASS）===
+  - id: 'swe:light-round3-260914-04:record'
+    path: '../.investigations/light-round3-260914-04/record-260914-04.md'
+    kind: record
+    status: candidate   # judge 收尾 PASS（三源 8/8、判据 FAIL 如实）；confirmed 待用户
+    # 260914-04：探针定线证伪 round2 减法口径（collect 4.5ms 30×）→ B writePacket 帧收集 4.527→0.288 +
+    #   C packed 直传 native 2.770→2.651；ON 串行 7.3→2.94ms/chunk、e2e 1.25×→~1.07×；e2e 判据 FAIL 1.072
+    #   （n=6）3 轮触发 C-gate、用户裁决收尾。W1 漏读前缀假绿（singular 免疫）。§9.7：串行 per-chunk vs e2e
+    #   wall 不可换算；1.21.6 仅 Rust 增量（#26 帧格式差，Java 不动）。
+  - id: 'swe:light-round3-260914-04:judge'
+    path: '../.investigations/light-round3-260914-04/review-final-judge.md'
+    kind: review
+    status: candidate
+    # 收尾 MUST 三源核对 8/8 PASS、diff 面一一对应无未声明改动；推荐 candidate。§5 给出 12 篇 L94 supersedes
+    #   双指针指示；§7 遗留（global palette 回退未证不可能 / 双开关矩阵 / e2e 载体噪声）随知识库落盘。
+  - id: 'swe:light-round3-260914-04:probe-verdict'
+    path: '../.investigations/light-round3-260914-04/probe-verdict-260914-04.md'
+    kind: analysis
+    status: candidate
+    # 探针三源（K/T/P）解读 + 对价模型（ON 7.3 = 4.5+2.8 vs vanilla ~5.6）；round2「Java 段≈0」证伪 30× 的
+    #   一手锚；HOOK-2b 判据线维持依据。含 §9.7 先行声明。
+  - id: 'swe:light-round3-260914-04:knowledge'
+    path: '../.investigations/light-round3-260914-04/'
+    kind: knowledge
+    status: candidate   # subagent 草稿 + 主会话应用：compiler-idioms #27 + build-tooling #151 + workflow #147/#148
+    #   + 12 篇 round3 小节（L94 supersedes）+ 10 时间线 260914-04 块 + INDEX 追加行。
+  # —— round2 standing 闭环（review-d3-round2-260905-04 should-fix「light 课题 .artifacts 登记」随本块补齐）——
+  - id: 'swe:light-opt-round2-260905-04:standing-closure'
+    path: '../versions/1.20.1/docs/12-lighting.md'
+    kind: note
+    status: candidate   # 12 篇 round2/round3 小节 + 本组 light-round3 条目即 standing 登记闭环载体
+    # round2 judge should-fix「light 课题 index.yaml 登记」由本块 light-round3 条目组补齐；round2 结论已被
+    #   round3 部分取代（L94 supersedes 双指针，§15.4）。

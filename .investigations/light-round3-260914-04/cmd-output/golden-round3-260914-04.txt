@@ -1,0 +1,4 @@
+GOLDEN synthetic block=a2afe2bcbc3b5265 sky=fcf11731e70ec325 flags=5b17479a7e163ff1
+GOLDEN blocks9_real.bin block=532139f35793b471 sky=1a154c965636db25 flags=a24f97d52d924106
+GOLDEN blocks9_region_a.bin block=3d12b6657ec2b7d7 sky=1a154c965636db25 flags=a24f97d52d924106
+GOLDEN blocks9_region_b.bin block=51da63faeff123eb sky=d950f16a0bd67935 flags=a24f97d52d924106

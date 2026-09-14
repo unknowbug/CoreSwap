@@ -3224,3 +3224,15 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ judge：隔离 subagent PASS-with-conditions，推荐 candidate——SHOULD-1 已应用（「门关零开销 = 编译期常量消除」是误称：`System.getProperty` 非常量表达式、javac 不内联，实际 = `<clinit>` 单赋值 + C2 运行期折叠 → compiler-idioms #26）；SHOULD-2（共享核跨版声明）/ INFO-2（sentinelKey 注释）已应用；INFO-1（chunk 级粒度系有意升级）已入注释。
 - ⚠️ 降级声明：双写者违例路径未做运行时注入（无现成注入面）——以静态论证承载（同构 + 编译绿 + 消费面审查）；分类 = Degraded（局部）：门控行为 Full / 违例路径静态。
 - 通用模式 → compiler-idioms #24 补充案例（260913-03 收口）+ #26；07 篇 R9-b 小节追加状态更新（另处落盘）。
+
+## 260914-04（实际 2026-09-14 15:29 起，Get-Date 锚：光照性能 round3——探针定线 + B palette 展开 + C packed 直传）🔍 candidate 建议（judge 收尾 PASS 8/8；e2e 判据 FAIL 1.072 如实、用户裁决收尾；confirmed 待拍板）
+
+> 过程产物 `.investigations/light-round3-260914-04/`（record / probe-verdict / review-final-judge / scout-map / b1-b3 / cmd-output 23 件）+ 计划 `.investigations/000-架构设计/架构设计-260914-04-光照round3.md`。
+
+- 🔍 **探针定线（三源）**：K 内核 1482.6µs（同数据 vs 12 篇 1587µs sanity 过）/ T Java 段 collect 4.5ms、native 2.8ms / P palette bits 直方图（4:95%）；**round2 减法口径「Java 段≈0」证伪 30×**（→ 12 篇 L94 supersedes + workflow #147 判据）。
+- ✅ **B（palette 级展开收集）**：writePacket 公有帧路径（@Accessor 撞私有 record 不可行 → compiler #27）；collect 4.527→1.257→0.288ms；DUAL ALL-MATCH。
+- ✅ **C（JNI packed 直传）**：三数组直传 + Rust light_decode_packed + 同内核；native 2.770→2.651ms（游标免除法）；DUALP ALL-MATCH、fallback=0（paldump 0 节直证）。
+- ⚠️ **W1 漏读长度前缀假绿**（最高价值过程错误）：singular 节免疫位流错位 → 对拍 4 chunk 假绿 + rc=-2 静默回退 + nativeAvg 反升伪装（→ build-tooling #151 三件套签名 + 位流负载用例判据）；W2 初值自关闭 / W3 脚本返回值污染 / W4 回退均值前提（record §5 五段式）。
+- ❌ **e2e 判据 FAIL 1.072（n=6 六对交错，如实）**：OFF 极差 2.6s/15% + 跨批漂移 2s → 1s 级缺口不可判（→ workflow #148 载体灵敏度判据）；3 轮未满足触发 C-gate，**HOOK-3 用户裁决接受现状收尾**（非判据通过）。
+- ✅ **净收**：ON 串行 7.3→2.94ms/chunk；e2e 1.25×→~1.07×；golden 4/4 逐位。剩余：解码-查表融合 / sky_fall 融合 / e2e 载体更换 / global palette 回退计数。
+- 📌 通用模式 → compiler-idioms #27、build-tooling #151、workflow-patterns #147/#148（subagent 草稿 + 主会话应用）。

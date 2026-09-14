@@ -91,12 +91,40 @@
 
 - **golden 逐位（C4）**：4 用例逐位一致 PASS（golden_pre 现场重冻自 HEAD 92d9b7b，与 round1 golden_post hash 交叉一致）。
 - **双采集对拍（judge 条件，已执行）**：新路 section 直采 vs 旧路 getBlockState，实机 gate ON 前 4 chunk 逐元素对比 = **4× MATCH（0/98304 diff）**；对拍后诊断已移除并复编通过。
-- **e2e 四臂（C3）**：交替 ON/OFF/ON/OFF，同机同 seed 8576294172403134396，删 world——ON 中位 17.4s vs OFF 中位 13.9s = **1.25× 回退**（round1 1.74×、g3 基线 2.4×）；绝对开销 ≈3.5s ≈ 内核份额预测（1.59ms×2025≈3.2s，吻合）→ **Java 收集/JNI 侧开销已基本消除**。
+- **e2e 四臂（C3）**：交替 ON/OFF/ON/OFF，同机同 seed 8576294172403134396，删 world——ON 中位 17.4s vs OFF 中位 13.9s = **1.25× 回退**（round1 1.74×、g3 基线 2.4×）；绝对开销 ≈3.5s ≈ 内核份额预测（1.59ms×2025≈3.2s，吻合）→ **Java 收集/JNI 侧开销已基本消除**。〔260914-04 round3 supersedes 本行后半「→ Java 收集/JNI 侧开销已基本消除」及前半「≈内核份额预测吻合」归因：round2 减法口径把 Java 段记 ≈0.15ms/chunk，被 round3 分段探针实测证伪——collect 串行 4.5ms/chunk（30×）；见本篇 round3 小节 + .investigations/light-round3-260914-04/probe-verdict-260914-04.md §1〕
 - **judge**（review-d3-round2-260905-04.md）：APPROVE-WITH-CONDITIONS；must 条件双采集对拍已执行 ✓；should-fix：sec==null 措辞 ✓ / e2e n=2 噪声明示 ✓ / light 课题 .artifacts/index.yaml 登记（收口归档时补，standing）。
 
 ### 数据与遗留
 
 - 内核 Phase 分解（post，含 Instant 开销）：fill 943µs(58%) / block_bfs 8.8 / sky_fall 300 / sky_seed_bfs 206 / export 157。
 - fill 仍为最大头（~0.94ms，lookup 查表 + col_max 写）；下一层候选（未实施）：palette 级批量展开（Java 侧）、opacity u8 表内联。
-- 降级声明：Java/JNI 侧收益未单独微基准（运行时验证须主会话/实机），以 e2e 四臂差值为证据；OFF 基线漂移 ±1.5s 属同量级噪声。
+- 降级声明：Java/JNI 侧收益未单独微基准（运行时验证须主会话/实机），以 e2e 四臂差值为证据；OFF 基线漂移 ±1.5s 属同量级噪声。〔260914-04 补强：Java/JNI 侧收益已补单独微基准（round3 collect 4.527→0.288 / native 2.770→2.651ms，见 round3 小节）——本行降级声明由 round3 撤销〕
 - 过程/偏差 → 10-timewise-archive 260905-04 round2 条。
+
+---
+
+## D3 性能优化 round3（palette 展开收集 + packed 直传）——ON 路径 7.3→2.94ms/chunk，e2e 判据 FAIL 1.07 如实收尾（260914-04）
+
+> 状态：candidate 建议（judge 收尾 PASS：三源核对 8/8、行为门全绿、判据 FAIL 如实归档；confirmed 待用户拍板）。
+> 口径声明（§9.7）：探针计时 = light 线程每 chunk 串行耗时；e2e = runServer boot pregen wall（~400-600 chunk 接管，gate `coreswap.light.rust`）；二者不可直接换算（#128）。跨批 e2e 绝对值不可比（整批漂移 ~2s 实测）。
+
+### 探针定线（三源）与 round2 归因取代
+- 源 K（内核 1482.6µs 同数据 sanity）/ 源 T（Java 段计时 collect 4.5ms、native 2.8ms）/ 源 P（palette 直方图：bits 4:95%、5:5%、6:0.4%，singular 与 ID_LIST(bits≥15) 均 0——1.20.1 实测样本内）。
+- 对价模型：ON 串行 7.3 = collect 4.5 + native 2.8（内核 1.48 + JNI ~1.3）vs vanilla ~5.6；gap 1.73ms × 2025 ≈ 3.5s 双锚自洽。round2「Java 段≈0」减法口径被证伪（见上文 L94 取代标记；→ workflow-patterns #147）。
+
+### 措施
+- **B（Java palette 级展开收集）**：非空节走 `PalettedContainer.writePacket` 公有序列化帧（PC.java:383-387）→ Java 位流解码填 blocks9；mixin @Accessor 撞私有内部 record 不可行（→ compiler-idioms #27）。collect 4.527→1.257→0.288ms。
+- **C（JNI packed 直传）**：Java 拆帧 → sectionMeta/paletteData/storage 直传 → Rust `light_decode_packed` 解码 → 同一 light_compute 内核（输出等价 = 同内核同输入，结构性承载）；游标式偏移免除法。native 2.770→2.651ms。
+- 1.21.6 面：仅 Rust 增量导出（Java 零改动）；packed 收集未做（#26 帧格式差：定长无前缀），行为与 round2 一致（声明式，构建绿 + 语义零变化）。
+
+### 验证链（行为门全绿）
+golden 4/4 逐位（与 round2 冻结件一致）→ DUAL ALL-MATCH（B 输入层）→ DUALP ALL-MATCH（C 输出层）→ fallback=0（paldump 采样 0 节间接直证；无显式回退计数器——1.21.6 移植时建议补一行 counter）→ 诊断移除后复编 BUILD SUCCESSFUL。对拍抽样 = 4 chunk/轮（须含位流节，W1 教训 → build-tooling #151）；大样本正确性依赖 fallback=0 + 结构性论证，非全量逐位。
+
+### e2e 判据：FAIL 1.072（如实）
+判据线 ON/OFF 中位比 <1.05×（HOOK-2b，探针真值解除 judge「物理冲突」保留意见后维持）。B 期 1.070-1.083 FAIL / 四臂 n=2 不可判（OFF 极差 2.14s 与缺口同阶）/ 六对交错 n=6 中位比 **1.072 FAIL**（配对差均值 1.32s，单对噪声 ±1.5s）。**e2e 判据累计 3 轮未满足 → C-gate 触发，用户裁决「接受现状收尾」——判据未达标，非通过**。载体噪声下限（OFF 极差 2.6s/15% + 跨批漂移 2s）使 1s 级缺口在该载体不可判（→ workflow-patterns #148）。
+
+### 净收与剩余
+- ON 路径串行 7.3 → **2.94ms/chunk**（collect 0.29 + native 2.65）；e2e 回退 1.25× → **~1.07×**（收窄 ~2/3）。
+- 剩余优化面（未实施）：解码-查表单趟融合（~0.6-0.8ms）+ A-② sky_fall 融合（~0.1-0.2ms）+ **e2e 载体更换**（Chunky region / 光照阶段计时）。
+- 遗留风险：global palette（ID_LIST bits≥15）整 chunk 回退路径——1.20.1 实测 0 例但未证不可能；静默正确性由 rc=-2 闩回退结构保证，若发生为整 chunk 性能悬崖且生产无计数可见（建议下轮补回退计数日志）。双开关矩阵：`coreswap.light.oldcollect`（B 层）× `coreswap.light.blockabi`（C 层）正交——双开 = 全旧路径，任一关 = 该层走新路径。
+- 过程错误 W1-W4 五段式 → record §5（W1 → build-tooling #151；W2 初值-谓词成对核对 #81 家族；W3 PowerShell 输出流即返回值；W4 回退计数=0 前提下读均值）。

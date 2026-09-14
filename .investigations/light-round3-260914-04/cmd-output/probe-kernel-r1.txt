@@ -1,0 +1,6 @@
+[LIGHTPROBE-K] seed=8576294172403134396 origin=(200,200)
+[LIGHTPROBE-K] nonAir=288497/884736 = 32.6%
+[LIGHTPROBE-K] lumOnlyNonAirId=0
+[LIGHTPROBE-K] sky15IntervalCells=592128/884736 = 66.9%
+[LIGHTPROBE-K] memset3x884736B: 256 iters, per-iter 21.4 us (2654208 B)
+[LIGHTPROBE-K] kernelWall: 256 chunks, per-chunk 1493.6 us

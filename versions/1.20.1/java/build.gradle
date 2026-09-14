@@ -102,6 +102,9 @@ if (project.findProperty('oreChunkZ') != null) run.vmArg "-Dore.chunkZ=${project
 if (project.findProperty('lightDataDump') != null) run.vmArg "-DlightDataDump=${project.findProperty('lightDataDump')}"
 if (project.findProperty('lightRust') != null) run.vmArg "-Dcoreswap.light.rust=1"
 if (project.findProperty('lightData') != null) run.vmArg "-Dcoreswap.light.data=${project.findProperty('lightData')}"
+// 探针轮 260914-04（光照 round3 判据定线）：Java 段计时 + palette 直方图
+if (project.findProperty('lightTiming') != null) run.vmArg "-Dcoreswap.light.timing=1"
+if (project.findProperty('lightPaldump') != null) run.vmArg "-Dcoreswap.light.paldump=${project.findProperty('lightPaldump')}"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

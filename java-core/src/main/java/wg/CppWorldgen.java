@@ -103,6 +103,17 @@ public final class CppWorldgen {
      * Rust 独立重算 3×3 只回中心。返回 0 成功，负数错误。
      */
     public static native int lightCompute(long handle, int[] blocks9, byte[] outBlock, byte[] outSky, byte[] outFlags);
+
+    /**
+     * 光照计算（packed ABI，260914-04 候选 C）：sectionMeta = 216 节 × 2 = 432 项
+     * （节序 = 9 chunk c=dz*3+dx × 24 section；每节 [bits, psz]；bits=0&psz=0 空节哨兵、
+     * bits=0&psz=1 singular 均质节）；paletteData = 逐节拼接 ABI 编码表（rawId | lum<<24）；
+     * storage = 逐节拼接 PackedIntegerArray longs（LSB-first 不跨 long，索引序 = y<<8|z<<4|x）。
+     * 输出契约同 lightCompute。返回 0 成功；-2 = 长度/解码错（调用方整 chunk 回退 blocks9 ABI）。
+     * bits 域 = 4..14；global（ID_LIST bits≥15）不进本 ABI，调用方遇之整 chunk 回退。
+     */
+    public static native int lightComputePacked(long handle, int[] sectionMeta, int[] paletteData,
+            long[] storage, int paletteLen, int storageLen, byte[] outBlock, byte[] outSky, byte[] outFlags);
 }
 
 

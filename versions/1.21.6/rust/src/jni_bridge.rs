@@ -287,6 +287,10 @@ const LIGHT_FLAGS_LEN: usize = 48;
 // round2：JNI 侧缓冲 thread_local 复用（light 线程池每线程一份，免每 chunk ~4MB 分配）。
 // 每次使用前 b9 会被 get_int_array_region 全量覆写；ob/os/of 由 light_compute 全量写出
 // （export_center 对每 section 先 fill 再写，flags 全 48 字节写），无跨调用脏数据残留。
+// 候选 C（260914-04）：packed ABI 追加 meta/pal/sto 三缓冲（每使用全量覆写/游标闭合校验）。
+const LIGHT_META_LEN: usize = 9 * 24 * 2; // 432
+const LIGHT_PAL_CAP: usize = 9 * 24 * 256; // 55296（BiMap 上界）
+const LIGHT_STO_CAP: usize = 9 * 24 * 1024; // 221184（bits≥15 由 Java 侧回退，实际 ≤ bits4=256/节）
 thread_local! {
     static LIGHT_B9: std::cell::RefCell<Vec<i32>> =
         std::cell::RefCell::new(vec![0i32; LIGHT_BLOCKS9_LEN]);
@@ -296,6 +300,12 @@ thread_local! {
         std::cell::RefCell::new(vec![0u8; LIGHT_OUT_LEN]);
     static LIGHT_OF: std::cell::RefCell<Vec<u8>> =
         std::cell::RefCell::new(vec![0u8; LIGHT_FLAGS_LEN]);
+    static LIGHT_PM: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; LIGHT_META_LEN]);
+    static LIGHT_PP: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; 0]); // palette 实长随 Java 传入数组，按需 resize
+    static LIGHT_PS: std::cell::RefCell<Vec<i64>> =
+        std::cell::RefCell::new(vec![0i64; 0]);
 }
 
 // 光照引擎初始化：解析 light_data.json → LightEngine handle。解析失败返回 0。
@@ -367,6 +377,8 @@ pub extern "system" fn Java_wg_CppWorldgen_lightCompute<'frame>(
                             match res {
                                 Ok(Ok(())) => {}
                                 Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
+                                // packed ABI 不经此入口，防御性同映射（枚举新增变体，260914-04）
+                                Ok(Err(LightError::PackedDecode)) => return Ok(-2),
                                 Err(p) => {
                                     // 诊断：panic 内容打到 stderr（一次性定位用，量级 = 每次失败一行）
                                     let msg = p
@@ -395,6 +407,105 @@ pub extern "system" fn Java_wg_CppWorldgen_lightCompute<'frame>(
                         })
                     })
                 })
+            })
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+// 候选 C（260914-04）：packed ABI 光照——sectionMeta[432]（216 节 × [bits,psz]）+
+// paletteData（逐节拼接 ABI 编码表）+ storage（逐节拼接 packed longs）→ decode 到
+// LIGHT_B9 后走同一 light_compute 内核（输出等价 = 同内核同输入，结构性承载）。
+// 返回：0 成功；-1 handle 空；-2 长度/解码错（Java 侧整 chunk 回退 blocks9 ABI）；
+// -3 内核 panic；-4 JNI 错误。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightComputePacked<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+    section_meta: JIntArray, palette_data: JIntArray, storage: jni::objects::JLongArray,
+    pal_len_arg: jint, sto_len_arg: jint,
+    out_block: jni::objects::JByteArray, out_sky: jni::objects::JByteArray,
+    out_flags: jni::objects::JByteArray,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
+            }
+            let meta_len = env.get_array_length(&section_meta)? as usize;
+            let pal_cap = env.get_array_length(&palette_data)? as usize;
+            let sto_cap = env.get_array_length(&storage)? as usize;
+            let pal_len = pal_len_arg.max(0) as usize;
+            let sto_len = sto_len_arg.max(0) as usize;
+            if meta_len != LIGHT_META_LEN
+                || pal_len == 0 || pal_len > pal_cap || pal_len > LIGHT_PAL_CAP
+                || sto_len == 0 || sto_len > sto_cap || sto_len > LIGHT_STO_CAP
+                || env.get_array_length(&out_block)? as usize != LIGHT_OUT_LEN
+                || env.get_array_length(&out_sky)? as usize != LIGHT_OUT_LEN
+                || env.get_array_length(&out_flags)? as usize != LIGHT_FLAGS_LEN
+            {
+                return Ok(-2);
+            }
+            LIGHT_PM.with(|tl_pm| {
+            LIGHT_PP.with(|tl_pp| {
+            LIGHT_PS.with(|tl_ps| {
+            LIGHT_B9.with(|tl_b9| {
+            LIGHT_OB.with(|tl_ob| {
+            LIGHT_OS.with(|tl_os| {
+            LIGHT_OF.with(|tl_of| -> Result<jint, Error> {
+                let mut pm = tl_pm.borrow_mut();
+                env.get_int_array_region(&section_meta, 0, &mut pm)?;
+                let mut pp = tl_pp.borrow_mut();
+                pp.clear();
+                pp.resize(pal_len, 0);
+                env.get_int_array_region(&palette_data, 0, &mut pp)?;
+                let mut ps = tl_ps.borrow_mut();
+                ps.clear();
+                ps.resize(sto_len, 0);
+                env.get_long_array_region(&storage, 0, &mut ps)?;
+                let mut b9 = tl_b9.borrow_mut();
+                let engine = unsafe { &*(handle as *const LightEngine) };
+                let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    WorldgenRust::light::light_decode_packed(&pm, &pp, &ps, &mut b9)
+                        .and_then(|()| {
+                            let mut ob = tl_ob.borrow_mut();
+                            let mut os = tl_os.borrow_mut();
+                            let mut of = tl_of.borrow_mut();
+                            WorldgenRust::light::light_compute(engine, &b9, &mut ob, &mut os, &mut of)
+                        })
+                }));
+                match res {
+                    Ok(Ok(())) => {}
+                    Ok(Err(LightError::InputLen | LightError::OutputLen | LightError::PackedDecode)) => {
+                        return Ok(-2)
+                    }
+                    Err(p) => {
+                        let msg = p
+                            .downcast_ref::<&str>()
+                            .map(|s| *s)
+                            .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                            .unwrap_or("<non-string panic>");
+                        eprintln!("[LightRust][RUST-PANIC] lightComputePacked panicked: {}", msg);
+                        return Ok(-3);
+                    }
+                }
+                let ob = tl_ob.borrow();
+                let os = tl_os.borrow();
+                let of = tl_of.borrow();
+                let ob8: &[i8] =
+                    unsafe { std::slice::from_raw_parts(ob.as_ptr() as *const i8, ob.len()) };
+                let os8: &[i8] =
+                    unsafe { std::slice::from_raw_parts(os.as_ptr() as *const i8, os.len()) };
+                let of8: &[i8] =
+                    unsafe { std::slice::from_raw_parts(of.as_ptr() as *const i8, of.len()) };
+                env.set_byte_array_region(&out_block, 0, ob8)?;
+                env.set_byte_array_region(&out_sky, 0, os8)?;
+                env.set_byte_array_region(&out_flags, 0, of8)?;
+                Ok(0)
+            })
+            })
+            })
+            })
+            })
+            })
             })
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()

@@ -445,3 +445,14 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 - **机制（为什么）**：`System.getProperty(...)` 是方法调用，**非常量表达式** ⇒ javac 不内联、该字段不是 JLS 编译期常量 ⇒ `if (!SENTINEL) return;` 之后的代码**不会**被编译期剔除（Java「条件编译」只对 `static final` = 常量表达式字面量成立）。实际保证链 = `<clinit>` 恰一次求值 + C2 JIT 运行期折叠 ⇒ 门关成本 = 每 chunk 一次方法调用 + 一次分支，可忽略但**不是零指令**。
 - **判错经验（可复用）**：① 「门关零开销」类性能声明，机制名 MUST 与实际保证链一致——「compile-time 消除」vs「clinit 单赋值 + 运行期折叠」是不同声明，后者才成立；② 确需编译期消除须用 `static final boolean = <常量表达式字面量>`（构建期生成常量类/常量注入），接受其代价；③ 自查：对声称「编译期消除」的门，javap 看 `<clinit>` 与分支是否还在字节码里。
 - **家族索引**：#11（诊断门控初始化器唯一置位）、#25（类文件常量面——同属「编译期常量直觉不可靠」）、workflow-patterns #98 家族（诊断门控 chunk 级一次）、#120（公众声明与门控同源核对——同一「措辞与机制对齐」纪律）。**验证分层 = Degraded**（静态 JLS 语义论证 + javap 自查法，未做专门字节码实验）。
+
+---
+
+## 发现 #27 简记: `writePacket` 序列化帧 = 私有 `PalettedContainer` 内部的零 accessor 公有通道——mixin @Accessor 撞私有内部 record 时的替代路径（260914-04）
+
+- **发现时间 / 发现者 / 置信度 / module**：260914-04；主会话（编译实证）+ judge 收尾核对；candidate（编译实证 + 双采集对拍 ALL-MATCH 行为验证；confirmed 留用户）；compiler-idioms / Java·MC 容器序列化面。
+- **来源定位**：`.investigations/light-round3-260914-04/record-260914-04.md` §2（候选 B）；帧格式一手锚 = `PalettedContainer.writePacket`（PC.java:383-387，1.20.1 yarn sources）。
+- **观察**：要从 Java 侧取出 `PalettedContainer` 的 palette/bits/packed 数据时，直觉路径是 mixin `@Accessor("data")`——但 `data` 字段的类型是**私有内部 record**（`PalettedContainer.Data`），accessor 接口签名无法引用该类型，**编译期即不可行**（编译实证，非猜测）。
+- **证据**：候选 B 初版 `@Accessor("data")` 编译失败；改走公有 `writePacket` 后双采集对拍 4 chunk ALL-MATCH（diffTotal=0，probe-r2.log），且经生产 dev loom 环境（remap 链）运行正常。
+- **如何利用**：需要私有容器内部数据时，优先找**公有序列化帧**——`writePacket` 帧自带 bits（1B）+ palette 体（按 bits 分派的单值/ID_LIST 形态）+ `VarInt(n)` + packed longs 全信息，逐字段引用 PC.java:383-387 解析即可；零 accessor / 零反射 / **零 remap 风险**（公有方法名经标准映射）。⚠️ 跨版本注意帧格式差（1.20.1 `writeLongArray` 带 VarInt 长度前缀 vs 1.21.6 定长无前缀，#26 家族——本项目 issue #26 已登记）。
+- **家族索引**：build-tooling #26（Chunky 载体）/ build-tooling #151（该帧的长度前缀漏读坑）；workflow-patterns #55（remap 环境识别）——本条是「绕开私有面」正面形态。
