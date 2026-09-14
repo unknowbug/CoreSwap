@@ -153,3 +153,13 @@
 - ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：C1（MUST）= 六臂 [result] 汇总转录补归档 arm-summary（已做）；C2（MUST）= suspExc 运行时计数 3/4 无法从归档 log 复现 → record 修正为「可复现异常面 = 各 .log.err 各 1 行 rubygrapefruit error=5（gradle watcher 良性）」，运行时计数不作判据引用；C3（SHOULD）= 失败首跑留档 + MANIFEST 补脚本 sha（后者已做，前者以声明替代，机制面立 #146）。J1-J6 全 PASS；git diff / 盘上 hash 重算列入 judge 无法核查面显式声明。
 - ⚠️ **§9.7**：P2 仅 1.21.6 执行体（翻转只在其臂）；ow 未复跑（260913-01 承载）；P3 每 (执行体, seed) 组合 2 region，不声称全 region 泛化；fp 口径 = 排序域多重集判据（#142 窄化声明）。
 - 状态：✅ judge PASS-with-conditions（条件已应用）→ ✅ 用户 confirmed（2026-09-13）。提交号：`ff911b5` + `f4974da`（index/回填）。
+
+## 260914-01（实际 2026-09-14，Get-Date 锚开工时点）：内存口径测量——固定 -Xmx2G 下 run 间摆动带（臂 r4/r5/r6）—— **candidate**（judge PASS-with-conditions 条件已应用；confirmed 待用户授予）
+
+> 过程产物 `.investigations/mem-cal-260914-01/`（`record-260914-01.md` 主记录 + `review-001.md` judge 三源核对 + `knowledge-draft-260914-01.md`）+ `.tmp/mem-cal-260914-01/`（mem-poll csv / gc log / 运行台脚本，不入库在盘可核）。上游：#119（260910-08，未设 -Xmx 时峰值摆动 1.7×，内存回归 MUST 固定 -Xmx）；本块 = 其落地第一步。通用模式 → workflow-patterns **#119 补充案例** + build-tooling **#148/#149**（subagent 草稿 → 主会话应用）。
+
+- ✅ **核心结论**：固定 `-Xmx2G` 后 n=3 摆动带 = peakPriv 极差 **~110.9MB（~6.7%）** / peakWS ~7.0% / GC 停顿后 used 稳态 ~4.4%——1.7× 摆动**收窄到 ~7% 未归零**；内存回归判据草案 = n≥3 peakPriv 极差带作本底噪声，**连续 n≥2 同向超带才立信号**，带绑定 §9.7 载体口径、首用后再校准；回归主通道 peakPriv（含 native+堆 committed，peakWS 为辅）。
+- ❌→修正 **前置臂 r1/r2/r3 VOID（错误优先）**：① `$gcl:time` 被 PowerShell 解析为 drive-qualified 变量（`$env:` 同族）静默取空 → gc log 160B 空壳 + 工作目录 `,uptime` 杂散文件（judge C2 已清理）——修复 = `${gcl}` 包裹（→ #148）；② 自证门只扫 stdout，`JAVA_TOOL_OPTIONS` pickup 行实际打 stderr → 假放行——修复 = stdout+stderr 全流扫描 + xmxApplied=2 硬门（→ #149）。VOID 轮留档不删不覆盖（#146），修复后换标签 r4-r6 重跑。
+- ✅ **judge（隔离 subagent，三源核对）= PASS-with-conditions，条件已应用**：数字零偏差（judge 独立重算 gc log/csv 逐格吻合）；C1 = 信号判定操作定义补入判据；C2 = 杂散文件清理复核；C3 = GC 计数口径注记（pauses 只计 Pause Young 行，全停顿口径 69/69/70）。
+- ⚠️ **§9.7 / Degraded**：载体 = 固定 -Xmx2G + 256 chunk region forceload + 同 seed 同 dll（`abd7d889…`）串行；覆盖面 = 单 seed 单 region overworld n=3（极差随 n 单调增长，小样本）；与 #119 未固定 -Xmx 口径**不可比**；Degraded = 无 Full GC / 无 jcmd 直读 live-set（只有 GC 停顿后 used 代理）、5s 采样粒度峰值归因未知、peakPriv 构成未分解。
+- 状态：**candidate**，confirmed 待用户授予。

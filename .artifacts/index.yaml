@@ -1713,3 +1713,24 @@ entries:
     path: '../.investigations/sentinel-260913-06/'
     kind: knowledge
     status: candidate   # subagent 草稿 + 主会话应用：workflow-patterns #145/#146 + build-tooling #147 + INDEX 追加行 + 1.21.6 版 10 时间线 260913-06 块
+
+  # === mem-cal（内存口径：固定 -Xmx2G 摆动带，260914-01，judge PASS-with-conditions 条件已应用）===
+  - id: 'swe:mem-cal-260914-01:record'
+    path: '../.investigations/mem-cal-260914-01/record-260914-01.md'
+    kind: record
+    status: candidate   # confirmed 待用户授予（judge review-001 PASS-with-conditions，C1/C2/C3 已应用）
+    # 260914-01：固定 -Xmx2G 后 n=3 同配置摆动带 = peakPriv 极差 ~110.9MB（~6.7%）/ peakWS ~7.0% / GC 停顿后 used
+    #   稳态 ~4.4%——#119 的 1.7× 摆动收窄到 ~7% 未归零。内存回归判据 = n≥3 peakPriv 极差带作本底噪声 +
+    #   连续 n≥2 同向超带才立信号 + 带绑定 §9.7 载体口径、首用后再校准。前置臂 r1-r3 VOID（PS `$gcl:` drive-qualified
+    #   词法 + 自证门漏 stderr）→ build-tooling #148/#149。§9.7：单 seed 单 region overworld n=3；Degraded（GC log
+    #   代理，无 jcmd live-set）。
+  - id: 'swe:mem-cal-260914-01:judge'
+    path: '../.investigations/mem-cal-260914-01/review-001.md'
+    kind: review
+    status: candidate
+    # 隔离 subagent 三源核对：数字零偏差（gc log/csv 独立重算逐格吻合）、置信度/边界合规、五段式完整。
+    #   C1 = 信号判定操作定义补入判据；C2 = `,uptime` 杂散文件清理复核；C3 = GC 计数口径注记。全部已应用。
+  - id: 'swe:mem-cal-260914-01:knowledge'
+    path: '../.investigations/mem-cal-260914-01/'
+    kind: knowledge
+    status: candidate   # subagent 草稿 + 主会话应用：workflow-patterns #119 补充案例 + build-tooling #148/#149 + INDEX 追加行 + 1.21.6 版 10 时间线 260914-01 块

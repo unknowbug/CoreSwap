@@ -2542,3 +2542,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   2. **运行台标签设计 SHOULD 天然抗覆盖**：臂标签带轮次序号（`r2-attempt1/2`）或时间戳，使覆盖在机制上不可能发生，而非靠纪律记忆。
   3. **失败臂的最低保全面 = 驱动命令回显/拒绝信息 + [result] 行转录**（本案 arm-summary 转录即此档）；叙述性记录 + 无证据件时，record MUST 按 #144 MUST-1 姿势补证据链声明。
 - **家族索引**：#144 判据 1（复跑前归档——本条为其**臂类型扩展**：失败/作废臂）、#88（「复跑采集必删 world」对偶面）、#118（判据输入集合可审计——失败轮日志属判错链输入）、#145（本案失败轮的成因条）。
+
+---
+
+> **#119 补充案例（260914-01，固定 -Xmx2G 后残余摆动带量化 + n≥3 极差带判据）**：固定 `-Xmx2G` 后同配置串行 n=3（同 seed/同 256 chunk region/同 dll），peakPriv 极差 **~110.9MB（~6.7%）**、peakWS ~7.0%、GC 停顿后 used 稳态 ~4.4%（~22MB）——**#119 的 1.7× 摆动收窄到 ~7% 但未归零**（G1 堆高水位机制仍在，峰值进程内存不随 -Xmx 钉死）。判据（内存回归口径，candidate）：① 载体必须固定 `-Xmx`（pickup 行双通道自证可行，→ build-tooling #149）；② **n≥3 同配置串行 run 取 peakPriv 极差带作本底噪声带**（带绑定 §9.7 三要素，换 -Xmx/region/seed 须重测，不得跨口径引用；极差随 n 单调增长，n=3 是小样本估计）；③ **信号判定操作定义**：单次 run 超带只作线索，**连续 n≥2 同向超带才立信号课题**；判据**首次使用后 MUST 用首用 run 再校准带**（升 n=5 或按新极差重算）；④ live-set 代理用 GC 停顿后 used 稳态值，不用峰值进程内存；⑤ ±100MB 内的单 run 峰值变化不构成回归/优化证据。VOID 轮教训（r1-r3 空壳 gc log + 门扫错流）→ build-tooling **#148/#149**。来源：`.investigations/mem-cal-260914-01/record-260914-01.md`（judge review-001 PASS-with-conditions，C1-C3 已应用；confirmed 留用户）。时间线 → `versions/1.21.6/docs/10-timewise-archive.md` 260914-01 块。

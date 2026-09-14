@@ -1155,3 +1155,39 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
   2. **`[scriptblock]::Create` 不是语法自查门**——会吞错/假 OK；语法门只用 Parser API（`ParseFile`/`ParseInput`，取 `[ref]` errors）。
   3. **文本层替换改脚本时，替换点之外的语法损坏是常态风险面**（反引号续行/引号配对/逗号）——凡对**要执行的脚本**做程序化变更，Parser 门是唯一可靠防线；judge 类逐行 diff（J6）核对的是「改了什么」，Parser 核的是「改完是否还是合法 PowerShell」，两者互补、都不可省。
 - **家族索引**：#45（`-like` 字符类坑）、#49（`-File` 多值参数）、#41（管道早退截断日志）、#34（Move-Item 静默改名）——同文件 PowerShell 坑家族；#62（同构：「编译过不构成接线证据」——本条为「文件生成了不构成语法合法」）。
+
+---
+
+## 发现 #148（最高价值·错误优先）: PowerShell `$var:xxx` 是 **drive-qualified 变量**词法——`$gcl:time` 被 `$env:` 同族语法吞掉静默取空，gc log 落成 160B 空壳 + 工作目录 `,uptime` 杂散文件是此坑的副产物签名（260914-01）
+
+- **发现时间 / 发现者 / 置信度 / module**：260914-01；主会话（VOID 臂产物核对 + PS 最小复现定因）+ judge subagent（C2 杂散文件归属核）；**candidate**（机制 PS 最小复现实证 + 修复后 r4-r6 三臂自证全过，confirmed 留人类）；build-tooling / PowerShell 脚本坑（#45/#49/#41/#147 同文件家族的**变量词法面**）。
+- **来源定位**：`.investigations/mem-cal-260914-01/record-260914-01.md` §五（错误记录五段式全文）+ §六（`,uptime` 杂散文件）；judge `review-001.md` §6（VOID 留档与 err 体积差旁证）；运行台 `.tmp/mem-cal-260914-01/run_memcal_1216_260914-01.ps1`（.tmp 不入库，record 为权威记录）；VOID 臂空壳 gc log（160B，盘上现存留档不删）。
+- **五段式（错误优先）**：
+  - **现象**：前置臂 r1/r2/r3 的 gc log 恒为 **160 字节空壳**（pauses/used 数据全缺），测量臂数据全部判 VOID；且 VOID 轮使 JVM 在工程目录落了名为 **`,uptime`** 的杂散文件（120B，`versions/1.21.6/java/,uptime`，untracked，judge C2 已清理复核零残留）。
+  - **根因（机制）**：脚本里写 `$gcl:time` 本意是「变量 `$gcl` + 字面量 `:time`」拼 gc log 路径，但 PowerShell 词法把 `$gcl:time` 解析为 **drive-qualified 变量**（`$<drive>:<path>` 语法，`$env:PATH` / `$function:x` 同族）——`gcl` 被当作 PSDrive 名去解析，**不报错、静默取空** ⇒ `-Xlog:gc:file=` 收到空/非法路径，JVM 把 options 段残段（`,uptime`）当文件名落到工作目录。这不是 gc 参数写错，是**变量名接冒号的词法歧义**。
+  - **定位**：读 VOID 臂产物发现 gc log 恒 160B；对照 VOID 臂 `.log.err`（~6.9KB）与 r4-r6（~7.0KB）的体积差追到 pickup 行流向（另立 #149）；PS 侧最小复现确认 `$gcl:time` 的 drive-qualified 解析行为。
+  - **修复**：① gc log 路径变量改 `${gcl}` 包裹（`${gcl}:time`）或换名避开冒号歧义；② 修复后**换新标签 r4-r6 重跑**（VOID 轮 r1-r3 留档不删不覆盖，承 #146）；③ 杂散 `,uptime` 删除并复核零残留。
+  - **教训**：见判据。
+- **判据（可复用）**：
+  1. **PowerShell 变量名后接冒号必须 `${var}` 包裹**——`$var:xxx` 会被解析为 drive-qualified 变量（`$env:` / `$function:` / `$global:` 同族），静默取空不报错；凡「变量 + 冒号 + 后缀」拼字符串场景（路径/文件名/时间戳后缀）一律 `${var}:xxx`。
+  2. **`,uptime` 类杂散文件是此坑的副产物签名**：`-Xlog:gc:file=` 类「文件路径内嵌选项段」的 JVM 参数收到畸变路径时，残段会以逗号开头落成工作目录杂散文件——看到 `,uptime` / `.0` / `.1` 类 untracked 残留先查上游脚本变量拼接，不是 JVM 随机行为。
+  3. **测量装置的日志落盘产物 MUST 做「非空 + 内容合理」核验后才采数据**（与 #149 自证门配套）：空壳文件是驱动静默失败签名（#20 家族测量侧形态）。
+- **家族索引**：#45（`-like` 字符类）、#49（`-File` 多值参数）、#41（管道早退截断）、#147（脚本程序化修改语法门）——同文件 PowerShell 坑家族；#20（死参数制造假判别——本条为「参数值被词法吞掉」的测量侧形态）；#144/#146（VOID 轮日志留档与杂散文件保全）。
+
+---
+
+## 发现 #149: JVM 参数注入类测量的**自证门判据**——`JAVA_TOOL_OPTIONS` pickup 行打 **stderr**，门禁覆盖面 = 被证通道全集（stdout+stderr）+ 注入产物非空双查；落物流向必须先实证再写门（260914-01）
+
+- **发现时间 / 发现者 / 置信度 / module**：260914-01；主会话（第一版门只扫 stdout 假放行被抓）+ judge subagent（review-001 §1 独立复算 2 条 pickup 行）；**candidate**（修复后 r4-r6 xmxApplied=2 硬门放行，confirmed 留人类）；build-tooling / 测量有效性自证门（#118「自证行做成硬门禁」的**JVM 参数注入面**；#37「生效证据必须行为化」的通道维）。
+- **来源定位**：`.investigations/mem-cal-260914-01/record-260914-01.md` §二（通道设计）/ §五（五段式根因 2）；judge `review-001.md` §1（`.log.err` 各含 2 条 pickup 行的独立复算）；VOID 臂 `.log.err`（~6.9KB）vs r4-r6（~7.0KB）体积差 = 流向旁证。
+- **五段式（错误优先）**：
+  - **现象**：第一版自证门只匹配 stdout 找 `-Xmx` pickup 行——`-Xmx` 实际未生效（或未实证生效）时门也放行，**自证失效假通过**；实际 pickup 通告行全在 stderr，stdout 恒零命中。
+  - **根因（机制）**：`JAVA_TOOL_OPTIONS` 的 `Picked up JAVA_TOOL_OPTIONS: …` 通告行由 JVM 打到 **stderr**（JVM 既有行为，非想当然的 stdout）——门禁只扫一条流 = **漏掉被证通道**；且「pickup 行出现」与「注入产物可用」是两件事，单查一行 ≠ 双查。
+  - **定位**：VOID 判 VOID 时顺带核自证面：对照两版 `.log.err` 体积差（≈2 条 pickup 行量级）+ 直接读 `.log.err` 命中 pickup 行 ⇒ 流向实证。
+  - **修复**：自证门改为**同时扫 stdout+stderr** 的 pickup 行，`xmxApplied` 计数 **daemon + server 两条**（=2 才放行，防只起一半）；与 gc log 非空核验（#148 判据 3）组成双查。
+  - **教训**：见判据。
+- **判据（可复用）**：
+  1. **自证门覆盖面 = 被证通道的全集，不是猜的一条**——`JAVA_TOOL_OPTIONS` pickup 走 stderr 是 JVM 行为；**落物流向必须先实证（跑一次读流）再写门**，凭直觉指定流 = 假放行。
+  2. **JVM 参数注入类测量开工前 MUST 双查**：① pickup 行在实证过的流上出现且计数达预期条数（daemon/server 多通道场景逐条计数）；② 注入产物非空且内容合理（gc log 行数/字节数下限）。两查齐过才采数据，否则判 VOID（承 #118：mismatch 即 VOID 不许人工挑臂）。
+  3. **多通道注入按条数硬门**（本块 = daemon + server 两条，=2 放行）——只查「出现过一次」对「起了一半」无区分力。
+- **家族索引**：#118（自证行硬门禁——本条为 JVM 注入参数面）、#37（生效证据必须行为化——本条为「落流通道实证」维）、#97（`[FEATURE]` 日志落 stderr、stdout grep 恒零——同构的「流放错」家族先例）、#20/#148（驱动/注入静默失败签名）、#32（env 未送达家族——本门即其防线）。
