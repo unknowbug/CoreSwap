@@ -1758,7 +1758,7 @@ entries:
   - id: 'swe:light-round3-260914-04:record'
     path: '../.investigations/light-round3-260914-04/record-260914-04.md'
     kind: record
-    status: candidate   # judge 收尾 PASS（三源 8/8、判据 FAIL 如实）；confirmed 待用户
+    status: confirmed   # 用户授予 2026-09-14 晚（接受现状归档语义）；judge 收尾 PASS（三源 8/8、判据 FAIL 如实）
     # 260914-04：探针定线证伪 round2 减法口径（collect 4.5ms 30×）→ B writePacket 帧收集 4.527→0.288 +
     #   C packed 直传 native 2.770→2.651；ON 串行 7.3→2.94ms/chunk、e2e 1.25×→~1.07×；e2e 判据 FAIL 1.072
     #   （n=6）3 轮触发 C-gate、用户裁决收尾。W1 漏读前缀假绿（singular 免疫）。§9.7：串行 per-chunk vs e2e

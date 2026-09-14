@@ -105,7 +105,7 @@
 
 ## D3 性能优化 round3（palette 展开收集 + packed 直传）——ON 路径 7.3→2.94ms/chunk，e2e 判据 FAIL 1.07 如实收尾（260914-04）
 
-> 状态：candidate 建议（judge 收尾 PASS：三源核对 8/8、行为门全绿、判据 FAIL 如实归档；confirmed 待用户拍板）。
+> 状态：**confirmed（2026-09-14 晚用户拍板「授权确认」——语义 = 接受现状归档；judge 收尾 PASS：三源核对 8/8、行为门全绿、e2e 判据 FAIL 1.072 如实保留，非判据通过）**。
 > 口径声明（§9.7）：探针计时 = light 线程每 chunk 串行耗时；e2e = runServer boot pregen wall（~400-600 chunk 接管，gate `coreswap.light.rust`）；二者不可直接换算（#128）。跨批 e2e 绝对值不可比（整批漂移 ~2s 实测）。
 
 ### 探针定线（三源）与 round2 归因取代
