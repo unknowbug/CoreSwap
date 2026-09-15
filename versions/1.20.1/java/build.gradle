@@ -150,6 +150,12 @@ if (project.findProperty('coreswapThreads') != null) run.vmArg "-Dcoreswap.threa
 if (project.findProperty('mixlog') != null) run.vmArg "-Dcoreswap.mixlog=1"
 if (project.findProperty('chunktime') != null) run.vmArg "-Dcoreswap.chunktime=1"
 if (project.findProperty('syncfill') != null) run.vmArg "-Dcoreswap.syncfill=1"
+// -Pformprobe=1 / -Pformdrive=1 → 形态审计探针 260915-03（fill/light 事件行 / 虚拟玩家票据驱动）
+if (project.findProperty('formprobe') != null) run.vmArg "-Dcoreswap.formprobe=1"
+if (project.findProperty('formdrive') != null) run.vmArg "-Dcoreswap.formdrive=1"
+// -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；-Pfjp1=1 → 单车道臂（common FJP parallelism=1）
+if (project.findProperty('execpool') != null) run.vmArg "-Dcoreswap.execpool=${project.findProperty('execpool')}"
+if (project.findProperty('fjp1') != null) run.vmArg "-Djava.util.concurrent.ForkJoinPool.common.parallelism=1"
 // -Pstallwatch=<秒> → 停滞看门狗（诊断专用，默认关）：每 N 秒打全部线程栈（沙箱禁 jstack 时的唯一手段）
 if (project.findProperty('stallwatch') != null) run.vmArg "-Dcoreswap.stallwatch=${project.findProperty('stallwatch')}"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"

@@ -3260,3 +3260,21 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **CP-6 结案：不立项**——needsSaving 门控在（TACR:797-802）但标脏 = status 阶段完成统一置位（ChunkStatus:362→ProtoChunk:221），vanilla 生成期块写自身也不标脏 ⇒ bulk 原地替换与 vanilla 同标脏面，疑点不成立。judge 六点一手源抽查零漂移。范围边界：限生成管线期（非生成期 bulk 写另一条链，另核）。判据 → workflow-patterns **#152**。
 - ✅ **judge review-001（CP-3+CP-6）PASS-with-conditions**：CP-3 条件 C1（cargo 输出落 cmd-output）/ C2（「近零成本」措辞改「预期近零、未测量」）/ C3（index.yaml 补登记）；CP-6 条件 C4（verdict 补范围边界）——均不阻塞 candidate 推荐，主会话已全部应用。
 - 📌 落盘：07 篇 D-④-b 结案小节（追加，原 CP-6 行加结案指针）+ discovered #152；CP-3 为一次性工程修复不立项 discovered（#150 已覆盖其判据面，subagent 草稿 D 节取舍）。预验证探针 1-4 未做，留下一波。
+
+
+## 260915-03（实际 2026-09-15，Get-Date 锚：形态审计执行序第二批——预验证探针 1-4 五臂采集 + 判读 + judge）🔍 candidate（judge PASS-with-conditions C1-C3 已应用；confirmed 待用户）
+
+> 计划 `.investigations/000-架构设计/架构计划-260915-03-预验证探针.md`；判据预登记 `.investigations/form-audit-260915-03/probe-criteria.md`（先于任何采集定稿，#150 纪律）；结论 → 07 篇「260915-03 预验证探针」小节；通用模式 → workflow-patterns #153/#154/#155 + build-tooling #152/#153/#154。
+
+- ✅ **采集**：五臂 A1/A2/B1/G1/G2，执行体三元组 dll `c86718e7ab300ac6`（CP-3 Mutex 构建，16:29）×4 boot 核对；seed 8576294172403134396（备份 .bak-formprobe、每臂删 world）；A1/A2 逐 chunk 4698 配对零缺。
+- ✅ **判定**：(a) 否定（S=0.79）/ (b) 否定（O=0，单边声明）/ .b1 否定（U≈19%）/ .b2 判据带内否定（R_sticky 复算 6.7%）/ .b3 否定（F=0，限驱动窗）/ G1 5.83% ≥2.5% → (i) 时机形态主导、CP-1 升首 / T_fill 92.5ms **§15.4 取代** ~10ms/~50ms 两系回填 260915-01 C-1 / A3 条件臂已评估·不触发（C-2）。G2 **VOID**（fjp1 死参数，自证门抓住，未人工挑臂）。
+- ✅ **CP 排序更新**：CP-1 升首候选 / CP-4 降后（C-3 驱动窗范围限定）/ CP-2 降后 / CP-5 随批。
+- ❌→✅ **过程错误 E1-E6**（五段式全文见 record + interpretation-draft §4）：
+  - **E1** run_g3 追加日志读取锚未重置（pos=0 误配 run1 的 Done）→ run2 提前 stop；修 = Popen 后 `pos=getsize`。→ build-tooling #152。
+  - **E2** 沙箱 `taskkill /IM java.exe` Access denied → Get-Process java 按 StartTime 归属 + 定向 Stop-Process -Id（保留 daemon）。→ build-tooling #153。
+  - **E3** fjp1 死参数——1.20.1 worldgen 主 worker = 专用 ForkJoinPool(cores-1)（Util.java:183），common pool parallelism 不接线；自证门（线程分布）判读前抓住 → VOID 而非假结论。→ workflow-patterns #153。
+  - **E4** parse_fp.py 段切分全局排序 vs gapMs 同线程口径错配 → R_sticky 恒 0 假读数（与 max_run 4-7 自相矛盾暴露）；修 = 按线程分组段切分；复算 6.7%（judge 独立重算一致）。→ build-tooling #154。
+  - **E5** 旁证臂缺位使 (i) 主导单腿站立——旁证臂立项时应与主判据一起做「旁证失败后结论可信度」预演。并入 #153。
+  - **E6** 探针④判据三态映射漏「两系之外」分支（92.5ms 落全部映射外）→ 判读按精神执行 + 交 judge（N-4 取代裁决）。→ workflow-patterns #154。
+- ✅ **attempt1 归档**：`G1.attempt1{,_light_before}.log/json`（#144 纪律，复跑前归档）。
+- 📌 产物路径：`.investigations/form-audit-260915-03/{probe-criteria.md, record-260915-03.md, interpretation-draft.md, judge-review-260915-03.md, cmd-output/{A1,A2,B1,G1,G2}.log, metrics-260915-03.json, metrics-B1-resticky.json, G1/G2_light_{before,after}.json}`；解析器 `.tmp/formprobe-260915-03/parse_fp.py`。

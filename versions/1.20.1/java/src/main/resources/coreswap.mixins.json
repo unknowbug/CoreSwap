@@ -24,6 +24,8 @@
     "AquiferDumpProbeMixin",
     "NoiseDumpProbeMixin",
     "ServerLightingProviderMixin",
+    "ServerChunkManagerAccessor",
+    "ServerWorldFormProbeMixin",
     "LightingProviderAccessor",
     "ChunkLightProviderAccessor",
     "ChunkSectionAccessor",

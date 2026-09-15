@@ -225,26 +225,42 @@ public abstract class NoiseChunkGeneratorMixin {
      * JNI fillBlocks… writeChunk 写独立 Chunk 对象天然并行」）。
      */
     private static java.util.concurrent.CompletableFuture<Chunk> wgDispatch(
-            java.util.function.Supplier<Chunk> work) {
+            java.util.function.Supplier<Chunk> work, String fpDim, int fpCx, int fpCz) {
+        // 形态审计探针（260915-03）：sub/sta/end 事件（ON=false 时零成本直返）
+        if (wg.bench.FormProbe.ON) wg.bench.FormProbe.fillSub(fpCx, fpCz, fpDim);
+        final boolean fpCallerRuns = EXEC_MODE; // CallerRuns 候选标记（执行线程名非 CoreSwap-Fill-* 时由 wrapper 复核）
+        java.util.function.Supplier<Chunk> wrapped = () -> {
+            if (wg.bench.FormProbe.ON) wg.bench.FormProbe.fillSta(fpCx, fpCz, fpDim);
+            long fpT0 = wg.bench.FormProbe.ON ? System.nanoTime() : 0L;
+            try {
+                return work.get();
+            } finally {
+                if (wg.bench.FormProbe.ON) {
+                    String th = Thread.currentThread().getName();
+                    wg.bench.FormProbe.fillEnd(fpCx, fpCz, fpDim, System.nanoTime() - fpT0,
+                            fpCallerRuns && !th.startsWith("CoreSwap-Fill-"));
+                }
+            }
+        };
         if (SYNCFILL) {
-            return java.util.concurrent.CompletableFuture.completedFuture(work.get());
+            return java.util.concurrent.CompletableFuture.completedFuture(wrapped.get());
         }
         if (EXEC_MODE) {
             wgLogExecOnce();
             // exec：fill 投自有有界执行器（池宽即 in-flight 上限），不经共享池、不加信号量。
-            return java.util.concurrent.CompletableFuture.supplyAsync(work, wgOwnPool());
+            return java.util.concurrent.CompletableFuture.supplyAsync(wrapped, wgOwnPool());
         }
         final java.util.concurrent.Semaphore permits = WG_FILL_PERMITS;
         if (permits == null) {
             wgLogInflightOnce();
-            return java.util.concurrent.CompletableFuture.supplyAsync(work, WG_FILL_POOL);
+            return java.util.concurrent.CompletableFuture.supplyAsync(wrapped, WG_FILL_POOL);
         }
         wgLogInflightOnce();
         // P1：在调用线程（worldgen 车道）取许可 ⇒ 池内最多 WG_MAX_INFLIGHT 个 fill 同时在飞。
         permits.acquireUninterruptibly();
         java.util.concurrent.CompletableFuture<Chunk> f;
         try {
-            f = java.util.concurrent.CompletableFuture.supplyAsync(work, WG_FILL_POOL);
+            f = java.util.concurrent.CompletableFuture.supplyAsync(wrapped, WG_FILL_POOL);
         } catch (Throwable t) {
             permits.release();   // 提交失败不得泄漏许可（否则许可耗尽 = 永久停顿）
             throw t;
@@ -285,6 +301,12 @@ public abstract class NoiseChunkGeneratorMixin {
         if (System.getProperty("comp.probe") != null && !CppBridge.didCompProbe()) {
             CppBridge.compProbe(noiseConfig);
         }
+        // 形态审计探针（260915-03）：vanilla 对照臂（CppBridge.enabled=false）的 fill 提交事件；
+        // CS 接管臂的 sub/sta/end 由 wgDispatch wrapper 负责（两者互斥，不双计）。
+        if (wg.bench.FormProbe.ON && !CppBridge.enabled) {
+            wg.bench.FormProbe.fillSub(chunk.getPos().x, chunk.getPos().z,
+                    chunk.getBottomY() == -64 ? "ow" : "ne");
+        }
         if (!CppBridge.enabled) return;
         boolean overworldShape = chunk.getBottomY() == -64 && chunk.getHeight() == 384;
         boolean zeroShape = chunk.getBottomY() == 0 && chunk.getHeight() == 256;
@@ -324,7 +346,7 @@ public abstract class NoiseChunkGeneratorMixin {
                     }
                 }
             };
-            cir.setReturnValue(wgDispatch(work));
+            cir.setReturnValue(wgDispatch(work, "ow", chunk.getPos().x, chunk.getPos().z));
             return;
         }
         // 下界：形状匹配 + settings id = minecraft:nether + nether 句柄就绪
@@ -356,7 +378,7 @@ public abstract class NoiseChunkGeneratorMixin {
                     }
                 }
             };
-            cir.setReturnValue(wgDispatch(work));
+            cir.setReturnValue(wgDispatch(work, "ne", chunk.getPos().x, chunk.getPos().z));
             return;
         }
         // 末地：同形 0/256 + settings id + end 句柄就绪（260906-04 end 接管里程碑）
@@ -385,12 +407,35 @@ public abstract class NoiseChunkGeneratorMixin {
                     }
                 }
             };
-            cir.setReturnValue(wgDispatch(work));
+            cir.setReturnValue(wgDispatch(work, "en", chunk.getPos().x, chunk.getPos().z));
             return;
         }
         // 形状匹配但 settings 不在接管集 → 放行 vanilla，一次性说明（含 aether 等 mod 维度）
         if (overworldShape || zeroShape) {
             wgLogReleaseOnce(overworldShape ? "-64/384" : "0/256");
+        }
+    }
+
+    // 形态审计探针（260915-03）：vanilla 对照臂的 fill 完成事件（RETURN 时挂完成回调，
+    // 回调线程 = 真正执行 fill 的工作线程；CS 接管臂不进此路径）。
+    @Inject(method = "populateNoise(Ljava/util/concurrent/Executor;"
+            + "Lnet/minecraft/world/gen/chunk/Blender;"
+            + "Lnet/minecraft/world/gen/noise/NoiseConfig;"
+            + "Lnet/minecraft/world/gen/StructureAccessor;"
+            + "Lnet/minecraft/world/chunk/Chunk;)"
+            + "Ljava/util/concurrent/CompletableFuture;",
+            at = @At("RETURN"))
+    private void wgFormProbeFillEnd(java.util.concurrent.Executor executor, Blender blender,
+                                    NoiseConfig noiseConfig, StructureAccessor structureAccessor,
+                                    Chunk chunk,
+                                    CallbackInfoReturnable<java.util.concurrent.CompletableFuture<Chunk>> cir) {
+        if (!wg.bench.FormProbe.ON || CppBridge.enabled) return;
+        if (cir.getReturnValue() instanceof java.util.concurrent.CompletableFuture) {
+            java.util.concurrent.CompletableFuture<?> f = (java.util.concurrent.CompletableFuture<?>) cir.getReturnValue();
+            final int cx = chunk.getPos().x;
+            final int cz = chunk.getPos().z;
+            final String dim = chunk.getBottomY() == -64 ? "ow" : "ne";
+            f.whenComplete((r, e) -> wg.bench.FormProbe.fillEnd(cx, cz, dim, 0L, false));
         }
     }
 

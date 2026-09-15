@@ -1573,3 +1573,45 @@ CP-3（近零成本风险消除）→ CP-6 源码核对 → 预验证 1/2/3/4 �
 - **范围边界**：① `isAtLeast(this)` 已达标路径不再置位——良性（首达已标脏）；② 本结案限**生成管线期**，全部 status 完成后的非生成期 bulk 写不在覆盖面（vanilla 该场景走 WorldChunk.setBlockState 自标脏，另一条链）；③ WrapperProtoChunk 不进生成任务链（:361 instanceof ProtoChunk 只匹配中心 chunk），无独立缺口；④ 阶段完成前 abort/unload 不标脏 = vanilla 同构的取消语义。
 - **判据沉淀**：→ workflow-patterns **#152**（审查生成期写回落盘完整性核对阶段推进链而非 setBlockState 链）。
 - **产物**：`.investigations/form-audit-260915-02/cp6-needssaving-verdict.md` + `review-001-cp3-cp6-judge.md`（CP-6 建议 candidate，confirmed 留用户）。
+
+
+## 260915-03 预验证探针 1-4（形态审计候选池）（candidate，judge PASS-with-conditions C1-C3 已应用，confirmed 待用户）
+
+> 状态：**candidate**（judge 认可三个排序结论升 candidate，confirmed 留用户；条件 C-1/C-2/C-3 已应用）。验证分层 = behavior 级 probe（FormProbe 事件行 + 存档 light 签名）+ 静态引用（Util.java:183 等），非 Full 逐位。
+> 产物：`.investigations/form-audit-260915-03/{probe-criteria.md（预登记，先于采集）, record-260915-03.md, interpretation-draft.md, judge-review-260915-03.md, cmd-output/{A1,A2,B1,G1,G2}.log, metrics-260915-03.json, metrics-B1-resticky.json}`。通用模式 → workflow-patterns #153/#154/#155 + build-tooling #152/#153/#154；过程 → 10-timewise-archive 260915-03 块。
+> **§9.7 验证可比性三要素**：① 载体 = FormProbe 事件行（[FP-FILL]/[FP-LIGHT]/[FP-ON]/[FP-DRV]）+ 存档 section light 签名哈希（snap_light.py 复用 260905-03）；② 覆盖面 = 6 驱动窗口 × 单 seed 8576294172403134396 × 1.20.1 单机 24 逻辑核（G1 = 45×45 spawn 区 2025 chunks）；③ 与 260915-01 静态推演口径**不可比**（Degraded 上限推演，量级只作方向参照）；G1 与 260905-03 基线为跨 dll 带参照（#127/#103），不作逐位预期。
+
+### 判据预登记要点
+五臂（A1 CS 接管默认+formprobe+drive / A2 vanilla 对照 / B1 light 接管 / G1 G3 复跑 gate ON / G2 条件旁证 -Pfjp1=1），全部臂自证行硬门禁（[FP-ON]/[FP-DRV] seq0-5/lightInit+fallback=0/vanilla 行，缺失即 VOID 禁人工挑臂）；执行体三元组逐臂记录（dll sha c86718e7ab300ac6 ×4 boot 核对）；seed 三查（.bak-formprobe、每臂删 run\world）；判读前禁改桶宽/阈值；A3 syncfill 为④灰区条件臂（预登记执行序内）。
+
+### 五臂数据摘要
+| 臂 | 自证 | 关键读数 |
+|---|---|---|
+| A1 | ✓ | S_window_median=0.79；O=0.0；T_fill P50=92.5/P90=110.8/max=341.2（N=3969，双口径 92.5/92.6 互证）；CallerRuns=37；U≈19% |
+| A2 | ✓ | S=0.966；绝对等待 P50 ~40-70ms |
+| B1 | ✓ | S=1.18；R_sticky 复算=6.7%（≤10% 否定带）；light dur P50=3.7ms；F=0；light busy 13.8s/wall 197.5s≈池容量 0.3% |
+| G1 | ✓ | drift 118/2025=5.83%（基线：旧 RefCell dll 6.07%、vanilla 0.84%，跨 dll 带参照） |
+| G2 | **VOID** | fjp1 死参数（1.20.1 主 worker = 专用 ForkJoinPool(cores-1)，Util.java:183，common pool 参数不接线）；线程分布自证失败 → 5.88% 不可引用 |
+
+### 逐条判定
+- 探针① (a) 首载瞬间优先级倒置：**否定**（S_A1=0.79 <1.5 且 <1.5×0.966，六窗方向一致，4698 chunk 配对零缺）。
+- 探针① (b) 移动中过时任务占用：**否定**（O_A1=0.0 ≪20%；**单边否定声明**：O_A2=null 对照缺失，判定基于 O_A1 绝对值；「>14」阈值方向 judge 抽查 = 低估方向，否定不受削弱）。
+- 探针③ .b1 池饱和：**否定**（U≈19.1%/18.9% ≤40%）。
+- 探针③ .b2 粘线：**否定（判据带内）**——解析器 bug（全局排序 vs 同线程 gap 口径错配，R_sticky 假 0）修复后复算 6.7% ≤10%（judge 独立重算一致）；形态 = 短连发（≤5-7 次）散布 23 线程，非「单线程焊死车道」。
+- 探针③ .b3 时机差：**否定**（F=0 ≤2%；范围限定：覆盖面 = 6 驱动窗口，boot 段 F 未单列）。
+- 探针② G3：G1 5.83% ≥2.5% → **(ii) UB 排除（Mutex 在位仍漂移）→ (i) 时机形态主导 → CP-1 权重升级**；CP-3 保留价值回归纯 UB 风险消除（「消除 G3」预期被证伪）。
+- 探针④ T_fill：**92.5ms 落 10ms/50ms 两系之外 → 按 §15.4 取代记录正式取代两历史系**（P50 92.5/P90 110.8/max 341.2，N=3969，busy 口径，非双峰），回填 260915-01 judge C-1；两系数字自此禁再引用。A3 条件臂**已评估·不触发**（P90/P50=1.2 非双峰 + 双口径互证，分布已唯一化，串行对照对「回填引用口径」无分辨价值；C-2 应用）。
+- 判据外新观察（非本判据产物）：A1 绝对首载等待 near P50 513.3-1069.4ms vs A2 40-70ms（~10×），与 T_fill 92.5ms × 排队深度 ~5-10 个自洽——fill 每 chunk 成本差是独立于优先级形态的第二层错配信号（归属 W1 A-② 域，立项与否交 judge/用户）。
+
+### CP 排序建议（候选池 260915-01 的预验证更新）
+| # | CP | 依据 | 动作 |
+|---|---|---|---|
+| 1 | CP-1 光照增量形态对齐 | G1 ≥2.5% → (i) 主导实锤；「一箭双雕」权重保留并升级 | **升首候选**，立项（注意与 CP-3 Mutex 交互复核） |
+| 2 | CP-4 ticket 优先级 | (a)(b) 双否定 → 预登记「R3 降后」映射；**C-3 范围限定：否定严格限于驱动窗，boot 段提交序错位未被本探针覆盖，不得读作全域证伪** | **降后**（残留绝对延迟归 fill 成本层非优先级层） |
+| 3 | CP-2 光照线程放置解粘 | .b1/.b3 否定 + .b2 判据带内否定（6.7%），池占用 ~0.3% | **降后**（复议条件 = 新形态证据；CP-3 安全前置已就位） |
+| 4 | CP-5 #122 池宽死参数 | 本轮无新证据（24 逻辑核机不触发退化面） | 维持**随批** |
+
+CP-3 已落地（260915-02）、CP-6 已结案（260915-02）不变；耦合约束 #150 核对通过。
+
+### judge 与状态
+judge（隔离子代理）三源核对 8 项独立复算零漂移，**PASS-with-conditions**：C-1（R_sticky 复算引用更新）/ C-2（A3 不触发显式声明）/ C-3（CP-4 驱动窗范围限定）——均已应用；N-2（513.3-1069.4 勘误）/ N-3（S 口径落死 = 分窗中位）/ N-6（>14 阈值方向抽查）已应用。**状态：candidate，confirmed 待用户授予。** 未闭合项 7 条（G2 旁证缺位单腿 / CallerRuns 归属 / O_A2 缺失 / 绝对延迟未立判据 / B1 S=1.18 观察 / boot 段 F 未测等）见 interpretation-draft §3。

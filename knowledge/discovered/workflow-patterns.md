@@ -2611,3 +2611,28 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   2. **审查方向判据**：凡审查「生成期写回是否落盘完整」，核对对象是**阶段推进链**（该 chunk 是否走到下一阶段完成的 thenApply），**不是 setBlockState 链**——按后者审查会把 vanilla 同构行为误判为对齐缺口（制造假疑点）。
   3. **范围边界（引用本判据必须随附）**：① 本判据限**生成管线期**；全部 status 完成后的**非生成期** bulk 写不在覆盖面（该场景 vanilla 走 `WorldChunk.setBlockState` 自标脏域，另一条链，出现该形态需另核）；② `isAtLeast(this)` 已达标路径（重入/跳跃推进）不再置位——良性（首达已标脏）；③ 阶段完成前 abort/unload 不标脏 = vanilla 同构的管线取消语义，非偏差；④ `WrapperProtoChunk`（:181-186 转发 setNeedsSaving）是 worlds 边界视图，不进生成任务链（:361 `instanceof ProtoChunk` 只匹配中心 chunk），无独立缺口。
 - **家族索引**：#151（审查分工/条件项闭合——本条是其 vanilla 机制侧输入实例）；#36 家族（静态机制断言须一手源核对——本条为「核对方向选对链」的正例）；#149 判据 4（参照系同位拆解——CP-6 疑点生成即参照系错置：把块写链当标脏参照）。
+
+
+## 发现 #153: fjp1 死参数——1.20.1 worldgen 主 worker = 专用 ForkJoinPool，common pool 参数不接线；旁证臂必须带行为化自证，立项时预演「旁证失败后结论可信度」（260915-03）
+- 发现时间/发现者/置信度/module：260915-03；worker/主会话探针 + judge 复核；candidate；workflow-patterns / 死参数家族（#20/#122/#145）+ 旁证实验设计。
+- 来源定位：`.investigations/form-audit-260915-03/{probe-criteria.md §4, record-260915-03.md E3, interpretation-draft.md §0, judge-review-260915-03.md §2}`；一手源 = Util.java:89/183-188（专用池构造 clamp(cores-1,1,max)）。
+- 五段式：
+  - 现象：G2 旁证臂 `-Pfjp1=1`（映射 -Djava.util.concurrent.ForkJoinPool.common.parallelism=1）意图造「单车道」复跑 G3，线程分布自证行显示 Worker-Main 多号并发实锤运行——参数未生效，臂判 VOID（drift 5.88% 不可作单车道证据）。
+  - 根因（机制）：MC 1.20.1 worldgen 主 worker 非 common pool，而是启动期构造的专用 ForkJoinPool(parallelism=clamp(cores-1,1,max))（Util.java:183）——common pool parallelism 属性对该池不接线；参数在错误目标池上调节 = 结构性死参数（#20「判别实验必须验证自变量真被改变」家族并发域第二形态；#122 是「取值不进消费路径」，本条是「调对一类池但生产流量在另一类池」）。
+  - 定位：预登记自证硬门（#118 家族）判读前抓住——线程分布行为化自证失败 → VOID 而非误读为「单车道仍漂移 5.88%」假结论。
+  - 修复：本批不补救（旁证缺位登记未闭合项）；替代手段候选 = Rust 侧 env 门控强制单线程 light 或 scheduleAtFixedRate 串行化（需新立项）。
+  - 教训：① 对 JVM 并发做「车道」实验先一手源核对目标线程池是哪一个、parallelism 从哪来；② 旁证臂也必须带行为化自证（线程分布/分支日志），否则 VOID 判定无从谈起；③ 旁证臂立项时应与主判据一起做「旁证失败后结论可信度」预演——本批预登记只写「旁证不改变主判据」，未写缺位时置信降级，判读被迫补做（(i) 主导单腿站立）。
+- 判据（可复用）：1.20.1 worldgen 主 worker = 专用 ForkJoinPool(clamp(cores-1,1,max))，ForkJoinPool.common.parallelism 对其无效——缩 worldgen 并发动专用池构造参数或调用侧，不动 common pool 属性。
+- 家族索引：#20/#122/#145（死参数家族——本条「池选错」形态）；#37/#81（行为化自证——旁证臂同受硬门约束）。
+
+## 发现 #154: 预登记数值判据的分支必须覆盖实数轴全域，或显式声明灰区归属（260915-03）
+- 发现时间/置信度/module：260915-03；worker 判读自认 + judge §2 确认合规；candidate；workflow-patterns / 判据预登记设计（#112/#150 家族）。
+- 来源：probe-criteria.md §3 + interpretation-draft §1.3 + judge-review §2。
+- 五段式：现象=探针④ T_fill 预登记三态映射（10ms/50ms/双峰 P90/P50≥4），实测 P50=92.5ms 落全部映射之外，判读被迫「按精神只报分布 + 交 judge」（E6）。根因=预登记分支枚举锚定在「历史两系」（验证哪个对），而判据本职是对未来实测值全域分类——历史系枚举≠实数轴覆盖。定位=判读逐分支套数即暴露（92.5 非两系量级、P90/P50=1.2 非双峰）。修复=本批按精神执行 + judge N-4 裁决取代；流程面 = 本条判据。教训=数值判据预登记时对每个可能读数问「这个值落哪个分支」——答不出=灰区，必须在预登记显式声明灰区归属（交谁裁决、灰区跑什么条件臂）；事后补规则 = 判据污染（#150）。本次属残余盲点非流程违规。
+- 家族索引：#112（读法预登记写死）/ #150（预登记与采集同稿）——本条补「分支覆盖完备性」维度。
+
+## 发现 #155 简记: §15.4 取代记录的标准形态实例（实测分布取代历史推演系）+ 虚拟玩家票据驱动法（260915-03）
+- 260915-03；candidate；workflow-patterns / 验证方法载体（中价值简记）。
+- 来源：interpretation-draft §1.3 + judge-review §6 N-4；载体源码 = ChunkTicketType.create 公有 / ChunkTicketManager.addTicketWithLevel:173 / ServerChunkManager.ticketManager（Accessor）。
+- 取代形态实例：T_fill 历史 ~10ms/~50ms 两推演系（260915-01 judge C-1 跨 worker 分歧）被实测分布 P50=92.5/P90=110.8/max=341.2（N=3969，busy 口径，双口径 92.5/92.6 互证、非双峰）正式取代，回填 260915-01 C-1；两系自此禁再引用。可复用点：取代 = 双指针 + 一行理由 + 实测口径三件（supersedes 指向探针产物，原推演正文不删不改）；取代数字自带 §9.7 声明（「只报实测分布、不与历史绝对值比」预登记禁令使取代干净）。
+- 虚拟玩家票据驱动法：免真实客户端复现「玩家移动驱动 chunk 优先级」——自建 formprobe ChunkTicketType + addTicketWithLevel(level=22)（= NEARBY_PLAYER 级）+ 虚拟玩家 chunk 固定路径跳位（seq 0..5，每 25s 一跳）⇒ 梯度由 ticket level 传播天然形成（近=level 低=优先，与玩家 watch 同构）；驱动事件落 [FP-DRV] ev=move 行作分析窗锚。适用面：任何需「可复现可脚本化玩家位置动态」的 worldgen 优先级/加载行为实验。

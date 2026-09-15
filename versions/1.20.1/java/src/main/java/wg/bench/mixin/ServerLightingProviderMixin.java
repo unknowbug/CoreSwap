@@ -136,6 +136,9 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     @Unique
     private static void wgLightFallback(String reason) {
         int n = wgLightFallbackCount.incrementAndGet();
+        if (wg.bench.FormProbe.ON) {
+            wg.bench.FormProbe.lightFall("x" + n + " " + reason);
+        }
         if (n <= 8 || (n % 256) == 0) {
             System.out.println("[LightRust] fallback vanilla x" + n + " reason=" + reason
                     + " detail=[" + wgLastFailDetail + "]");
@@ -426,6 +429,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         if (handle == 0L) return; // init 失败（已打点一次）→ vanilla
 
         ChunkPos chunkPos = chunk.getPos();
+        // 形态审计探针（260915-03）：light 接管调用计时（独立于 LIGHT_TIMING 聚合门）
+        final long fpT0 = wg.bench.FormProbe.ON ? System.nanoTime() : 0L;
         // ThreadLocal 缓冲复用（out 缓冲在 wgLightNibble 中已拷出，方法返回后无保留引用）
         int[] blocks9 = WG_BLOCKS9_TL.get();
         byte[] outBlock = WG_OUT_BLOCK_TL.get();
@@ -493,6 +498,9 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         chunk.setLightOn(true);
         ((ThreadedAnvilChunkStorageAccessor) this.chunkStorage).wgReleaseLightTicket(chunkPos);
         wgLightOkCount.incrementAndGet();
+        if (wg.bench.FormProbe.ON && fpT0 != 0L) {
+            wg.bench.FormProbe.lightCall(chunkPos.x, chunkPos.z, System.nanoTime() - fpT0);
+        }
         // 探针轮 260914-04：paldump 每 chunk（= 一次接管调用，含 9 邻 216 节）记账 + N 满汇总
         if (LIGHT_PALDUMP > 0) {
             wg.bench.LightPalDump.chunkDone(LIGHT_PALDUMP);

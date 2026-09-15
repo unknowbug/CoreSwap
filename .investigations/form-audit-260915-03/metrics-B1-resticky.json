@@ -1,0 +1,187 @@
+[
+ {
+  "log": "E:\\PYTHON\\CoreSwap\\.investigations\\form-audit-260915-03\\cmd-output\\B1.log",
+  "selfcert": {
+   "fp_on": true,
+   "drv_init": true,
+   "pool_width": 10,
+   "common_par": 23,
+   "sum": {
+    "fillN": 4698,
+    "fillBusyMs": 373373.1,
+    "lightN": 3703,
+    "lightBusyMs": 13796.9,
+    "callerRunsN": 15,
+    "wallMs": 197469.0
+   },
+   "drv_armed": "true",
+   "cpus": 24
+  },
+  "n": {
+   "sub": 4698,
+   "sta": 3969,
+   "end": 4698,
+   "moves": 6,
+   "light_call": 3703,
+   "light_fall": 0
+  },
+  "pairN": 4698,
+  "windows": [
+   {
+    "seq": 0,
+    "t0": 39199.1,
+    "pairN": 729,
+    "nearN": 81,
+    "farN": 504,
+    "near_wait_p50": 439.7,
+    "far_wait_p50": 591.2,
+    "S": 0.744
+   },
+   {
+    "seq": 1,
+    "t0": 64199.4,
+    "pairN": 648,
+    "nearN": 81,
+    "farN": 423,
+    "near_wait_p50": 513.2,
+    "far_wait_p50": 441.2,
+    "S": 1.163
+   },
+   {
+    "seq": 2,
+    "t0": 89199.7,
+    "pairN": 648,
+    "nearN": 81,
+    "farN": 423,
+    "near_wait_p50": 565.7,
+    "far_wait_p50": 471.2,
+    "S": 1.201
+   },
+   {
+    "seq": 3,
+    "t0": 114199.6,
+    "pairN": 648,
+    "nearN": 81,
+    "farN": 423,
+    "near_wait_p50": 788.9,
+    "far_wait_p50": 404.7,
+    "S": 1.949
+   },
+   {
+    "seq": 4,
+    "t0": 139198.8,
+    "pairN": 648,
+    "nearN": 81,
+    "farN": 423,
+    "near_wait_p50": 934.6,
+    "far_wait_p50": 546.9,
+    "S": 1.709
+   },
+   {
+    "seq": 5,
+    "t0": 164199.7,
+    "pairN": 648,
+    "nearN": 81,
+    "farN": 423,
+    "near_wait_p50": 583.9,
+    "far_wait_p50": 552.0,
+    "S": 1.058
+   }
+  ],
+  "S_window_median": 1.182,
+  "stale": [
+   {
+    "seq": 1,
+    "pairN": 648,
+    "O": 0.0
+   },
+   {
+    "seq": 2,
+    "pairN": 648,
+    "O": 0.0
+   },
+   {
+    "seq": 3,
+    "pairN": 648,
+    "O": 0.0
+   },
+   {
+    "seq": 4,
+    "pairN": 648,
+    "O": 0.0
+   },
+   {
+    "seq": 5,
+    "pairN": 648,
+    "O": 0.0
+   }
+  ],
+  "O_mean": 0.0,
+  "tfill": {
+   "P50": 90.3,
+   "P90": 107.5,
+   "max": 370.5,
+   "N": 3969,
+   "callerRunsN": 15
+  },
+  "tfill_stabased_P50": 90.3,
+  "light": {
+   "R_sticky": 0.067,
+   "max_run_per_thread": {
+    "Worker-Main-4": 4,
+    "Worker-Main-3": 6,
+    "Worker-Main-14": 5,
+    "Worker-Main-18": 7,
+    "Worker-Main-20": 8,
+    "Worker-Main-21": 5,
+    "Worker-Main-9": 5,
+    "Worker-Main-23": 5,
+    "Worker-Main-16": 6,
+    "Worker-Main-10": 5,
+    "Worker-Main-17": 5,
+    "Worker-Main-11": 5,
+    "Worker-Main-13": 6,
+    "Worker-Main-1": 6,
+    "Worker-Main-2": 7,
+    "Worker-Main-19": 5,
+    "Worker-Main-15": 5,
+    "Worker-Main-6": 8,
+    "Worker-Main-8": 10,
+    "Worker-Main-5": 7,
+    "Worker-Main-12": 5,
+    "Worker-Main-22": 5,
+    "Worker-Main-7": 5
+   },
+   "F": 0.0,
+   "okN": 3703,
+   "fallN": 0,
+   "dur_P50": 3.7,
+   "dur_P90": 4.6,
+   "th_dist": {
+    "Worker-Main-4": 143,
+    "Worker-Main-3": 169,
+    "Worker-Main-14": 139,
+    "Worker-Main-18": 165,
+    "Worker-Main-20": 181,
+    "Worker-Main-21": 157,
+    "Worker-Main-9": 175,
+    "Worker-Main-23": 184,
+    "Worker-Main-16": 137,
+    "Worker-Main-10": 200,
+    "Worker-Main-17": 148,
+    "Worker-Main-11": 135,
+    "Worker-Main-13": 162,
+    "Worker-Main-1": 184,
+    "Worker-Main-2": 160,
+    "Worker-Main-19": 143,
+    "Worker-Main-15": 161,
+    "Worker-Main-6": 162,
+    "Worker-Main-8": 163,
+    "Worker-Main-5": 166,
+    "Worker-Main-12": 147,
+    "Worker-Main-22": 177,
+    "Worker-Main-7": 145
+   }
+  }
+ }
+]
