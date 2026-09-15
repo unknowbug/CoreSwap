@@ -1799,7 +1799,7 @@ entries:
   - id: 'swe:form-audit-260915-02:cp3-cp6'
     path: '../.investigations/form-audit-260915-02/'
     kind: analysis
-    status: candidate   # judge review-001 PASS-with-conditions C1-C4 已应用；confirmed 留用户
+    status: confirmed   # 2026-09-15 16:50 用户授权确认（CP-3 修复 + CP-6 结案；C1-C4 已应用）；探针 1-4 未做，下块续
     # CP-3 = light/mod.rs scratch RefCell→Mutex（防御性，C-4 声明，#150 合规：解粘 CP-2 未先行）；
     #   workspace 全量构建绿 + 单测 14/14 绿 + 两版 dll 新鲜（C1 输出存档 cmd-output/build-test-260915-02.txt；
     #   C2 措辞：预期近零成本、未测量）。

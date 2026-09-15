@@ -1565,9 +1565,9 @@ CP-3（近零成本风险消除）→ CP-6 源码核对 → 预验证 1/2/3/4 �
 
 > 通用模式 → workflow-patterns #149/#150/#151；过程 → 10-timewise-archive 260915-01 条。
 
-### D-④-b needsSaving 结案（260915-02）：CP-6 疑点不成立，不立项（candidate）
+### D-④-b needsSaving 结案（260915-02）：CP-6 疑点不成立，不立项（confirmed）
 
-> 状态：candidate（一手源 file:line 静态核对，Degraded 分层如实声明；judge PASS-with-conditions，review-001）。本小节为 260915-01 候选池 CP-6 行的**结案补充**——上表 CP-6 行的原始疑点描述不删不改（§15.4：结案以追加标注表达，原行已就地加「已结案」指针）。
+> 状态：confirmed（2026-09-15 16:50 用户授权确认；一手源 file:line 静态核对，Degraded 分层如实声明；judge PASS-with-conditions，review-001）。本小节为 260915-01 候选池 CP-6 行的**结案补充**——上表 CP-6 行的原始疑点描述不删不改（§15.4：结案以追加标注表达，原行已就地加「已结案」指针）。
 
 - **核对结论**：`needsSaving` 门控真实存在（`ThreadedAnvilChunkStorage.save()` :797-802），但**标脏机制 = 每个生成阶段完成时统一置位**（`ChunkStatus.runGenerationTask` :357-363 `thenApply` → `ProtoChunk.setStatus` :215-222 末行 `setNeedsSaving(true)`），**不随块写发生**（vanilla `ProtoChunk.setBlockState` :108-158 自身即无标脏置位）。CoreSwap bulk 原地替换与 vanilla populateNoise 块写在同一标脏面上（均为块写不标脏、阶段完成标脏）⇒ 「早 unload 存盘不落盘」疑点不成立，**不立项**。
 - **范围边界**：① `isAtLeast(this)` 已达标路径不再置位——良性（首达已标脏）；② 本结案限**生成管线期**，全部 status 完成后的非生成期 bulk 写不在覆盖面（vanilla 该场景走 WorldChunk.setBlockState 自标脏，另一条链）；③ WrapperProtoChunk 不进生成任务链（:361 instanceof ProtoChunk 只匹配中心 chunk），无独立缺口；④ 阶段完成前 abort/unload 不标脏 = vanilla 同构的取消语义。

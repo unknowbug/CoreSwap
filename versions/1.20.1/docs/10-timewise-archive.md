@@ -3252,7 +3252,7 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **HOOK-2**：用户拍板「按建议执行序全批」→ 候选池升 candidate。执行序：CP-3 → CP-6 核对 → 预验证 1/2/3/4 → 按 probe 定 CP-1/2/4 → CP-5 随批；round4 纯算力项继续冻结。
 - 📌 结论落盘：07 篇（矩阵摘要 + 候选池总表）+ 12 篇（光照错配族）；通用模式 → workflow-patterns #149/#150/#151（subagent 草稿 + 主会话应用）。
 
-## 260915-02（实际 2026-09-15 16:23 起，Get-Date 锚：形态审计执行序第一批——CP-3 防御性修复 + CP-6 源码核对结案 + judge）🔍 candidate 建议（judge PASS-with-conditions；confirmed 待拍板）
+## 260915-02（实际 2026-09-15 16:23 起，Get-Date 锚：形态审计执行序第一批——CP-3 防御性修复 + CP-6 源码核对结案 + judge）✅ confirmed（2026-09-15 16:50 用户授权确认；judge PASS-with-conditions C1-C4 已应用）
 
 > 过程产物 `.investigations/form-audit-260915-02/`（cp6-needssaving-verdict.md + review-001-cp3-cp6-judge.md）+ 架构计划 `.investigations/000-架构设计/`（260915-02，轻量档）。
 
