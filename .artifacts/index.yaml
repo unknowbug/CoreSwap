@@ -2,6 +2,14 @@ schema_version: 1
 project: CoreSwap
 module: re-code
 entries:
+  - id: 'form-audit:candidate-pool-260915-01'
+    path: 'form-audit-260915-01/candidate-pool-260915-01.md'
+    kind: analysis
+    status: candidate
+  - id: 'form-audit:judge-review-260915-01'
+    path: 'form-audit-260915-01/judge-review-260915-01.md'
+    kind: review
+    status: candidate
   - id: 'lossless-accel:route2:tricut-bA'
     path: 'lossless-accel/route2-tricut.bA.md'
     kind: analysis

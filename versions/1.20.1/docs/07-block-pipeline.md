@@ -1527,3 +1527,40 @@ unctional-errors.md F1-F3）：
 - **状态：candidate，confirmed 待用户授予。** §9.7：静态论证为 Degraded（同残留边界随转：未来新增跨 future 边缓存 section 的消费者仍须重开 A5）；冒烟为 Full 行为级。
 
 - （回执：**用户已 confirmed 2026-09-13**，范围 = 本节全部结论——A1-A6 1.21.6 覆盖 / 两臂冒烟 / 1.21.6 零变化。）
+
+## 形态审计 260915-01：全接管面 × 执行形态矩阵与候选池（candidate，HOOK-2 已批）
+
+> 状态：**candidate**（judge PASS-with-conditions C-1..C-7，C-2/C-6 已应用；HOOK-2 用户拍板「按建议执行序全批」2026-09-15）。验证分层：**Degraded（全静态源码对照 + 上限推演；无新运行时采集）**——所有量级数字为推演上限。
+> 产物：候选池 `.artifacts/form-audit-260915-01/candidate-pool-260915-01.md` + judge `.artifacts/form-audit-260915-01/judge-review-260915-01.md` + 六份调查 `.investigations/form-audit-260915-01/`（p1a/p1b + p2-w1/w2/w3/w4）。
+> 覆盖面声明（§9.7）：生产 3+1 段（A NOISE 含 A' Beardifier / B SURFACE / D 写回 + C 光照）+ executor 横切层；carver/features/biome/序列化让位段不在矩阵；1.21.6 差异未覆盖（仓库无一手源，P1b 降级声明）。
+
+### 形态矩阵要点（每段裁定摘要）
+- **A 段（NOISE/fill，W1）**：同步性已对齐（#107 已修，异步单跳 future）；**open 主嫌疑 A-②**——自有池 N=logical/2-2 + FIFO queue(128) + CallerRuns + 不可取消 vs vanilla FJP(cores-1) + ticket-level 排序 + 可取消；互斥归因 b1 稳态吞吐（~2.3×，饱和场景）/ b2 排队延迟（最坏 128×T_fill）/ b3 CallerRuns 回压（#107 前形态局部重演）。Rust per-call thread::scope 每调用 spawn 1 线程 = 0.04-0.1% **等价**。A-⑤ ChunkNoiseSampler 重建归让位段（辖区外登记）。
+- **B 段（SURFACE，W1）**：全行等价——surface 前移至 fill 同遍（时序等价：ChunkStatus margin 隔离 + 输入确定性 + 同 chunk 串行，静态可证；judge 抽查评级「论证合规且质量高」）。
+- **C 段（光照，W2）**：6 行 open 错配（详见 12 篇光照小节）——L1 同步粘线 / L2 线程放置 / L3 RefCell UB 面 / L4 批粒度 / L5 3×3 全量重算 ×9 / L6 无跨 chunk 缓存；另有 3 行等价论证（2c/4a/5c）。
+- **D 段（写回，W3）**：D-③ bulk vs 逐块 = **全场证据最硬的等价行（范本级，260911-05/260913-03 指纹门 + 计数语义复刻已闭合）**；open 两项——D-④-b needsSaving 标脏完整性（推理级，一轮源码核对可闭合）、D-①-b serialize 20/tick 成新瓶颈（>400 chunk/s 生成速率才触发，e2e 候选池登记）。W3 前置澄清：D 段参照系是 vanilla populateNoise 内 section 写（R1 同类操作），serialize 主线程 20/tick 限流（R2）是让位段下游交互，**拿 R2 对照我方 work 线程写回 = 假错配**。
+- **executor 横切层（W4）**：R1 #122 池宽死参数三处同族（`resolveExecPoolSize`/`resolveMaxInflight`/`adaptive_threads` 共用 logical/2-2）；R3 **ticket 优先级丢失**（FIFO 一次定序 vs vanilla 持续重排；W4-R3 = W1-A-②b2 = W3-D-② 随行，**同一发现三角度独立命中，嫌疑加权**）；R5-light 车道内联（与 W2-L1/L2 同体两面）。
+
+### 候选池 CP-1..CP-6（嫌疑度排序，含 judge 条件）
+| # | 候选 | 形态→修复 | 收益 | 前置/条件 |
+|---|---|---|---|---|
+| CP-1 | 光照增量形态对齐（L5+L6+L4） | 3×3 全量重算（结构总量比 ≥9×）→ vanilla 种子化增量 BFS + 跨 chunk LightStorage 式共享 | 性能冗余消除 + **疑似 G3 首载漂移 7× 同源主候选（时机形态 (i)），一箭双雕** | 大工程；分辨探针：单线程强制复跑 gate ON 首载（裁 (i) 时机 vs (ii) UB） |
+| CP-2 | 光照线程放置解粘（L1+L2） | 同步内联全链（2.94ms/chunk 占住 worldgen 车道）→ vanilla 异步两段 + 独立逻辑队列 | e2e 7% 回退首席归因候选（.b2，与串行反超 1.9× 签名自洽） | ⚠️ **与 CP-3 耦合：解粘即暴露 UB，两项必须同批**；探针 = mixin 线程 id + 粘线分布 |
+| CP-3 | LightEngine.scratch RefCell 并发 UB（L3） | `Mutex<Scratch>`（单次 compute 全程持有，开销可忽略）或 per-thread handle | 正确性风险消除，成本近零 | 独立可先行（近零成本风险向）；**C-4：UB 可达性未实证，落地时声明「防御性修复」** |
+| CP-4 | 自有池接入 ticket 优先级（R3/A-②b2/D-②） | FIFO(128) 一次定序 → ChunkTaskPrioritySystem 语义（按 ticket level 排序 + 重排/取消） | G3 首载 7× 家族最强候选（队深上限 13.8×）+ 响应延迟 | **C-3 binding：G3 因果链为间接假设，trace 前置必须绑定，不得以量级吻合跳过归因**；**C-5：13.8× 为本机 N=10 口径，4C 下 (128+1)/1=129×，发行面评估 MUST 声明池宽依赖** |
+| CP-5 | #122 池宽死参数三处同族（R1） | logical/2-2 → 参数化/按物理核自适应 | 低核机（4C）fill 钳 1 线程，上限 ~3×；发行面价值 | 小工程，随批 |
+| CP-6 | D-④-b needsSaving 标脏完整性（W3） | bulk 原地替换不经 setBlockState/标脏链 → 早 unload 存盘可能不落盘（推理级） | 正确性 | 一轮源码核对闭合（TACR:797-802 门控 + ProtoChunk 标脏调用方），核对优先于立项 |
+
+登记不立项：R2 LBQ 不可取消 + CallerRuns（≤0.64s/突发窗口，非倒置——W4 修正直觉误判）/ D-①-b serialize 瓶颈（仅 >400 chunk/s）/ A-⑤ sampler 重建（让位段）/ D-hm heightmap 条件等价（judge 抽查已闭合，见 12 篇）/ A-②b1 稳态 2.3×（随 CP-5 补 T_fill 实测）。
+
+### 立项前预验证探针清单（廉价，裁互斥分叉）
+1. 首载期 fill 完成序 trace × chunk 距玩家距离（裁 R3 分支，定 CP-4 归因）；
+2. 单线程强制复跑 gate ON 首载（裁 G3 同源 (i) 时机 vs (ii) UB，定 CP-1/CP-3 权重，一次采集两用）；
+3. mixin 内线程 id + 粘线分布探针（裁 .b1/.b2/.b3，定 CP-2 归因）；
+4. T_fill 实测（W1/W4 两处 ~10ms vs 50ms 假设统一回填——**C-1：实测前禁止引用绝对秒数 0.69s/1.3s 做立项量化依据**，比值不受影响）；
+5. D-④-b 源码核对（CP-6 闭合）。
+
+### 建议执行序（HOOK-2 已批）
+CP-3（近零成本风险消除）→ CP-6 源码核对 → 预验证 1/2/3/4 → 按 probe 结果定 CP-1/CP-2/CP-4 排序 → CP-5 随批。光照 round4 纯算力项（解码融合等）继续冻结。
+
+> 通用模式 → workflow-patterns #149/#150/#151；过程 → 10-timewise-archive 260915-01 条。

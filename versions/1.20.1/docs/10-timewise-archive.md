@@ -3236,3 +3236,18 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ❌ **e2e 判据 FAIL 1.072（n=6 六对交错，如实）**：OFF 极差 2.6s/15% + 跨批漂移 2s → 1s 级缺口不可判（→ workflow #148 载体灵敏度判据）；3 轮未满足触发 C-gate，**HOOK-3 用户裁决接受现状收尾**（非判据通过）。
 - ✅ **净收**：ON 串行 7.3→2.94ms/chunk；e2e 1.25×→~1.07×；golden 4/4 逐位。剩余：解码-查表融合 / sky_fall 融合 / e2e 载体更换 / global palette 回退计数。
 - 📌 通用模式 → compiler-idioms #27、build-tooling #151、workflow-patterns #147/#148（subagent 草稿 + 主会话应用）。
+
+## 260915-01（实际 2026-09-15：形态审计——全接管面 × 执行形态矩阵，scout×2 → fan-out×4 → 汇总 → judge C-1..C-7 → HOOK-2 全批）✅ candidate（HOOK-2 用户拍板「按建议执行序全批」；confirmed 待验收节点）
+
+> 计划 `.investigations/000-架构设计/架构设计-260914-04b-形态审计.md`（HOOK-1 已批，260914-04 尾声立项）；产物 `.artifacts/form-audit-260915-01/`（候选池 + judge-review）+ `.investigations/form-audit-260915-01/`（p1a/p1b + p2-w1..w4 六份）。本审计零运行时改动、零 src diff（judge 三源核对确认）。
+
+- ✅ **P1 双勘探并行**：p1a 接管面清单 + 我方形态测绘（3+1 段 + executor 横切；carver/features/biome/序列化让位段显式出矩阵）；p1b vanilla 一手形态（.tmp/scout-260905-08/mcsrc 版本核验通过 MinecraftVersion + DataVersion 3465；1.21.6 因仓库无一手源降级只标注——genSources 禁跑声明）。
+- ✅ **P2 fan-out ×4**（阶段分叉互斥）：W1（A fill + B surface，11 行）/ W2（C 光照，6 open + 3 等价 + 4 辖区外）/ W3（D 写回，8 行）/ W4（executor 横切，R1-R5）。二选一纪律（等价论证或错配代价证据）逐行执行。
+- ✅ **P3 汇总**（主会话收敛，不重排 worker 行集）：交叉合并——**FIFO 优先级丢失三角度独立命中（W4-R3 = W1-A-②b2 = W3-D-② 随行）= 同一发现三 worker 独立命中，嫌疑加权**；光照粘线（W2-L1/L2 = W4-R5-light）同体两面；RefCell UB 与光照线程放置修复**耦合声明（解粘即暴露，必须同批）**。
+- ✅ **P4 judge PASS-with-conditions（C-1..C-7）**：×9 与 13.8× 上限推演独立重算成立、无自由参数、无孤儿行。条件：C-1 T_fill 跨 worker 不一致（W1 ~10ms vs W4 50ms）→ 预验证 4 后统一回填，此前禁引绝对秒数；C-2 W2 补 retry 声明（已应用）；C-3 binding CP-4 G3 因果链 trace 前置绑定；C-4 CP-3 落地声明「UB 可达性未实证，防御性修复」；C-5 13.8× 声明池宽依赖（4C = 129×）；C-6 index.yaml 补登记（已应用）；C-7 噪声卡历史补查（已闭合：工作区无 noise_cards.json 在册，与历史 judge ⑥ 留档一致）。
+- ✅ **D-③ 范本行**：bulk vs 逐块 = 形态不同但等价且更优，全场证据最硬（260911-05/260913-03 指纹门 + 计数语义复刻 + 并发哨兵），无需动作。
+- ✅ **D-hm 条件闭合（judge 独立抽查）**：ProtoChunk 写路径增量维护 4 正式型 + FEATURES 步全量重算兜底 + 2 个 WG 型两侧同形态 → 等价条件成立，按等价结案（状态提升留人类）。
+- ✅ **thread::scope 等价判定**：W1-A-②b 与 W4-R4 独立得出同一结论——per-call scope spawn 1 线程开销 0.04-0.1%，被 fill 主体淹没；R4 算术复核无误。
+- ✅ **W3 前置澄清（防假错配）**：D 段参照系拆双重——vanilla populateNoise 内 section 写 = 同位参照（R1）；serialize 主线程 20/tick = 让位段下游交互（R2），拿 R2 对照我方 work 线程写回 = 假错配。
+- ✅ **HOOK-2**：用户拍板「按建议执行序全批」→ 候选池升 candidate。执行序：CP-3 → CP-6 核对 → 预验证 1/2/3/4 → 按 probe 定 CP-1/2/4 → CP-5 随批；round4 纯算力项继续冻结。
+- 📌 结论落盘：07 篇（矩阵摘要 + 候选池总表）+ 12 篇（光照错配族）；通用模式 → workflow-patterns #149/#150/#151（subagent 草稿 + 主会话应用）。

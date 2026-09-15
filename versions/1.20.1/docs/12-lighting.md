@@ -128,3 +128,29 @@ golden 4/4 逐位（与 round2 冻结件一致）→ DUAL ALL-MATCH（B 输入�
 - 剩余优化面（未实施）：解码-查表单趟融合（~0.6-0.8ms）+ A-② sky_fall 融合（~0.1-0.2ms）+ **e2e 载体更换**（Chunky region / 光照阶段计时）。
 - 遗留风险：global palette（ID_LIST bits≥15）整 chunk 回退路径——1.20.1 实测 0 例但未证不可能；静默正确性由 rc=-2 闩回退结构保证，若发生为整 chunk 性能悬崖且生产无计数可见（建议下轮补回退计数日志）。双开关矩阵：`coreswap.light.oldcollect`（B 层）× `coreswap.light.blockabi`（C 层）正交——双开 = 全旧路径，任一关 = 该层走新路径。
 - 过程错误 W1-W4 五段式 → record §5（W1 → build-tooling #151；W2 初值-谓词成对核对 #81 家族；W3 PowerShell 输出流即返回值；W4 回退计数=0 前提下读均值）。
+
+## 形态审计 C 段（260915-01）：光照执行形态错配 6 行 open + 候选池归属（candidate）
+
+> 形态审计 260915-01 的光照辖区结论；候选池总表与预验证探针见 07 篇「形态审计」小节。验证分层 Degraded（静态源码对照 + round3 既有探针引用，无新采集）。
+
+### 五维度 open 错配（W2 行集摘要）
+1. **L1 同步性**：mixin HEAD 完全同步内联（收集→JNI→写回→setLightOn→releaseLightTicket→completedFuture，Mixin:423-501），每 chunk 全部光照成本（2.94ms/chunk）占住一条 worldgen 车道；vanilla `light()` 异步两段（ServerLightingProvider:171-184），调用线程纳秒级返回。
+2. **L2 线程放置**：vanilla = 同物理池上两个逻辑优先级队列（light TaskExecutor TACR:188）；我方无自有池，落点 = 调用线程（ChunkStatus.LIGHT 车道）。同池共享池宽，我方光照不可被高优先级 chunk 任务插队。
+3. **L3 RefCell UB 面**（⚠️ 静态推理未运行时验证）：vanilla 串行保证在 light 队列 drain 侧、**不在 light() 调用侧**；我方调用侧 LIGHT 任务经 FJP 可并行 → 全局单例 lightHandle 的 `RefCell<Scratch> borrow_mut`（light/mod.rs:64）无同步 = 数据竞争 UB 面。修复：Mutex（锁开销可忽略，串行语义等价 vanilla）或 per-thread handle。
+4. **L4 批粒度**：vanilla ≤1000 任务/chunk 间混批一次 BFS drain；我方单 chunk / 3×3 域，批化是 L5 增量化前的廉价中间形态。
+5. **L5+L6 全量重算 ×9 + 无跨 chunk 缓存（最大嫌疑）**：N chunk 全亮我方总计算 = N×(48×48×384) = **9N chunk 域**，vanilla ≈ N 域且种子化 BFS 触达 ≪ 全域 → 结构总量比 ≥9×、有效工作量比 ~9×–数十×；机制面 = 无 LightStorage 式持久层，邻 chunk 被中心重算 1 次 + 作为邻居参与 8 次。round3 拼合：串行口径单核算力优势已消化 9× 冗余仍反超 1.9× → e2e 7% 回退更可能来自调度形态而非剩余算力差。
+
+### 与 G3 首载漂移 7× 的同源性（一箭双雕权重项）
+- (i) **邻域时机形态**（L5 同族）：我方以「3×3 邻 FEATURES 时刻快照」全量定值，vanilla 经共享 LightStorage 增量收敛；首载邻域成熟序不同 ⇒ 边界带系统性偏移，重载读旧值 ⇒ 0 漂移——与「一次性 + 收敛」签名相容。
+- (ii) **L3 UB 面**：首载并行窗口偶发竞争写 → 错值定值 → 同样一次性漂移，亦相容。两候选当前不可分，探针 = 单线程强制复跑 gate ON 首载（漂移消失 ⇒ UB 主导；不变 ⇒ 时机主导）。
+- (iii) feature 写入序候选：**排除同源**（方块输入差，非执行形态差，归 feature 课题 D12 交叉面）。
+
+### 候选池归属
+- CP-1 = L5+L6+L4（增量化，大工程）；CP-2 = L1+L2（解粘，中工程，**与 CP-3 同批**）；CP-3 = L3（Mutex，近零成本先行）。排序与执行序见 07 篇。
+- 辖区外保留：enqueueSectionData 再传播语义 / G3 判据 = 本篇遗留 @anchor.idk（正确性课题，非形态）；INITIALIZE_LIGHT 无 mixin 无差异不立行。
+
+### 等价行（论证成立，judge 抽查通过）
+- 2c 写读隔离：LightStorage 读写隔离结构未改，enqueue 线程安全入队，等价；
+- 4a 运行时增量化：gate 只拦 light() HEAD，checkBlock/setSectionStatus 未触碰，vanilla 增量引擎保留；
+- 5c Scratch/ThreadLocal 缓冲：均为单次计算内工作缓冲，等价。
+- **D-hm（judge 独立抽查已闭合）**：writeChunk 一次性补 6 型 heightmap 的等价条件成立——ProtoChunk.setBlockState 按 `getHeightmapTypes()` 逐型增量更新（ProtoChunk.java:108-155），CARVERS/FEATURES 携带 POST_CARVER_HEIGHTMAPS 四正式型（ChunkStatus.java:34-35）+ FEATURES 步前全量 populateHeightmaps 兜底（:150-152）；2 个 WG 型 carve 后不被增量维护但 vanilla 自身同样如此（PRE_CARVER 只挂 NOISE/SURFACE，:33/:115）——两侧形态一致，非 CoreSwap 引入差异（judge-review-260915-01 §2）。状态提升留人类。
