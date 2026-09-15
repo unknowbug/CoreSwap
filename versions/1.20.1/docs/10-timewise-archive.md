@@ -3251,3 +3251,12 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **W3 前置澄清（防假错配）**：D 段参照系拆双重——vanilla populateNoise 内 section 写 = 同位参照（R1）；serialize 主线程 20/tick = 让位段下游交互（R2），拿 R2 对照我方 work 线程写回 = 假错配。
 - ✅ **HOOK-2**：用户拍板「按建议执行序全批」→ 候选池升 candidate。执行序：CP-3 → CP-6 核对 → 预验证 1/2/3/4 → 按 probe 定 CP-1/2/4 → CP-5 随批；round4 纯算力项继续冻结。
 - 📌 结论落盘：07 篇（矩阵摘要 + 候选池总表）+ 12 篇（光照错配族）；通用模式 → workflow-patterns #149/#150/#151（subagent 草稿 + 主会话应用）。
+
+## 260915-02（实际 2026-09-15 16:23 起，Get-Date 锚：形态审计执行序第一批——CP-3 防御性修复 + CP-6 源码核对结案 + judge）🔍 candidate 建议（judge PASS-with-conditions；confirmed 待拍板）
+
+> 过程产物 `.investigations/form-audit-260915-02/`（cp6-needssaving-verdict.md + review-001-cp3-cp6-judge.md）+ 架构计划 `.investigations/000-架构设计/`（260915-02，轻量档）。
+
+- ✅ **CP-3（光照 scratch RefCell→Mutex，防御性修复）**：light/mod.rs 13 行四改动点（use Mutex / 字段+注释 / 构造 / `lock().unwrap_or_else(|e| e.into_inner())`）；poison→into_inner 合理（scratch 每调用开头 clear+resize）；单线程语义等价（无重入路径）。**#150 纪律合规**：防御性修复先行、CP-2 解粘未动；mod.rs:64-67 注释声明「UB 可达性未实证，防御性修复」（260915-01 judge C-4 落地）。workspace 全量构建绿 + 单测 14/14 绿 + 两版 dll 新鲜（judge C1 输出存档 cmd-output/build-test-260915-02.txt；C2 措辞：预期近零成本、未测量）。
+- ✅ **CP-6 结案：不立项**——needsSaving 门控在（TACR:797-802）但标脏 = status 阶段完成统一置位（ChunkStatus:362→ProtoChunk:221），vanilla 生成期块写自身也不标脏 ⇒ bulk 原地替换与 vanilla 同标脏面，疑点不成立。judge 六点一手源抽查零漂移。范围边界：限生成管线期（非生成期 bulk 写另一条链，另核）。判据 → workflow-patterns **#152**。
+- ✅ **judge review-001（CP-3+CP-6）PASS-with-conditions**：CP-3 条件 C1（cargo 输出落 cmd-output）/ C2（「近零成本」措辞改「预期近零、未测量」）/ C3（index.yaml 补登记）；CP-6 条件 C4（verdict 补范围边界）——均不阻塞 candidate 推荐，主会话已全部应用。
+- 📌 落盘：07 篇 D-④-b 结案小节（追加，原 CP-6 行加结案指针）+ discovered #152；CP-3 为一次性工程修复不立项 discovered（#150 已覆盖其判据面，subagent 草稿 D 节取舍）。预验证探针 1-4 未做，留下一波。

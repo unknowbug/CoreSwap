@@ -1795,3 +1795,13 @@ entries:
     status: candidate   # 12 篇 round2/round3 小节 + 本组 light-round3 条目即 standing 登记闭环载体
     # round2 judge should-fix「light 课题 index.yaml 登记」由本块 light-round3 条目组补齐；round2 结论已被
     #   round3 部分取代（L94 supersedes 双指针，§15.4）。
+  # —— 260915-02 形态审计候选池第一波（CP-3 + CP-6；探针 1-4 未做，下块续）——
+  - id: 'swe:form-audit-260915-02:cp3-cp6'
+    path: '../.investigations/form-audit-260915-02/'
+    kind: analysis
+    status: candidate   # judge review-001 PASS-with-conditions C1-C4 已应用；confirmed 留用户
+    # CP-3 = light/mod.rs scratch RefCell→Mutex（防御性，C-4 声明，#150 合规：解粘 CP-2 未先行）；
+    #   workspace 全量构建绿 + 单测 14/14 绿 + 两版 dll 新鲜（C1 输出存档 cmd-output/build-test-260915-02.txt；
+    #   C2 措辞：预期近零成本、未测量）。
+    # CP-6 = needsSaving 疑点不成立结案不立项（一手源 6/6 行号实证：标脏 = 阶段完成 setStatus 统一置位，
+    #   不随块写；judge 独立抽查零漂移；C4 范围边界已补）。

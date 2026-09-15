@@ -1549,7 +1549,7 @@ unctional-errors.md F1-F3）：
 | CP-3 | LightEngine.scratch RefCell 并发 UB（L3） | `Mutex<Scratch>`（单次 compute 全程持有，开销可忽略）或 per-thread handle | 正确性风险消除，成本近零 | 独立可先行（近零成本风险向）；**C-4：UB 可达性未实证，落地时声明「防御性修复」** |
 | CP-4 | 自有池接入 ticket 优先级（R3/A-②b2/D-②） | FIFO(128) 一次定序 → ChunkTaskPrioritySystem 语义（按 ticket level 排序 + 重排/取消） | G3 首载 7× 家族最强候选（队深上限 13.8×）+ 响应延迟 | **C-3 binding：G3 因果链为间接假设，trace 前置必须绑定，不得以量级吻合跳过归因**；**C-5：13.8× 为本机 N=10 口径，4C 下 (128+1)/1=129×，发行面评估 MUST 声明池宽依赖** |
 | CP-5 | #122 池宽死参数三处同族（R1） | logical/2-2 → 参数化/按物理核自适应 | 低核机（4C）fill 钳 1 线程，上限 ~3×；发行面价值 | 小工程，随批 |
-| CP-6 | D-④-b needsSaving 标脏完整性（W3） | bulk 原地替换不经 setBlockState/标脏链 → 早 unload 存盘可能不落盘（推理级） | 正确性 | 一轮源码核对闭合（TACR:797-802 门控 + ProtoChunk 标脏调用方），核对优先于立项 |
+| CP-6 | D-④-b needsSaving 标脏完整性（W3） | bulk 原地替换不经 setBlockState/标脏链 → 早 unload 存盘可能不落盘（推理级） | 正确性 | 一轮源码核对闭合（TACR:797-802 门控 + ProtoChunk 标脏调用方），核对优先于立项 **→ 已结案不立项（260915-02，见「D-④-b needsSaving 结案」小节）** |
 
 登记不立项：R2 LBQ 不可取消 + CallerRuns（≤0.64s/突发窗口，非倒置——W4 修正直觉误判）/ D-①-b serialize 瓶颈（仅 >400 chunk/s）/ A-⑤ sampler 重建（让位段）/ D-hm heightmap 条件等价（judge 抽查已闭合，见 12 篇）/ A-②b1 稳态 2.3×（随 CP-5 补 T_fill 实测）。
 
@@ -1564,3 +1564,12 @@ unctional-errors.md F1-F3）：
 CP-3（近零成本风险消除）→ CP-6 源码核对 → 预验证 1/2/3/4 → 按 probe 结果定 CP-1/CP-2/CP-4 排序 → CP-5 随批。光照 round4 纯算力项（解码融合等）继续冻结。
 
 > 通用模式 → workflow-patterns #149/#150/#151；过程 → 10-timewise-archive 260915-01 条。
+
+### D-④-b needsSaving 结案（260915-02）：CP-6 疑点不成立，不立项（candidate）
+
+> 状态：candidate（一手源 file:line 静态核对，Degraded 分层如实声明；judge PASS-with-conditions，review-001）。本小节为 260915-01 候选池 CP-6 行的**结案补充**——上表 CP-6 行的原始疑点描述不删不改（§15.4：结案以追加标注表达，原行已就地加「已结案」指针）。
+
+- **核对结论**：`needsSaving` 门控真实存在（`ThreadedAnvilChunkStorage.save()` :797-802），但**标脏机制 = 每个生成阶段完成时统一置位**（`ChunkStatus.runGenerationTask` :357-363 `thenApply` → `ProtoChunk.setStatus` :215-222 末行 `setNeedsSaving(true)`），**不随块写发生**（vanilla `ProtoChunk.setBlockState` :108-158 自身即无标脏置位）。CoreSwap bulk 原地替换与 vanilla populateNoise 块写在同一标脏面上（均为块写不标脏、阶段完成标脏）⇒ 「早 unload 存盘不落盘」疑点不成立，**不立项**。
+- **范围边界**：① `isAtLeast(this)` 已达标路径不再置位——良性（首达已标脏）；② 本结案限**生成管线期**，全部 status 完成后的非生成期 bulk 写不在覆盖面（vanilla 该场景走 WorldChunk.setBlockState 自标脏，另一条链）；③ WrapperProtoChunk 不进生成任务链（:361 instanceof ProtoChunk 只匹配中心 chunk），无独立缺口；④ 阶段完成前 abort/unload 不标脏 = vanilla 同构的取消语义。
+- **判据沉淀**：→ workflow-patterns **#152**（审查生成期写回落盘完整性核对阶段推进链而非 setBlockState 链）。
+- **产物**：`.investigations/form-audit-260915-02/cp6-needssaving-verdict.md` + `review-001-cp3-cp6-judge.md`（CP-6 建议 candidate，confirmed 留用户）。

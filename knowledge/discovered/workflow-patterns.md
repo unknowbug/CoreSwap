@@ -2600,3 +2600,14 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **观察**：形态审计中 W3 对「heightmap 补 6 型」只给了等价**条件**（「后续 vanilla 写块经增量维护修正我方早期值」），条件本身未逐行核——若主会话直接采信或直接弃置都会失真。本轮模式：worker 把条件显式标注「交 judge 抽查」→ judge 以一手源独立复核四条证据（增量维护路径 / POST_CARVER_HEIGHTMAPS 携带 / populateHeightmaps 兜底 / 2 个 WG 型两侧同形态）→ 条件成立，按等价结案（状态提升留人类）。
 - **判据（可复用）**：① worker 遇「等价依赖某未核实条件」时，正确处置不是猜成立/不成立，而是**把条件精确化（核什么、在哪核）并显式移交**；② judge 抽查必须落一手源 file:line，闭合后该行从「有条件等价」改判「等价（judge 闭合，证据见某文件）」，原条件不删；③ 闭合成本核算：一轮静态复核，远低于条件悬置导致的重复审议。
 - **家族索引**：AGENTS「judge 审查基线三源核对」（本条补「条件项闭合」分工面）、#95（前提与结论分开验证——本条是审查侧承接形态）。
+
+## 发现 #152: MC 生成期 chunk 持久化标脏 = status 阶段完成统一置位，不随块写发生——审查生成期写回落盘完整性核对阶段推进链而非 setBlockState 链（260915-02）
+
+- **发现时间 / 发现者 / 置信度 / module**：260915-02；knowledge subagent 草稿（判据候选由 CP-6 verdict 提出、judge 六点一手源抽查零漂移后交评）；candidate（一手源 file:line 静态核对，Degraded 如实声明；未做运行时复现——非必需，机制链完整）；workflow-patterns / vanilla 机制审查判据（#151 同域）。
+- **来源定位**：`.investigations/form-audit-260915-02/cp6-needssaving-verdict.md`（candidate）+ `review-001-cp3-cp6-judge.md`（PASS-with-conditions）；一手源 = `.tmp/scout-260905-08/mcsrc`（1.20.1 yarn，DataVersion 3465）。
+- **观察（动机 = 一个真疑点被一手源否定）**：形态审计 260915-01 CP-6 疑点「bulk 原地替换不经 setBlockState/标脏链 → 早 unload 存盘场景生成方块可能不落盘」（推理级）——直觉把「标脏」归属块写链。一手源核对否定：① 门控真实存在（`ThreadedAnvilChunkStorage.save()` :797-802，`!needsSaving()` 即不序列化）；② **vanilla 自己的生成期块写也不标脏**（`ProtoChunk.setBlockState` :108-158 无任何 needsSaving 置位）——「标脏靠块写链」前提对 vanilla 本身不成立；③ 真正标脏点 = **每个生成阶段完成时统一置位**：`ChunkStatus.runGenerationTask` :357-363 的 `doWork(...).thenApply(... setStatus(this))`（:361-362，`!isAtLeast(this)` 时）→ `ProtoChunk.setStatus` :215-222 末行 `setNeedsSaving(true)`（:221）。CoreSwap bulk 拦截点在 NOISE 阶段内 ⇒ 阶段完成即标脏，与块写入路径无关 ⇒ 疑点不成立，不立项。
+- **判据（可复用）**：
+  1. **机制判据**：MC 生成期（ProtoChunk 管线内）chunk 持久化标脏 = status 阶段完成统一置位（锚点链：ChunkStatus:362 → ProtoChunk:221），**不随 setBlockState/块写发生**。补充标脏面（后续阶段兜底）：`Chunk.setLightOn` :389-391、Chunk 结构四方法 :214/224/235/247、`ChunkHolder.markForLightUpdate` :190、`ChunkSerializer` 载入 :212-214。
+  2. **审查方向判据**：凡审查「生成期写回是否落盘完整」，核对对象是**阶段推进链**（该 chunk 是否走到下一阶段完成的 thenApply），**不是 setBlockState 链**——按后者审查会把 vanilla 同构行为误判为对齐缺口（制造假疑点）。
+  3. **范围边界（引用本判据必须随附）**：① 本判据限**生成管线期**；全部 status 完成后的**非生成期** bulk 写不在覆盖面（该场景 vanilla 走 `WorldChunk.setBlockState` 自标脏域，另一条链，出现该形态需另核）；② `isAtLeast(this)` 已达标路径（重入/跳跃推进）不再置位——良性（首达已标脏）；③ 阶段完成前 abort/unload 不标脏 = vanilla 同构的管线取消语义，非偏差；④ `WrapperProtoChunk`（:181-186 转发 setNeedsSaving）是 worlds 边界视图，不进生成任务链（:361 `instanceof ProtoChunk` 只匹配中心 chunk），无独立缺口。
+- **家族索引**：#151（审查分工/条件项闭合——本条是其 vanilla 机制侧输入实例）；#36 家族（静态机制断言须一手源核对——本条为「核对方向选对链」的正例）；#149 判据 4（参照系同位拆解——CP-6 疑点生成即参照系错置：把块写链当标脏参照）。

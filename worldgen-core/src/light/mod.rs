@@ -11,7 +11,7 @@
 //   section 内 index = (y<<8)|(z<<4)|x（section 局部 y 0..15），偶数 index 占低 4 位：
 //   bytes[i>>1] |= value << (4*(i&1))
 
-use std::cell::RefCell;
+use std::sync::Mutex;
 
 // ---- 域常量（3×3 chunk 邻域，扁平域坐标 x/z 0..48，y 0..384 = 世界 y-64..319）----
 pub const DOM: usize = 48;
@@ -61,7 +61,12 @@ pub struct LightEngine {
     /// table[0] == (0,0) 时 fill 可走「air 快路径」（id==0 且无 luminance ⇒ op/em 全 0，
     /// 免查表 + 免 col_max 条件写）；真实 light_data 下恒成立，非默认 (0,0) 时自动禁用。
     air_fast: bool,
-    scratch: RefCell<Scratch>,
+    // CP-3（260915-02，形态审计候选池，judge C-4 声明：防御性修复——UB 可达性未实证）：
+    // RefCell → Mutex。原 RefCell 在多线程并发调用 light_compute 时 borrow_mut 会 panic
+    //（非 UB 但同样不可用），且形态审计指出光照车道串行化事实上在充当本字段的锁
+    //（发现 #150：解粘必须与本修复同批）。Mutex 使引擎自身并发安全，poison 时不 panic、
+    // 恢复继续用（scratch 是清零复用缓冲，内容无跨调用有效性）。
+    scratch: Mutex<Scratch>,
 }
 
 struct Scratch {
@@ -107,7 +112,7 @@ impl LightEngine {
         Ok(LightEngine {
             air_fast: table[0] == (0, 0),
             table,
-            scratch: RefCell::new(Scratch {
+            scratch: Mutex::new(Scratch {
                 opacity: Vec::new(),
                 block_light: Vec::new(),
                 sky_light: Vec::new(),
@@ -285,7 +290,7 @@ fn light_compute_inner(
         return Err(LightError::OutputLen);
     }
 
-    let mut sc = engine.scratch.borrow_mut();
+    let mut sc = engine.scratch.lock().unwrap_or_else(|e| e.into_inner());
     let Scratch { opacity, block_light, sky_light, queue, col_max } = &mut *sc;
 
     let _t0 = phases.as_mut().map(|_| std::time::Instant::now());

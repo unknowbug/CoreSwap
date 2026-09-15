@@ -1,0 +1,17 @@
+# 260915-02 构建/测试输出存档（judge C1 旁证，主会话执行时实录转录）
+
+cargo build --offline --workspace --release
+  尾部: warning: `WorldgenRust` (bin ...) generated ... warnings
+        Finished `release` profile [optimized] target(s) in 10.68s
+cargo build --offline -p worldgen --release
+  尾部: warning: `worldgen` (lib) generated 46 warnings
+        Finished `release` profile [optimized] target(s) in 12.16s
+cargo build --offline -p worldgen1216 --release
+  尾部: warning: `worldgen1216` (lib) generated 46 warnings
+        Finished `release` profile [optimized] target(s) in 0.20s  # workspace 全量已含 1216，此为缓存命中
+cargo test --offline -p WorldgenRust --release
+  汇总: test result: ok. 14 passed; 0 failed; 0 ignored（首组 0.01s，其余 bins 0 passed）
+
+产物指纹（Get-FileHash SHA256 前 16 位，2026-09-15 16:30 后取）:
+  target/release/worldgen.dll     = C86718E7AB300AC6  (2,468,352 B, mtime 16:29:55)
+  target/release/worldgen1216.dll = 4DCE25EE0ADF07C5  (2,468,352 B, mtime 16:30:14)
