@@ -5,7 +5,7 @@ entries:
   - id: 'form-audit:candidate-pool-260915-01'
     path: 'form-audit-260915-01/candidate-pool-260915-01.md'
     kind: analysis
-    status: candidate
+    status: confirmed
   - id: 'form-audit:judge-review-260915-01'
     path: 'form-audit-260915-01/judge-review-260915-01.md'
     kind: review

@@ -1530,7 +1530,7 @@ unctional-errors.md F1-F3）：
 
 ## 形态审计 260915-01：全接管面 × 执行形态矩阵与候选池（candidate，HOOK-2 已批）
 
-> 状态：**candidate**（judge PASS-with-conditions C-1..C-7，C-2/C-6 已应用；HOOK-2 用户拍板「按建议执行序全批」2026-09-15）。验证分层：**Degraded（全静态源码对照 + 上限推演；无新运行时采集）**——所有量级数字为推演上限。
+> 状态：**confirmed（2026-09-15 用户「授权确认」；范围 = 候选池排序 + 矩阵等价判定 + D-hm 结案，Degraded 静态分层如实保留；各 CP 修复实施后的行为级结论另走各自验收节点）**（judge PASS-with-conditions C-1..C-7，C-2/C-6/C-7 已应用，C-1/C-3/C-4/C-5 绑定后续工作；HOOK-2 用户拍板「按建议执行序全批」）。验证分层：**Degraded（全静态源码对照 + 上限推演；无新运行时采集）**——所有量级数字为推演上限。
 > 产物：候选池 `.artifacts/form-audit-260915-01/candidate-pool-260915-01.md` + judge `.artifacts/form-audit-260915-01/judge-review-260915-01.md` + 六份调查 `.investigations/form-audit-260915-01/`（p1a/p1b + p2-w1/w2/w3/w4）。
 > 覆盖面声明（§9.7）：生产 3+1 段（A NOISE 含 A' Beardifier / B SURFACE / D 写回 + C 光照）+ executor 横切层；carver/features/biome/序列化让位段不在矩阵；1.21.6 差异未覆盖（仓库无一手源，P1b 降级声明）。
 

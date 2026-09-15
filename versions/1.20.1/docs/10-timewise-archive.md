@@ -3237,7 +3237,7 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **净收**：ON 串行 7.3→2.94ms/chunk；e2e 1.25×→~1.07×；golden 4/4 逐位。剩余：解码-查表融合 / sky_fall 融合 / e2e 载体更换 / global palette 回退计数。
 - 📌 通用模式 → compiler-idioms #27、build-tooling #151、workflow-patterns #147/#148（subagent 草稿 + 主会话应用）。
 
-## 260915-01（实际 2026-09-15：形态审计——全接管面 × 执行形态矩阵，scout×2 → fan-out×4 → 汇总 → judge C-1..C-7 → HOOK-2 全批）✅ candidate（HOOK-2 用户拍板「按建议执行序全批」；confirmed 待验收节点）
+## 260915-01（实际 2026-09-15：形态审计——全接管面 × 执行形态矩阵，scout×2 → fan-out×4 → 汇总 → judge C-1..C-7 → HOOK-2 全批）✅ **confirmed（2026-09-15 用户「授权确认」；范围 = 候选池排序 + 矩阵等价判定 + D-hm 结案，Degraded 分层保留；各 CP 修复后行为级结论另走验收）**
 
 > 计划 `.investigations/000-架构设计/架构设计-260914-04b-形态审计.md`（HOOK-1 已批，260914-04 尾声立项）；产物 `.artifacts/form-audit-260915-01/`（候选池 + judge-review）+ `.investigations/form-audit-260915-01/`（p1a/p1b + p2-w1..w4 六份）。本审计零运行时改动、零 src diff（judge 三源核对确认）。
 
