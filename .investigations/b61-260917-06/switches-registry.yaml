@@ -1,0 +1,152 @@
+# switches-registry.yaml — B6-1 开关登记表（单一事实源，由 extract_switch_sources.py + classification.yaml 生成）
+# 判据：CONSISTENT=双面齐 / DEAD=仅声明 / ORPHAN=仅消费；verdict 见 classification.yaml
+# 覆盖面：见 switch-sources.json coverage 段（未扫载体一律不判 DEAD）
+schema_version: 1
+counts:
+  total: 140
+  CONSISTENT: 112
+  DEFECT-DEAD-SWITCH: 3
+  DEFECT-MISSING-MAPPING: 13
+  SCOPED-DIRECT-D: 11
+  UNRESOLVED: 1
+switches:
+  - {name: aqdump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: aqdump.points, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: aqdump.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: beard.dump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.macroTime, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.mismatchOut, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.originX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.originZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.seed, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: bench.threads, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "bench 族子参数一贯 -D 直传（javadoc 用法说明）"}
+  - {name: bench.worldgen, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: biome.preset, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6.cellDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6.colDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6.dim, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6.mnDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6.points, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6cal, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: biome6oct, surface: DEAD, verdict: DEFECT-DEAD-SWITCH, reason: "两版均声明、全载体零消费"}
+  - {name: blob.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: blobProbe.chunkX, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "blobProbe 族有 blobProbeOut 先例"}
+  - {name: blobProbe.chunkZ, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: blobProbe.dim, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: blobProbe.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: blobProbe.size, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: block.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: blockProbe.dimension, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: blockProbe.full, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: chunkRandom.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: chunkRandom.seed, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "族内零子参数 -P 先例"}
+  - {name: chunkRandom.seed288, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: colDump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: colDump.targets, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: colprof.mode, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: colprof.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: colprof.r, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: colprof.x, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "colProf 族 probe/mode/r 已映射"}
+  - {name: colprof.z, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: comp.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: comp.x, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: comp.y, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: comp.z, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.bulkwblog, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "severity 最高：MUST 级等价性判据的唯一仪器"}
+  - {name: coreswap.bulkwbsentinel, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: coreswap.bulkwbtest, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING}
+  - {name: coreswap.chunktime, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.exec, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "兄弟 execpool 已映射；exec=0 是用户拍板的回退手段"}
+  - {name: coreswap.execpool, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.formdrive, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.formprobe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.betaprobe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.blockabi, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "light 探针族无 -P 先例，javadoc 明写 -D 用法"}
+  - {name: coreswap.light.data, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.domainbatch, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.domainbatch.gracems, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.oldcollect, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: coreswap.light.paldump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.rust, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.light.timing, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.maxinflight, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "同上族"}
+  - {name: coreswap.mixlog, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.rust.stages, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.stallwatch, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.syncfill, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.threads, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: coreswap.wbcheck, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: coreswap.wbcontent, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "severity 最高"}
+  - {name: cpp.blockRegister, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: cpp.debug, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: cpp.noBatch, surface: DEAD, verdict: DEFECT-DEAD-SWITCH, reason: "文档明文写「保留」⇒ 引用者以为有效；建议删映射 + 补注记"}
+  - {name: cpp.replace, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: cpp.vanilla, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: cpp.worldgen.dir, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: cpp.worldgen.lib, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe.chunkX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe.chunkZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe.dimension, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe.x, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: densityProbe.z, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.chunkX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.chunkZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.originX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.originZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: estdump.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: height.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: height.x, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "裁决改判（原 b2 判缺陷）：heightProbe 仅映射父门，零子参数先例"}
+  - {name: height.z, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "同上"}
+  - {name: java.io.tmpdir, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "标准 JVM 系统属性，本不应由 build.gradle 声明"}
+  - {name: java.util.concurrent.ForkJoinPool.common.parallelism, surface: DEAD, verdict: DEFECT-DEAD-SWITCH, reason: "已有行为化实证判死（G2 臂 VOID）"}
+  - {name: jni.nether, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: jni.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: lightDataDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: max.bg.threads, surface: DEAD, verdict: UNRESOLVED, reason: "消费方疑在 MC 发行 jar 内（不在扫描面）⇒ 待核，不得与 fjp1 同格引用"}
+  - {name: noise.names, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noise.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noise.suffix, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisePoints.dim, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisedump.chunkX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisedump.chunkZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisedump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisedump.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: noisedump.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: ore.chunkX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: ore.chunkZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: ore.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: probe.count, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: readWorld.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.b3dDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.dim, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.esh, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.noisePoints, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.x, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.y, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.yFrom, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.yStep, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.yTo, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: router.z, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: rule.diag, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfaceColDump, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.chunkX, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.chunkZ, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.dim, surface: ORPHAN, verdict: DEFECT-MISSING-MAPPING, reason: "surfaceDump 族 5/6 已映射，唯 dim 缺（族内唯一缺口）"}
+  - {name: surfacedump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.outPost, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: surfacedump.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: wg.diagNether, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: wg.diagchunk, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: wg.dumpbiome, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: wg.seedlog, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: wg.treediag, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
+  - {name: worldgen.bench, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}

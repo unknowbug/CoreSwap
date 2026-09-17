@@ -1,0 +1,39 @@
+# classification.yaml — B6-1 T4 定性（经 t4-adjudication.md 裁决规则确定）
+# 判据：族内有 ≥1 个 -P 映射先例 ⇒ 未映射项 = DEFECT；族内零先例 ⇒ SCOPED
+# 格式：name: VERDICT  # reason
+
+# ---- DEFECT-MISSING-MAPPING（11）----
+surfacedump.dim: DEFECT-MISSING-MAPPING  # surfaceDump 族 5/6 已映射，唯 dim 缺（族内唯一缺口）
+blobProbe.chunkX: DEFECT-MISSING-MAPPING  # blobProbe 族有 blobProbeOut 先例
+blobProbe.chunkZ: DEFECT-MISSING-MAPPING
+blobProbe.size: DEFECT-MISSING-MAPPING
+blobProbe.dim: DEFECT-MISSING-MAPPING
+colprof.x: DEFECT-MISSING-MAPPING  # colProf 族 probe/mode/r 已映射
+colprof.z: DEFECT-MISSING-MAPPING
+coreswap.exec: DEFECT-MISSING-MAPPING  # 兄弟 execpool 已映射；exec=0 是用户拍板的回退手段
+coreswap.maxinflight: DEFECT-MISSING-MAPPING  # 同上族
+coreswap.bulkwblog: DEFECT-MISSING-MAPPING  # severity 最高：MUST 级等价性判据的唯一仪器
+coreswap.wbcontent: DEFECT-MISSING-MAPPING  # severity 最高
+coreswap.bulkwbtest: DEFECT-MISSING-MAPPING
+coreswap.bulkwbsentinel: DEFECT-MISSING-MAPPING
+
+# ---- DEFECT-DEAD-SWITCH（3）----
+cpp.noBatch: DEFECT-DEAD-SWITCH  # 文档明文写「保留」⇒ 引用者以为有效；建议删映射 + 补注记
+biome6oct: DEFECT-DEAD-SWITCH  # 两版均声明、全载体零消费
+java.util.concurrent.ForkJoinPool.common.parallelism: DEFECT-DEAD-SWITCH  # 已有行为化实证判死（G2 臂 VOID）
+
+# ---- UNRESOLVED（1）----
+max.bg.threads: UNRESOLVED  # 消费方疑在 MC 发行 jar 内（不在扫描面）⇒ 待核，不得与 fjp1 同格引用
+
+# ---- SCOPED-DIRECT-D（13）----
+bench.threads: SCOPED-DIRECT-D  # bench 族子参数一贯 -D 直传（javadoc 用法说明）
+bench.worldgen: SCOPED-DIRECT-D
+chunkRandom.seed: SCOPED-DIRECT-D  # 族内零子参数 -P 先例
+chunkRandom.seed288: SCOPED-DIRECT-D
+colDump.targets: SCOPED-DIRECT-D
+coreswap.wbcheck: SCOPED-DIRECT-D
+coreswap.light.blockabi: SCOPED-DIRECT-D  # light 探针族无 -P 先例，javadoc 明写 -D 用法
+coreswap.light.oldcollect: SCOPED-DIRECT-D
+java.io.tmpdir: SCOPED-DIRECT-D  # 标准 JVM 系统属性，本不应由 build.gradle 声明
+height.x: SCOPED-DIRECT-D  # 裁决改判（原 b2 判缺陷）：heightProbe 仅映射父门，零子参数先例
+height.z: SCOPED-DIRECT-D  # 同上

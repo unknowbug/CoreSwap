@@ -1,0 +1,246 @@
+{
+ "coverage": {
+  "declaration_carriers": [
+   "versions\\1.20.1\\java\\build.gradle",
+   "versions\\1.21.6\\java\\build.gradle"
+  ],
+  "consumption_carriers": [
+   "versions\\1.20.1\\java\\src",
+   "versions\\1.21.6\\java\\src",
+   "java-core\\src",
+   "worldgen-core\\src"
+  ],
+  "not_scanned": [
+   "native/C++ 侧读 env（非 -D sysprop，形态不同，另论）",
+   "外部工具直接 -D 传参（不体现在源码/脚本内）",
+   "1.21.6 的 python/JS 辅助脚本中的 -D 拼装"
+  ]
+ },
+ "counts": {
+  "M1_declared": 116,
+  "M2_consumed": 136,
+  "consistent": 112,
+  "dead": 4,
+  "orphan": 24,
+  "pprop_names": 121
+ },
+ "dead": {
+  "biome6oct": [
+   "versions\\1.20.1\\java\\build.gradle",
+   "versions\\1.21.6\\java\\build.gradle"
+  ],
+  "cpp.noBatch": [
+   "versions\\1.20.1\\java\\build.gradle",
+   "versions\\1.21.6\\java\\build.gradle"
+  ],
+  "java.util.concurrent.ForkJoinPool.common.parallelism": [
+   "versions\\1.20.1\\java\\build.gradle"
+  ],
+  "max.bg.threads": [
+   "versions\\1.21.6\\java\\build.gradle"
+  ]
+ },
+ "orphan": {
+  "bench.threads": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\JniProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\JniProbe.java"
+  ],
+  "bench.worldgen": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\JniProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\JniProbe.java"
+  ],
+  "blobProbe.chunkX": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java"
+  ],
+  "blobProbe.chunkZ": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java"
+  ],
+  "blobProbe.dim": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java"
+  ],
+  "blobProbe.size": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\BlobProbeMixin.java"
+  ],
+  "chunkRandom.seed": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\ChunkRandomProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\ChunkRandomProbe.java"
+  ],
+  "chunkRandom.seed288": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\ChunkRandomProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\ChunkRandomProbe.java"
+  ],
+  "colDump.targets": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\SurfaceColDumpProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\SurfaceColDumpProbe.java"
+  ],
+  "colprof.x": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\ColProfProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\ColProfProbeMixin.java"
+  ],
+  "colprof.z": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\ColProfProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\ColProfProbeMixin.java"
+  ],
+  "coreswap.bulkwblog": [
+   "java-core\\src\\main\\java\\wg\\bench\\BulkWb.java",
+   "java-core\\src\\main\\java\\wg\\bench\\CppBridge.java"
+  ],
+  "coreswap.bulkwbsentinel": [
+   "java-core\\src\\main\\java\\wg\\bench\\BulkWb.java"
+  ],
+  "coreswap.bulkwbtest": [
+   "java-core\\src\\main\\java\\wg\\bench\\BulkWb.java"
+  ],
+  "coreswap.exec": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\NoiseChunkGeneratorMixin.java"
+  ],
+  "coreswap.light.blockabi": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\ServerLightingProviderMixin.java"
+  ],
+  "coreswap.light.oldcollect": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\ServerLightingProviderMixin.java"
+  ],
+  "coreswap.maxinflight": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\NoiseChunkGeneratorMixin.java"
+  ],
+  "coreswap.wbcheck": [
+   "java-core\\src\\main\\java\\wg\\bench\\CppBridge.java"
+  ],
+  "coreswap.wbcontent": [
+   "java-core\\src\\main\\java\\wg\\bench\\BulkWb.java"
+  ],
+  "height.x": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\HeightProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\HeightProbe.java"
+  ],
+  "height.z": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\HeightProbe.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\HeightProbe.java"
+  ],
+  "java.io.tmpdir": [
+   "java-core\\src\\main\\java\\wg\\bench\\CoreSwapFixHelper.java"
+  ],
+  "surfacedump.dim": [
+   "versions\\1.20.1\\java\\src\\main\\java\\wg\\bench\\mixin\\SurfaceDumpProbeMixin.java",
+   "versions\\1.21.6\\java\\src\\main\\java\\wg\\bench\\mixin\\SurfaceDumpProbeMixin.java"
+  ]
+ },
+ "consistent": [
+  "aqdump.out",
+  "aqdump.points",
+  "aqdump.probe",
+  "beard.dump",
+  "bench.macroTime",
+  "bench.mismatchOut",
+  "bench.originX",
+  "bench.originZ",
+  "bench.out",
+  "bench.seed",
+  "bench.size",
+  "biome.preset",
+  "biome.probe",
+  "biome6",
+  "biome6.cellDump",
+  "biome6.colDump",
+  "biome6.dim",
+  "biome6.mnDump",
+  "biome6.points",
+  "biome6cal",
+  "blob.probe",
+  "blobProbe.out",
+  "block.probe",
+  "blockProbe.dimension",
+  "blockProbe.full",
+  "chunkRandom.probe",
+  "colDump.out",
+  "colprof.mode",
+  "colprof.probe",
+  "colprof.r",
+  "comp.probe",
+  "comp.x",
+  "comp.y",
+  "comp.z",
+  "coreswap.chunktime",
+  "coreswap.execpool",
+  "coreswap.formdrive",
+  "coreswap.formprobe",
+  "coreswap.light.betaprobe",
+  "coreswap.light.data",
+  "coreswap.light.domainbatch",
+  "coreswap.light.domainbatch.gracems",
+  "coreswap.light.paldump",
+  "coreswap.light.rust",
+  "coreswap.light.timing",
+  "coreswap.mixlog",
+  "coreswap.rust.stages",
+  "coreswap.stallwatch",
+  "coreswap.syncfill",
+  "coreswap.threads",
+  "cpp.blockRegister",
+  "cpp.debug",
+  "cpp.replace",
+  "cpp.vanilla",
+  "cpp.worldgen.dir",
+  "cpp.worldgen.lib",
+  "densityProbe",
+  "densityProbe.chunkX",
+  "densityProbe.chunkZ",
+  "densityProbe.dimension",
+  "densityProbe.x",
+  "densityProbe.z",
+  "estdump.chunkX",
+  "estdump.chunkZ",
+  "estdump.originX",
+  "estdump.originZ",
+  "estdump.out",
+  "estdump.probe",
+  "estdump.size",
+  "height.probe",
+  "jni.nether",
+  "jni.probe",
+  "lightDataDump",
+  "noise.names",
+  "noise.probe",
+  "noise.suffix",
+  "noisePoints.dim",
+  "noisedump.chunkX",
+  "noisedump.chunkZ",
+  "noisedump.out",
+  "noisedump.probe",
+  "noisedump.size",
+  "ore.chunkX",
+  "ore.chunkZ",
+  "ore.probe",
+  "probe.count",
+  "readWorld.probe",
+  "router.b3dDump",
+  "router.dim",
+  "router.esh",
+  "router.noisePoints",
+  "router.probe",
+  "router.x",
+  "router.y",
+  "router.yFrom",
+  "router.yStep",
+  "router.yTo",
+  "router.z",
+  "rule.diag",
+  "surfaceColDump",
+  "surfacedump.chunkX",
+  "surfacedump.chunkZ",
+  "surfacedump.out",
+  "surfacedump.outPost",
+  "surfacedump.probe",
+  "surfacedump.size",
+  "wg.diagNether",
+  "wg.diagchunk",
+  "wg.dumpbiome",
+  "wg.seedlog",
+  "wg.treediag",
+  "worldgen.bench"
+ ]
+}
