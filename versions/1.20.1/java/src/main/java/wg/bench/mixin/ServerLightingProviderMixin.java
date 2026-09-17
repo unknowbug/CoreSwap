@@ -1,4 +1,6 @@
-// 未编译验证（260916-01 CP-1 .b1 域批中心化改造；主会话负责编译）。
+// 未编译验证（260917-05 P-β/P-path 探针打点追加；主会话负责编译/运行）。判据 = 
+// .investigations/pbeta-260917-05/criteria-260917-05.md（同批预登记）。探针 env 门控默认关
+// （-Dcoreswap.light.betaprobe），缺省路径零变化；打点全在 chunk 级，不进每格热路径。
 // 历史依赖 yarn 签名（一手源 .tmp/light-yarn/，行号即该文件行号）：
 //   ServerLightingProvider#light(Chunk, boolean) : CompletableFuture<Chunk>（L171-184）
 //   ServerLightingProvider#chunkStorage : private final ThreadedAnvilChunkStorage（L32）
@@ -105,6 +107,16 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     @Unique private static final AtomicLong WG_T_NATIVE = new AtomicLong();
     @Unique private static final java.util.concurrent.atomic.AtomicInteger WG_T_N = new AtomicInteger();
 
+    // ---- P-β / P-path 探针（260917-05，env 门控默认关，chunk 级一次，不进每格热路径）----
+    // -Dcoreswap.light.betaprobe：① 每 chunk 收集完成打一行 [LIGHT-BETA]（输入快照 hash + 空节计数）
+    //   ② light() HEAD 打 [LIGHT-PATH] enter；outcome 打 path=domain|legacy-rust|legacy-fallback|vanilla-init0。
+    //   判别（criteria-260917-05）：run 间输入 hash 差集 ∩ snap changed 集 → β（输入通道）；
+    //   输入恒定而输出变 → F3/output 侧通道。
+    @Unique private static final boolean LIGHT_BETAPROBE = System.getProperty("coreswap.light.betaprobe") != null;
+    @Unique private static final AtomicInteger WG_BETA_SEC = new AtomicInteger();
+    @Unique private static final AtomicInteger WG_BETA_SEC_CUR = new AtomicInteger();
+    @Unique private static final AtomicInteger WG_PATH_N = new AtomicInteger();
+
     // ---- 候选 B（260914-04）：palette 级批量展开收集路 ----
     @Unique private static final boolean LIGHT_OLD_COLLECT = System.getProperty("coreswap.light.oldcollect") != null;
     @Unique private static final ThreadLocal<io.netty.buffer.ByteBuf> WG_PBUF_TL =
@@ -185,6 +197,17 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 && world.getTopSectionCoord() - world.getBottomSectionCoord() == 24;
     }
 
+    /** FNV-1a over int[] 前缀（P-β 输入快照指纹；seed 链式拼接 meta/pal/sto）。 */
+    @Unique
+    private static int wgBetaHash(int seed, int[] a, int len) {
+        int h = seed;
+        for (int i = 0; i < len; i++) {
+            h ^= a[i];
+            h *= 0x01000193;
+        }
+        return h;
+    }
+
     @Unique
     private static boolean wgLightCollectBlocks(ServerLightingProvider provider, HeightLimitView world,
                                                 Chunk center, int[] blocks9) {
@@ -209,6 +232,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 for (int s = 0; s < 24; s++) {
                     net.minecraft.world.chunk.ChunkSection sec = secs[s];
                     if (sec == null || sec.isEmpty()) {
+                        if (LIGHT_BETAPROBE) WG_BETA_SEC_CUR.incrementAndGet(); // P-β：空节瞬态读计数
                         // 空节 = 全 AIR：raw id 0 + luminance 0（vanilla getBlockState 空节返回 AIR 默认态，等价）
                         java.util.Arrays.fill(blocks9, k, k + 4096, 0);
                         k += 4096;
@@ -288,6 +312,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 for (int s = 0; s < 24; s++, si += 2) {
                     net.minecraft.world.chunk.ChunkSection sec = secs[s];
                     if (sec == null || sec.isEmpty()) {
+                        if (LIGHT_BETAPROBE) WG_BETA_SEC_CUR.incrementAndGet(); // P-β：空节瞬态读计数
                         meta[si] = 0;
                         meta[si + 1] = 0;
                         continue;
@@ -617,12 +642,24 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         try {
             // 候选 C 分流：packed ABI 优先（失败/global 节 → blocks9 ABI 同 chunk 重算）
             int[] packedLens = null;
+            if (LIGHT_BETAPROBE) {
+                WG_BETA_SEC_CUR.set(0);
+            }
             if (!LIGHT_BLOCKABI) {
                 packedLens = wgLightCollectPacked(provider, world, chunk);
             }
             long _t1;
             if (packedLens != null) {
                 _t1 = LIGHT_TIMING ? System.nanoTime() : 0L;
+                if (LIGHT_BETAPROBE) {
+                    int h = wgBetaHash(0x811c9dc5, WG_META_TL.get(), WG_META_LEN);
+                    h = wgBetaHash(h, WG_PAL_TL.get(), packedLens[0]);
+                    h = wgBetaHash(h, WG_STO_TL.get(), packedLens[1]);
+                    int cur = WG_BETA_SEC_CUR.getAndSet(0);
+                    WG_BETA_SEC.addAndGet(cur);
+                    System.out.println("[LIGHT-BETA] chunk(" + chunkPos.x + "," + chunkPos.z
+                            + ") abi=packed hash=" + h + " emptySec=" + cur);
+                }
                 rc = wg.CppWorldgen.lightComputePacked(wgLightEnsureInit(), WG_META_TL.get(), WG_PAL_TL.get(),
                         WG_STO_TL.get(), packedLens[0], packedLens[1], outBlock, outSky, outFlags);
                 if (rc != 0) {
@@ -637,6 +674,13 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 if (!wgLightCollectBlocks(provider, world, chunk, blocks9)) {
                     wgLightFallback("neighbor-missing-or-height " + chunkPos);
                     return false;
+                }
+                if (LIGHT_BETAPROBE) {
+                    int h = wgBetaHash(0x811c9dc5, blocks9, WG_BLOCKS9_LEN);
+                    int cur = WG_BETA_SEC_CUR.getAndSet(0);
+                    WG_BETA_SEC.addAndGet(cur);
+                    System.out.println("[LIGHT-BETA] chunk(" + chunkPos.x + "," + chunkPos.z
+                            + ") abi=blocks9 hash=" + h + " emptySec=" + cur);
                 }
                 _t1 = LIGHT_TIMING ? System.nanoTime() : 0L;
                 rc = wg.CppWorldgen.lightCompute(wgLightEnsureInit(), blocks9, outBlock, outSky, outFlags);
@@ -687,17 +731,34 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             at = @At("HEAD"), cancellable = true, require = 1)
     private void wgLightRustTakeover(Chunk chunk, boolean excludeBlocks, CallbackInfoReturnable<CompletableFuture<Chunk>> cir) {
         if (!LIGHT_RUST) return; // 开关关闭：完全 vanilla，零行为影响
+        if (LIGHT_BETAPROBE) {
+            int n = WG_PATH_N.incrementAndGet();
+            if (n == 1) System.out.println("[LIGHT-BETA] probe armed betaprobe=1");
+            System.out.println("[LIGHT-PATH] enter (" + chunk.getPos().x + "," + chunk.getPos().z + ")");
+        }
         long handle = wgLightEnsureInit();
-        if (handle == 0L) return; // init 失败（已打点一次）→ vanilla
+        if (handle == 0L) { // init 失败（已打点一次）→ vanilla
+            if (LIGHT_BETAPROBE) System.out.println("[LIGHT-PATH] path=vanilla-init0 ("
+                    + chunk.getPos().x + "," + chunk.getPos().z + ")");
+            return;
+        }
 
         // CP-1 .b1：域批分流（预检未过 → 现役内联路径，vanilla 回退语义原样保留）
         if (LIGHT_DOMAIN) {
-            if (wgLightDomainSubmit(chunk, cir)) return;
+            if (wgLightDomainSubmit(chunk, cir)) {
+                if (LIGHT_BETAPROBE) System.out.println("[LIGHT-PATH] path=domain ("
+                        + chunk.getPos().x + "," + chunk.getPos().z + ")");
+                return;
+            }
             WG_DOMAIN_INLINE.incrementAndGet();
         }
 
         boolean handled = wgLightLegacyTakeover((ServerLightingProvider) (Object) this, this.chunkStorage,
                 this.world, this.world.getBottomSectionCoord(), chunk, excludeBlocks);
+        if (LIGHT_BETAPROBE) {
+            System.out.println("[LIGHT-PATH] path=" + (handled ? "legacy-rust" : "legacy-fallback")
+                    + " (" + chunk.getPos().x + "," + chunk.getPos().z + ")");
+        }
         if (handled) {
             cir.setReturnValue(CompletableFuture.completedFuture(chunk));
         }
