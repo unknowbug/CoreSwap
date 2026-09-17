@@ -208,6 +208,19 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         return h;
     }
 
+    /** FNV-1a over long[] 前缀（packed storage 段；高低 32 位合入混合）。 */
+    @Unique
+    private static int wgBetaHash(int seed, long[] a, int len) {
+        int h = seed;
+        for (int i = 0; i < len; i++) {
+            h ^= (int) a[i];
+            h *= 0x01000193;
+            h ^= (int) (a[i] >>> 32);
+            h *= 0x01000193;
+        }
+        return h;
+    }
+
     @Unique
     private static boolean wgLightCollectBlocks(ServerLightingProvider provider, HeightLimitView world,
                                                 Chunk center, int[] blocks9) {
