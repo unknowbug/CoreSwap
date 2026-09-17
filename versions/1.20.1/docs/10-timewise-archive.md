@@ -3311,6 +3311,8 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 
 ## 260917-04（实际 2026-09-17，Get-Date 锚；C-1 R1 正式重述执行 + C-6 A/B + legacy 对照冲突发现——历史 200-changed 判 confounded）🔍 candidate（judge PASS-with-conditions C1-C4 已应用；§15.4 取代 verdict-260917-01 的 run3 层 legacy 证据——待用户拍板）
 
+> **✅ 追记（同日晚）：用户授权确认两项**——① C-1(R1) 判据结论 **confirmed**（保守带满足）；② **§15.4 取代生效**（verdict-260917-01 run3 层 legacy 证据判 confounded + 两臂对照叙事撤销；prev_after argv 单源依赖已知情确认）。正式裁决 → `.artifacts/c1-c6-260917-04/verdict-260917-04.md`（status confirmed）。下块开工点 = P-β/P-path 分辨探针（β 主嫌疑不变）。
+
 > 过程产物 `.investigations/c1-c6-260917-04/`（criteria 预登记 + record + cmd-output/ + b1/b2 审计）+ `.artifacts/c1-c6-260917-04/verdict-260917-04.md`（candidate）；判据时序锚 = git be1c166 @18:13:04（criteria 与采集脚本同批先于任何采集，#112）。承接 260917-03 C-1 带宽度建议升格 + C-6 A/B 判据预登记。执行体 dll 6F7FA3AE…2337 全臂自证；seed 8576294172403134396。
 
 - ✅ **C-1(R1) 判据轮（域臂，预登记二值判据）**：fresh world → run1(预热，changed 168 不判) → run2 → run3，各 Done+60s；**run2→run3 changed = 2/2025（0.0988%）→ 保守带满足（≤2），主带（≤1）未中**；逐 boot 自证全绿 ×3（lightInit ok / hook armed / dll 6f7fa3ae / fallback=0）。与 G17c-D3（=2）完全复现，域臂行为稳定。§9.7 三要素齐备（snap_light 2025-chunk 同载体，与 K2/G17c/G3 系可比）。

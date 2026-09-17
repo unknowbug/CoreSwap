@@ -1829,7 +1829,7 @@ entries:
   - id: 're-code:c1-c6:verdict-260917-04'
     path: 'c1-c6-260917-04/verdict-260917-04.md'
     kind: analysis
-    status: candidate   # judge PASS-with-conditions（C1-C4 已应用）；confirmed 待用户（含 G17c-L3 prev_after argv 单源依赖知情确认，record-260917-01.md:15）
+    status: confirmed   # 用户授权确认 2026-09-17（C-1 R1 判据结论 + §15.4 取代生效两项一并拍板；judge PASS-with-conditions C1-C4 已应用；prev_after argv 单源依赖已知情）
     # C-1(R1) 保守带成立：域臂 run2→run3 = 2/2025（0.0988%）≤2，主带未中；与 G17c-D3 复现。
     # 计划外发现：legacy 干净链（C1R1-L）run2→run3 = 0 —— verdict-260917-01 的 G17c-L3 200-changed
     #   系跨世界对比（run_g3_settle.py:91-92 每臂 rmtree + 复用脚本无 world 身份自证，b1 三源审计成立）；
