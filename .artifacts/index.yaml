@@ -1825,3 +1825,16 @@ entries:
     # K2：domain 臂同配置 3 对 run-to-run（W/G17c-D3、D4/W、D5/D4）changed 0/2025 = 0.0000%，检测地板 1 chunk ≈0.049%；
     #   §9.7：snap_light 同载体与 G17c/G3 可直接比；C-1 R1 带宽度建议 ≤1 chunk（保守 ≤2 chunk），定稿另步与采集脚本同批（#112）。
     # 首轮 K2-D4 VOID（DSH 沙箱 TEMP 重定向 → lightInit threw → 整臂 vanilla fallback，#118 硬门捕获；#42 家族新形态）已归档。
+  # —— 260917-04 C-1 R1 重述执行 + C-6 A/B + legacy 干净链冲突发现（§15.4 取代 verdict-260917-01 run3 层证据，待用户拍板）——
+  - id: 're-code:c1-c6:verdict-260917-04'
+    path: 'c1-c6-260917-04/verdict-260917-04.md'
+    kind: analysis
+    status: candidate   # judge PASS-with-conditions（C1-C4 已应用）；confirmed 待用户（含 G17c-L3 prev_after argv 单源依赖知情确认，record-260917-01.md:15）
+    # C-1(R1) 保守带成立：域臂 run2→run3 = 2/2025（0.0988%）≤2，主带未中；与 G17c-D3 复现。
+    # 计划外发现：legacy 干净链（C1R1-L）run2→run3 = 0 —— verdict-260917-01 的 G17c-L3 200-changed
+    #   系跨世界对比（run_g3_settle.py:91-92 每臂 rmtree + 复用脚本无 world 身份自证，b1 三源审计成立）；
+    #   §15.4 取代其 run3 层 legacy 证据及两臂对照叙事；新结论（n=1 单 seed 单区域）：fresh 同 world 链
+    #   legacy run2 后收敛（0），域批同层 2（带内）；M-b 失去直接证据。
+    # C-6 记录完成：per-chunk 折算域批 ~0.98ms vs legacy 6.263ms（调用层口径，非端到端）；
+    #   A1 正式判别通道缺失（LIGHTPROBE-T 不覆盖域批路径，降级声明）。
+    # 通用模式 → workflow-patterns #161（world 身份陷阱）。

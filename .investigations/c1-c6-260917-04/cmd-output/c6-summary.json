@@ -1,0 +1,32 @@
+{
+ "C6-L": {
+  "light_calls": 3703,
+  "light_p50_all_ms": 6.263,
+  "first_window_calls": 1058,
+  "light_p50_firstwin_ms": 4.185499999999999,
+  "fill_events": 4698,
+  "fill_p50_ms": 169.546,
+  "lightprobe_t_lines": 18,
+  "lightprobe_t_final": {
+   "chunks": 3600,
+   "collectAvgMs": 0.317,
+   "nativeAvgMs": 5.674
+  },
+  "fill_jni_share_pct": 94.71
+ },
+ "C6-D": {
+  "light_calls": 3703,
+  "light_p50_all_ms": 8.808,
+  "first_window_calls": 1052,
+  "light_p50_firstwin_ms": 8.1155,
+  "fill_events": 4698,
+  "fill_p50_ms": 186.07549999999998,
+  "lightprobe_t_lines": 0,
+  "domain_tasks": 457,
+  "domain_degraded_total": 0,
+  "domain_timedout_tasks": 115,
+  "domain_timeout_final": 115,
+  "domain_sealed_final": 342,
+  "domain_avgMs_p50": 8.853
+ }
+}

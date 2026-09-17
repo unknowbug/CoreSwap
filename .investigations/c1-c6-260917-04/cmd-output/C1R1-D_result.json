@@ -1,0 +1,33 @@
+{
+ "mode": "domain",
+ "common": 2025,
+ "changed_2to3": 2,
+ "warmup_1to2": 168,
+ "per_boot": {
+  "run1": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 1,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run2": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 1,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run3": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 1,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  }
+ },
+ "changed_set": [
+  "36,-23",
+  "36,-24"
+ ]
+}
