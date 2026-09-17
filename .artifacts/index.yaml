@@ -1820,7 +1820,7 @@ entries:
   - id: 're-code:k2-noise-anchor:verdict-260917-03'
     path: 'k2-noise-anchor-260917-03/verdict-260917-03.md'
     kind: analysis
-    status: candidate   # 260917-03 judge PASS-with-conditions（review-260917-03.md），B5/B6 SHOULD 条件已应用（SELFCERT console 归档 + run_k2-archive.py）；confirmed 留用户
+    status: confirmed   # 260917-03 judge PASS-with-conditions（review-260917-03.md），B5/B6 SHOULD 条件已应用（SELFCERT console 归档 + run_k2-archive.py）；用户授权确认 2026-09-17
     # P-α：有效 legacy 臂 fallback 计数 = 0（打点 n≤8 无节流盲区）→ α（fallback 混合）排除、M-b 连带证伪，β（静默空节读）升主嫌疑，F3 并列未测。
     # K2：domain 臂同配置 3 对 run-to-run（W/G17c-D3、D4/W、D5/D4）changed 0/2025 = 0.0000%，检测地板 1 chunk ≈0.049%；
     #   §9.7：snap_light 同载体与 G17c/G3 可直接比；C-1 R1 带宽度建议 ≤1 chunk（保守 ≤2 chunk），定稿另步与采集脚本同批（#112）。
