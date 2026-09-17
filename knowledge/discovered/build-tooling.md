@@ -1266,3 +1266,17 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **跨块复用运行台时，采集臂必需的使能开关（本例 `-PlightRust`）未随复测口径记录传递**——NEXT_SESSION 只转录本块新增变量 `-Pdomainbatch=1`，光照总开关失传 → 首跑 G17 两臂静默漏旗 = vanilla 光照形态冒充接管臂，判 VOID。
 - **判据（指针摘要）**：每个判别臂必带**行为化自证行**（lightInit / hook / dll sha），自证缺失整臂 VOID 不挑臂（#118 硬门）；复测口径必须列**全部**使能开关，不只有本块新增变量。
 - **全文（五段式 + 完整判据 + 家族索引）→ workflow-patterns #156**；错误台账 → `.investigations/g3-drift-basis-260917-01/g3-drift-errors.md` E1（-PlightRust）+ E2（对拍脚本 sections_diff 与哈希值结构不对表恒空，#59/#53 同族「解析前核值形态」）。
+
+## 一、追加到 knowledge/discovered/build-tooling.md 末尾
+
+### #42 家族补充案例（260917-03）：DSH 沙箱 TEMP 重定向 → JVM 内资源提取拒访 → lightInit threw → 整臂静默 vanilla fallback——JNA tmpdir 家族的「JVM 侧全量资源提取」新形态
+
+- **发现时间/置信度/module**：260917-03；candidate；build-tooling / gradle·JVM tmpdir 沙箱坑（#42 简记的沙箱会话重形态）。
+- **来源定位**：`.investigations/k2-noise-anchor-260917-03/k2-noise-anchor-errors.md` E2 + judge-review §D2（逐行核对 VOID1.log:222/229/240）；判别臂 = K2-D4 首轮 SELFCERT `lightInit_ok=0, fallback=1, hook=0, sha=none`（#118 硬门 VOID）。
+- **五段式（错误优先）**：
+  - **现象**：K2-D4 SELFCERT 自证全空、GATE VOID；changed=81/2025=4.00% 恰在 legacy 量级，极易被当有效臂；服务端随后 `Encountered an unexpected exception` 崩溃。接管失败是**静默的**（只有一行 `fallback vanilla x1` + 崩溃栈）。
+  - **根因（机制）**：DSH 沙箱把 TEMP/TMP 重定向到宿主 `...\Temp\dsh-jks3Sq`，JVM 内 `CoreSwapFixHelper.extractWorldgenDir` 建目录抛 `AccessDeniedException` → `ExceptionInInitializerError` → `wgLightEnsureInit` 捕获 → `lightInitFailed` **永久 fallback vanilla**；同轮 JNA `jnidispatch.dll` 提取同样被拒。与 #42（JNA 单库 tmpdir 拒访）同族但形态更重：不止 JNA，**JVM 内全部解压/建目录类初始化**都撞沙箱 TEMP，且失败被 catch 吞成静默 fallback——产出的是 vanilla 形态数据冒充接管臂。
+  - **定位**：grep 日志 `LightRust|fallback` → `lightInit threw` 行 → 堆栈 `AccessDeniedException: ...Temp\dsh-*\coreswap-data`。#118 SELFCERT 硬门在采集完成时即打 VOID，无效结论未外泄（硬门按设计工作——**正面案例**：自证行缺「接管形态」证据时 changed 数会误导，4% 恰在 G17b legacy 量级）。
+  - **修复**：脚本内固化 `TEMP/TMP` + `JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=` 指向工作区 `.tmp/<课题>/jtmp`，并先 `gradle --stop`（防旧 daemon 复用吞 env，#32 成对处理）。修复后三连 boot 全 PASS。
+  - **教训（判据）**：① **沙箱会话跑 runServer 必须固化 tmpdir 到工作区**（TEMP/TMP 与 java.io.tmpdir 双通道），判别签名 = `AccessDeniedException` 指向 `Temp\dsh-*` 目录；② 自证硬门必须含「接管形态」三件（lightInit/hook/sha），单看 changed 数会误读；③ daemon env 残留与客户端 env 修正**成对**处理（#32）。
+- **家族索引**：#42（JNA tmpdir——本条为其 JVM 全量资源提取的沙箱重形态）；#32（daemon 吞 env——修复的成对面）；#118（SELFCERT 硬门——本条正面案例：VOID 在采集完成时被拦，未外泄 vanilla 形态数据）；workflow-patterns #156（形态错位家族——本条为环境侧成因）。
