@@ -1280,3 +1280,5 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
   - **修复**：脚本内固化 `TEMP/TMP` + `JAVA_TOOL_OPTIONS=-Djava.io.tmpdir=` 指向工作区 `.tmp/<课题>/jtmp`，并先 `gradle --stop`（防旧 daemon 复用吞 env，#32 成对处理）。修复后三连 boot 全 PASS。
   - **教训（判据）**：① **沙箱会话跑 runServer 必须固化 tmpdir 到工作区**（TEMP/TMP 与 java.io.tmpdir 双通道），判别签名 = `AccessDeniedException` 指向 `Temp\dsh-*` 目录；② 自证硬门必须含「接管形态」三件（lightInit/hook/sha），单看 changed 数会误读；③ daemon env 残留与客户端 env 修正**成对**处理（#32）。
 - **家族索引**：#42（JNA tmpdir——本条为其 JVM 全量资源提取的沙箱重形态）；#32（daemon 吞 env——修复的成对面）；#118（SELFCERT 硬门——本条正面案例：VOID 在采集完成时被拦，未外泄 vanilla 形态数据）；workflow-patterns #156（形态错位家族——本条为环境侧成因）。
+
+> 260917-05 追加：**#42 家族补充案例·第三犯**（pbeta05b）：采集驱动漏 tmpdir 固化 → JNA 落系统临时目录拒访 → lightInit threw → **整臂静默 vanilla 形态**（光照全 vanilla 非局部降级，最难看穿形态）；SELFCERT 硬门（lightInit ok 计数）正面拦截整轮 VOID。教训强化：tmpdir 固化不是可选项——凡 JNA/native 采集驱动，固化缺失的失败形态是**整臂变形而非报错退出**，SELFCERT 行为化自证是唯一可靠闸门。来源：.investigations/pbeta-260917-05/cmd-output/pbeta05b.log。

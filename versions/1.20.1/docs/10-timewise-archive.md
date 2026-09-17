@@ -3321,3 +3321,26 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **C-6 性能 A/B（记录项完成）**：FP-LIGHT 各 3703 calls；L 6.263 ms/call（=1 chunk）vs D 8.808 ms/call（~9-center 域批任务，task avgMs 8.853 → 折算 **~0.98 ms/chunk，调用层口径 ~6.4×**，非端到端结论、不构成回归证据）；FP-FILL P50 +9.8% 落 #103 ±10% 噪声带边缘不独立立信号（顺序采集未交错已声明）；C6-D timedOut task=115 / degraded=0（宽限期边界，如实记录）。
 - ⚠️ **A1 判别降级声明**：预登记判别设计用 C6-D 臂内 lightTiming，但 LIGHTPROBE-T per-chunk 打点结构性不覆盖域批路径（D 臂 0 行）→ 正式判别不可达；只能用 L 臂占比 94.71% + D 臂 task avgMs 折算间接评估；正式判别须新增域批路径计时行后重采。
 - 📌 通用模式 → workflow-patterns #161（跨臂 run3 复用型协议的盘上 world 身份陷阱，subagent 草稿 + 主会话应用）；证据指针 → verdict-260917-04 §5（b1 worker 4e305749 / b2 worker 3b275362 / 审计脚本 .tmp/c1c6-260917-04/）。
+
+## 260917-05（实际 2026-09-17；P-β/P-path 分辨探针——β 与 F3 干净重载协议下均 QUIET，inputDiff23=46 立附带发现）🔍 candidate（judge PASS-with-conditions S1-S5 已应用；confirmed 留用户）
+
+> 承接 260917-04 下块开工点（P-β/P-path 分辨探针，β 主嫌疑复核）；判据预登记 criteria-260917-05.md
+> （时序锚 eaa0a5f @19:09:42 + 采集修复 eb3988f @19:10:37，均先于采集）。三轮采集：pbeta05a VOID
+> （编译错 rc=1）、pbeta05b VOID（#42 家族第三犯：tmpdir 未固化 → lightInit threw → 整臂 vanilla，
+> SELFCERT 正面拦截）、**pbeta05c 有效**（SELFCERT 三 boot 全绿：Done≥1 / lightInit ok / probe armed /
+> fallback=0 / domain_hook=0 / dll 6f7fa3ae；path census 每 boot legacy-rust 529）。
+
+- ✅ **C-β 判定（candidate，n=1）**：β（空节瞬态读）在干净重载协议下 **QUIET**——emptySec 逐 chunk
+  两 run 恒等 + 全局 run2=run3=71871（run1=71900）；F3（信 stored 未重算）**未检出**（changed23=0，
+  存在性不证伪，只证本载具本协议无现象）。与 260917-04 新基线（legacy 干净链 run2→run3=0）自洽。
+- ⚠️ **独立推翻一次汇总定性（§16.3 交接验证）**：主会话机械交叉「inputDiff23=46/46 = packed↔blocks9
+  ABI 切换」被 verdict worker 日志抽样推翻——全日志 `abi=blocks9` 0 行，10 个 diff chunk 三 run 均
+  abi=packed、hash 两两不同、emptySec 恒等。46 重定性为**附带发现**：packed payload 跨重载不稳定、
+  output-neutral、机制 open（palette 序/位打包/空节集合形态三候选未分辨，@anchor.idk 在案）。
+- 📌 预登记分支覆盖缺口如实声明（#154 家族）：「inputDiff>0 且 changed=0 且输入恒等性可证」未单列，
+  驱动机械退出码 1 的分支 3「第四通道」措辞失去对象，未开 fan-out（数据面无互斥分叉）。
+- 📌 通用模式 → workflow-patterns 新发现一条（汇总交叉定性 MUST 回原始日志抽样 + 计数恒等≠集合恒等 +
+  hash 探针随行打印口径；已应用定号 #162）+ build-tooling #42 补充案例第三犯一行。
+- 过程产物 `.investigations/pbeta-260917-05/`（criteria + cmd-output/ pbeta05a/b/c + knowledge-drafts/ 三份
+  subagent 草稿）；§9.7：载具 = snap_light+Done+60s（C-1 系可比）+ [LIGHT-BETA]/[LIGHT-PATH] 新口径
+  （无历史可比）；n=1 单 seed 单区域，不外推。

@@ -1,0 +1,71 @@
+```yaml
+id: pbeta-260917-05:verdict-draft
+block: 260917-05
+status: draft          # 推荐 candidate；confirmed 留用户
+worker: subagent (core.worker)
+criteria: .investigations/pbeta-260917-05/criteria-260917-05.md（时序锚 eaa0a5f @2026-09-17 19:09:42，采集修复 eb3988f @19:10:37，均先于采集）
+valid_runs: pbeta05c（pbeta05a 编译错 rc=1 / pbeta05b #42 家族 tmpdir 未固化 → 整臂 vanilla 形态，均 VOID 归档在案）
+dll_sha8: 6f7fa3ae
+seed: "8576294172403134396"
+```
+
+# P-β/P-path 分辨探针 verdict 草稿（260917-05，tag pbeta05c）
+
+## 0. 一句话判定建议
+
+**β（空节瞬态读）与 F3（信 stored 未重算）在干净重载协议下均 QUIET（本载具 n=1）；预登记分支 3 的机械退出码 1 不构成 β-live 证据——inputDiff23=46 经独立日志抽样核对，不能归因于 ABI 切换（主会话机械交叉的「46/46 abi 切换」解读被推翻），真实机制 open，且 output-neutral（changed23=0）。**
+
+## 1. 判定前必读：对主会话机械交叉的一处独立推翻（§16.3 交接验证纪律执行记录）
+
+主会话机械交叉称「46/46 为 abi=packed↔blocks9 路径切换（abi 字符串两 run 不同）」。本 worker 按纪律对原始日志 `pbeta05c.log` 独立抽样核对，**该解读不成立**：
+
+- 全日志 grep `abi=blocks9` = **0 行**（三 boot × 529 chunk 全部走 packed ABI，path census legacy-rust 529/boot 亦旁证无逐 chunk 回退）；mixin `:679-696` 的 packed 失败→blocks9 同 chunk 兜底若发生必打 `abi=blocks9` 行，未发生。
+- 抽样 10 个 inputDiff23 成员（25,-19 / 26,-19 / 28,-21 / 31,-22 / 32,-23 / 33,-21 / 34,-24 / 35,-16 / 36,-22 / 36,-24）：**两 run 均 abi=packed、emptySec 逐 chunk 恒等、hash 两 run 不同（且三 run 两两不同）**。
+- 对照组抽样非 diff chunk（25,-13 / 24,-12）：run2 run3 hash 逐位相同（如 chunk(24,-12) run2=run3=-657434010）——探针本身跨 run 稳定，diff 不是采集噪声。
+
+**结论**：inputDiff23=46 是同 world 重载间 packed payload hash 的真实不稳定子集，**不是**口径伪差，也**不是** ABI 切换伪差。主会话交叉输出中「emptySec 恒等 / 全局 71871=71871 / changed23=0 / inputDiff12=529 / ∩changed12=123」各数字经核对与日志及 result json 一致，仅「46=ABI 切换」一项定性被推翻。
+
+## 2. 待判问题逐项裁定
+
+### a. β 在干净重载协议下是否 live → **QUIET（本载具）**
+
+直接证据：emptySec 逐 chunk 两 run 恒等（抽样 12 = 10 diff + 2 对照，全部恒等；judge S2 数字自洽修正）+ 全局 emptySec run2=run3=71871（run1=71900，-29 全部发生在 run1→run2 新生层面；emptySec 系对日志逐行求和的衍生数，worker 复算 + judge 独立重放一致，方法可复现——judge S1 补注）。β 通道的打点语义 = collect 时 `sec==null || sec.isEmpty()` 计数（mixin :327-328，packed 路径同样计数并落 meta 0/0）——若重载间空节瞬态读有差异，emptySec 必不一致。未检出不一致。
+边界声明：emptySec 是**计数**不是集合——「计数恒等」形式上不排除「同数不同节」的空节集合差；但该形态若真发生，非空/空错位会改变 payload 并大概率进 changed23，而 changed23=0。故判 QUIET 成立但带此口径标注（§9.7）。
+
+### b. inputDiff23=46 的定性 → **机制 open（@anchor.idk），排除两事后选**
+
+- 「ABI 切换伪差」：被 §1 抽样推翻（本日志无 blocks9 ABI 轮次）。判据预登记时担心的「packed hash（meta+pal+sto 前缀）与 blocks9 hash（884736 int）两口径不可比」在**代码层属实**（mixin :668-670 vs :692，两次 wgBetaHash 重载输入域不同），但 pbeta05c 内不构成事件——该判据保留为未来双 ABI 采集的强制前置，本轮不适用。
+- 「真方块输入差」：与 changed23=0 矛盾（内核纯函数，输入差必致输出差；46/46 全部 output-neutral 概率上排除语义级方块差）。
+- 存活形态：packed payload 的**语义中立自由度**在重载间不稳定（候选面：palette 序/位打包形态/邻居侧瞬态序列化形态；emptySec 计数恒等 ≠ 空节集合恒等，探针对此不设防）。**`@anchor.idk("46 个 chunk 的 packed payload hash 跨重载不稳定的具体机制未查——palette 序/位打包/空节集合形态三候选未分辨", source="log: pbeta05c.log 三 boot [LIGHT-BETA] 行抽样 + result json inputDiff23_set=46；机制分辨需 payload 级 diff 采集，本轮未做")`**
+- 定性：**附带发现**，output-neutral，不影响本轮判定主结论；46 chunk 空间分布（x 25-36 / z -15..-24，spawn 箱东侧带）仅记录不作归因。
+
+### c. F3（信 stored 未重算）→ **未检出，按「本载具本协议无现象」结案**
+
+changed23=0 → 判据分支 2 的前提（输出变而输入不变）不出现，F3 无观测对象。措辞纪律：这是**存在性不证伪**——只证 legacy 臂 × 干净重载协议 × n=1 下 F3 无现象，不证 F3 通道不存在。与 260917-04「legacy 干净链 run2→run3 收敛 0」互为一致证据。
+
+### d. C-W warm-up 面 → **输入通道解释「必要条件满足」，判别力弱须声明**
+
+∩changed12 = 123/123 ⊂ inputDiff12（529/529）：每个 changed chunk 都有输入 hash 差——输入通道解释的**必要条件**成立；但分母 529/529 全变（新生成 vs 重载，生成期世界形态未定型），inputDiff12 无判别力，123/123 不构成「输入通道解释充分」的正证据，只构成「无反例」。限定结论：**「C-W 面与输入通道解释相容；充分性因分母饱和不可判」**（探索面不判，符合判据 §C-W 预登记）。
+
+### e. 预登记分支覆盖缺口 → 诚实声明 + 最终判定建议
+
+- 缺口：分支 3（inputDiff≥1 → β-LIVE）未单列「inputDiff>0 且 changed=0 且输入恒等性可证」子分支；驱动机械读法落分支 3 退出码 1（BETA-LIVE-NOT-DOMINANT→fan-out），但该分支的「第四通道」措辞在 changed23=0 下失去对象（#154 缺口，如实声明；本轮不补开 fan-out——fan-out 需 ≥2 互斥候选且本例数据面已无互斥分叉：β/F3 双静默 + 46 open 是单一 open 点）。
+- **最终判定建议（供 judge/用户）**：按判据精神（而非机械退出码）判——
+  1. C-β 判 **QUIET**（β 空节瞬态读通道，干净重载协议下不可检，n=1）；
+  2. F3 判 **未检出**（存在性不证伪声明内嵌）；
+  3. inputDiff23=46 立为**附带发现**（packed payload 重载不稳定，output-neutral，机制 open）转后续采集课题，不计入 β/F3 判定；
+  4. 推荐授予 **candidate**；confirmed 留用户。与 260917-04 §15.4 新基线（干净链 legacy run2→run3 收敛 0）完全自洽：两轮共同指向「M-a 收敛方向 + legacy 收集路径在干净协议下无静默时变证据」。
+
+## 3. §9.7 验证可比性声明
+
+- **载具**：snap_light.py + Done+60s（与 G17/C-1/260917-04 系同源可比）；输入侧探针 = mixin [LIGHT-BETA]（collect 后 lightCompute 前，FNV hash + emptySec 计数），路径探针 = [LIGHT-PATH] 三态。
+- **覆盖面**：seed 8576294172403134396 单 seed × 2025-chunk 单区域 × 3 boot（run1 新生成 / run2、run3 同 world 重载）× legacy 臂（-PlightRust=1，域批关，LIGHT_BLOCKABI 缺省关）；dll 6F7FA3AE…2337；SELFCERT 三 boot 全绿（Done≥1 / lightInit ok / probe armed / fallback=0 / domain_hook=0 / sha 一致）。
+- **可比性**：changed 口径与 C-1 系逐位可比；emptySec/hash 口径为本块新立，无历史数字可比，禁止与 G3/G17 系 changed 数字直接混算；hash 探针只覆盖输入侧，不覆盖写回/并发路径。
+- **n=1 限定**：单 seed 单区域单轮，全部判定（含 QUIET）不外推其他 seed/维度/域批形态/ABI 形态。
+
+## 4. 证据指针
+
+- 判据（时序锚 eaa0a5f / 修复 eb3988f，均先于采集）：criteria-260917-05.md
+- 采集：cmd-output/pbeta05c.log（3 boot）+ pbeta05c_result.json（changed23=0 / changed12=123 / inputDiff23=46 / inputDiff12=529 / common=529）+ 三份 snap json
+- VOID 在案：pbeta05a（编译错 rc=1）、pbeta05b（#42 家族 tmpdir 未固化 → lightInit threw → vanilla 形态，SELFCERT 正面拦截案例）
+- 本 worker 独立抽样：§1 所列 12 chunk（10 diff + 2 对照）× 3 boot 日志行（复现键 = chunk 坐标，行号略——judge S3：行号未逐一核验，删去，chunk 键已足够复现）+ `abi=blocks9` 全日志零命中 + mixin :298-371（packed 收集与空节计数）/ :649-699（双 ABI 分流与 hash 调用点）一手核对

@@ -1,0 +1,51 @@
+{
+ "mode": "legacy+betaprobe",
+ "tag": "pbeta05b",
+ "changed23": 0,
+ "changed23_set": [],
+ "changed12": 2,
+ "inputDiff23": 0,
+ "inputDiff23_set": [],
+ "inputDiff12": 0,
+ "inter12": [],
+ "intersection23": [],
+ "common_beta_23": 0,
+ "per_boot": {
+  "run1": {
+   "done": 1,
+   "lightInit_ok": 0,
+   "betaprobe_armed": 1,
+   "fallback": 1,
+   "domain_hook": 0,
+   "dll_sha8": "(none)",
+   "path_census": {
+    "vanilla-init0": 529
+   },
+   "beta_chunks": 0
+  },
+  "run2": {
+   "done": 1,
+   "lightInit_ok": 0,
+   "betaprobe_armed": 1,
+   "fallback": 1,
+   "domain_hook": 0,
+   "dll_sha8": "(none)",
+   "path_census": {
+    "vanilla-init0": 529
+   },
+   "beta_chunks": 0
+  },
+  "run3": {
+   "done": 1,
+   "lightInit_ok": 0,
+   "betaprobe_armed": 1,
+   "fallback": 1,
+   "domain_hook": 0,
+   "dll_sha8": "(none)",
+   "path_census": {
+    "vanilla-init0": 529
+   },
+   "beta_chunks": 0
+  }
+ }
+}

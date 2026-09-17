@@ -2724,3 +2724,5 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
   - **边界（idk）**：混杂对 G17c-L3 200 的解释份额未做块级量化；G17c-L3 prev_after argv 值无落盘记录（record-260917-01.md:15 为唯一来源）——取代记录生效前提含用户对此单源依赖的知情确认。
 - **家族索引**：#19（世界状态残留——本条为其「跨臂 world 覆盖」形态：不是残留干扰测量，是前提对象被整体换掉）/ #118（自证硬门——本条补「数据身份」维）/ #156（执行体形态失传——姊妹条：#156 是引擎身份失传，本条是世界身份失传，合称「双身份核对」）/ #157（round-trip 收敛性判据——本条为其「同 world 前提」的成立条件）/ #144/#146（运行序与标签纪律——本条补「臂序决定 world 归属」维）。
 
+
+> 260917-05 追加：workflow-patterns 新增**发现 #162（最高价值·错误优先）**（**汇总交叉定性 MUST 回原始日志抽样——「口径解释」未经验证就是新伪差**：主会话机械交叉「inputDiff23=46/46 = packed↔blocks9 ABI 切换」被 verdict worker 10 行日志抽样一票推翻——全日志 bi=blocks9 0 行、46 diff chunk 三 run 均 abi=packed、hash 两两不同、emptySec 恒等；其余交叉数字全部正确。判据：① 汇总交叉产物 = 数字 + 定性，数字可复算继承，**定性 MUST 抽样回原始日志一手验证后才可进 verdict**；② 给异常 diff 安解释前先证解释的存在前提（一个 grep 即证伪）；③ 「跨口径 hash 差集先核口径同质性」保留对偶面——同口径 ≠ 无伪差（本轮 46 即 packed↔packed 同口径真不稳定，定性机制 open 而非套现成解释）；④ 计数恒等 ≠ 集合恒等（emptySec 计数只作必要条件证据），hash 探针输出应随行打印口径要素让日志自证。来源：.artifacts/pbeta-260917-05/verdict-260917-05.md §1 + .investigations/pbeta-260917-05/（judge PASS-with-conditions S1-S5 已应用；candidate，confirmed 留用户）。时间线 → versions/1.20.1/docs/10-timewise-archive.md 260917-05 块。
