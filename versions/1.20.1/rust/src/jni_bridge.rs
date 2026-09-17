@@ -281,6 +281,8 @@ pub extern "system" fn Java_wg_CppWorldgen_clearBeardifier<'frame>(
 use WorldgenRust::light::{LightEngine, LightError};
 
 const LIGHT_BLOCKS9_LEN: usize = 9 * 16 * 16 * 384; // 884736
+const LIGHT_BLOCKS25_LEN: usize = 25 * 16 * 16 * 384; // 2457600（CP-1 域批输入 5×5）
+const LIGHT_DOMAIN_OUT_LEN: usize = 9 * (2 * 24 * 2048 + 48); // 885168（CP-1 域批输出 9 段）
 const LIGHT_OUT_LEN: usize = 24 * 2048; // 49152
 const LIGHT_FLAGS_LEN: usize = 48;
 
@@ -408,6 +410,58 @@ pub extern "system" fn Java_wg_CppWorldgen_lightCompute<'frame>(
                     })
                 })
             })
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+// CP-1（260916-01，.b1 域批中心化）：域批光照——blocks25 = 5×5 chunk（25 chunk raw id，
+// chunkIdx25 = dz25*5+dx25，chunk 内 (y+64)*256+z*16+x，总长 2457600）→ out = 9 段连续输出
+// （段序 k = kz*3+kx，中心 chunk = 域 min + 1 + (kx,kz)；每段 outBlock 49152 ++ outSky 49152 ++
+// outFlags 48，总长 885168）。内核逐位等价 per-chunk 路径（同 light_compute_inner，等价门
+// = light::tests::light_compute_domain_bitwise_equivalence）。首版仅 blocks25 ABI，packed 批形态收窄声明（.b1 §1.2c）。
+// 返回：0 成功；-1 handle 空；-2 数组长度错；-3 内核 panic（catch_unwind 兜底）；-4 JNI 错误。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+    blocks25: JIntArray, out: jni::objects::JByteArray,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
+            }
+            if env.get_array_length(&blocks25)? as usize != LIGHT_BLOCKS25_LEN
+                || env.get_array_length(&out)? as usize != LIGHT_DOMAIN_OUT_LEN
+            {
+                return Ok(-2);
+            }
+            // 域批频度 ≈ per-chunk/9，输入帧 9.4MB 一次性分配可忽略（.b1 §1.2c 推演假设②）
+            let mut b25 = vec![0i32; LIGHT_BLOCKS25_LEN];
+            env.get_int_array_region(&blocks25, 0, &mut b25)?;
+            let mut outv = vec![0u8; LIGHT_DOMAIN_OUT_LEN];
+            let engine = unsafe { &*(handle as *const LightEngine) };
+            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv)
+            }));
+            match res {
+                Ok(Ok(())) => {}
+                Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
+                Ok(Err(LightError::PackedDecode)) => return Ok(-2), // 不经此入口，防御性同映射
+                Err(p) => {
+                    let msg = p
+                        .downcast_ref::<&str>()
+                        .map(|s| *s)
+                        .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                        .unwrap_or("<non-string panic>");
+                    eprintln!("[LightRust][RUST-PANIC] lightComputeDomain panicked: {}", msg);
+                    return Ok(-3);
+                }
+            }
+            let o8: &[i8] = unsafe {
+                std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
+            };
+            env.set_byte_array_region(&out, 0, o8)?;
+            Ok(0)
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }

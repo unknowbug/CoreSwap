@@ -105,6 +105,9 @@ if (project.findProperty('lightData') != null) run.vmArg "-Dcoreswap.light.data=
 // 探针轮 260914-04（光照 round3 判据定线）：Java 段计时 + palette 直方图
 if (project.findProperty('lightTiming') != null) run.vmArg "-Dcoreswap.light.timing=1"
 if (project.findProperty('lightPaldump') != null) run.vmArg "-Dcoreswap.light.paldump=${project.findProperty('lightPaldump')}"
+// -Pdomainbatch=1 → CP-1 .b1 域批形态开关（260916-01；缺省关 = 现役内联路径）
+if (project.findProperty('domainbatch') != null) run.vmArg "-Dcoreswap.light.domainbatch=1"
+if (project.findProperty('domainGrace') != null) run.vmArg "-Dcoreswap.light.domainbatch.gracems=${project.findProperty('domainGrace')}"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

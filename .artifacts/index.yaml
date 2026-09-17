@@ -1805,3 +1805,14 @@ entries:
     #   C2 措辞：预期近零成本、未测量）。
     # CP-6 = needsSaving 疑点不成立结案不立项（一手源 6/6 行号实证：标脏 = 阶段完成 setStatus 统一置位，
     #   不随块写；judge 独立抽查零漂移；C4 范围边界已补）。
+  # —— 260917-01/02 G3 漂移基底归因裁决（取代 260915-03「时机形态主导」§15.4；judge PASS-with-conditions）——
+  - id: 're-code:g3-drift-basis:verdict-260917-01'
+    path: 'g3-drift-basis-260917-01/verdict-260917-01.md'
+    kind: analysis
+    status: confirmed   # 用户拍板 260917-02：取代记录生效 + CP-1 = R1 保留 .b1 + 载体换轨（judge PASS-with-conditions，C1/C2a/C2b 已应用）
+    # 新结论：G3 基底 = legacy per-chunk 路径轮次级不收敛（run3 200 changed 无不动点、漂移集换血 48.3% 交集）；
+    #   域批一次重载收敛至不动点（2 changed，0.10%）；现象光照接管特有（vanilla ~0.8%）；
+    #   限定 = n=1 单 seed 单载具 + 判据未预登记分裂分支（逐臂读法事后裁量，worker/judge 已复核）。
+    #   CP-1 重评输入：R1 载体换轨（前置 = 接管形态同配置噪声锚实测，#111）/ R2 确定性 dump 换型；
+    #   共同前置（与去留解耦）= legacy α（fallback 混合）/β（空节瞬态读）静默通道修复（判别探针 P-α/P-β/P-path 未执行）。
+    #   「域批有害」方向撤销；G3 round-trip 载体 + 2.5% 阈值系一并回炉。

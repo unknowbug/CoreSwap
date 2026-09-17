@@ -114,6 +114,16 @@ public final class CppWorldgen {
      */
     public static native int lightComputePacked(long handle, int[] sectionMeta, int[] paletteData,
             long[] storage, int paletteLen, int storageLen, byte[] outBlock, byte[] outSky, byte[] outFlags);
+
+    /**
+     * 光照计算（域批 ABI，260916-01 CP-1 .b1）：blocks25 = 5×5 chunk raw id
+     * （chunkIdx25 = dz25*5+dx25，dx25/dz25 0..5 → 域 min chunk (minX+dx25, minZ+dz25)；
+     * chunk 内 (y+64)*256 + z*16 + x，总长 2457600）。out = 9 段连续输出，段序 k = kz*3+kx，
+     * 中心 chunk = (minX+1+kx, minZ+1+kz)；每段 outBlock(49152) ++ outSky(49152) ++ outFlags(48)，
+     * 总长 885168。内核逐位等价 lightCompute（同内核同输入，单元测试
+     * light_compute_domain_bitwise_equivalence 承载）。返回 0 成功，负数错误同 lightCompute。
+     */
+    public static native int lightComputeDomain(long handle, int[] blocks25, byte[] out);
 }
 
 

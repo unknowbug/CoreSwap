@@ -154,3 +154,30 @@ golden 4/4 逐位（与 round2 冻结件一致）→ DUAL ALL-MATCH（B 输入�
 - 4a 运行时增量化：gate 只拦 light() HEAD，checkBlock/setSectionStatus 未触碰，vanilla 增量引擎保留；
 - 5c Scratch/ThreadLocal 缓冲：均为单次计算内工作缓冲，等价。
 - **D-hm（judge 独立抽查已闭合）**：writeChunk 一次性补 6 型 heightmap 的等价条件成立——ProtoChunk.setBlockState 按 `getHeightmapTypes()` 逐型增量更新（ProtoChunk.java:108-155），CARVERS/FEATURES 携带 POST_CARVER_HEIGHTMAPS 四正式型（ChunkStatus.java:34-35）+ FEATURES 步前全量 populateHeightmaps 兜底（:150-152）；2 个 WG 型 carve 后不被增量维护但 vanilla 自身同样如此（PRE_CARVER 只挂 NOISE/SURFACE，:33/:115）——两侧形态一致，非 CoreSwap 引入差异（judge-review-260915-01 §2）。状态提升留人类。
+
+## G3 漂移基底归因（260917-01，confirmed）
+
+> 正式裁决：`.artifacts/g3-drift-basis-260917-01/verdict-260917-01.md`（judge PASS-with-conditions，C1/C2a/C2b 已应用；用户拍板 confirmed 260917-02）。域边界：seed 8576294172403134396 × dll 6F7FA3AE…2337 × snap_light.py 载具 × spawn 邻域箱 × Done+60s 口径；不外推其他 seed/载具/维度。
+
+### 结论
+
+G3 drift 基底（spawn 邻域 120 chunk，两臂形态无关同集，100% 聚集 x[15,36]×z[-24,-4]、边缘环 0%）由 **legacy per-chunk 光照路径的轮次级不收敛**主导：
+
+- settle 持久性 rL = 99.2%（119/120，60s 与 20s changed 集基本不变）——非快照窗/停服时机效应；
+- run3 legacy 仍 200 changed（9.88%）且漂移集换血（基底交集仅 48.3%），无不动点（5.93→6.27→9.88% 逐轮上升）；
+- **域批路径一次重载收敛至不动点**（run3 changed 2，0.10%≈噪声地板）；
+- 现象为光照接管形态特有（vanilla 光照同协议 ~0.8%，VOID 臂旁证，口径已声明）。
+
+「域批有害」方向撤销，改「域批收敛性优于 legacy per-chunk（本载具口径）」；C-1 的 2.5% 阈值系随 G3 round-trip 载体一并回炉（round-trip 在两形态上量的是收敛行为不是质量，→ workflow-patterns #157）。
+
+**限定（judge C2a/C2b，内嵌正文）**：判据未预登记分裂分支，逐臂读法为事后裁量（worker/judge 均已复核，→ workflow-patterns #159）；n=1 单 seed 单载具。「域批 5×5 全帧重算覆盖 legacy 陈旧历史」等机制解释为静态推演、无直接探针（P-α/P-β/P-path 未执行），**不属本结论内容**，仅存候选草稿（candidates/.b3 §1-§2）。
+
+### §15.4 取代声明（supersedes 双指针，原文不删不改）
+
+- **取代** 260915-03「G3 drift ~5.83% 由时机形态主导」（推翻理由一行：C-B1 settle rL=99.2% 证伪「快照窗/停服时机」轴；C-B4 run3 证漂移为 legacy 路径轮次级不收敛，非时机一次性效应）；
+- **连带取代** 260916-01 record §4 候选机制「Done+20s 快照窗内完成时序边界」（同证据链）；
+- 取代记录正式文本：verdict-260917-01.md §1（含时序锚 §1.1：criteria 定稿 14:10:40 < run_g3_run3.py 14:11:12 < 首臂日志 14:13:02）；原结论正文均不改。
+
+### 证据指针与 CP-1 决策
+
+`.investigations/g3-drift-basis-260917-01/`（criteria C-B1/C-B4 条、cb1/cb2/control json、cmd-output/G17b-\*/G17c-\*、candidates/×3、judge-review-260917-01.md、g3-drift-errors.md E1/E2）。用户拍板（260917-02）：**CP-1 = R1 保留 .b1 + 载体换轨**（C-1 改「run2→run3 后验 drift ≤ 噪声地板带」且在 domain 载体上判；R1 前置 = 接管形态同配置噪声锚实测，#111/K2）；与去留解耦的共同前置 = legacy α（fallback 混合）/β（空节瞬态读）静默通道修复（判别探针 P-α/P-β/P-path 待执行）。

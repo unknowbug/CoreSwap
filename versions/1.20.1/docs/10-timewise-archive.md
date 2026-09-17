@@ -3278,3 +3278,20 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
   - **E6** 探针④判据三态映射漏「两系之外」分支（92.5ms 落全部映射外）→ 判读按精神执行 + 交 judge（N-4 取代裁决）。→ workflow-patterns #154。
 - ✅ **attempt1 归档**：`G1.attempt1{,_light_before}.log/json`（#144 纪律，复跑前归档）。
 - 📌 产物路径：`.investigations/form-audit-260915-03/{probe-criteria.md, record-260915-03.md, interpretation-draft.md, judge-review-260915-03.md, cmd-output/{A1,A2,B1,G1,G2}.log, metrics-260915-03.json, metrics-B1-resticky.json, G1/G2_light_{before,after}.json}`；解析器 `.tmp/formprobe-260915-03/parse_fp.py`。
+
+## 260917-01（实际 2026-09-17，Get-Date 锚；G3 漂移基底归因回炉——三探针裁决 + E1 VOID 事故 + judge PASS-with-conditions）🔍 candidate（judge PASS-with-conditions C1/C2a/C2b 已应用/转入落盘；confirmed 待用户）
+
+> 过程产物 `.investigations/g3-drift-basis-260917-01/`（criteria 预登记 + record + g3-drift-errors.md E1/E2 + judge-review + candidates/.b1/.b2/.b3 + cb1/cb2/control json + cmd-output 七轮日志）；承接 260916-01 CP-1 G3 三臂反常（L 5.93% / D 8.10% → 域批「劣化」误读回炉）。执行体 dll 6F7FA3AE…2337 全臂自证；seed 8576294172403134396；载具 snap_light.py（§9.7 全臂同载具）。
+
+- ✅ **三探针裁决链（判据读法预登记写死，#112/#150 纪律）**：
+  - **C-B2 离线对拍**：字面「不等分支」命中（D-only 28/44 = 63.6%），但 stable 对照 7.3% 噪声地板使字面判据无检验力——worker 按对照校准收窄为「基底跨臂系统性偏离（超地板 ~7-9×）成立、域批独有分量无证据 Fisher p≈0.22」，§9.7 三要素齐备（judge §J3 认可，非改判）。
+  - **C-B1 settle 敏感性**：rL = 99.2%（119/120，judge 逐项重数）≥80% → **PERSISTENT**——「Done+20s 快照窗时序伪差」候选**证伪**（❌，60s 与 20s changed 集基本不变）。
+  - **C-B4 run3 收敛性（追加预登记，时序锚 C1 已应用：criteria mtime 14:10:40 < run_g3_run3.py 创建 14:11:12 < 首臂日志 14:13:02）**：**两臂分裂**——legacy 臂 200 changed（9.88%）≥60 → M-b 持久不稳定；domain 臂 2 changed（0.10%）≤20 且交集 1/120 → M-a 收敛不动点。
+- ✅ **判据裁决（综合）**：G3 drift 基底 = **legacy per-chunk 光照路径轮次级不收敛**（漂移集换血：run3 基底交集仅 48.3%）+ 域批路径一次重载收敛到不动点；「域批有害」方向**撤销**，改「域批收敛性优于 legacy per-chunk（本载具口径）」；C-1 的 2.5% 阈值系随载体回炉（legacy 臂结构性不可达 5.93→6.27→9.88 逐轮上升；domain 臂可达但量的不是质量）。
+- ✅ **关键结构事实**：基底 120 chunk 100% 聚集 spawn 邻域箱 x[15,36]×z[-24,-4]、边缘环 0%（非区域边界效应，#80 spawn 时序家族语境）；vanilla 光照形态同协议 drift ~0.8% → 基底为**光照接管形态特有**。
+- ❌→✅ **E1 VOID 事故（本轮最重要过程错误，五段式见 g3-drift-errors.md）**：G17 两臂漏传 `-PlightRust` → 实为 vanilla 光照形态冒充接管臂 → SELFCERT 硬门（lightInit=0）抓 VOID、不挑臂 → 换标签 G17b-* 重跑显式补开关；VOID 数据经口径声明（vanilla、60s、单对照、n=1）作跨形态噪声锚旁证，不进判据读法。→ 复测口径失传判据 → workflow-patterns #156；E2（对拍脚本 sections_diff 与哈希值结构不对表恒空）同文件。
+- ✅ **judge 收尾 MUST 审查（judge-review-260917-01.md）：PASS-with-conditions，三源数字抽验 6 处全部吻合**。条件：**C1**（追加预登记补独立时序锚——已应用；后续追加预登记 MUST 留可核验时间标记）；**C2a**（两臂分裂逐臂读法为事后裁量，取代记录/引用 MUST 携带声明行——已转入取代记录正式文本）；**C2b**（取代记录新结论 MUST 内嵌 n=1/单 seed/单载具/candidate 限定；「5×5 覆盖」类机制推演不进正文——已应用）。CONCERN K1/K2 不阻塞：K1 run3 补算过程溯源、K2 R1 方向采纳前补接管形态同配置噪声锚（#111）。
+- ✅ **§15.4 取代**：260915-03「G3 drift 5.83% 由时机形态主导」归因 + 260916-01 record §4「基底=Done+20s 快照窗完成时序边界」候选机制——被取代（取代记录正式文本见该文件小节，双指针登记、原文不删不改）。
+- 🔍 **遗留**：① K1/K2（上）；② 机制候选 M-a'-α/β、M-c 保持 draft，待 P-α/P-β/P-path 探针链；③ CP-1 去留排序（R1 载体换轨 / R2 载体换型）待用户拍板——α/β 通道修复为 R1/R2 共同前置；④ C-B3 宽限期探针未执行（timeout=23 排程面开放）；⑤ 域批光照值 vs vanilla 直接对拍未做（E2 修复后前置）。
+- 📌 记录指引：通用模式 → workflow-patterns #156/#157/#158（subagent 草稿 + 主会话应用）；错误台账 → g3-drift-errors.md（本块独立成篇）；取代记录正式文本 → 260915-03 归因小节 supersedes 注记 + 260916-01 record §4 注记（主会话应用）；CP 排序决策输入 → .b3 §3（judge §J7 认可中立性）。
+- ✅ **追记（260917-02）**：用户拍板 **confirmed**（§15.4 取代记录 + 归因结论）；CP-1 = **R1 保留 .b1 + 载体换轨**（R1 前置 = 接管形态同配置噪声锚实测，K2 升决策前置）。正式裁决 → `.artifacts/g3-drift-basis-260917-01/verdict-260917-01.md`（含时序锚 C1 + 限定 C2a/C2b 内嵌）；结论落盘 → 12 篇「G3 漂移基底归因（confirmed）」小节；workflow-patterns 新增 #159（分裂逐臂展开三条件）+ build-tooling #8/#118 家族补充案例（复测口径失传指针 → #156）同批落盘。

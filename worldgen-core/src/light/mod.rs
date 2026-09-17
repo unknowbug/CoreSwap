@@ -11,8 +11,10 @@
 //   section 内 index = (y<<8)|(z<<4)|x（section 局部 y 0..15），偶数 index 占低 4 位：
 //   bytes[i>>1] |= value << (4*(i&1))
 
-use std::sync::Mutex;
-
+// CP-1（260916-01）：原 `use std::sync::Mutex` 随 scratch 去全局化移除——
+// scratch 从「引擎字段 Mutex 全程持锁」改为 per-call / per-domain-batch 局部
+//（#150 解粘同批项：Mutex 整段串行化在域批化后会把持锁窗口 ×9，
+//  且该缓冲为清零复用语义、无跨调用有效性，全局唯一本无功能需求）。
 // ---- 域常量（3×3 chunk 邻域，扁平域坐标 x/z 0..48，y 0..384 = 世界 y-64..319）----
 pub const DOM: usize = 48;
 pub const WORLD_H: usize = 384;
@@ -20,6 +22,10 @@ pub const SECTIONS: usize = 24;
 pub const SECTION_BYTES: usize = 2048;
 pub const CHUNK_CELLS: usize = 16 * 16 * WORLD_H; // 98304
 pub const BLOCKS9_LEN: usize = 9 * CHUNK_CELLS; // 884736
+/// CP-1 域批输入：5×5 chunk（25）——9 个网格对齐中心 chunk 各自 3×3 窗的并集
+pub const BLOCKS25_LEN: usize = 25 * CHUNK_CELLS; // 2457600
+/// CP-1 域批输出：9 中心 × (outBlock + outSky + outFlags) = 9 × 98352 = 885168
+pub const DOMAIN_OUT_LEN: usize = 9 * (2 * OUT_CHAN_LEN + FLAGS_LEN);
 pub const OUT_CHAN_LEN: usize = SECTIONS * SECTION_BYTES; // 49152
 pub const FLAGS_LEN: usize = SECTIONS * 2; // 48
 
@@ -66,7 +72,10 @@ pub struct LightEngine {
     //（非 UB 但同样不可用），且形态审计指出光照车道串行化事实上在充当本字段的锁
     //（发现 #150：解粘必须与本修复同批）。Mutex 使引擎自身并发安全，poison 时不 panic、
     // 恢复继续用（scratch 是清零复用缓冲，内容无跨调用有效性）。
-    scratch: Mutex<Scratch>,
+    // CP-1（260916-01，.b1 域批中心化同批解粘）：scratch 字段移除——Mutex 全程持锁把
+    // 并发 light 整段串行化；per-call 局部化后正确性由「无状态纯函数 + 清零复用缓冲」
+    // 结构性承载（借用分离由编译期检查复证：light_compute_inner 只拿 &LightEngine +
+    // &mut Scratch，任何隐藏可变路径直接编译失败）。原 Mutex 方案存档于此注释（§15.4 精神）。
 }
 
 struct Scratch {
@@ -76,6 +85,20 @@ struct Scratch {
     queue: Vec<u32>,
     /// 每域列 (x + z*DOM) 的最高不透明 y（无则 -1）——fill 同趟收集，sky 阶段复用
     col_max: Vec<i32>,
+}
+
+impl Scratch {
+    /// CP-1：per-call / per-domain-batch 局部 scratch（容量跨调用复用收益由
+    /// 域批内 9 中心循环共享一个 Scratch 承载；跨调用复用收益占比未量化，@anchor.idk 级）。
+    fn new() -> Self {
+        Scratch {
+            opacity: Vec::new(),
+            block_light: Vec::new(),
+            sky_light: Vec::new(),
+            queue: Vec::new(),
+            col_max: Vec::new(),
+        }
+    }
 }
 
 impl LightEngine {
@@ -112,13 +135,6 @@ impl LightEngine {
         Ok(LightEngine {
             air_fast: table[0] == (0, 0),
             table,
-            scratch: Mutex::new(Scratch {
-                opacity: Vec::new(),
-                block_light: Vec::new(),
-                sky_light: Vec::new(),
-                queue: Vec::new(),
-                col_max: Vec::new(),
-            }),
         })
     }
 
@@ -170,7 +186,9 @@ pub fn light_compute(
     out_sky: &mut [u8],
     out_flags: &mut [u8],
 ) -> Result<(), LightError> {
-    light_compute_inner(engine, blocks9, out_block, out_sky, out_flags, None)
+    // CP-1：per-call 局部 scratch（原为引擎 Mutex 字段全程持锁——#150 解粘同批项）
+    let mut scratch = Scratch::new();
+    light_compute_inner(engine, &mut scratch, blocks9, out_block, out_sky, out_flags, None)
 }
 
 /// 诊断用 phase 计时（bin-diag 专用，生产路径传 None 零开销）。
@@ -271,12 +289,57 @@ pub fn light_compute_phased(
     out_flags: &mut [u8],
 ) -> Result<PhaseTimings, LightError> {
     let mut t = PhaseTimings(std::array::from_fn(|_| std::time::Duration::ZERO));
-    light_compute_inner(engine, blocks9, out_block, out_sky, out_flags, Some(&mut t.0))?;
+    let mut scratch = Scratch::new();
+    light_compute_inner(engine, &mut scratch, blocks9, out_block, out_sky, out_flags, Some(&mut t.0))?;
     Ok(t)
+}
+
+/// CP-1（260916-01，.b1 域批中心化）：5×5 chunk 方块帧 → 网格对齐 3×3 中心 chunk 的
+/// 双通道光照批量导出。9 个中心的 3×3 窗并集恰为 5×5；每中心以对应子窗调
+/// light_compute_inner 同构内核（Scratch 与子窗缓冲在 9 中心循环间复用），保证
+/// 逐位等价于 per-chunk 路径（同内核同输入）。
+///
+/// 帧契约：
+/// - blocks25: 25 chunk raw id（chunkIdx25 = dz25*5+dx25，dx25/dz25 0..5；
+///   chunk 内 (y+64)*256 + z*16 + x，总长 2457600）。5×5 块覆盖 chunk [X..X+4]×[Z..Z+4]，
+///   9 中心 = [X+1..X+3]×[Z+1..Z+3]；边缘 chunk 只读不产出。
+/// - out: 9 段连续输出，段序 k = kz*3+kx（中心 chunk = X+1+kx, Z+1+kz），
+///   每段 = outBlock(49152) ++ outSky(49152) ++ outFlags(48)，总长 885168。
+pub fn light_compute_domain(
+    engine: &LightEngine,
+    blocks25: &[i32],
+    out: &mut [u8],
+) -> Result<(), LightError> {
+    if blocks25.len() != BLOCKS25_LEN {
+        return Err(LightError::InputLen);
+    }
+    if out.len() < DOMAIN_OUT_LEN {
+        return Err(LightError::OutputLen);
+    }
+    let mut scratch = Scratch::new();
+    let mut b9 = vec![0i32; BLOCKS9_LEN]; // 域批内复用（9 中心间）
+    for k in 0..9usize {
+        let kx = k % 3; // 0..2 → 窗 x = kx..kx+2（5×5 内 chunk 列）
+        let kz = k / 3;
+        // 子窗拷贝：blocks9 chunk c9(dz9*3+dx9) ← blocks25 chunk (kz+dz9)*5 + (kx+dx9)
+        for dz9 in 0..3usize {
+            for dx9 in 0..3usize {
+                let src = ((kz + dz9) * 5 + (kx + dx9)) * CHUNK_CELLS;
+                let dst = (dz9 * 3 + dx9) * CHUNK_CELLS;
+                b9[dst..dst + CHUNK_CELLS].copy_from_slice(&blocks25[src..src + CHUNK_CELLS]);
+            }
+        }
+        let seg = &mut out[k * (2 * OUT_CHAN_LEN + FLAGS_LEN)..(k + 1) * (2 * OUT_CHAN_LEN + FLAGS_LEN)];
+        let (ob, rest) = seg.split_at_mut(OUT_CHAN_LEN);
+        let (os, of) = rest.split_at_mut(OUT_CHAN_LEN);
+        light_compute_inner(engine, &mut scratch, &b9, ob, os, of, None)?;
+    }
+    Ok(())
 }
 
 fn light_compute_inner(
     engine: &LightEngine,
+    scratch: &mut Scratch,
     blocks9: &[i32],
     out_block: &mut [u8],
     out_sky: &mut [u8],
@@ -290,8 +353,7 @@ fn light_compute_inner(
         return Err(LightError::OutputLen);
     }
 
-    let mut sc = engine.scratch.lock().unwrap_or_else(|e| e.into_inner());
-    let Scratch { opacity, block_light, sky_light, queue, col_max } = &mut *sc;
+    let Scratch { opacity, block_light, sky_light, queue, col_max } = scratch;
 
     let _t0 = phases.as_mut().map(|_| std::time::Instant::now());
 
@@ -579,6 +641,56 @@ mod tests {
         let mut os = vec![0u8; OUT_CHAN_LEN];
         let mut of = vec![0u8; FLAGS_LEN];
         light_compute(&engine, &b9, &mut ob, &mut os, &mut of).unwrap();
+    }
+
+    /// CP-1（260916-01）域批内核等价门：light_compute_domain 9 中心输出
+    /// 必须与 per-chunk light_compute 对同一 3×3 子窗逐位相等（纯函数域，无噪声带）。
+    /// blocks25 用固定 LCG 伪随机填充（含光源位/不透明位），覆盖所有 9 中心。
+    #[test]
+    fn light_compute_domain_bitwise_equivalence() {
+        let engine = LightEngine::from_json_str(r#"{"format":"corewap-light-1","default":{"opacity":0,"emission":0},"blocks":{"1":{"opacity":15,"emission":0},"32":{"opacity":1,"emission":0},"10":{"opacity":15,"emission":15}}}"#).unwrap();
+        // 固定种子 LCG（msvc/Java 无关，仅测试内部确定性）
+        let mut s: u64 = 0x9E3779B97F4A7C15;
+        let mut rng = || {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            s
+        };
+        let mut b25 = vec![0i32; BLOCKS25_LEN];
+        for v in b25.iter_mut() {
+            let r = rng();
+            // 三态采样：~40% 石（op15）、~10% 萤石（em15）、其余空气/水族低 opacity
+            *v = match r % 10 {
+                0..=3 => 1,
+                4 => 10 | (15 << 24),
+                5 => 32,
+                _ => 0,
+            };
+        }
+        let mut out = vec![0u8; DOMAIN_OUT_LEN];
+        light_compute_domain(&engine, &b25, &mut out).expect("domain compute");
+        // 每中心：抽子窗 → per-chunk 路径 → 逐位对比
+        let mut b9 = vec![0i32; BLOCKS9_LEN];
+        let mut ob = vec![0u8; OUT_CHAN_LEN];
+        let mut os = vec![0u8; OUT_CHAN_LEN];
+        let mut of = vec![0u8; FLAGS_LEN];
+        for k in 0..9usize {
+            let kx = k % 3;
+            let kz = k / 3;
+            for dz9 in 0..3usize {
+                for dx9 in 0..3usize {
+                    let src = ((kz + dz9) * 5 + (kx + dx9)) * CHUNK_CELLS;
+                    let dst = (dz9 * 3 + dx9) * CHUNK_CELLS;
+                    b9[dst..dst + CHUNK_CELLS].copy_from_slice(&b25[src..src + CHUNK_CELLS]);
+                }
+            }
+            light_compute(&engine, &b9, &mut ob, &mut os, &mut of).expect("per-chunk compute");
+            let seg = &out[k * (2 * OUT_CHAN_LEN + FLAGS_LEN)..(k + 1) * (2 * OUT_CHAN_LEN + FLAGS_LEN)];
+            assert_eq!(&seg[..OUT_CHAN_LEN], &ob[..], "center {k} outBlock mismatch");
+            assert_eq!(&seg[OUT_CHAN_LEN..2 * OUT_CHAN_LEN], &os[..], "center {k} outSky mismatch");
+            assert_eq!(&seg[2 * OUT_CHAN_LEN..], &of[..], "center {k} outFlags mismatch");
+        }
     }
 
     /// 防回归（260905-05）：light_data.json 负 opacity 显式化修复——
