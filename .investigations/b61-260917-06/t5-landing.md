@@ -94,3 +94,29 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether ← 补前缺席（缺陷实锤项
 | 改 `versions/1.20.1/java/build.gradle`（补映射 + 注记） | in-place（源码） | **git 提交**（本块 commit，可 revert）；逆 = `git revert <sha>` |
 | 新日志 `t5-postfix-verify.log` | derived | identity |
 | gradle remap 缓存（`.fabric/processedMods`） | in-place（缓存） | 显式不可逆声明（gradle/loom 自身行为；失败已观察到，后果 = 缓存重建） |
+| 改 `.gitignore`（`scripts/` → `scripts/*` + 白名单） | in-place | git 提交（`ab91a0e`，可 revert） |
+
+## 7. 交付状态（2026-09-18 收尾）
+
+| 环节 | 状态 |
+|---|---|
+| Phase 0 架构 | ✅ `架构计划-260917-06-PD映射对账.md`，用户批准（HOOK H1） |
+| T1/T2 抽取 | ✅ `scripts/check_switch_mapping.py`（已入库）+ `switch-sources.json` |
+| T3/T4 对账与定性 | ✅ 四态判定 + fan-out b1/b2 + 主会话汇聚裁决（族内对称性判据 + §3.4 豁免子句） |
+| Phase 2.5 验证 | ✅ 三哨兵（`sentinel-{A,B,C}` + 组内标定差分），Partial 分层声明 |
+| judge（T4 后） | ✅ `review-001.md` PASS-with-conditions → M1-M3 + S1-S4 **已闭合** |
+| T5 落地 | ✅ 13 项补映射（`7abed4d`）+ 死开关注记 + 门禁入库 + AGENTS §一.13 |
+| judge（收尾终审） | ✅ `review-002.md` PASS-with-conditions → M-new-1/M-new-2 **已闭合**（`ab91a0e`） |
+| **confirmed** | ⏸ **待用户拍板**（AI 永不自授） |
+
+**效果实测**：ORPHAN **24 → 11**（−13，与补映射 13 项逐名吻合，judge 独立复算确认零回归）；CONSISTENT **112 → 125**；DEAD 4（待裁决是否删）。
+
+**提交链**：`3e0d434`（T1-T4 + 哨兵）→ `1ff3a6f`（judge-001 条件闭合）→ `7abed4d`（T5 补映射）→ `56dc15c`/`cf77963`（门禁/发现记录）→ `ab91a0e`（judge-002 条件闭合 + 脚本入库）。
+
+## 8. 遗留（交用户裁决 / 后续课题）
+
+1. **死开关删除**（`biome6oct` / `cpp.noBatch` / `ForkJoinPool.common.parallelism`）：已加注记未删（行为面变更需授权）。
+2. **`max.bg.threads`**：UNRESOLVED（疑 MC 发行 jar 内消费，未反编译核对）。
+3. **1.21.6 侧同步**：本块只改 1.20.1；1.21.6 是否同病未逐项核。
+4. **7 项静态外推**：补映射中 7 项无发射实证（§4.0 已声明），补跑一轮可闭合为全实证。
+5. **端到端 Full 验证**：未做（止于参数发射面）。
