@@ -174,3 +174,16 @@
 - ⚠️ **§9.7**：载体 = 1.21.6 worldgen1216.dll（零重编）+ destroy 汇总行同仪器；覆盖面 = 单 seed × 256 chunk overworld region × 每臂 3 重复交错；可比性 = 仅同批配对臂可比；calls=576 vs 260913-06 的 625 分母语义差（#132）并列不连线，260913-06 旧单样本**弃用**不进任何对比。
 - 🔍 **open**：① rcon stop ConnectionRefused ×3（judge 线索 = 脚本双 stop 结构，未查）；② 首跑预热假设未独立验证（可选 warmup 臂）；③ pickHit 脚本本体未修。
 - 状态：**candidate**（judge PASS-with-conditions，C1 读法措辞 + C2 脚本注记已应用；C3 index 登记随升 candidate 由主会话处理），confirmed 待用户授予。
+
+## 260918-02（实际 2026-09-18，日期锚 = 门禁实测记录 12:43）：B6-2——1.21.6 侧开关映射补齐（21 项缺口逐项定性 → 12 项 DEFECT 补映射 → 哨兵 12/12 → 门禁闭环）—— ✅ judge PASS（无 M 级）；confirmed 待用户授予
+
+> 过程产物 `.investigations/b62-260918-02/`（`t4-adjudication-1216.md` = T1 逐项定性 + `phase25-sentinel-and-gate.md` = T2-T4/judge S1-S4 应用记录 + `knowledge-draft.md`）。上游：B6-1（260918-01，判据源 = `.investigations/b61-260917-06/t4-adjudication.md` §2/§3.4 + extension-per-version-gap.md 的 21 项缺口清单）。通用模式 → workflow-patterns **#174/#175** + build-tooling **#156**（subagent 草稿 → 主会话应用）。
+
+- ✅ **T1 定性（Degraded，静态审查）**：1.21.6 缺口 21 项 = DEFECT-MISSING-MAPPING **12**（surfaceDumpDim/blobProbe 4/colProf 2/bulkwb 4/stallwatch——跨载体 5 项按 #174 延伸判据定性）+ SCOPED-DIRECT-D **9**（豁免子句①②合读，#171）。计划 §0「exec 族」被门禁清单机械否决（1.21.6 无消费点，→ #175）。
+- ✅ **T2 落地**：`versions/1.21.6/java/build.gradle` +20 行（benchVmArgs 闭包内，#47 作用域；命名与 1.20.1 B6-1 修复逐字对齐，#19）；git diff --stat = 20 insertions，1.20.1 侧零变化。
+- ✅ **T3 哨兵（Partial，发射面直证 #170）**：init script 打印 `t.jvmArgs`，12 项新 `-D` 全部在场 = **12/12 PASS**；原始日志 `cmd-output/sentinel-1216-all12.log`（BUILD SUCCESSFUL 3m9s）；副作用登记三行（.tmp derived / run\world in-place 可重建 / loom 缓存显式不可逆声明，§9.8）。
+- ✅ **T4 门禁闭环**：`check_switch_mapping.py` 1.21.6 声明 106→118，per-version 缺口 21→9（剩余 9 = 全部 SCOPED 豁免项，真缺陷归零）；判据字面「缺口=0」过宽经 judge S1 修正为「DEFECT 缺口=0」（判据意图与闭环一致，无取代）。
+- ✅ **judge = PASS（无 M 级）**：S1 判据措辞修正 / S2 行号双源澄清（:46 消费行 vs :37 javadoc 行）/ S3 blobProbe 四行在 `if (blobProbe)` 块外（行为等价，下次触碰顺手对齐）/ S4 哨兵落盘附退出码行（后续改进）。
+- ⚠️ **附带观察（独立待查，不阻塞）**：哨兵日志 `[BLOB-PROBE] stats read failed: Mixin transformation ... failed`——1.21.6 BlobProbeMixin mixin 变换失败（「编译绿 ≠ apply 绿」#40 家族），与本块改动无因果（配置层 vs 类变换层）。
+- ⚠️ **诚实边界**：门禁 `WgCompat.flag` 消费面盲区未修（→ build-tooling #156 登记强化点）；`coreswap.bulkwb` 本体不在缺口清单（经 WgCompat.flag 读，消费面未计）；`max.bg.threads` DEAD 待核（B6-1 遗留，非本块范围）。
+- 状态：✅ judge PASS（无 M 级）；**confirmed 待用户授予**。

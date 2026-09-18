@@ -144,6 +144,16 @@ loom {
             if (project.findProperty('maxBgThreads') != null) run.vmArg "-Dmax.bg.threads=${project.findProperty('maxBgThreads')}"
             // R3 A/B：-Psyncfill=1 → 走旧同步填充路径（默认异步，对齐 vanilla wgen_fill_noise 形态）
             if (project.findProperty('syncfill') != null) run.vmArg "-Dcoreswap.syncfill=1"
+            // B6-2 补（260918-02，severity 最高）：bulkwb 族 4 项 + stallwatch——消费点在共享载体
+            // （java-core/BulkWb.java:91/93/95/97 + CppBridge.java:616/628 + StallWatch.java:21，两版同一份代码），
+            // 1.20.1 已为同一消费点建立 -P 先例（B6-1 :174-182 确证真缺陷）⇒ 同源缺陷（#168 per-carrier 视角）。
+            // -Dcoreswap.bulkwblog 是 MUST 级「等价性 × 臂变量生效自证」判据的唯一仪器；
+            // -Pstallwatch=<秒> → 停滞看门狗（诊断专用，默认关）：沙箱禁 jstack 时的唯一手段。
+            if (project.findProperty('bulkwblog') != null) run.vmArg "-Dcoreswap.bulkwblog=1"
+            if (project.findProperty('wbcontent') != null) run.vmArg "-Dcoreswap.wbcontent=1"
+            if (project.findProperty('bulkwbtest') != null) run.vmArg "-Dcoreswap.bulkwbtest=1"
+            if (project.findProperty('bulkwbsentinel') != null) run.vmArg "-Dcoreswap.bulkwbsentinel=1"
+            if (project.findProperty('stallwatch') != null) run.vmArg "-Dcoreswap.stallwatch=${project.findProperty('stallwatch')}"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
             // mod 方块注册冒烟（260907-07 方案 C）：值 = 注册条数上限（空串/非数字 = 不限）
             if (project.findProperty('cppBlockRegister') != null) run.vmArg "-Dcpp.blockRegister=${project.findProperty('cppBlockRegister')}"
@@ -161,6 +171,11 @@ loom {
                 run.vmArg "-Dblob.probe=1"
                 if (project.findProperty('blobProbeOut') != null) run.vmArg "-DblobProbe.out=${project.findProperty('blobProbeOut')}"
             }
+            // B6-2 补（260918-02）：族内不对称缺陷（同族 blobProbeOut 已映射），同 1.20.1 B6-1 修复
+            if (project.findProperty('blobProbeChunkX') != null) run.vmArg "-DblobProbe.chunkX=${project.findProperty('blobProbeChunkX')}"
+            if (project.findProperty('blobProbeChunkZ') != null) run.vmArg "-DblobProbe.chunkZ=${project.findProperty('blobProbeChunkZ')}"
+            if (project.findProperty('blobProbeSize') != null) run.vmArg "-DblobProbe.size=${project.findProperty('blobProbeSize')}"
+            if (project.findProperty('blobProbeDim') != null) run.vmArg "-DblobProbe.dim=${project.findProperty('blobProbeDim')}"
             if (project.findProperty('surfaceColDump') != null) {
                 run.vmArg "-DsurfaceColDump=1"
                 if (project.findProperty('colDumpOut') != null) run.vmArg "-DcolDump.out=${project.findProperty('colDumpOut')}"
@@ -168,6 +183,9 @@ loom {
             if (project.findProperty('colProfProbe') != null) run.vmArg "-Dcolprof.probe=1"
             if (project.findProperty('colProfMode') != null) run.vmArg "-Dcolprof.mode=${project.findProperty('colProfMode')}"
             if (project.findProperty('colProfR') != null) run.vmArg "-Dcolprof.r=${project.findProperty('colProfR')}"
+            // B6-2 补（260918-02）：族内不对称缺陷（同族 Probe/Mode/R 已映射，调 r 行、调 x/z 不行）
+            if (project.findProperty('colProfX') != null) run.vmArg "-Dcolprof.x=${project.findProperty('colProfX')}"
+            if (project.findProperty('colProfZ') != null) run.vmArg "-Dcolprof.z=${project.findProperty('colProfZ')}"
             if (project.findProperty('surfaceDump') != null) {
                 run.vmArg "-Dsurfacedump.probe=1"
                 if (project.findProperty('surfaceDumpChunkX') != null) run.vmArg "-Dsurfacedump.chunkX=${project.findProperty('surfaceDumpChunkX')}"
@@ -176,6 +194,8 @@ loom {
                 if (project.findProperty('surfaceDumpOut') != null) run.vmArg "-Dsurfacedump.out=${project.findProperty('surfaceDumpOut')}"
                 if (project.findProperty('surfaceDumpOutPost') != null) run.vmArg "-Dsurfacedump.outPost=${project.findProperty('surfaceDumpOutPost')}"
             }
+            // B6-2 补（260918-02）：族内不对称缺陷（同族 5 子参数已映射，dim 是探针过滤参数非输出导向）
+            if (project.findProperty('surfaceDumpDim') != null) run.vmArg "-Dsurfacedump.dim=${project.findProperty('surfaceDumpDim')}"
             if (project.findProperty('noiseDump') != null) {
                 run.vmArg "-Dnoisedump.probe=1"
                 if (project.findProperty('noiseDumpChunkX') != null) run.vmArg "-Dnoisedump.chunkX=${project.findProperty('noiseDumpChunkX')}"
