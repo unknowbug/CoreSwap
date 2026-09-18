@@ -45,6 +45,17 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether ← 补前缺席（缺陷实锤项
 ```
 ⇒ **补前缺席 → 补后发射**，同一观测面（`jvmArgs` 发射点本体）**前后对照**，修复有效性为**行为化直证**（非静态推断）。
 
+### 4.0 发射实证覆盖面声明（judge M-new-1 要求补）
+
+**13 项补映射中，仅 6 项有本轮发射实证，7 项为静态外推**——不得把 6 项的实证读成 13 项都验过。
+
+| 类别 | 项 | 证据 |
+|---|---|---|
+| **发射实证（6）** | `surfacedump.dim` / `blobProbe.chunkX` / `colprof.x` / `coreswap.exec` / `coreswap.bulkwblog` / `coreswap.wbcontent` | `t5-postfix-verify.log` 实测发射行（该轮命令行传了这 6 个 `-P`） |
+| **静态外推（7）** | `blobProbe.chunkZ` / `blobProbe.size` / `blobProbe.dim` / `colprof.z` / `coreswap.maxinflight` / `coreswap.bulkwbtest` / `coreswap.bulkwbsentinel` | **无本轮发射证据**（验证命令未传对应 `-P`）；依据 = 与已实证项同族、同行模式、同一 `findProperty` 结构 |
+
+**补跑成本**：一轮（传齐 13 个 `-P` 即可闭合）。**未补的理由**：本轮时间已用于 judge 条件闭合；按「静态外推 MUST 显式声明」处理（§9.7），不静默当已验证。**若需 candidate 级证据，应补跑此轮**。
+
 ## 3. 环境噪声如实披露（不属于本课题缺陷）
 
 同批次 `runServer` 出现 `BUILD FAILED`：`FileSystemException: .\.fabric\processedMods\chunky-1.3.146-*.jar: 另一个程序正在使用此文件，进程无法访问`（Fabric `RuntimeModRemapper.remap`）。

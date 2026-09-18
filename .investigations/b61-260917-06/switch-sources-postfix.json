@@ -9,6 +9,12 @@
    "versions\\1.21.6\\java\\src",
    "java-core\\src",
    "worldgen-core\\src"
+  ],
+  "not_scanned": [
+   "native/C++ 与 Rust 侧读 env 变量（非 -D sysprop，形态不同，另论）",
+   "外部工具直接 -D 传参（不体现在本仓库源码/脚本内）",
+   "MC 发行 jar 内的 sysprop 消费点（如 max.bg.threads 疑为 MC Util 侧消费，未反编译核对）",
+   "1.21.6 的 python/JS 辅助脚本中的 -D 拼装（若有）"
   ]
  },
  "counts": {

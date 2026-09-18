@@ -1,6 +1,7 @@
-# switches-registry.yaml — B6-1 开关登记表（单一事实源，由 extract_switch_sources.py + classification.yaml 生成）
-# 判据：CONSISTENT=双面齐 / DEAD=仅声明 / ORPHAN=仅消费；verdict 见 classification.yaml
-# 覆盖面：见 switch-sources.json coverage 段（未扫载体一律不判 DEAD）
+# switches-registry.yaml — B6-1 开关登记表（单一事实源）
+# ⚠️ 基线口径（judge S-new-7）：本表为 **T4 时点的补前快照**（CONSISTENT 112 / DEAD 4 / ORPHAN 24 口径）。
+#    T5 补映射后（260918-01）实测为 CONSISTENT 125 / DEAD 4 / ORPHAN 11 —— 以 scripts/check_switch_mapping.py 的
+#    实时输出为准；本表保留 T4 分类（含 verdict/reason）用于追溯定性依据，不重生成以免丢失 T4 裁决痕迹。
 schema_version: 1
 counts:
   total: 140
