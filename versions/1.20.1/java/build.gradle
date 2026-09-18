@@ -116,9 +116,8 @@ if (project.findProperty('betadump') != null) run.vmArg "-Dcoreswap.light.betadu
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('blockProbeFull') != null) run.vmArg "-DblockProbe.full=${project.findProperty('blockProbeFull')}"
-            // B6-1 核（260918-01）：-Pbiome6oct 为**死开关**（两版 build.gradle 均声明、全载体零消费，
-// 见 .investigations/b61-260917-06/t4-adjudication.md §3.3）——传参静默无效。保留映射行待用户裁决（删除属行为面变更）。
-if (project.findProperty('biome6oct') != null) run.vmArg "-Dbiome6oct=true"
+            // B6-1（260918-06 用户裁决）：-Pbiome6oct 死开关映射行已删除（全载体零消费；
+            // 见 .investigations/b61-260917-06/t4-adjudication.md §3.3）。
             if (project.findProperty('biome6cal') != null) run.vmArg "-Dbiome6cal=true"
             if (project.findProperty('biome6') != null) run.vmArg "-Dbiome6=true"
             if (project.findProperty('biome6dim') != null) run.vmArg "-Dbiome6.dim=${project.findProperty('biome6dim')}"
@@ -146,10 +145,8 @@ if (project.findProperty('chunkRandomProbe') != null) run.vmArg "-DchunkRandom.p
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppVanilla') != null) run.vmArg "-Dcpp.vanilla=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
-// B6-1 核（260918-01）：-PcppNoBatch 为**死开关**——文档（docs/07-block-pipeline.md:323 +
-// 10-timewise-archive.md:839）明文写它「保留」，但消费已随 C++ 归档消失（全载体零消费）⇒
-// 文档引用者以为有效（#19 家族）。保留映射行待用户裁决（删除属行为面变更）。
-if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
+// B6-1（260918-06 用户裁决）：-PcppNoBatch 死开关映射行已删除（消费随 C++ 归档消失；docs/07:323
+// 与 10-timewise-archive 旧「保留」表述已补失效注记，#19 家族）。
 // 句柄级阶段开关（260902-09）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；7 = noise-only
 if (project.findProperty('rustStages') != null) run.vmArg "-Dcoreswap.rust.stages=${project.findProperty('rustStages')}"
 if (project.findProperty('coreswapThreads') != null) run.vmArg "-Dcoreswap.threads=${project.findProperty('coreswapThreads')}"
@@ -165,9 +162,9 @@ if (project.findProperty('syncfill') != null) run.vmArg "-Dcoreswap.syncfill=1"
 // -Pformprobe=1 / -Pformdrive=1 → 形态审计探针 260915-03（fill/light 事件行 / 虚拟玩家票据驱动）
 if (project.findProperty('formprobe') != null) run.vmArg "-Dcoreswap.formprobe=1"
 if (project.findProperty('formdrive') != null) run.vmArg "-Dcoreswap.formdrive=1"
-// -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；-Pfjp1=1 → 单车道臂（common FJP parallelism=1）
+// -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；fjp1 映射行已删（260918-06 用户裁决，
+// B6-1 死开关：1.20.1 worldgen 主 worker = 专用 FJP，common pool 参数被架空，#153 行为化实证）
 if (project.findProperty('execpool') != null) run.vmArg "-Dcoreswap.execpool=${project.findProperty('execpool')}"
-if (project.findProperty('fjp1') != null) run.vmArg "-Djava.util.concurrent.ForkJoinPool.common.parallelism=1"
 // B6-1 补（260918-01，severity 最高）：exec 族回退手段 + maxinflight。
 // 消费点 NoiseChunkGeneratorMixin.java:106/:138；exec=0 是 exec 转正的用户拍板回退手段，
 // 而兄弟 execpool 已有映射 ⇒ 族内不对称缺陷（「回退开关 MUST 在位」判据）。

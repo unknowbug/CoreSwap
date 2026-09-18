@@ -106,7 +106,7 @@ loom {
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('blockProbeFull') != null) run.vmArg "-DblockProbe.full=${project.findProperty('blockProbeFull')}"
-            if (project.findProperty('biome6oct') != null) run.vmArg "-Dbiome6oct=true"
+            // B6-1（260918-06 用户裁决）：-Pbiome6oct 死开关映射行已删除（全载体零消费）
             if (project.findProperty('biome6cal') != null) run.vmArg "-Dbiome6cal=true"
             if (project.findProperty('biome6') != null) run.vmArg "-Dbiome6=true"
             if (project.findProperty('biome6dim') != null) run.vmArg "-Dbiome6.dim=${project.findProperty('biome6dim')}"
@@ -132,7 +132,7 @@ loom {
             if (project.findProperty('jniNether') != null) run.vmArg "-Djni.nether=true"
             if (project.findProperty('jniProbe') != null) run.vmArg "-Djni.probe=true"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
-            if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
+            // B6-1（260918-06 用户裁决）：-PcppNoBatch 死开关映射行已删除（消费随 C++ 归档消失）
             // 句柄级阶段开关（260902-09）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；7 = noise-only
             if (project.findProperty('rustStages') != null) run.vmArg "-Dcoreswap.rust.stages=${project.findProperty('rustStages')}"
             if (project.findProperty('coreswapThreads') != null) run.vmArg "-Dcoreswap.threads=${project.findProperty('coreswapThreads')}"

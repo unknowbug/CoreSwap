@@ -61,9 +61,15 @@ SRC_DIRS = [
 NOT_SCANNED = [
     "native/C++ 与 Rust 侧读 env 变量（非 -D sysprop，形态不同，另论）",
     "外部工具直接 -D 传参（不体现在本仓库源码/脚本内）",
-    "MC 发行 jar 内的 sysprop 消费点（如 max.bg.threads 疑为 MC Util 侧消费，未反编译核对）",
+    "MC 发行 jar 内的 sysprop 消费点（max.bg.threads 已核实：260918-06 javap 1.20.1 Util.getMaxBackgroundThreads → createWorker Main 池，clamp(cores-1,1,上限[1,255]缺省255)；见 .investigations/260918-06/record-260918-06.md）",
     "1.21.6 的 python/JS 辅助脚本中的 -D 拼装（若有）",
 ]
+
+# ---- 已核实的 MC 引擎侧消费点豁免（260918-06 用户裁决「只登记不补映射」）----
+# 一手核实后从 DEAD 判定中排除；每项 MUST 附 file:line 级核实记录（豁免子句纪律，t4 §3.4）。
+MC_ENGINE_CONSUMERS = {
+    "max.bg.threads": "MC Util.getMaxBackgroundThreads（1.20.1 merged jar javap 一手核实，.investigations/260918-06/record-260918-06.md）",
+}
 
 RE_VMARG = re.compile(r'run\.vmArg\s+"-D([A-Za-z0-9_.]+)=')
 RE_GETPROP = re.compile(r'System\.getProperty\("([^"]+)"')
@@ -186,9 +192,12 @@ def check_scope_and_naming():
 def main():
     m1, m2, pv_m1, pv_m2, via_wrapper, dyn_reads = collect()
     d1, d2 = set(m1), set(m2)
-    consistent = sorted(d1 & d2)
-    dead = sorted(d1 - d2)
-    orphan = sorted(d2 - d1)
+    # MC 引擎侧已核实消费点豁免（260918-06）：从 DEAD 判定排除，报告保留登记行
+    mc_exempt = sorted((d1 & set(MC_ENGINE_CONSUMERS)) - d2)
+    d1_eff = d1 - set(MC_ENGINE_CONSUMERS)
+    consistent = sorted(d1_eff & d2)
+    dead = sorted(d1_eff - d2)
+    orphan = sorted(d2 - d1_eff)
 
     print("== 开关对账（B6-1）==")
     print("  声明面 M1（-P->-D 映射）: %d" % len(d1))
@@ -204,6 +213,10 @@ def main():
         print("\n---- [union 段] DEAD（两版合并口径：声明但全载体零消费）----")
         for k in dead:
             print("   ", k)
+    if mc_exempt:
+        print("\n---- [union 段] MC-ENGINE 豁免（声明无本仓消费，但已核实 MC 引擎侧消费；260918-06）----")
+        for k in mc_exempt:
+            print("   ", k, "→", MC_ENGINE_CONSUMERS[k])
     if orphan:
         print("\n---- [union 段] ORPHAN（两版合并口径：消费但两版都未声明）----")
         for k in orphan:

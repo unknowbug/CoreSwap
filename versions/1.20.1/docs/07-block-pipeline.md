@@ -320,7 +320,7 @@ if (!GetModuleHandleA("jvm.dll")) wg::installCrashHandler();
 - **gradle daemon env 缓存**：$env:CORESWAP_THREADS 传给 daemon 不重启不生效（fork 的 JVM 继承 daemon 启动时 env）→ 用 -P 属性（vmArg 映射）或重启 daemon
 - **gradle 8.13 -D 参数解析**：`gradle runServer -Dcpp.replace=1` 被拆成任务（`.replace=1 not found`）→ 用 build.gradle 的 -PcppReplace → vmArg 映射
 - **crash handler 增强**（本次加，保留）：module base 打印（崩溃 RVA 定位）、stack-window 打印（RSP±0x50 qword + 0xDEADDEAF poison 标记）、WG_FBLOG（fillBlocks 批次日志 env 开关）
-- **CppBridge 诊断增强**（保留）：-Dcpp.noBatch env 兜底 CORESWAP_NOBATCH
+- **CppBridge 诊断增强**（~~保留~~ **已失效**，260918-06 注记）：-Dcpp.noBatch env 兜底 CORESWAP_NOBATCH——消费已随 C++ 归档消失（全载体零消费），-PcppNoBatch 映射行已删（B6-1 死开关裁决）
 
 ---
 
