@@ -1,0 +1,84 @@
+{
+ "coverage": {
+  "declaration": [
+   "versions\\1.20.1\\java\\build.gradle",
+   "versions\\1.21.6\\java\\build.gradle"
+  ],
+  "consumption": [
+   "versions\\1.20.1\\java\\src",
+   "versions\\1.21.6\\java\\src",
+   "java-core\\src",
+   "worldgen-core\\src"
+  ],
+  "not_scanned": [
+   "native/C++ 与 Rust 侧读 env 变量（非 -D sysprop，形态不同，另论）",
+   "外部工具直接 -D 传参（不体现在本仓库源码/脚本内）",
+   "MC 发行 jar 内的 sysprop 消费点（如 max.bg.threads 疑为 MC Util 侧消费，未反编译核对）",
+   "1.21.6 的 python/JS 辅助脚本中的 -D 拼装（若有）"
+  ]
+ },
+ "counts": {
+  "M1": 129,
+  "M2": 136,
+  "consistent": 125,
+  "dead": 4,
+  "orphan": 11
+ },
+ "dead": [
+  "biome6oct",
+  "cpp.noBatch",
+  "java.util.concurrent.ForkJoinPool.common.parallelism",
+  "max.bg.threads"
+ ],
+ "orphan": [
+  "bench.threads",
+  "bench.worldgen",
+  "chunkRandom.seed",
+  "chunkRandom.seed288",
+  "colDump.targets",
+  "coreswap.light.blockabi",
+  "coreswap.light.oldcollect",
+  "coreswap.wbcheck",
+  "height.x",
+  "height.z",
+  "java.io.tmpdir"
+ ],
+ "per_version_gaps": {
+  "1.20.1": [
+   "bench.threads",
+   "bench.worldgen",
+   "chunkRandom.seed",
+   "chunkRandom.seed288",
+   "colDump.targets",
+   "coreswap.light.blockabi",
+   "coreswap.light.oldcollect",
+   "coreswap.wbcheck",
+   "height.x",
+   "height.z",
+   "java.io.tmpdir"
+  ],
+  "1.21.6": [
+   "bench.threads",
+   "bench.worldgen",
+   "blobProbe.chunkX",
+   "blobProbe.chunkZ",
+   "blobProbe.dim",
+   "blobProbe.size",
+   "chunkRandom.seed",
+   "chunkRandom.seed288",
+   "colDump.targets",
+   "colprof.x",
+   "colprof.z",
+   "coreswap.bulkwblog",
+   "coreswap.bulkwbsentinel",
+   "coreswap.bulkwbtest",
+   "coreswap.stallwatch",
+   "coreswap.wbcheck",
+   "coreswap.wbcontent",
+   "height.x",
+   "height.z",
+   "java.io.tmpdir",
+   "surfacedump.dim"
+  ]
+ }
+}

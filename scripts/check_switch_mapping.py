@@ -71,22 +71,39 @@ def _walk(paths, exts):
 
 
 def collect():
+    """返回 (union_m1, union_m2, per_version_m1, per_version_m2)。
+
+    per-version 视角为必需（260918-01 发现）：**union 口径会掩盖单版本缺口**——
+    若 1.20.1 声明了 `blobProbe.chunkX` 而 1.21.6 未声明，union 口径下该项不在
+    ORPHAN 集合中，1.21.6 的缺口被静默掩盖（#105 载体偏差家族）。
+    """
     m1, m2 = {}, {}
+    pv_m1, pv_m2 = {}, {}
     for gf in _walk(GRADLE_FILES, (".gradle",)):
         t = io.open(gf, encoding="utf-8", errors="replace").read()
-        for m in RE_VMARG.finditer(t):
-            m1.setdefault(m.group(1), set()).add(os.path.relpath(gf, ROOT))
+        rel = os.path.relpath(gf, ROOT)
+        # per-version key：从路径提取版本号（如 versions\1.20.1\java\build.gradle -> 1.20.1）
+        m = re.search(r"versions[\\/]([^\\/]+)[\\/]", rel)
+        ver = m.group(1) if m else "(shared)"
+        pv_m1.setdefault(ver, set())
+        for mm in RE_VMARG.finditer(t):
+            m1.setdefault(mm.group(1), set()).add(rel)
+            pv_m1[ver].add(mm.group(1))
     for sf in _walk(SRC_DIRS, (".java", ".rs")):
         t = io.open(sf, encoding="utf-8", errors="replace").read()
         rel = os.path.relpath(sf, ROOT)
+        m = re.search(r"versions[\\/]([^\\/]+)[\\/]", rel)
+        ver = m.group(1) if m else "(shared)"
+        pv_m2.setdefault(ver, set())
         for rx in (RE_GETPROP, RE_GETINT, RE_GETBOOL):
-            for m in rx.finditer(t):
-                m2.setdefault(m.group(1), set()).add(rel)
-    return m1, m2
+            for mm in rx.finditer(t):
+                m2.setdefault(mm.group(1), set()).add(rel)
+                pv_m2[ver].add(mm.group(1))
+    return m1, m2, pv_m1, pv_m2
 
 
 def main():
-    m1, m2 = collect()
+    m1, m2, pv_m1, pv_m2 = collect()
     d1, d2 = set(m1), set(m2)
     consistent = sorted(d1 & d2)
     dead = sorted(d1 - d2)
@@ -107,6 +124,20 @@ def main():
         for k in orphan:
             print("   ", k)
 
+    # ---- per-version 缺口（union 口径会掩盖单版本缺口，#105 载体偏差家族）----
+    shared_cons = pv_m2.get("(shared)", set())
+    per_version = {}
+    print("\n-- per-version 缺口（union 口径掩盖的单版本缺陷）--")
+    for ver in sorted(v for v in pv_m1 if v != "(shared)"):
+        consumed = pv_m2.get(ver, set()) | shared_cons
+        declared = pv_m1.get(ver, set())
+        gap = sorted(consumed - declared)
+        per_version[ver] = gap
+        print("  [%s] 声明 %d / 本版(+共享)消费 %d → 缺口 %d"
+              % (ver, len(declared), len(consumed), len(gap)))
+        for k in gap:
+            print("       ", k)
+
     result = {
         "coverage": {
             "declaration": GRADLE_FILES,
@@ -116,6 +147,7 @@ def main():
         "counts": {"M1": len(d1), "M2": len(d2), "consistent": len(consistent),
                    "dead": len(dead), "orphan": len(orphan)},
         "dead": dead, "orphan": orphan,
+        "per_version_gaps": per_version,
     }
     if "--json" in sys.argv:
         out = sys.argv[sys.argv.index("--json") + 1]
@@ -124,9 +156,11 @@ def main():
 
     print("\n注：DEAD/ORPHAN 不等于是缺陷——多数为合法旁路（探针直接 -D 手传 / 其它 carrier 消费）。")
     print("    定性见 .investigations/b61-260917-06/t4-adjudication.md（族内对称性判据）。")
-    # --strict：DEAD 非空即非零退出（防死开关回归；ORPHAN 多为合法旁路故不阻断）
-    if "--strict" in sys.argv and dead:
-        print("\n[FAIL] 存在 %d 个 DEAD 开关（声明但零消费）" % len(dead))
+    print("    ⚠️ union 口径的 ORPHAN 会掩盖单版本缺口——请以 per-version 段为准。")
+    # --strict：DEAD 非空 或 任一版本存在缺口 即非零退出
+    if "--strict" in sys.argv and (dead or any(per_version.values())):
+        n = len(dead) + sum(len(g) for g in per_version.values())
+        print("\n[FAIL] 存在 %d 项 DEAD/单版本缺口" % n)
         return 1
     return 0
 
