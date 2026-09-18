@@ -63,8 +63,18 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether ← 补前缺席（缺陷实锤项
 ## 5. 落地产物清单
 
 - 代码：`versions/1.20.1/java/build.gradle`（补映射 + 死开关注记）
+- **门禁脚本：`scripts/check_switch_mapping.py`**（对账 + `--strict` 模式）
 - 验证日志：`cmd-output/t5-postfix-verify.log`
 - 登记表：`switches-registry.yaml`（T4 生成，含分类）
+
+### 5.1 ⚠️ 发现：`scripts/` 整体被 gitignore（**未在本块处置，交用户裁决**）
+
+落地过程中发现：`.gitignore:51` 有 `scripts/` 一行，导致**该目录下全部脚本均未入版本管理**——包括本块新增的 `check_switch_mapping.py`，以及既有的 `scan_cpp_anchors.py`（AGENTS.md §一.5 引用的扫描门禁）与 `merge_index.py`。
+
+- **性质**：与知识库 **#164（多副本安装树无脚本覆盖面）** 同族——**门禁脚本本身无版本控制**，其存续只依赖单机磁盘状态；换机/清理即失。
+- **影响**：AGENTS.md 明文引用的门禁**在仓库中不存在**（只有本机有），新环境/CI 无法执行。
+- **本块处置**：**只记录，不擅自改 `.gitignore`**——该规则可能是刻意设计（本地工具不入库，与 `runtime/`、`NEXT_SESSION.md` 同类）。若要修，属**独立小课题**（评估：哪些脚本是「门禁资产」必须入库 vs 哪些是「本地工具」）。
+- **建议**：至少把**被 AGENTS.md 明文引用的门禁脚本**（`scan_cpp_anchors.py` / `check_switch_mapping.py` / `merge_index.py`）纳入版本管理，或在 AGENTS.md 中声明「脚本目录为本机资产、不入库」的显式口径。#24 家族（目录级 prune 吃掉资产）的同类提醒。
 
 ## 6. §9.8 副作用与逆（本 T5 轮）
 
