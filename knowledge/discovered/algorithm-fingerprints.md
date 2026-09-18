@@ -573,3 +573,13 @@ GPU 引擎算 finalDensity 完整树需要**每个点的全部分解坐标**（`
 - 失配症状（识别签名）：① 抛出类型 = `EntryMissingException: Missing Palette entry for index <小整数>`，不是帧格式错 / 长度错；② 读回层指纹 `[WG-CONTENT-WB]` 归零为首要信号；③ 整段移位 —— reader 位置 k 解出 writer 位置 k+4 的值（4-bit 打包；`PASS distinct=1` 之后 `FAIL branch distinct=3`，`i=0 got=granite want=stone`），越界取值集合由前缀 nibble 决定（`VarInt(256)` = `0x80 0x02` ⇒ 只能是 {2, 8}），且 {2, 8} 是越界值集合、不是受影响位置集合（`scout-interpretation-A1.md:255-273`）；④ 两版 `readPacket` 指令布局相同、仅 1 条 `invokevirtual` 目标不同。
 - 判据（通用动作）：① 写端 MUST 收敛到单一分版缝函数（本项目形态 = 分版件 `WgCompat.writeStorageLongs` + 共享核调用点改调；`evidence/javap-seam-260912-02.txt:4-34` 证明缝体纯转发、`pop` 丢返回值、无写字节指令 ⇒ 未变更版本写出帧同构）；② 升级版本时对每个写 storage 的点核对读端读法（`javap` 比第 39 条 `invokevirtual` 目标 + tiny 映射名，两者互证）；③ 越界索引只有 {2, 8} 这类离散小集合时，优先怀疑整段字节移位，而不是位宽协商语义差（后者预测索引散布）。
 - 家族索引：algorithm-fingerprints #22（同代码点的读端逐字节契约）、#24（「规范编码字节」= storage elementBits）、#23（同 section 派生计数两套语义）、workflow-patterns #139（等价性 × 生效自证）、#14 补充案例（门必须与被测变更同层）。
+
+---
+
+## 发现 #27 简记: MC「Main」后台工作池宽指纹——`Util.getMaxBackgroundThreads()` 读 sysprop `max.bg.threads` ∈ [1,255] 缺省 255，喂 `createWorker` 的 `clamp(cores-1, 1, max)`；三个池宽旋钮语义不同不可互引（260918-06）
+
+- **指纹本体**（javap -c 一手字节码，1.20.1 merged jar / yarn 1.20.1+build.10）：`net/minecraft/util/Util.getMaxBackgroundThreads()` 读 sysprop `max.bg.threads`，int ∈ [1,255] 直接返回；越界/非数字 → LOGGER.error + 返回 **255**；未设置 → **255**。唯一调用者 `Util.createWorker(String)`：`clamp(availableProcessors-1, 1, getMaxBackgroundThreads())`；≤0 → direct executor；否则 `new ForkJoinPool(n, factory, uncaughtHandler, async=true)` = MC「Main」后台工作池。
+- **判定**：`max.bg.threads` **不是死开关**，是 MC 引擎活开关（调低 Main 后台池宽）；B6-1 t4-adjudication §3.3 的 UNRESOLVED 项由此闭合为 LIVE-MC-ENGINE（门禁以 MC_ENGINE_CONSUMERS 豁免登记）。
+- **per-version 事实**：`-PmaxBgThreads` 映射只在 **1.21.6**（build.gradle）；**1.20.1 无映射行**（per-version 缺口家族口径，用户裁决「只登记不补」）。
+- **池宽旋钮三分不可互引**（判据）：① `max.bg.threads`（MC Main 池上界）② `coreswap.execpool`（物理核−2 语义 ≈ logical/2−2 @SMT2，build-tooling #57）③ `ForkJoinPool.common.parallelism`（fjp1，1.20.1 worldgen 主 worker = 专用 FJP，此参数被架空 = 死参数，workflow-patterns #153）——**三者作用于不同池、语义不同，性能归因/调参禁止互相替代**。
+- **来源定位**：`.investigations/260918-06/record-260918-06.md` 项 3（反汇编件 `.tmp/260918-06/util_disasm.txt`）。置信度 candidate（一手字节码，Degraded 静态层）。
