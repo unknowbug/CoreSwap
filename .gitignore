@@ -48,14 +48,17 @@ knowledge/discovered/vulkan-gpu-programming.md
 
 # 内部工作流（仅本地，不入库）：验证协议 + 锚点扫描工具（引用本机 Anchorlaw 路径）
 protocol/
-# scripts/ 不能整目录 ignore（否则无法用 ! 白名单重新纳入——git 不支持在被排除的目录内 re-include）。
-# 改为「目录放行 + 逐文件忽略」，白名单在下方（260918-01 B6-1）：
-scripts/*
+# 脚本目录：原为 `scripts/`（任意深度匹配，会连 worldgen-core/scripts 等嵌套目录一起忽略）。
+# 260918-01 (B6-1) 改为「根锚定 + 白名单」——git 不支持在被排除目录内 re-include，
+# 故必须用 `/scripts/*` 而非 `scripts/`（后者无法用 ! 放行），且加前导 / 以免误伤嵌套同名目录。
+/scripts/*
 # 例外：被 AGENTS.md 明文引用的「门禁资产」必须入库（无本机依赖的纯 stdlib 脚本）。
 # 理由：门禁脚本不入库 ⇒ AGENTS 引用的门禁在新环境/CI 中不存在（与知识库 #164 同族）。
-!scripts/check_switch_mapping.py
-!scripts/merge_index.py
-!scripts/scan_cpp_anchors.py
+!/scripts/check_switch_mapping.py
+!/scripts/merge_index.py
+!/scripts/scan_cpp_anchors.py
+# 嵌套 scripts 目录维持原忽略语义（如 worldgen-core/scripts）：
+scripts/
 
 # CoreSwap 迁移补充：Java 探针工程 2026-08-24 迁回 CoreSwap（曾错误地留在 MC 只读不入工作区，致找不回来；现迁移+源码入库）
 # versions/1.20.1/java/

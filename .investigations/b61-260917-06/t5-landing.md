@@ -102,6 +102,16 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether
 - **本块处置**：**只记录，不擅自改 `.gitignore`**——该规则可能是刻意设计（本地工具不入库，与 `runtime/`、`NEXT_SESSION.md` 同类）。若要修，属**独立小课题**（评估：哪些脚本是「门禁资产」必须入库 vs 哪些是「本地工具」）。
 - **建议**：至少把**被 AGENTS.md 明文引用的门禁脚本**（`scan_cpp_anchors.py` / `check_switch_mapping.py` / `merge_index.py`）纳入版本管理，或在 AGENTS.md 中声明「脚本目录为本机资产、不入库」的显式口径。#24 家族（目录级 prune 吃掉资产）的同类提醒。
 
+### 5.2 ⚠️ 修 `.gitignore` 时的自曝缺陷（260918-01，错误优先留痕）
+
+**现象**：把 `.gitignore` 的 `scripts/` 改成 `scripts/*`（为让白名单生效）后，`git status` 出现**意料之外的未跟踪项 `worldgen-core/scripts/dump_fd.py`**。
+
+**根因**：原 pattern `scripts/` **无前导斜杠 = 任意深度匹配**，一直连带忽略着 `worldgen-core/scripts/`；改成 `scripts/*` 后那一层被放行，**嵌套目录的既有忽略语义被静默改变**。
+
+**修复**：改为 **`/scripts/*`（前导斜杠锚定仓库根）+ 三条 `!/scripts/<gate>.py` 白名单 + 末尾 `scripts/`（恢复嵌套目录的原忽略语义）**。验证：① 根门禁脚本仍未被忽略（`git check-ignore` 空）；② `worldgen-core/scripts/dump_fd.py` 重新被忽略（命中 `.gitignore:61`）；③ `git status` 无残留未跟踪项。
+
+**教训（可复用）**：**改 gitignore pattern 时必须检查「匹配深度语义」的变化**——`dir/`（任意深度）vs `/dir/*`（根锚定 + 逐文件）不是等价改写；且 git 不支持在被排除目录内 `!` re-include，故放行白名单**必须**先把目录形式改成 `*` 形式，而这**必然**改变深度语义。**判据 = 改后跑一次 `git status` 看是否冒出意料外条目**（本例即由此发现）。家族：#24（gitignore 目录级规则吃掉资产）、#155。
+
 ## 6. §9.8 副作用与逆（本 T5 轮）
 
 | 副作用 | 类型 | 逆 |
