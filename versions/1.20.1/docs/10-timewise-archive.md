@@ -3394,7 +3394,7 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 🔍 **任务**：收口 260918-06 judge 悬置条件 S4（「机械检出不可达前提」能力未演示，三条标注均人工静态）。架构 = 轻量（`.investigations/000-架构设计/架构计划-260918-07-B63-S4能力演示.md`，用户批准；比对器留临时区 + v1 备份 sha256 归档）。
 - ✅ **实现**：v2 比对器 `.tmp/260918-07/b63_comparator_v2.py`——17 域级 `{key,expected,check}` 前提集（PRECONDS）+ 事实封闭集（6 键）静态求值器（log 行为化自证 + `--facts` env 覆盖）+ suspended 语义 + SUSPENDED-TOUCHED 触达矛盾 FAIL + UNKNOWN-FACT-KEY FAIL（#182）。
 - ✅ **四测**（预登记，全过）：POS rc=0（触达 8 ⊆ 声明 17，v1 无回归）/ NEG-A rc=1（生产 mask 注入 × legacy 日志 → SUSPENDED-TOUCHED 7 键 = 矛盾检出）/ NEG-B rc=1（枚举外事实键）/ NEG-C rc=0（生产 mask × 干净日志 → suspended 16/17 + touched 0 = **「生产 mask 下不可达」人工标注被机械复现**，唯 sysprop 门域保留可达，对齐声明表 §一）。
-- ✅ **judge（SHOULD）**：PASS-with-conditions（N1 paldump 域补 `light.rust.armed` 前提 / N2 启动期断言 PRECONDS 键 ⊆ FACT_KEYS）——均已应用，四测复跑无回归。推荐 candidate，**confirmed 留用户**。
+- ✅ **judge（SHOULD）**：PASS-with-conditions（N1 paldump 域补 `light.rust.armed` 前提 / N2 启动期断言 PRECONDS 键 ⊆ FACT_KEYS）——均已应用，四测复跑无回归。**confirmed（2026-09-18 用户授予，同块内）**。
 - 📌 **边界**：声明表三条人工标注中 ①mixin:644（状态机不可达）②bin-diag（结构性不可达）不在求值器域内（非门控关闭形态）；vanilla-min.log 为合成载体只证能力；事实封闭集仅 light 面，扩面先扩集。judge 备忘：domain 臂 DECLARED 缺 `wgLightDomainWriteBack` 三键 = v1/S2 继承盲区，随第二接管面扩面。
 - 📌 **知识库**：workflow-patterns **#183**（subagent 草稿 + 主会话应用）；docs 07 篇零更新（能力演示无新管线结论）。
 - **证据指针**：`.investigations/b63-260918-07/{record-260918-07.md, judge-review-260918-07.md}`；载体 `.tmp/260918-07/`（v2 比对器 + 夹具 + v1 备份，不入库）。

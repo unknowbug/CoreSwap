@@ -3104,7 +3104,7 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 
 ## 发现 #183（高价值·可复用判据）: 「前提不可达」人工静态标注的机械化——凡携带不可达性标注的声明表/门禁，可用「事实封闭集 + 前提求值器 + 触达矛盾检查」三件套机械复现与矛盾检出（260918-07，Anchorlaw v0.22 §15.1 运行时落地）
 
-- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-07，B6-3 S4 能力演示）；CoreSwap 主会话 + knowledge subagent 起草；**candidate**（confirmed 留用户）；workflow-patterns / 门禁与校验器设计（#182 同族续篇）。
+- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-07，B6-3 S4 能力演示）；CoreSwap 主会话 + knowledge subagent 起草；**confirmed**（用户授予 2026-09-18，260918-07 块内；judge PASS-with-conditions N1/N2 已应用）；workflow-patterns / 门禁与校验器设计（#182 同族续篇）。
 - **观察**：B6-3 light 声明表对 17 个声明域做了「不可达」人工静态标注；judge S4 悬置其中「门控关闭不可达」类——机械检出能力未演示。v2 比对器（`.tmp/260918-07/b63_comparator_v2.py`）以三件套补齐：① **域级前提集**——每个声明域携带 `{key, expected, check}` 外部事实依赖（PRECONDS，缺省域挂总门 `light.rust.armed`，显式无前提域须逐域声明）；② **静态事实求值器**——事实来源双通道（log 行为化自证行 + env/JSON 显式覆盖，覆盖关系逐键标注输出），事实键**封闭集** 6 个，枚举外键 = UNKNOWN-FACT-KEY FAIL（#182 封闭性延续到事实侧）；③ **suspended + 触达矛盾语义**——前提失效域判 `[SUSPENDED]`（状态不自动变更），但**被证据触达的 suspended 域 = SUSPENDED-TOUCHED FAIL**（声明「不可达」与事实「已触达」矛盾 = 机械检出）。
 - **证据**（四测预登记 + judge 复跑逐格一致，Partial 层）：POS rc=0（触达 8 ⊆ 声明 17，v1 基线无回归）；**NEG-C rc=0 / suspended 16/17 / touched 0——「生产 mask 下不可达」人工标注被机械复现**（逐键 + failed 前提三元组全量列出）；**NEG-A rc=1 / SUSPENDED-TOUCHED 7 键——该能力具矛盾判别力，非恒绿通道**；NEG-B rc=1（枚举外事实键）。judge PASS-with-conditions（N1 前提漏项 / N2 前提集自身封闭断言）已应用并四测复跑无回归。
 - **边界（不外推，中价值简记并入）**：「门控关闭」形态之外仍需人工静态标注——**状态机不可达**（如源码注释自证的 mixin:644，非门控形态）与**结构性不可达**（bin-diag 不在默认构建产物）不在求值器域内；事实键封闭集随接管面扩面**必须先扩集再声明**（本轮仅 light 面封闭）。
