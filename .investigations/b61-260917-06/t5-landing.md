@@ -132,7 +132,9 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether
 | judge（T4 后） | ✅ `review-001.md` PASS-with-conditions → M1-M3 + S1-S4 **已闭合** |
 | T5 落地 | ✅ 13 项补映射（`7abed4d`）+ 死开关注记 + 门禁入库 + AGENTS §一.13 |
 | judge（收尾终审） | ✅ `review-002.md` PASS-with-conditions → M-new-1/M-new-2 **已闭合**（`ab91a0e`） |
-| **confirmed** | ⏸ **待用户拍板**（AI 永不自授） |
+| **confirmed** | ✅ **用户授予 2026-09-18**（B6-1 机制 + 13 项修复 + 四家族判据 + 双负向测试一并确认；同时授权立项 B6-2） |
+
+> **confirmed 范围声明（§16.1）**：本次确认覆盖 = ① 对账机制（gate 脚本 + 四家族判据 + per-version 口径）② 13 项补映射修复（13/13 发射实证）③ 门禁有效性（双负向测试）④ 知识库 #168-#173 + build-tooling #155 落盘。**不覆盖**：① 死开关删除（仍待单独裁决）② 1.21.6 侧 21 项缺口（已另立 B6-2）③ 端到端 Full 行为验证（未做，止于参数发射面）。
 
 **效果实测**：ORPHAN **24 → 11**（−13，与补映射 13 项逐名吻合，judge 独立复算确认零回归）；CONSISTENT **112 → 125**；DEAD 4（待裁决是否删）。
 
