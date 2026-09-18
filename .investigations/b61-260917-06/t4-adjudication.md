@@ -61,11 +61,29 @@ chunkRandom*      chunkRandomProbe                                      1/3（se
 | `coreswap.bulkwbtest` | bulkwb | — | **DEFECT** |
 | `coreswap.bulkwbsentinel` | bulkwb | — | **DEFECT** |
 
-> **改判 2 项 → SCOPED-DIRECT-D**（裁决规则推翻 b2 原判）：`height.x`、`height.z` —— 族内 `heightProbe` **仅映射父门** `height.probe`，**零子参数映射先例**，且 `HeightProbe.java` 类注释宣传的就是 `-D` 直传 ⇒ **合法旁路**（b1 正确，b2 该 2 项误判）。
+> **改判 2 项 → SCOPED-DIRECT-D**（裁决规则适用）：`height.x`、`height.z` —— 族内 `heightProbe` **仅映射父门** `height.probe`，**零子参数映射先例**，且 `HeightProbe.java:12` 类注释宣传的就是 `-D` 直传 ⇒ **合法旁路**。
+> ⚠️ **纠错（judge M3 抓出，本行原措辞已更正）**：原写「b2 该 2 项误判」属**主会话误记**——b2 在 `.b2-defect-classification.md:44/:252` **逐字把 `height.x/z` 列为 NOT-A-DEFECT（让渡 b1）**，且自身倾向旁路；**b2 从未判其为缺陷**。本动作实为「对 b2 让渡项的确认」，非推翻。
 
-### 3.2 SCOPED-DIRECT-D（合法旁路，裁决后 **15 项**）
+## 3.4 判据的显式豁免子句（judge M1 补，T5 直接输入）
 
-`bench.threads` / `bench.worldgen` / `chunkRandom.seed` / `chunkRandom.seed288` / `colDump.targets` / `coreswap.wbcheck` / `coreswap.light.blockabi` / `coreswap.light.oldcollect` / `java.io.tmpdir` / `height.x` / `height.z` / `coreswap.maxinflight`* / `coreswap.exec`* （* 见 §3.1 已改判 DEFECT，此处不再计）
+族内对称性规则**存在经核实的例外**，MUST 显式登记，否则规则不可机械执行：
+
+**豁免子句**：若未映射项所属族虽存在同族 `-P` 映射先例，但满足下列任一，则判 **SCOPED-DIRECT-D** 而非 DEFECT：
+1. **该项属探针专用路径**（该族映射先例服务的是「把探针输出导向文件」类通用参数，而非探针自身的过滤/坐标参数）；**且**
+2. **缺省值即权威**（源码中该 sysprop 缺省时行为已完整定义，不传与传默认值等价）。
+
+**三条豁免项（judge M1 要求逐条落理由）**：
+| 开关 | 族内先例 | 判 SCOPED 的理由 |
+|---|---|---|
+| `bench.threads` | bench 族 `:74-78` 有 seed/size/originX/originZ/out 五映射 | bench 族先例全是「运行参数传递」（由 `benchVmArgs` 闭包统一发），而 `bench.threads` 是**诊断性覆盖**（缺省 = 物理核推导），非运行必经参数 |
+| `bench.worldgen` | 同上 | 同上；`-PbenchProbe` 已映射为 `-Dworldgen.bench=true`（`:219`），命名与开关名不同族，属历史遗留旁路 |
+| `colDump.targets` | colDump 族 `:183-186` 有 out 映射 | 同「探针专用路径 + 缺省权威」形态 |
+
+> **注**：这三条的豁免是**判据的一部分**，不是事后找补——故本子节即规则的完整表述（原 §2 规则需与本节合读）。
+
+### 3.2 SCOPED-DIRECT-D（合法旁路，裁决后 **11 项**）
+
+`bench.threads` / `bench.worldgen` / `chunkRandom.seed` / `chunkRandom.seed288` / `colDump.targets` / `coreswap.wbcheck` / `coreswap.light.blockabi` / `coreswap.light.oldcollect` / `java.io.tmpdir` / `height.x` / `height.z`
 
 > 说明：`coreswap.light.blockabi` / `light.oldcollect` 属 light 探针族的 A/B 开关，javadoc（`ServerLightingProviderMixin.java:121/128`）明写 `-Dcoreswap.light.oldcollect=1` 用法，且该族**无任何 `-P` 映射先例**（`-PlightRust`/`-Pbetaprobe` 映射的是别的名字）⇒ SCOPED。
 

@@ -25,15 +25,15 @@ java.util.concurrent.ForkJoinPool.common.parallelism: DEFECT-DEAD-SWITCH  # 已�
 # ---- UNRESOLVED（1）----
 max.bg.threads: UNRESOLVED  # 消费方疑在 MC 发行 jar 内（不在扫描面）⇒ 待核，不得与 fjp1 同格引用
 
-# ---- SCOPED-DIRECT-D（13）----
-bench.threads: SCOPED-DIRECT-D  # bench 族子参数一贯 -D 直传（javadoc 用法说明）
-bench.worldgen: SCOPED-DIRECT-D
+# ---- SCOPED-DIRECT-D（11；bench.threads/bench.worldgen/colDump.targets 经 §3.4 豁免子句判定）----
+bench.threads: SCOPED-DIRECT-D  # §3.4 豁免：族先例为「运行参数传递」，本项为诊断性覆盖（缺省=物理核推导）
+bench.worldgen: SCOPED-DIRECT-D  # §3.4 豁免：-PbenchProbe 已映射为 -Dworldgen.bench（:219），命名异族
 chunkRandom.seed: SCOPED-DIRECT-D  # 族内零子参数 -P 先例
 chunkRandom.seed288: SCOPED-DIRECT-D
-colDump.targets: SCOPED-DIRECT-D
+colDump.targets: SCOPED-DIRECT-D  # §3.4 豁免：探针专用路径 + 缺省权威
 coreswap.wbcheck: SCOPED-DIRECT-D
 coreswap.light.blockabi: SCOPED-DIRECT-D  # light 探针族无 -P 先例，javadoc 明写 -D 用法
 coreswap.light.oldcollect: SCOPED-DIRECT-D
 java.io.tmpdir: SCOPED-DIRECT-D  # 标准 JVM 系统属性，本不应由 build.gradle 声明
-height.x: SCOPED-DIRECT-D  # 裁决改判（原 b2 判缺陷）：heightProbe 仅映射父门，零子参数先例
+height.x: SCOPED-DIRECT-D  # 确认 b2 让渡项（b2 未判缺陷）：heightProbe 仅映射父门，零子参数先例
 height.z: SCOPED-DIRECT-D  # 同上

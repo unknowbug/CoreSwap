@@ -21,8 +21,8 @@ switches:
   - {name: bench.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: bench.seed, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: bench.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
-  - {name: bench.threads, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "bench 族子参数一贯 -D 直传（javadoc 用法说明）"}
-  - {name: bench.worldgen, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: bench.threads, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "§3.4 豁免：族先例为「运行参数传递」，本项为诊断性覆盖（缺省=物理核推导）"}
+  - {name: bench.worldgen, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "§3.4 豁免：-PbenchProbe 已映射为 -Dworldgen.bench（:219），命名异族"}
   - {name: biome.preset, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: biome.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: biome6, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
@@ -46,7 +46,7 @@ switches:
   - {name: chunkRandom.seed, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "族内零子参数 -P 先例"}
   - {name: chunkRandom.seed288, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
   - {name: colDump.out, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
-  - {name: colDump.targets, surface: ORPHAN, verdict: SCOPED-DIRECT-D}
+  - {name: colDump.targets, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "§3.4 豁免：探针专用路径 + 缺省权威"}
   - {name: colprof.mode, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: colprof.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: colprof.r, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
@@ -102,7 +102,7 @@ switches:
   - {name: estdump.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: estdump.size, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
   - {name: height.probe, surface: CONSISTENT, verdict: CONSISTENT, reason: "双面齐（声明+消费）"}
-  - {name: height.x, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "裁决改判（原 b2 判缺陷）：heightProbe 仅映射父门，零子参数先例"}
+  - {name: height.x, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "确认 b2 让渡项（b2 未判缺陷）：heightProbe 仅映射父门，零子参数先例"}
   - {name: height.z, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "同上"}
   - {name: java.io.tmpdir, surface: ORPHAN, verdict: SCOPED-DIRECT-D, reason: "标准 JVM 系统属性，本不应由 build.gradle 声明"}
   - {name: java.util.concurrent.ForkJoinPool.common.parallelism, surface: DEAD, verdict: DEFECT-DEAD-SWITCH, reason: "已有行为化实证判死（G2 臂 VOID）"}
