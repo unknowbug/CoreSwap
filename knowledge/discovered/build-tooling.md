@@ -1282,3 +1282,19 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **家族索引**：#42（JNA tmpdir——本条为其 JVM 全量资源提取的沙箱重形态）；#32（daemon 吞 env——修复的成对面）；#118（SELFCERT 硬门——本条正面案例：VOID 在采集完成时被拦，未外泄 vanilla 形态数据）；workflow-patterns #156（形态错位家族——本条为环境侧成因）。
 
 > 260917-05 追加：**#42 家族补充案例·第三犯**（pbeta05b）：采集驱动漏 tmpdir 固化 → JNA 落系统临时目录拒访 → lightInit threw → **整臂静默 vanilla 形态**（光照全 vanilla 非局部降级，最难看穿形态）；SELFCERT 硬门（lightInit ok 计数）正面拦截整轮 VOID。教训强化：tmpdir 固化不是可选项——凡 JNA/native 采集驱动，固化缺失的失败形态是**整臂变形而非报错退出**，SELFCERT 行为化自证是唯一可靠闸门。来源：.investigations/pbeta-260917-05/cmd-output/pbeta05b.log。
+### 发现 #155（错误优先，五段式）: `.gitignore` 整目录忽略吃掉「门禁资产」——被 AGENTS.md 明文的门禁在仓库中不存在；且 git 不支持在被排除目录内 re-include（260918-01）
+
+- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-01）；主会话 B6-1 落地过程中发现（`t5-landing.md` §5.1）+ T5 处置 + 本 subagent 起草；**draft**（git 侧事实已一手核验：`git ls-files scripts/` 现含三脚本 / HEAD `b30d008` / 修复 commit `ab91a0e`；原「未入库」状态为发现时实测）；build-tooling / 仓库资产与 gate 资产存续（**#24（gitignore 目录级 prune 使 `!` 白名单失效）的同族第二形态** + workflow-patterns **#164（无脚本覆盖面）的数据面**）。
+- **来源定位**：`.investigations/b61-260917-06/t5-landing.md` §5.1（发现与建议）+ §6（§9.8 副作用与逆表：`.gitignore` 改动 = in-place / 逆 = git 提交 `ab91a0e` 可 revert）；`.gitignore:49-58`（现行形态）；commit `cf77963`（发现记录）→ `ab91a0e`（修复 + 脚本入库）；一手核验 = `git ls-files scripts/` 返回 `check_switch_mapping.py` / `merge_index.py` / `scan_cpp_anchors.py` 三项跟踪。
+
+- **五段式（错误优先）**：
+  - **现象**：B6-1 交付的门禁 `scripts/check_switch_mapping.py` 在本机可跑，但仓库里**没有它**——`.gitignore:51` 曾有 `scripts/` 一行，整目录被忽略 ⇒ **AGENTS.md §一.5/§一.13 明文引用的门禁脚本**（`scan_cpp_anchors.py` / `check_switch_mapping.py`）与 `merge_index.py` **全部未入版本管理**；其存续只依赖单机磁盘状态，换机/清理即失，CI/新环境无法执行 AGENTS 明文要求的「改动后跑门禁」。
+  - **根因（机制）**：**「目录级 ignore」与「白名单 re-include」在 git 语义下不兼容**——git 的 `!` 规则**无法重新纳入一个被排除目录内部的路径**（目录本身被 prune ⇒ 内部任何 `!` 永不生效）。因此「想忽略目录里的大部分、只放行几个门禁」这个**直觉写法**（`scripts/` + `!scripts/xxx.py`）**静默失效**：`!` 行看着在、其实恒不生效，且**无任何提示**。更深一层：仓库把「脚本」整体当作「本地工具」（与 `runtime/`、`NEXT_SESSION.md`/`AGENTS.md` 同类，见 `.gitignore:49` 注释的原始口径），但**其中三个是 AGENTS 明文引用的门禁资产**——「本地工具」与「门禁资产」被同一条规则吞掉，资产随规则一起消失。
+  - **定位（怎么发现的，可复用）**：① **交付物交叉核对**——把「本块新建/引用的产物清单」与「`git ls-files` 实际跟踪清单」对表，差集即未入库资产（本块 `t5-landing.md` §5 落地产物清单 vs `git ls-files scripts/`）；② **读 `.gitignore` 定位规则行**；③ **核 git 语义**（「被排除目录内能否 re-include」= 否），避免用直觉写法「修」；④ **修复后双向核验**——`git ls-files scripts/` 应含三脚本且**只含**这三项。
+  - **修复**：`.gitignore` 由 `scripts/`（整目录）改为 **`scripts/*`（目录放行 + 逐文件忽略）+ 三条 `!` 白名单**（`!scripts/check_switch_mapping.py` / `!scripts/merge_index.py` / `!scripts/scan_cpp_anchors.py`），并就地写注释说明「`scripts/` 不能整目录 ignore，否则无法用 `!` 白名单重新纳入」；三个门禁脚本入库。commit = `ab91a0e`（**注意**：`protocol/` 仍整目录忽略，口径未动）。
+  - **教训（判据，可复用）**：
+    1. **判据（MUST）**：**被判据/指令/文档明文引用的资产（门禁脚本、schema、规范副本）MUST 在版本控制内**——「文档引用了它」与「仓库里有它」必须机械核对（核对动作 = 把引用物清单对 `git ls-files`/`git check-ignore -v` 双向核验）。引用了不存在的产物 = 新环境下的静默能力缺失（与 #137「引用外部锚须属主工具自核」同构：引用完整性是独立义务）。
+    2. **判据（MUST）**：**git 不支持在被排除的目录内 re-include**——凡需要「忽略目录内大部分、放行少数」，MUST 写 `dir/*`（放行目录、逐文件忽略）再配 `!dir/file`；写成 `dir/` + `!dir/file` 是**静默失效**形态（`.gitignore` 不报错），且该形态与 **#24**（目录级 prune 使白名单失效）是同一坑的两个版本。
+    3. **修复 MUST 双向核验**：修完不只看「期望的在里面」，还要看「不该在的没进去」（本例 `git ls-files scripts/` 恰为三项）。
+    4. **处置边界（诚实）**：本块**只记录不擅自改**到 T5 才处置——因为「哪些脚本是门禁资产、哪些是本地工具」是**口径决策**（可能刻意设计）；口径决策的产物化动作 = 在 AGENTS.md 写明「脚本目录的口径 + 哪些必须入库」，否则下一次仍靠人肉发现。
+- **家族索引**：**#24（gitignore 目录级 prune 使 `!` 白名单失效——同族第二形态）**；workflow-patterns **#164（多副本安装树的「无脚本覆盖面」——本条为其数据面）**、#163（silently-green 门——门禁本身不入库是更强的静默形态）、#137（引用完整性）、#105（载体偏差——「本机有」≠「仓库有」）。
