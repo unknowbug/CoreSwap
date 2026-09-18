@@ -110,6 +110,8 @@ if (project.findProperty('domainbatch') != null) run.vmArg "-Dcoreswap.light.dom
 if (project.findProperty('domainGrace') != null) run.vmArg "-Dcoreswap.light.domainbatch.gracems=${project.findProperty('domainGrace')}"
 // -Pbetaprobe=1 → P-β/P-path 探针（260917-05；env 门控默认关 = 生产零影响）
 if (project.findProperty('betaprobe') != null) run.vmArg "-Dcoreswap.light.betaprobe=1"
+// -Pbetadump=<dir> → [LIGHT-BETA] 打点旁输出 packed payload 三段原始字节（260918-05 inputDiff23 机制分辨；须与 -Pbetaprobe 同开）
+if (project.findProperty('betadump') != null) run.vmArg "-Dcoreswap.light.betadump=${project.findProperty('betadump')}"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

@@ -113,6 +113,11 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     //   判别（criteria-260917-05）：run 间输入 hash 差集 ∩ snap changed 集 → β（输入通道）；
     //   输入恒定而输出变 → F3/output 侧通道。
     @Unique private static final boolean LIGHT_BETAPROBE = System.getProperty("coreswap.light.betaprobe") != null;
+    // ---- inputDiff23 机制分辨 dump（260918-05，env 门控默认关；须与 betaprobe 同开）----
+    // -Dcoreswap.light.betadump=<dir>：[LIGHT-BETA] 打点处把 packed payload 三段原始字节写
+    //   <dir>/<cx>_<cz>.bin（头：cx,cz,palCur,stoCur 各 int LE；体：meta[432] int + pal[palCur] int + sto[stoCur] long，全 LE）。
+    //   payload = 3×3 邻域 × 24 节（meta si 步进 2）；文件块级一次，不进每格热路径。
+    @Unique private static final String LIGHT_BETADUMP = System.getProperty("coreswap.light.betadump");
     @Unique private static final AtomicInteger WG_BETA_SEC = new AtomicInteger();
     @Unique private static final AtomicInteger WG_BETA_SEC_CUR = new AtomicInteger();
     @Unique private static final AtomicInteger WG_PATH_N = new AtomicInteger();
@@ -219,6 +224,24 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             h *= 0x01000193;
         }
         return h;
+    }
+
+    /** inputDiff23 机制分辨 dump（260918-05）：packed payload 三段原始字节，块级一次。失败打一行不抛（不扰采集）。 */
+    @Unique
+    private static void wgBetaDump(int cx, int cz, int[] meta, int[] pal, int palLen, long[] sto, int stoLen) {
+        try {
+            java.nio.file.Path p = java.nio.file.Path.of(LIGHT_BETADUMP, cx + "_" + cz + ".bin");
+            java.nio.ByteBuffer buf = java.nio.ByteBuffer.allocate(
+                    16 + meta.length * 4 + palLen * 4 + stoLen * 8).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            buf.putInt(cx).putInt(cz).putInt(palLen).putInt(stoLen);
+            for (int v : meta) buf.putInt(v);
+            for (int i = 0; i < palLen; i++) buf.putInt(pal[i]);
+            for (int i = 0; i < stoLen; i++) buf.putLong(sto[i]);
+            java.nio.file.Files.createDirectories(p.getParent());
+            java.nio.file.Files.write(p, buf.array());
+        } catch (Throwable t) {
+            System.out.println("[LIGHT-BETA] betadump fail (" + cx + "," + cz + ") " + t);
+        }
     }
 
     @Unique
@@ -672,6 +695,10 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                     WG_BETA_SEC.addAndGet(cur);
                     System.out.println("[LIGHT-BETA] chunk(" + chunkPos.x + "," + chunkPos.z
                             + ") abi=packed hash=" + h + " emptySec=" + cur);
+                    if (LIGHT_BETADUMP != null) {
+                        wgBetaDump(chunkPos.x, chunkPos.z, WG_META_TL.get(), WG_PAL_TL.get(),
+                                packedLens[0], WG_STO_TL.get(), packedLens[1]);
+                    }
                 }
                 rc = wg.CppWorldgen.lightComputePacked(wgLightEnsureInit(), WG_META_TL.get(), WG_PAL_TL.get(),
                         WG_STO_TL.get(), packedLens[0], packedLens[1], outBlock, outSky, outFlags);
@@ -746,7 +773,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         if (!LIGHT_RUST) return; // 开关关闭：完全 vanilla，零行为影响
         if (LIGHT_BETAPROBE) {
             int n = WG_PATH_N.incrementAndGet();
-            if (n == 1) System.out.println("[LIGHT-BETA] probe armed betaprobe=1");
+            if (n == 1) System.out.println("[LIGHT-BETA] probe armed betaprobe=1"
+                    + (LIGHT_BETADUMP != null ? " betadump=" + LIGHT_BETADUMP : ""));
             System.out.println("[LIGHT-PATH] enter (" + chunk.getPos().x + "," + chunk.getPos().z + ")");
         }
         long handle = wgLightEnsureInit();

@@ -1328,3 +1328,18 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **判据（可复用）**：对账/抽取类工具加形态覆盖时，**新形态 = 注册表项（须附一手源定位）+ 未解析面显式枚举 + coverage 字段三件套**；只加正则不加盲区枚举 = 把静默缺失升级成静默半覆盖，比不改更危险（报告会给出看似完备的数字）。
 - **家族索引**：**#156**（本条的盲区登记前身）；**#169**（「覆盖面自身可核」——本条为其首个具体落地形态）；**#163**（silently-green 门——盲区枚举段防的就是它）；workflow-patterns **#168**（per-carrier 视角——同为「对账工具覆盖面」家族的口径维）。
 - **来源定位**：`.investigations/b61-flag-coverage-260918-04/record-260918-04.md`；`scripts/check_switch_mapping.py`（WRAPPERS / RE_WRAPPER_CALL / RE_DYN_GETPROP）。置信度 candidate。
+
+## 发现 #159: region NBT 手写解析三坑——TAG_List 漏长度字段 / tag 尺寸映射错 / region 偏移双约定并存；实证裁决法 = sector 顺序扫描 + xPos/zPos 双向核对，自写解析器先过已知 chunk sanity（260918-05）
+
+- **发现时间 / 置信度 / module**：2026-09-18（260918-05）；CoreSwap 主会话 + knowledge subagent 起草；**candidate**（三坑均由 sector 顺序扫描 + xPos/zPos 直证裁决收敛：`byte = off*4096` 约定经实测确认，928 chunk 全解析成功）；build-tooling / region/NBT 手写解析。
+- **来源定位**：`.investigations/inputdiff23-260918-05/record-260918-05.md` §错误台账 2；`t2_region_check.py`（终态裁决脚本，.tmp）。
+- **五段式（错误优先）**：
+  - **现象**：自写 region NBT 解析器三处静默出错——TAG_List 节点解析跳错偏移（`tag 255/244` 类垃圾 tag 号）；tag 尺寸映射按直觉取值导致 payload 错位（把 tag 1 当 8 字节 Long）；region 文件偏移按 `(off-2)*4096` 写法部分 slot 解析出乱数据（`ln=954426051` 类垃圾长度）而另一些 slot 又「碰巧」解析成功。
+  - **根因（机制）**：① **TAG_List 漏长度字段**——TAG_List 头 = tag type(1B) + **length(4B)** + 元素，漏读 length 则整流错位（#36 level.dat 复合头漏 namelen 同族：NBT 手解析每段头都有易漏字段）；② **tag 尺寸映射错**——正确映射 = **1=Byte 2=Short 3=Int 4=Long**（tag id → 字节数是查表不是递推）；③ **region 偏移双约定并存**——社区工具中 `off*4096` 与 `(off-2)*4096` 两种写法都在流通（后者混入其他头布局假设），且按错约定解析**部分 chunk 仍可成功**（邻 sector 恰有合法头）——假部分成功比全失败更危险（#151 帧解析「部分成功掩盖全流错位」家族的 region 维）。
+  - **定位（可复用）**：**sector 顺序扫描**——按 4096 扇区步进扫全文件，凡 `(ln 合理 && comp∈{1,2})` 处试解析 NBT，成功者读出 chunk 内 `xPos/zPos`（1.20.1 实测在位）——一步裁决 `byte = off*4096` 为正确约定（(26,-20) slot 表项 369 = 实际 sector 369）。
+  - **修复**：按 `off*4096` 约定重写；全部目标 chunk 解析成功。
+  - **教训（判据，MUST）**：
+    1. **自写解析器 MUST 先在已知 chunk 上过 sanity**（xPos/zPos 双向核对 + 期望 section 数/Y 范围），未过 sanity 的解析输出不得进任何对比判据；
+    2. **现成工作版解析器先对比再自写**——项目内已有勘误过的读法（snap_light.py tag7 规范读法 #53/#58），自写前先抄已勘误版；
+    3. **双约定并存处禁止按文档/他人代码字面采信**——以实测扇区扫描裁决（#36「已知键字节级 sanity + 独立源交叉核对」的 region 维）。
+- **家族索引**：#36（NBT 手解析漏头字段——同族首形态：复合头 namelen；本条为 TAG_List length + tag 尺寸 + region 偏移三形态）；#151（协议解析「部分成功掩盖全流错位」——本条 region 偏移错约定下部分 slot 仍解析成功即其形态）；#20（1.20.1 chunk NBT 键面——实测 xPos/zPos **在位**，与 #20 标题表述的张力在案：该条历史读法以本块实测为准复核）。
