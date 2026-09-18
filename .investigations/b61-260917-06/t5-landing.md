@@ -45,16 +45,31 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether ← 补前缺席（缺陷实锤项
 ```
 ⇒ **补前缺席 → 补后发射**，同一观测面（`jvmArgs` 发射点本体）**前后对照**，修复有效性为**行为化直证**（非静态推断）。
 
-### 4.0 发射实证覆盖面声明（judge M-new-1 要求补）
+### 4.0 发射实证覆盖面声明（judge M-new-1 要求补；260918-01 已闭合为全实证）
 
-**13 项补映射中，仅 6 项有本轮发射实证，7 项为静态外推**——不得把 6 项的实证读成 13 项都验过。
+**13 项补映射全部有发射实证**（sentinel-D 补跑，260918-01 第二轮）：
 
 | 类别 | 项 | 证据 |
 |---|---|---|
-| **发射实证（6）** | `surfacedump.dim` / `blobProbe.chunkX` / `colprof.x` / `coreswap.exec` / `coreswap.bulkwblog` / `coreswap.wbcontent` | `t5-postfix-verify.log` 实测发射行（该轮命令行传了这 6 个 `-P`） |
-| **静态外推（7）** | `blobProbe.chunkZ` / `blobProbe.size` / `blobProbe.dim` / `colprof.z` / `coreswap.maxinflight` / `coreswap.bulkwbtest` / `coreswap.bulkwbsentinel` | **无本轮发射证据**（验证命令未传对应 `-P`）；依据 = 与已实证项同族、同行模式、同一 `findProperty` 结构 |
+| **发射实证（13／13）** | `surfacedump.dim` / `blobProbe.chunkX` / `blobProbe.chunkZ` / `blobProbe.size` / `blobProbe.dim` / `colprof.x` / `colprof.z` / `coreswap.exec` / `coreswap.maxinflight` / `coreswap.bulkwblog` / `coreswap.wbcontent` / `coreswap.bulkwbtest` / `coreswap.bulkwbsentinel` | `cmd-output/sentinel-D-all13.log` —— **一轮传齐全部 13 个 `-P`**，实测发射 13/13（无缺席） |
 
-**补跑成本**：一轮（传齐 13 个 `-P` 即可闭合）。**未补的理由**：本轮时间已用于 judge 条件闭合；按「静态外推 MUST 显式声明」处理（§9.7），不静默当已验证。**若需 candidate 级证据，应补跑此轮**。
+**实测输出（原文）**：
+```
+VMARG: -Dcoreswap.exec=0
+VMARG: -Dcoreswap.maxinflight=8
+VMARG: -Dcoreswap.bulkwblog=1
+VMARG: -Dcoreswap.wbcontent=1
+VMARG: -Dcoreswap.bulkwbtest=1
+VMARG: -Dcoreswap.bulkwbsentinel=1
+VMARG: -DblobProbe.chunkX=1
+VMARG: -DblobProbe.chunkZ=2
+VMARG: -DblobProbe.size=3
+VMARG: -DblobProbe.dim=minecraft:overworld
+VMARG: -Dcolprof.x=4
+VMARG: -Dcolprof.z=5
+VMARG: -Dsurfacedump.dim=minecraft:the_nether
+```
+⇒ **13/13 全实证**（此前 6/13 实证 + 7 项静态外推的状态已闭合）。
 
 ## 3. 环境噪声如实披露（不属于本课题缺陷）
 
@@ -118,5 +133,5 @@ VMARG: -Dsurfacedump.dim=minecraft:the_nether ← 补前缺席（缺陷实锤项
 1. **死开关删除**（`biome6oct` / `cpp.noBatch` / `ForkJoinPool.common.parallelism`）：已加注记未删（行为面变更需授权）。
 2. **`max.bg.threads`**：UNRESOLVED（疑 MC 发行 jar 内消费，未反编译核对）。
 3. **1.21.6 侧同步**：本块只改 1.20.1；1.21.6 是否同病未逐项核。
-4. **7 项静态外推**：补映射中 7 项无发射实证（§4.0 已声明），补跑一轮可闭合为全实证。
+4. ~~**7 项静态外推**：补映射中 7 项无发射实证（§4.0 已声明），补跑一轮可闭合为全实证。~~ ✅ **已闭合**（260918-01 第二轮：sentinel-D 一轮传齐 13 个 `-P`，13/13 全实证，见 §4.0）。
 5. **端到端 Full 验证**：未做（止于参数发射面）。
