@@ -1306,6 +1306,8 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **处置**：本块不改门禁（范围外），登记为门禁后续强化点——强化方向 = 抽取器增补「包装函数形态」规则（识别 `WgCompat.flag(...)` 等已知包装器 + 其内部 getProperty 读取点的展开），或最小化：消费面报告显式声明「只覆盖字面量直读形态」的 coverage 注记（#169 合规的最小动作）。
 - **来源定位**：`.investigations/b62-260918-02/t4-adjudication-1216.md` §4 未处置 1 + §2.1 注。
 
+> 260918-04 追加（已处置落地）：本条登记的强化点已在 260918-04 落地——`scripts/check_switch_mapping.py` 增补**包装函数字面量实参规则**（`WRAPPERS` 注册表 + `RE_WRAPPER_CALL`，只捕字面量第一实参，登记须附一手源 file:line）+ **`RE_DYN_GETPROP` 盲区枚举**（未解析动态读点逐条 `[DYN]` 列出，不静默）+ coverage 注记（JSON 新增 `consumption_forms` / `via_wrapper` / `unresolved_dynamic_reads` / `consumption_blind_spots`）。回归证据：M2 136→138（新增恰为 `coreswap.bulkwb` / `coreswap.skipair`，即本条原盲区两开关），DEAD/CONSISTENT 不变；新显形 ORPHAN 两项定性为 SCOPED-DIRECT-D 合法旁路（无 -P 先例 + WgCompat.java:14-16 缺省权威），与 t4-adjudication §3.1 同族 4 项 DEFECT-MISSING-MAPPING 的分界 = 「文档宣传过用法 vs javadoc 未宣传的运行时 flag」。judge PASS-with-conditions（SHOULD-1..5 已闭合）。处置复用判据已沉淀为本文件**发现 #158**。置信度 candidate。来源定位：`.investigations/b61-flag-coverage-260918-04/record-260918-04.md`。
+
 ### 发现 #157: mixin 变换失败的两家族时点判据——boot 即失败 = 装载面问题（#40 家族），注入正常 + 读取时点失败 = 反射自载 mixin 本体（260918-03）
 
 - **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-03）；CoreSwap 主会话 + knowledge subagent 起草；**candidate**（同 workflow-patterns #176 的验证面）；build-tooling / mixin 运行时失败签名分型。
@@ -1315,3 +1317,14 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
   - **本家族（自载面）**：注入/织入全程正常（`handler active` 等注入日志在位），失败出现在**运行时 `Class.forName` 反射读取 mixin 类本体的时点**，且计数恒为哨兵初值；跨版本普遍（1.20.1/1.21.6 同样失败），与字节码版本/compatibilityLevel 无关。
 - **如何利用（区分判据）**：见到 `Mixin transformation of <mixin类> failed` 时第一动作 = **核对失败时点与注入日志**——boot 即失败查 json 注册/条目同步（#40 判据）；注入正常、失败在某个读取时点 → grep 源码找 `Class.forName("<mixin类>")` 反射路径，判定为自载失败（处置 = 可观测状态外移普通类，见 workflow-patterns #176），**不要立版本兼容课题、不要重查 json**。时点判据先于任何静态审查。
 - **家族索引**：**#40**（json 失同步——同字符串的装载面形态，本条为其分型对照）；**#25 补充案例**（mixin AP 警告 = APPLY FAILED 前兆——编译/装载期形态，与本条运行时形态互补）；workflow-patterns **#176**（机制与修复的通用模式面）。
+
+### 发现 #158 简记: 对账工具覆盖面升级的两段式模式——已知包装器注册表（登记附一手源 file:line）+ 未解析动态读点显式枚举（盲区列出而非静默）（260918-04，#156/#169 家族落地形态）
+
+- **观察**：#156 登记的 `WgCompat.flag` 盲区在 260918-04 落地处置，解法可复用为「形态覆盖升级模式」的两段式：
+  1. **已知包装器段**：`WRAPPERS` 注册表（函数名 → 其内部 getProperty 读取点）+ `RE_WRAPPER_CALL` 只捕**字面量第一实参**——每条注册 MUST 附一手源 file:line（本例 `WgCompat.java:14-16` 缺省权威），注册表本身可核（#169「判据的判据」在包装器维的落地）；
+  2. **盲区枚举段**：`RE_DYN_GETPROP` 抓「getProperty(变量)」类动态读点，**未解析的逐条 `[DYN]` 列出**——盲区显式化，而非「正则抓不到就静默缺失」（#163 silently-green 门在抽取器维的形态）；
+  3. 配套 **coverage 注记**：工具输出 JSON 携带 `consumption_forms` / `via_wrapper` / `unresolved_dynamic_reads` / `consumption_blind_spots`，覆盖面随数字一同交付（#169 判据的机械形态）。
+- **回归证据**：修复后 M2 136→138，新增恰为原盲区两开关（`coreswap.bulkwb` / `coreswap.skipair`），DEAD/CONSISTENT 不变——差集数字的变化可逐名对账；新显形 ORPHAN 两项按族内对称性 + 缺省权威定性为 SCOPED-DIRECT-D 合法旁路（与同族 DEFECT-MISSING-MAPPING 的分界 = 「文档宣传过用法 vs javadoc 未宣传的运行时 flag」）。
+- **判据（可复用）**：对账/抽取类工具加形态覆盖时，**新形态 = 注册表项（须附一手源定位）+ 未解析面显式枚举 + coverage 字段三件套**；只加正则不加盲区枚举 = 把静默缺失升级成静默半覆盖，比不改更危险（报告会给出看似完备的数字）。
+- **家族索引**：**#156**（本条的盲区登记前身）；**#169**（「覆盖面自身可核」——本条为其首个具体落地形态）；**#163**（silently-green 门——盲区枚举段防的就是它）；workflow-patterns **#168**（per-carrier 视角——同为「对账工具覆盖面」家族的口径维）。
+- **来源定位**：`.investigations/b61-flag-coverage-260918-04/record-260918-04.md`；`scripts/check_switch_mapping.py`（WRAPPERS / RE_WRAPPER_CALL / RE_DYN_GETPROP）。置信度 candidate。

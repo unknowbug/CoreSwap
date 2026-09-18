@@ -24,6 +24,15 @@
   另见豁免子句（探针专用路径 + 缺省权威）在 classification 的 reason 中登记。
 
 覆盖面声明（§9.7）：未扫描的载体一律不判 DEAD；新增载体 MUST 同步更新本表。
+消费面形态覆盖（#156，260918-04）：字面量直读 + 已登记包装函数（WRAPPERS）的字面量
+实参；其余形态为盲区，报告会枚举未解析动态读点（getProperty(<标识符>)），新增包装
+器 MUST 登记 WRAPPERS + 一手源 file:line（#169）。
+已知局限（judge 260918-04 SHOULD-2/3）：① RE_WRAPPER_CALL 不排除注释行——javadoc
+示例代码里的 `WgCompat.flag("字面量")` 会被计为假消费点；② 包装器体内读点的跳过按
+「路径含 WgCompat 且实参名 == 'property'」硬编码——实参名改名会失败开放（进 [DYN]
+清单，方向安全），但该文件内其他名为 property 的读点会被静默视为已解析；`WgCompat
+.flag(变量)` 调用点不被捕获且体内读点被跳过时 dyn 计数可为 0（「标识符形态=0」≠「无
+动态读」，拼接形态由 consumption_blind_spots 文本声明兜底）。
 聚合口径警告：ORPHAN 为 union 口径，会掩盖单版本缺口 —— 请看 per-version 段。
 """
 import io
@@ -61,6 +70,15 @@ RE_GETPROP = re.compile(r'System\.getProperty\("([^"]+)"')
 RE_GETINT = re.compile(r'Integer\.getInteger\("([^"]+)"')
 RE_GETBOOL = re.compile(r'Boolean\.getBoolean\("([^"]+)"')
 
+# ---- 包装函数形态（#156 盲区强化，260918-04）----
+# 已知包装器：体内 `System.getProperty(<参数>)`（变量实参，RE_GETPROP 抓不到），
+# sysprop 名由**调用点字面量实参**携带。只捕字面量第一实参，禁捕变量（防过度捕获）。
+# 新增包装器 MUST 在此登记 + 附一手源 file:line（#169：覆盖面自身必须可核）。
+WRAPPERS = ["WgCompat.flag"]
+RE_WRAPPER_CALL = re.compile(r'\b(?:' + "|".join(re.escape(w) for w in WRAPPERS) + r')\(\s*"([^"]+)"')
+# 动态读形态：`getProperty(<标识符>)` —— 已知包装器体内 = 已解析面；其余 = 盲区须逐条列出
+RE_DYN_GETPROP = re.compile(r'getProperty\(\s*([A-Za-z_$][A-Za-z0-9_$]*)\s*\)')
+
 
 def _walk(paths, exts):
     out = []
@@ -85,6 +103,8 @@ def collect():
     """
     m1, m2 = {}, {}
     pv_m1, pv_m2 = {}, {}
+    via_wrapper = set()          # 经包装函数字面量实参捕获的消费名（#156）
+    dyn_reads = []               # 未解析的动态 getProperty(<标识符>) 读点（盲区枚举）
     for gf in _walk(GRADLE_FILES, (".gradle",)):
         t = io.open(gf, encoding="utf-8", errors="replace").read()
         rel = os.path.relpath(gf, ROOT)
@@ -101,11 +121,26 @@ def collect():
         m = re.search(r"versions[\\/]([^\\/]+)[\\/]", rel)
         ver = m.group(1) if m else "(shared)"
         pv_m2.setdefault(ver, set())
+        literal_names = set()
         for rx in (RE_GETPROP, RE_GETINT, RE_GETBOOL):
             for mm in rx.finditer(t):
-                m2.setdefault(mm.group(1), set()).add(rel)
-                pv_m2[ver].add(mm.group(1))
-    return m1, m2, pv_m1, pv_m2
+                literal_names.add(mm.group(1))
+        for mm in RE_WRAPPER_CALL.finditer(t):
+            name = mm.group(1)
+            literal_names.add(name)
+            via_wrapper.add(name)
+        for name in literal_names:
+            m2.setdefault(name, set()).add(rel)
+            pv_m2[ver].add(name)
+        # 盲区枚举：动态读点。字面量直读的 arg 不是标识符，不会被此正则命中；
+        # 命中者若在 WRAPPERS 登记的包装器体内 = 已解析，否则列入盲区清单。
+        for i, line in enumerate(t.split("\n"), 1):
+            dm = RE_DYN_GETPROP.search(line)
+            if dm:
+                if "WgCompat" in rel and dm.group(1) == "property":
+                    continue  # 已登记包装器体内读点（经调用点字面量已解析）
+                dyn_reads.append((rel, i, line.strip()[:70]))
+    return m1, m2, pv_m1, pv_m2, via_wrapper, dyn_reads
 
 
 def check_scope_and_naming():
@@ -149,7 +184,7 @@ def check_scope_and_naming():
 
 
 def main():
-    m1, m2, pv_m1, pv_m2 = collect()
+    m1, m2, pv_m1, pv_m2, via_wrapper, dyn_reads = collect()
     d1, d2 = set(m1), set(m2)
     consistent = sorted(d1 & d2)
     dead = sorted(d1 - d2)
@@ -217,6 +252,15 @@ def main():
         "coverage": {
             "declaration": GRADLE_FILES,
             "consumption": SRC_DIRS,
+            "consumption_forms": [
+                "System.getProperty/Integer.getInteger/Boolean.getBoolean 字面量直读",
+                "包装函数字面量实参（已登记: %s）" % ", ".join(WRAPPERS),
+            ],
+            "consumption_blind_spots": "非上述形态的读取（如字符串拼接名/配置文件间接读取）不在消费面集合内",
+            "via_wrapper": sorted(via_wrapper),
+            "unresolved_dynamic_reads": [
+                {"file": r, "line": l, "text": t} for r, l, t in dyn_reads
+            ],
             "not_scanned": NOT_SCANNED,
         },
         "counts": {"M1": len(d1), "M2": len(d2), "consistent": len(consistent),
@@ -229,6 +273,18 @@ def main():
         out = sys.argv[sys.argv.index("--json") + 1]
         io.open(out, "w", encoding="utf-8").write(json.dumps(result, indent=1, ensure_ascii=False))
         print("\n[OK] ->", out)
+
+    # ---- 消费面覆盖注记（#156/#169：coverage 自身必须可核）----
+    print("\n-- 消费面覆盖注记（#156 强化，260918-04）--")
+    print("    已覆盖形态：字面量直读 + 包装函数字面量实参（%s）" % ", ".join(WRAPPERS))
+    if via_wrapper:
+        print("    经包装函数捕获：%s" % ", ".join(sorted(via_wrapper)))
+    if dyn_reads:
+        print("    ⚠️ 未解析动态读点 %d 处（不在消费面集合内，逐条核对是否需登记包装器）：" % len(dyn_reads))
+        for rel, ln, txt in dyn_reads:
+            print("        [DYN] %s:%d  %s" % (rel, ln, txt))
+    else:
+        print("    未解析动态读点：0")
 
     print("\n注：DEAD/ORPHAN 不等于是缺陷——多数为合法旁路（探针直接 -D 手传 / 其它 carrier 消费）。")
     print("    定性见 .investigations/b61-260917-06/t4-adjudication.md（族内对称性判据）。")
