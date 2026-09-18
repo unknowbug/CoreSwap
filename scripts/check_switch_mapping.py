@@ -161,28 +161,41 @@ def main():
     print("  CONSISTENT: %d" % len(consistent))
     print("  DEAD（仅声明，无消费）: %d" % len(dead))
     print("  ORPHAN（仅消费，未声明）: %d" % len(orphan))
+    print()
+    print("  ⚠️ 口径提示：下面的「union 段」与「per-version 段」名字会重叠但含义不同——")
+    print("     union ORPHAN = 两版**都没声明**；per-version 缺口 = **该版**没声明（可能另一版有）。")
+    print("     读数字前先确认看的是哪一段（260918-01 实测：主会话曾误读一次）。")
     if dead:
-        print("\n-- DEAD --")
+        print("\n---- [union 段] DEAD（两版合并口径：声明但全载体零消费）----")
         for k in dead:
             print("   ", k)
     if orphan:
-        print("\n-- ORPHAN --")
+        print("\n---- [union 段] ORPHAN（两版合并口径：消费但两版都未声明）----")
         for k in orphan:
             print("   ", k)
 
     # ---- per-version 缺口（union 口径会掩盖单版本缺口，#105 载体偏差家族）----
     shared_cons = pv_m2.get("(shared)", set())
     per_version = {}
-    print("\n-- per-version 缺口（union 口径掩盖的单版本缺陷）--")
+    print("\n---- [per-version 段] 单版本缺口（union 口径会掩盖的项）----")
+    print("     含义：该版(+共享)有消费点，但该版 build.gradle 未声明 ⇒ 该版用户传 -P 静默无效。")
     for ver in sorted(v for v in pv_m1 if v != "(shared)"):
         consumed = pv_m2.get(ver, set()) | shared_cons
         declared = pv_m1.get(ver, set())
         gap = sorted(consumed - declared)
         per_version[ver] = gap
+        union_orphan = sorted(set(gap) & set(orphan))
+        other = sorted(set(gap) - set(orphan))
         print("  [%s] 声明 %d / 本版(+共享)消费 %d → 缺口 %d"
               % (ver, len(declared), len(consumed), len(gap)))
-        for k in gap:
-            print("       ", k)
+        if other:
+            print("       ↑ 其中 %d 项**不在 union ORPHAN 中**（= 另一版已声明，掩盖发生在此）:"
+                  % len(other))
+            for k in other:
+                print("           *", k)
+        if union_orphan:
+            print("       ↑ 其中 %d 项同时在 union ORPHAN 中（两版都缺）: %s"
+                  % (len(union_orphan), ", ".join(union_orphan[:6])))
 
     # ---- #47 作用域 + #19 命名一致性（四家族中另两族的机械判据）----
     scope_findings, naming_findings = check_scope_and_naming()
