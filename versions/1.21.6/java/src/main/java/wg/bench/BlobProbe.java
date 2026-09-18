@@ -34,17 +34,10 @@ public final class BlobProbe {
                 }
             }
         }
-        int calls = -1, written = -1;
-        try {
-            java.lang.reflect.Field fc = Class.forName("wg.bench.mixin.BlobProbeMixin").getDeclaredField("CALLS");
-            fc.setAccessible(true);
-            calls = fc.getInt(null);
-            java.lang.reflect.Field fw = Class.forName("wg.bench.mixin.BlobProbeMixin").getDeclaredField("WRITTEN");
-            fw.setAccessible(true);
-            written = fw.getInt(null);
-        } catch (Throwable t) {
-            System.out.println("[BLOB-PROBE] stats read failed: " + t);
-        }
+        // 260918-03：计数器移到普通类 wg.bench.BlobProbeStats（此前经 Class.forName
+        // 反射读 mixin 类本体 → transformer 自变换失败，stats 恒 -1）。
+        int calls = wg.bench.BlobProbeStats.CALLS;
+        int written = wg.bench.BlobProbeStats.WRITTEN;
         System.out.println("[BLOB-PROBE] done region chunk(" + cx0 + "," + cz0 + ") size=" + size
                 + " mixinCalls=" + calls + " written=" + written);
         server.stop(false);

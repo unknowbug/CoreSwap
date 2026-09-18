@@ -1305,3 +1305,13 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
 - **影响面（本例诚实登记）**：本次**未造成误判**——两版 build.gradle 均未声明这两个开关，缺口集合不受影响（不产生假 DEAD/ORPHAN）。但这是 #169（「判据的判据」：对账工具覆盖面自身必须可核）的**家族新形态**：#169 说差集数字不可脱离 coverage 引用，本条给出一个具体的 coverage 缺口实例——抽取器正则只认「字面量直读」形态，任何经包装函数/变量中转的 sysprop 读取都是盲区。
 - **处置**：本块不改门禁（范围外），登记为门禁后续强化点——强化方向 = 抽取器增补「包装函数形态」规则（识别 `WgCompat.flag(...)` 等已知包装器 + 其内部 getProperty 读取点的展开），或最小化：消费面报告显式声明「只覆盖字面量直读形态」的 coverage 注记（#169 合规的最小动作）。
 - **来源定位**：`.investigations/b62-260918-02/t4-adjudication-1216.md` §4 未处置 1 + §2.1 注。
+
+### 发现 #157: mixin 变换失败的两家族时点判据——boot 即失败 = 装载面问题（#40 家族），注入正常 + 读取时点失败 = 反射自载 mixin 本体（260918-03）
+
+- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-03）；CoreSwap 主会话 + knowledge subagent 起草；**candidate**（同 workflow-patterns #176 的验证面）；build-tooling / mixin 运行时失败签名分型。
+- **来源定位**：`.investigations/b61x-blobprobe-260918-03/record-260918-03.md` §候选裁决表（候选 C「#40 json 失同步」证伪过程）；`.investigations/b62-260918-02/cmd-output/sentinel-1216-all12.log:142`（本家族第一现场，当时被归入 #40 家族，后修正）。
+- **观察/证据**：两种「Mixin transformation failed」同字符串不同机制——
+  - **#40 家族（装载面）**：mixin 配置 json 与 mixin 类失同步，**boot 期即失败**，织入未发生，目标方法无注入痕迹；
+  - **本家族（自载面）**：注入/织入全程正常（`handler active` 等注入日志在位），失败出现在**运行时 `Class.forName` 反射读取 mixin 类本体的时点**，且计数恒为哨兵初值；跨版本普遍（1.20.1/1.21.6 同样失败），与字节码版本/compatibilityLevel 无关。
+- **如何利用（区分判据）**：见到 `Mixin transformation of <mixin类> failed` 时第一动作 = **核对失败时点与注入日志**——boot 即失败查 json 注册/条目同步（#40 判据）；注入正常、失败在某个读取时点 → grep 源码找 `Class.forName("<mixin类>")` 反射路径，判定为自载失败（处置 = 可观测状态外移普通类，见 workflow-patterns #176），**不要立版本兼容课题、不要重查 json**。时点判据先于任何静态审查。
+- **家族索引**：**#40**（json 失同步——同字符串的装载面形态，本条为其分型对照）；**#25 补充案例**（mixin AP 警告 = APPLY FAILED 前兆——编译/装载期形态，与本条运行时形态互补）；workflow-patterns **#176**（机制与修复的通用模式面）。

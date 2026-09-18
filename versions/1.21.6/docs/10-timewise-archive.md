@@ -187,3 +187,14 @@
 - ⚠️ **附带观察（独立待查，不阻塞）**：哨兵日志 `[BLOB-PROBE] stats read failed: Mixin transformation ... failed`——1.21.6 BlobProbeMixin mixin 变换失败（「编译绿 ≠ apply 绿」#40 家族），与本块改动无因果（配置层 vs 类变换层）。
 - ⚠️ **诚实边界**：门禁 `WgCompat.flag` 消费面盲区未修（→ build-tooling #156 登记强化点）；`coreswap.bulkwb` 本体不在缺口清单（经 WgCompat.flag 读，消费面未计）；`max.bg.threads` DEAD 待核（B6-1 遗留，非本块范围）。
 - 状态：✅ judge PASS（无 M 级）；**confirmed 待用户授予**。
+
+## 260918-03（实际 2026-09-18，Get-Date 锚开工时点）：BlobProbeMixin「mixin transformation failed」根因定位 + stats 修复 + judge M-1 正例轮闭合——✅ judge PASS-with-conditions（M-1 已闭合）；confirmed 待用户授予
+
+> 过程产物 `.investigations/b61x-blobprobe-260918-03/`（`record-260918-03.md` 主记录 + `scout-map.md` + `review-260918-03-001.md` judge 三源核对 + `knowledge-draft-260918-03.md`）+ `.artifacts/blobprobe-260918-03/verdict-260918-03.md`（结果镜像，根 index 已登记）。上游：260918-02 哨兵日志的附带观察（stats read failed，当时误归 #40 家族——本块按 §15.4 收窄取代）。通用模式 → workflow-patterns **#176/#177** + build-tooling **#157**（subagent 草稿 → 主会话应用）。
+
+- ✅ **核心结论（candidate）**：`Mixin transformation of wg.bench.mixin.BlobProbeMixin failed` = **反射自载 mixin 类本体触发 transformer 自变换失败**（`Class.forName` 读 CALLS/WRITTEN 计数是全 run 唯一 mixin 本体加载时点）——非织入失败、非 1.21.6 问题（1.20.1 树 `.tmp/blob-probe/` 17 份日志自 09-02 起全部同样失败，`mixinCalls=-1` 恒为哨兵初值）；修复 = 计数器外移普通类 `BlobProbeStats` 免反射直读（仅 1.21.6 树，BlobProbe.java + BlobProbeMixin.java + 新增 BlobProbeStats.java）。
+- ❌ **被证伪候选**：B 字节码 v65/compatibilityLevel 失配（1.20.1 同样失败）；C #40 json 失同步（注入已生效 handler active）；D #12 static nested（无嵌套类）。
+- ✅ **验证（Full，实机正/负成对）**：负例基线 sentinel-1216-all12.log:142 必现；修复后轮1 stats_fail=0 + mixinCalls=7147（假阴性一轮：region 缓存吞 FEATURES，删 run\world 后过，#19 家族）；**judge M-1 闭合正例轮**（chunkX=200 与 region 相交）：written=1152 csv=1152，Q1-Q4 全过。open 保留：transformer 拒绝自变换的底层 cause（打印层吞了 cause，未开箱，不阻塞）。
+- ❌→修正 **M-1 教训（错误优先）**：WRITTEN 通路首轮「0==0 恒等对照 PASS」被 judge 抓出零正例覆盖 + P4 预登记文本被静默放宽——诚实声明 ≠ 判据成立，补相交正例轮闭合（→ workflow-patterns #177）。
+- ⚠️ **诚实边界**：judge 无 git 通道，diff 以主会话转录 + 文件现状交叉核对；普查为 grep 全量但 judge 仅抽查 1/17（S-5，record 已注明口径）。
+- 状态：✅ judge PASS-with-conditions（M-1 闭合、S1-S5 已应用）；**confirmed 待用户授予**。

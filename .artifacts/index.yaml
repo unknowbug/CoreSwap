@@ -2,6 +2,10 @@ schema_version: 1
 project: CoreSwap
 module: re-code
 entries:
+  - id: 'blobprobe:verdict-260918-03'
+    path: 'blobprobe-260918-03/verdict-260918-03.md'
+    kind: analysis
+    status: confirmed
   - id: 'form-audit:candidate-pool-260915-01'
     path: 'form-audit-260915-01/candidate-pool-260915-01.md'
     kind: analysis

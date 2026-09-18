@@ -12,10 +12,11 @@ import net.minecraft.world.gen.feature.PlacedFeature;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
+
+import wg.bench.BlobProbeStats;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,12 +36,11 @@ import java.nio.file.StandardOpenOption;
 public abstract class BlobProbeMixin {
 
     private static final boolean BLOB_PROBE = System.getProperty("blob.probe") != null;
-    private static volatile BufferedWriter BLOB_OUT;
-    @Unique private static volatile int CALLS = 0;
-    @Unique private static volatile int WRITTEN = 0;
     @Unique private static final java.util.Set<String> DIMS_SEEN = new java.util.HashSet<>();
-    // mixin 禁止非 private 静态成员（本版本连 @Unique public static 方法都拒）；
-    // BlobProbe 用反射读取这两个字段。
+    // （judge review-001 S-4：死字段 BLOB_OUT 删除；DIMS_SEEN 补 @Unique。）
+    // CALLS/WRITTEN 计数在 wg.bench.BlobProbeStats（普通类，免反射直读；
+    // 放 mixin 类本体上会被 BlobProbe 的 Class.forName 自载触发 transformer
+    // 自变换失败——260918-03 排查，见 .investigations/b61x-blobprobe-260918-03/）。
 
     @Inject(method = "generate(Lnet/minecraft/world/StructureWorldAccess;"
             + "Lnet/minecraft/world/gen/chunk/ChunkGenerator;"
@@ -50,8 +50,8 @@ public abstract class BlobProbeMixin {
                                    net.minecraft.util.math.random.Random random,
                                    BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (!BLOB_PROBE) return;
-        CALLS++;
-        if (CALLS == 1) {
+        BlobProbeStats.CALLS++;
+        if (BlobProbeStats.CALLS == 1) {
             System.out.println("[BLOB-PROBE] handler active worldClass="
                     + (world == null ? "null" : world.getClass().getName()));
         }
@@ -90,7 +90,7 @@ public abstract class BlobProbeMixin {
                 }
                 Files.write(out, (line + System.lineSeparator()).getBytes(StandardCharsets.UTF_8),
                         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                WRITTEN++;
+                BlobProbeStats.WRITTEN++;
             }
         } catch (Throwable t) {
             System.out.println("[BLOB-PROBE] dump failed: " + t);

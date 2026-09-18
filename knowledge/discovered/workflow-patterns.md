@@ -3006,3 +3006,36 @@ end 判定改为 `bottomY==0 && height==256 && endActive && settings==minecraft:
 - **观察**：B6-2 架构计划 §0 转述「exec 族（exec/maxinflight）疑 SCOPED」为待定性项。一手门禁 gap 清单实测：这两项**根本不在 1.21.6 的 21 项缺口内**——其唯一消费点在 `versions/1.20.1/.../NoiseChunkGeneratorMixin.java:106/:138`（1.20.1 树独有），1.21.6 树与共享载体均无消费点 ⇒ 无缺口、无需定性。
 - **教训**：计划/交接里的转述性列举（哪怕来自上一块的结论）不构成工作清单；**定性对象的集合以机械产出（门禁 gap 清单/扫描差集）为准**，计划转述逐项与机械清单对账，对不上的以机械为准并在定性文档里留一行更正记录（本例：t4-adjudication-1216.md §0）。#90（转抄漂移）的预防形态：不是「发现漂移后溯源」，而是开工第一步就让机械清单否决转述清单。
 - **来源定位**：`.investigations/b62-260918-02/t4-adjudication-1216.md` §0。
+
+## 发现 #176（最高价值·错误优先）: mixin 类本体不可经反射自载——stats/计数读取类诊断必须把可观测状态放普通类，禁止 `Class.forName` 读 mixin 类内部（260918-03）
+
+- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-03）；CoreSwap 主会话（排查 + judge 闭合）+ knowledge subagent 起草；**candidate**（Full 分层：原始日志重采样 + 17 份跨树日志普查 + 修复后实机正/负成对自证 ×2 轮；judge PASS-with-conditions M-1 已闭合，confirmed 留用户）；workflow-patterns / mixin 诊断设计与可观测状态放置。
+- **来源定位**：`.investigations/b61x-blobprobe-260918-03/record-260918-03.md`（主记录，含候选裁决表）；`.artifacts/blobprobe-260918-03/verdict-260918-03.md`（结果镜像）；修复前基线 `.investigations/b62-260918-02/cmd-output/sentinel-1216-all12.log:137-143`；跨树普查 `.tmp/blob-probe/*.log`（17 份 1.20.1 树日志，grep `mixinCalls|stats read failed` 命中 16 文件 32 行全部失败）。
+- **五段式（错误优先）**：
+  - **现象**：1.21.6 runServer 日志 `[BLOB-PROBE] stats read failed: RuntimeException: Mixin transformation of wg.bench.mixin.BlobProbeMixin failed`（12:56:40）；同轮早 33 秒 `[BLOB-PROBE] start / handler active / dimSeen` 正常；`mixinCalls=-1 written=-1`（哨兵初值恒定）。表象像「mixin 织入失败/版本不兼容」。
+  - **根因（机制）**：`BlobProbe.java` 经 `Class.forName("wg.bench.mixin.BlobProbeMixin").getDeclaredField("CALLS"/"WRITTEN")` 反射读取计数。**mixin 织入目标类不需要加载 mixin 类本体**——注入/采集前半段全部正常；stats 读取点是全 run **唯一一次加载 mixin 类本体**的时点，Knot/Sponge transformer 对这次**自载**尝试变换失败抛 RuntimeException。非织入失败、非 1.21.6 问题（1.20.1 树自 09-02 首跑起 17 份日志同样失败，v61+JAVA_17 匹配仍失败，「字节码版本失配」候选被证伪）。附带缺陷：只打印顶层消息、cause 被吞（transformer 拒绝自变换的更深层机制 open）。
+  - **定位（怎么发现的，可复用）**：① 时点核对——失败时间戳与注入日志分离，失败只在 stats 读取时点而非 boot；② 源码 grep 找到 Class.forName 反射路径，识别「全 run 唯一 mixin 本体加载时点」；③ **跨树普查**（跨版本历史日志全命中同一失败 + 计数恒为哨兵）一步证伪版本回归假设——跨版本历史日志普查是「版本问题 vs 设计灰区」最便宜的判别臂。
+  - **修复**：计数器外移普通 holder 类 `BlobProbeStats`（普通类加载无 transformer 介入）；mixin 改累加 holder 并删 @Unique 字段；读取侧免反射直读。验证（Full）：修复前基线必现 stats_fail；修复后负例轮 stats_fail=0 + mixinCalls=7147；正例轮 written=1152 csv=1152（见 #177）。handler active 在位（织入面未受损）。
+  - **教训（判据，MUST）**：
+    1. **mixin 类本体不可经反射自载**——`Class.forName("<Mixin类>")` 是全 run 唯一触发 transformer 对 mixin 本体自身变换的时点，失败签名 = 注入正常 + stats/读取时点失败 + 计数恒为哨兵初值。
+    2. **stats/计数读取类诊断的可观测状态 MUST 放普通类**（holder/伴生类），mixin 类只留织入逻辑；读取侧免反射直读。设计期规则，不是失败后补丁。
+    3. **「织入失败」与「stats 读取失败」的区分判据 = 失败时点**：注入日志在位（织入成功）+ 失败仅在读取时点 ⇒ 排除织入面；与 #40 的区分见 build-tooling #157。
+    4. **探针异常不得吞 cause**——只打印顶层 `+ t` 使底层机制未开箱即登记 open；诊断代码 MUST 打完整异常链。
+    5. **反模式**：把「计数恒为哨兵初值」读成「探针整体不可用」——本例 blob origins.csv 注入面数据大概率有效，失效面仅 stats 读取；结论范围 MUST 按失效面收窄。
+- **家族索引**：build-tooling **#40**（mixin json 失同步——时点判据区分）；**#55**（mixin 反射字符串不被 remapper 重写——「反射读 mixin 内部」同域另一坑，两条合读 = mixin 内部状态禁止外部反射访问的两形态）；#54（mixin 内门坐标——mixin 诊断面家族）。
+
+## 发现 #177（高价值·判据延伸）: 恒等对照（0==0）≠正例覆盖——重构后的写通路必须有过滤器相交的正例轮，诚实声明不能替代判据成立（260918-03，#110/#129 家族）
+
+- **发现时间 / 发现者 / 置信度 / module**：2026-09-18（260918-03，judge M-1 条件闭合过程沉淀）；CoreSwap 主会话 + knowledge subagent 起草；**candidate**（正例轮已实跑闭合：written=1152 csv=1152，Q1-Q4 全过）；workflow-patterns / 验证判据设计与正例覆盖纪律。
+- **来源定位**：`.investigations/b61x-blobprobe-260918-03/review-260918-03-001.md` §M-1；`record-260918-03.md` §judge 复审闭合；`.artifacts/blobprobe-260918-03/verdict-260918-03.md` §验证判据。
+- **五段式（错误优先）**：
+  - **现象**：WRITTEN 通路重构后首轮验证 P4 = 「origins csv 行数 == written」，实测 0==0 判 PASS；`mixinCalls=7147` 只直证 CALLS 通路——若 `WRITTEN++` 或 csv 写路径在重构中被破坏，P1-P4 全部仍 PASS。
+  - **根因（机制）**：**恒等对照的两侧都在「空集」上比较**——过滤器与采样区不相交，written 天然为 0，`0==0` 对写通路的任何破坏都不敏感。判据读数恒为初值/空集时，比较成立 ≠ 通路工作：零判别力的判据 PASS 不构成证据（#129「判据只有满足/未满足两种终态」在正例覆盖维的形态）。另附 M-1 第二半：P4 预登记文本（文件**存在**）与实际执行（不存在按 0 处理）被静默放宽。
+  - **定位**：judge 三源核对直查 `Test-Path csv = False`，把「0==0 PASS」还原为「文件根本不存在」；record 已诚实声明「非正例覆盖」——诚实声明让问题可见，但声明本身不闭合问题，judge 据此立 M-1 强制二选一。
+  - **修复**：补正例轮（过滤器改 chunkX=200 与 region **相交**）：mixinCalls=7147 **written=1152 csv=1152**——WRITTEN/csv 通路获非空正例覆盖，M-1 闭合。
+  - **教训（判据，MUST）**：
+    1. **恒等对照（0==0）≠ 正例覆盖**——重构/新增的**写通路**（计数→落盘）MUST 至少一次「过滤器与采样区相交」的正例轮，验 written>0 且 落盘行数==计数。
+    2. **判据预登记文本与实际执行 MUST 逐字一致**——执行不了预登记文本时 MUST 回改判据文本并收窄结论范围，不得按弱化口径判 PASS。
+    3. **诚实声明 ≠ 判据成立**——候选结论在缺口处置前不得提请 confirmed；正确的下一步是补判据（正例轮），不是靠声明降级通过。
+    4. **正例轮设计要点**：只改过滤器参数即得正例，零新仪器成本——设计判据时就应把「相交参数的正例臂」排进验证计划，而不是等 judge 抓。
+- **家族索引**：**#110**（空集/不可达断言的证明义务——本条为其「正例覆盖」维）；**#129**（判据终态——本条为其「零判别力判据」形态）；#130（行为门前置判据：该维须先有载体行——正例轮即「先造载体行」）；#27（负向测试——本条为写通路正例的对偶面）；#132（分母语义——written 口径 = 过滤后落盘行数，须同行声明）。
