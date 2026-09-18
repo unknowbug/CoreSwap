@@ -1,6 +1,6 @@
 # light 接管面读写声明表（B6-3 试点，260918-06）
 
-- 状态：**draft**（Degraded——静态源码读取 + F3/F4 消歧事实继承；零运行验证；judge review-260918-06 PASS-with-conditions S1-S5 已应用）
+- 状态：**confirmed**（用户 2026-09-18 授权，260918-06 块内；此前 judge review-260918-06 PASS-with-conditions S1-S5 已应用；静态读面声明按 Degraded 证据链授予——运行时触达子集由 pbeta05c 证据背书，未触达键不外推）
 - §9.7 等价档位（judge S5 补行）：**E1 同构建态单变量**（比对证据 = pbeta05c.log，单 seed × 2025-chunk × 3 boot × legacy 臂 packed 路，n=1 载具）；声明本体为静态读面（Degraded），运行时触达子集仅由该证据源背书，**不外推**其他臂/维度/ABI 形态。
 - 范围：light 接管面 = `ServerLightingProviderMixin.java`（1.20.1）+ `LightPalDump` / `LightDomainBatch` / `BulkWb`（跨面触点标注）+ Rust `worldgen-core/src/light/` + `versions/1.20.1/rust/src/jni_bridge.rs`。仅 1.20.1 面（1.21.6 未普查，见诚实声明）。
 - 行号置信度：本表所有 file:line 均为本 worker 一手逐行核对（2026-09-18 本轮读源），非 scout 图转述；「未核」字样 = 未读到。
