@@ -6,12 +6,17 @@
   本工程有 100+ 个 gradle -P 开关，映射表（build.gradle 手工维护）与消费点
   （源码 System.getProperty）是**两份手工事实源**，过去靠人记，已致灾多起
   （#8 漏行静默不生效三犯 / #19 点分名 / #47 映射作用域 / #56 覆盖不全）。
-  本工具把两者机械对账，输出四态：CONSISTENT / DEAD / ORPHAN / 分类定性。
+  本工具把两者机械对账。
+
+四家族覆盖（objective 明列的 #8/#19/#47/#56 各有对应检查）：
+  #8/#56 漏映射/覆盖不全 → DEAD（声明无消费）+ ORPHAN（消费无声明）+ per-version 缺口
+  #47    映射作用域     → run.vmArg 是否落在「接收 run 的闭包」之外（负向测试已验证可失败）
+  #19    命名不一致     → 同文件内点分/驼峰并存报告（补映射时须与族对齐）
 
 用法：
     python scripts/check_switch_mapping.py                  # 对账 + 摘要
     python scripts/check_switch_mapping.py --json out.json  # 导出机读结果
-    python scripts/check_switch_mapping.py --strict         # 存在 DEFECT 时非零退出（门禁模式）
+    python scripts/check_switch_mapping.py --strict         # DEAD∪单版本缺口∪作用域违规 → 非零退出
 
 判据（族内对称性，260917-06 T4 裁决确立）：
     族内存在 >=1 个 -P 映射先例 => 未映射项 = DEFECT（用户自然预期可用 -P）
@@ -19,6 +24,7 @@
   另见豁免子句（探针专用路径 + 缺省权威）在 classification 的 reason 中登记。
 
 覆盖面声明（§9.7）：未扫描的载体一律不判 DEAD；新增载体 MUST 同步更新本表。
+聚合口径警告：ORPHAN 为 union 口径，会掩盖单版本缺口 —— 请看 per-version 段。
 """
 import io
 import json
@@ -102,6 +108,46 @@ def collect():
     return m1, m2, pv_m1, pv_m2
 
 
+def check_scope_and_naming():
+    """#47 作用域检查 + #19 命名一致性检查（B6-1 四家族中另外两族的机械判据）。
+
+    #47：`run.vmArg` 只在「接收 run 参数的闭包」或 loom `runs { }` 块内可见——
+    写在闭包外（如 tasks.matching{} 配置期）会失败或静默不生效。判据：
+    统计每个 gradle 文件中 `run.vmArg` 的**闭包内外**分布；闭包外的行数 > 0 即告警。
+    #19：`-P` 属性名命名形态不统一（点分 'biome6.colDump' vs 驼峰 'blockProbeFull'），
+    历史上导致「按族名猜属性名」的静默不生效。判据：报出同族（-D 名前缀）内的
+    混合命名形态，供补映射时对齐。
+    """
+    scope_findings = []
+    naming_findings = []
+    for gf in _walk(GRADLE_FILES, (".gradle",)):
+        rel = os.path.relpath(gf, ROOT)
+        lines = io.open(gf, encoding="utf-8", errors="replace").read().split("\n")
+        # ---- #47：闭包边界（以 def <name> = { ... } 形式识别接收 run 的闭包）----
+        ranges = []
+        for i, l in enumerate(lines):
+            m = re.match(r"\s*def\s+(\w+)\s*=\s*\{\s*(\w+)\s*->", l)
+            if m and m.group(2) == "run":
+                depth = 0
+                for j in range(i, len(lines)):
+                    depth += lines[j].count("{") - lines[j].count("}")
+                    if j > i and depth == 0:
+                        ranges.append((i, j))
+                        break
+        for i, l in enumerate(lines):
+            if "run.vmArg" not in l:
+                continue
+            if not any(a <= i <= b for a, b in ranges):
+                scope_findings.append((rel, i + 1, l.strip()[:70]))
+        # ---- #19：属性名形态（点分 vs 驼峰）----
+        props = set(re.findall(r"findProperty\('([A-Za-z0-9_.]+)'\)", "\n".join(lines)))
+        dotted = sorted(p for p in props if "." in p)
+        camel = sorted(p for p in props if "." not in p and re.search(r"[A-Z]", p))
+        if dotted and camel:
+            naming_findings.append((rel, len(dotted), len(camel), dotted[:4], camel[:4]))
+    return scope_findings, naming_findings
+
+
 def main():
     m1, m2, pv_m1, pv_m2 = collect()
     d1, d2 = set(m1), set(m2)
@@ -138,6 +184,22 @@ def main():
         for k in gap:
             print("       ", k)
 
+    # ---- #47 作用域 + #19 命名一致性（四家族中另两族的机械判据）----
+    scope_findings, naming_findings = check_scope_and_naming()
+    print("\n-- #47 作用域检查（run.vmArg 在接收 run 的闭包之外）--")
+    if scope_findings:
+        for rel, ln, txt in scope_findings:
+            print("    [OUT-OF-SCOPE] %s:%d  %s" % (rel, ln, txt))
+    else:
+        print("    OK：全部 run.vmArg 均在有效闭包内")
+    print("\n-- #19 命名一致性（同文件内点分/驼峰并存）--")
+    if naming_findings:
+        for rel, nd, nc, ds, cs in naming_findings:
+            print("    %s：点分 %d（%s…） / 驼峰 %d（%s…）" % (rel, nd, ", ".join(ds), nc, ", ".join(cs)))
+        print("    注：二义并存非缺陷，但补映射 MUST 与所在族对齐（#19 三犯家族）")
+    else:
+        print("    OK：无并存")
+
     result = {
         "coverage": {
             "declaration": GRADLE_FILES,
@@ -148,6 +210,7 @@ def main():
                    "dead": len(dead), "orphan": len(orphan)},
         "dead": dead, "orphan": orphan,
         "per_version_gaps": per_version,
+        "out_of_scope": [{"file": r, "line": l, "text": t} for r, l, t in scope_findings],
     }
     if "--json" in sys.argv:
         out = sys.argv[sys.argv.index("--json") + 1]
@@ -157,10 +220,10 @@ def main():
     print("\n注：DEAD/ORPHAN 不等于是缺陷——多数为合法旁路（探针直接 -D 手传 / 其它 carrier 消费）。")
     print("    定性见 .investigations/b61-260917-06/t4-adjudication.md（族内对称性判据）。")
     print("    ⚠️ union 口径的 ORPHAN 会掩盖单版本缺口——请以 per-version 段为准。")
-    # --strict：DEAD 非空 或 任一版本存在缺口 即非零退出
-    if "--strict" in sys.argv and (dead or any(per_version.values())):
-        n = len(dead) + sum(len(g) for g in per_version.values())
-        print("\n[FAIL] 存在 %d 项 DEAD/单版本缺口" % n)
+    # --strict：DEAD 非空 或 任一版本缺口 或 存在作用域外 run.vmArg 即非零退出
+    if "--strict" in sys.argv and (dead or any(per_version.values()) or scope_findings):
+        n = len(dead) + sum(len(g) for g in per_version.values()) + len(scope_findings)
+        print("\n[FAIL] 存在 %d 项 DEAD/单版本缺口/作用域违规" % n)
         return 1
     return 0
 
