@@ -1842,3 +1842,22 @@ entries:
     # C-6 记录完成：per-chunk 折算域批 ~0.98ms vs legacy 6.263ms（调用层口径，非端到端）；
     #   A1 正式判别通道缺失（LIGHTPROBE-T 不覆盖域批路径，降级声明）。
     # 通用模式 → workflow-patterns #161（world 身份陷阱）。
+
+  # === 260918-12 归档小项补登（judge S4）：260918-04 / 260918-08 两块此前无 root index 条目 ===
+  - id: 'swe:b61-flag-coverage-260918-04:record'
+    path: '../.investigations/b61-flag-coverage-260918-04/record-260918-04.md'
+    kind: record
+    status: confirmed   # 用户 2026-09-18 授权确认（judge PASS-with-conditions 条件已闭合）
+    # 门禁消费面抽取 WgCompat.flag 盲区强化（build-tooling #156 处置）：包装函数形态规则 + 动态读点盲区枚举
+    #   + coverage 注记；bulkwb/skipair 定性 = SCOPED-DIRECT-D（ORPHAN 显形非缺陷），与 t4 §3.1 族内 4 项分界已显式登记。
+    #   产物：scripts/check_switch_mapping.py 改动 + .tmp/260918-04/ 对照件。
+  - id: 'swe:b61-260918-08:record'
+    path: '../.investigations/b61-260918-08/record.md'
+    kind: record
+    status: draft   # 交接数字漂移修正（21→实测 1.20.1=13 / 1.21.6=11）；.b1 未提供取代 confirmed 的新证据，无 §15.4 取代；confirmed 待用户
+    # B6-2 续块：开关缺口收口。per-version 缺口实测清单 + bulkwb/skipair 双候选复核（b1 DEFECT 不采纳 / b2 SCOPED 维持）。
+    #   产物：record + candidates/.b1/.b2 + judge-review + 架构计划-260918-08 + .tmp/260918-08/pv_gaps.py。
+  - id: 'swe:b61-260918-08:judge-review'
+    path: '../.investigations/b61-260918-08/judge-review-260918-08.md'
+    kind: review
+    status: candidate

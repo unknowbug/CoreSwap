@@ -10,8 +10,8 @@ entries:
   - id: 'legacy-run3:verdict-260918-11'
     path: 'verdict-260918-11.md'
     kind: analysis
-    status: candidate
-    note: 'lr3b 新 seed 8820042113345982107 干净链 run2→run3 changed=0/2025、SELFCERT 全绿（world 身份三项闭合）——「legacy 干净链收敛」n=1 → n=2 双 seed 复现；confirmed 留用户'
+    status: confirmed  # 用户授予 260918-12（2026-09-18 22:27 开场 hook 拍板）
+    note: 'lr3b 新 seed 8820042113345982107 干净链 run2→run3 changed=0/2025、SELFCERT 全绿（world 身份三项闭合）——「legacy 干净链收敛」n=1 → n=2 双 seed 复现；用户 confirmed 260918-12'
   - id: 'legacy-run3:judge-260918-11'
     path: '../../.investigations/legacy-run3-260918-11/judge-review-260918-11.md'
     kind: review
