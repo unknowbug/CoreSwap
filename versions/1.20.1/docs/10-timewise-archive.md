@@ -3398,3 +3398,19 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 📌 **边界**：声明表三条人工标注中 ①mixin:644（状态机不可达）②bin-diag（结构性不可达）不在求值器域内（非门控关闭形态）；vanilla-min.log 为合成载体只证能力；事实封闭集仅 light 面，扩面先扩集。judge 备忘：domain 臂 DECLARED 缺 `wgLightDomainWriteBack` 三键 = v1/S2 继承盲区，随第二接管面扩面。
 - 📌 **知识库**：workflow-patterns **#183**（subagent 草稿 + 主会话应用）；docs 07 篇零更新（能力演示无新管线结论）。
 - **证据指针**：`.investigations/b63-260918-07/{record-260918-07.md, judge-review-260918-07.md}`；载体 `.tmp/260918-07/`（v2 比对器 + 夹具 + v1 备份，不入库）。
+
+## 260918-10 块（实际 2026-09-18 21:04 起，Get-Date 锚；R9-b light reader × bulk writer SENTINEL 覆盖判定——三候选收敛「无正确性缺口」）🔍 candidate（judge PASS-with-conditions 条件已应用；confirmed 留用户；Degraded 全静态）
+
+> 承接 260913-02/03 R9-b（单写者不变量 + sentinel 落地，均 confirmed）遗留的**读者侧**判定缺口。架构 = `.investigations/000-架构设计/架构计划-260918-10-R9b-light-reader-sentinel.md`（用户批准）。过程产物 `.investigations/r9b-light-260918-10/`（record + scout-map + .b1/.b2/.b3 + cmd-output）。
+> 本块开场 hook：260918-09 定性 + 知识库 #186 confirmed 授予并回写（用户 2026-09-18 21:2x 拍板）。
+
+- ✅ **scout 勘探**：读者清单 R1-R9（裸引用/门/获取途径逐站点分类）+ 时序交叉 W1-W6 + OQ-1~OQ-6 开放问题面（scout-map.md）；mcsrc 双树版本疑点登记（scout §5，后由 worker 消解）。关键负发现：无「Rust 光照线程经 JNI 直读 Java sections」形态——Rust light 是纯函数内核。
+- ✅ **fan-out 三候选**（判定树 ≥2 互斥候选，强制触发）：.b1「已覆盖说」（volatile status 门独立构成 HB——成立）/ .b2「真缺口说」（不 join future = 无 HB——**不成立，自证伪**）/ .b3「vanilla 同构既有说」（义务承载三要素原样保留——成立，附限缩：R1/R2 为新增站点，同构义务论证不独立于 b1）。
+- ❌→✅ **b2 自证伪（本块关键错误链，教训已沉淀 → workflow-patterns #187）**：b2 前提「status 普通写且无同步边」被一轮一手源实读直接证伪——读者门所读 `ProtoChunk.status` 是 **volatile** 字段（ProtoChunk.java:42，双树逐字一致）；b2 按诚实规则如实改判「HB 闭合」，并给出加固选项清单（读者登记 / future join / volatile 化——最后一项实为无操作）。**判错方法**：见「轮询门」先 grep 门所读字段声明（volatile/CAS/普通），再谈 HB 有无；**「检测面盲区 ≠ 正确性缺口」分开裁决**。
+- ✅ **T2 收敛裁决**：① R1/R2 × bulk 写回无 data race（volatile 门 HB，传递边由 ChunkStatus.java:361 volatile 守卫读 / CF 依赖链双重承载）；② OQ-5 闭合（无半构造窗口，门后无并发写者）；③ SENTINEL 读者不登记 = 检测面盲区非正确性缺口（OQ-4）；④ OQ-2 结构性闭合（vanilla 读者更弱——连门都没有，ChunkLightProvider.java:72-77）。全文 → record.md §1。
+- ✅ **mcsrc 版本疑点消解**：双通道（sha256 关键 7 文件 **7/7 一致** + 版本特征符 =1.20.x 且 <1.20.2）确证引用树 = 1.20.1（.b3 §0；复算留痕 `cmd-output/mcsrc-sha256.txt`，judge SHOULD-3）。
+- ⚠️ **附带勘误（§15.4）**：07 篇「INITIALIZE_LIGHT 1.21.6 新增」与 1.20.1 源冲突（ChunkStatus.java:158 已存在，judge 独立核实）——取代注已插原句后（原句不改）；根因 = 「1.21.6 拆站形态」与「状态存在性」混淆，教训 = 「新增」半句落笔前 MUST 对旧版本树做存在性 grep。
+- ✅ **judge（MUST，收尾三源）**：PASS-with-conditions（0 MUST / 4 SHOULD / 3 INFO）——SHOULD-1（record HB 传递边明示）/ SHOULD-2（「无需 Degraded」措辞与分层声明矛盾修正）/ SHOULD-3（sha256 复算留痕）/ SHOULD-4（#143 全称否定残留边界句）均已应用；核心风险点（volatile release/acquire 反序窗口）judge 独立推演确认不存在。
+- 📌 **决策点（用户拍板）**：OQ-4 scope——**sentinel 读者登记不实施**（检测面增强属 SHOULD 级可选项，非义务修复；实施需评估光照热路径开销）。OQ-6（INPLAY 期）维持超范围。
+- 🔍 **诚实边界**：Degraded 全静态（无 behavior 证据）；R4/R5 TicketManager 装配细节未实读；候选收敛的 confirmed 待用户。
+- 📌 **知识库**：workflow-patterns **#187**（subagent 草稿 + 主会话应用，judge 传递边要点已并入判据 1）；07 篇勘误取代注 + R9-b 追加小节 + 10 篇本条目；INDEX 同步。草稿：`.investigations/r9b-light-260918-10/knowledge-draft-260918-10.md`。

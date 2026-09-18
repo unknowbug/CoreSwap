@@ -1522,6 +1522,7 @@ unctional-errors.md F1-F3）：
 
 - **A1-A6 于 1.21.6 全部成立**（与 260913-02 record §2 同构对拍表，直接可比）；且 **A1 更强**：1.21.6 新增 `progressStatus`（`AbstractChunkHolder.java:220-230`，`currentStatus` CAS）= 每状态任务启动一次性 CAS 门，叠加 `chunkFuturesByStatus` CAS 去重（:137-148），单写者保证比 1.20.1 更强。
 - **1.21.6 结构变化对照要点**（不影响机制结论）：`ChunkHolder.futuresByStatus` 上移改名 `AbstractChunkHolder.chunkFuturesByStatus`；`ThreadedAnvilChunkStorage` → `ServerChunkLoadingManager`；ChunkStatus 任务从内联 lambda 分离为 `ChunkGenerationStep`/`ChunkGenerationSteps` 注册链（`Builder(previousStep)` 乱序抛异常，有序性由结构保障）；光照拆出 `INITIALIZE_LIGHT` 新状态（1.21.6 新增）；邻居前置由 `ChunkLoader.loadAll/load`（`accumulatedDependencies`）结构化承担——J1 措辞（等待的是生成用前置状态）依然成立。
+  - ⚠️ **§15.4 取代注（260918-10）**：上行「`INITIALIZE_LIGHT` 新状态（1.21.6 新增）」**「1.21.6 新增」部分被取代**——INITIALIZE_LIGHT 在 **1.20.1 源已存在**（`ChunkStatus.java:158`；勘误依据 = 双树逐字节对账 `.tmp/scout-260905-08/mcsrc` × `versions/1.20.1/data/mc_src_extract` 关键 7 文件 sha256 **7/7 一致**，见 `.investigations/r9b-light-260918-10/record.md` §2 + `.b3` §0）。1.21.6 侧的**真实结构差异** = ChunkStatus 任务改为经 `ChunkGenerationSteps` 注册链（`Builder(previousStep)` 结构化承担有序性，上行前文已述），**不是** INITIALIZE_LIGHT 状态本身的引入。上行其余对照要点（futuresByStatus 上移 / TACS 改名 / 注册链 / 邻居前置结构化）不受影响。
 - **sentinel 1.21.6 两臂冒烟**（承 260913-03 落地的 debug 门控检测器，`run_sentinel_1216.ps1` 改造自 1201 版）：off 臂 `armed=0 / wb=576 / crash=0`，on 臂 `armed=1 / wb=576 / crash=0`——门开行为化自证命中、576 chunk 零误报零 crash、门关零介入（suspExc=3 两臂同值 = WMI COM 良性噪声，#139② 排除集）。**1.21.6 行为零变化（门关臂）+ sentinel 在 1.21.6 行为符合预期（Full 行为级证据）**。
 - **judge**：隔离 subagent 三源核对 = **PASS-with-conditions**（唯一偏移 = `ServerChunkLoadingManager.generate` 实际 :635-664 / "Parent chunk missing" :644，audit 原写 :632-661/:639-641 偏移 ~3 行、机制措辞一致；后续记录以实际行号为准）；SHOULD（两臂日志补落盘 `cmd-output/sentinel1216-{off,on}.log(.err)`）与 INFO 均已应用。
 - **状态：candidate，confirmed 待用户授予。** §9.7：静态论证为 Degraded（同残留边界随转：未来新增跨 future 边缓存 section 的消费者仍须重开 A5）；冒烟为 Full 行为级。
@@ -1615,3 +1616,24 @@ CP-3 已落地（260915-02）、CP-6 已结案（260915-02）不变；耦合约�
 
 ### judge 与状态
 judge（隔离子代理）三源核对 8 项独立复算零漂移，**PASS-with-conditions**：C-1（R_sticky 复算引用更新）/ C-2（A3 不触发显式声明）/ C-3（CP-4 驱动窗范围限定）——均已应用；N-2（513.3-1069.4 勘误）/ N-3（S 口径落死 = 分窗中位）/ N-6（>14 阈值方向抽查）已应用。**状态：candidate，confirmed 待用户授予。** 未闭合项 7 条（G2 旁证缺位单腿 / CallerRuns 归属 / O_A2 缺失 / 绝对延迟未立判据 / B1 S=1.18 观察 / boot 段 F 未测等）见 interpretation-draft §3。
+
+## 260918-10 追加：light reader × bulk writer 覆盖判定（无正确性缺口）— **candidate**（judge PASS-with-conditions 条件已应用；confirmed 留用户）
+
+> 承接上文 R9-b 两节（单写者不变量 + sentinel 落地）：本块补齐其**读者侧**覆盖判定——「R1/R2 光照读者 × bulk 写回是否存在读写竞争缺口」。载体与依据：`.investigations/r9b-light-260918-10/`（record + scout-map + .b1/.b2/.b3 候选件 + judge）。**验证分层 = Degraded（全静态一手源对拍 + 双树 sha256 7/7 对账；无 trace/behavior 级证据）**。通用模式 → `knowledge/discovered/workflow-patterns.md` #187。
+
+### 结论（4 点）
+1. **R1/R2 光照读者 × bulk 写回：无 data race 缺口**——读者门 `getStatus().isAtLeast(FEATURES)`（`ServerLightingProviderMixin.java:313`）所读 `ProtoChunk.status` 为 **volatile** 字段（`ProtoChunk.java:42`），写者链 `BulkWb` plain 写（:205-209）→ `setStatus(NOISE)` volatile 写（`ChunkStatus.java:361-362`，thenApply 内）= release，读者 volatile 读 = acquire ⇒ 门过即 HB 成立；**不依赖 future join，不依赖 ChunkHolder futuresByStatus（读者根本不触碰）**。HB 传递边：release/acquire 逐写逐读配对，NOISE 写者 → 读者之间的传递性由 **ChunkStatus.java:361 的 volatile 守卫读**（FEATURES 写者写前必先 volatile 读 status ⇒ 继承 NOISE 全部 plain 写）与 **CompletableFuture 依赖链**双重承载，任一即足（judge 独立推演「旧 section 内容 × 新 status」反序窗口不存在）。
+2. **OQ-5 闭合**：门内读者 `writePacket` 迭代容器内部结构无半构造窗口——新容器在换入前完整构造（`BulkWb.java:201`），门过后无并发写者；`PalettedContainer.data` volatile（:36）为 vanilla 固有兜底（旧/新原子切换）。
+3. **SENTINEL 读者不登记 = 检测面盲区（OQ-4），非正确性缺口**——vanilla 本无读者在飞检测器；加固（读者登记 / future join）从「义务修复」降级为 SHOULD 级可观测性增强；**用户拍板（260918-10）：不实施**；未实施前读者×写者在飞重叠不可观测。
+4. **OQ-2 大部闭合**：vanilla 自身读者（`ChunkLightProvider.java:72-77`）连 status 门都没有，CoreSwap R1/R2 读者侧更严 ⇒ 形态 ∈ vanilla 既有义务类；bulk 写将可见中间态从「逐块渐进」收敛为「按 section 旧或新完整容器」= 原子性增强。
+
+### 证据定位
+- 三候选收敛：`.investigations/r9b-light-260918-10/record.md` §1（.b1 成立 / .b2 不成立·自证伪 / .b3 成立·限缩）；逐条 file:line 证据表见 `.b1`（E1-E9）/ `.b2`（E1-E7）/ `.b3`（V1-V6 + C1-C3 + D1-D2）。
+- mcsrc 版本疑点消解：record §2 + `.b3` §0（双树 7/7 sha256 + 版本特征符双通道，1.20.1 确证；复算留痕 `cmd-output/mcsrc-sha256.txt`）。
+- 勘误：本文件上文「INITIALIZE_LIGHT 1.21.6 新增」已按 §15.4 加取代注（260918-10）。
+
+### 诚实边界（Degraded 边界，随结论携带）
+- **全静态（Degraded）**：HB 为 JMM 演绎非运行时实测；无 behavior 级证据。
+- **「FEATURES 后无 block 容器写者」为全称否定断言（#143 残留边界）**：未来 status 链改动（新增写 block 容器的 status）不承担本判定证明义务，届时须重开。
+- **R4/R5（gate 关 vanilla 回退路径）的 TicketManager margin 装配细节未实读**——对 R4 不做同强度主张（结构性同链保护成立）。
+- **OQ-6（INPLAY 期读者×写者）超本块范围**，维持 open。
