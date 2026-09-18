@@ -114,7 +114,9 @@ if (project.findProperty('betaprobe') != null) run.vmArg "-Dcoreswap.light.betap
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
             if (project.findProperty('blockProbeFull') != null) run.vmArg "-DblockProbe.full=${project.findProperty('blockProbeFull')}"
-            if (project.findProperty('biome6oct') != null) run.vmArg "-Dbiome6oct=true"
+            // B6-1 核（260918-01）：-Pbiome6oct 为**死开关**（两版 build.gradle 均声明、全载体零消费，
+// 见 .investigations/b61-260917-06/t4-adjudication.md §3.3）——传参静默无效。保留映射行待用户裁决（删除属行为面变更）。
+if (project.findProperty('biome6oct') != null) run.vmArg "-Dbiome6oct=true"
             if (project.findProperty('biome6cal') != null) run.vmArg "-Dbiome6cal=true"
             if (project.findProperty('biome6') != null) run.vmArg "-Dbiome6=true"
             if (project.findProperty('biome6dim') != null) run.vmArg "-Dbiome6.dim=${project.findProperty('biome6dim')}"
@@ -142,6 +144,9 @@ if (project.findProperty('chunkRandomProbe') != null) run.vmArg "-DchunkRandom.p
             if (project.findProperty('cppReplace') != null) run.vmArg "-Dcpp.replace=1"
             if (project.findProperty('cppVanilla') != null) run.vmArg "-Dcpp.vanilla=1"
             if (project.findProperty('cppDebug') != null) run.vmArg "-Dcpp.debug=1"
+// B6-1 核（260918-01）：-PcppNoBatch 为**死开关**——文档（docs/07-block-pipeline.md:323 +
+// 10-timewise-archive.md:839）明文写它「保留」，但消费已随 C++ 归档消失（全载体零消费）⇒
+// 文档引用者以为有效（#19 家族）。保留映射行待用户裁决（删除属行为面变更）。
 if (project.findProperty('cppNoBatch') != null) run.vmArg "-Dcpp.noBatch=1"
 // 句柄级阶段开关（260902-09）：bit0=SKIP_CARVER bit1=SKIP_FEATURES bit2=SKIP_SURFACE；7 = noise-only
 if (project.findProperty('rustStages') != null) run.vmArg "-Dcoreswap.rust.stages=${project.findProperty('rustStages')}"
@@ -161,6 +166,18 @@ if (project.findProperty('formdrive') != null) run.vmArg "-Dcoreswap.formdrive=1
 // -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；-Pfjp1=1 → 单车道臂（common FJP parallelism=1）
 if (project.findProperty('execpool') != null) run.vmArg "-Dcoreswap.execpool=${project.findProperty('execpool')}"
 if (project.findProperty('fjp1') != null) run.vmArg "-Djava.util.concurrent.ForkJoinPool.common.parallelism=1"
+// B6-1 补（260918-01，severity 最高）：exec 族回退手段 + maxinflight。
+// 消费点 NoiseChunkGeneratorMixin.java:106/:138；exec=0 是 exec 转正的用户拍板回退手段，
+// 而兄弟 execpool 已有映射 ⇒ 族内不对称缺陷（「回退开关 MUST 在位」判据）。
+if (project.findProperty('exec') != null) run.vmArg "-Dcoreswap.exec=${project.findProperty('exec')}"
+if (project.findProperty('maxinflight') != null) run.vmArg "-Dcoreswap.maxinflight=${project.findProperty('maxinflight')}"
+// B6-1 补（260918-01，severity 最高）：bulkwb 族 4 项——消费点 java-core/BulkWb.java:91/93/95/97（生产写回链），
+// 两版 build.gradle 原全文零映射；而 -Dcoreswap.bulkwblog 是 MUST 级「等价性 × 臂变量生效自证」判据的唯一仪器
+// （workflow-patterns #150 实证 wbcontent 缺失导致整个验证面缺席）⇒ 仪器不可达 = 判据结构性无法满足。
+if (project.findProperty('bulkwblog') != null) run.vmArg "-Dcoreswap.bulkwblog=1"
+if (project.findProperty('wbcontent') != null) run.vmArg "-Dcoreswap.wbcontent=1"
+if (project.findProperty('bulkwbtest') != null) run.vmArg "-Dcoreswap.bulkwbtest=1"
+if (project.findProperty('bulkwbsentinel') != null) run.vmArg "-Dcoreswap.bulkwbsentinel=1"
 // -Pstallwatch=<秒> → 停滞看门狗（诊断专用，默认关）：每 N 秒打全部线程栈（沙箱禁 jstack 时的唯一手段）
 if (project.findProperty('stallwatch') != null) run.vmArg "-Dcoreswap.stallwatch=${project.findProperty('stallwatch')}"
             if (project.findProperty('cppLib') != null) run.vmArg "-Dcpp.worldgen.lib=${project.findProperty('cppLib')}"
@@ -179,6 +196,11 @@ if (project.findProperty('wgDiagNether') != null) run.vmArg "-Dwg.diagNether=1"
 if (project.findProperty('blobProbe') != null) {
     run.vmArg "-Dblob.probe=1"
     if (project.findProperty('blobProbeOut') != null) run.vmArg "-DblobProbe.out=${project.findProperty('blobProbeOut')}"
+    // B6-1 补（260918-01）：族内不对称缺陷（同族 blobProbeOut 已映射）
+    if (project.findProperty('blobProbeChunkX') != null) run.vmArg "-DblobProbe.chunkX=${project.findProperty('blobProbeChunkX')}"
+    if (project.findProperty('blobProbeChunkZ') != null) run.vmArg "-DblobProbe.chunkZ=${project.findProperty('blobProbeChunkZ')}"
+    if (project.findProperty('blobProbeSize') != null) run.vmArg "-DblobProbe.size=${project.findProperty('blobProbeSize')}"
+    if (project.findProperty('blobProbeDim') != null) run.vmArg "-DblobProbe.dim=${project.findProperty('blobProbeDim')}"
 }
 if (project.findProperty('surfaceColDump') != null) {
     run.vmArg "-DsurfaceColDump=1"
@@ -187,6 +209,9 @@ if (project.findProperty('surfaceColDump') != null) {
 if (project.findProperty('colProfProbe') != null) run.vmArg "-Dcolprof.probe=1"
 if (project.findProperty('colProfMode') != null) run.vmArg "-Dcolprof.mode=${project.findProperty('colProfMode')}"
 if (project.findProperty('colProfR') != null) run.vmArg "-Dcolprof.r=${project.findProperty('colProfR')}"
+// B6-1 补（260918-01）：族内不对称缺陷（probe/mode/r 已映射，x/z 缺）
+if (project.findProperty('colProfX') != null) run.vmArg "-Dcolprof.x=${project.findProperty('colProfX')}"
+if (project.findProperty('colProfZ') != null) run.vmArg "-Dcolprof.z=${project.findProperty('colProfZ')}"
 if (project.findProperty('surfaceDump') != null) {
     run.vmArg "-Dsurfacedump.probe=1"
     if (project.findProperty('surfaceDumpChunkX') != null) run.vmArg "-Dsurfacedump.chunkX=${project.findProperty('surfaceDumpChunkX')}"
@@ -194,6 +219,8 @@ if (project.findProperty('surfaceDump') != null) {
     if (project.findProperty('surfaceDumpSize') != null) run.vmArg "-Dsurfacedump.size=${project.findProperty('surfaceDumpSize')}"
     if (project.findProperty('surfaceDumpOut') != null) run.vmArg "-Dsurfacedump.out=${project.findProperty('surfaceDumpOut')}"
     if (project.findProperty('surfaceDumpOutPost') != null) run.vmArg "-Dsurfacedump.outPost=${project.findProperty('surfaceDumpOutPost')}"
+    // B6-1 补（260918-01）：族内 5/6 已映射而 dim 缺 = 族内不对称缺陷（族内对称性判据 + 行为化哨兵实证实锤）
+    if (project.findProperty('surfaceDumpDim') != null) run.vmArg "-Dsurfacedump.dim=${project.findProperty('surfaceDumpDim')}"
 }
 if (project.findProperty('noiseDump') != null) {
     run.vmArg "-Dnoisedump.probe=1"
