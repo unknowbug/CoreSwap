@@ -1,0 +1,40 @@
+{
+ "mode": "legacy",
+ "seed": "8820042113345982107",
+ "common": 2025,
+ "changed_2to3": 0,
+ "warmup_1to2": 153,
+ "per_boot": {
+  "run1": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run2": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run3": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  }
+ },
+ "world_id": {
+  "level_dat_exists": true,
+  "seed_in_leveldat": true,
+  "region_files": 4,
+  "region_min_mtime_gt_rmtree": true,
+  "region_min_mtime": 1789740845.5827072,
+  "rmtree_epoch": 1789740532.6727943,
+  "note": "rmtree_epoch 为 SHOULD-1 补录（源自 lr3b.log [OK] rmtree epoch 行），使 region_min_mtime_gt_rmtree 可第三方复算"
+ },
+ "changed_set": []
+}

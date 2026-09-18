@@ -1,0 +1,38 @@
+{
+ "mode": "legacy",
+ "seed": "8820042113345982107",
+ "common": 2025,
+ "changed_2to3": 0,
+ "warmup_1to2": 158,
+ "per_boot": {
+  "run1": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run2": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  },
+  "run3": {
+   "done": 1,
+   "lightInit_ok": 1,
+   "domain_hook": 0,
+   "fallback": 0,
+   "dll_sha8": "6f7fa3ae"
+  }
+ },
+ "world_id": {
+  "level_dat_exists": true,
+  "seed_in_leveldat": false,
+  "region_files": 4,
+  "region_min_mtime_gt_rmtree": true,
+  "region_min_mtime": 1789740485.6520343
+ },
+ "changed_set": []
+}

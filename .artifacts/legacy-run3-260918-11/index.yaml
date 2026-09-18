@@ -1,0 +1,24 @@
+schema_version: 1
+project: CoreSwap
+module: legacy-run3
+entries:
+  - id: 'legacy-run3:criteria-260918-11'
+    path: '../../.investigations/legacy-run3-260918-11/criteria-260918-11.md'
+    kind: criteria
+    status: draft
+    note: '预登记判据（时序锚 commit 0e8083c 2026-09-18 22:02:35 先于采集）；主带 changed=0 / 保守带 ≤2 / ≥3 NOT-CONVERGED'
+  - id: 'legacy-run3:verdict-260918-11'
+    path: 'verdict-260918-11.md'
+    kind: analysis
+    status: candidate
+    note: 'lr3b 新 seed 8820042113345982107 干净链 run2→run3 changed=0/2025、SELFCERT 全绿（world 身份三项闭合）——「legacy 干净链收敛」n=1 → n=2 双 seed 复现；confirmed 留用户'
+  - id: 'legacy-run3:judge-260918-11'
+    path: '../../.investigations/legacy-run3-260918-11/judge-review-260918-11.md'
+    kind: review
+    status: candidate
+    note: 'judge PASS-with-conditions（MUST 1-2 / SHOULD 1-2 / INFO 均已应用；lr3a VOID 处置合规 #118/#144-146）'
+  - id: 'legacy-run3:errors-260918-11'
+    path: '../../.investigations/legacy-run3-260918-11/errors-260918-11.md'
+    kind: errors
+    status: candidate
+    note: 'E1：level.dat=gzip(NBT) 直读压缩原文 → seed 门恒 miss → 整臂 VOID；修 = gzip.open + 正样本 sanity（#151 家族实例）'
