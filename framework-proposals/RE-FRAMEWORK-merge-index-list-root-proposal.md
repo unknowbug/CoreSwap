@@ -2,7 +2,9 @@
 
 - 提案对象：RE-Framework 工具链 `scripts/merge_index.py`（= `ref_merge_index` 工具的实现；`core-artifact` §5.1 配套）
 - 提案人：CoreSwap 260912-02 session（2026-09-12）
-- 状态：draft（待维护 agent 评估）
+- 状态：**submitted（已转交维护侧，2026-09-19 260919-06 块）**——原 draft（260912-02 成文）
+  - 转交前复核（260919-06）：上游 `E:\PYTHON\RE-Framework\scripts\merge_index.py` sha256 前 16 位仍 = `299598f46ebe1269`（与 §2.1 比对基线一致，工具未变、提案未过时）；上游该文件最后 commit = `eeebff9`（2026-08-08），缺陷仍未修。
+  - 处置：转交 ref-maintain / CoreSwap-Maint 会话评估落地（RE-Framework 对主工作区只读，主会话不直接改上游）；落地验收判据见本文件 §5。
 - 实证来源：CoreSwap 错误台账 `.investigations/shared-java-core-260912-02/errors-260912-02.md` **W13** + judge 交付前确认残留 **R4**（`.investigations/shared-java-core-260912-02/judge-260912-02.md:404`）；本块实测（`--dry-run` 复现 + 源码三点定位 + 逐文件读 legacy 片段 + 工具 sha 比对）
 
 ## 1. 问题陈述

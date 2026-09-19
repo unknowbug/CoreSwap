@@ -1344,3 +1344,21 @@ workspace 多版本薄壳并存时 cdylib 产物同名（都叫 worldgen.dll）�
     2. **现成工作版解析器先对比再自写**——项目内已有勘误过的读法（snap_light.py tag7 规范读法 #53/#58），自写前先抄已勘误版；
     3. **双约定并存处禁止按文档/他人代码字面采信**——以实测扇区扫描裁决（#36「已知键字节级 sanity + 独立源交叉核对」的 region 维）。
 - **家族索引**：#36（NBT 手解析漏头字段——同族首形态：复合头 namelen；本条为 TAG_List length + tag 尺寸 + region 偏移三形态）；#151（协议解析「部分成功掩盖全流错位」——本条 region 偏移错约定下部分 slot 仍解析成功即其形态）；#20（1.20.1 chunk NBT 键面——实测 xPos/zPos **在位**，与 #20 标题表述的张力在案：该条历史读法以本块实测为准复核）。
+
+## 发现 #160（最高价值·错误优先）: Sponge MixinProcessor 对已注册 mixin 类的 classload 是设计性拒绝（IllegalClassLoadError "cannot be referenced directly"）——三段链 = Sponge 拒绝点 → Knot 包装点 → 应用层吞 cause（260919-06）
+
+- **发现时间 / 发现者 / 置信度 / module**：260919-06（2026-09-19）；core.worker（静态溯源）+ knowledge subagent 起草；**draft**（机制方向，未运行时验证；sponge-mixin 侧为字节码判读 = Degraded；升 candidate 条件 = getCause() 打点一次最小 run）；build-tooling / mixin 运行时失败机制面（#157 的机制层下沉）。
+- **来源定位**：`.investigations/legacy-sweep-260919-06/knot-selftransform-static.md`（§2 逐点 file:line）；一手材料 = gradle cache fabric-loader 0.15.11 **sources jar**（强）+ sponge-mixin 0.13.3+mixin.0.8.5 **class jar javap 字节码判读**（Degraded，无 sources）。
+- **五段式**：
+  - **现象**：`Class.forName("wg.bench.mixin.BlobProbeMixin")` 反射读 stats → `RuntimeException: Mixin transformation of wg.bench.mixin.BlobProbeMixin failed`，日志看不到底层 cause；注入/织入全程正常（boot 期 `handler active` 在位）。
+  - **根因（三段链）**：① **Sponge 拒绝点**（根）：`MixinProcessor.applyMixins` 识别「被变换类 = 已注册 mixin 类/包成员」→ `getInvalidClassError` → `new IllegalClassLoadError(msg)`——mixin 类本体被设计为禁止直接 classload 引用，显式设计分支非兼容性问题；② **Knot 包装点**：`KnotClassDelegate.getPostMixinClassByteArray:422` 所有类无差别送 transformer，`:423-427` 包装为 `RuntimeException("Mixin transformation of %s failed")`；③ **应用层吞 cause**：`BlobProbe.java:46` 只打印 `+ t` 顶层消息，cause 链未展开。
+  - **定位**：gradle cache 提一手 sources（fabric-loader）+ javap -c 常量池直读（sponge-mixin 无 sources 时的 Degraded 判读法）；**判错签名 = 「stats read failed + 只见顶层 Mixin transformation 消息」即直接展开 cause 链/查反射自载路径**，不要先疑版本兼容。
+  - **修复**：计数器等可观测状态**外移普通 holder 类**（1.21.6 已照此修 = BlobProbeStats；1.20.1 出货树用户拍板不动、登记已知限制）。版本归属弱推断警告：cache 单版本归属系间接证据，未读 loom lock file。
+  - **教训**：① mixin 类不可被应用代码任何形式直接引用（Class.forName/直接 import 均触发）——诊断/计数状态一律放普通类；② 「cause 被吞」先查应用侧 catch 打印深度再怪框架；③ 家族分工：#40（装载面）/ #157（时点判据）/ 本条（机制根）合读。
+- **家族索引**：#40 / #157；本条为其机制层根。
+
+## 发现 #161 简记: 比较器抽样显示缺陷模式——对 str key 做序列切片 → 显示失真但计数正确；「计数与显示分离核」一招（260919-06）
+
+- **观察**：`cmp_t8.py` sample 行 `f"{c[0]},{c[1]}"` 对字符串 key（"13,-1"）做序列切片 → 显示 "1,3"（坐标失真）；计数与 VERDICT 基于完整 str key 集合计算不受影响（judge 独立复算 diff=4223 逐位吻合）。Python str 也是序列，对「本应是 tuple 的 key」做 `k[0],k[1]` 不报错——静默产出失真显示。
+- **判据**：比较器/对账工具的 sample 展示路径与计数路径是两条代码路，判读先分离核对（抽 1 个 sample 行手工对原始 key 验显示再信计数）；显示失真 ≠ 计数错误，反之亦然；交付诚实登记缺陷层次不静默。修复 = str key 直接打印本身。
+- **来源**：`.artifacts/legacy-sweep-260919-06/record-lowcost-260919-06.md` §T8 + judge-review-260919-06 N5。candidate。
