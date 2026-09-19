@@ -124,6 +124,19 @@ public final class CppWorldgen {
      * light_compute_domain_bitwise_equivalence 承载）。返回 0 成功，负数错误同 lightCompute。
      */
     public static native int lightComputeDomain(long handle, int[] blocks25, byte[] out);
+
+    /**
+     * 光照计算（域批 packed ABI，260919-03 .b2 C-3）：n 帧（每帧 = 一个已提交中心
+     * chunk 的 3×3 邻域 packed 帧，帧契约同 lightComputePacked，meta 432 项/帧）。
+     * frameMeta = n×432；paletteData/storage = 逐帧拼接；frameLens = 每帧
+     * [paletteLen, storageLen]（2n 项）。帧 k（k = kz*3+kx，中心在域内网格序）解码
+     * 覆盖 blocks25 chunk 基 = ((kz+dz9)*5+(kx+dx9))，后帧覆盖重叠，未被覆盖边缘
+     * chunk = AIR。解码后走同一域批内核（等价承载同 lightComputeDomain + 解码
+     * roundtrip 单测 light_decode_packed_domain_roundtrip）。返回 0 成功；
+     * -2 = 长度/解码错（调用方整批降级重放），负数错误同 lightComputeDomain。
+     */
+    public static native int lightComputeDomainPacked(long handle, int[] frameMeta, int[] paletteData,
+            long[] storage, int[] frameLens, byte[] out);
 }
 
 

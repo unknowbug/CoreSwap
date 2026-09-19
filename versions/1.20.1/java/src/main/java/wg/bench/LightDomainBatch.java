@@ -43,6 +43,12 @@ public final class LightDomainBatch {
         /** 提交线程侧收集的 blocks9 快照（CP-1 260916-01 崩溃修复：容器读只在 light 调用线程，
          *  域任务零 PalettedContainer 访问——writePacket lock 检测器与 5×5 窗重叠并发读相撞）。 */
         public final ConcurrentHashMap<Long, int[]> blocks9s = new ConcurrentHashMap<>();
+        // 260919-03（.b2 C-3）：packed 帧快照（同线程同构收集；packedMeta=432、
+        // packedLens=[palLen,stoLen]、pal/sto 为实长副本）。packed 提交者四 map 同 key 在位。
+        public final ConcurrentHashMap<Long, int[]> packedMetas = new ConcurrentHashMap<>();
+        public final ConcurrentHashMap<Long, int[]> packedPals = new ConcurrentHashMap<>();
+        public final ConcurrentHashMap<Long, long[]> packedStos = new ConcurrentHashMap<>();
+        public final ConcurrentHashMap<Long, int[]> packedLens = new ConcurrentHashMap<>();
 
         State(long key) {
             this.key = key;
@@ -69,6 +75,34 @@ public final class LightDomainBatch {
             fut = st.futures.get(centerPos);
             st.chunks.put(centerPos, chunk);
             st.blocks9s.put(centerPos, blocks9Snapshot);
+        } else {
+            DUP.incrementAndGet();
+        }
+        if (st.futures.size() >= 9) {
+            seal(st, false);
+        }
+        return fut;
+    }
+
+    /** packed 提交（260919-03 .b2 C-3）：同 submit，快照 = packed 帧四件套（blocks9s 不落）。 */
+    public static CompletableFuture<Object> submitPacked(long centerPos, long domainKey, Object ctx, Object chunk,
+                                                          int[] meta, int[] pal, long[] sto, int[] lens) {
+        State st = DOMAINS.compute(domainKey, (k, cur) -> {
+            State s = (cur != null) ? cur : new State(k);
+            if (cur == null && GRACE_MS > 0) {
+                CompletableFuture.delayedExecutor(GRACE_MS, TimeUnit.MILLISECONDS).execute(() -> seal(s, true));
+            }
+            s.ctx = ctx;
+            return s;
+        });
+        CompletableFuture<Object> fut = st.futures.putIfAbsent(centerPos, new CompletableFuture<>());
+        if (fut == null) {
+            fut = st.futures.get(centerPos);
+            st.chunks.put(centerPos, chunk);
+            st.packedMetas.put(centerPos, meta);
+            st.packedPals.put(centerPos, pal);
+            st.packedStos.put(centerPos, sto);
+            st.packedLens.put(centerPos, lens);
         } else {
             DUP.incrementAndGet();
         }

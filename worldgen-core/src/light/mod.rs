@@ -217,25 +217,58 @@ pub fn light_decode_packed(
     if section_meta.len() != SECTIONS * 9 * 2 || blocks9_out.len() != BLOCKS9_LEN {
         return Err(LightError::InputLen);
     }
-    blocks9_out.fill(0); // 空节哨兵 = 保持 0（AIR）
+    // 260919-03：实现收敛到 light_decode_packed_into（单一实现，防双路漂移）
+    let bases: [usize; 9] = std::array::from_fn(|c| c * CHUNK_CELLS);
+    light_decode_packed_into(section_meta, palette_data, packed, &bases, blocks9_out)
+}
+
+/// 260919-03（.b2 C-3）：packed 解码泛化——节组按 chunk_bases[i] 给出的目标 chunk 基址
+/// 解码（base = 目标数组内 chunk 起始下标）。light_decode_packed = 本函数在
+/// bases = [0,1,..,8]*CHUNK_CELLS、out = blocks9 下的特例（包装保持，历史调用零改动）。
+/// 契约同 light_decode_packed（帧形态/bits 域/游标闭合），meta 长 = bases.len()*SECTIONS*2。
+pub fn light_decode_packed_into(
+    section_meta: &[i32],
+    palette_data: &[i32],
+    packed: &[i64],
+    chunk_bases: &[usize],
+    blocks_out: &mut [i32],
+) -> Result<(), LightError> {
+    let n = chunk_bases.len();
+    if section_meta.len() != SECTIONS * n * 2
+        || n == 0
+        || blocks_out.len() < (n - 1) * CHUNK_CELLS + CHUNK_CELLS
+    {
+        return Err(LightError::InputLen);
+    }
+    // 越界基址防御（decode 内部按 base 直接索引，先验一次）
+    for &b in chunk_bases {
+        if b % CHUNK_CELLS != 0 || b + CHUNK_CELLS > blocks_out.len() {
+            return Err(LightError::InputLen);
+        }
+    }
+    // 仅清本帧目标 chunk（空节哨兵 = AIR）——域批多帧依次解码时不得触碰其他 chunk
+    // （全量清零会抹掉先前帧写入，260919-03 实现自检捕获）
+    for &b in chunk_bases {
+        blocks_out[b..b + CHUNK_CELLS].fill(0);
+    }
     let mut pal_cur = 0usize;
     let mut sto_cur = 0usize;
-    for c in 0..9 {
+    for c in 0..n {
         for s in 0..SECTIONS {
             let i = (c * SECTIONS + s) * 2;
             let bits = section_meta[i];
             let psz = section_meta[i + 1] as usize;
             if bits == 0 && psz == 0 {
-                continue; // 空节：已零填充
+                continue;
             }
-            let base = c * CHUNK_CELLS + s * 4096;
+            let base = chunk_bases[c] + s * 4096;
             if bits == 0 {
                 if psz != 1 || palette_data.len() < pal_cur + 1 {
                     return Err(LightError::PackedDecode);
                 }
                 let v = palette_data[pal_cur];
                 pal_cur += 1;
-                blocks9_out[base..base + 4096].fill(v);
+                blocks_out[base..base + 4096].fill(v);
                 continue;
             }
             if !(4..=14).contains(&bits) || psz < 1 || psz > 256 {
@@ -247,15 +280,15 @@ pub fn light_decode_packed(
             let pal = &palette_data[pal_cur..pal_cur + psz];
             pal_cur += psz;
             let epl = 64 / bits as usize;
-            let n = (4096 + epl - 1) / epl;
-            if packed.len() < sto_cur + n {
+            let n_long = (4096 + epl - 1) / epl;
+            if packed.len() < sto_cur + n_long {
                 return Err(LightError::PackedDecode);
             }
-            let words = &packed[sto_cur..sto_cur + n];
-            sto_cur += n;
+            let words = &packed[sto_cur..sto_cur + n_long];
+            sto_cur += n_long;
             let bits_u = bits as usize;
             let mask = (1u64 << bits_u) - 1;
-            let long_bits = epl * bits_u; // 元素不跨 long ⇒ off < 64 恒成立
+            let long_bits = epl * bits_u;
             let mut dst = base;
             let mut w = 0usize;
             let mut off = 0usize;
@@ -264,7 +297,7 @@ pub fn light_decode_packed(
                 if v >= psz {
                     return Err(LightError::PackedDecode);
                 }
-                blocks9_out[dst] = pal[v];
+                blocks_out[dst] = pal[v];
                 dst += 1;
                 off += bits_u;
                 if off == long_bits {
@@ -275,6 +308,61 @@ pub fn light_decode_packed(
         }
     }
     if pal_cur != palette_data.len() || sto_cur != packed.len() {
+        return Err(LightError::PackedDecode);
+    }
+    Ok(())
+}
+
+/// 260919-03（.b2 C-3）：域批 packed 解码——n 帧（每帧 = 一个已提交中心的 3×3 邻域
+/// packed 帧，meta 9*24*2 = 432 项）依次解码进 blocks25。帧 k（k = kz*3+kx，kz/kx 为
+/// 中心在域内 0..3 网格序）覆盖 chunk 基 = ((kz+dz9)*5 + (kx+dx9)) * CHUNK_CELLS
+/// （c9 = dz9*3+dx9）；后帧覆盖重叠 = Java 侧 blocks25 arraycopy 顺序语义（同序 k=0..n）。
+/// frame_lens = 每帧 [palLen, stoLen]（2n 项）；帧内 pal/sto 依序拼接。
+/// 未被任何帧覆盖的边缘 chunk 保持 0（AIR）= 现 blocks25 零槽语义。
+pub fn light_decode_packed_domain(
+    frame_meta: &[i32],
+    palette_data: &[i32],
+    packed: &[i64],
+    frame_lens: &[i32],
+    blocks25_out: &mut [i32],
+) -> Result<(), LightError> {
+    if frame_lens.len() % 2 != 0 || blocks25_out.len() != BLOCKS25_LEN {
+        return Err(LightError::InputLen);
+    }
+    let n = frame_lens.len() / 2;
+    if n == 0 || n > 9 || frame_meta.len() != SECTIONS * 9 * 2 * n {
+        return Err(LightError::InputLen);
+    }
+    let mut pal_cur = 0usize;
+    let mut sto_cur = 0usize;
+    let mut meta_cur = 0usize;
+    for k in 0..n {
+        let pal_len = frame_lens[2 * k];
+        let sto_len = frame_lens[2 * k + 1];
+        if pal_len < 0 || sto_len < 0 {
+            return Err(LightError::InputLen);
+        }
+        let (pal_len, sto_len) = (pal_len as usize, sto_len as usize);
+        if palette_data.len() < pal_cur + pal_len || packed.len() < sto_cur + sto_len {
+            return Err(LightError::PackedDecode);
+        }
+        let kx = k % 3;
+        let kz = k / 3;
+        let bases: [usize; 9] = std::array::from_fn(|c9| {
+            ((kz + c9 / 3) * 5 + (kx + c9 % 3)) * CHUNK_CELLS
+        });
+        light_decode_packed_into(
+            &frame_meta[meta_cur..meta_cur + SECTIONS * 9 * 2],
+            &palette_data[pal_cur..pal_cur + pal_len],
+            &packed[sto_cur..sto_cur + sto_len],
+            &bases,
+            blocks25_out,
+        )?;
+        meta_cur += SECTIONS * 9 * 2;
+        pal_cur += pal_len;
+        sto_cur += sto_len;
+    }
+    if pal_cur != palette_data.len() || sto_cur != packed.len() || meta_cur != frame_meta.len() {
         return Err(LightError::PackedDecode); // 游标不闭合 = 帧契约破坏
     }
     Ok(())
@@ -735,6 +823,120 @@ mod tests {
             assert_eq!(&seg[OUT_CHAN_LEN..2 * OUT_CHAN_LEN], &os[..], "center {k} outSky mismatch");
             assert_eq!(&seg[2 * OUT_CHAN_LEN..], &of[..], "center {k} outFlags mismatch");
         }
+    }
+
+    /// 260919-03（.b2 C-3）packed 域批解码等价门：测试内 writePacket 帧同构编码器
+    ///（bits 4..=14 / singular / 空节三形态）把 LCG b25 编码为 9 帧 packed，经
+    /// light_decode_packed_domain 解码后必须与源 b25 逐位相等（全覆盖 25 chunk，
+    /// 重叠帧内容相同 = 后帧覆盖不变量）。
+    #[test]
+    fn light_decode_packed_domain_roundtrip() {
+        let mut s: u64 = 0x0123456789ABCDEF;
+        let mut rng = || {
+            s ^= s << 13;
+            s ^= s >> 7;
+            s ^= s << 17;
+            s
+        };
+        let mut b25 = vec![0i32; BLOCKS25_LEN];
+        for v in b25.iter_mut() {
+            let r = rng();
+            // 值域刻意小（0..8）+ 三态：制造空节/单值节/小 palette 节混合
+            *v = match r % 16 {
+                0..=7 => 0,
+                8..=10 => 1,
+                11 => 10 | (15 << 24),
+                _ => (r % 6) as i32 + 2,
+            };
+        }
+        // 测试内帧编码器（与 Java writePacket 拆帧逆向同构：LSB-first、元素不跨 long）
+        fn encode_chunk(b25: &[i32], chunk: usize, meta: &mut Vec<i32>, pal: &mut Vec<i32>, sto: &mut Vec<i64>) {
+            for sec in 0..24usize {
+                let base = chunk * CHUNK_CELLS + sec * 4096;
+                let mut vals: Vec<i32> = Vec::new();
+                for i in 0..4096usize {
+                    let v = b25[base + i];
+                    if !vals.contains(&v) {
+                        vals.push(v);
+                    }
+                }
+                match vals.len() {
+                    0 => {
+                        meta.push(0);
+                        meta.push(0);
+                    }
+                    1 => {
+                        meta.push(0);
+                        meta.push(1);
+                        pal.push(vals[0]);
+                    }
+                    psz => {
+                        let bits = ((psz as usize - 1).next_power_of_two().trailing_zeros() as usize)
+                            .max(4)
+                            .min(14);
+                        meta.push(bits as i32);
+                        meta.push(psz as i32);
+                        pal.extend_from_slice(&vals);
+                        let epl = 64 / bits;
+                        let n = (4096 + epl - 1) / epl;
+                        let mut idx = 0usize;
+                        for _ in 0..n {
+                            let mut word = 0u64;
+                            for j in 0..epl {
+                                if idx >= 4096 {
+                                    break;
+                                }
+                                let v = vals.iter().position(|&x| x == b25[base + idx]).unwrap();
+                                word |= (v as u64) << (j * bits);
+                                idx += 1;
+                            }
+                            sto.push(word as i64);
+                        }
+                    }
+                }
+            }
+        }
+        let mut frame_meta: Vec<i32> = Vec::new();
+        let mut pal: Vec<i32> = Vec::new();
+        let mut sto: Vec<i64> = Vec::new();
+        let mut lens: Vec<i32> = Vec::new();
+        for k in 0..9usize {
+            let kx = k % 3;
+            let kz = k / 3;
+            let pal0 = pal.len();
+            let sto0 = sto.len();
+            for c9 in 0..9usize {
+                encode_chunk(
+                    &b25,
+                    (kz + c9 / 3) * 5 + (kx + c9 % 3),
+                    &mut frame_meta,
+                    &mut pal,
+                    &mut sto,
+                );
+            }
+            lens.push((pal.len() - pal0) as i32);
+            lens.push((sto.len() - sto0) as i32);
+        }
+        let mut decoded = vec![0i32; BLOCKS25_LEN];
+        light_decode_packed_domain(&frame_meta, &pal, &sto, &lens, &mut decoded)
+            .expect("domain packed decode");
+        assert_eq!(decoded, b25, "packed domain roundtrip mismatch");
+        // 包装函数回归：单帧（k=0 内容 = b9 窗）经 light_decode_packed 也须成立
+        let mut b9 = vec![0i32; BLOCKS9_LEN];
+        for c9 in 0..9usize {
+            let src = ((c9 / 3) * 5 + (c9 % 3)) * CHUNK_CELLS;
+            b9[c9 * CHUNK_CELLS..(c9 + 1) * CHUNK_CELLS]
+                .copy_from_slice(&b25[src..src + CHUNK_CELLS]);
+        }
+        let mut meta1: Vec<i32> = Vec::new();
+        let mut pal1: Vec<i32> = Vec::new();
+        let mut sto1: Vec<i64> = Vec::new();
+        for c9 in 0..9usize {
+            encode_chunk(&b9, c9, &mut meta1, &mut pal1, &mut sto1);
+        }
+        let mut decoded9 = vec![0i32; BLOCKS9_LEN];
+        light_decode_packed(&meta1, &pal1, &sto1, &mut decoded9).expect("b9 packed decode");
+        assert_eq!(decoded9, b9, "b9 packed roundtrip mismatch");
     }
 
     /// 防回归（260905-05）：light_data.json 负 opacity 显式化修复——

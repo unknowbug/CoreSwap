@@ -308,6 +308,21 @@ thread_local! {
         std::cell::RefCell::new(vec![0i32; 0]); // palette 实长随 Java 传入数组，按需 resize
     static LIGHT_PS: std::cell::RefCell<Vec<i64>> =
         std::cell::RefCell::new(vec![0i64; 0]);
+    // 260919-03（.b2 C-4）：域批路缓冲复用（b25 9.4MB + outv 0.9MB 每任务分配消除；
+    // 每使用全量覆写：b25 copyin/解码零填、outv 内核全写出，无跨调用脏数据）
+    static LIGHT_B25: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; LIGHT_BLOCKS25_LEN]);
+    static LIGHT_OUTD: std::cell::RefCell<Vec<u8>> =
+        std::cell::RefCell::new(vec![0u8; LIGHT_DOMAIN_OUT_LEN]);
+    // 260919-03（.b2 C-3）：域批 packed 帧缓冲（按需 resize 至实际帧长）
+    static LIGHT_DM: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; 0]); // 帧拼接 meta（n×432）
+    static LIGHT_DP: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; 0]); // 帧拼接 palette
+    static LIGHT_DS: std::cell::RefCell<Vec<i64>> =
+        std::cell::RefCell::new(vec![0i64; 0]); // 帧拼接 storage
+    static LIGHT_DL: std::cell::RefCell<Vec<i32>> =
+        std::cell::RefCell::new(vec![0i32; 0]); // frameLens（2n）
 }
 
 // 光照引擎初始化：解析 light_data.json → LightEngine handle。解析失败返回 0。
@@ -437,61 +452,185 @@ pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
             }
             // 域批频度 ≈ per-chunk/9，输入帧 9.4MB 一次性分配可忽略（.b1 §1.2c 推演假设②）
             // 260919-02 A1 立项预研：WG_LIGHTPHASE=1 时 task 级分段计时（门一次，非热路径逐格）
+            // 260919-03（.b2 C-4）：b25/outv 换 thread_local 复用（每使用全量覆写）
             let diag = std::env::var("WG_LIGHTPHASE").ok().as_deref() == Some("1");
             let t0 = if diag { Some(std::time::Instant::now()) } else { None };
-            let mut b25 = vec![0i32; LIGHT_BLOCKS25_LEN];
-            env.get_int_array_region(&blocks25, 0, &mut b25)?;
-            let t1 = if diag { Some(std::time::Instant::now()) } else { None };
-            let mut outv = vec![0u8; LIGHT_DOMAIN_OUT_LEN];
-            let engine = unsafe { &*(handle as *const LightEngine) };
-            // 内核窗起点（含 outv 分配，~0.09ms/task，误差 0.3% 量级并入内核窗声明）
-            let kp = if diag { Some(std::time::Instant::now()) } else { None };
-            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                if diag {
-                    WorldgenRust::light::light_compute_domain_phased(engine, &b25, &mut outv)
-                        .map(|d| Some(d))
-                } else {
-                    WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv).map(|_| None)
+            LIGHT_B25.with(|tl_b25| -> Result<jint, Error> {
+            LIGHT_OUTD.with(|tl_outd| -> Result<jint, Error> {
+                let mut b25 = tl_b25.borrow_mut();
+                env.get_int_array_region(&blocks25, 0, &mut b25)?;
+                let t1 = if diag { Some(std::time::Instant::now()) } else { None };
+                let mut outv = tl_outd.borrow_mut();
+                let engine = unsafe { &*(handle as *const LightEngine) };
+                // 内核窗起点（含 outv 状态，C-4 后无 outv 分配；误差声明同 260919-02）
+                let kp = if diag { Some(std::time::Instant::now()) } else { None };
+                let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    if diag {
+                        WorldgenRust::light::light_compute_domain_phased(engine, &b25, &mut outv)
+                            .map(|d| Some(d))
+                    } else {
+                        WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv).map(|_| None)
+                    }
+                }));
+                let t2 = if diag { Some(std::time::Instant::now()) } else { None };
+                let dp_opt: Option<WorldgenRust::light::DomainPhases> =
+                    match &res { Ok(Ok(Some(d))) => Some(*d), _ => None };
+                match res {
+                    Ok(Ok(_)) => {}
+                    Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
+                    Ok(Err(LightError::PackedDecode)) => return Ok(-2), // 不经此入口，防御性同映射
+                    Err(p) => {
+                        let msg = p
+                            .downcast_ref::<&str>()
+                            .map(|s| *s)
+                            .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                            .unwrap_or("<non-string panic>");
+                        eprintln!("[LightRust][RUST-PANIC] lightComputeDomain panicked: {}", msg);
+                        return Ok(-3);
+                    }
                 }
-            }));
-            let t2 = if diag { Some(std::time::Instant::now()) } else { None };
-            let dp_opt: Option<WorldgenRust::light::DomainPhases> =
-                match &res { Ok(Ok(Some(d))) => Some(*d), _ => None };
-            match res {
-                Ok(Ok(_)) => {}
-                Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
-                Ok(Err(LightError::PackedDecode)) => return Ok(-2), // 不经此入口，防御性同映射
-                Err(p) => {
-                    let msg = p
-                        .downcast_ref::<&str>()
-                        .map(|s| *s)
-                        .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
-                        .unwrap_or("<non-string panic>");
-                    eprintln!("[LightRust][RUST-PANIC] lightComputeDomain panicked: {}", msg);
-                    return Ok(-3);
+                let o8: &[i8] = unsafe {
+                    std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
+                };
+                env.set_byte_array_region(&out, 0, o8)?;
+                if let (Some(a), Some(b), Some(k), Some(d), Some(dp)) = (t0, t1, kp, t2, dp_opt) {
+                    let t3 = std::time::Instant::now();
+                    let f = |d: &std::time::Duration| d.as_micros();
+                    eprintln!(
+                        "[LIGHTPHASE] alloc_copyin_us={} kernel_us={} copyout_us={} subcopy_us={} fill_us={} blockbfs_us={} skyfall_us={} skyseed_us={} export_us={} centers=9",
+                        (b - a).as_micros(),
+                        (d - k).as_micros(),
+                        (t3 - d).as_micros(),
+                        f(&dp.subcopy),
+                        f(&dp.phases[0]),
+                        f(&dp.phases[1]),
+                        f(&dp.phases[2]),
+                        f(&dp.phases[3]),
+                        f(&dp.phases[4]),
+                    );
                 }
+                Ok(0)
+            })
+            })
+        })
+        .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
+}
+
+// 260919-03（.b2 C-3）：域批 packed ABI——n 帧（每帧 = 一个已提交中心的 3×3 邻域 packed
+// 帧，Java 提交线程 writePacket 拆帧，同 per-chunk 候选 C 帧契约）依次解码进 b25
+//（light_decode_packed_domain，后帧覆盖重叠 = blocks25 arraycopy 序语义），再走同一
+// 域批内核。帧契约：meta = n×432（帧内节序 = 9 chunk（c=dz*3+dx）× 24 section × [bits,psz]）、
+// palette/storage 逐帧拼接、lens = 每帧 [palLen, stoLen]（2n 项）。
+// 返回：0 成功；-1 handle 空；-2 长度/解码错（Java 侧整批降级重放）；-3 内核 panic；-4 JNI 错误。
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomainPacked<'frame>(
+    mut unowned_env: EnvUnowned<'frame>, _class: JClass, handle: jlong,
+    frame_meta: JIntArray, palette_data: JIntArray, storage: jni::objects::JLongArray,
+    frame_lens: JIntArray, out: jni::objects::JByteArray,
+) -> jint {
+    unowned_env
+        .with_env(|env| -> Result<jint, Error> {
+            if handle == 0 {
+                return Ok(-1);
             }
-            let o8: &[i8] = unsafe {
-                std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
-            };
-            env.set_byte_array_region(&out, 0, o8)?;
-            if let (Some(a), Some(b), Some(k), Some(d), Some(dp)) = (t0, t1, kp, t2, dp_opt) {
-                let t3 = std::time::Instant::now();
-                let f = |d: &std::time::Duration| d.as_micros();
-                eprintln!(
-                    "[LIGHTPHASE] alloc_copyin_us={} kernel_us={} copyout_us={} subcopy_us={} fill_us={} blockbfs_us={} skyfall_us={} skyseed_us={} export_us={} centers=9",
-                    (b - a).as_micros(),
-                    (d - k).as_micros(),
-                    (t3 - d).as_micros(),
-                    f(&dp.subcopy),
-                    f(&dp.phases[0]),
-                    f(&dp.phases[1]),
-                    f(&dp.phases[2]),
-                    f(&dp.phases[3]),
-                    f(&dp.phases[4]),
-                );
+            let n = (env.get_array_length(&frame_lens)? as usize) / 2;
+            if n == 0
+                || n > 9
+                || env.get_array_length(&frame_meta)? as usize != n * LIGHT_META_LEN
+                || env.get_array_length(&out)? as usize != LIGHT_DOMAIN_OUT_LEN
+            {
+                return Ok(-2);
             }
-            Ok(0)
+            let diag = std::env::var("WG_LIGHTPHASE").ok().as_deref() == Some("1");
+            let t0 = if diag { Some(std::time::Instant::now()) } else { None };
+            LIGHT_DL.with(|tl_dl| -> Result<jint, Error> {
+            LIGHT_DM.with(|tl_dm| -> Result<jint, Error> {
+            LIGHT_DP.with(|tl_dp| -> Result<jint, Error> {
+            LIGHT_DS.with(|tl_ds| -> Result<jint, Error> {
+            LIGHT_B25.with(|tl_b25| -> Result<jint, Error> {
+            LIGHT_OUTD.with(|tl_outd| -> Result<jint, Error> {
+                let mut dl = tl_dl.borrow_mut();
+                dl.clear();
+                dl.resize(n * 2, 0);
+                env.get_int_array_region(&frame_lens, 0, &mut dl)?;
+                if dl.iter().any(|&v| v < 0) {
+                    return Ok(-2);
+                }
+                let mut dm = tl_dm.borrow_mut();
+                dm.clear();
+                dm.resize(n * LIGHT_META_LEN, 0);
+                env.get_int_array_region(&frame_meta, 0, &mut dm)?;
+                let mut dp_ = tl_dp.borrow_mut();
+                dp_.clear();
+                dp_.resize(env.get_array_length(&palette_data)? as usize, 0);
+                env.get_int_array_region(&palette_data, 0, &mut dp_)?;
+                let mut ds = tl_ds.borrow_mut();
+                ds.clear();
+                ds.resize(env.get_array_length(&storage)? as usize, 0);
+                env.get_long_array_region(&storage, 0, &mut ds)?;
+                let t1 = if diag { Some(std::time::Instant::now()) } else { None };
+                let mut b25 = tl_b25.borrow_mut();
+                let mut outv = tl_outd.borrow_mut();
+                let engine = unsafe { &*(handle as *const LightEngine) };
+                let kp = if diag { Some(std::time::Instant::now()) } else { None };
+                let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    WorldgenRust::light::light_decode_packed_domain(&dm, &dp_, &ds, &dl, &mut b25)
+                        .and_then(|()| {
+                            if diag {
+                                WorldgenRust::light::light_compute_domain_phased(engine, &b25, &mut outv)
+                                    .map(|d| Some(d))
+                            } else {
+                                WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv)
+                                    .map(|_| None)
+                            }
+                        })
+                }));
+                let t2 = if diag { Some(std::time::Instant::now()) } else { None };
+                let dp_opt: Option<WorldgenRust::light::DomainPhases> =
+                    match &res { Ok(Ok(Some(d))) => Some(*d), _ => None };
+                match res {
+                    Ok(Ok(_)) => {}
+                    Ok(Err(LightError::InputLen | LightError::OutputLen | LightError::PackedDecode)) => {
+                        return Ok(-2)
+                    }
+                    Err(p) => {
+                        let msg = p
+                            .downcast_ref::<&str>()
+                            .map(|s| *s)
+                            .or_else(|| p.downcast_ref::<String>().map(|s| s.as_str()))
+                            .unwrap_or("<non-string panic>");
+                        eprintln!("[LightRust][RUST-PANIC] lightComputeDomainPacked panicked: {}", msg);
+                        return Ok(-3);
+                    }
+                }
+                let o8: &[i8] = unsafe {
+                    std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
+                };
+                env.set_byte_array_region(&out, 0, o8)?;
+                if let (Some(a), Some(b), Some(k), Some(d), Some(dpv)) = (t0, t1, kp, t2, dp_opt) {
+                    let t3 = std::time::Instant::now();
+                    let f = |d: &std::time::Duration| d.as_micros();
+                    eprintln!(
+                        "[LIGHTPHASE] alloc_copyin_us={} kernel_us={} copyout_us={} subcopy_us={} fill_us={} blockbfs_us={} skyfall_us={} skyseed_us={} export_us={} centers={} abi=packed",
+                        (b - a).as_micros(),
+                        (d - k).as_micros(),
+                        (t3 - d).as_micros(),
+                        f(&dpv.subcopy),
+                        f(&dpv.phases[0]),
+                        f(&dpv.phases[1]),
+                        f(&dpv.phases[2]),
+                        f(&dpv.phases[3]),
+                        f(&dpv.phases[4]),
+                        n,
+                    );
+                }
+                Ok(0)
+            })
+            })
+            })
+            })
+            })
+            })
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()
 }

@@ -77,6 +77,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     @Unique private static final boolean LIGHT_RUST = System.getProperty("coreswap.light.rust") != null;
     // CP-1 .b1：域批形态开关（同构建态单变量 A/B；缺省关）
     @Unique private static final boolean LIGHT_DOMAIN = System.getProperty("coreswap.light.domainbatch") != null;
+    // 260919-03（.b2 C-3）：域批 packed 直传（依赖 LIGHT_DOMAIN；提交线程 packed 帧收集）
+    @Unique private static final boolean LIGHT_PACKED = System.getProperty("coreswap.light.domainpacked") != null;
     @Unique private static volatile boolean LIGHT_DOMAIN_HOOK_READY = false;
     @Unique private static final Object LIGHT_DOMAIN_HOOK_LOCK = new Object();
     @Unique private static final String LIGHT_DATA = System.getProperty("coreswap.light.data",
@@ -537,6 +539,26 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         }
         // 260916-01 崩溃修复：blocks9 收集留在 light 调用线程（与 legacy 同线程同构，历史碰撞面
         // 不变）；域任务线程零 PalettedContainer 访问（writePacket lock 检测器防跨线程并发读）。
+        // 260919-03（.b2 C-3）：LIGHT_PACKED 开启 → 提交线程 packed 帧收集（同 wgLightCollectPacked
+        // 帧契约，center 3×3）；收集失败不混 ABI，走现役内联路（WG_DOMAIN_INLINE 计数，judge M1 门数据面）。
+        if (LIGHT_PACKED) {
+            int[] plens = wgLightCollectPacked((ServerLightingProvider) (Object) this, this.world, chunk);
+            if (plens == null) {
+                WG_DOMAIN_INLINE.incrementAndGet();
+                return false;
+            }
+            int[] meta = java.util.Arrays.copyOf(WG_META_TL.get(), WG_META_LEN);
+            int[] pal = java.util.Arrays.copyOf(WG_PAL_TL.get(), plens[0]);
+            long[] sto = java.util.Arrays.copyOf(WG_STO_TL.get(), plens[1]);
+            wgLightDomainEnsureHook();
+            Object[] ctx = { this, this.chunkStorage, this.world, this.world.getBottomSectionCoord() };
+            CompletableFuture<Object> fut = wg.bench.LightDomainBatch.submitPacked(
+                    p.toLong(), wgLightDomainKey(p), ctx, chunk, meta, pal, sto, plens);
+            @SuppressWarnings("unchecked")
+            CompletableFuture<Chunk> cf = (CompletableFuture<Chunk>) (CompletableFuture<?>) fut;
+            cir.setReturnValue(cf);
+            return true;
+        }
         int[] b9 = WG_BLOCKS9_TL.get();
         if (!wgLightCollectBlocks((ServerLightingProvider) (Object) this, this.world, chunk, b9)) {
             WG_DOMAIN_INLINE.incrementAndGet();
@@ -590,9 +612,60 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         long handle = wgLightEnsureInit();
         byte[] out = null;
         String fail = null;
+        int packedFrames = -1; // 260919-03：packed 路帧数（blocks25 路 = -1，task 行负自证面）
         long fillNs = 0L, nativeNs = 0L; // A1 判别通道（260919-01）：仅 out!=null 成功路径有效
         if (handle == 0L) {
             fail = "init0";
+        } else if (LIGHT_PACKED) {
+            // .b2 C-3 packed 装配：n 帧拼接 meta/pal/sto + frameLens → lightComputeDomainPacked
+            int n = centers.length;
+            int palTotal = 0, stoTotal = 0;
+            for (long pos : centers) {
+                int[] pl = st.packedLens.get(pos);
+                if (pl == null) { // LIGHT_PACKED 提交者必有四件套；缺 = 状态机破坏（loud）
+                    fail = "missing-packed @" + new ChunkPos(pos);
+                    n = 0;
+                    break;
+                }
+                palTotal += pl[0];
+                stoTotal += pl[1];
+            }
+            if (n > 0) {
+                int[] meta = new int[n * WG_META_LEN];
+                int[] pal = new int[palTotal];
+                long[] sto = new long[stoTotal];
+                int[] lens = new int[2 * n];
+                int metaCur = 0, palCur = 0, stoCur = 0;
+                for (int k = 0; k < n; k++) {
+                    long pos = centers[k];
+                    int[] m = st.packedMetas.get(pos);
+                    int[] p = st.packedPals.get(pos);
+                    long[] s = st.packedStos.get(pos);
+                    int[] pl = st.packedLens.get(pos);
+                    System.arraycopy(m, 0, meta, metaCur, WG_META_LEN);
+                    metaCur += WG_META_LEN;
+                    System.arraycopy(p, 0, pal, palCur, p.length);
+                    palCur += p.length;
+                    System.arraycopy(s, 0, sto, stoCur, s.length);
+                    stoCur += s.length;
+                    lens[2 * k] = pl[0];
+                    lens[2 * k + 1] = pl[1];
+                }
+                out = new byte[WG_DOMAIN_OUT_LEN];
+                final long _t1 = LIGHT_TIMING ? System.nanoTime() : 0L;
+                int rc = wg.CppWorldgen.lightComputeDomainPacked(handle, meta, pal, sto, lens, out);
+                final long _t2 = LIGHT_TIMING ? System.nanoTime() : 0L;
+                if (rc != 0) {
+                    fail = "packed rc=" + rc;
+                    out = null;
+                } else {
+                    packedFrames = n;
+                    if (LIGHT_TIMING) {
+                        fillNs = _t1 - t0;
+                        nativeNs = _t2 - _t1;
+                    }
+                }
+            }
         } else {
             int[] blocks25 = new int[WG_BLOCKS25_LEN]; // 域批频度 ≈ per-chunk/9，一次性分配（.b1 §1.2c 假设②）
             boolean assembled = true;
@@ -659,6 +732,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         }
         System.out.println("[LIGHT-DOMAIN] task centers=" + centers.length + " ok=" + ok
                 + " degraded=" + degraded + " timedOut=" + st.timedOut
+                + (packedFrames >= 0 ? " packed=" + packedFrames : "")
                 + " avgMs=" + String.format("%.3f", (System.nanoTime() - t0) / 1e6 / centers.length)
                 + (LIGHT_TIMING && out != null
                         ? " fillMs=" + String.format("%.3f", fillNs / 1e6 / centers.length)

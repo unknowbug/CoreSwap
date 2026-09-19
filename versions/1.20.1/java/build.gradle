@@ -108,6 +108,8 @@ if (project.findProperty('lightPaldump') != null) run.vmArg "-Dcoreswap.light.pa
 // -Pdomainbatch=1 → CP-1 .b1 域批形态开关（260916-01；缺省关 = 现役内联路径）
 if (project.findProperty('domainbatch') != null) run.vmArg "-Dcoreswap.light.domainbatch=1"
 if (project.findProperty('domainGrace') != null) run.vmArg "-Dcoreswap.light.domainbatch.gracems=${project.findProperty('domainGrace')}"
+// -Pdomainpacked=1 → .b2 C-3 域批 packed 直传（260919-03；缺省关 = blocks25 宽 ABI；依赖 domainbatch）
+if (project.findProperty('domainpacked') != null) run.vmArg "-Dcoreswap.light.domainpacked=1"
 // -Pbetaprobe=1 → P-β/P-path 探针（260917-05；env 门控默认关 = 生产零影响）
 if (project.findProperty('betaprobe') != null) run.vmArg "-Dcoreswap.light.betaprobe=1"
 // -Pbetadump=<dir> → [LIGHT-BETA] 打点旁输出 packed payload 三段原始字节（260918-05 inputDiff23 机制分辨；须与 -Pbetaprobe 同开）
