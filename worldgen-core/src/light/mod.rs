@@ -24,6 +24,10 @@ pub const CHUNK_CELLS: usize = 16 * 16 * WORLD_H; // 98304
 pub const BLOCKS9_LEN: usize = 9 * CHUNK_CELLS; // 884736
 /// CP-1 域批输入：5×5 chunk（25）——9 个网格对齐中心 chunk 各自 3×3 窗的并集
 pub const BLOCKS25_LEN: usize = 25 * CHUNK_CELLS; // 2457600
+/// C-1a（260919-05，形态 S1=9×3×3 窗最小切入）：全域共享 fill 的 5×5 域边长（x/z 0..80）
+pub const DOM25: usize = 80;
+/// C-1a 全域 opacity 容量（80×80×384）
+pub const OPACITY25_LEN: usize = DOM25 * DOM25 * WORLD_H; // 2457600
 /// CP-1 域批输出：9 中心 × (outBlock + outSky + outFlags) = 9 × 98352 = 885168
 pub const DOMAIN_OUT_LEN: usize = 9 * (2 * OUT_CHAN_LEN + FLAGS_LEN);
 pub const OUT_CHAN_LEN: usize = SECTIONS * SECTION_BYTES; // 49152
@@ -405,9 +409,11 @@ pub fn light_compute_domain(
 /// 附 9 中心聚合 phase 账 + 子窗拷贝累计（task 级一次，无热路径逐格计时）。#[doc(hidden)]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DomainPhases {
-    /// 与 PhaseTimings 同序：fill / block_bfs / sky_fall / sky_seed_bfs / export（9 中心求和）
+    /// 与 PhaseTimings 同序：fill / block_bfs / sky_fall / sky_seed_bfs / export。
+    /// C-1a（260919-05）口径：fill = 全域共享 fill 一趟（非 9 中心求和）；
+    /// block_bfs/sky_fall/sky_seed_bfs/export 仍为 9 中心求和。
     pub phases: [std::time::Duration; 5],
-    /// 子窗拷贝 b9←blocks25 累计（9 中心求和）
+    /// 窗准备累计（9 中心求和；C-1a 后 = opacity/col_max 行拷 + 种子回填，旧 b9←blocks25 子窗拷贝已消失）
     pub subcopy: std::time::Duration,
 }
 
@@ -436,18 +442,79 @@ fn light_compute_domain_impl(
     if out.len() < DOMAIN_OUT_LEN {
         return Err(LightError::OutputLen);
     }
+
+    // C-1a（260919-05，形态 S1 = 9×3×3 窗最小切入，用户拍板）：全域 fill 一趟共享
+    // + 9 中心各自 3×3 窗 BFS+export。
+    // - fill 逐格纯查表（邻接无关，col_max 列内）⇒ 25 chunk 一趟，域成员口径
+    //   81→25 次 chunk-fill（3.24×，scout-map §2.2；12 篇 :141 的 9× 是邻域参与口径，
+    //   不作本优化列账依据——两口径不同度量，非冲突）。
+    // - G3 保持（design-c1-260919-04 §2）：fill/种子/packed 解码均为本帧 blocks25
+    //   快照的确定函数，9 中心共享同一份本帧 fill 结果不引入跨任务状态；BFS 仍每
+    //   中心从本帧快照独立重算，无新不动点语义。
+    // - 窗内 block/sky 结果与全域 fill 逐位一致：种子值/收集序（i25 升序 = 旧 fill
+    //   内联序）与 opacity/col_max 逐格恒等，位等价由 light_compute_domain_bitwise_equivalence 钉死。
+    let t_fill = diag.as_mut().map(|_| std::time::Instant::now());
+    let mut opacity25 = vec![0u8; OPACITY25_LEN];
+    let mut col_max25 = vec![-1i32; DOM25 * DOM25];
+    let mut seeds25: Vec<u32> = Vec::new(); // 打包 (em<<24)|idx80（idx80 < 2^22，em ≤ 15 占高 8 位）
+    fill_domain_generic(
+        engine,
+        blocks25,
+        &mut opacity25,
+        &mut col_max25,
+        DOM25,
+        5,
+        |i, em| seeds25.push(((em as u32) << 24) | i as u32),
+    );
+    if let (Some(d), Some(t)) = (diag.as_mut(), t_fill) {
+        d.phases[0] += t.elapsed(); // 口径注（260919-05）：fill_us = 全域共享 fill 一趟（非 9 中心求和）
+    }
+
     let mut scratch = Scratch::new();
-    let mut b9 = vec![0i32; BLOCKS9_LEN]; // 域批内复用（9 中心间）
     for k in 0..9usize {
-        let kx = k % 3; // 0..2 → 窗 x = kx..kx+2（5×5 内 chunk 列）
+        let kx = k % 3; // 0..2 → 窗 x = kx*16..kx*16+48（80 域内 chunk 列）
         let kz = k / 3;
-        // 子窗拷贝：blocks9 chunk c9(dz9*3+dx9) ← blocks25 chunk (kz+dz9)*5 + (kx+dx9)
+        // 窗准备（subcopy 口径扩展，260919-05）：旧 b9←blocks25 子窗拷贝替换为
+        // opacity/col_max 行拷 + block 种子回填（b9 子窗拷贝随 fill 共享整体消失）
         let t_sub = diag.as_mut().map(|_| std::time::Instant::now());
-        for dz9 in 0..3usize {
-            for dx9 in 0..3usize {
-                let src = ((kz + dz9) * 5 + (kx + dx9)) * CHUNK_CELLS;
-                let dst = (dz9 * 3 + dx9) * CHUNK_CELLS;
-                b9[dst..dst + CHUNK_CELLS].copy_from_slice(&blocks25[src..src + CHUNK_CELLS]);
+        {
+            let Scratch { opacity, block_light, sky_light, queue, col_max } = &mut scratch;
+            opacity.clear();
+            opacity.resize(BLOCKS9_LEN, 0);
+            block_light.clear();
+            block_light.resize(BLOCKS9_LEN, 0);
+            sky_light.clear();
+            sky_light.resize(BLOCKS9_LEN, 0);
+            queue.clear();
+            col_max.clear();
+            col_max.resize(DOM * DOM, -1);
+            let x0 = kx * 16;
+            let z0 = kz * 16;
+            for y in 0..WORLD_H {
+                for lz in 0..DOM {
+                    let src = (y * DOM25 + (z0 + lz)) * DOM25 + x0;
+                    let dst = (y * DOM + lz) * DOM;
+                    opacity[dst..dst + DOM].copy_from_slice(&opacity25[src..src + DOM]);
+                }
+            }
+            for lz in 0..DOM {
+                let src = (z0 + lz) * DOM25 + x0;
+                let dst = lz * DOM;
+                col_max[dst..dst + DOM].copy_from_slice(&col_max25[src..src + DOM]);
+            }
+            // 种子回填：仅落本窗内的 emission（seeds25 升序 ⇒ 窗内序 = 旧 fill 内联种子序）
+            for &s in &seeds25 {
+                let em = (s >> 24) as u8;
+                let i25 = (s & 0x00FF_FFFF) as usize;
+                let x = i25 % DOM25;
+                let r = i25 / DOM25;
+                let z = r % DOM25;
+                let y = r / DOM25;
+                if x >= x0 && x < x0 + DOM && z >= z0 && z < z0 + DOM {
+                    let wi = (y * DOM + (z - z0)) * DOM + (x - x0);
+                    block_light[wi] = em;
+                    queue.push(wi as u32);
+                }
             }
         }
         if let (Some(d), Some(t)) = (diag.as_mut(), t_sub) {
@@ -456,73 +523,43 @@ fn light_compute_domain_impl(
         let seg = &mut out[k * (2 * OUT_CHAN_LEN + FLAGS_LEN)..(k + 1) * (2 * OUT_CHAN_LEN + FLAGS_LEN)];
         let (ob, rest) = seg.split_at_mut(OUT_CHAN_LEN);
         let (os, of) = rest.split_at_mut(OUT_CHAN_LEN);
-        light_compute_inner(
-            engine,
-            &mut scratch,
-            &b9,
-            ob,
-            os,
-            of,
-            diag.as_mut().map(|d| &mut d.phases),
-        )?;
+        propagate_and_export(&mut scratch, ob, os, of, diag.as_mut().map(|d| &mut d.phases));
     }
     Ok(())
 }
 
-fn light_compute_inner(
+/// fill 泛化（C-1a，260919-05）：blocks（chunks×chunks 域，dom-major (y*dom+z)*dom+x）
+/// → opacity + col_max 同趟；每个 emission 种子经 `on_seed(i, em)` 交付（3×3 内联写
+/// block_light+queue / 5×5 打包进 seeds25，两态均按 i 升序回调 = 旧 fill 收集序）。
+/// 逐格纯查表（邻接无关）+ col_max 列内运算——共享 fill 的等价性根据。
+fn fill_domain_generic<E: FnMut(usize, u8)>(
     engine: &LightEngine,
-    scratch: &mut Scratch,
-    blocks9: &[i32],
-    out_block: &mut [u8],
-    out_sky: &mut [u8],
-    out_flags: &mut [u8],
-    mut phases: Option<&mut [std::time::Duration; 5]>,
-) -> Result<(), LightError> {
-    if blocks9.len() != BLOCKS9_LEN {
-        return Err(LightError::InputLen);
-    }
-    if out_block.len() < OUT_CHAN_LEN || out_sky.len() < OUT_CHAN_LEN || out_flags.len() < FLAGS_LEN {
-        return Err(LightError::OutputLen);
-    }
-
-    let Scratch { opacity, block_light, sky_light, queue, col_max } = scratch;
-
-    let _t0 = phases.as_mut().map(|_| std::time::Instant::now());
-
-    // clear+resize：scratch 跨调用复用，必须清零（resize 不覆盖已有元素）
-    opacity.clear();
-    opacity.resize(BLOCKS9_LEN, 0);
-    block_light.clear();
-    block_light.resize(BLOCKS9_LEN, 0);
-    sky_light.clear();
-    sky_light.resize(BLOCKS9_LEN, 0);
-    queue.clear();
-    col_max.clear();
-    col_max.resize(DOM * DOM, -1);
-
-    // 1. blocks9 → 域 opacity/emission。ABI：低 24 位 = raw id，高 8 位 = luminance 真值
-    //    （state 级，Java 侧提供；为 0 时回退数据表 emission —— 表仍作 id 级回退源）。
-    //    同时收集 block light 种子（emission>0）。
-    //    round2：dom-major 重排（写侧连续，消 dom_index 乘法散写），同趟收集 col_max
-    //    （每列最高不透明 y，sky 阶段的 15-区间即 col_max+1..383，省一趟 O(N) opacity 读）。
+    blocks: &[i32],
+    opacity: &mut [u8],
+    col_max: &mut [i32],
+    dom: usize,
+    chunks: usize,
+    mut on_seed: E,
+) {
+    // ABI：低 24 位 = raw id，高 8 位 = luminance 真值（state 级，Java 侧提供；为 0 时
+    // 回退数据表 emission —— 表仍作 id 级回退源）。air 快路径：v==0（id=0 且 luminance=0，
+    // luminance 高位非 0 不得走此路径）且 table[0]==(0,0) ⇒ op/em 全 0。
     for y in 0..WORLD_H {
         let yb = y * 256;
-        for z in 0..DOM {
+        for z in 0..dom {
             let cz = z >> 4;
             let lz = z & 15;
-            let row = (y * DOM + z) * DOM;
-            let colrow = z * DOM;
-            for cx in 0..3usize {
-                let c = cz * 3 + cx;
+            let row = (y * dom + z) * dom;
+            let colrow = z * dom;
+            for cx in 0..chunks {
+                let c = cz * chunks + cx;
                 let base = c * CHUNK_CELLS + yb + lz * 16;
                 let d = row + cx * 16;
                 for lx in 0..16usize {
-                    let v = blocks9[base + lx] as u32;
+                    let v = blocks[base + lx] as u32;
                     let i = d + lx;
-                    // air 快路径：v==0（id=0 且 luminance=0，luminance 高位非 0 不得走此路径）
-                    // 且 table[0]==(0,0) ⇒ op/em 全 0。⚠️ id==0 但 lum>0 是合法光源，必须落查表。
                     if engine.air_fast && v == 0 {
-                        // opacity[i] 保持 0（scratch 清零语义）；block_light 同
+                        // opacity[i] 保持 0（调用方清零语义）；block_light 同
                         continue;
                     }
                     let id = (v & 0x00FF_FFFF) as i32;
@@ -533,8 +570,7 @@ fn light_compute_inner(
                     }
                     opacity[i] = op;
                     if em > 0 {
-                        block_light[i] = em;
-                        queue.push(i as u32);
+                        on_seed(i, em);
                     }
                     if op > 0 {
                         col_max[colrow + cx * 16 + lx] = y as i32;
@@ -543,9 +579,19 @@ fn light_compute_inner(
             }
         }
     }
-    if let Some(p) = phases.as_deref_mut() {
-        p[0] += _t0.map(|t| t.elapsed()).unwrap_or_default();
-    }
+}
+
+/// 传播与导出（C-1a 抽取，260919-05）：light_compute_inner 的 ②③④ 相原样抽出——
+/// block BFS → sky 直落 + 种子收缩 + sky BFS → export。域批路（fill 共享后）与
+/// per-chunk 路共用本函数，保证同内核同输入逐位等价。
+fn propagate_and_export(
+    scratch: &mut Scratch,
+    out_block: &mut [u8],
+    out_sky: &mut [u8],
+    out_flags: &mut [u8],
+    mut phases: Option<&mut [std::time::Duration; 5]>,
+) {
+    let Scratch { opacity, block_light, sky_light, queue, col_max } = scratch;
     let _t1 = phases.as_mut().map(|_| std::time::Instant::now());
 
     // 2. block light：BFS（6 邻域，cost = max(1, opacity[邻])，无 sky 直落特例）
@@ -625,7 +671,49 @@ fn light_compute_inner(
     if let Some(p) = phases.as_deref_mut() {
         p[4] += _t4.map(|t| t.elapsed()).unwrap_or_default();
     }
+}
 
+fn light_compute_inner(
+    engine: &LightEngine,
+    scratch: &mut Scratch,
+    blocks9: &[i32],
+    out_block: &mut [u8],
+    out_sky: &mut [u8],
+    out_flags: &mut [u8],
+    mut phases: Option<&mut [std::time::Duration; 5]>,
+) -> Result<(), LightError> {
+    if blocks9.len() != BLOCKS9_LEN {
+        return Err(LightError::InputLen);
+    }
+    if out_block.len() < OUT_CHAN_LEN || out_sky.len() < OUT_CHAN_LEN || out_flags.len() < FLAGS_LEN {
+        return Err(LightError::OutputLen);
+    }
+
+    let Scratch { opacity, block_light, sky_light, queue, col_max } = scratch;
+
+    let _t0 = phases.as_mut().map(|_| std::time::Instant::now());
+
+    // clear+resize：scratch 跨调用复用，必须清零（resize 不覆盖已有元素）
+    opacity.clear();
+    opacity.resize(BLOCKS9_LEN, 0);
+    block_light.clear();
+    block_light.resize(BLOCKS9_LEN, 0);
+    sky_light.clear();
+    sky_light.resize(BLOCKS9_LEN, 0);
+    queue.clear();
+    col_max.clear();
+    col_max.resize(DOM * DOM, -1);
+
+    // 1. fill（C-1a 260919-05 抽为 fill_domain_generic，3×3 态内联回调 = 旧内联收集，
+    //    同序同值）：round2 dom-major 重排 + 同趟 col_max 语义不变，见 fill_domain_generic 注。
+    fill_domain_generic(engine, blocks9, opacity, col_max, DOM, 3, |i, em| {
+        block_light[i] = em;
+        queue.push(i as u32);
+    });
+    if let Some(p) = phases.as_deref_mut() {
+        p[0] += _t0.map(|t| t.elapsed()).unwrap_or_default();
+    }
+    propagate_and_export(scratch, out_block, out_sky, out_flags, phases);
     Ok(())
 }
 
@@ -778,11 +866,19 @@ mod tests {
     /// CP-1（260916-01）域批内核等价门：light_compute_domain 9 中心输出
     /// 必须与 per-chunk light_compute 对同一 3×3 子窗逐位相等（纯函数域，无噪声带）。
     /// blocks25 用固定 LCG 伪随机填充（含光源位/不透明位），覆盖所有 9 中心。
+    /// C-1a（260919-05）：路改为「全域共享 fill + 9×3×3 窗 BFS」，本门即形态 S1 的
+    /// 位等价判据——双 LCG 种子独立采样（单种子假绿防线）。
     #[test]
     fn light_compute_domain_bitwise_equivalence() {
+        for seed in [0x9E37_79B9_7F4A_7C15u64, 0xA5A5_5A5A_1234_ABCDu64] {
+            assert_domain_bitwise_equiv(seed);
+        }
+    }
+
+    fn assert_domain_bitwise_equiv(seed: u64) {
         let engine = LightEngine::from_json_str(r#"{"format":"corewap-light-1","default":{"opacity":0,"emission":0},"blocks":{"1":{"opacity":15,"emission":0},"32":{"opacity":1,"emission":0},"10":{"opacity":15,"emission":15}}}"#).unwrap();
         // 固定种子 LCG（msvc/Java 无关，仅测试内部确定性）
-        let mut s: u64 = 0x9E3779B97F4A7C15;
+        let mut s: u64 = seed;
         let mut rng = || {
             s ^= s << 13;
             s ^= s >> 7;
