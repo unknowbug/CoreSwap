@@ -1917,7 +1917,7 @@ entries:
   - id: 't8-attrib-260919-07:verdict'
     path: 't8-attrib-260919-07/verdict-260919-07.md'
     kind: analysis
-    status: draft   # 260919-07 归因 verdict：44.69% = 3703 值差（写回终态化通路两面：恒定2038固化+2185覆写抖动，C1 备选分解已登记）+ 520 存在性差（域臂 unlit，档①520/520 直证）；judge PASS-with-conditions C1-C4 已应用；candidate 建议，confirmed 留用户
+    status: confirmed   # 260919-07 归因 verdict：44.69% = 3703 值差（写回终态化通路两面：恒定2038固化+2185覆写抖动，C1 备选分解已登记）+ 520 存在性差（域臂 unlit，档①520/520 直证）；judge PASS-with-conditions C1-C4 已应用；candidate 建议，confirmed 留用户
   - id: 't8-attrib-260919-07:judge-review'
     path: '../.investigations/t8-attrib-260919-07/judge-review-260919-07.md'
     kind: review
