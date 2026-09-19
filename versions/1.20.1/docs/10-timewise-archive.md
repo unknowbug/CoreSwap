@@ -3551,3 +3551,37 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
   `.investigations/000-架构设计/架构计划-260919-04-C1前置G3收敛性预研.md`。
 - 🔍 **未闭合/下一步**：C-1a 立项属独立决策（预研 = 前置 G3 收敛性，非正式 Phase 2 分析）；
   scout open 4 项 + 设计文档 S1 形态写死随正式立项带入；C-2 受 round4 纯算力冻结排序约束（承接 260919-03）。
+
+## 260919-05（2026-09-19）C-1a 立项实现（全域 fill 一趟共享 + 9 中心 3×3 窗 BFS+export，形态 S1）——正确性面全绿 + J4 性能主判据未满足（灰区 0.947 / FAIL 1.016，噪声带内）🔍 candidate（judge PASS-with-conditions N1-N4 已登记；用户拍板保留缺省生效）
+
+> 承接 260919-04 预研（scout 机制地图 + design-c1 judge S1-S4）后的正式立项实现块。形态 S1 用户拍板；
+> 上游 = design-c1-260919-04.md §4 判据草案裁剪。seed 同 260919-03；n=457 ok/臂。
+
+- ✅ **立项**：`.investigations/000-架构设计/架构计划-260919-05-C1a立项实现.md`（轻量偏重档，已批准）——
+  C-1b 跨任务缓存维持不立项（G3 结构性排除）；5×5 单域一次 BFS 不立项；C-4 灰区二值化不做。
+- ✅ **实现（主会话 swe 收敛闭环，worldgen-core/src/light/mod.rs +165/−69）**：
+  `fill_domain_generic` 泛型全域 fill 一趟（域成员 81→25 chunk，3.24× CPU 削减）+
+  `propagate_and_export` 抽取（域批路与 per-chunk 路共用）+ seeds `em<<24|idx` 位打包
+  （em u8 ≤8 位、idx <2^22，judge 复核无溢出）。commit **c0ca980**；dll sha **CC4E39FE**（…54AE，
+  in-log 全臂核对）。实现现处缺省生效态（无独立开关）。
+- ✅ **双种子位等价门（J1）**：`light_compute_domain_bitwise_equivalence` 双 LCG 种子 PASS——
+  域批共享 fill 路 vs per-chunk 路 9 中心逐位等价（E1 合成态分层，judge M3 确认未冒称 Java↔Rust
+  位等价）；全量单测 16/16（J2，日志落盘 cmd-output\cargo-test-260919-05.log）。
+- ✅ **判据预登记先于采集（#112）**：criteria 落盘 < 首轮 < 首个有效 result；各判据带 §15.1
+  preconditions 三元组（key/expected/check）。
+- ❌→✅ **宿主崩溃 → off1 臂 aborted 换标签归档（§9.8/#144-146）**：首轮采集宿主崩溃带走进程树
+  （c1a-off1-aborted-crash.log 留档未覆盖），换标签复采；四臂 c1a-off1/on1/off2/on2（2×2 配对交错）
+  全 SELFCERT 绿（n=457、fallback=0、degraded=0、dll sha 双臂一致、world 身份门过；残缺率最差臂
+  on2 = 13/457 = 2.8% ≤5%）。
+- ❌ **J4 性能主判据未满足**：nativeMs P50 配对比 on1/off1 = 2.179/2.301 = **0.947（灰区）**、
+  on2/off2 = 2.244/2.208 = **1.016（FAIL）**——两对方向不一致，均在 run 噪声带内（off1/off2=1.042，
+  ~4%）；行为门 J3 满足（ratioP50 双读法均 ≥0.95，N1 口径注）；G3 收敛门 J5 满足（reload2 vs
+  reload1 changed=0/9450 = 0.00%）；J6 RSS 未执行（采集台无采样口径，转 idk-C1a-1）。
+- ✅ **机制归因（qualitative 已声明）**：共享 fill 削减的是 CPU 总量非关键路径——旧路 9 窗并行各
+  ~1.3ms（关键路径只含一份），新路全域 fill 4.1ms 单线程**串行前缀**完整上墙，总量削减被串行化抵消。
+  → workflow-patterns **#194**（立项两栏列账：CPU 总量面/关键路径面）。
+- ✅ **judge（收尾 MUST）：PASS-with-conditions，N1-N4 登记**——三源核对数值独立重算零偏差。
+- ✅ **用户拍板**：采纳 = 保留缺省生效（正确性面全绿；性能面按 C-3 先例不作为优化计入）。
+- 📌 过程产物：`.investigations/c1a-260919-05/`（criteria 预登记 + record + judge-review + cmd-output/
+  含崩溃留档）+ commit c0ca980 + dll sha CC4E39FE；idk-C1a-1（RSS 未采样）/idk-C1a-2（C-1b 维持
+  不立项）如实登记；「fill 分块流水」候选标未验证方向仅登记。
