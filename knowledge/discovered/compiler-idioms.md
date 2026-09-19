@@ -456,3 +456,12 @@ EndIslands 密度函数是本工程首个 SimplexNoiseSampler 移植点，其数
 - **证据**：候选 B 初版 `@Accessor("data")` 编译失败；改走公有 `writePacket` 后双采集对拍 4 chunk ALL-MATCH（diffTotal=0，probe-r2.log），且经生产 dev loom 环境（remap 链）运行正常。
 - **如何利用**：需要私有容器内部数据时，优先找**公有序列化帧**——`writePacket` 帧自带 bits（1B）+ palette 体（按 bits 分派的单值/ID_LIST 形态）+ `VarInt(n)` + packed longs 全信息，逐字段引用 PC.java:383-387 解析即可；零 accessor / 零反射 / **零 remap 风险**（公有方法名经标准映射）。⚠️ 跨版本注意帧格式差（1.20.1 `writeLongArray` 带 VarInt 长度前缀 vs 1.21.6 定长无前缀，#26 家族——本项目 issue #26 已登记）。
 - **家族索引**：build-tooling #26（Chunky 载体）/ build-tooling #151（该帧的长度前缀漏读坑）；workflow-patterns #55（remap 环境识别）——本条是「绕开私有面」正面形态。
+
+## 发现 #28（错误优先，五段式）: Python dict 赋值评估序坑——`d[k()] = f()` RHS 先求值，解析器 bug 伪装成「数据 malformed」（260919-08）
+
+- **现象**：比较器第 1 轮 `IndexError: index out of range` 于 `u1()`（o1o3-r3r4-run.log L4-25）；修复后第 2/3 轮 `[VOID] malformed 75.1323%`——r3 臂 7100/9450 chunk 全部 `truncated NBT at offset 47 need 28531 have 2911`，且**不同 chunk 同一锚点同一 need-have 数值**（L29/L34，c(3,-32)/c(4,-32)/c(5,-32) 三例全同）。
+- **根因**：手写 NBT 解码器使用 `d[r.s_()] = payload(r, tt)` 形态——Python dict 赋值**先求值 RHS**（`payload` 推进光标 r.p）再求值 key（`r.s_()` 读长度/字符串字段）→ key 读到 payload 消费后的错误光标 → 解码器**全局错位**。配对坑（同文件 `_i8`）：读长度字段时光标不推进 → 后续 payload 从错误起点读 → 段静默丢失截断。两者都伪装成「region 文件坏了」，实际数据 ok=9450/9450 完好。
+- **定位**：第 1 轮 traceback 指向 u1 越界（解析器层非数据层）；「不同输入同一 need-have」签名排除随机损坏、锁定解析器确定性 bug；修好后 P14 双臂 gap=0.0000% / hash_mismatch=0/9450 与历史 t8_b5_r3_audit.py 0/9450 互验背书。
+- **修复**：赋值语句拆分求值序（先 key 后 payload，显式临时变量固定顺序）+ 修 `_i8` 光标推进；最终版 sha 前 8 位 A044031A 通过。
+- **教训**：① 复合赋值 `d[k()] = f()` 求值顺序（RHS→key）在带副作用（光标推进）的解析器上下文是活性陷阱——解析器代码禁把带副作用表达式内联进复合赋值；② 「malformed 高但 need-have 数值恒定」= 解析器 bug 签名不是数据 bug——**先疑解析器再疑数据**，独立既有解析器互验一步定责；③ 与 #151（漏读长度前缀）、#159（region NBT 手写三坑，build-tooling）同族：手写二进制解析器失真全部伪装成「数据坏」。
+- **来源**：o1o3-r3r4-run.log L4-49（三轮原文）；judge-review-verdict-260919-08 C-N1 备注栏；verdict-260919-08 §1。

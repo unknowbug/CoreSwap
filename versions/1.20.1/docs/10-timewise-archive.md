@@ -3638,3 +3638,21 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 
 ### 未决（诚实登记）
 - 🔍 O1 边界带形态门（≥80%/≤10%）未跑（需档②）；R6 跨线程可见性残余未清零（与 O1 互斥可判）；档③输入 hash 直证需改码批准；E1 档单臂再推导不外推 E2（#162）；n=2 不外推其他 seed/维度。
+
+---
+
+## 260919-08（2026-09-19 21:0x-22:0x）写回终态化通路修复立项设计 + 档② C1 判别（O1 PASS）
+
+### 闭环
+- ✅ HOOK-1 架构批准（修复立项先设计后实施）→ scout 机制地图（S1-S6 副作用清单 + S3 排序窗口新识别 + propagateLight 从未补做 + grace/ticket 无耦合）。
+- ✅ 档② keep-world 判别（HOOK-2 批准）：r3 region 归档（18 文件 65.9MB）+ r4 新跑（SELFCERT 全绿 exit 0）+ region 归档 → o1_o3_cmp.py：双臂 9450/0 malformed、P14 双臂 0 mismatch、jitter=6453、O1 band=99.59%/interior=0.41% → **O1 PASS**（EXIT=0）。O3 降级（vanilla region 不在盘，缺失≠反对）。
+- ✅ 判读 verdict-260919-08（draft→candidate 建议，judge SHOULD PASS-with-conditions C-N1/C-N2 已补证）：2185 抖动面 = 覆写形态成立（candidate 级）；乙对 2185 削弱但恒定面主张完好；2038 恒定面不裁决、归档③；R6 削弱至极低先验。
+- ✅ F-B/F-C/F-A fan-out 六 worker（.b1/.b2/.b3/.b4/.b5 + 汇总）：设计文档 design-260919-08.md；judge MUST PASS-with-conditions（C-D1~C-D4 已应用，含 §1 数字账勘误：2038 = d_cross 4223 − d_self 2185，非 3703−2185；b5 §0 同病注记待勘误）。
+- ✅ **HOOK-4 用户拍板 = 选项 A：主攻包立项**（FA-1+FA-3 同 patch coreswap.light.writeback.post-finalize + FB-2 捆绑 + F-C-C3 同批，F-A 先 F-C 后 #150；不含档③；FA-2/档③ E-3a 挂起 key=c1-e3a-verdict）。实施 = 下一工作块。
+- ✅ 知识库：workflow-patterns #199-#203 + #160/#150 补充案例 + compiler-idioms #28（dict 赋值评估序坑，五段式）+ build-tooling #159 补充案例 + INDEX。
+
+### 判错链（比较器三轮）
+- 🔍 第 1 轮 IndexError 裸崩（解析器零防御）→ 第 2 轮 malformed 门 VOID 断链生效但 75.13% 全同签名（need 28531/have 2911 恒定 = 解析器系统性 bug 非数据坏）→ 第 3 轮修而不落盘（交 incub 教训：复交必附 sha256 核对）→ 最终轮真根因两个：dict 赋值 RHS 先求值致解码器全局错位 + _i8 光标停滞丢段（compiler-idioms #28）。VOID 轮原文留档 cmd-output/o1o3-r3r4-run.log。
+
+### 未决
+- 🔍 2038 恒定面（终态化固化 vs 确定性语义差）未判别——档③ E-3a 已设计（最小打点 + r5/r6 重采 + 两分支读法写死）待改码批准（HOOK-4 未含）；O3 方向半边未检验（需 vanilla region 新采集）；FB-2 修复效果未经运行时验证（机制存在性 ≠ 修复效果，#201）。
