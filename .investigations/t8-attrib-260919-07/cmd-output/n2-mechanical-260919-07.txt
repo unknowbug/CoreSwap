@@ -1,0 +1,7 @@
+d_self=2185 d_cross_r2=4223 d_cross_r3=4223
+d_cross key sets identical r2 vs r3: True
+d_self in(A∪B) = 2185/2185 (100.00%)  [H-b2-支持门 >=80%]
+d_self in mid-band x(57,173): 0
+centers=3703 d_self∩centers=2185 d_self outside centers=0
+  outside-center part in(A∪B): 0/0; in mid-band: 0
+d_cross_r2 in mid-band: 0  [H-b1-纯型预证伪观察点: >0 则既有空间判读降级]

@@ -1,0 +1,8 @@
+r2: to=625 full=3078 warns=0
+r3: to=625 full=3078 warns=0
+self=2185 self∩univ=2185 self∩to(r1)=300 self∩fullOnly(r1)=1885
+[检验A] fullOnly-jitter(1885) ⊆ toSet(r2)∪toSet(r3): 0/1885
+[检验A'] self(2185) ⊆ toSet(r2)∪toSet(r3): 300/2185
+to1=625 to2=625 to3=625 to1Δto2=0 to1Δto3=0 to2Δto3=0
+self ∩ (to1Δto2 ∪ to1Δto3): 0
+[检验B] fullOnly-jitter 不被任何 to 集覆盖(内核并发非确定观察点): 1885

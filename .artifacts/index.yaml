@@ -1914,3 +1914,11 @@ entries:
     status: candidate   # 判据预登记 + 双臂采集（judge 核 mtime 先于采集）；FAIL 判定如实
     # T8 域批值 vs vanilla：同构建态单变量双臂（dll cc4e39fe，负自证过），common 9450 全覆盖，
     #   light-hash diff=4223（44.69%）≫ E1 run 带；机制归因未做（存在性判据，预登记两分支皆有信息量）。
+  - id: 't8-attrib-260919-07:verdict'
+    path: 't8-attrib-260919-07/verdict-260919-07.md'
+    kind: analysis
+    status: draft   # 260919-07 归因 verdict：44.69% = 3703 值差（写回终态化通路两面：恒定2038固化+2185覆写抖动，C1 备选分解已登记）+ 520 存在性差（域臂 unlit，档①520/520 直证）；judge PASS-with-conditions C1-C4 已应用；candidate 建议，confirmed 留用户
+  - id: 't8-attrib-260919-07:judge-review'
+    path: '../.investigations/t8-attrib-260919-07/judge-review-260919-07.md'
+    kind: review
+    status: candidate   # PASS-with-conditions：数字链 A1-A7 全对上；C1 备选分解/C2 轴限定/C3 分层/C4 索引（本条 + verdict 条即 C4 落地）

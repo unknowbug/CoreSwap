@@ -1,0 +1,3 @@
+to: n=625 inClusterA=97 inClusterB=528 other=0
+full: n=3078 inClusterA=432 inClusterB=2646 other=0
+inline: n=0 inClusterA=0 inClusterB=0 other=0

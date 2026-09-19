@@ -3605,3 +3605,36 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 📌 **知识库**：subagent 草稿三份 `.artifacts/legacy-sweep-260919-06/knowledge-draft-{discovered,index,timeline}.md`（build-tooling #160 最高价值 + #161；workflow-patterns #195 + #100 追加注记）→ 主会话应用。
 - 📌 过程产物：`.artifacts/legacy-sweep-260919-06/`（record + scope-bc + b3-balance + judge-review）+ `.investigations/legacy-sweep-260919-06/`（backlog-map + knot-static）+ `.tmp/`（判据/驱动/比较器/diffs 原始证据）。
 - 🔍 **未闭合/下一步**：T8 值差剖析是否立项（用户）；N1 index.yaml 补登记；N3 下次采集首跑验证 refusedCount 与进程退出；T7 idk 90 天线随 judge 确认生效；open②（warmup 臂）续挂。
+
+## 260919-07（2026-09-19）T8 值差机制归因（fan-out .b1-.b5 五候选 → 收敛合并 → judge PASS-with-conditions）——44.69% 分账 = 3703 值差 + 520 存在性差 🔍 candidate（confirmed 留用户）
+
+> 承 260919-06 T8 FAIL verdict 立项；架构 `.investigations/000-架构设计/架构计划-260919-07-T8值差剖析.md`（HOOK-1 批准 + HOOK-2/3 沿途拍板）；证据体 `.investigations/t8-attrib-260919-07/`（scout-map + b1-b5 + cmd-output/ 八份原始读数）；verdict `.artifacts/t8-attrib-260919-07/verdict-260919-07.md`。
+
+### 过程
+- ✅ **scout 勘探前置**：scout-map 盘点两臂数据形态（key 集 9450=9450 一致、SELFCERT/world 身份链齐）、声明 snap 哈希信息论边界（无量纲/无 y/无通道 → 量级与通道分离永久盲区）、三候选让渡分账（零机制解释）。
+- ✅ **fan-out 五候选并行**（.b1 域批算法差 / .b2 settled 时序差 / .b3 snap 载具差；中段重开 .b4 520 路径归属 / .b5 抖动源 .b5a/.b5b）→ 逐候选 .bN 产物 + 三次主会话零采集/低采集回传（burst 提取 → n=2 → assignment 检验 → 档① r3 审计）。
+- ✅ **n=2 判别（预登记判据机械执行）**：d_self=2185（23.12%，100% ⊆ center 集、中带 0）；d_cross r2=r3=4223 **key 集逐 key 恒定**；520 集 ⊆ d_cross 逐 key（A7 闭合）。
+- ✅ **档① r3 审计（rc=0，SELFCERT/preconditions 五项先于模板）**：snap 互验 0/9450；520/520 unlit 直证；lit=3703。
+- ✅ **judge（收尾 MUST）：PASS-with-conditions C1-C4**——数字逐项与原始读数一致（A1-A7 零漂移）；C1 备选分解登记 / C2 排除行轴限定 / C3 I 级参照内联限定 + .b5b 分层表述 / C4 index.yaml 补登记（已应用）。
+
+### 被推翻假说（❌ 一行排除清单，均有证据层标注）
+- ❌ **.b3 snap 载具差**：key 集 9450=9450、解析对称、形态反证（2 连通矩形 vs 撒点/准均匀）——排除（静态 Degraded）。
+- ❌ **.b2 settled/时序直接贡献**：写回无丢弃路径、尾窗零 task、检验A=0/1885——排除；时序仅经加载次序并入覆写面。
+- ❌ **域批分片边界伪影**：簇边界与 3×3 分片不对齐（簇B x=173≡2）、中带整带零 diff——排除。
+- ❌ **内核逐位语义差（轴限定，judge C2）**：仅排除 Rust 内部两路差（mod.rs:866-900 位等价单测），**不**排除 Rust-vs-Java 引擎语义差（该轴由 C1 备选分解承接）。
+- ❌ **指派变动（.b2 §9 模型）**：to 集三 run 逐 key 同一 + 检验A=0/1885——证伪；.b2 降级为二阶贡献者。
+- ❌ **.b5b 输入快照差**：R1-R5 静态出清（仅 R3 装配序有数据层证据，judge C3 分层），R6 可见性为唯一残余（与 O1 互斥可判）。
+- ❌ **520 = per-chunk lightRust 值差**：路径穷举（inline=0/fallback=0/degraded=0/lightInit ok）+ 档① 520/520 unlit 直证 → 实为「vanilla lit / 域臂 unlit」存在性差——排除（b4 强制链）。
+
+### 工具演进
+- ✅ burst 提取法（FP-LIGHT 行 × task 行同线程确定性配对 → timedOut/满域/inline 三集坐标提取，零采集）。
+- ✅ 交集复算分层判据（self∩to / self∩fullOnly / self∩outside——#197 乘性两层分解的采数形态）。
+- ✅ 档① r3 单 world 审计模板（snap 互验 + unlit 直证 + lit 计数，VOID/FAIL/OK 退出码区分）。
+- ⚠️ 单 world 约束：rmtree 采集台使 r2/vanilla-r1 region 不可回补 → per-section 跨 run 形态门（O1）需档② keep-world 新采集（#198）。
+
+### 最终分账（verdict §1，draft → 建议 candidate）
+- 🔍 **3703 chunk 值差（39.2pp）= 写回终态化通路两面**（Mixin:594-595 一行代码对）：终态化子面（免全量重光 → 快照 vs 终态差固化，恒定 2038）⊕ 覆写子面（vanilla 增量传播就地改写边界带，抖动 2185，**I 级参照**，judge C3 内联限定）。⚠️ C1 备选分解登记：「恒定 2038 = 确定性引擎语义差 + 2185 = 覆写」同样满足全部观测，判别实验 = 档②O1 + 档③E-3a（candidate→confirmed 前优先）。
+- 🔍 **520 chunk 存在性差（5.5pp）**：域臂 unlit / vanilla 臂 lit；驱动 = grace(10s) 结构性 ≫ ticket 窗的饱和竞态（几何决定、逐 run 复现）。
+
+### 未决（诚实登记）
+- 🔍 O1 边界带形态门（≥80%/≤10%）未跑（需档②）；R6 跨线程可见性残余未清零（与 O1 互斥可判）；档③输入 hash 直证需改码批准；E1 档单臂再推导不外推 E2（#162）；n=2 不外推其他 seed/维度。

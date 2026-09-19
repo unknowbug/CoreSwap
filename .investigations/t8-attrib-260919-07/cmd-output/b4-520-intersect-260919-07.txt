@@ -1,0 +1,4 @@
+diff_outside_centers: 520
+in d_cross_r2: 520
+in d_cross_r3: 520
+d_cross constant: 4223  fluctuating: 0

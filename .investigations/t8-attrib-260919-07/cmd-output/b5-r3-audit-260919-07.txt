@@ -1,0 +1,12 @@
+[E-1a] parsed chunks from r3 region: 9450
+[E-1a] snap mutual verification: mismatch=0/9450
+[520] |diff1|=4223 |centers|=3703 |520set|=520
+[P1/E-1b] 520-set unlit: 520/520; lit counter-examples: 0 []
+[P2/E-1c] lit chunks total: 3703 (expect ~3703 in [3700,3706])
+[P3/E-1d] boundary profile samples (first 5 centers adjacent to unlit):
+  center(14,-24): sections(y,bl,sk)=[(253, 'data', '-'), (254, 'data', '-'), (3, '-', 'data'), (4, '-', 'data'), (5, '-', 'data'), (6, '-', 'data')]
+  center(14,-23): sections(y,bl,sk)=[(253, 'data', '-'), (254, 'data', '-'), (255, 'data', '-'), (3, '-', 'data'), (4, '-', 'data'), (5, '-', 'data')]
+  center(14,-22): sections(y,bl,sk)=[(254, 'data', '-'), (1, 'data', '-'), (2, 'data', '-'), (3, '-', 'data'), (4, '-', 'data'), (5, '-', 'data')]
+  center(14,-21): sections(y,bl,sk)=[(3, '-', 'data'), (4, '-', 'data'), (5, '-', 'data'), (6, '-', 'data'), (7, '-', 'data'), (8, '-', 'data')]
+  center(14,-20): sections(y,bl,sk)=[(254, 'data', '-'), (255, 'data', '-'), (3, '-', 'data'), (4, '-', 'data'), (5, '-', 'data'), (6, '-', 'data')]
+[VERDICT] rc=0 (0=OK 2=P1-FAIL 3=P2-out)
