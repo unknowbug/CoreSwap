@@ -444,7 +444,8 @@ pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
             let t1 = if diag { Some(std::time::Instant::now()) } else { None };
             let mut outv = vec![0u8; LIGHT_DOMAIN_OUT_LEN];
             let engine = unsafe { &*(handle as *const LightEngine) };
-            let dp = if diag { Some(std::time::Instant::now()) } else { None };
+            // 内核窗起点（含 outv 分配，~0.09ms/task，误差 0.3% 量级并入内核窗声明）
+            let kp = if diag { Some(std::time::Instant::now()) } else { None };
             let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 if diag {
                     WorldgenRust::light::light_compute_domain_phased(engine, &b25, &mut outv)
@@ -474,13 +475,13 @@ pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
                 std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
             };
             env.set_byte_array_region(&out, 0, o8)?;
-            if let (Some(a), Some(b), Some(c), Some(d), Some(dp)) = (t0, t1, dp, t2, dp_opt) {
+            if let (Some(a), Some(b), Some(k), Some(d), Some(dp)) = (t0, t1, kp, t2, dp_opt) {
                 let t3 = std::time::Instant::now();
                 let f = |d: &std::time::Duration| d.as_micros();
                 eprintln!(
                     "[LIGHTPHASE] alloc_copyin_us={} kernel_us={} copyout_us={} subcopy_us={} fill_us={} blockbfs_us={} skyfall_us={} skyseed_us={} export_us={} centers=9",
                     (b - a).as_micros(),
-                    (c - b).as_micros(),
+                    (d - k).as_micros(),
                     (t3 - d).as_micros(),
                     f(&dp.subcopy),
                     f(&dp.phases[0]),
