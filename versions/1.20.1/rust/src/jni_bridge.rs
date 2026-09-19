@@ -436,15 +436,28 @@ pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
                 return Ok(-2);
             }
             // 域批频度 ≈ per-chunk/9，输入帧 9.4MB 一次性分配可忽略（.b1 §1.2c 推演假设②）
+            // 260919-02 A1 立项预研：WG_LIGHTPHASE=1 时 task 级分段计时（门一次，非热路径逐格）
+            let diag = std::env::var("WG_LIGHTPHASE").ok().as_deref() == Some("1");
+            let t0 = if diag { Some(std::time::Instant::now()) } else { None };
             let mut b25 = vec![0i32; LIGHT_BLOCKS25_LEN];
             env.get_int_array_region(&blocks25, 0, &mut b25)?;
+            let t1 = if diag { Some(std::time::Instant::now()) } else { None };
             let mut outv = vec![0u8; LIGHT_DOMAIN_OUT_LEN];
             let engine = unsafe { &*(handle as *const LightEngine) };
+            let dp = if diag { Some(std::time::Instant::now()) } else { None };
             let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv)
+                if diag {
+                    WorldgenRust::light::light_compute_domain_phased(engine, &b25, &mut outv)
+                        .map(|d| Some(d))
+                } else {
+                    WorldgenRust::light::light_compute_domain(engine, &b25, &mut outv).map(|_| None)
+                }
             }));
+            let t2 = if diag { Some(std::time::Instant::now()) } else { None };
+            let dp_opt: Option<WorldgenRust::light::DomainPhases> =
+                match &res { Ok(Ok(Some(d))) => Some(*d), _ => None };
             match res {
-                Ok(Ok(())) => {}
+                Ok(Ok(_)) => {}
                 Ok(Err(LightError::InputLen | LightError::OutputLen)) => return Ok(-2),
                 Ok(Err(LightError::PackedDecode)) => return Ok(-2), // 不经此入口，防御性同映射
                 Err(p) => {
@@ -461,6 +474,22 @@ pub extern "system" fn Java_wg_CppWorldgen_lightComputeDomain<'frame>(
                 std::slice::from_raw_parts(outv.as_ptr() as *const i8, outv.len())
             };
             env.set_byte_array_region(&out, 0, o8)?;
+            if let (Some(a), Some(b), Some(c), Some(d), Some(dp)) = (t0, t1, dp, t2, dp_opt) {
+                let t3 = std::time::Instant::now();
+                let f = |d: &std::time::Duration| d.as_micros();
+                eprintln!(
+                    "[LIGHTPHASE] alloc_copyin_us={} kernel_us={} copyout_us={} subcopy_us={} fill_us={} blockbfs_us={} skyfall_us={} skyseed_us={} export_us={} centers=9",
+                    (b - a).as_micros(),
+                    (c - b).as_micros(),
+                    (t3 - d).as_micros(),
+                    f(&dp.subcopy),
+                    f(&dp.phases[0]),
+                    f(&dp.phases[1]),
+                    f(&dp.phases[2]),
+                    f(&dp.phases[3]),
+                    f(&dp.phases[4]),
+                );
+            }
             Ok(0)
         })
         .resolve::<jni::errors::ThrowRuntimeExAndDefault>()

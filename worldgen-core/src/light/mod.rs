@@ -310,6 +310,38 @@ pub fn light_compute_domain(
     blocks25: &[i32],
     out: &mut [u8],
 ) -> Result<(), LightError> {
+    light_compute_domain_impl(engine, blocks25, out, None).map(|_| ())
+}
+
+/// 诊断入口（260919-02 A1 立项预研，env WG_LIGHTPHASE 门控）：同 light_compute_domain，
+/// 附 9 中心聚合 phase 账 + 子窗拷贝累计（task 级一次，无热路径逐格计时）。#[doc(hidden)]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DomainPhases {
+    /// 与 PhaseTimings 同序：fill / block_bfs / sky_fall / sky_seed_bfs / export（9 中心求和）
+    pub phases: [std::time::Duration; 5],
+    /// 子窗拷贝 b9←blocks25 累计（9 中心求和）
+    pub subcopy: std::time::Duration,
+}
+
+pub fn light_compute_domain_phased(
+    engine: &LightEngine,
+    blocks25: &[i32],
+    out: &mut [u8],
+) -> Result<DomainPhases, LightError> {
+    let mut dp = DomainPhases {
+        phases: std::array::from_fn(|_| std::time::Duration::ZERO),
+        subcopy: std::time::Duration::ZERO,
+    };
+    light_compute_domain_impl(engine, blocks25, out, Some(&mut dp))?;
+    Ok(dp)
+}
+
+fn light_compute_domain_impl(
+    engine: &LightEngine,
+    blocks25: &[i32],
+    out: &mut [u8],
+    mut diag: Option<&mut DomainPhases>,
+) -> Result<(), LightError> {
     if blocks25.len() != BLOCKS25_LEN {
         return Err(LightError::InputLen);
     }
@@ -322,6 +354,7 @@ pub fn light_compute_domain(
         let kx = k % 3; // 0..2 → 窗 x = kx..kx+2（5×5 内 chunk 列）
         let kz = k / 3;
         // 子窗拷贝：blocks9 chunk c9(dz9*3+dx9) ← blocks25 chunk (kz+dz9)*5 + (kx+dx9)
+        let t_sub = diag.as_mut().map(|_| std::time::Instant::now());
         for dz9 in 0..3usize {
             for dx9 in 0..3usize {
                 let src = ((kz + dz9) * 5 + (kx + dx9)) * CHUNK_CELLS;
@@ -329,10 +362,21 @@ pub fn light_compute_domain(
                 b9[dst..dst + CHUNK_CELLS].copy_from_slice(&blocks25[src..src + CHUNK_CELLS]);
             }
         }
+        if let (Some(d), Some(t)) = (diag.as_mut(), t_sub) {
+            d.subcopy += t.elapsed();
+        }
         let seg = &mut out[k * (2 * OUT_CHAN_LEN + FLAGS_LEN)..(k + 1) * (2 * OUT_CHAN_LEN + FLAGS_LEN)];
         let (ob, rest) = seg.split_at_mut(OUT_CHAN_LEN);
         let (os, of) = rest.split_at_mut(OUT_CHAN_LEN);
-        light_compute_inner(engine, &mut scratch, &b9, ob, os, of, None)?;
+        light_compute_inner(
+            engine,
+            &mut scratch,
+            &b9,
+            ob,
+            os,
+            of,
+            diag.as_mut().map(|d| &mut d.phases),
+        )?;
     }
     Ok(())
 }
