@@ -3439,3 +3439,38 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 📌 **知识库**：workflow-patterns 新增**发现 #188**（观测打点/判别数据通道必须覆盖全部执行形态——「打点在位 ≠ 判据可达」，生产侧前移版 #162；subagent 草稿 + 主会话应用）；10 篇本条目；错误记录 = M1 更正 + C6R-L 崩溃失败轮（本条目内，不独立成篇——单块单错误链未达独立台账门槛）。
 - 📌 过程产物：`.investigations/a1-260919-01/`（criteria + cmd-output/ 两臂日志+result.json+失败轮留档+三元组补核 + judge-review + 知识草稿）、`.artifacts/a1-260919-01/verdict-260919-01.md`（candidate）+ root index 条目；打点 diff = ServerLightingProviderMixin.java（未提交，随本块收尾提交）。
 - ✅ **confirmed 授予（2026-09-19 用户拍板，同日回写）**：verdict-260919-01（A1 判别 = 有显著改善面，native JNI 主导）升 confirmed；回写 = verdict front-matter/状态机行 + root index.yaml 条目 + knowledge INDEX #188 行 + 本条目。A1 是否立项实施 = 独立决策项，留待用户后续拍板（改善面上限口径，见 verdict §4 含义段）。
+
+## 260919-02（2026-09-19）A1 native 段分解裁断（WG_LIGHTPHASE 门控打点，四臂 R2 重采）——.b1 算法量级主 + .b2 JNI 边界次 + .b3 测量轴排除 🔍 candidate（judge PASS-with-conditions M1/S1-S3 已应用；confirmed 留用户）
+
+> 承接 verdict-260919-01（confirmed：native ~92% 主导）的下游分解。判据预登记 + 打点随 commit
+> 32e126b @14:38 引入（时序锚链 32e126b→080d6e7→aab8b30，均早于全部采集 log 15:05–15:22）；执行体
+> dll 修正版 **f1d30ee9**（第一版 60abb61b 缺陷构建数据留档不进判定）；seed 8576294172403134396；
+> n=457 task/臂 × 四臂（off/on1/on2/on3）。正式裁决 → `.artifacts/a1-feas-260919-02/verdict-260919-02.md`。
+
+- ❌→✅ **E1 打点字段误标（本块关键错误链，五段式见知识草稿 §1）**：第一版 `kernel_us` 打印的是
+  dp-t1（outv 分配段 ~86μs）而非内核墙钟——数据自暴露（kernel_us ≪ Σphases 23ms，子段>母段物理
+  不自洽）一轮抓出；修正计时窗 → 重编 60abb61b→f1d30ee9 → R2 四臂重采，P1-\* 四臂数据按 #144/#146
+  留档不进判定。→ workflow-patterns **#189**（窗标签与计时代码一致性 + 自洽 sanity，#134 家族）。
+- ❌→✅ **E2 并发 stderr 交错残缺行（第二错误链）**：`[LIGHTPHASE]` 行被 FP-FILL/FP-LIGHT 从中间切入
+  产生缺 key 残缺行（on2 19/457=4.16%）→ 提取脚本 KeyError 崩溃；判据追补 §3.7 残缺行条款（全 key
+  校验 + ≤5% 报告 / >5% VOID 双档），commit 080d6e7 时序实证先于采集；on2 贴线通过 + idk-4 复跑预案。
+  → workflow-patterns **#190**。
+- ✅ **三分支判定（P50 主读法，R2-on1 主读数）**：**.b1 算法量级满足（主）**——算法四相占 kernel
+  77.7%（≥70%）、kernel/native 核算 75.9%（≥60%），kernel=27.04ms/任务、fill 13.51ms 单项最大
+  （37.9%，9 中心全量域重算冗余主导）；**.b2 JNI 边界/搬移分配满足（次）**——非内核段 7.16ms
+  （alloc_copyin 4.65 + subcopy 2.43 + copyout 0.07），拷入隐含带宽 2.11GB/s（<2.5，含分配/缺页/pin
+  份额非纯 memcpy）；**.b3 测量/调度轴未满足**（trim 差 −7.68% ≤10%，低尾 timedOut 拉高全量均值）。
+  三臂方向一致不翻转；未解释缺口出口不触发。
+- ✅ **总量分解闭合（如实）**：计时三段+subcopy vs nativeMs×9 缺口 1.46–2.20ms（4.08–5.59%），归因
+  Scratch::new+b9 分配不落分段 + 窗间缝隙；kernel 窗内未归因 3281–3904μs（outv ~90μs 在内，余未逐项
+  → idk-2）。压缩面清单 C-1~C-5（收益上界口径 #124）：.b2 系（C-3 packed 直传 + C-4 缓冲复用）合计
+  ~25% 低风险可先行；.b1 系（C-1 域共享增量化）上界最大（≤59%）但 MUST 先解 G3 一次重载收敛性约束。
+- ✅ **judge（MUST 收尾）：PASS-with-conditions，条件已应用**——M1 index.yaml 登记补齐；S1 off 臂 sha
+  改直证引用（off log 自含 f1d30ee9，证据强于原表述）；S2 窗内未归因补三臂量级带；S3 idk-3 三元组
+  补核留待发布链。三源核对全过（判据时序锚实证 + judge 独立 python 重算逐项吻合 + 快照一致性）。
+- 📌 **知识库**：workflow-patterns **#189/#190**（subagent 草稿 `.investigations/a1-feas-260919-02/
+  knowledge-draft-260919-02.md` + 主会话应用）；错误台账随草稿 §1（E1/E2 五段式 + 速查表）；10 篇本
+  条目；INDEX 尾注行同批落盘。分解数值本身按价值门不进 discovered（verdict 在案）。
+- 📌 过程产物：`.investigations/a1-feas-260919-02/`（criteria + scout-map + record + judge-review +
+  cmd-output/ P1-\* 缺陷对照留档 + R2-\* 四臂）+ `.artifacts/a1-feas-260919-02/verdict-260919-02.md`
+  （candidate）+ root index 条目。
