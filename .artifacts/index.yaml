@@ -1922,3 +1922,18 @@ entries:
     path: '../.investigations/t8-attrib-260919-07/judge-review-260919-07.md'
     kind: review
     status: candidate   # PASS-with-conditions：数字链 A1-A7 全对上；C1 备选分解/C2 轴限定/C3 分层/C4 索引（本条 + verdict 条即 C4 落地）
+
+  # —— 260919-09 B1 主攻包实施 + 验收（FA-1+FA-3+FB-2+C3；judge PASS-with-conditions C1-C5）——
+  - id: 'fix-term-260919-09:verdict'
+    path: 'fix-term-260919-09/verdict-260919-09.md'
+    kind: analysis
+    status: draft   # J1 存在性差 520→0 PASS / J4 J5 PASS；J2 VOID（jitter 6453→7660 sections，chunk 级独立复算 2643>2185 双口径同证）——PI-1 断链留用户拍板；confirmed 留用户
+    # 一行结论：主攻包落地且行为化自证在案（postF 成对 3703/3703、resealed=8、degraded=0/464）；
+    #   存在性差消除（C3+FA-1），但 FB-2 补传播使 run 间抖动面扩张（+27% diff-nibbles）——
+    #   「确定性收敛」预期被反向削弱；FB-2 去留/档③/回退方向留用户。
+    # 关联件：record + criteria（.investigations/fix-term-260919-09/）、judge review、
+    #   采集台 .tmp/fix-term-260919-09/（三臂 region 归档）。
+  - id: 'fix-term-260919-09:judge-review'
+    path: '../.investigations/fix-term-260919-09/review-260919-09-judge.md'
+    kind: review
+    status: candidate   # PASS-with-conditions C-1..C-5（已应用：C-1/C-2/C-3/C-4 主会话补证，C-5 知识库待 subagent 草稿）

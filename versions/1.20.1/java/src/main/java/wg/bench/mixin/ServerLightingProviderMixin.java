@@ -40,6 +40,7 @@ import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.ChunkNibbleArray;
 import net.minecraft.world.chunk.ChunkProvider;
 import net.minecraft.world.chunk.light.LightingProvider;
+import net.minecraft.server.world.WgLightPost;
 import net.minecraft.registry.Registries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -79,6 +80,14 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     @Unique private static final boolean LIGHT_DOMAIN = System.getProperty("coreswap.light.domainbatch") != null;
     // 260919-03（.b2 C-3）：域批 packed 直传（依赖 LIGHT_DOMAIN；提交线程 packed 帧收集）
     @Unique private static final boolean LIGHT_PACKED = System.getProperty("coreswap.light.domainpacked") != null;
+    // 260919-09（design-260919-08 B1 主攻包 FA-1+FA-3）：S3+S4+complete POST 解绑（yarn SLP:179-183
+    // 队列序复刻；缺省关 = 现状域任务线程即时执行）。FB-2 补 propagateLight 无独立开关（删行即回退）；
+    // C3 latesubmit 在 LightDomainBatch。回退开关 + build.gradle 映射 postFinalize（B6-1 门）。
+    @Unique private static final boolean LIGHT_POST_FINALIZE =
+            System.getProperty("coreswap.light.writeback.post-finalize") != null;
+    // 260919-09：写回时序探针（env 门控默认关，chunk 级一次）：[LIGHT-WB] pre/inline/post 成对行
+    // （S3 排序窗判据的行为化自证数据面，#81 正/负成对）。
+    @Unique private static final boolean LIGHT_WBPROBE = System.getProperty("coreswap.light.wbprobe") != null;
     @Unique private static volatile boolean LIGHT_DOMAIN_HOOK_READY = false;
     @Unique private static final Object LIGHT_DOMAIN_HOOK_LOCK = new Object();
     @Unique private static final String LIGHT_DATA = System.getProperty("coreswap.light.data",
@@ -505,7 +514,10 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                             net.minecraft.util.Util.getMainWorkerExecutor());
             LIGHT_DOMAIN_HOOK_READY = true;
             System.out.println("[LIGHT-DOMAIN] hook armed executor=Util.getMainWorkerExecutor graceMs="
-                    + wg.bench.LightDomainBatch.GRACE_MS);
+                    + wg.bench.LightDomainBatch.GRACE_MS
+                    + " postF=" + LIGHT_POST_FINALIZE
+                    + " latesubmit=" + wg.bench.LightDomainBatch.LATE_SUBMIT
+                    + " fb2=on wbprobe=" + LIGHT_WBPROBE);
         }
     }
 
@@ -532,7 +544,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
      *（vanilla 回退语义原样保留）。返回 true = 已登记并 cancel 原方法。
      */
     @Unique
-    private boolean wgLightDomainSubmit(Chunk chunk, CallbackInfoReturnable<CompletableFuture<Chunk>> cir) {
+    private boolean wgLightDomainSubmit(Chunk chunk, CallbackInfoReturnable<CompletableFuture<Chunk>> cir,
+                                        boolean excludeBlocks) {
         ChunkPos p = chunk.getPos();
         if (!wgLightDomainReady((ServerLightingProvider) (Object) this, this.world, p)) {
             return false; // 计数由调用方统一记（防双计）
@@ -553,7 +566,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             wgLightDomainEnsureHook();
             Object[] ctx = { this, this.chunkStorage, this.world, this.world.getBottomSectionCoord() };
             CompletableFuture<Object> fut = wg.bench.LightDomainBatch.submitPacked(
-                    p.toLong(), wgLightDomainKey(p), ctx, chunk, meta, pal, sto, plens);
+                    p.toLong(), wgLightDomainKey(p), ctx, chunk, meta, pal, sto, plens, excludeBlocks);
             @SuppressWarnings("unchecked")
             CompletableFuture<Chunk> cf = (CompletableFuture<Chunk>) (CompletableFuture<?>) fut;
             cir.setReturnValue(cf);
@@ -568,7 +581,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         wgLightDomainEnsureHook();
         Object[] ctx = { this, this.chunkStorage, this.world, this.world.getBottomSectionCoord() };
         CompletableFuture<Object> fut = wg.bench.LightDomainBatch.submit(
-                p.toLong(), wgLightDomainKey(p), ctx, chunk, snap);
+                p.toLong(), wgLightDomainKey(p), ctx, chunk, snap, excludeBlocks);
         @SuppressWarnings("unchecked")
         CompletableFuture<Chunk> cf = (CompletableFuture<Chunk>) (CompletableFuture<?>) fut;
         cir.setReturnValue(cf);
@@ -579,10 +592,17 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
      *  未用代码，整体删除。历史实现见 git 提交。） */
     // （wgLightCollectBlocks25 / wgLightNeighborAt 已删除）
 
-    /** 单中心写回 + POST 语义（严格在对应 chunk 计算完成之后，.b1 §3.3-2）。 */
+    /** 单中心写回 + POST 语义（严格在对应 chunk 计算完成之后，.b1 §3.3-2）。
+     *  260919-09 B1 主攻包：① FB-2（无开关，删行即回退）——S1/S2 入队后补 propagateLight
+     *  （yarn SLP:97-104 = vanilla light() PRE 段被 cancel 跳过的传播排程；guard=excludeBlocks 同
+     *  vanilla SLP:175；PRE 排程由 runTasks 的 doLightUpdates（SLP:208）在 POST 批前实际消化）。
+     *  ② FA-1+FA-3（LIGHT_POST_FINALIZE 开）——S3(setLightOn)+S4(releaseTicket)+complete 后移
+     *  POST_UPDATE 段（yarn SLP:179-183 队列序 1:1 复刻），消 S3 排序窗口 + complete 后移一拍。
+     *  返回 true = future 已由本方法内 POST 任务体完成，调用方不得重复 complete。 */
     @Unique
-    private static void wgLightDomainWriteBack(ServerLightingProvider provider, ThreadedAnvilChunkStorage tacs,
-                                               int bottomSection, Chunk chunk, byte[] out, int segOff) {
+    private static boolean wgLightDomainWriteBack(ServerLightingProvider provider, ThreadedAnvilChunkStorage tacs,
+                                                  int bottomSection, Chunk chunk, byte[] out, int segOff,
+                                                  boolean excludeBlocks, CompletableFuture<Object> f) {
         ChunkPos chunkPos = chunk.getPos();
         int flagOff = segOff + 2 * 24 * 2048;
         for (int s = 0; s < 24; s++) {
@@ -590,9 +610,32 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             provider.enqueueSectionData(LightType.BLOCK, sp, wgLightNibble(out, segOff + s * 2048, out[flagOff + 2 * s]));
             provider.enqueueSectionData(LightType.SKY, sp, wgLightNibble(out, segOff + 24 * 2048 + s * 2048, out[flagOff + 2 * s + 1]));
         }
+        if (!excludeBlocks) {
+            provider.propagateLight(chunkPos); // FB-2：补被 cancel 跳过的 vanilla PRE 段传播排程
+        }
+        if (LIGHT_POST_FINALIZE) {
+            final long tPre = LIGHT_WBPROBE ? System.nanoTime() : 0L;
+            if (LIGHT_WBPROBE) {
+                System.out.println("[LIGHT-WB] pre (" + chunkPos.x + "," + chunkPos.z + ") t=" + tPre);
+            }
+            WgLightPost.postUpdate(provider, chunkPos.x, chunkPos.z, () -> {
+                if (LIGHT_WBPROBE) {
+                    System.out.println("[LIGHT-WB] post (" + chunkPos.x + "," + chunkPos.z
+                            + ") dt=" + (System.nanoTime() - tPre));
+                }
+                chunk.setLightOn(true);
+                ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(chunkPos);
+                f.complete(chunk);
+            });
+            return true;
+        }
+        if (LIGHT_WBPROBE) {
+            System.out.println("[LIGHT-WB] inline (" + chunkPos.x + "," + chunkPos.z + ")");
+        }
         // 复刻原 light() 尾部语义（yarn L179-183 POST 阶段）：setLightOn(true) + releaseLightTicket
         chunk.setLightOn(true);
         ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(chunkPos);
+        return false;
     }
 
     /** 域批任务体（Util.getMainWorkerExecutor 线程）：拼帧 → 一次 JNI → 逐中心写回/降级。
@@ -710,8 +753,12 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             CompletableFuture<Object> f = st.futures.get(pos);
             if (ch == null || f == null) continue;
             if (out != null) {
-                wgLightDomainWriteBack(provider, tacs, bottomSection, ch, out, k * WG_DOMAIN_SEG);
-                f.complete(ch);
+                boolean excl = Boolean.TRUE.equals(st.excludeBlocks.get(pos));
+                boolean doneHere = wgLightDomainWriteBack(provider, tacs, bottomSection, ch, out,
+                        k * WG_DOMAIN_SEG, excl, f);
+                if (!doneHere) {
+                    f.complete(ch);
+                }
                 ok++;
                 if (wg.bench.FormProbe.ON) {
                     wg.bench.FormProbe.lightCall(ChunkPos.getPackedX(pos), ChunkPos.getPackedZ(pos),
@@ -721,10 +768,22 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 // 降级重放（.b1 §1.2c fallback；预检过但任务期失败 = 状态回退，不可达路径，loud fail）
                 wg.bench.LightDomainBatch.DEGRADED.incrementAndGet();
                 degraded++;
-                boolean handled = wgLightLegacyTakeover(provider, tacs, world, bottomSection, ch, false);
-                if (handled) {
-                    f.complete(ch);
+                CompletableFuture<Chunk> replay =
+                        wgLightLegacyTakeover(provider, tacs, world, bottomSection, ch, false);
+                if (replay != null) {
+                    // FA-1 同构（260919-09）：replay future 在 postF=on 时由 POST 任务体完成（complete
+                    // 后移随行）；postF=off 时 replay 已完成 → whenComplete 即刻触发，与现状等价。
+                    replay.whenComplete((c, t) -> {
+                        if (t != null) {
+                            f.completeExceptionally(t);
+                        } else {
+                            f.complete(ch);
+                        }
+                    });
                 } else {
+                    // 失败臂对称摘票（b4-FA-1 必查项 / b3-C4 前提②；yarn TACS:676 形态）：HEAD cancel 后
+                    // vanilla POST 段永不执行，LIGHT ticket 归本路径所有——拒绝重放必须摘票，否则泄漏。
+                    ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(new ChunkPos(pos));
                     f.completeExceptionally(new IllegalStateException(
                             "[LightDomain] legacy replay declined @" + new ChunkPos(pos) + " fail=" + fail));
                 }
@@ -745,10 +804,12 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
 
     /**
      * 现役 per-chunk 内联接管路径（CP-1 前的原实现整体迁移，逻辑逐行保留；实例 → 静态化）。
-     * 返回 true = 接管完成（调用方 setReturnValue completedFuture）；false = 回退 vanilla。
+     * 返回 null = 回退 vanilla；否则返回该 chunk 的完成 future（260919-09 FA-1：postF=on 时为
+     * POST 任务体完成的 future——S3/S4 后移随行；postF=off 时为已完成 future，与现状等价）。
      */
     @Unique
-    private static boolean wgLightLegacyTakeover(ServerLightingProvider provider, ThreadedAnvilChunkStorage tacs,
+    private static CompletableFuture<Chunk> wgLightLegacyTakeover(ServerLightingProvider provider,
+                                                 ThreadedAnvilChunkStorage tacs,
                                                  HeightLimitView world, int bottomSection,
                                                  Chunk chunk, boolean excludeBlocks) {
         ChunkPos chunkPos = chunk.getPos();
@@ -792,14 +853,14 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                     // packed 解码/长度错（rc=-2）→ blocks9 ABI 同 chunk 兜底重算（正确性优先）
                     if (!wgLightCollectBlocks(provider, world, chunk, blocks9)) {
                         wgLightFallback("packed-rc" + rc + "-then-collect " + chunkPos);
-                        return false;
+                        return null;
                     }
                     rc = wg.CppWorldgen.lightCompute(wgLightEnsureInit(), blocks9, outBlock, outSky, outFlags);
                 }
             } else {
                 if (!wgLightCollectBlocks(provider, world, chunk, blocks9)) {
                     wgLightFallback("neighbor-missing-or-height " + chunkPos);
-                    return false;
+                    return null;
                 }
                 if (LIGHT_BETAPROBE) {
                     int h = wgBetaHash(0x811c9dc5, blocks9, WG_BLOCKS9_LEN);
@@ -823,7 +884,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             }
             if (rc != 0) {
                 wgLightFallback("lightCompute rc=" + rc + " " + chunkPos);
-                return false;
+                return null;
             }
 
             for (int s = 0; s < 24; s++) {
@@ -831,10 +892,11 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 provider.enqueueSectionData(LightType.BLOCK, sp, wgLightNibble(outBlock, s * 2048, outFlags[2 * s]));
                 provider.enqueueSectionData(LightType.SKY, sp, wgLightNibble(outSky, s * 2048, outFlags[2 * s + 1]));
             }
+            // FB-2 同构（260919-09，内联路）：S1/S2 后补 propagateLight（guard 同 vanilla SLP:175）
+            if (!excludeBlocks) {
+                provider.propagateLight(chunkPos);
+            }
 
-            // 复刻原 light() 尾部语义（yarn L179-183 POST 阶段）：setLightOn(true) + releaseLightTicket
-            chunk.setLightOn(true);
-            ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(chunkPos);
             wgLightOkCount.incrementAndGet();
             if (wg.bench.FormProbe.ON && fpT0 != 0L) {
                 wg.bench.FormProbe.lightCall(chunkPos.x, chunkPos.z, System.nanoTime() - fpT0);
@@ -843,13 +905,37 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             if (LIGHT_PALDUMP > 0) {
                 wg.bench.LightPalDump.chunkDone(LIGHT_PALDUMP);
             }
-            return true;
+            if (LIGHT_POST_FINALIZE) {
+                // FA-1 同构（260919-09）：S3+S4 后移 POST 段，返回 POST 完成的 future（complete 随行）
+                final long tPre = LIGHT_WBPROBE ? System.nanoTime() : 0L;
+                if (LIGHT_WBPROBE) {
+                    System.out.println("[LIGHT-WB] pre (" + chunkPos.x + "," + chunkPos.z + ") t=" + tPre);
+                }
+                CompletableFuture<Chunk> ret = new CompletableFuture<>();
+                WgLightPost.postUpdate(provider, chunkPos.x, chunkPos.z, () -> {
+                    if (LIGHT_WBPROBE) {
+                        System.out.println("[LIGHT-WB] post (" + chunkPos.x + "," + chunkPos.z
+                                + ") dt=" + (System.nanoTime() - tPre));
+                    }
+                    chunk.setLightOn(true);
+                    ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(chunkPos);
+                    ret.complete(chunk);
+                });
+                return ret;
+            }
+            if (LIGHT_WBPROBE) {
+                System.out.println("[LIGHT-WB] inline (" + chunkPos.x + "," + chunkPos.z + ")");
+            }
+            // 复刻原 light() 尾部语义（yarn L179-183 POST 阶段）：setLightOn(true) + releaseLightTicket
+            chunk.setLightOn(true);
+            ((ThreadedAnvilChunkStorageAccessor) tacs).wgReleaseLightTicket(chunkPos);
+            return CompletableFuture.completedFuture(chunk);
         } catch (Throwable t) {
             if (lightNativeDead.compareAndSet(false, true)) {
                 System.out.println("[LightRust] lightCompute threw: " + t + " -> fallback vanilla permanently");
             }
             wgLightFallback("native-throw " + chunkPos);
-            return false;
+            return null;
         }
     }
 
@@ -872,7 +958,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
 
         // CP-1 .b1：域批分流（预检未过 → 现役内联路径，vanilla 回退语义原样保留）
         if (LIGHT_DOMAIN) {
-            if (wgLightDomainSubmit(chunk, cir)) {
+            if (wgLightDomainSubmit(chunk, cir, excludeBlocks)) {
                 if (LIGHT_BETAPROBE) System.out.println("[LIGHT-PATH] path=domain ("
                         + chunk.getPos().x + "," + chunk.getPos().z + ")");
                 return;
@@ -880,14 +966,14 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             WG_DOMAIN_INLINE.incrementAndGet();
         }
 
-        boolean handled = wgLightLegacyTakeover((ServerLightingProvider) (Object) this, this.chunkStorage,
-                this.world, this.world.getBottomSectionCoord(), chunk, excludeBlocks);
+        CompletableFuture<Chunk> legacy = wgLightLegacyTakeover((ServerLightingProvider) (Object) this,
+                this.chunkStorage, this.world, this.world.getBottomSectionCoord(), chunk, excludeBlocks);
         if (LIGHT_BETAPROBE) {
-            System.out.println("[LIGHT-PATH] path=" + (handled ? "legacy-rust" : "legacy-fallback")
+            System.out.println("[LIGHT-PATH] path=" + (legacy != null ? "legacy-rust" : "legacy-fallback")
                     + " (" + chunk.getPos().x + "," + chunk.getPos().z + ")");
         }
-        if (handled) {
-            cir.setReturnValue(CompletableFuture.completedFuture(chunk));
+        if (legacy != null) {
+            cir.setReturnValue(legacy);
         }
     }
 

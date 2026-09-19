@@ -63,6 +63,8 @@ processResources {
 }
 
 loom {
+    // 260919-09 B1 FA-1：POST_UPDATE 投递需加宽 Stage/私有 enqueue（见 coreswap.accesswidener 头注）
+    accessWidenerPath = file("src/main/resources/coreswap.accesswidener")
     runs {
         // 公共 bench/替换参数：server 与 client 共用
         def benchVmArgs = { run ->
@@ -114,6 +116,12 @@ if (project.findProperty('domainpacked') != null) run.vmArg "-Dcoreswap.light.do
 if (project.findProperty('betaprobe') != null) run.vmArg "-Dcoreswap.light.betaprobe=1"
 // -Pbetadump=<dir> → [LIGHT-BETA] 打点旁输出 packed payload 三段原始字节（260918-05 inputDiff23 机制分辨；须与 -Pbetaprobe 同开）
 if (project.findProperty('betadump') != null) run.vmArg "-Dcoreswap.light.betadump=${project.findProperty('betadump')}"
+// -PpostFinalize=1 → B1 主攻包 FA-1+FA-3 S3+S4/complete POST 解绑（260919-09 design-260919-08；缺省关 = 现状即时执行）
+if (project.findProperty('postFinalize') != null) run.vmArg "-Dcoreswap.light.writeback.post-finalize=1"
+// -Platesubmit=merge → C3 封板后迟到提交并入任务生产线（260919-09；缺省 rebuild = 现状二次 grace）
+if (project.findProperty('latesubmit') != null) run.vmArg "-Dcoreswap.light.domainbatch.latesubmit=${project.findProperty('latesubmit')}"
+// -Pwbprobe=1 → [LIGHT-WB] pre/post 成对行探针（260919-09；env 门控默认关）
+if (project.findProperty('wbprobe') != null) run.vmArg "-Dcoreswap.light.wbprobe=1"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

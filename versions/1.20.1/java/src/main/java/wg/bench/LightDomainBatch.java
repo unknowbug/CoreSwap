@@ -20,11 +20,42 @@ public final class LightDomainBatch {
     /** 宽限期上限（R1）：超时按当前已到齐中心封板；负/0 = 无宽限（不推荐）。 */
     public static final int GRACE_MS = Integer.getInteger("coreswap.light.domainbatch.gracems", 10_000);
 
+    // 260919-09 C3（b3 §1-C3 / design-260919-08）：封板后同 key 迟到提交策略。
+    // merge = 并入任务生产线（单中心 State 即刻 seal，零 grace 等待，消「重建域 + 二次 grace」结构）；
+    // rebuild（缺省）= 现状（新建 State + 二次 grace）。回退开关，build.gradle 映射 latesubmit（B6-1 门）。
+    public static final String LATE_SUBMIT = System.getProperty("coreswap.light.domainbatch.latesubmit", "rebuild");
+
     /** 自证计数（#118 硬门数据源）：封板数 / 超时封板数 / 重复提交数 / 降级重放 chunk 数。 */
     public static final AtomicInteger SEALED = new AtomicInteger();
     public static final AtomicInteger TIMEDOUT = new AtomicInteger();
     public static final AtomicInteger DUP = new AtomicInteger();
     public static final AtomicInteger DEGRADED = new AtomicInteger();
+    // C3 自证（b3 §1-C3 增判据）：封板后同 key merge 路径触发次数。修复臂 RESEALED>0 为正证据、
+    // 现状臂（rebuild）恒 0 为负证据（#118 正/负成对）。
+    public static final AtomicInteger RESEALED = new AtomicInteger();
+
+    // SEALED_KEYS 有界 FIFO（b3-C3 风险①：域 key = 坐标函数，长运行防无界增长；容量按 region 级
+    // 工作量上界取 65536 ≈ 589k chunks 封板记录）。同步块保护（提交线程 + 封板线程并发）。
+    private static final Object SEALED_KEYS_LOCK = new Object();
+    private static final java.util.LinkedHashSet<Long> SEALED_KEYS = new java.util.LinkedHashSet<>();
+    private static final int SEALED_KEYS_CAP = 65536;
+
+    private static void wgSealedKeysRemember(long key) {
+        synchronized (SEALED_KEYS_LOCK) {
+            SEALED_KEYS.add(key);
+            while (SEALED_KEYS.size() > SEALED_KEYS_CAP) {
+                java.util.Iterator<Long> it = SEALED_KEYS.iterator();
+                it.next();
+                it.remove();
+            }
+        }
+    }
+
+    private static boolean wgSealedKeysContains(long key) {
+        synchronized (SEALED_KEYS_LOCK) {
+            return SEALED_KEYS.contains(key);
+        }
+    }
 
     /** 封板回调：由 mixin 注册（投递 Util.getMainWorkerExecutor 执行真正的收集+JNI+写回）。 */
     public interface Task {
@@ -49,6 +80,10 @@ public final class LightDomainBatch {
         public final ConcurrentHashMap<Long, int[]> packedPals = new ConcurrentHashMap<>();
         public final ConcurrentHashMap<Long, long[]> packedStos = new ConcurrentHashMap<>();
         public final ConcurrentHashMap<Long, int[]> packedLens = new ConcurrentHashMap<>();
+        // 260919-09：逐中心 excludeBlocks（vanilla light(Chunk,boolean) 语义保真，FB-2 传播 guard 用）。
+        public final ConcurrentHashMap<Long, Boolean> excludeBlocks = new ConcurrentHashMap<>();
+        // C3：单中心即刻 seal 标记（封板后迟到提交 merge 路径；无 grace 定时器）。
+        public volatile boolean mergeImmediate;
 
         State(long key) {
             this.key = key;
@@ -60,12 +95,19 @@ public final class LightDomainBatch {
     /**
      * centerPos 提交进其域批。返回该 chunk 的完成 future（重复提交返回既有 future，DUP 计数）。
      * 9 中心到齐立即封板；否则等宽限期超时封板。
+     * 260919-09 C3：封板后同 key 迟到提交在 latesubmit=merge 下走单中心即刻 seal（零 grace）。
      */
-    public static CompletableFuture<Object> submit(long centerPos, long domainKey, Object ctx, Object chunk, int[] blocks9Snapshot) {
+    public static CompletableFuture<Object> submit(long centerPos, long domainKey, Object ctx, Object chunk,
+                                                   int[] blocks9Snapshot, boolean excludeBlocks) {
         State st = DOMAINS.compute(domainKey, (k, cur) -> {
             State s = (cur != null) ? cur : new State(k);
-            if (cur == null && GRACE_MS > 0) {
-                CompletableFuture.delayedExecutor(GRACE_MS, TimeUnit.MILLISECONDS).execute(() -> seal(s, true));
+            if (cur == null) {
+                if ("merge".equals(LATE_SUBMIT) && wgSealedKeysContains(k)) {
+                    s.mergeImmediate = true;
+                    RESEALED.incrementAndGet();
+                } else if (GRACE_MS > 0) {
+                    CompletableFuture.delayedExecutor(GRACE_MS, TimeUnit.MILLISECONDS).execute(() -> seal(s, true));
+                }
             }
             s.ctx = ctx; // 同域同世界，重复赋值幂等
             return s;
@@ -75,10 +117,11 @@ public final class LightDomainBatch {
             fut = st.futures.get(centerPos);
             st.chunks.put(centerPos, chunk);
             st.blocks9s.put(centerPos, blocks9Snapshot);
+            st.excludeBlocks.put(centerPos, excludeBlocks);
         } else {
             DUP.incrementAndGet();
         }
-        if (st.futures.size() >= 9) {
+        if (st.mergeImmediate || st.futures.size() >= 9) {
             seal(st, false);
         }
         return fut;
@@ -86,11 +129,17 @@ public final class LightDomainBatch {
 
     /** packed 提交（260919-03 .b2 C-3）：同 submit，快照 = packed 帧四件套（blocks9s 不落）。 */
     public static CompletableFuture<Object> submitPacked(long centerPos, long domainKey, Object ctx, Object chunk,
-                                                          int[] meta, int[] pal, long[] sto, int[] lens) {
+                                                         int[] meta, int[] pal, long[] sto, int[] lens,
+                                                         boolean excludeBlocks) {
         State st = DOMAINS.compute(domainKey, (k, cur) -> {
             State s = (cur != null) ? cur : new State(k);
-            if (cur == null && GRACE_MS > 0) {
-                CompletableFuture.delayedExecutor(GRACE_MS, TimeUnit.MILLISECONDS).execute(() -> seal(s, true));
+            if (cur == null) {
+                if ("merge".equals(LATE_SUBMIT) && wgSealedKeysContains(k)) {
+                    s.mergeImmediate = true;
+                    RESEALED.incrementAndGet();
+                } else if (GRACE_MS > 0) {
+                    CompletableFuture.delayedExecutor(GRACE_MS, TimeUnit.MILLISECONDS).execute(() -> seal(s, true));
+                }
             }
             s.ctx = ctx;
             return s;
@@ -103,10 +152,11 @@ public final class LightDomainBatch {
             st.packedPals.put(centerPos, pal);
             st.packedStos.put(centerPos, sto);
             st.packedLens.put(centerPos, lens);
+            st.excludeBlocks.put(centerPos, excludeBlocks);
         } else {
             DUP.incrementAndGet();
         }
-        if (st.futures.size() >= 9) {
+        if (st.mergeImmediate || st.futures.size() >= 9) {
             seal(st, false);
         }
         return fut;
@@ -117,6 +167,7 @@ public final class LightDomainBatch {
         if (DOMAINS.remove(st.key, st)) {
             st.timedOut = timedOut;
             (timedOut ? TIMEDOUT : SEALED).incrementAndGet();
+            wgSealedKeysRemember(st.key); // C3：封板记录（有界 FIFO），迟到提交据此走 merge 路径
             Task t = taskFactory;
             if (t != null) {
                 t.run(st);
@@ -129,6 +180,7 @@ public final class LightDomainBatch {
 
     /** 自证行（#118：正/负成对证据的数据面）。 */
     public static String selfProof() {
-        return "sealed=" + SEALED.get() + " timeout=" + TIMEDOUT.get() + " dup=" + DUP.get();
+        return "sealed=" + SEALED.get() + " timeout=" + TIMEDOUT.get() + " dup=" + DUP.get()
+                + " resealed=" + RESEALED.get() + " latesubmit=" + LATE_SUBMIT;
     }
 }

@@ -71,7 +71,9 @@ MC_ENGINE_CONSUMERS = {
     "max.bg.threads": "MC Util.getMaxBackgroundThreads（1.20.1 merged jar javap 一手核实，.investigations/260918-06/record-260918-06.md）",
 }
 
-RE_VMARG = re.compile(r'run\.vmArg\s+"-D([A-Za-z0-9_.]+)=')
+# 260919-09：字符类补连字符——首个连字符 -D 名碰撞（coreswap.light.writeback.post-finalize，
+# design-260919-08 C-D4 门）。副作用逆 = 本行单点还原（git 单行 revert）。
+RE_VMARG = re.compile(r'run\.vmArg\s+"-D([A-Za-z0-9_.-]+)=')
 RE_GETPROP = re.compile(r'System\.getProperty\("([^"]+)"')
 RE_GETINT = re.compile(r'Integer\.getInteger\("([^"]+)"')
 RE_GETBOOL = re.compile(r'Boolean\.getBoolean\("([^"]+)"')

@@ -16,5 +16,6 @@
   },
   "mixins": [
     "coreswap.mixins.json"
-  ]
+  ],
+  "accessWidener": "coreswap.accesswidener"
 }

@@ -1,0 +1,10 @@
+accessWidener v2 named
+# CoreSwap access widener（260919-09 B1 主攻包 FA-1，design-260919-08）
+# 目的：S3+S4/complete POST 解绑需要把任务投递进光照队列 POST_UPDATE 段。
+# yarn 一手源（.tmp/light-yarn/ServerLightingProvider.java）：私有 enqueue(int,int,Stage,Runnable)
+# （L127-129，POST 投递唯一入口）；Stage enum（L220）对非 nest-mate 私有（mapped jar 实测，
+# compileJava 260919-09 报「Stage 是 private 访问控制」）。
+# ⚠️ 已知边界：Forge+Connector 载体对 AW 的应用未验证（idk）——生产若未加宽，调用将 loud
+# IllegalAccessError（非静默，#98 家族可判别）。
+accessible class net/minecraft/server/world/ServerLightingProvider$Stage
+accessible method net/minecraft/server/world/ServerLightingProvider enqueue (IILnet/minecraft/server/world/ServerLightingProvider$Stage;Ljava/lang/Runnable;)V
