@@ -3474,3 +3474,44 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - 📌 过程产物：`.investigations/a1-feas-260919-02/`（criteria + scout-map + record + judge-review +
   cmd-output/ P1-\* 缺陷对照留档 + R2-\* 四臂）+ `.artifacts/a1-feas-260919-02/verdict-260919-02.md`
   （candidate）+ root index 条目。
+
+## 260919-03（2026-09-19）A1 .b2 系验收（C-3 packed 域批直传 + C-4 缓冲复用，四臂 off/on25/onpk/onpk2）——B-主未满足（净退步 ~17.7%）+ B-C3 满足 + B-C4 灰区 🔍 candidate（judge PASS-with-conditions S1-S3 已应用；confirmed 留用户）
+
+> 承接 verdict-260919-02（candidate：.b2 系 ~25% 低优先先行）的验收块。时序链（#112）：a376b4c 判据+脚本预登记
+> → ebcb393 judge SHOULD 审查（review-criteria-260919-03.md，M1/S1/S3 应用）→ 0615298 实现（C-4 thread_local +
+> C-3 packed 域批 ABI）+ 新 dll **7519ddb8**（位等价单测 4/4 绿含新增 light_decode_packed_domain_roundtrip；
+> Java compileJava 绿；check_switch_mapping rc=0）→ df2849d verdict+review+record 收尾批。seed 8576294172403134396；
+> n=457 task/臂。正式裁决 → `.artifacts/a1-b2-260919-03/verdict-260919-03.md`。
+
+- ✅ **实现要点（C-3/C-4）**：C-3 = 提交线程 packed 帧收集（任一 chunk 失败→内联路回退，
+  WG_DOMAIN_INLINE 计数 = M1 门数据面）+ 新 JNI `lightComputeDomainPacked` + Rust 泛化解码
+  `light_decode_packed_domain`（帧式 chunk 基址、后帧覆盖重叠 = 现 arraycopy 序语义；实现自检捕获并修正
+  「全量清零抹先前帧」缺陷一次）；旧 `light_decode_packed` 收敛为包装防双路漂移；task 行 `packed=<n>` 负自证。
+  C-4 = bridge b25/outv thread_local 复用（照 jni_bridge.rs:289-311 先例，无条件无开关）。
+- ❌→✅ **onpk 臂 VOID → 换标签复采 onpk2**：onpk 残缺率 26/457=5.69% > 5%（#190 写死，非零退出）→
+  留档不覆盖、换标签复采 onpk2（malformed 1.09%，coverage 0.9808 全绿）为判据臂（#144/#146）。
+- ❌→✅ **E1 采集脚本 M1 门方向写反（本块关键错误链，五段式）**：判据「回退占比 >30% ⇒ VOID」被写成
+  「coverage(=1−占比) > 0.30 ⇒ VOID」——同一数字两义（占比 vs 补数），方向未取反，优秀值 0.9808 反被判
+  VOID；定位 = 门名与值并读不自洽；修复 = coverage<0.70 VOID / 0.70–0.80 灰区 + 注释。
+  → workflow-patterns **#192**（占比门入脚本 MUST 注释罚哪一侧 + 已知优秀值负向测试先行）。
+- ✅ **四臂判定（P50 主读法，判据读法写死）**：**B-主未满足**——nativeMs P50 4.012/3.410 = **1.177**（>0.95，
+  packed 路端到端净退步 ~17.7%）；**B-C3 满足**——alloc_copyin 169/1091 = **0.155**（拷入降 ~6.5×；judge 注：
+  packed 三数组 vs blocks25 宽 ABI 非同量工作，按 C-3 效应代理读）；**B-C4 灰区**——3.370/3.410 = **0.988**
+  （0.97–1.00 带内，双值上报；idk-1：Scratch/b9 不在范围，归因受限）。行为等价门全绿（off 0.9972 /
+  on25 1.0010 / onpk2 1.0015，均 ≥0.95）；位等价门绿。强制 fan-out 出口未触发（B-C3 满足）。
+- ✅ **机制归因（证据绑定）**：拷入节省 0.92ms 被 kernel 窗解码成本 +6.75ms 反超（净 +5.8ms/task 与端到端
+  退步量级自洽）；窗位代码实证 `jni_bridge.rs:575-588`（`light_decode_packed_domain` 落 kernel 计时窗内）；
+  VOID 臂 kernel=34633 与 onpk2 同向（仅参考）。→ workflow-patterns **#191**（压缩/表示变换类优化必须双侧
+  列账：消除侧节省 − 新增侧成本 = 净上界；「净退步」限定口径窗——idk-2：nativeMs 不含 Java 提交线程
+  packed 收集成本，总管线需 tick/wall 口径另裁）。
+- ✅ **judge（收尾 MUST）：PASS-with-conditions，S1-S3 已应用**——S1 coverage 读法 = M1 补数、方向为过；
+  S2/S3 应用后 verdict candidate。三源核对过（数值独立重算零偏差）；A1-RAW 值差异实为两种 P50 取位法之差
+  （驱动 stdout 单点右中位 vs 数组插值 median），非跨臂漂移（#90 不适用，record 已澄清）。
+- 🔍 **结论建议（待用户拍板）**：① C-3 建议不采纳/回退缺省关（机制归因闭合；翻案须先解 idk-3
+  解码/内核拆分打点 + 评估批量 palette 直映射，属新立项）；② C-4 建议保留（灰区非未满足，代码已并线无开关
+  成本，E3 参照对旧构建 −14%）；③ 下一步回 .b1 系 C-1（上界 ≤59%，MUST 先解 G3 收敛性约束设计）；
+  C-2 受 round4 纯算力冻结排序约束。idk-1~5 如实登记。
+- 📌 **知识库**：workflow-patterns **#191/#192**（subagent 草稿，本块）；10 篇本条目；INDEX 尾注行同批落盘。
+  §9.8 副作用登记：verdict/重算脚本（.tmp）均 derived；onpk VOID 臂换标签留档未覆盖。
+- 📌 过程产物：`.investigations/a1-b2-260919-03/`（criteria + plan + record + review-criteria + judge-review +
+  cmd-output/b3-\* 四臂）+ `.artifacts/a1-b2-260919-03/verdict-260919-03.md`（candidate）。
