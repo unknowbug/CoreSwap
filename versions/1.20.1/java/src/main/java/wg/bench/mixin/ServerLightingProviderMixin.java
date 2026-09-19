@@ -590,6 +590,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         long handle = wgLightEnsureInit();
         byte[] out = null;
         String fail = null;
+        long fillNs = 0L, nativeNs = 0L; // A1 判别通道（260919-01）：仅 out!=null 成功路径有效
         if (handle == 0L) {
             fail = "init0";
         } else {
@@ -616,14 +617,20 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             // 内核导出只读各中心 3×3 子窗（窗并集 = 已提交中心快照覆盖面）
             if (assembled) {
                 out = new byte[WG_DOMAIN_OUT_LEN];
+                final long _t1 = LIGHT_TIMING ? System.nanoTime() : 0L; // A1 判别通道（260919-01）：fill/native/wb 三段分解
                 int rc = wg.CppWorldgen.lightComputeDomain(handle, blocks25, out);
+                final long _t2 = LIGHT_TIMING ? System.nanoTime() : 0L;
                 if (rc != 0) {
                     fail = "domain rc=" + rc;
                     out = null;
+                } else if (LIGHT_TIMING) {
+                    fillNs = _t1 - t0;
+                    nativeNs = _t2 - _t1;
                 }
             }
         }
         int ok = 0, degraded = 0;
+        final long _tw0 = (LIGHT_TIMING && out != null) ? System.nanoTime() : 0L;
         for (int k = 0; k < centers.length; k++) {
             long pos = centers[k];
             Chunk ch = (Chunk) st.chunks.get(pos);
@@ -653,6 +660,11 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         System.out.println("[LIGHT-DOMAIN] task centers=" + centers.length + " ok=" + ok
                 + " degraded=" + degraded + " timedOut=" + st.timedOut
                 + " avgMs=" + String.format("%.3f", (System.nanoTime() - t0) / 1e6 / centers.length)
+                + (LIGHT_TIMING && out != null
+                        ? " fillMs=" + String.format("%.3f", fillNs / 1e6 / centers.length)
+                          + " nativeMs=" + String.format("%.3f", nativeNs / 1e6 / centers.length)
+                          + " wbMs=" + String.format("%.3f", (System.nanoTime() - _tw0) / 1e6 / centers.length)
+                        : "")
                 + " " + wg.bench.LightDomainBatch.selfProof()
                 + (fail != null ? " fail=" + fail : ""));
     }

@@ -1,0 +1,24 @@
+{
+ "mode": "legacy",
+ "seed": "8576294172403134396",
+ "selfcert": {
+  "done": 1,
+  "drv_move5": 1,
+  "lightInit_ok": 1,
+  "fallback": 0,
+  "domain_hook": 0,
+  "domain_task": 0,
+  "domain_task_ok": 0,
+  "domain_task_fillms": 0,
+  "fp_on": 1,
+  "lightprobe_t": 18,
+  "dll_sha8": "6f7fa3ae"
+ },
+ "world_id": {
+  "level_dat_exists": true,
+  "seed_in_leveldat": true,
+  "region_files": 18,
+  "region_min_mtime_gt_rmtree": true
+ },
+ "ratios_n": 0
+}

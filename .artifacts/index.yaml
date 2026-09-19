@@ -1861,3 +1861,14 @@ entries:
     path: '../.investigations/b61-260918-08/judge-review-260918-08.md'
     kind: review
     status: candidate
+
+  # —— 260919-01 A1 正式判别补通道（域批路径计时行后重采；补 verdict-260917-04 §3 降级声明缺口）——
+  - id: 'swe:a1-260919-01:verdict'
+    path: 'a1-260919-01/verdict-260919-01.md'
+    kind: analysis
+    status: candidate   # judge PASS-with-conditions（review-260919-01 M1 更正 + S1/S2 附注 + S3 三元组补核已应用）；confirmed 留用户
+    # A1 判定：有显著改善面（P50=0.9835 / mean=0.9774，两读法同侧 >=30% 分支，n=457）；分解 P50
+    #   fill=0.302 / native=4.264 / wb=0.079 ms per-center —— native JNI 全程占 ~92% 主导。
+    # 双臂 SELFCERT 全绿（#156 全使能开关 + #161 world 身份门 gzip 直证 + fillms 门 457/457）；
+    #   失败轮 C6R-L（宿主崩溃带走进程树）留档换标签（#144/#146）。C6R-L2/C6R-D 日志 + result.json 在案。
+    # 打点 = 纯 Java 观测（wgLightDomainTaskRun 三段分解，LIGHT_TIMING 门控），无 dll 改动（sha 6f7fa3ae 不变）。

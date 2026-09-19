@@ -3425,3 +3425,16 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
 - ✅ **judge（MUST，收尾）：PASS-with-conditions，条件已应用**——MUST-1 补 `.artifacts/legacy-run3-260918-11/index.yaml`（已补）；MUST-2 git 面核对（0e8083c 存在且先于采集 + 本块 src 零改动，主会话已核）；SHOULD-1 rmtree epoch 补录 lr3b_result.json 可复算 / SHOULD-2 n=2 指针落 verdict-260917-04 §6（均已应用）；INFO-1 门严格度声明（已并入 E1 教训段）。
 - 🔍 **边界（§9.7 如实声明）**：载体 = snap_light region 快照（与 260917-04 同工具谱系，E1 等价档位，共享观测 key 集 S = 两轮 common 快照面各 2025）；覆盖面 = 单 seed 单 spawn 区域 × Done+60s × 3 boot；**与存档写入口径 / 域批形态 / vanilla 均不可比**，不得外推至「legacy 光照整体收敛」或域臂；域臂对照不采（C-1(R1) 已 confirmed，判据 §3 明示不重复）。
 - 📌 **知识库**：build-tooling **#151 追加实例行**（260918-11 E1，gzip 载体形态 sanity，subagent 草稿 + 主会话应用，不新增条目）；错误台账 = errors-260918-11.md（独立成篇 + 速查表）；10 篇本条目；INDEX 无新增条目不改。
+
+## 260919-01（2026-09-19）A1 正式判别补通道——域批路径计时行后重采 🔍→✅（判别完成，candidate 待用户拍板）
+
+> 承接 260917-04 §3 降级声明（A1 正式判别通道缺失：「须新增域批路径计时行后重采」）的执行块。架构计划轻量档 `.investigations/000-架构设计/架构计划-260919-01-A1正式判别补通道.md`（用户批准）；判据预登记 `.investigations/a1-260919-01/criteria-260919-01.md`（时序锚 git 6d79bc8 @2026-09-19 13:12:14，**先于打点实现与采集**，#112）。打点 = 纯 Java 观测（`wgLightDomainTaskRun` 三段分解 fill/native/wb，整块 LIGHT_TIMING 门控，#136），无 Rust/dll 改动（sha 6f7fa3ae 全程不变）；判据新增「成功 task 行必带 fillMs=」自证硬门（缺 → 臂 VOID，#160）+ #161 world 身份门（gzip level.dat，260918-11 台移植）+ #156 全使能开关口径。
+
+- ❌ **C6R-L（legacy 臂首跑）宿主崩溃失败轮**：DSH 宿主崩溃带走整个进程树（驱动+gradle+server，log 截断于 13:17:43）——按 #144/#146 换标签留档（cmd-output/C6R-L.log 保留，禁自动回退），复跑 C6R-L2 全绿。
+- ✅ **双臂重采 SELFCERT 全绿**：legacy 臂 LIGHTPROBE-T 18 行 / domain 臂 457 task 行全带 fillMs=（fillms 门 457/457，正自证打点真生效 #81）；fallback=0、degraded=0、dup=0、timedOut=115（与 260917-04 前例同量级，宽限期边界任务归因）；world 身份门两臂全过（seed_in_leveldat + region 新鲜度）。
+- ✅ **A1 正式判定（判据 §2 三分支，读法写死）**：n=457，占比 P50=**0.9835** / mean=0.9774 同侧 ≥30% → 命中「≥30%」分支 = **A1（原生光照延迟优化）有改善面**；分解 P50：fill=0.302 / native=4.264 / wb=0.079 ms per-center——native JNI 调用全程占 ~92% 主导。主会话独立重数（独立实现 recount_a1.py）与驱动提取逐项一致，恒等式 avgMs≈三段和全 457 行成立（maxdev 0.08ms）。
+- ❌→✅ **judge M1 更正（worker 复算错误，错误优先）**：worker 原稿「行 2160 恒等式偏差 7.99ms idk」系三段和误取 19.239（漏加 wb=18.501）——judge 一手实测该行三段和=27.239、dev=0.006ms，恒等式成立，idk 前提不成立注销；该行真实占比 0.32079 = 全分布 min。教训：**抽样复算的算术本身也要被复核**（worker 抽样 ≠ 免检；judge 独立复算抓出）。
+- 🔍 **量级对照（E1 同载体跨轮）**：本轮 9-center 折算 ≈0.52 ms/chunk vs C6-260917-04 折算 ~0.98 ms/chunk，同量级无矛盾，预置 fan-out 未触发；域批 ≪ legacy 6.26 ms/chunk 方向两轮一致。
+- ✅ **judge（MUST 收尾 + SHOULD candidate）：PASS-with-conditions，条件已应用**——M1 更正（更正记录形态落 verdict §3/§6）+ S1 判据 §3.1/§3.4 hook armed 读法澄清附注 + S2 驱动 fallback 硬门严于判据知悉附注 + S3 执行体三元组补核落盘（executor-triple-260919-01.txt：target dll = 资源 dll = in-log sha 三点一致 + mixin class 新编译含 fillMs；dev-run 口径下 build/libs jar 为红鲱鱼 #96）。verdict 升 **candidate**，confirmed 留用户。
+- 📌 **知识库**：workflow-patterns 新增**发现 #188**（观测打点/判别数据通道必须覆盖全部执行形态——「打点在位 ≠ 判据可达」，生产侧前移版 #162；subagent 草稿 + 主会话应用）；10 篇本条目；错误记录 = M1 更正 + C6R-L 崩溃失败轮（本条目内，不独立成篇——单块单错误链未达独立台账门槛）。
+- 📌 过程产物：`.investigations/a1-260919-01/`（criteria + cmd-output/ 两臂日志+result.json+失败轮留档+三元组补核 + judge-review + 知识草稿）、`.artifacts/a1-260919-01/verdict-260919-01.md`（candidate）+ root index 条目；打点 diff = ServerLightingProviderMixin.java（未提交，随本块收尾提交）。

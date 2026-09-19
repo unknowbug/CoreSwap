@@ -1,0 +1,18 @@
+# 执行体三元组补核（260919-01，judge S3 条件；主会话 2026-09-19 实测落盘）
+# 口径 = dev-run（#96）：gradle :runServer 实际加载 build/classes + build/resources/main，
+# build/libs jar 为 1.0.29 发版遗留（09-16 22:26）红鲱鱼，未参与本轮加载链。
+
+target/release/worldgen.dll  sha256 前16 = 6F7FA3AE0169FB5C  (size 2474496)
+build/resources/main/native/worldgen.dll  sha256 前16 = 6F7FA3AE0169FB5C  (mtime 2026-09-18 21:09:51)
+in-log 自证（C6R-L2/C6R-D 两臂）dll= sha256=6f7fa3ae...  ✅ 三点一致
+
+mixin 编译新鲜度：
+build/classes/java/main/wg/bench/mixin/ServerLightingProviderMixin.class  mtime 2026-09-19 13:14:05
+  Select-String "fillMs" -Quiet = True（打点字符串在 compiled 常量池）
+  compileJava --offline --rerun-tasks = BUILD SUCCESSFUL（2 tasks executed，.tmp/a1-260919-01-compile.log）
+行为化自证：C6R-D 457/457 task 行带 fillMs=（变量真生效，#81）
+
+命令（可复现）：
+  Get-FileHash E:\PYTHON\CoreSwap\target\release\worldgen.dll -Algorithm SHA256
+  Get-FileHash E:\PYTHON\CoreSwap\versions\1.20.1\java\build\resources\main\native\worldgen.dll -Algorithm SHA256
+  Select-String -Path ...\build\classes\java\main\wg\bench\mixin\ServerLightingProviderMixin.class -Pattern "fillMs" -Quiet
