@@ -3515,3 +3515,39 @@ est L2 落地后新基线：Rust l2 单线程 27.69 ms/chunk vs Java FULL ~33（
   §9.8 副作用登记：verdict/重算脚本（.tmp）均 derived；onpk VOID 臂换标签留档未覆盖。
 - 📌 过程产物：`.investigations/a1-b2-260919-03/`（criteria + plan + record + review-criteria + judge-review +
   cmd-output/b3-\* 四臂）+ `.artifacts/a1-b2-260919-03/verdict-260919-03.md`（candidate）。
+
+## 260919-04（2026-09-19 16:48 起）交接陈旧漂移修复（NEXT_SESSION 停在 260919-02 vs git HEAD 已到 260919-03）+ 260919-02/-03 双 verdict confirmed 回写 + C-1 前置 G3 收敛性预研（scout 机制地图 + 主候选 C-1a）🔍 过程块（C-1 立项待后续正式 Phase 0）
+
+> 承接 260919-03 收尾后的独立工作块。接手时发现 NEXT_SESSION.md 停在 260919-02，而 git HEAD 显示
+> 260919-03 已全量执行完（C-3+C-4 实现 → 裁断 → 知识库 96a8b9a）——「下轮第一 hook」指示未对
+> git HEAD 验证导致交接陈旧漂移；本块先修复交接（重写 NEXT_SESSION），再做 C-1 前置预研。
+
+- ✅ **交接漂移修复（本块触发事件，五段式要点）**：
+  - **现象**：NEXT_SESSION.md「下轮第一 hook」指向 260919-02 的下游，而 git HEAD 已含 260919-03
+    全量产物（96a8b9a：C-3+C-4 实现 → 裁断 → 知识库）——交接文档落后实际进度一个工作块。
+  - **根因（机制）**：上块（260919-03）收尾时未同步重写 NEXT_SESSION；「下轮第一 hook」是交接文档
+    内容，未经 git HEAD 交叉核对即被当作当前状态继承——交接 claim（qualitative 类）未按 §1.3
+    重采样原始事实源（git HEAD）核对，属交接陈旧漂移（AGENTS STEP 1「交接结论验证纪律」的交接侧形态）。
+  - **定位**：接手例行交叉核对——NEXT_SESSION 指示 vs `git log` HEAD 不一致，以 git HEAD 为权威锚。
+  - **修复**：按当前最新状态重写 NEXT_SESSION.md（交接文档唯一权威，只在换 session 前更新——
+    本块即换界点）；判据沉淀 → workflow-patterns **#193**（接手时 git HEAD vs NEXT_SESSION 交叉核对）。
+  - **教训**：交接文档是快照不是实时事实源；接手第一动作 = git HEAD 对账，不一致先修交接再开工。
+- ✅ **用户拍板（confirmed 授予 ×2）**：verdict-260919-02 与 verdict-260919-03 均 confirmed
+  （ask_user_question）；C-3 缺省关已核实——build.gradle:111-112 → LIGHT_PACKED=false，
+  ServerLightingProviderMixin.java:81 消费点确认，**无需改码**（260919-03 建议 ① 落地完成）。
+- ✅ **架构计划落盘**：`.investigations/000-架构设计/架构计划-260919-04-C1前置G3收敛性预研.md`
+  （轻量档，已批准）——C-1 立项前先做 G3（光照跨任务状态）收敛性约束的机制预研。
+- ✅ **C-1 前置 scout 机制地图**：`.investigations/c1-pre-260919-04/scout-map.md`——关键结论：
+  G3 性质 = 输出为本帧快照确定函数；fill chunk 局部纯函数可共享；**BFS 跨任务缓存触 G3**；
+  改动面 DOM = 48 常量；open 4 项登记（预研阶段，未闭合）。
+- ✅ **C-1 设计文档（预研产出）**：`.investigations/c1-pre-260919-04/design-c1-260919-04.md`——
+  **主候选 C-1a** = 全域 fill 一趟 + 9 中心 BFS（不跨任务缓存，绕开 G3 约束）；
+  **C-1b（跨任务缓存）不立项**（触 G3，收敛性代价高于收益，❌ 排除留档）；
+  judge PASS-with-conditions（S1 形态口径立项前写死 / S2 补 G3 收敛性门 / S3 置信分级 / S4 RSS 判据化，已应用）。
+- ✅ **提交**：aebf0f6——confirmed 落盘（双 verdict 回写）+ 架构计划 + 260919-02 调查文件归档。
+- 📌 **知识库**：workflow-patterns **#193**（subagent 草稿 `.investigations/c1-pre-260919-04/
+  knowledge-draft-260919-04.md` + 主会话应用）；10 篇本条目。
+- 📌 过程产物：`.investigations/c1-pre-260919-04/`（scout-map + design-c1 + 知识草稿 + judge review）+
+  `.investigations/000-架构设计/架构计划-260919-04-C1前置G3收敛性预研.md`。
+- 🔍 **未闭合/下一步**：C-1a 立项属独立决策（预研 = 前置 G3 收敛性，非正式 Phase 2 分析）；
+  scout open 4 项 + 设计文档 S1 形态写死随正式立项带入；C-2 受 round4 纯算力冻结排序约束（承接 260919-03）。
