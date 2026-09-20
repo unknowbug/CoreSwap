@@ -1952,7 +1952,7 @@ entries:
   - id: 'k2-520-260920-02:k2-worker'
     path: '../.investigations/k2-520-260920-02/k2-worker.md'
     kind: analysis
-    status: draft       # K2：批分组跨 run 恒定（1518/1518 same_group）而 blk25 hash 100% 全异 → 非确定定位于窗口内容装配层；C2 零填充轮廓差复算排除（342 无填充 3×3 批全异）；C1a 内容真差 vs C1b 时点快照差 hash 层不可分离（candidate 建议，confirmed 留用户）
+    status: confirmed   # K2：批分组跨 run 恒定（1518/1518 same_group）而 blk25 hash 100% 全异 → 非确定定位于窗口内容装配层；C2 零填充轮廓差复算排除；用户 confirmed 2026-09-20（260920-04 T0），confirmed 范围含 §15.4 修正注记：「size=1 批 9/9 全异 ⇒ 差异在中心 chunk 内」不成立，判读域扩为 3×3 邻域快照（T1 闭合）；C1a/C1b hash 层不可分离维持
   - id: 'k2-520-260920-02:absent520-worker'
     path: '../.investigations/k2-520-260920-02/absent520-worker.md'
     kind: analysis
@@ -1965,3 +1965,13 @@ entries:
     path: '../.investigations/k2-520-260920-02/review-260920-02.md'
     kind: review
     status: candidate   # PASS-with-conditions N1-N3/M1-M5（已应用）；C 组数值互洽抽验全过；fan-out 未触发判定（C1a/C1b 非互斥）随本条登记
+
+  # —— 260920-03 零成本三件复算（idk-K2b 闭合 + t8 key 集恒等 + 批锚相位对账；judge PASS-with-conditions N1-N10/C1-C3 已应用；用户 confirmed 2026-09-20（260920-04 T0 拍板包 1-4 项））——
+  - id: 'k2-520-260920-02:t1-firsthand'
+    path: '../.investigations/k2-520-260920-02/t1-mixin-firsthand-260920-03.md'
+    kind: analysis
+    status: confirmed   # T1 idk-K2b 闭合（静态 Degraded 一手核，降级声明随行）：size=1 批 blocks25 窗口恒定零填充证实（5×5 仅 (0..2)² 9 槽被中心 b9 覆盖，载体链 Mixin:786-806/810→jni_bridge.rs:439→mod.rs:472-519 封闭）；「窗口=中心 chunk」证伪——实为中心+8 邻 3×3 chunk blocks9 快照（采集时点 light() 入口 Mixin:579→LightDomainBatch.java:119）
+  - id: 'k2-520-260920-02:t2t3-recompute'
+    path: '../.investigations/k2-520-260920-02/t2t3-archive-recompute-260920-03.md'
+    kind: analysis
+    status: confirmed   # T2：kd2=kd3=kv=9450 且 common=9450（集合恒等直接证明，#209 判据）+ 520/520 全 '111' + kv-only=0（「南侧成员=t8 驱动延伸区独有」证伪；198 归属「workload 驱动面之差」保持 candidate 措辞）；T3：缺席 520 距最近批 bbox Chebyshev=1（min 饱和仅旁证）+ z=2 槽聚集 385/520（74%）+ (0,0) 延伸角槽 0/520 vs 对照近均匀 →「3×3 批格位候选」从 M4 降权回调为结构相关证据（judge C3 落点）；机制解释保持 candidate。原始 stdout：cmd-output/{t8_key_membership,p2_batch_anchor}_260920-03.log
