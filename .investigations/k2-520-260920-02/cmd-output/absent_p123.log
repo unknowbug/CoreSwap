@@ -1,0 +1,6 @@
+P1: dist23 n=120 ; x=const lines (val,cnt>=10): []
+    z=const lines: [(188, 119)]
+    side attribution: {'W': 1, 'S': 118, 'E': 1}
+P2: mod3 phase dist: {(0, 2): 108, (1, 0): 14, (1, 1): 15, (1, 2): 125, (2, 0): 54, (2, 1): 52, (2, 2): 152}
+P3: side attribution all520: {'OUTSIDE': 198, 'W': 24, 'N': 20, 'S': 254, 'E': 24}
+outside198 sides: {'W': 25, 'N': 18, 'S': 138, 'E': 17}

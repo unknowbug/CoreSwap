@@ -1,0 +1,9 @@
+{"paired_batches": 464, "hash_same": 0, "hash_diff": 464}
+size1_1x1 same=0 diff=9
+size2_1x2 same=0 diff=2
+size3_1x3 same=0 diff=14
+size4_2x2 same=0 diff=6
+size6_2x3 same=0 diff=42
+size6_3x2 same=0 diff=49
+size9_3x3 same=0 diff=342
+solo_size1: 0 / 9 same

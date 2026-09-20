@@ -1,0 +1,4 @@
+{"r5_rows": 3703, "r6_rows": 3703, "S": 1518, "face": 2038, "absent520": 520, "workload_bbox": [14, -24, 331, 211]}
+batches r5/r6: 464 464
+cross: {'same_group': 1518, 'diff_group': 0, 'same_group_diff_hash': 1518}
+absent: {'in_light5': 520, 'in_light6': 520, 'light_equal_both': 223, 'S_in_light5': 1518}
