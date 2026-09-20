@@ -1927,7 +1927,7 @@ entries:
   - id: 'fix-term-260919-09:verdict'
     path: 'fix-term-260919-09/verdict-260919-09.md'
     kind: analysis
-    status: draft   # J1 存在性差 520→0 PASS / J4 J5 PASS；J2 VOID（jitter 6453→7660 sections，chunk 级独立复算 2643>2185 双口径同证）——PI-1 断链留用户拍板；confirmed 留用户
+    status: confirmed   # 260919-09 B1 验收：用户 2026-09-19 授予 confirmed（范围 = 判据读数表 + 三级分账；不含 FB-2 去留方向——留用户下轮拍板）；judge PASS-with-conditions C1-C5 已应用
     # 一行结论：主攻包落地且行为化自证在案（postF 成对 3703/3703、resealed=8、degraded=0/464）；
     #   存在性差消除（C3+FA-1），但 FB-2 补传播使 run 间抖动面扩张（+27% diff-nibbles）——
     #   「确定性收敛」预期被反向削弱；FB-2 去留/档③/回退方向留用户。
