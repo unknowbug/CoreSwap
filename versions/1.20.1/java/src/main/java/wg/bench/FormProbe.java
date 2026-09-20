@@ -41,6 +41,8 @@ import wg.bench.mixin.ServerChunkManagerAccessor;
 public final class FormProbe {
     public static final boolean ON = System.getProperty("coreswap.formprobe") != null;
     public static final boolean DRIVE = ON && System.getProperty("coreswap.formdrive") != null;
+    /** 全覆盖网格驱动（260920-05，design-260920-05 §2）：隐含 formprobe 同开；与走廊 DRIVE 互斥，grid 优先。 */
+    public static final boolean GRID = ON && System.getProperty("coreswap.formdrivegrid") != null;
 
     private static final long T0 = System.nanoTime();
     private static final AtomicLong FILL_N = new AtomicLong();
@@ -53,7 +55,7 @@ public final class FormProbe {
 
     static {
         if (ON) {
-            System.out.println("[FP-ON] formprobe=1 drive=" + DRIVE
+            System.out.println("[FP-ON] formprobe=1 drive=" + DRIVE + " grid=" + GRID
                     + " commonPoolParallelism=" + java.util.concurrent.ForkJoinPool.commonPool().getParallelism()
                     + " availableProcessors=" + Runtime.getRuntime().availableProcessors());
             Runtime.getRuntime().addShutdownHook(new Thread(FormProbe::printSummary, "formprobe-sum"));
@@ -146,8 +148,12 @@ public final class FormProbe {
 
     /** 由 ServerWorldFormProbeMixin 每 tick 调用（server 线程）。 */
     public static void serverTick(ServerWorld world) {
-        if (!DRIVE) return;
+        if (!DRIVE && !GRID) return;
         if (world.getRegistryKey() != World.OVERWORLD) return;
+        if (GRID) {
+            gridTick(world);
+            return;
+        }
         long t = System.nanoTime();
         if (firstTickNanos == 0L) {
             firstTickNanos = t;
@@ -178,6 +184,73 @@ public final class FormProbe {
         } catch (Throwable t) {
             // 不吞异常（崩溃日志铁律）：打印后原样上抛，由 MC 状态机处理
             System.out.println("[FP-DRV] move FAILED seq=" + seq + ": " + t);
+            if (t instanceof RuntimeException rt) throw rt;
+            if (t instanceof Error err) throw err;
+            throw new RuntimeException(t);
+        }
+    }
+
+    // ---------------- 全覆盖网格驱动（260920-05，design-260920-05 §2） ----------------
+
+    /** face bbox 实测 [13,-25]..[332,212]（verify_design.py 复算）；网格起点取 (14,-24) 间距 20。 */
+    private static final int GRID_X0 = 14;
+    private static final int GRID_Z0 = -24;
+    private static final int GRID_STEP = 20;
+    private static final int GRID_XN = 17;
+    private static final int GRID_ZN = 13;
+    /** W = 221；覆盖完整性机械验证：face 全部 chunk 到最近 waypoint Chebyshev ≤10（.tmp/k2a-260920-05/verify_design.py）。 */
+    public static final int GRID_W = GRID_XN * GRID_ZN;
+    /** dwell 下界 = GRACE_MS(10s, LightDomainBatch.java:21 直读) + 裕量（design §1.3，禁 <12s）。 */
+    private static final long GRID_SETTLE_NS = 25_000_000_000L;
+    private static final long GRID_DWELL_NS = 15_000_000_000L;
+    /**
+     * D-Lag 变体（260920-05，design §2.1/§6 R1）：hold-all 实测 OOM（fullcov01，seq≈168/221 崩），
+     * 改摘票滞留 L=2 waypoint（≈45s+2×GRACE 余量）。判读须带「含卸载竞态混杂」标注。
+     */
+    private static final int GRID_LAG = 2;
+    private static final java.util.ArrayDeque<ChunkPos> GRID_LIVE = new java.util.ArrayDeque<>();
+
+    private static volatile boolean gridInited = false;
+
+    private static void gridTick(ServerWorld world) {
+        long t = System.nanoTime();
+        if (!gridInited) {
+            gridInited = true;
+            firstTickNanos = t;
+            System.out.println("[FP-DRV] ev=init grid=1 W=" + GRID_W + " dwell_s=15 lag=" + GRID_LAG + " t=" + ms(now()));
+            return;
+        }
+        long elapsed = t - firstTickNanos;
+        if (elapsed < GRID_SETTLE_NS) return;
+        int seq = (int) ((elapsed - GRID_SETTLE_NS) / GRID_DWELL_NS);
+        if (seq < 0 || seq >= GRID_W) return;
+        if (seq == driveSeq) return;
+        gridMoveTo(world, seq);
+    }
+
+    private static void gridMoveTo(ServerWorld world, int seq) {
+        try {
+            ServerChunkManager cm = (ServerChunkManager) world.getChunkManager();
+            ChunkTicketManager tm = ((ServerChunkManagerAccessor) cm).wgTicketManager();
+            // 蛇形 row-major：z 行内 x 正反交替（生成请求局部性；hold-all 下不影响最终集）
+            int row = seq / GRID_XN;
+            int col = seq % GRID_XN;
+            if (row % 2 == 1) col = GRID_XN - 1 - col;
+            int cx = GRID_X0 + GRID_STEP * col;
+            int cz = GRID_Z0 + GRID_STEP * row;
+            ChunkPos pos = new ChunkPos(cx, cz);
+            // D-Lag：滞留 L=2 后摘最旧票（design §2.1 变体；fullcov01 hold-all OOM 的修正形态）
+            GRID_LIVE.addLast(pos);
+            while (GRID_LIVE.size() > GRID_LAG) {
+                ChunkPos old = GRID_LIVE.removeFirst();
+                tm.removeTicketWithLevel(FORM_TYPE, old, DRIVE_LEVEL, old);
+            }
+            tm.addTicketWithLevel(FORM_TYPE, pos, DRIVE_LEVEL, pos);
+            driveSeq = seq;
+            System.out.println(String.format(Locale.ROOT, "[FP-DRV] ev=move seq=%d cx=%d cz=%d t=%.1f",
+                    seq, cx, cz, ms(now())));
+        } catch (Throwable t) {
+            System.out.println("[FP-DRV] grid move FAILED seq=" + seq + ": " + t);
             if (t instanceof RuntimeException rt) throw rt;
             if (t instanceof Error err) throw err;
             throw new RuntimeException(t);

@@ -40,6 +40,8 @@ public final class WbQualStats {
     public static final AtomicInteger LEGACY_WB = new AtomicInteger();
     public static final AtomicInteger LEGACY_FB = new AtomicInteger();
     public static final AtomicInteger VANILLA_RET = new AtomicInteger();
+    /** 未知 ev 兜底计数（judge S3，260920-05）：禁归入 ENTER 制造假账；SUM 行随行输出。 */
+    public static final AtomicInteger UNKNOWN = new AtomicInteger();
 
     private static final AtomicBoolean SUM_DONE = new AtomicBoolean(false);
 
@@ -94,10 +96,10 @@ public final class WbQualStats {
         if (!SUM_DONE.compareAndSet(false, true)) return;
         System.err.println(String.format(Locale.ROOT,
                 "[WBQ-SUM] ENTER=%d INIT0=%d PRECHECK_FAIL=%d COLLECT_FAIL=%d DOMAIN_SUBMIT=%d DEGRADE=%d"
-                        + " WB_DOMAIN=%d LEGACY_ENTER=%d LEGACY_WB=%d LEGACY_FB=%d VANILLA_RET=%d",
+                        + " WB_DOMAIN=%d LEGACY_ENTER=%d LEGACY_WB=%d LEGACY_FB=%d VANILLA_RET=%d UNKNOWN=%d",
                 ENTER.get(), INIT0.get(), PRECHECK_FAIL.get(), COLLECT_FAIL.get(), DOMAIN_SUBMIT.get(),
                 DEGRADE.get(), WB_DOMAIN.get(), LEGACY_ENTER.get(), LEGACY_WB.get(), LEGACY_FB.get(),
-                VANILLA_RET.get()));
+                VANILLA_RET.get(), UNKNOWN.get()));
     }
 
     /** 域键（Mixin wgLightDomainKey 镜像公式：3×3 网格对齐 floorDiv(cx,3), floorDiv(cz,3)，打包 long）。 */
@@ -117,7 +119,7 @@ public final class WbQualStats {
             case "legacy-wb": return LEGACY_WB;
             case "legacy-fb": return LEGACY_FB;
             case "vanilla-ret": return VANILLA_RET;
-            default: return ENTER; // 未知 ev 归 ENTER 防漏账（不应发生；解析器按行内 ev 字段读）
+            default: return UNKNOWN; // 未知 ev 独立计数（judge S3），不归 ENTER 防假账；行内 ev 字段仍如实打印
         }
     }
 }

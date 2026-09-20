@@ -176,6 +176,8 @@ if (project.findProperty('syncfill') != null) run.vmArg "-Dcoreswap.syncfill=1"
 // -Pformprobe=1 / -Pformdrive=1 → 形态审计探针 260915-03（fill/light 事件行 / 虚拟玩家票据驱动）
 if (project.findProperty('formprobe') != null) run.vmArg "-Dcoreswap.formprobe=1"
 if (project.findProperty('formdrive') != null) run.vmArg "-Dcoreswap.formdrive=1"
+// -Pformdrivegrid=1 → 全覆盖网格驱动 260920-05（1.20.1 诊断专用，未移植 1.21.6，非回归缺口）
+if (project.findProperty('formdrivegrid') != null) run.vmArg "-Dcoreswap.formdrivegrid=1"
 // -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；fjp1 映射行已删（260918-06 用户裁决，
 // B6-1 死开关：1.20.1 worldgen 主 worker = 专用 FJP，common pool 参数被架空，#153 行为化实证）
 if (project.findProperty('execpool') != null) run.vmArg "-Dcoreswap.execpool=${project.findProperty('execpool')}"

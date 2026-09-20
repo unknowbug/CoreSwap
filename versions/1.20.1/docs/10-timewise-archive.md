@@ -3722,3 +3722,25 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 
 ### 产物
 `.investigations/k2a-writeback-probe-260920-04/{design,record,verdict,judge-review}-260920-04.md` + `.tmp/k2a-260920-04/{wbq-cmp-wbq01.json, wbq-fix-domain-wbq01.log, smokeoff-01_result.json}` + `.tmp/wbq-compile-260920-04.log`。
+
+## 260920-05（实际 2026-09-20 晚）520 never-enter 全覆盖驱动判别臂（fullcov02，D-Lag L=2）——D1 ρ=520/520=1.0 / 缺席集=驱动覆盖集之差 / judge PASS-with-conditions（N1 门偏差待人类拍板）
+
+> 承 260920-04 judge S1 判别法；design `.investigations/k2a-fullcov-260920-05/design-260920-05.md`（判据预登记 Q1-Q7/QG1-QG2 + D1/D2/D2' + cov 门）；record 同目录；verdict `.artifacts/k2a-fullcov-260920-05/verdict-260920-05.md`（judge 条件 N3/N8 已应用）；judge-review-260920-05.md（PASS-with-conditions，N1/N3/N8 条件清单）。
+
+### 过程链
+- ✅ S2/S3 顺手项落地（比较器 v2 driver 覆盖率指标 + UNKNOWN 计数器；smoke v1 log 复算：上臂 never-enter 覆盖 0.0% vs wb 52.8%）。
+- ✅ worker 设计定稿：221 waypoint 蛇形网格（间距 20，覆盖域按 face bbox）、hold-all 默认 + D-Lag 预登记降级变体、判据 Q1-Q7/QG1-QG2 + D1（ρ≥0.8 / ≤0.2 / mixed）+ cov 门；T5/T6 静态推演标 I；bbox 转引失真修正（[13,-25]..[332,212]，#90 家族）；网格覆盖完整性机械验证（uncovered=0，worst Chebyshev=10）。
+- ✅ B6-1 门 + 编译绿（`-Pformdrivegrid` 驼峰映射行，纯 Java，dll sha cc4e39fe 不变）。
+- ❌→✅ fullcov01（hold-all）OOM VOID：seq≈168/221 OutOfMemoryError，SELFCERT 机械判 VOID 原名留档（崩溃前 enter 65454 方向读数不作证据）→ 启用预登记 D-Lag 变体（摘票滞留 2 waypoint ≈30s）→ fullcov02 一步重采成功 221/221（→ workflow-patterns #213）。
+- ✅ 判读（d1_recompute.py 流式复算 123MB log）：**D1 ρ = 520/520 = 1.000** ≥ 0.8 ⇒ workload 面证据成立；新臂 face_hist ledger wb 2038 / never-enter 0；D2 缺席非位移而是消灭；D2' 资格丧失类+UNKNOWN 全零；证据链三环闭合 ⇒ **缺席集 = 驱动覆盖集之差，C2（缺席在 workload/ticket 覆盖面，light() 机制无稳定缺席）获直接证据；idk-K2c 不立**。
+- ⚠️ 门偏差登记（judge N1 MUST）：cov(face_new)=0.8556 < 0.90 字面 suspended（face_new 实证 104025 远超设计假设 ≈ face bbox）；判读面 cov 实为 1.0；**待人类拍板门口径修订（#112/#157 程序）**（→ workflow-patterns #211）。
+- ⚠️→✅ judge N3 勘误（已应用）：三子组非不交划分 198+143+180=521（z188 带∩框外 1 点）；verdict 初稿「其余 179」系误引自家复算产物（机械=180）（→ #212）。
+- ✅ judge N8 措辞收窄（已应用）：C2 升级措辞 =「light() 覆盖 = workload/ticket 覆盖面的直接函数」；level≤32 机制层保持 I 标注（运行时单验前置）。
+- ✅ 知识库：workflow-patterns #211-#214 + INDEX + 本块（subagent 草稿 → 主会话应用）。
+
+### 判读状态（candidate 建议，confirmed 留用户）
+- ✅ D1 ρ=1.0 读数（E2 档位，S=[WBQ](cx,cz)∩face 交集 520，两臂同 seed 同 dll）；不外推 1.21.6 / LIGHT_RUST 关 / 其他 seed / face_new∖face_hist 区（104025−2038 未判读）。
+- 🔍 待办：N1 cov 门偏差人类拍板 → C2 candidate 正式授予；T5/T6 运行时单验（level 33 边界臂）为升档前置。
+
+### 产物
+`.artifacts/k2a-fullcov-260920-05/{verdict,judge-review}-260920-05.md` + `.investigations/k2a-fullcov-260920-05/{design,record}-260920-05.md` + `.tmp/k2a-260920-05/{d1_recompute.py,d1-recompute-out.log,cmp2-fullcov02.json,verify_design*.py,wbq-fullcov-fullcov01.*,wbq-fullcov-fullcov02-*}`。
