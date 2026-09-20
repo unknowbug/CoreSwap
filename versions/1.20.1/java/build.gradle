@@ -178,6 +178,10 @@ if (project.findProperty('formprobe') != null) run.vmArg "-Dcoreswap.formprobe=1
 if (project.findProperty('formdrive') != null) run.vmArg "-Dcoreswap.formdrive=1"
 // -Pformdrivegrid=1 → 全覆盖网格驱动 260920-05（1.20.1 诊断专用，未移植 1.21.6，非回归缺口）
 if (project.findProperty('formdrivegrid') != null) run.vmArg "-Dcoreswap.formdrivegrid=1"
+// -Pformedge=1 / -PformedgeAt=cx:cz / -PformedgeLvl=n:p → level 边界对照臂 260920-06（1.20.1 诊断专用，未移植 1.21.6，非回归缺口）
+if (project.findProperty('formedge') != null) run.vmArg "-Dcoreswap.formedge=1"
+if (project.findProperty('formedgeAt') != null) run.vmArg "-Dcoreswap.formedge.at=${project.findProperty('formedgeAt')}"
+if (project.findProperty('formedgeLvl') != null) run.vmArg "-Dcoreswap.formedge.lvl=${project.findProperty('formedgeLvl')}"
 // -Pexecpool=N → 覆盖 exec 池宽（缺省 logical/2-2）；fjp1 映射行已删（260918-06 用户裁决，
 // B6-1 死开关：1.20.1 worldgen 主 worker = 专用 FJP，common pool 参数被架空，#153 行为化实证）
 if (project.findProperty('execpool') != null) run.vmArg "-Dcoreswap.execpool=${project.findProperty('execpool')}"

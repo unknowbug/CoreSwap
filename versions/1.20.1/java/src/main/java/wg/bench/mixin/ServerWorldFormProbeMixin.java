@@ -18,7 +18,7 @@ import wg.bench.FormProbe;
 public abstract class ServerWorldFormProbeMixin {
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("HEAD"))
     private void wgFormProbeTick(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
-        if (FormProbe.DRIVE) {
+        if (FormProbe.DRIVE || FormProbe.GRID || FormProbe.EDGE) {
             FormProbe.serverTick((ServerWorld) (Object) this);
         }
     }
