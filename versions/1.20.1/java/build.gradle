@@ -122,6 +122,8 @@ if (project.findProperty('postFinalize') != null) run.vmArg "-Dcoreswap.light.wr
 if (project.findProperty('latesubmit') != null) run.vmArg "-Dcoreswap.light.domainbatch.latesubmit=${project.findProperty('latesubmit')}"
 // -Pwbprobe=1 → [LIGHT-WB] pre/post 成对行探针（260919-09；env 门控默认关）
 if (project.findProperty('wbprobe') != null) run.vmArg "-Dcoreswap.light.wbprobe=1"
+// -Pe3aInputHash=1 → [E3A] 行判别打点（260920-01，档③ b5 §1.2；默认关，块级/批级 hash 各一次）
+if (project.findProperty('e3aInputHash') != null) run.vmArg "-Dcoreswap.light.e3aInputHash=1"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"

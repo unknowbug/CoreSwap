@@ -80,6 +80,9 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
     @Unique private static final boolean LIGHT_DOMAIN = System.getProperty("coreswap.light.domainbatch") != null;
     // 260919-03（.b2 C-3）：域批 packed 直传（依赖 LIGHT_DOMAIN；提交线程 packed 帧收集）
     @Unique private static final boolean LIGHT_PACKED = System.getProperty("coreswap.light.domainpacked") != null;
+    // E-3a 判别打点开关（260920-01，档③ b5 §1.2）：-P→-D 映射见 build.gradle；默认关，类加载读一次，
+    // hash 计算仅批级/中心级各一次（chunk 级粒度，无 per-block 分支，诊断污染铁律合规）。
+    @Unique private static final boolean LIGHT_E3A = System.getProperty("coreswap.light.e3aInputHash") != null;
     // 260919-09（design-260919-08 B1 主攻包 FA-1+FA-3）：S3+S4+complete POST 解绑（yarn SLP:179-183
     // 队列序复刻；缺省关 = 现状域任务线程即时执行）。FB-2 补 propagateLight 无独立开关（删行即回退）；
     // C3 latesubmit 在 LightDomainBatch。回退开关 + build.gradle 映射 postFinalize（B6-1 门）。
@@ -638,6 +641,75 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         return false;
     }
 
+    /** E-3a 判别打点 hash（260920-01，档③ b5 §1.2）：sha256，取前 4 字节 8 hex。
+     *  输入口径 = blocks25 int[] 逐元素小端字节序（跨 run 确定性，只用于同口径等值比较）；
+     *  输出口径 = 该中心输出段 [segOff, segOff+98352) 原始字节（block 24×2048 + sky 24×2048 + flags 48）。
+     *  与 region .mca 的 P09 抽样互验在判据层执行；打点为纯只读观察，不改任何 S1-S4 副作用。 */
+    @Unique
+    private static String wgE3aHex8(byte[] h) {
+        char[] HEX = "0123456789abcdef".toCharArray();
+        StringBuilder sb = new StringBuilder(8);
+        for (int i = 0; i < 4; i++) {
+            sb.append(HEX[(h[i] >> 4) & 0xF]).append(HEX[h[i] & 0xF]);
+        }
+        return sb.toString();
+    }
+
+    @Unique
+    private static String wgE3aBlocks25Hash(int[] blocks25) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            java.nio.ByteBuffer bb = java.nio.ByteBuffer.allocate(blocks25.length * 4)
+                    .order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            bb.asIntBuffer().put(blocks25);
+            md.update(bb.array());
+            return wgE3aHex8(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("[E3A] SHA-256 unavailable", e);
+        }
+    }
+
+    @Unique
+    private static String wgE3aSegHash(byte[] out, int off, int len) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            md.update(out, off, len);
+            return wgE3aHex8(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("[E3A] SHA-256 unavailable", e);
+        }
+    }
+
+    /** nib 口径（P09 region 互验同构）：24 节 × (block 2048B + sky 2048B)，逐节按写回 flag 归一化
+     *  （1→全 0 / 2→全 15 / 0→原字节），Y 升序（bottomSection+s，与 region NBT sections Y 序一致）。
+     *  Python 判读侧按 #46 隐式键语义复刻（BlockLight 缺键=全 0、SkyLight 缺键=全 15）。 */
+    @Unique
+    private static String wgE3aNibHash(byte[] out, int segOff) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] zeros = new byte[2048];
+            byte[] fifteens = new byte[2048];
+            java.util.Arrays.fill(fifteens, (byte) 15);
+            int flagOff = segOff + 2 * 24 * 2048;
+            for (int s = 0; s < 24; s++) {
+                byte[] bl = wgE3aNorm(out, segOff + s * 2048, out[flagOff + 2 * s], zeros, fifteens);
+                byte[] sk = wgE3aNorm(out, segOff + 24 * 2048 + s * 2048, out[flagOff + 2 * s + 1], zeros, fifteens);
+                md.update(bl, 0, 2048);
+                md.update(sk, 0, 2048);
+            }
+            return wgE3aHex8(md.digest());
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("[E3A] SHA-256 unavailable", e);
+        }
+    }
+
+    @Unique
+    private static byte[] wgE3aNorm(byte[] out, int off, byte flag, byte[] zeros, byte[] fifteens) {
+        if (flag == 1) return zeros;
+        if (flag == 2) return fifteens;
+        return java.util.Arrays.copyOfRange(out, off, off + 2048);
+    }
+
     /** 域批任务体（Util.getMainWorkerExecutor 线程）：拼帧 → 一次 JNI → 逐中心写回/降级。
      *  零 PalettedContainer 访问（收集已在提交线程完成，260916-01 崩溃修复）。 */
     @Unique
@@ -657,6 +729,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         String fail = null;
         int packedFrames = -1; // 260919-03：packed 路帧数（blocks25 路 = -1，task 行负自证面）
         long fillNs = 0L, nativeNs = 0L; // A1 判别通道（260919-01）：仅 out!=null 成功路径有效
+        String e3aIn = null; // E-3a（260920-01）：批级 blocks25 输入 hash（同批 9 中心共享）
         if (handle == 0L) {
             fail = "init0";
         } else if (LIGHT_PACKED) {
@@ -739,9 +812,14 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 if (rc != 0) {
                     fail = "domain rc=" + rc;
                     out = null;
-                } else if (LIGHT_TIMING) {
-                    fillNs = _t1 - t0;
-                    nativeNs = _t2 - _t1;
+                } else {
+                    if (LIGHT_E3A) {
+                        e3aIn = wgE3aBlocks25Hash(blocks25);
+                    }
+                    if (LIGHT_TIMING) {
+                        fillNs = _t1 - t0;
+                        nativeNs = _t2 - _t1;
+                    }
                 }
             }
         }
@@ -753,6 +831,12 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             CompletableFuture<Object> f = st.futures.get(pos);
             if (ch == null || f == null) continue;
             if (out != null) {
+                if (e3aIn != null) { // E-3a 打点：写回时点 Rust 域批输出（FB-2 覆写抖动发生在此后，不污染本行）
+                    System.out.println("[E3A] cx=" + ChunkPos.getPackedX(pos) + " cz=" + ChunkPos.getPackedZ(pos)
+                            + " blk25=" + e3aIn
+                            + " nib=" + wgE3aNibHash(out, k * WG_DOMAIN_SEG)
+                            + " out=" + wgE3aSegHash(out, k * WG_DOMAIN_SEG, WG_DOMAIN_SEG));
+                }
                 boolean excl = Boolean.TRUE.equals(st.excludeBlocks.get(pos));
                 boolean doneHere = wgLightDomainWriteBack(provider, tacs, bottomSection, ch, out,
                         k * WG_DOMAIN_SEG, excl, f);

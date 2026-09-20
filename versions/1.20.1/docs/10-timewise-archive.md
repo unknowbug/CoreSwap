@@ -3685,3 +3685,19 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 
 - 主攻包整体 = **1/2 目标达成**：机制存在性成立（J4/J5），520 存在性差消除（J1），但 FB-2 抖动收敛预期被运行时证据反向削弱（J2 VOID，b2 §2「确定性收敛」论证被取代——见 12-lighting.md 本块小节 §15.4 取代声明）。J2 VOID 触发 PI-1 断链，evidence saturation 计数重置（新数据层证据）。
 - 🔍 **FB-2 去留留用户拍板**（重大方向决策）：① 回退 FB-2 半包（删行即回退，无开关）② 档③先判别 ③ 接受抖动换存在性。2038 恒定面归属仍未裁决（档③ E-3a 挂起 key=c1-e3a-verdict 未解除）。
+
+## 260920-01（实际 2026-09-20 14:41-16:0x）档③ E-3a 输入 hash 判别执行——总体不可判（coverage 74.48%）/ FA-2 维持 suspended / b5 §1.6 sha 连锁被实证解除
+
+> 承 260919-09 FB-2 去留拍板选项②（档③先判别）；判据 `.investigations/fix-term-260920-01/e3a-criteria.md`（预登记 + §5 amend 留痕）；verdict `verdict-260920-01.md`；judge `judge-review-260920-01.md`（PASS-with-conditions N1-N9 已应用）；采集 `.tmp/e3a-260920-01/`（r5/r6 + 两臂 region 归档各 18 .mca）。
+
+### 过程链
+- ✅ 判别前置核对（判据 §0 口径定稿：blk25 批级共享、out=98352B 段、E1 档位、FB-2 隔离性论证——打点在写回时点，覆写抖动在其后）→ 改码（[E3A] 打点 Mixin + build.gradle 映射行，单 commit 可 revert）→ 门禁/编译（B6-1 门新增项 CONSISTENT、无新增缺口；gradle rc=0）→ criteria mtime 定稿先于采集（#112）。
+- ✅ r5/r6 双臂采集：SELFCERT 两臂全绿（wb_pre=wb_post=3703、inline=0、dll sha 实测 cc4e39fe 不变）；⚠️ N3：[SELFCERT] 行 stdout only 未入 log 文件，读数以 result json 为准。
+- 🔍 比较器三轮缺陷修复：①字符串 key vs 元组 key 交集恒空（→ workflow-patterns #59 补充案例）②.mca blob 8192B header 偏移 ③NBT section Y 无符号字节（-4→252）；失败轮输出留 .tmp 无自动回退。
+- ❌→✅ P09 互验通道：修复两轮后仍 0/300 → r5/r6 region 自差 27.3% → 前提「region 终态 = 写回时点状态」证伪 → P09v2 降级关闭（idk-E3a2 登记；→ workflow-patterns **#205**）。
+- ✅ 判读（预登记分支机械执行）：coverage = 1518/2038 = **74.48% < 80% 门 → 总体不可判**（数据有效），走 b5 §3 保守默认行；可比较子集 S=1518 内 **100% 输入异（blk25 跨 run 全异）+ 乙直证 0**（数据层证据，限 S，judge N4 限定）；缺席面 520 两臂均无写回行（与存在性差 520 同数，机制未查 idk-E3a1，措辞 = 两臂系统性缺席观测）。
+- ✅ P11 转录一致性 0 违例/3703；稳健性声明（N6）：coverage 判定对 P07 v1/v2 口径均不敏感。
+- ✅ judge N1-N9 应用。应用面：**c1-e3a-verdict 未满足 → FA-2 维持 suspended；FB-2 维持现状（抖动换存在性既成事实，本轮未动）**。
+- ✅ §15.4 取代：dll sha 实测不变 → **b5-fa-branchB §1.6「打点致 dll sha 漂移/#202 连锁」解除**（#205 同型：静态推理未经实证当公理被一轮廉价实证推翻；取代注记见 b5 文件 §1.6 行侧）。
+- 📌 知识库：workflow-patterns #205 + #59 补充案例 + INDEX + 本块（subagent 草稿 → 主会话应用）。
+- 🔍 未决/下一步：K2 廉价探针（批几何对齐统计，可复用本轮归档）+ 520 缺席面写回集合成员资格判别；不以「恒定面=甲/乙」任一读法为前提立项；confirmed 留用户。

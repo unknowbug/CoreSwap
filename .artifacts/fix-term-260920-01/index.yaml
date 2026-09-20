@@ -1,0 +1,16 @@
+schema_version: 1
+project: CoreSwap
+module: re-code
+entries:
+  - id: 'fix-term-26092001:verdict-e3a'
+    path: '../investigations/fix-term-260920-01/verdict-260920-01.md'
+    kind: analysis
+    status: candidate
+  - id: 'fix-term-26092001:criteria'
+    path: '../investigations/fix-term-260920-01/e3a-criteria.md'
+    kind: criteria
+    status: candidate
+  - id: 'fix-term-26092001:judge-review'
+    path: '../investigations/fix-term-260920-01/judge-review-260920-01.md'
+    kind: review
+    status: candidate
