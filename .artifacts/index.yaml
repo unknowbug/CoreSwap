@@ -1975,3 +1975,9 @@ entries:
     path: '../.investigations/k2-520-260920-02/t2t3-archive-recompute-260920-03.md'
     kind: analysis
     status: confirmed   # T2：kd2=kd3=kv=9450 且 common=9450（集合恒等直接证明，#209 判据）+ 520/520 全 '111' + kv-only=0（「南侧成员=t8 驱动延伸区独有」证伪；198 归属「workload 驱动面之差」保持 candidate 措辞）；T3：缺席 520 距最近批 bbox Chebyshev=1（min 饱和仅旁证）+ z=2 槽聚集 385/520（74%）+ (0,0) 延伸角槽 0/520 vs 对照近均匀 →「3×3 批格位候选」从 M4 降权回调为结构相关证据（judge C3 落点）；机制解释保持 candidate。原始 stdout：cmd-output/{t8_key_membership,p2_batch_anchor}_260920-03.log
+
+  # —— 260920-04 旧遗留四项零成本收口（用户方案 A 批准；纯文档，零改码零采集）——
+  - id: 'legacy-close-260920-04'
+    path: '../.investigations/legacy-close-260920-04/disposition-260920-04.md'
+    kind: record
+    status: confirmed   # 260914-02 open② 关账（永久挂起，不影响已 confirmed 主判据）；C-4 灰区维持 verdict 关账（复议条件=新形态证据）；idk-C1a-1 转正式 idk 90 天线；Forge+Connector AW 登记 idk-aw-forge-1（随下次 Forge 采集顺手验证）。溯源依据 backlog-map-260919-06 + 本块复核；用户批准 2026-09-20（方案 A）
