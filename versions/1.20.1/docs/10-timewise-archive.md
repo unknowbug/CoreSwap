@@ -3701,3 +3701,24 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 - ✅ §15.4 取代：dll sha 实测不变 → **b5-fa-branchB §1.6「打点致 dll sha 漂移/#202 连锁」解除**（#205 同型：静态推理未经实证当公理被一轮廉价实证推翻；取代注记见 b5 文件 §1.6 行侧）。
 - 📌 知识库：workflow-patterns #205 + #59 补充案例 + INDEX + 本块（subagent 草稿 → 主会话应用）。
 - 🔍 未决/下一步：K2 廉价探针（批几何对齐统计，可复用本轮归档）+ 520 缺席面写回集合成员资格判别；不以「恒定面=甲/乙」任一读法为前提立项；confirmed 留用户。
+
+## 260920-04（实际 2026-09-20 17:18-18:0x）写回资格打点通道（idk-K2a）判别采集——Q1-Q7 全 PASS / E-存在分账 wb 1518 + never-enter 520 / 资格门 G1-G7 全零 = 结构性排除 / H1/H2 mixed 不可判登记
+
+> 承 260920-03（k2 课题线，520 缺席 idk-K2a）；方案 A 用户批准；design `.investigations/k2a-writeback-probe-260920-04/design-260920-04.md`（判据预登记 Q1-Q7 + E-存在 + H1/H2）；record 同目录 record-260920-04.md；verdict verdict-260920-04.md；judge judge-review-260920-04.md（PASS-with-conditions N1/N2 已应用）。
+
+### 过程链
+- ✅ 架构：方案 A 批准（逐 chunk 路径归属行打点通道）→ P05 sha 申报：dll 实测 `cc4e39fe` 零漂移；#202 连锁盘点（3 处旧 sha 引用）**未激活**——实现未触 Rust，Q1「禁沿用」前提不成立，expected 回填 = cc4e39fe（同执行体 ⇒ 与 E3A 旧采集 E1 可比性更优）。
+- ✅ worker 设计/实现：`WbQualStats` holder（#176 形态，禁 mixin 类反射自载）+ Mixin 12 插桩点 P1-P12（五执行形态全覆盖：域批 blocks9/packed、legacy、vanilla 回退、任务态降级）+ build.gradle `-Pwbqual` 映射行；B6-1 门过（新项进一致面，ORPHAN 13 项均既有旁路）；编译 BUILD SUCCESSFUL（`.tmp/wbq-compile-260920-04.log`）。
+- ✅ Q5 冒烟 off 臂 PASS（smokeoff-01：[WBQ]/[WBQ-SUM] = 0 行，`wbq_lines=0`；world 重建 = §9.8 不可逆声明，豁免 = 冒烟臂不入账）。
+- ✅ 主臂采集（keep-world 非破坏，seed 8576294172403134396 核对）：enter=3703、wb ≡ E3A = 3703、malformed 0/11109。
+- ✅ 比较器 PASS（exit 0 非 VOID）：face 2038 = wb 1518 + never-enter 520，**资格丧失类全零**；H1/H2 mixed 不可判登记（数据有效，exit 5 形态）。
+- ✅ judge PASS-with-conditions：N1（H1/H2 三处读法漂移以声明退化形态补登记）+ N2（Q2/Q5/Q6 补 file:line/json 锚）均已应用；逐条抽验 ≥10 处一致。
+- ✅ 知识库：workflow-patterns #210 + INDEX + 本块（subagent 草稿 → 主会话应用）。
+
+### 判读（candidate 建议，confirmed 留用户）
+- ✅ **C1 资格门全放行**（本 run、E1 口径）：所有进入 light() 的 chunk（3703）全部走通 enter→domain-submit→wb 三行链（Q7 恒等闭合），G1-G7 无一拒绝 = 判据-backed 结构性排除。
+- 🔍 **C2 520 缺席在打点链上游**：never-enter = face 成员且整 run 零 [WBQ] 行 ⇒ light() 未被调用，缺席点在 light() 调用方/驱动 workload 调度面——与 #206 workload 驱动面候选一致；**跨 run 须 §9.7 声明**（t8 face 来自历史 run，#196/#197 run 级 workload 非确定；可跨 run 的只有定性结构）。
+- 🔍 遗留：never-enter 上游机制不闭合（design 预登记）——归并方向 judge S1 = 并入 #198 workload 驱动面候选、暂不新立 idk-K2c（FP-DRV 为确定性走廊 6 waypoint，520 南带聚集疑驱动路径几何投影；廉价判别 = 全覆盖驱动一臂）；idk-WBQ1 随资格丧失=0 休眠。
+
+### 产物
+`.investigations/k2a-writeback-probe-260920-04/{design,record,verdict,judge-review}-260920-04.md` + `.tmp/k2a-260920-04/{wbq-cmp-wbq01.json, wbq-fix-domain-wbq01.log, smokeoff-01_result.json}` + `.tmp/wbq-compile-260920-04.log`。

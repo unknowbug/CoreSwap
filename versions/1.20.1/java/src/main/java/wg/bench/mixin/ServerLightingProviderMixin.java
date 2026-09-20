@@ -27,6 +27,9 @@
 // 禁入 mixin 包，设计案原文「mixin 同文件包内」就此勘误）。
 // 自证硬门数据面（#118）：正证据 = [LIGHT-DOMAIN] task 行 + LightDomainBatch.SEALED；
 // 负证据 = LIGHT_DOMAIN 开臂下 WG_DOMAIN_INLINE（降级重放/未入域计数）。
+// WBQ（260920-04 design-260920-04，写回资格打点通道 idk-K2a）：-Dcoreswap.light.wbqual 门控
+// （默认关，关臂 emit 首行直返零行为变化），P1-P12 共 12 个插桩点；计数器/行格式/汇总 =
+// wg.bench.WbQualStats（普通 holder 类，非 mixin #176）。行号锚以方法名双写（design §6.1）。
 package wg.bench.mixin;
 
 import net.minecraft.world.chunk.ChunkStatus;
@@ -520,7 +523,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                     + wg.bench.LightDomainBatch.GRACE_MS
                     + " postF=" + LIGHT_POST_FINALIZE
                     + " latesubmit=" + wg.bench.LightDomainBatch.LATE_SUBMIT
-                    + " fb2=on wbprobe=" + LIGHT_WBPROBE);
+                    + " fb2=on wbprobe=" + LIGHT_WBPROBE
+                    + " wbqual=" + (wg.bench.WbQualStats.on ? "on" : "off")); // 260920-04 P1 armed 行扩展
         }
     }
 
@@ -551,6 +555,11 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                                         boolean excludeBlocks) {
         ChunkPos p = chunk.getPos();
         if (!wgLightDomainReady((ServerLightingProvider) (Object) this, this.world, p)) {
+            // 260920-04 P3：reason 细分 = 就地低成本旁判 wgLightHeightOk（wgLightDomainReady 首门即
+            // wgLightHeightOk（:535-536），heightOk=false ⇒ reason=height，否则 3×3 邻缺 ⇒ reason=neighbor；
+            // 纯只读布尔，无行为影响；H1/H2 读法不依赖 reason（design §6.3））。
+            wg.bench.WbQualStats.emit("precheck-fail", p.x, p.z,
+                    "reason=" + (wgLightHeightOk(this.world) ? "neighbor" : "height"));
             return false; // 计数由调用方统一记（防双计）
         }
         // 260916-01 崩溃修复：blocks9 收集留在 light 调用线程（与 legacy 同线程同构，历史碰撞面
@@ -560,6 +569,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         if (LIGHT_PACKED) {
             int[] plens = wgLightCollectPacked((ServerLightingProvider) (Object) this, this.world, chunk);
             if (plens == null) {
+                wg.bench.WbQualStats.emit("collect-fail", p.x, p.z, "abi=packed"); // 260920-04 P4
                 WG_DOMAIN_INLINE.incrementAndGet();
                 return false;
             }
@@ -570,6 +580,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             Object[] ctx = { this, this.chunkStorage, this.world, this.world.getBottomSectionCoord() };
             CompletableFuture<Object> fut = wg.bench.LightDomainBatch.submitPacked(
                     p.toLong(), wgLightDomainKey(p), ctx, chunk, meta, pal, sto, plens, excludeBlocks);
+            wg.bench.WbQualStats.emit("domain-submit", p.x, p.z, "abi=packed"); // 260920-04 P6
             @SuppressWarnings("unchecked")
             CompletableFuture<Chunk> cf = (CompletableFuture<Chunk>) (CompletableFuture<?>) fut;
             cir.setReturnValue(cf);
@@ -577,6 +588,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         }
         int[] b9 = WG_BLOCKS9_TL.get();
         if (!wgLightCollectBlocks((ServerLightingProvider) (Object) this, this.world, chunk, b9)) {
+            wg.bench.WbQualStats.emit("collect-fail", p.x, p.z, "abi=blocks9"); // 260920-04 P5
             WG_DOMAIN_INLINE.incrementAndGet();
             return false;
         }
@@ -585,6 +597,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         Object[] ctx = { this, this.chunkStorage, this.world, this.world.getBottomSectionCoord() };
         CompletableFuture<Object> fut = wg.bench.LightDomainBatch.submit(
                 p.toLong(), wgLightDomainKey(p), ctx, chunk, snap, excludeBlocks);
+        wg.bench.WbQualStats.emit("domain-submit", p.x, p.z, "abi=blocks9"); // 260920-04 P7
         @SuppressWarnings("unchecked")
         CompletableFuture<Chunk> cf = (CompletableFuture<Chunk>) (CompletableFuture<?>) fut;
         cir.setReturnValue(cf);
@@ -740,6 +753,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 int[] pl = st.packedLens.get(pos);
                 if (pl == null) { // LIGHT_PACKED 提交者必有四件套；缺 = 状态机破坏（loud）
                     fail = "missing-packed @" + new ChunkPos(pos);
+                    wg.bench.WbQualStats.emit("degrade", ChunkPos.getPackedX(pos), ChunkPos.getPackedZ(pos),
+                            "fail=missing-packed"); // 260920-04 P8
                     n = 0;
                     break;
                 }
@@ -790,6 +805,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 int[] b9 = st.blocks9s.get(centers[k]);
                 if (b9 == null) { // 提交必有快照；缺 = 状态机破坏，整批降级（loud）
                     fail = "missing-snapshot @" + new ChunkPos(centers[k]);
+                    wg.bench.WbQualStats.emit("degrade", ChunkPos.getPackedX(centers[k]),
+                            ChunkPos.getPackedZ(centers[k]), "fail=missing-snapshot"); // 260920-04 P8
                     assembled = false;
                     break assemble;
                 }
@@ -844,6 +861,9 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                     f.complete(ch);
                 }
                 ok++;
+                wg.bench.WbQualStats.emit("wb", ChunkPos.getPackedX(pos), ChunkPos.getPackedZ(pos),
+                        "abi=" + (packedFrames >= 0 ? "packed" : "blocks9")
+                                + " pk=" + centers.length); // 260920-04 P9（域批写回正格，[E3A] 行旁独立行）
                 if (wg.bench.FormProbe.ON) {
                     wg.bench.FormProbe.lightCall(ChunkPos.getPackedX(pos), ChunkPos.getPackedZ(pos),
                             (System.nanoTime() - t0) / centers.length);
@@ -852,6 +872,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 // 降级重放（.b1 §1.2c fallback；预检过但任务期失败 = 状态回退，不可达路径，loud fail）
                 wg.bench.LightDomainBatch.DEGRADED.incrementAndGet();
                 degraded++;
+                wg.bench.WbQualStats.emit("degrade", ChunkPos.getPackedX(pos), ChunkPos.getPackedZ(pos),
+                        "fail=" + fail); // 260920-04 P10（任务态降级重放/摘票）
                 CompletableFuture<Chunk> replay =
                         wgLightLegacyTakeover(provider, tacs, world, bottomSection, ch, false);
                 if (replay != null) {
@@ -897,6 +919,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                                                  HeightLimitView world, int bottomSection,
                                                  Chunk chunk, boolean excludeBlocks) {
         ChunkPos chunkPos = chunk.getPos();
+        wg.bench.WbQualStats.countLegacyEnter(); // 260920-04：legacy per-chunk 路入口计数（无事件行）
         // 形态审计探针（260915-03）：light 接管调用计时（独立于 LIGHT_TIMING 聚合门）
         final long fpT0 = wg.bench.FormProbe.ON ? System.nanoTime() : 0L;
         // ThreadLocal 缓冲复用（out 缓冲在 wgLightNibble 中已拷出，方法返回后无保留引用）
@@ -937,6 +960,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                     // packed 解码/长度错（rc=-2）→ blocks9 ABI 同 chunk 兜底重算（正确性优先）
                     if (!wgLightCollectBlocks(provider, world, chunk, blocks9)) {
                         wgLightFallback("packed-rc" + rc + "-then-collect " + chunkPos);
+                        wg.bench.WbQualStats.emit("legacy-fb", chunkPos.x, chunkPos.z,
+                                "reason=packed-rc" + rc + "-then-collect"); // 260920-04 P12
                         return null;
                     }
                     rc = wg.CppWorldgen.lightCompute(wgLightEnsureInit(), blocks9, outBlock, outSky, outFlags);
@@ -944,6 +969,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             } else {
                 if (!wgLightCollectBlocks(provider, world, chunk, blocks9)) {
                     wgLightFallback("neighbor-missing-or-height " + chunkPos);
+                    wg.bench.WbQualStats.emit("legacy-fb", chunkPos.x, chunkPos.z,
+                            "reason=neighbor-missing-or-height"); // 260920-04 P12
                     return null;
                 }
                 if (LIGHT_BETAPROBE) {
@@ -968,6 +995,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             }
             if (rc != 0) {
                 wgLightFallback("lightCompute rc=" + rc + " " + chunkPos);
+                wg.bench.WbQualStats.emit("legacy-fb", chunkPos.x, chunkPos.z,
+                        "reason=lightCompute-rc" + rc); // 260920-04 P12
                 return null;
             }
 
@@ -982,6 +1011,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             }
 
             wgLightOkCount.incrementAndGet();
+            wg.bench.WbQualStats.emit("legacy-wb", chunkPos.x, chunkPos.z); // 260920-04 P11
             if (wg.bench.FormProbe.ON && fpT0 != 0L) {
                 wg.bench.FormProbe.lightCall(chunkPos.x, chunkPos.z, System.nanoTime() - fpT0);
             }
@@ -1019,6 +1049,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
                 System.out.println("[LightRust] lightCompute threw: " + t + " -> fallback vanilla permanently");
             }
             wgLightFallback("native-throw " + chunkPos);
+            wg.bench.WbQualStats.emit("legacy-fb", chunkPos.x, chunkPos.z,
+                    "reason=native-throw"); // 260920-04 P12
             return null;
         }
     }
@@ -1027,6 +1059,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
             at = @At("HEAD"), cancellable = true, require = 1)
     private void wgLightRustTakeover(Chunk chunk, boolean excludeBlocks, CallbackInfoReturnable<CompletableFuture<Chunk>> cir) {
         if (!LIGHT_RUST) return; // 开关关闭：完全 vanilla，零行为影响
+        wg.bench.WbQualStats.emit("enter", chunk.getPos().x, chunk.getPos().z); // 260920-04 P1
         if (LIGHT_BETAPROBE) {
             int n = WG_PATH_N.incrementAndGet();
             if (n == 1) System.out.println("[LIGHT-BETA] probe armed betaprobe=1"
@@ -1035,6 +1068,7 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         }
         long handle = wgLightEnsureInit();
         if (handle == 0L) { // init 失败（已打点一次）→ vanilla
+            wg.bench.WbQualStats.emit("init0", chunk.getPos().x, chunk.getPos().z); // 260920-04 P2
             if (LIGHT_BETAPROBE) System.out.println("[LIGHT-PATH] path=vanilla-init0 ("
                     + chunk.getPos().x + "," + chunk.getPos().z + ")");
             return;
@@ -1058,6 +1092,8 @@ public abstract class ServerLightingProviderMixin extends LightingProvider {
         }
         if (legacy != null) {
             cir.setReturnValue(legacy);
+        } else {
+            wg.bench.WbQualStats.emit("vanilla-ret", chunk.getPos().x, chunk.getPos().z); // 260920-04 P12
         }
     }
 

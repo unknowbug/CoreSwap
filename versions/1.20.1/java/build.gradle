@@ -124,6 +124,8 @@ if (project.findProperty('latesubmit') != null) run.vmArg "-Dcoreswap.light.doma
 if (project.findProperty('wbprobe') != null) run.vmArg "-Dcoreswap.light.wbprobe=1"
 // -Pe3aInputHash=1 → [E3A] 行判别打点（260920-01，档③ b5 §1.2；默认关，块级/批级 hash 各一次）
 if (project.findProperty('e3aInputHash') != null) run.vmArg "-Dcoreswap.light.e3aInputHash=1"
+// -Pwbqual=1 → 写回资格打点 [WBQ]/[WBQ-SUM]（260920-04 design-260920-04 idk-K2a；默认关，关臂零成本）
+if (project.findProperty('wbqual') != null) run.vmArg "-Dcoreswap.light.wbqual=1"
             if (project.findProperty('ruleDiag') != null) run.vmArg "-Drule.diag=true"
             if (project.findProperty('beardDump') != null) run.vmArg "-Dbeard.dump=${project.findProperty('beardDump')}"
             if (project.findProperty('blockProbeDimension') != null) run.vmArg "-DblockProbe.dimension=${project.findProperty('blockProbeDimension')}"
