@@ -360,6 +360,7 @@ public final class FormProbe {
             ServerChunkManager cm = (ServerChunkManager) world.getChunkManager();
             ChunkTicketManager tm = ((ServerChunkManagerAccessor) cm).wgTicketManager();
             edgeProbe(world, tm, new ChunkPos(EDGE_CX, EDGE_CZ), phase);
+            if ("N".equals(phase)) edgeRingProbe(world, tm); // T6 ring=1（260921-02，design-260920-06 §3.3 可选实现落地）
         } catch (Throwable th) {
             edgeFail("probe-" + phase, th);
         }
@@ -378,6 +379,11 @@ public final class FormProbe {
 
     /** #118 硬门读数：lvl = 运行时 holder level（反射直读，非参数回显）；status = chunk.getStatus().getId()。 */
     private static void edgeProbe(ServerWorld world, ChunkTicketManager tm, ChunkPos pos, String phase) {
+        edgeProbe(world, tm, pos, phase, false);
+    }
+
+    /** T6 ring=1 补充读数（260921-02，design-260920-06 §3.3）：ring=true 时行尾标 ring=1。 */
+    private static void edgeProbe(ServerWorld world, ChunkTicketManager tm, ChunkPos pos, String phase, boolean ring) {
         int lvl = -1;
         String status = "absent";
         try {
@@ -395,8 +401,21 @@ public final class FormProbe {
         } catch (Throwable th) {
             status = "read-failed:" + th.getClass().getSimpleName();
         }
-        System.out.println(String.format(Locale.ROOT, "[FP-EDGE] ev=probe phase=%s t=%.1f cx=%d cz=%d lvl=%d status=%s%s",
-                phase, ms(now()), pos.x, pos.z, lvl, status, "BASE".equals(phase) ? " base=1" : ""));
+        System.out.println(String.format(Locale.ROOT, "[FP-EDGE] ev=probe phase=%s t=%.1f cx=%d cz=%d lvl=%d status=%s%s%s",
+                phase, ms(now()), pos.x, pos.z, lvl, status, "BASE".equals(phase) ? " base=1" : "",
+                ring ? " ring=1" : ""));
+    }
+
+    /** T6：N 相中心 probe 后对 Chebyshev d=1 环取 4 个 cardinal 邻 chunk 补打 probe（ring=1）。 */
+    private static void edgeRingProbe(ServerWorld world, ChunkTicketManager tm) {
+        int[][] ring = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int[] d : ring) {
+            try {
+                edgeProbe(world, tm, new ChunkPos(EDGE_CX + d[0], EDGE_CZ + d[1]), "N", true);
+            } catch (Throwable th) {
+                edgeFail("ring-probe", th);
+            }
+        }
     }
 
     private static void edgeFail(String where, Throwable t) {

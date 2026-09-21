@@ -208,3 +208,40 @@ B1 主攻包（FA-1 ticket 兜底 + FA-3 POST 投递 + FB-2 写回后补 propaga
 - 方案变更：@Invoker 被编译否决（mapped jar 嵌套 enum `Stage` 对非 nest-mate = private，yarn 文本源包私有 ≠ jar 实际访问控制）→ **Fabric access widener** 替代（remap 安全）；idk：Forge+Connector 载体 AW 应用未验证（loud IllegalAccessError 可判别）。
 - 判据口径教训：预登记阈值（chunk 级 2185）× 比较器（section 级）口径混写，替代执行 = 同口径替代基线 + judge 独立复算双口径同证（judge C-2，表述须如实为「同口径替代执行」）。
 - 🔍 未决：FB-2 去留三选项（回退半包 / 档③先判别 / 接受抖动换存在性）留用户拍板；2038 恒定面归属（终态化固化 vs 确定性语义差）待档③ E-3a（挂起 key=c1-e3a-verdict）；过程链全文 → 10-timewise-archive 260919-09 块。
+
+---
+
+## C2 升档：light() 覆盖 = ticket 档位语义（260921 confirmed）
+
+> 状态：**confirmed（用户授予 2026-09-21）**；judge PASS（260921-01，附 B1/B2 非阻塞建议已应用）。
+> 口径声明（§9.7）：直证面载体 = server stdout 行为化日志（[WBQ]/[FP-LIGHT]/[FP-EDGE]）；覆盖面 = **单 chunk (160,96) × seed 8576294172403134396 × overworld 1.20.1**；等价档位 = **E1**（同构建态 dll=cc4e39fe、同 run 双相、唯一变量 = 票据档位 34→33）。不外推 1.21.6、其他 seed/点/档位组合；判据面依赖 lightRust 开（Mixin :1061 gate）。
+
+### 结论（档位语义机制）
+
+light() 覆盖 = 驱动 workload/ticket 覆盖面的直接函数，机制 = **level≤33 档位语义**：
+
+- ticket 目标档 **≤33** ⇒ 档位链含 LIGHT ⇒ light() 被调（光照接管发生）；
+- ticket 目标档 **34**（INITIALIZE_LIGHT）= 停在 light() 之前（不触发光照）。
+
+这取代了此前「level≤32 档位层保持 I」的分档表述（见下取代链）；主命题「light() 覆盖 = workload/ticket 覆盖面的直接函数」本身未被推翻，仅机制层由 I 升档。
+
+### 证据强度分档（诚实声明，judge-review-260920-06 C2 条件）
+
+- **33/34 贴界对 = 运行时直证（E1）**：fe2 双相单验，N 臂 lvl=34 status=initialize_light / P 臂 lvl=33 status=full，同 run 双相单 chunk 自对照，唯一变量 = 票档，双 PASS。
+- **≤32 其余档 = 静态链间接背书，非全域直证**：A5（`level < 33 → FULL`，ChunkLevels.java:11-13 一手已核）+ A8（level 22 DRIVE_LEVEL 海量实测旁证）。全域各档逐一运行时验证未做，不声称全域直证。
+
+### §15.4 取代链（原文不删不改）
+
+- **supersedes**：`.artifacts/k2a-fullcov-260920-05/verdict-260920-05.md` :74 中「level≤32 机制层出自 T5/T6 静态推演，保持 I 标注（升档前置 = 一次运行时单验）」的分档——**该分档被取代**；升档理由 = 前置「运行时单验」已由 fe2 双相 33/34 贴界对满足，且 T5 获 confirmed（2026-09-21）。
+- **superseded-by**：`.investigations/c2-upgrade-260921-01/supersede-draft.md` §2（新 C2 措辞）+ `.investigations/k2a-t5t6-260920-06/record-260920-06.md` §4 T5（confirmed）+ `judge-review-260920-06.md`（PASS-with-conditions C1-C3）。
+- verdict-260920-05 **原文不删不改**，取代指针引用块在其 :76；与 design-260920-05 §1.1 既有 T5 表行取代指针**对象不同、互为补充**（该指针针对 T5 off-by-one 表述，本链针对 verdict :74 分档）。
+
+### T6（Chebyshev 环分布）：ring=1 运行时读数已落地（260921-02，candidate）
+
+260920-06 时 T6 因 ring=1 probe 未实现维持 I（独立降权）。260921-02 补充 probe 落地（`FormProbe.edgeRingProbe` + `run_formedge_t6.py`，纯 Java 诊断面，dll 不变 cc4e39fe）：t6a 臂 N 相 4 个 cardinal 环 chunk 全部 **lvl=35 / status=minecraft:carvers**，与 Chebyshev 线性加距预测（A7 表 35 档）一致 ⇒ **I 标注可摘，T6 升 candidate**（judge PASS-with-conditions 条件已应用，confirmed 留用户；覆盖面 = 单票位 4 cardinal 邻，对角邻未采样，非全域环面直证）。过程 → 10-timewise-archive 260921-02 块 + `.investigations/t6-ring-260921-02/`。
+
+### 复测口径指针
+
+- 双相臂脚本：`python .tmp/k2a-t5t6-260920-06/run_formedge.py <新tag>`（窗口化 hint 已修）；T6 环读数臂：`python .tmp/k2a-t5t6-260920-06/run_formedge_t6.py <新tag>`。
+- 窗口化判读：`python .tmp/k2a-t5t6-260920-06/analyze_fe2.py`。
+- 过程链/取代登记原文：`.investigations/c2-upgrade-260921-01/supersede-draft.md` + `.investigations/t6-ring-260921-02/record-260921-02.md`；时间线 → 10-timewise-archive 260921-01 / 260921-02 块。

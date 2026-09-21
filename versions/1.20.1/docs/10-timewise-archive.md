@@ -3789,3 +3789,25 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 `.investigations/c2-upgrade-260921-01/supersede-draft.md` + `.artifacts/k2a-fullcov-260920-05/verdict-260920-05.md`（:76 取代指针）+ `.investigations/000-架构设计/架构计划-260921-01.md`。
 
 本块无新 discovered 条目（#215/#162 已落库；取代登记流程为 §15.4 既有形态的第二次应用，无可复用新模式沉淀建议）。
+
+## 260921-02（实际 2026-09-21 17:14，Get-Date 已核）T6 ring=1 补充 probe 落地 + t6a 臂 RING_PASS（4/4 carvers）——T6 I 摘除升 candidate（judge PASS-with-conditions，confirmed 留用户）
+
+> 承 260920-06（fe2 双相 PASS、T6 维持 I）+ 260921-01（C2 升档时 T6 维持 I 不变）——本块为 record-260920-06 未决项 #2（T6 ring=1 补充 probe）落地；判读口径 = design-260920-06 §3.3 预登记；record = `.investigations/t6-ring-260921-02/record-260921-02.md`。
+
+### 过程链
+
+- ✅ **目的**：T6（票位 level 34 周围环档分布 = Chebyshev 线性加距预测，design §3.3 / A7 表）在 fe2 臂未打 ring=1 补充 probe，维持 I 独立降权——本块补齐可选打点并单验。
+- ✅ **改动（纯 Java 诊断面，dll 不变 cc4e39fe）**：FormProbe 新增 edgeRingProbe（N 相中心 probe 后对 Chebyshev d=1 环 4 cardinal 邻 chunk 补打 `[FP-EDGE] ev=probe ... ring=1` 行）+ T6 专用驱动 run_formedge_t6.py（SELFCERT 增 ring 门：ring_count=4 + ring 坐标与票位 d=1 核对 + probe_line 排除 ring 行防 HARDGATE 误抓 lvl=35）。
+- ✅ **t6a 臂 RING_PASS**：SELFCERT 全绿（ring_count=4、BASE lvl=-1/absent 干净基线、probe N 34/initialize_light + P 33/full 与 fe2 一致复现）；ring 4 行全 **lvl=35 status=minecraft:carvers**（(±1,0)/(0,±1)，t 紧随中心 probe）= Chebyshev 线性加距预测成立。
+- ✅ **T6 I 摘除升 candidate**：§15.4 取代 record-260920-06 两处「T6 维持 I」bullet（原文不删不改）；证据覆盖面 = 单票位 (160,96) × 1 seed × E1 × 4 cardinal 邻 chunk——对角邻 (±1,±1) 未采样，非全域环面直证，诚实声明不外推。
+- ✅ **judge PASS-with-conditions**（N1/N2 非阻塞条件已应用：N1 = record 补「成功分支为 §3.3 失败分支之逆否 + §6 R2 轨道解除」显式说明；N2 = 驱动补 count≠4 分支坐标差输出；N3/N4 提示登记）；review → `.investigations/t6-ring-260921-02/judge-review-260921-02.md`；confirmed 留用户。
+- ✅ 附带：C2 措辞升档 confirmed 转录进 docs/12（260921-01 块结论归口主题篇；T6 段同步以 260921-02 读数 candidate 化）。
+- 📝 **face_new∖face_hist 外延区**：维持「登记不判」（NEXT_SESSION 260921-01 开工点 #2），本块未立项、无生产影响，状态不变。
+
+### 结论与状态
+
+- **T6**：level 34 票位 d=1 环 cardinal 4 点实测 = carvers（35 档），Chebyshev 线性加距预测获运行时读数支持；状态 = **candidate（judge PASS-with-conditions 条件已应用）**，confirmed 留用户；对角邻/外环仍为静态推演旁证（非直证，不外推）。
+
+### 产物
+
+`.investigations/t6-ring-260921-02/record-260921-02.md` + `.tmp/k2a-t5t6-260920-06/{formedge-t6a.log,formedge-t6a_result.json,run_formedge_t6.py}`。
