@@ -3768,3 +3768,24 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 ### 产物
 
 `.investigations/k2a-t5t6-260920-06/{design,record,judge-review}-260920-06.md` + `.tmp/k2a-t5t6-260920-06/{formedge-fe1.log,formedge-fe1_result.json,formedge-fe2.log,formedge-fe2_result.json,run_formedge.py,analyze_fe2.py}`。
+
+## 260921-01（实际 2026-09-21，Get-Date 已核）C2 措辞升档（§15.4 结论取代）——「level≤32 机制层保持 I」→「level≤33 档位语义」/ 主命题不变 / confirmed 用户授予 2026-09-21
+
+> 承 260920-06（T5 confirmed = 升档前置）+ NEXT_SESSION 260920-06 开工点 #1；架构 `.investigations/000-架构设计/架构计划-260921-01.md`（轻量，纯协议面动作）；核心产物 `.investigations/c2-upgrade-260921-01/supersede-draft.md`（confirmed）。
+
+### 过程链
+- ✅ 前提核对（T1，廉价文件读取，无运行时采集）：T5 confirmed 回写（`.investigations/k2a-t5t6-260920-06/record-260920-06.md:4`，judge PASS-with-conditions C1-C3 已应用）+ 升档前置「运行时单验」由 fe2 双相 33/34 贴界对满足——均盘面核对成立。
+- ✅ 取代登记草稿（T2，subagent）：supersede-draft.md = §15.4 双指针（supersedes = verdict-260920-05.md:74 分档 / superseded-by = 本登记 §2 + record §4 T5 + judge-review-260920-06）+ 新 C2 措辞 + verdict 附录指针文本 + §9.7 口径（E1、单 chunk (160,96)、seed 8576294172403134396、单维 overworld、共享 key S={(160,96)}）。与 design-260920-05 §1.1 既有 T5 表行取代指针**对象不同互为补充**（彼 = off-by-one 表行，此 = C2 升级建议措辞）。
+- ✅ judge 复核（T3，MUST，三源核对）：**PASS**，附 B1（status 措辞统一）/ B2（引用块前留空行 + 前置引用保真）非阻塞建议，均已应用。
+- ✅ 用户拍板（T4）：**confirmed 授予 2026-09-21**。
+- ✅ 应用（T5）：verdict-260920-05.md :74 后追加取代指针引用块（**原文不删不改**，§15.4）；supersede-draft 状态回写 confirmed。本块全程纯结论面动作：零代码改动、零运行时采集、零 dll 变动。
+
+### 结论（升档后 C2，confirmed）
+- **C2（升档版）**：light() 覆盖 = 驱动 workload/ticket 覆盖面的直接函数（机制 = **level≤33 档位语义**：ticket 目标档 ≤33 ⇒ 档位链含 LIGHT ⇒ light() 被调；**level 34 档 = INITIALIZE_LIGHT 停 light() 之前**）。主命题（覆盖面直接函数）不变，仅机制层措辞升档。
+- 证据强度限定（judge-06 C2 条件）：33/34 贴界对 = 运行时直证（E1）；≤32 其余档 = 静态链 A5+A8 间接背书，非全域直证；T6（Chebyshev 环分布）维持 I 不变。
+
+### 产物
+
+`.investigations/c2-upgrade-260921-01/supersede-draft.md` + `.artifacts/k2a-fullcov-260920-05/verdict-260920-05.md`（:76 取代指针）+ `.investigations/000-架构设计/架构计划-260921-01.md`。
+
+本块无新 discovered 条目（#215/#162 已落库；取代登记流程为 §15.4 既有形态的第二次应用，无可复用新模式沉淀建议）。
