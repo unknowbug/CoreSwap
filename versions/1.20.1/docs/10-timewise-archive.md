@@ -3762,7 +3762,7 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 
 ### 结论与状态
 
-- **T5（修正后表述）**：level 34 档 = INITIALIZE_LIGHT 停 light() 之前、level 33 档 = FULL ⇒ light() 被调——33/34 贴界对获运行时直证（单 chunk 单 seed 单维 E1）；「level ≤33 其余档」= 静态链 A5 + A8（level 22 实测）间接背书（judge C2 措辞限定）。状态 = **candidate**（judge PASS-with-conditions C1-C3；**confirmed 留用户**）。
+- **T5（修正后表述）**：level 34 档 = INITIALIZE_LIGHT 停 light() 之前、level 33 档 = FULL ⇒ light() 被调——33/34 贴界对获运行时直证（单 chunk 单 seed 单维 E1）；「level ≤33 其余档」= 静态链 A5 + A8（level 22 实测）间接背书（judge C2 措辞限定）。状态 = **confirmed**（用户授予 2026-09-21；judge PASS-with-conditions C1-C3 条件已应用；授予前正文为 candidate 形态，保留不改）。
 - fe1 错误台账教训：① SELFCERT 前置集机械拦 VOID 价值实证；② 新增开关分支 MUST 审查既有放行谓词（不止加 getProperty 消费点）；③ 历史正结果的「靠哪个门放行」值得核清（寄生接线防把巧合当公理，→ build-tooling #162）。
 
 ### 产物
