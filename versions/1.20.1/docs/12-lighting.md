@@ -236,9 +236,9 @@ light() 覆盖 = 驱动 workload/ticket 覆盖面的直接函数，机制 = **le
 - **superseded-by**：`.investigations/c2-upgrade-260921-01/supersede-draft.md` §2（新 C2 措辞）+ `.investigations/k2a-t5t6-260920-06/record-260920-06.md` §4 T5（confirmed）+ `judge-review-260920-06.md`（PASS-with-conditions C1-C3）。
 - verdict-260920-05 **原文不删不改**，取代指针引用块在其 :76；与 design-260920-05 §1.1 既有 T5 表行取代指针**对象不同、互为补充**（该指针针对 T5 off-by-one 表述，本链针对 verdict :74 分档）。
 
-### T6（Chebyshev 环分布）：ring=1 运行时读数已落地（260921-02，candidate）
+### T6（Chebyshev 环分布）：ring=1 运行时读数已落地（260921-02，confirmed）
 
-260920-06 时 T6 因 ring=1 probe 未实现维持 I（独立降权）。260921-02 补充 probe 落地（`FormProbe.edgeRingProbe` + `run_formedge_t6.py`，纯 Java 诊断面，dll 不变 cc4e39fe）：t6a 臂 N 相 4 个 cardinal 环 chunk 全部 **lvl=35 / status=minecraft:carvers**，与 Chebyshev 线性加距预测（A7 表 35 档）一致 ⇒ **I 标注可摘，T6 升 candidate**（judge PASS-with-conditions 条件已应用，confirmed 留用户；覆盖面 = 单票位 4 cardinal 邻，对角邻未采样，非全域环面直证）。过程 → 10-timewise-archive 260921-02 块 + `.investigations/t6-ring-260921-02/`。
+260920-06 时 T6 因 ring=1 probe 未实现维持 I（独立降权）。260921-02 补充 probe 落地（`FormProbe.edgeRingProbe` + `run_formedge_t6.py`，纯 Java 诊断面，dll 不变 cc4e39fe）：t6a 臂 N 相 4 个 cardinal 环 chunk 全部 **lvl=35 / status=minecraft:carvers**，与 Chebyshev 线性加距预测（A7 表 35 档）一致 ⇒ **I 标注可摘，T6 升 confirmed**（用户授予 2026-09-21；judge PASS-with-conditions 条件已应用；覆盖面 = 单票位 4 cardinal 邻，对角邻未采样，非全域环面直证）。过程 → 10-timewise-archive 260921-02 块 + `.investigations/t6-ring-260921-02/`。
 
 ### 复测口径指针
 

@@ -3790,7 +3790,7 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 
 本块无新 discovered 条目（#215/#162 已落库；取代登记流程为 §15.4 既有形态的第二次应用，无可复用新模式沉淀建议）。
 
-## 260921-02（实际 2026-09-21 17:14，Get-Date 已核）T6 ring=1 补充 probe 落地 + t6a 臂 RING_PASS（4/4 carvers）——T6 I 摘除升 candidate（judge PASS-with-conditions，confirmed 留用户）
+## 260921-02（实际 2026-09-21 17:14，Get-Date 已核）T6 ring=1 补充 probe 落地 + t6a 臂 RING_PASS（4/4 carvers）——T6 I 摘除升 **confirmed**（用户授予 2026-09-21；judge PASS-with-conditions）
 
 > 承 260920-06（fe2 双相 PASS、T6 维持 I）+ 260921-01（C2 升档时 T6 维持 I 不变）——本块为 record-260920-06 未决项 #2（T6 ring=1 补充 probe）落地；判读口径 = design-260920-06 §3.3 预登记；record = `.investigations/t6-ring-260921-02/record-260921-02.md`。
 
@@ -3806,7 +3806,7 @@ C-1（MUST）index.yaml 补 fix-term-260919-09 条目（已应用）；C-2（MUS
 
 ### 结论与状态
 
-- **T6**：level 34 票位 d=1 环 cardinal 4 点实测 = carvers（35 档），Chebyshev 线性加距预测获运行时读数支持；状态 = **candidate（judge PASS-with-conditions 条件已应用）**，confirmed 留用户；对角邻/外环仍为静态推演旁证（非直证，不外推）。
+- **T6**：level 34 票位 d=1 环 cardinal 4 点实测 = carvers（35 档），Chebyshev 线性加距预测获运行时读数支持；状态 = **confirmed（用户授予 2026-09-21；judge PASS-with-conditions 条件已应用）**；对角邻/外环仍为静态推演旁证（非直证，不外推）。
 
 ### 产物
 
